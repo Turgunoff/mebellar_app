@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:shimmer/shimmer.dart';
@@ -33,97 +34,85 @@ class HomeScreen extends StatelessWidget {
           NotificationsCubit(sl<NotificationDataSource>())..load(),
       child: ColoredBox(
         color: pt.background,
-        child: SafeArea(
-          bottom: false,
-          child: BlocBuilder<HomeBloc, HomeState>(
-            buildWhen: (a, b) => a.status != b.status,
-            builder: (context, state) {
-              // When the very first load failed and we have nothing cached
-              // to show, replace the entire content with a centred premium
-              // error state. The discover header + search bar stay pinned
-              // so the user always has a way back to other tabs (cart,
-              // favorites — both cached in Hive and fully usable offline).
-              // The bottom nav lives in the shell, so it stays too.
-              final showError = state.status == HomeStatus.failure &&
-                  state.banners.isEmpty &&
-                  state.recommended.isEmpty;
-              if (showError) {
-                return Column(
-                  children: [
-                    const SizedBox(height: 12),
-                    const _DiscoverAppBar(),
-                    const SizedBox(height: 20),
-                    const _PremiumSearchBar(),
-                    Expanded(
-                      child: _HomeErrorState(
-                        onRetry: () => context
-                            .read<HomeBloc>()
-                            .add(const HomeRequested(refresh: true)),
-                      ),
-                    ),
-                    SizedBox(
-                      height: GlassBottomNav.reservedHeight(context) + 16,
-                    ),
-                  ],
-                );
-              }
+        child: BlocBuilder<HomeBloc, HomeState>(
+          buildWhen: (a, b) => a.status != b.status,
+          builder: (context, state) {
+            final showError = state.status == HomeStatus.failure &&
+                state.banners.isEmpty &&
+                state.recommended.isEmpty;
 
-              return ListView(
-                padding: EdgeInsets.only(
-                  bottom: GlassBottomNav.reservedHeight(context) + 16,
-                ),
+            if (showError) {
+              return CustomScrollView(
                 physics: const BouncingScrollPhysics(),
-                children: [
-                  const _DiscoverAppBar(),
-                  const SizedBox(height: 20),
-                  const _PremiumSearchBar(),
-                  const SizedBox(height: 28),
-                  BlocBuilder<HomeBloc, HomeState>(
-                    buildWhen: (prev, curr) =>
-                        prev.status != curr.status ||
-                        prev.banners != curr.banners,
-                    builder: (context, state) {
-                      if (state.status == HomeStatus.loading ||
-                          state.status == HomeStatus.initial) {
-                        return const GlassBannerShimmer();
-                      }
-                      final banners = state.banners.isNotEmpty
-                          ? state.banners
-                          : _fallbackBanners;
-                      return GlassBanner(banners: banners);
-                    },
+                slivers: [
+                  const _HomeAppBar(),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(0, 20, 0, 0),
+                      child: const _PremiumSearchBar(),
+                    ),
                   ),
-                  const SizedBox(height: 32),
-                  _SectionHeader(
-                    title: tr('home.categories'),
-                    actionLabel: tr('home.see_all'),
-                    onAction: () =>
-                        CustomerShellScope.of(context).goToTab(1),
+                  SliverFillRemaining(
+                    child: _HomeErrorState(
+                      onRetry: () => context
+                          .read<HomeBloc>()
+                          .add(const HomeRequested(refresh: true)),
+                    ),
                   ),
-                  const SizedBox(height: 16),
-                  const _CategoriesRow(),
-                  const SizedBox(height: 32),
-
-                  // ──────────────── Top Brands (hidden for MVP) ────────────────
-                  // The Top Brands rail is intentionally commented out until we
-                  // ship a real Brands table + admin UI. Keep the dead code in
-                  // place so we can light it back up without re-deriving the UX.
-                  //
-                  // _SectionHeader(title: 'Top Brands', onAction: () {}),
-                  // const SizedBox(height: 16),
-                  // _BrandsRow(brands: _mockBrands),
-                  // const SizedBox(height: 32),
-                  // ─────────────────────────────────────────────────────────────
-
-                  _SectionHeader(
-                    title: tr('home.recommended'),
-                  ),
-                  const SizedBox(height: 16),
-                  const _RecommendedGrid(),
                 ],
               );
-            },
-          ),
+            }
+
+            return CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                const _HomeAppBar(),
+                SliverToBoxAdapter(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 20),
+                      const _PremiumSearchBar(),
+                      const SizedBox(height: 28),
+                      BlocBuilder<HomeBloc, HomeState>(
+                        buildWhen: (prev, curr) =>
+                            prev.status != curr.status ||
+                            prev.banners != curr.banners,
+                        builder: (context, s) {
+                          if (s.status == HomeStatus.loading ||
+                              s.status == HomeStatus.initial) {
+                            return const GlassBannerShimmer();
+                          }
+                          final banners = s.banners.isNotEmpty
+                              ? s.banners
+                              : _fallbackBanners;
+                          return GlassBanner(banners: banners);
+                        },
+                      ),
+                      const SizedBox(height: 32),
+                      _SectionHeader(
+                        title: tr('home.categories'),
+                        actionLabel: tr('home.see_all'),
+                        onAction: () =>
+                            CustomerShellScope.of(context).goToTab(1),
+                      ),
+                      const SizedBox(height: 16),
+                      const _CategoriesRow(),
+                      const SizedBox(height: 32),
+                      _SectionHeader(title: tr('home.recommended')),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                ),
+                const _RecommendedGrid(),
+                SliverToBoxAdapter(
+                  child: SizedBox(
+                    height: GlassBottomNav.reservedHeight(context) + 24,
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -210,42 +199,51 @@ class _HomeErrorState extends StatelessWidget {
 
 // ─────────────────────────── App bar ───────────────────────────
 
-class _DiscoverAppBar extends StatelessWidget {
-  const _DiscoverAppBar();
+class _HomeAppBar extends StatelessWidget {
+  const _HomeAppBar();
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  tr('home.discover_eyebrow'),
-                  style: PremiumTokens.body(
-                    size: 12,
-                    weight: FontWeight.w600,
-                    color: PremiumTokens.accent,
-                    letterSpacing: 1.6,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  tr('home.discover_title'),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: PremiumTokens.display(size: 26, letterSpacing: -0.5),
-                ),
-              ],
+    final pt = PremiumTokens.of(context);
+    return SliverAppBar(
+      pinned: true,
+      expandedHeight: 130.0,
+      backgroundColor: pt.surface,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      automaticallyImplyLeading: false,
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 12),
+          child: const _NotificationBell(),
+        ),
+      ],
+      flexibleSpace: FlexibleSpaceBar(
+        centerTitle: false,
+        expandedTitleScale: 1.6,
+        titlePadding: const EdgeInsetsDirectional.only(
+          start: 20,
+          bottom: 14,
+        ),
+        title: Text(
+          tr('home.discover_title'),
+          style: PremiumTokens.display(size: 20, letterSpacing: -0.4),
+        ),
+        background: Container(
+          color: pt.surface,
+          alignment: Alignment.bottomLeft,
+          padding: const EdgeInsets.only(left: 20, bottom: 52),
+          child: Text(
+            tr('home.discover_eyebrow'),
+            style: PremiumTokens.body(
+              size: 12,
+              weight: FontWeight.w600,
+              color: PremiumTokens.accent,
+              letterSpacing: 1.6,
             ),
           ),
-          const SizedBox(width: 12),
-          const _NotificationBell(),
-        ],
+        ),
       ),
     );
   }
@@ -605,39 +603,41 @@ class _RecommendedGrid extends StatelessWidget {
       builder: (context, state) {
         final isLoading = state.status == HomeStatus.loading ||
             state.status == HomeStatus.initial;
-        if (isLoading) return const _RecommendedGridSkeleton();
-        if (state.recommended.isEmpty) {
-          return const _RecommendedEmpty();
+        if (isLoading) {
+          return const SliverToBoxAdapter(
+            child: _RecommendedGridSkeleton(),
+          );
         }
-        return GridView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        if (state.recommended.isEmpty) {
+          return const SliverToBoxAdapter(child: _RecommendedEmpty());
+        }
+        return SliverPadding(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+          sliver: SliverMasonryGrid.count(
             crossAxisCount: 2,
             mainAxisSpacing: 16,
             crossAxisSpacing: 16,
-            childAspectRatio: 0.65,
+            childCount: state.recommended.length,
+            itemBuilder: (context, i) {
+              final p = state.recommended[i];
+              return BlocSelector<FavoritesBloc, FavoritesState, bool>(
+                selector: (s) => s.isFavorite(p.id),
+                builder: (context, isFav) => PremiumProductCard(
+                  imageUrl: p.thumbnail ?? '',
+                  name: p.name,
+                  shop: p.description ?? '',
+                  price: _formatPrice(p.price),
+                  isFavorite: isFav,
+                  customImageHeight: i.isEven ? 180.0 : 240.0,
+                  onTap: () =>
+                      context.push('/product-detail/${p.id}', extra: p),
+                  onFavoriteToggle: () => context
+                      .read<FavoritesBloc>()
+                      .add(FavoriteToggled(_toProduct(p))),
+                ),
+              );
+            },
           ),
-          itemCount: state.recommended.length,
-          itemBuilder: (_, i) {
-            final p = state.recommended[i];
-            return BlocSelector<FavoritesBloc, FavoritesState, bool>(
-              selector: (s) => s.isFavorite(p.id),
-              builder: (context, isFav) => PremiumProductCard(
-                imageUrl: p.thumbnail ?? '',
-                name: p.name,
-                shop: p.description ?? '',
-                price: _formatPrice(p.price),
-                isFavorite: isFav,
-                onTap: () =>
-                    context.push('/product-detail/${p.id}', extra: p),
-                onFavoriteToggle: () => context
-                    .read<FavoritesBloc>()
-                    .add(FavoriteToggled(_toProduct(p))),
-              ),
-            );
-          },
         );
       },
     );
@@ -650,21 +650,19 @@ class _RecommendedGridSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
-    return GridView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+    return MasonryGridView.count(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 16,
-        crossAxisSpacing: 16,
-        childAspectRatio: 0.65,
-      ),
+      crossAxisCount: 2,
+      mainAxisSpacing: 16,
+      crossAxisSpacing: 16,
       itemCount: 4,
-      itemBuilder: (_, _) => Shimmer.fromColors(
+      itemBuilder: (_, i) => Shimmer.fromColors(
         baseColor: pt.imageBg,
         highlightColor: pt.surface,
         child: Container(
+          height: i.isEven ? 265.0 : 325.0,
           decoration: BoxDecoration(
             color: pt.imageBg,
             borderRadius: BorderRadius.circular(20),

@@ -17,6 +17,7 @@ class PremiumProductCard extends StatelessWidget {
     this.isFavorite = false,
     this.onTap,
     this.onFavoriteToggle,
+    this.customImageHeight,
   });
 
   final String imageUrl;
@@ -27,9 +28,43 @@ class PremiumProductCard extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onFavoriteToggle;
 
+  /// When set, the image area is a fixed-height [SizedBox] and the card
+  /// sizes to its intrinsic height — required for masonry / staggered grids.
+  /// When null the card uses the original [Expanded]-based layout and expects
+  /// a fixed-height parent (e.g. a standard aspect-ratio grid cell).
+  final double? customImageHeight;
+
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
+
+    final imageStack = Stack(
+      fit: StackFit.expand,
+      children: [
+        Container(color: pt.imageBg),
+        CachedNetworkImage(
+          imageUrl: imageUrl,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          placeholder: (_, _) => Shimmer.fromColors(
+            baseColor: pt.imageBg,
+            highlightColor: const Color(0xFFFAFAFA),
+            child: Container(color: Colors.white),
+          ),
+          errorWidget: (_, _, _) =>
+              const ImageErrorPlaceholder(iconSize: 32),
+        ),
+        Positioned(
+          top: 12,
+          right: 12,
+          child: _FrostedHeartButton(
+            isFavorite: isFavorite,
+            onTap: onFavoriteToggle,
+          ),
+        ),
+      ],
+    );
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -40,93 +75,122 @@ class PremiumProductCard extends StatelessWidget {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(20),
+          child: customImageHeight != null
+              ? _buildMasonryLayout(pt, imageStack)
+              : _buildFixedLayout(pt, imageStack),
+        ),
+      ),
+    );
+  }
+
+  /// Variable-height layout for masonry grids. The Column has no [Expanded]
+  /// children so it sizes to its natural content height.
+  Widget _buildMasonryLayout(PremiumTokens pt, Widget imageStack) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(height: customImageHeight, child: imageStack),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
-                flex: 65,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Container(color: pt.imageBg),
-                      Padding(
-                        padding: const EdgeInsets.all(8),
-                        child: CachedNetworkImage(
-                          imageUrl: imageUrl,
-                          fit: BoxFit.cover,
-                          placeholder: (_, _) => Shimmer.fromColors(
-                            baseColor: pt.imageBg,
-                            highlightColor: const Color(0xFFFAFAFA),
-                            child: Container(color: Colors.white),
-                          ),
-                          errorWidget: (_, _, _) =>
-                              const ImageErrorPlaceholder(iconSize: 32),
-                        ),
-                      ),
-                      Positioned(
-                        top: 12,
-                        right: 12,
-                        child: _FrostedHeartButton(
-                          isFavorite: isFavorite,
-                          onTap: onFavoriteToggle,
-                        ),
-                      ),
-                    ],
-                  ),
+              Text(
+                name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: PremiumTokens.body(
+                  size: 15,
+                  weight: FontWeight.w700,
+                  color: pt.dark,
+                  letterSpacing: -0.2,
                 ),
-                Expanded(
-                  flex: 35,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: PremiumTokens.body(
-                                size: 15,
-                                weight: FontWeight.w700,
-                                color: pt.dark,
-                                letterSpacing: -0.2,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              shop,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: PremiumTokens.body(
-                                size: 12,
-                                color: pt.grey,
-                              ),
-                            ),
-                          ],
-                        ),
-                        Text(
-                          price,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: PremiumTokens.body(
-                            size: 15,
-                            weight: FontWeight.w700,
-                            color: PremiumTokens.accent,
-                            letterSpacing: -0.2,
-                          ),
-                        ),
-                      ],
+              ),
+              const SizedBox(height: 2),
+              Text(
+                shop,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: PremiumTokens.body(size: 12, color: pt.grey),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                price,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: PremiumTokens.body(
+                  size: 15,
+                  weight: FontWeight.w700,
+                  color: PremiumTokens.accent,
+                  letterSpacing: -0.2,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Fixed-height layout for standard aspect-ratio grid cells (Favorites,
+  /// Catalog, etc.). Uses [Expanded] to fill the parent's bounded height.
+  Widget _buildFixedLayout(PremiumTokens pt, Widget imageStack) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          flex: 65,
+          child: imageStack,
+        ),
+        Expanded(
+          flex: 35,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: PremiumTokens.body(
+                        size: 15,
+                        weight: FontWeight.w700,
+                        color: pt.dark,
+                        letterSpacing: -0.2,
+                      ),
                     ),
+                    const SizedBox(height: 2),
+                    Text(
+                      shop,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: PremiumTokens.body(size: 12, color: pt.grey),
+                    ),
+                  ],
+                ),
+                Text(
+                  price,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: PremiumTokens.body(
+                    size: 15,
+                    weight: FontWeight.w700,
+                    color: PremiumTokens.accent,
+                    letterSpacing: -0.2,
                   ),
                 ),
               ],
             ),
           ),
         ),
+      ],
     );
   }
 }
@@ -173,10 +237,6 @@ class _FrostedHeartButton extends StatelessWidget {
                   width: 1,
                 ),
               ),
-              // Material's favorite/favorite_border have a clear filled vs.
-              // outlined contrast — Iconsax's `heart_copy` is actually a
-              // duplicate of the outline, which made the active state look
-              // unchanged.
               child: Icon(
                 isFavorite ? Icons.favorite : Icons.favorite_border,
                 color: isFavorite ? PremiumTokens.accent : pt.dark,
