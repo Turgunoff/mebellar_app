@@ -47,7 +47,8 @@ class _MapAddressPickerScreenState extends State<MapAddressPickerScreen> {
   @override
   void dispose() {
     _geocodeDebounce?.cancel();
-    _mapController?.dispose();
+    // Do NOT call _mapController?.dispose() here — YandexMap widget disposes
+    // the controller automatically when it unmounts.
     super.dispose();
   }
 

@@ -39,7 +39,8 @@
       "Bash(npx skills *)",
       "mcp__dart__pub",
       "mcp__dart__analyze_files",
-      "Bash(grep -E \"\\\\.\\(dart\\)$\")"
+      "Bash(grep -E \"\\\\.\\(dart\\)$\")",
+      "Bash(xargs cat)"
     ]
   },
   "enableAllProjectMcpServers": true,
