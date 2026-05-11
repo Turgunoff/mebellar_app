@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../core/theme/app_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/di/service_locator.dart';
@@ -274,7 +274,7 @@ class _AuthBottomSheetState extends State<_AuthBottomSheet> {
         SnackBar(
           content: Text(
             msg,
-            style: GoogleFonts.plusJakartaSans(
+            style: TextStyle(fontFamily: AppFonts.seller, 
               fontSize: 14,
               fontWeight: FontWeight.w500,
               color: Colors.white,
@@ -626,7 +626,7 @@ class _OtpStep extends StatelessWidget {
                   ),
                   child: Text(
                     'Kodni qayta yuborish',
-                    style: GoogleFonts.plusJakartaSans(
+                    style: TextStyle(fontFamily: AppFonts.seller, 
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                       color: _terracotta,
@@ -635,7 +635,7 @@ class _OtpStep extends StatelessWidget {
                 )
               : Text(
                   'Kodni qayta yuborish ($remainingLabel)',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: TextStyle(fontFamily: AppFonts.seller, 
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                     color: _textSecondary,
@@ -777,7 +777,7 @@ class _PinBox extends StatelessWidget {
       ),
       child: Text(
         digit,
-        style: GoogleFonts.plusJakartaSans(
+        style: TextStyle(fontFamily: AppFonts.seller, 
           fontSize: 22,
           fontWeight: FontWeight.w700,
           color: _textPrimary,
@@ -864,7 +864,7 @@ class _PhoneField extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 0, 12, 0),
             child: Text(
               '+998',
-              style: GoogleFonts.plusJakartaSans(
+              style: TextStyle(fontFamily: AppFonts.seller, 
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
                 color: _textPrimary,
@@ -885,7 +885,7 @@ class _PhoneField extends StatelessWidget {
                 LengthLimitingTextInputFormatter(9),
                 _UzPhoneFormatter(),
               ],
-              style: GoogleFonts.plusJakartaSans(
+              style: TextStyle(fontFamily: AppFonts.seller, 
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
                 color: _textPrimary,
@@ -895,7 +895,7 @@ class _PhoneField extends StatelessWidget {
                 contentPadding: const EdgeInsets.symmetric(vertical: 16),
                 border: InputBorder.none,
                 hintText: '90 123 45 67',
-                hintStyle: GoogleFonts.plusJakartaSans(
+                hintStyle: TextStyle(fontFamily: AppFonts.seller, 
                   fontSize: 15,
                   fontWeight: FontWeight.w400,
                   color: _textSecondary,
@@ -946,7 +946,7 @@ class _Label extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: GoogleFonts.plusJakartaSans(
+      style: TextStyle(fontFamily: AppFonts.seller, 
         fontSize: 13,
         fontWeight: FontWeight.w600,
         color: _textPrimary,
@@ -994,7 +994,7 @@ class _OutlinedField extends StatelessWidget {
       textCapitalization: textCapitalization,
       autofillHints: autofillHints,
       onSubmitted: onSubmitted,
-      style: GoogleFonts.plusJakartaSans(
+      style: TextStyle(fontFamily: AppFonts.seller, 
         fontSize: 15,
         fontWeight: FontWeight.w500,
         color: _textPrimary,
@@ -1006,7 +1006,7 @@ class _OutlinedField extends StatelessWidget {
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         hintText: hintText,
-        hintStyle: GoogleFonts.plusJakartaSans(
+        hintStyle: TextStyle(fontFamily: AppFonts.seller, 
           fontSize: 15,
           fontWeight: FontWeight.w400,
           color: _textSecondary,
@@ -1059,7 +1059,7 @@ class _PrimaryButton extends StatelessWidget {
                   )
                 : Text(
                     label,
-                    style: GoogleFonts.plusJakartaSans(
+                    style: TextStyle(fontFamily: AppFonts.seller, 
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
@@ -1101,7 +1101,7 @@ class _ErrorBanner extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style: GoogleFonts.plusJakartaSans(
+              style: TextStyle(fontFamily: AppFonts.seller, 
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
                 color: _danger,
@@ -1127,7 +1127,7 @@ class _ErrorBanner extends StatelessWidget {
 // Typography helpers
 // ---------------------------------------------------------------------------
 
-TextStyle _titleStyle() => GoogleFonts.plusJakartaSans(
+TextStyle _titleStyle() => TextStyle(fontFamily: AppFonts.seller, 
       fontSize: 22,
       fontWeight: FontWeight.w700,
       color: _textPrimary,
@@ -1135,7 +1135,7 @@ TextStyle _titleStyle() => GoogleFonts.plusJakartaSans(
       height: 1.2,
     );
 
-TextStyle _subtitleStyle() => GoogleFonts.plusJakartaSans(
+TextStyle _subtitleStyle() => TextStyle(fontFamily: AppFonts.seller, 
       fontSize: 14,
       fontWeight: FontWeight.w400,
       color: _textSecondary,

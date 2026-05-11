@@ -1,6 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/theme/app_fonts.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../../core/theme/app_colors.dart';
@@ -102,7 +102,7 @@ class _AnalyticsHeader extends StatelessWidget {
           Expanded(
             child: Text(
               'Analitika',
-              style: GoogleFonts.plusJakartaSans(
+              style: TextStyle(fontFamily: AppFonts.seller, 
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
                 color: _ink,
@@ -187,7 +187,7 @@ class _RangeSegment extends StatelessWidget {
         ),
         child: Text(
           label,
-          style: GoogleFonts.plusJakartaSans(
+          style: TextStyle(fontFamily: AppFonts.seller, 
             fontSize: 13,
             fontWeight: active ? FontWeight.w700 : FontWeight.w600,
             color: active ? Colors.white : _grey,
@@ -249,7 +249,7 @@ class _SalesChartCard extends StatelessWidget {
         children: [
           Text(
             caption,
-            style: GoogleFonts.plusJakartaSans(
+            style: TextStyle(fontFamily: AppFonts.seller, 
               fontSize: 13,
               fontWeight: FontWeight.w500,
               color: _grey,
@@ -266,7 +266,7 @@ class _SalesChartCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   text: TextSpan(
                     text: total,
-                    style: GoogleFonts.plusJakartaSans(
+                    style: TextStyle(fontFamily: AppFonts.seller, 
                       fontSize: 26,
                       fontWeight: FontWeight.w800,
                       color: _ink,
@@ -276,7 +276,7 @@ class _SalesChartCard extends StatelessWidget {
                     children: [
                       TextSpan(
                         text: '  UZS',
-                        style: GoogleFonts.plusJakartaSans(
+                        style: TextStyle(fontFamily: AppFonts.seller, 
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: _greyMid,
@@ -323,7 +323,7 @@ class _TrendChip extends StatelessWidget {
           const SizedBox(width: 4),
           Text(
             label,
-            style: GoogleFonts.plusJakartaSans(
+            style: TextStyle(fontFamily: AppFonts.seller, 
               fontSize: 11,
               fontWeight: FontWeight.w700,
               color: AppColors.terracotta,
@@ -431,7 +431,7 @@ class _MiniKpiCard extends StatelessWidget {
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.plusJakartaSans(
+            style: TextStyle(fontFamily: AppFonts.seller, 
               fontSize: 11,
               fontWeight: FontWeight.w500,
               color: _grey,
@@ -444,7 +444,7 @@ class _MiniKpiCard extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             text: TextSpan(
               text: value,
-              style: GoogleFonts.plusJakartaSans(
+              style: TextStyle(fontFamily: AppFonts.seller, 
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
                 color: _ink,
@@ -455,7 +455,7 @@ class _MiniKpiCard extends StatelessWidget {
                 if (unit != null)
                   TextSpan(
                     text: '  $unit',
-                    style: GoogleFonts.plusJakartaSans(
+                    style: TextStyle(fontFamily: AppFonts.seller, 
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
                       color: _greyMid,
@@ -469,7 +469,7 @@ class _MiniKpiCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               delta!,
-              style: GoogleFonts.plusJakartaSans(
+              style: TextStyle(fontFamily: AppFonts.seller, 
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
                 color: _positive,
@@ -496,7 +496,7 @@ class _CategoryDistributionSection extends StatelessWidget {
       children: [
         Text(
           'Sotuvlar tarkibi',
-          style: GoogleFonts.plusJakartaSans(
+          style: TextStyle(fontFamily: AppFonts.seller, 
             fontSize: 17,
             fontWeight: FontWeight.w700,
             color: _ink,
@@ -595,7 +595,7 @@ class _LegendRow extends StatelessWidget {
             slice.label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.plusJakartaSans(
+            style: TextStyle(fontFamily: AppFonts.seller, 
               fontSize: 13,
               fontWeight: FontWeight.w500,
               color: _ink,
@@ -606,7 +606,7 @@ class _LegendRow extends StatelessWidget {
         const SizedBox(width: 6),
         Text(
           '${slice.percent.toStringAsFixed(0)}%',
-          style: GoogleFonts.plusJakartaSans(
+          style: TextStyle(fontFamily: AppFonts.seller, 
             fontSize: 13,
             fontWeight: FontWeight.w700,
             color: _ink,
@@ -628,7 +628,7 @@ class _TopProductsHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       'Top mahsulotlar',
-      style: GoogleFonts.plusJakartaSans(
+      style: TextStyle(fontFamily: AppFonts.seller, 
         fontSize: 17,
         fontWeight: FontWeight.w700,
         color: _ink,
@@ -700,7 +700,7 @@ class _TopProductTile extends StatelessWidget {
                   product.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.plusJakartaSans(
+                  style: TextStyle(fontFamily: AppFonts.seller, 
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     color: _ink,
@@ -713,7 +713,7 @@ class _TopProductTile extends StatelessWidget {
                   '${product.unitsSold} dona sotildi',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.plusJakartaSans(
+                  style: TextStyle(fontFamily: AppFonts.seller, 
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                     color: _grey,
@@ -728,7 +728,7 @@ class _TopProductTile extends StatelessWidget {
             textAlign: TextAlign.end,
             text: TextSpan(
               text: product.revenueLabel,
-              style: GoogleFonts.plusJakartaSans(
+              style: TextStyle(fontFamily: AppFonts.seller, 
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
                 color: _ink,
@@ -738,7 +738,7 @@ class _TopProductTile extends StatelessWidget {
               children: [
                 TextSpan(
                   text: '  UZS',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: TextStyle(fontFamily: AppFonts.seller, 
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
                     color: _greyMid,

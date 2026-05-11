@@ -66,6 +66,7 @@ import '../../shared/repositories/tariff_repository.dart';
 import '../auth/auth_cubit.dart';
 import '../auth/auth_repository.dart';
 import '../connectivity/connectivity_service.dart';
+import '../connectivity/network_cubit.dart';
 import '../deep_links/deep_link_service.dart';
 import '../network/api_client.dart';
 import '../network/supabase_client.dart';
@@ -111,11 +112,19 @@ Future<void> initRootScope() async {
 
   sl.registerSingleton<SecureStorage>(SecureStorage());
 
-  // Sprint 11 polish: connectivity + deep links + cache wrapper. The mock
-  // connectivity service is used regardless of `useMocks` for now —
-  // production flips to a `connectivity_plus`-backed adapter in Sprint 12.
-  sl.registerSingleton<ConnectivityService>(MockConnectivityService(),
-      dispose: (s) => s.dispose());
+  // Connectivity supervisor. Real implementation combines `connectivity_plus`
+  // (link state) + `internet_connection_checker_plus` (actual reachability).
+  // Tests substitute MockConnectivityService via `sl.allowReassignment`.
+  sl.registerSingleton<ConnectivityService>(
+    RealConnectivityService(),
+    dispose: (s) => s.dispose(),
+  );
+  // Wraps the connectivity stream as a Cubit so the global network overlay
+  // banner can subscribe through `BlocListener` and survive route changes.
+  sl.registerSingleton<NetworkCubit>(
+    NetworkCubit(sl<ConnectivityService>()),
+    dispose: (c) => c.close(),
+  );
   sl.registerSingleton<DeepLinkService>(MockDeepLinkService(),
       dispose: (s) => s.dispose());
   sl.registerLazySingleton<CacheStore>(
@@ -355,6 +364,7 @@ void _registerCustomerDependencies() {
     () => HomeBloc(
       bannerRepo: sl<BannerRepository>(),
       productSource: sl<SupabaseProductDataSource>(),
+      networkCubit: sl<NetworkCubit>(),
     )..add(const HomeRequested()),
     dispose: (bloc) => bloc.close(),
   );
@@ -377,8 +387,10 @@ void _registerCustomerDependencies() {
     dispose: (bloc) => bloc.close(),
   );
   sl.registerLazySingleton<CategoriesBloc>(
-    () => CategoriesBloc(sl<CategoryDataSource>())
-      ..add(const CategoriesRequested()),
+    () => CategoriesBloc(
+      sl<CategoryDataSource>(),
+      networkCubit: sl<NetworkCubit>(),
+    )..add(const CategoriesRequested()),
     dispose: (bloc) => bloc.close(),
   );
 }

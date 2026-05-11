@@ -20,7 +20,7 @@ import 'seller_product_detail_screen.dart';
 //   The seller theme pins the default font family to Plus Jakarta Sans via
 //   `AppTypography.plusJakartaSansTextTheme(...)` in `seller_theme.dart`.
 //   Every TextStyle here intentionally omits `fontFamily` so the family is
-//   inherited from the theme — don't reintroduce `GoogleFonts.xxx(...)`.
+//   inherited from the theme — don't reintroduce `AppFonts.xxx(...)`.
 //
 //   Color overrides below also bypass the seller `ColorScheme` for the
 //   surfaces that were picking up an off-brand greenish/teal tint

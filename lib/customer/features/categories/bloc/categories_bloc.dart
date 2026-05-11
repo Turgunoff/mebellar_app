@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/connectivity/network_cubit.dart';
 import '../../../../shared/models/category_model.dart';
 import '../../../../shared/repositories/supabase_category_repository.dart';
 
@@ -45,11 +48,38 @@ class CategoriesState extends Equatable {
 }
 
 class CategoriesBloc extends Bloc<CategoriesEvent, CategoriesState> {
-  CategoriesBloc(this._source) : super(const CategoriesState()) {
+  CategoriesBloc(this._source, {NetworkCubit? networkCubit})
+      : _networkCubit = networkCubit,
+        super(const CategoriesState()) {
     on<CategoriesRequested>(_onRequested);
+
+    // Auto-retry on reconnect. Mirrors the HomeBloc pattern so the offline
+    // UX is consistent across the customer shell. We only refire when the
+    // previous attempt actually failed *or* we never managed to populate
+    // the list — otherwise we'd hammer the API every time the user
+    // toggles airplane mode.
+    final cubit = _networkCubit;
+    if (cubit != null) {
+      _lastNetwork = cubit.state;
+      _netSub = cubit.stream.listen((next) {
+        final wasOffline = _lastNetwork == NetworkStatus.offline;
+        _lastNetwork = next;
+        if (wasOffline && next == NetworkStatus.online) {
+          final needsRefresh =
+              state.status == CategoriesStatus.failure ||
+                  state.categories.isEmpty;
+          if (needsRefresh) {
+            add(const CategoriesRequested());
+          }
+        }
+      });
+    }
   }
 
   final CategoryDataSource _source;
+  final NetworkCubit? _networkCubit;
+  StreamSubscription<NetworkStatus>? _netSub;
+  NetworkStatus _lastNetwork = NetworkStatus.initial;
 
   Future<void> _onRequested(
     CategoriesRequested event,
@@ -68,5 +98,11 @@ class CategoriesBloc extends Bloc<CategoriesEvent, CategoriesState> {
         error: e.toString(),
       ));
     }
+  }
+
+  @override
+  Future<void> close() async {
+    await _netSub?.cancel();
+    return super.close();
   }
 }

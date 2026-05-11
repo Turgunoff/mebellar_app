@@ -1,14 +1,16 @@
+import 'dart:async';
 import 'dart:ui';
-
-import 'package:go_router/go_router.dart';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:shimmer/shimmer.dart';
 
+import '../../../../core/i18n/i18n.dart';
 import '../../../../shared/models/category_model.dart';
+import '../../../../shared/widgets/image_error_placeholder.dart';
 import '../../../widgets/glass_bottom_nav.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../bloc/categories_bloc.dart';
@@ -25,30 +27,94 @@ class CategoriesScreen extends StatelessWidget {
         bottom: false,
         child: BlocBuilder<CategoriesBloc, CategoriesState>(
           builder: (context, state) {
-            if (state.status == CategoriesStatus.failure) {
-              return _ErrorView(message: state.error ?? 'Unknown error');
+            Future<void> handleRefresh() {
+              // Dispatch the refresh and wait for the bloc to leave the
+              // loading state — keeps the spinner pinned while the request
+              // is in flight, instead of disappearing the instant we add
+              // the event.
+              final bloc = context.read<CategoriesBloc>();
+              final completer = Completer<void>();
+              late final StreamSubscription sub;
+              sub = bloc.stream.listen((s) {
+                if (s.status != CategoriesStatus.loading &&
+                    !completer.isCompleted) {
+                  completer.complete();
+                  sub.cancel();
+                }
+              });
+              bloc.add(const CategoriesRequested());
+              return completer.future.timeout(
+                const Duration(seconds: 12),
+                onTimeout: () {
+                  sub.cancel();
+                },
+              );
             }
 
+            // First-load failure with nothing cached → premium error state.
+            // Subsequent failures while we still have stale items keep the
+            // list visible (the global red banner already tells the user
+            // about the connection).
+            final isFailure = state.status == CategoriesStatus.failure;
+            final hasItems = state.categories.isNotEmpty;
+            if (isFailure && !hasItems) {
+              return RefreshIndicator(
+                onRefresh: handleRefresh,
+                color: PremiumTokens.accent,
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
+                  padding: EdgeInsets.fromLTRB(
+                    16,
+                    8,
+                    16,
+                    GlassBottomNav.reservedHeight(context) + 48,
+                  ),
+                  children: [
+                    const _CategoriesAppBar(),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.55,
+                      child: _CategoriesErrorState(
+                        onRetry: () => context
+                            .read<CategoriesBloc>()
+                            .add(const CategoriesRequested()),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            // Shimmer only while we're actively loading; once the bloc
+            // emits failure (or ready) we never re-enter shimmer state.
             final isLoading = state.status == CategoriesStatus.loading ||
                 state.status == CategoriesStatus.initial;
             final items = state.categories;
 
-            return ListView.separated(
-              padding: EdgeInsets.fromLTRB(
-                16,
-                8,
-                16,
-                GlassBottomNav.reservedHeight(context) + 48,
+            return RefreshIndicator(
+              onRefresh: handleRefresh,
+              color: PremiumTokens.accent,
+              child: ListView.separated(
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  8,
+                  16,
+                  GlassBottomNav.reservedHeight(context) + 48,
+                ),
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics(),
+                ),
+                itemCount: isLoading ? 5 : items.length + 1,
+                separatorBuilder: (_, _) => const SizedBox(height: 20),
+                itemBuilder: (context, i) {
+                  if (i == 0) return const _CategoriesAppBar();
+                  if (isLoading) return const _SkeletonCard();
+                  final cat = items[i - 1];
+                  return _EditorialCategoryCard(category: cat);
+                },
               ),
-              physics: const BouncingScrollPhysics(),
-              itemCount: isLoading ? 5 : items.length + 1,
-              separatorBuilder: (_, _) => const SizedBox(height: 20),
-              itemBuilder: (context, i) {
-                if (i == 0) return const _CategoriesAppBar();
-                if (isLoading) return const _SkeletonCard();
-                final cat = items[i - 1];
-                return _EditorialCategoryCard(category: cat);
-              },
             );
           },
         ),
@@ -186,14 +252,8 @@ class _EditorialCategoryCardState extends State<_EditorialCategoryCard> {
                         highlightColor: pt.background,
                         child: Container(color: pt.imageBg),
                       ),
-                      errorWidget: (_, _, _) => Container(
-                        color: pt.imageBg,
-                        child: Icon(
-                          Iconsax.gallery,
-                          color: pt.greyLight,
-                          size: 32,
-                        ),
-                      ),
+                      errorWidget: (_, _, _) =>
+                          const ImageErrorPlaceholder(iconSize: 36),
                     )
                   else
                     Container(color: pt.imageBg),
@@ -304,45 +364,72 @@ class _SkeletonCard extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Error view
+// Error state — premium centered offline / failure widget, matches
+// `_HomeErrorState` from the home feed so the customer flow has a single
+// visual vocabulary for "couldn't load".
 // ---------------------------------------------------------------------------
 
-class _ErrorView extends StatelessWidget {
-  const _ErrorView({required this.message});
+class _CategoriesErrorState extends StatelessWidget {
+  const _CategoriesErrorState({required this.onRetry});
 
-  final String message;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Iconsax.warning_2, size: 48, color: pt.greyLight),
-            const SizedBox(height: 16),
-            Text(
-              'Could not load categories',
-              style: PremiumTokens.body(
-                size: 16,
-                weight: FontWeight.w600,
-                color: pt.dark,
+            Container(
+              width: 88,
+              height: 88,
+              decoration: BoxDecoration(
+                color: PremiumTokens.accent.withValues(alpha: 0.10),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.wifi_off_rounded,
+                size: 40,
+                color: PremiumTokens.accent,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 24),
             Text(
-              message,
+              tr('home.categories_error_title'),
               textAlign: TextAlign.center,
-              style: PremiumTokens.body(size: 13, color: pt.grey),
+              style: PremiumTokens.display(size: 20, letterSpacing: -0.2),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              tr('home.error_subtitle'),
+              textAlign: TextAlign.center,
+              style: PremiumTokens.body(size: 14, color: pt.grey, height: 1.4),
             ),
             const SizedBox(height: 24),
-            TextButton.icon(
-              onPressed: () =>
-                  context.read<CategoriesBloc>().add(const CategoriesRequested()),
+            FilledButton.icon(
+              onPressed: onRetry,
               icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: const Text('Retry'),
+              label: Text(tr('home.error_retry')),
+              style: FilledButton.styleFrom(
+                backgroundColor: PremiumTokens.accent,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 28,
+                  vertical: 14,
+                ),
+                minimumSize: const Size(0, 48),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(100),
+                ),
+                textStyle: PremiumTokens.body(
+                  size: 14,
+                  weight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
             ),
           ],
         ),

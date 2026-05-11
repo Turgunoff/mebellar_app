@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
 import '../config/app_mode.dart';
+import '../core/connectivity/network_cubit.dart';
 import '../core/di/service_locator.dart';
 import '../core/i18n/i18n.dart';
 import '../core/logging/console_nav_observer.dart';
@@ -13,7 +15,7 @@ import '../core/notifications/notification_handler.dart';
 import '../core/theme/app_theme.dart' show appSystemOverlay;
 import '../core/theme/seller_theme.dart';
 import '../main.dart' show AppLocaleScope;
-import '../shared/widgets/offline_banner.dart';
+import '../shared/widgets/network_overlay_wrapper.dart';
 import 'features/analytics/screens/analytics_screen.dart';
 import 'features/dashboard/dashboard_screen.dart';
 import 'features/orders/screens/seller_orders_screen.dart';
@@ -50,25 +52,33 @@ class _SellerAppState extends State<SellerApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Woody Seller',
-      debugShowCheckedModeBanner: false,
-      theme: sellerLightTheme,
-      darkTheme: sellerDarkTheme,
-      navigatorKey: sellerNavigatorKey,
-      navigatorObservers: [TalkerRouteObserver(talker), ConsoleNavObserver()],
-      localizationsDelegates: const [
-        AppLocalizationsDelegate(),
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: AppTranslations.supportedLocales,
-      locale: AppLocaleScope.of(context).value,
-      home: const SellerHomeShell(),
-      builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
-        value: appSystemOverlay(Theme.of(context).brightness),
-        child: child ?? const SizedBox.shrink(),
+    return BlocProvider<NetworkCubit>.value(
+      value: sl<NetworkCubit>(),
+      child: MaterialApp(
+        title: 'Woody Seller',
+        debugShowCheckedModeBanner: false,
+        theme: sellerLightTheme,
+        darkTheme: sellerDarkTheme,
+        navigatorKey: sellerNavigatorKey,
+        navigatorObservers: [
+          TalkerRouteObserver(talker),
+          ConsoleNavObserver(),
+        ],
+        localizationsDelegates: const [
+          AppLocalizationsDelegate(),
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: AppTranslations.supportedLocales,
+        locale: AppLocaleScope.of(context).value,
+        home: const SellerHomeShell(),
+        builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
+          value: appSystemOverlay(Theme.of(context).brightness),
+          child: NetworkOverlayWrapper(
+            child: child ?? const SizedBox.shrink(),
+          ),
+        ),
       ),
     );
   }
@@ -108,9 +118,10 @@ class _SellerHomeShellState extends State<SellerHomeShell> {
       // shell never paints an AppBar. This is what keeps the surface free of
       // M3's teal-seeded surface tint on screens like Profile.
       appBar: null,
+      // Connectivity banner is mounted once at MaterialApp.builder via
+      // NetworkOverlayWrapper, so it doesn't need to live inside each shell.
       body: Column(
         children: [
-          const OfflineBanner(),
           Expanded(child: _bodyForTab(_index)),
         ],
       ),

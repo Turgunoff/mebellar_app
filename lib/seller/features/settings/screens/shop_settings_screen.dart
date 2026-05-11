@@ -1,7 +1,7 @@
 ﻿import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/theme/app_fonts.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
@@ -19,7 +19,7 @@ import '../widgets/brand_color_picker.dart';
 
 // Local tokens — kept here so the screen reads top-to-bottom without
 // chasing theme indirection. Plus Jakarta Sans is applied to every
-// `Text` explicitly via `GoogleFonts.plusJakartaSans` so the surface
+// `Text` explicitly via `AppFonts.seller` so the surface
 // is immune to the M3 surface tint that the teal seller seed otherwise
 // bleeds onto neutral backgrounds.
 const _ink = Color(0xFF1D1D1D);
@@ -61,7 +61,7 @@ class _ShopSettingsView extends StatelessWidget {
               behavior: SnackBarBehavior.floating,
               content: Text(
                 tr('shop_settings.saved_toast'),
-                style: GoogleFonts.plusJakartaSans(
+                style: TextStyle(fontFamily: AppFonts.seller, 
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
                 ),
@@ -74,7 +74,7 @@ class _ShopSettingsView extends StatelessWidget {
               behavior: SnackBarBehavior.floating,
               content: Text(
                 state.error!,
-                style: GoogleFonts.plusJakartaSans(
+                style: TextStyle(fontFamily: AppFonts.seller, 
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -140,7 +140,7 @@ class _SettingsAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       title: Text(
         tr('shop_settings.title'),
-        style: GoogleFonts.plusJakartaSans(
+        style: TextStyle(fontFamily: AppFonts.seller, 
           fontSize: 18,
           fontWeight: FontWeight.w700,
           color: _ink,
@@ -344,7 +344,7 @@ class _SectionTitle extends StatelessWidget {
       padding: const EdgeInsets.only(left: 4, bottom: 10),
       child: Text(
         text,
-        style: GoogleFonts.plusJakartaSans(
+        style: TextStyle(fontFamily: AppFonts.seller, 
           fontSize: 15,
           fontWeight: FontWeight.w700,
           color: _ink,
@@ -483,7 +483,7 @@ class _CoverImage extends StatelessWidget {
                             const SizedBox(height: 6),
                             Text(
                               tr('shop_settings.upload_cover'),
-                              style: GoogleFonts.plusJakartaSans(
+                              style: TextStyle(fontFamily: AppFonts.seller, 
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                                 color: _grey,
@@ -538,7 +538,7 @@ class _CoverEditPill extends StatelessWidget {
               const SizedBox(width: 6),
               Text(
                 tr('shop_settings.upload_cover'),
-                style: GoogleFonts.plusJakartaSans(
+                style: TextStyle(fontFamily: AppFonts.seller, 
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   color: _ink,
@@ -662,7 +662,7 @@ class _ChangeLogoButton extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   tr('shop_settings.upload_logo'),
-                  style: GoogleFonts.plusJakartaSans(
+                  style: TextStyle(fontFamily: AppFonts.seller, 
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
                     color: AppColors.terracotta,
@@ -887,7 +887,7 @@ class _ListRow extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: GoogleFonts.plusJakartaSans(
+                    style: TextStyle(fontFamily: AppFonts.seller, 
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: _ink,
@@ -897,7 +897,7 @@ class _ListRow extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: GoogleFonts.plusJakartaSans(
+                    style: TextStyle(fontFamily: AppFonts.seller, 
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                       color: _grey,
@@ -1005,7 +1005,7 @@ class _DayRow extends StatelessWidget {
             width: 44,
             child: Text(
               tr('day.${day.code}'),
-              style: GoogleFonts.plusJakartaSans(
+              style: TextStyle(fontFamily: AppFonts.seller, 
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
                 color: _ink,
@@ -1018,7 +1018,7 @@ class _DayRow extends StatelessWidget {
             child: hours.closed
                 ? Text(
                     tr('shop_settings.closed'),
-                    style: GoogleFonts.plusJakartaSans(
+                    style: TextStyle(fontFamily: AppFonts.seller, 
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                       color: _greyMid,
@@ -1033,7 +1033,7 @@ class _DayRow extends StatelessWidget {
                       const SizedBox(width: 8),
                       Text(
                         '-',
-                        style: GoogleFonts.plusJakartaSans(
+                        style: TextStyle(fontFamily: AppFonts.seller, 
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
                           color: _greyMid,
@@ -1093,7 +1093,7 @@ class _TimePill extends StatelessWidget {
             ),
             child: Text(
               label,
-              style: GoogleFonts.plusJakartaSans(
+              style: TextStyle(fontFamily: AppFonts.seller, 
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
                 color: _ink,
@@ -1137,7 +1137,7 @@ class _VisibilityCard extends StatelessWidget {
                       tr(isPublic
                           ? 'shop_settings.public'
                           : 'shop_settings.hidden'),
-                      style: GoogleFonts.plusJakartaSans(
+                      style: TextStyle(fontFamily: AppFonts.seller, 
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                         color: _ink,
@@ -1149,7 +1149,7 @@ class _VisibilityCard extends StatelessWidget {
                       tr(isPublic
                           ? 'shop_settings.public_hint'
                           : 'shop_settings.hidden_hint'),
-                      style: GoogleFonts.plusJakartaSans(
+                      style: TextStyle(fontFamily: AppFonts.seller, 
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                         color: _grey,
@@ -1211,7 +1211,7 @@ class _FormField extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 6, left: 2),
           child: Text(
             label,
-            style: GoogleFonts.plusJakartaSans(
+            style: TextStyle(fontFamily: AppFonts.seller, 
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: _grey,
@@ -1225,7 +1225,7 @@ class _FormField extends StatelessWidget {
           minLines: minLines,
           maxLines: maxLines,
           cursorColor: AppColors.terracotta,
-          style: GoogleFonts.plusJakartaSans(
+          style: TextStyle(fontFamily: AppFonts.seller, 
             fontSize: 14,
             fontWeight: FontWeight.w600,
             color: _ink,
@@ -1239,13 +1239,13 @@ class _FormField extends StatelessWidget {
               vertical: 14,
             ),
             hintText: hint,
-            hintStyle: GoogleFonts.plusJakartaSans(
+            hintStyle: TextStyle(fontFamily: AppFonts.seller, 
               fontSize: 14,
               fontWeight: FontWeight.w500,
               color: _greyMid,
             ),
             prefixText: prefix,
-            prefixStyle: GoogleFonts.plusJakartaSans(
+            prefixStyle: TextStyle(fontFamily: AppFonts.seller, 
               fontSize: 14,
               fontWeight: FontWeight.w700,
               color: _greyMid,
@@ -1308,7 +1308,7 @@ class _SaveBottomBar extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
-                textStyle: GoogleFonts.plusJakartaSans(
+                textStyle: TextStyle(fontFamily: AppFonts.seller, 
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -0.1,

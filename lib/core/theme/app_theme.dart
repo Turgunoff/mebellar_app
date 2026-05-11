@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'app_colors.dart';
+import 'app_fonts.dart';
 import 'app_theme_extension.dart';
 
 /// Single source of truth for the customer app's Material 3 theme.
@@ -68,7 +68,8 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          textStyle: GoogleFonts.inter(
+          textStyle: const TextStyle(
+            fontFamily: AppFonts.body,
             fontSize: 15,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.3,
@@ -102,7 +103,8 @@ class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: AppColors.terracotta,
-          textStyle: GoogleFonts.inter(
+          textStyle: const TextStyle(
+            fontFamily: AppFonts.body,
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
@@ -162,7 +164,8 @@ class AppTheme {
 
       snackBarTheme: SnackBarThemeData(
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightTextPrimary,
-        contentTextStyle: GoogleFonts.inter(
+        contentTextStyle: TextStyle(
+          fontFamily: AppFonts.body,
           color: isDark ? AppColors.darkTextPrimary : Colors.white,
           fontSize: 14,
         ),
@@ -237,8 +240,13 @@ class AppTheme {
     final primary = scheme.onSurface;
     final secondary = scheme.onSurfaceVariant;
 
-    final display = GoogleFonts.playfairDisplayTextTheme();
-    final body = GoogleFonts.interTextTheme();
+    // Build TextTheme'lar local TTF asset'lardan — har bir harf shakli
+    // bo'yicha `fontFamily`'ni native Flutter font tizimi orqali qo'llaymiz.
+    final baseLight = Typography.englishLike2021.merge(
+      Typography.blackMountainView,
+    );
+    final display = baseLight.apply(fontFamily: AppFonts.display);
+    final body = baseLight.apply(fontFamily: AppFonts.body);
 
     return TextTheme(
       // Playfair Display — editorial headlines.

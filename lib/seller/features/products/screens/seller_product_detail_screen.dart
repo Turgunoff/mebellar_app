@@ -1,7 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/theme/app_fonts.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../../core/theme/app_colors.dart';
@@ -333,7 +333,7 @@ class _PreviewModeBanner extends StatelessWidget {
               children: [
                 Text(
                   "Mijoz ko'rinishi",
-                  style: GoogleFonts.plusJakartaSans(
+                  style: TextStyle(fontFamily: AppFonts.seller, 
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
                     color: AppColors.terracotta,
@@ -344,7 +344,7 @@ class _PreviewModeBanner extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   "Mahsulotingiz xaridorlarga qanday ko'rinishini tekshiring",
-                  style: GoogleFonts.plusJakartaSans(
+                  style: TextStyle(fontFamily: AppFonts.seller, 
                     fontSize: 11.5,
                     fontWeight: FontWeight.w500,
                     color: const Color(0xFF8A4A35),
@@ -388,7 +388,7 @@ class _StatusCard extends StatelessWidget {
                 const SizedBox(width: 6),
                 Text(
                   palette.label,
-                  style: GoogleFonts.plusJakartaSans(
+                  style: TextStyle(fontFamily: AppFonts.seller, 
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                     color: palette.fg,
@@ -403,7 +403,7 @@ class _StatusCard extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             updatedAtLabel,
-            style: GoogleFonts.plusJakartaSans(
+            style: TextStyle(fontFamily: AppFonts.seller, 
               fontSize: 12,
               fontWeight: FontWeight.w500,
               color: _grey,
@@ -435,7 +435,7 @@ class _TitlePriceCard extends StatelessWidget {
         children: [
           Text(
             product.title,
-            style: GoogleFonts.plusJakartaSans(
+            style: TextStyle(fontFamily: AppFonts.seller, 
               fontSize: 20,
               fontWeight: FontWeight.w700,
               color: _ink,
@@ -450,7 +450,7 @@ class _TitlePriceCard extends StatelessWidget {
               RichText(
                 text: TextSpan(
                   text: product.priceLabel,
-                  style: GoogleFonts.plusJakartaSans(
+                  style: TextStyle(fontFamily: AppFonts.seller, 
                     fontSize: 26,
                     fontWeight: FontWeight.w800,
                     color: _ink,
@@ -460,7 +460,7 @@ class _TitlePriceCard extends StatelessWidget {
                   children: [
                     TextSpan(
                       text: '  UZS',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: TextStyle(fontFamily: AppFonts.seller, 
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                         color: _greyMid,
@@ -476,7 +476,7 @@ class _TitlePriceCard extends StatelessWidget {
                   padding: const EdgeInsets.only(bottom: 3),
                   child: Text(
                     "${product.oldPriceLabel!} UZS",
-                    style: GoogleFonts.plusJakartaSans(
+                    style: TextStyle(fontFamily: AppFonts.seller, 
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
                       color: _greySoft,
@@ -499,7 +499,7 @@ class _TitlePriceCard extends StatelessWidget {
               ),
               child: Text(
                 '-${product.discountPercent}%',
-                style: GoogleFonts.plusJakartaSans(
+                style: TextStyle(fontFamily: AppFonts.seller, 
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
                   color: const Color(0xFFC0392B),
@@ -527,7 +527,7 @@ class _TitlePriceCard extends StatelessWidget {
                 product.stock > 0
                     ? 'Sotuvda mavjud · ${product.stock} dona'
                     : 'Sotuvda yo\'q',
-                style: GoogleFonts.plusJakartaSans(
+                style: TextStyle(fontFamily: AppFonts.seller, 
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: product.stock > 0
@@ -571,7 +571,7 @@ class _MetaCard extends StatelessWidget {
           backgroundColor: _ink,
           content: Text(
             "SKU nusxa olindi",
-            style: GoogleFonts.plusJakartaSans(
+            style: TextStyle(fontFamily: AppFonts.seller, 
               fontSize: 13,
               fontWeight: FontWeight.w600,
               color: Colors.white,
@@ -599,7 +599,7 @@ class _MetaCard extends StatelessWidget {
                   children: [
                     Text(
                       'SKU',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: TextStyle(fontFamily: AppFonts.seller, 
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
                         color: _grey,
@@ -609,7 +609,7 @@ class _MetaCard extends StatelessWidget {
                     const SizedBox(height: 3),
                     Text(
                       sku,
-                      style: GoogleFonts.plusJakartaSans(
+                      style: TextStyle(fontFamily: AppFonts.seller, 
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: _ink,
@@ -647,7 +647,7 @@ class _MetaCard extends StatelessWidget {
                   children: [
                     Text(
                       'Kategoriya',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: TextStyle(fontFamily: AppFonts.seller, 
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
                         color: _grey,
@@ -657,7 +657,7 @@ class _MetaCard extends StatelessWidget {
                     const SizedBox(height: 3),
                     Text(
                       category,
-                      style: GoogleFonts.plusJakartaSans(
+                      style: TextStyle(fontFamily: AppFonts.seller, 
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                         color: _ink,
@@ -682,7 +682,7 @@ class _MetaCard extends StatelessWidget {
                   children: [
                     Text(
                       'Ombor qoldig\'i',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: TextStyle(fontFamily: AppFonts.seller, 
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
                         color: _grey,
@@ -692,7 +692,7 @@ class _MetaCard extends StatelessWidget {
                     const SizedBox(height: 3),
                     Text(
                       '$stock dona',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: TextStyle(fontFamily: AppFonts.seller, 
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: _ink,
@@ -712,7 +712,7 @@ class _MetaCard extends StatelessWidget {
                   ),
                   child: Text(
                     'Kam qoldi',
-                    style: GoogleFonts.plusJakartaSans(
+                    style: TextStyle(fontFamily: AppFonts.seller, 
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
                       color: const Color(0xFF8C5A12),
@@ -761,7 +761,7 @@ class _DescriptionCardState extends State<_DescriptionCard> {
               maxLines: _expanded ? null : 5,
               overflow:
                   _expanded ? TextOverflow.visible : TextOverflow.ellipsis,
-              style: GoogleFonts.plusJakartaSans(
+              style: TextStyle(fontFamily: AppFonts.seller, 
                 fontSize: 13.5,
                 fontWeight: FontWeight.w500,
                 color: _ink,
@@ -782,7 +782,7 @@ class _DescriptionCardState extends State<_DescriptionCard> {
                 children: [
                   Text(
                     _expanded ? "Yopish" : "Ko'proq o'qish",
-                    style: GoogleFonts.plusJakartaSans(
+                    style: TextStyle(fontFamily: AppFonts.seller, 
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
                       color: AppColors.terracotta,
@@ -834,7 +834,7 @@ class _AttributesCard extends StatelessWidget {
                     flex: 4,
                     child: Text(
                       rows[i].$1,
-                      style: GoogleFonts.plusJakartaSans(
+                      style: TextStyle(fontFamily: AppFonts.seller, 
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
                         color: _grey,
@@ -848,7 +848,7 @@ class _AttributesCard extends StatelessWidget {
                     child: Text(
                       rows[i].$2,
                       textAlign: TextAlign.end,
-                      style: GoogleFonts.plusJakartaSans(
+                      style: TextStyle(fontFamily: AppFonts.seller, 
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                         color: _ink,
@@ -969,7 +969,7 @@ class _DimensionTile extends StatelessWidget {
               const SizedBox(width: 6),
               Text(
                 label,
-                style: GoogleFonts.plusJakartaSans(
+                style: TextStyle(fontFamily: AppFonts.seller, 
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
                   color: _grey,
@@ -981,7 +981,7 @@ class _DimensionTile extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             value,
-            style: GoogleFonts.plusJakartaSans(
+            style: TextStyle(fontFamily: AppFonts.seller, 
               fontSize: 15,
               fontWeight: FontWeight.w700,
               color: _ink,
@@ -1025,7 +1025,7 @@ class _IdentifiersCard extends StatelessWidget {
               children: [
                 Text(
                   'Mahsulot ID',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: TextStyle(fontFamily: AppFonts.seller, 
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
                     color: _grey,
@@ -1035,7 +1035,7 @@ class _IdentifiersCard extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   productId,
-                  style: GoogleFonts.plusJakartaSans(
+                  style: TextStyle(fontFamily: AppFonts.seller, 
                     fontSize: 12.5,
                     fontWeight: FontWeight.w600,
                     color: _ink,
@@ -1052,7 +1052,7 @@ class _IdentifiersCard extends StatelessWidget {
             children: [
               Text(
                 'Yaratilgan',
-                style: GoogleFonts.plusJakartaSans(
+                style: TextStyle(fontFamily: AppFonts.seller, 
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
                   color: _grey,
@@ -1062,7 +1062,7 @@ class _IdentifiersCard extends StatelessWidget {
               const SizedBox(height: 3),
               Text(
                 createdAtLabel,
-                style: GoogleFonts.plusJakartaSans(
+                style: TextStyle(fontFamily: AppFonts.seller, 
                   fontSize: 12.5,
                   fontWeight: FontWeight.w600,
                   color: _ink,
@@ -1118,7 +1118,7 @@ class _BottomActionBar extends StatelessWidget {
                     icon: const Icon(Iconsax.archive_2, size: 18),
                     label: Text(
                       'Arxivlash',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: TextStyle(fontFamily: AppFonts.seller, 
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                         color: _ink,
@@ -1148,7 +1148,7 @@ class _BottomActionBar extends StatelessWidget {
                         size: 18, color: Colors.white),
                     label: Text(
                       'Tahrirlash',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: TextStyle(fontFamily: AppFonts.seller, 
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
@@ -1212,7 +1212,7 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: GoogleFonts.plusJakartaSans(
+      style: TextStyle(fontFamily: AppFonts.seller, 
         fontSize: 14,
         fontWeight: FontWeight.w700,
         color: _ink,

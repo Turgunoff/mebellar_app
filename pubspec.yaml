@@ -49,8 +49,11 @@ dependencies:
   flutter_svg: ^2.0.10
   shimmer: ^3.0.0
 
-  # Typography
-  google_fonts: ^6.2.1
+  # Typography — fonts are declared natively under `flutter.fonts` below.
+  # The `google_fonts` package was previously used; it's no longer needed
+  # because every TTF is bundled under `assets/google_fonts/` and looked up
+  # by Flutter's built-in font loader via the family constants in
+  # `lib/core/theme/app_fonts.dart`.
 
   # Icons
   iconsax_flutter: ^1.0.0
@@ -68,6 +71,13 @@ dependencies:
 
   # Logging
   talker_flutter: ^5.1.16
+
+  # Connectivity — connectivity_plus detects link changes (wifi / cellular /
+  # none), internet_connection_checker_plus verifies actual reachability so
+  # the offline banner doesn't lie when the device is on a captive wifi that
+  # has no internet.
+  connectivity_plus: ^6.1.0
+  internet_connection_checker_plus: ^2.5.2
 
 dev_dependencies:
   flutter_test:
@@ -105,3 +115,57 @@ flutter:
   uses-material-design: true
   assets:
     - assets/logo/
+
+  # Native Flutter font registration — replaces the `google_fonts` package.
+  # Every family/weight referenced via `AppFonts.*` in the code points back
+  # to one of these TTFs. To add a new weight, drop the file into
+  # `assets/google_fonts/` and append it here under the matching family.
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/google_fonts/Inter-Regular.ttf
+          weight: 400
+        - asset: assets/google_fonts/Inter-Medium.ttf
+          weight: 500
+        - asset: assets/google_fonts/Inter-SemiBold.ttf
+          weight: 600
+        - asset: assets/google_fonts/Inter-Bold.ttf
+          weight: 700
+        - asset: assets/google_fonts/Inter-ExtraBold.ttf
+          weight: 800
+    - family: Manrope
+      fonts:
+        - asset: assets/google_fonts/Manrope-Regular.ttf
+          weight: 400
+        - asset: assets/google_fonts/Manrope-Medium.ttf
+          weight: 500
+        - asset: assets/google_fonts/Manrope-SemiBold.ttf
+          weight: 600
+        - asset: assets/google_fonts/Manrope-Bold.ttf
+          weight: 700
+        - asset: assets/google_fonts/Manrope-ExtraBold.ttf
+          weight: 800
+    - family: PlayfairDisplay
+      fonts:
+        - asset: assets/google_fonts/PlayfairDisplay-Regular.ttf
+          weight: 400
+        - asset: assets/google_fonts/PlayfairDisplay-Medium.ttf
+          weight: 500
+        - asset: assets/google_fonts/PlayfairDisplay-SemiBold.ttf
+          weight: 600
+        - asset: assets/google_fonts/PlayfairDisplay-Bold.ttf
+          weight: 700
+        - asset: assets/google_fonts/PlayfairDisplay-ExtraBold.ttf
+          weight: 800
+    - family: PlusJakartaSans
+      fonts:
+        - asset: assets/google_fonts/PlusJakartaSans-Regular.ttf
+          weight: 400
+        - asset: assets/google_fonts/PlusJakartaSans-Medium.ttf
+          weight: 500
+        - asset: assets/google_fonts/PlusJakartaSans-SemiBold.ttf
+          weight: 600
+        - asset: assets/google_fonts/PlusJakartaSans-Bold.ttf
+          weight: 700
+        - asset: assets/google_fonts/PlusJakartaSans-ExtraBold.ttf
+          weight: 800

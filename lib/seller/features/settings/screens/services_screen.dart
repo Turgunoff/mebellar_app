@@ -1,7 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/theme/app_fonts.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
 
@@ -15,7 +15,7 @@ import '../bloc/services_bloc.dart';
 // Local design tokens — explicit so the screen stays neutral and
 // doesn't pick up the M3 surface tint that the seller seed otherwise
 // bleeds onto white cards. Plus Jakarta Sans is applied to every
-// `Text` directly via `GoogleFonts.plusJakartaSans`.
+// `Text` directly via `AppFonts.seller`.
 const _ink = Color(0xFF1D1D1D);
 const _grey = Color(0xFF757575);
 const _divider = Color(0xFFEFEFEF);
@@ -56,7 +56,7 @@ class _ServicesView extends StatelessWidget {
               behavior: SnackBarBehavior.floating,
               content: Text(
                 tr('services.saved_toast'),
-                style: GoogleFonts.plusJakartaSans(
+                style: TextStyle(fontFamily: AppFonts.seller, 
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
                 ),
@@ -69,7 +69,7 @@ class _ServicesView extends StatelessWidget {
               behavior: SnackBarBehavior.floating,
               content: Text(
                 state.error!,
-                style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+                style: TextStyle(fontFamily: AppFonts.seller, fontWeight: FontWeight.w600),
               ),
             ),
           );
@@ -130,7 +130,7 @@ class _ServicesAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       title: Text(
         tr('services.title'),
-        style: GoogleFonts.plusJakartaSans(
+        style: TextStyle(fontFamily: AppFonts.seller, 
           fontSize: 18,
           fontWeight: FontWeight.w700,
           color: _ink,
@@ -264,7 +264,7 @@ class _SectionTitle extends StatelessWidget {
       padding: const EdgeInsets.only(left: 4, bottom: 10),
       child: Text(
         text,
-        style: GoogleFonts.plusJakartaSans(
+        style: TextStyle(fontFamily: AppFonts.seller, 
           fontSize: 15,
           fontWeight: FontWeight.w700,
           color: _ink,
@@ -356,7 +356,7 @@ class _ServiceTile extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: GoogleFonts.plusJakartaSans(
+                      style: TextStyle(fontFamily: AppFonts.seller, 
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                         color: _ink,
@@ -367,7 +367,7 @@ class _ServiceTile extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         subtitle!,
-                        style: GoogleFonts.plusJakartaSans(
+                        style: TextStyle(fontFamily: AppFonts.seller, 
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                           color: _grey,
@@ -545,7 +545,7 @@ class _ServiceInputState extends State<_ServiceInput> {
           padding: const EdgeInsets.only(left: 2, bottom: 6),
           child: Text(
             widget.spec.label,
-            style: GoogleFonts.plusJakartaSans(
+            style: TextStyle(fontFamily: AppFonts.seller, 
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: _grey,
@@ -558,7 +558,7 @@ class _ServiceInputState extends State<_ServiceInput> {
           keyboardType: TextInputType.number,
           inputFormatters: formatters,
           cursorColor: AppColors.terracotta,
-          style: GoogleFonts.plusJakartaSans(
+          style: TextStyle(fontFamily: AppFonts.seller, 
             fontSize: 15,
             fontWeight: FontWeight.w700,
             color: _ink,
@@ -572,7 +572,7 @@ class _ServiceInputState extends State<_ServiceInput> {
               vertical: 14,
             ),
             suffixText: suffix,
-            suffixStyle: GoogleFonts.plusJakartaSans(
+            suffixStyle: TextStyle(fontFamily: AppFonts.seller, 
               fontSize: 13,
               fontWeight: FontWeight.w600,
               color: _grey,
@@ -636,7 +636,7 @@ class _SaveBottomBar extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
-                textStyle: GoogleFonts.plusJakartaSans(
+                textStyle: TextStyle(fontFamily: AppFonts.seller, 
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -0.1,

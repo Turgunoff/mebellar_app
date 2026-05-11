@@ -2,10 +2,10 @@ import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../../../shared/models/banner.dart';
+import '../../../../../shared/widgets/image_error_placeholder.dart';
 import 'premium_tokens.dart';
 
 class GlassBanner extends StatefulWidget {
@@ -95,14 +95,8 @@ class _BannerCard extends StatelessWidget {
                 highlightColor: const Color(0xFFFAFAFA),
                 child: Container(color: Colors.white),
               ),
-              errorWidget: (_, _, _) => Container(
-                color: pt.imageBg,
-                child: Icon(
-                  Iconsax.gallery,
-                  color: pt.greyLight,
-                  size: 48,
-                ),
-              ),
+              errorWidget: (_, _, _) =>
+                  const ImageErrorPlaceholder(iconSize: 40),
             ),
             const DecoratedBox(
               decoration: BoxDecoration(

@@ -13,6 +13,11 @@ const Map<String, dynamic> homeUz = {
   'featured_products': 'Tavsiya etilgan mahsulotlar',
   'see_all': 'Barchasi',
   'no_categories': 'Kategoriyalar topilmadi',
+  'error_title': 'Ma\'lumotlarni yuklab bo\'lmadi',
+  'error_subtitle':
+      'Internet aloqasini tekshiring va qayta urinib ko\'ring.',
+  'error_retry': 'Qayta urinish',
+  'categories_error_title': 'Kategoriyalarni yuklab bo\'lmadi',
 };
 
 const Map<String, dynamic> homeRu = {
@@ -28,6 +33,10 @@ const Map<String, dynamic> homeRu = {
   'featured_products': 'Популярные товары',
   'see_all': 'Все',
   'no_categories': 'Категории не найдены',
+  'error_title': 'Не удалось загрузить данные',
+  'error_subtitle': 'Проверьте подключение к интернету и попробуйте снова.',
+  'error_retry': 'Повторить',
+  'categories_error_title': 'Не удалось загрузить категории',
 };
 
 const Map<String, dynamic> homeEn = {
@@ -43,4 +52,8 @@ const Map<String, dynamic> homeEn = {
   'featured_products': 'Featured products',
   'see_all': 'See all',
   'no_categories': 'No categories',
+  'error_title': 'Failed to load data',
+  'error_subtitle': 'Check your internet connection and try again.',
+  'error_retry': 'Retry',
+  'categories_error_title': 'Failed to load categories',
 };

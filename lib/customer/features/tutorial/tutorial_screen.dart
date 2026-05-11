@@ -2,7 +2,7 @@
 
 import 'package:woody_app/core/i18n/i18n.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../../core/theme/app_fonts.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../../core/di/service_locator.dart';
@@ -229,7 +229,7 @@ class _TopBar extends StatelessWidget {
           // onboarding a premium editorial feel.
           Text(
             'Woody',
-            style: GoogleFonts.playfairDisplay(
+            style: TextStyle(fontFamily: AppFonts.display, 
               fontSize: 22,
               fontWeight: FontWeight.w700,
               letterSpacing: -0.4,

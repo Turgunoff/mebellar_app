@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../theme/app_fonts.dart';
 
 import '../theme/app_colors.dart';
 
@@ -96,7 +96,7 @@ class _AppSplashScreenState extends State<AppSplashScreen>
                     opacity: _wordmarkFade,
                     child: Text(
                       'Woody',
-                      style: GoogleFonts.playfairDisplay(
+                      style: TextStyle(fontFamily: AppFonts.display, 
                         fontSize: 38,
                         fontWeight: FontWeight.w600,
                         color: AppColors.lightTextPrimary,
@@ -110,7 +110,7 @@ class _AppSplashScreenState extends State<AppSplashScreen>
                     opacity: _tagFade,
                     child: Text(
                       'Premium mebel olami',
-                      style: GoogleFonts.inter(
+                      style: TextStyle(fontFamily: AppFonts.body, 
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
                         color: AppColors.lightTextSecondary,
@@ -189,7 +189,7 @@ class _BrandMark extends StatelessWidget {
             alignment: Alignment.center,
             child: Text(
               'M',
-              style: GoogleFonts.playfairDisplay(
+              style: TextStyle(fontFamily: AppFonts.display, 
                 fontSize: 46,
                 fontWeight: FontWeight.w700,
                 color: Colors.white,

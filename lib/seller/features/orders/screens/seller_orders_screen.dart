@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/theme/app_fonts.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../../core/theme/app_colors.dart';
@@ -73,7 +73,7 @@ class _OrdersHeader extends StatelessWidget {
           Expanded(
             child: Text(
               'Buyurtmalar',
-              style: GoogleFonts.plusJakartaSans(
+              style: TextStyle(fontFamily: AppFonts.seller, 
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
                 color: _ink,
@@ -106,12 +106,12 @@ class _OrdersTabBar extends StatelessWidget {
         indicatorSize: TabBarIndicatorSize.label,
         labelColor: AppColors.terracotta,
         unselectedLabelColor: _grey,
-        labelStyle: GoogleFonts.plusJakartaSans(
+        labelStyle: TextStyle(fontFamily: AppFonts.seller, 
           fontSize: 14,
           fontWeight: FontWeight.w700,
           letterSpacing: -0.1,
         ),
-        unselectedLabelStyle: GoogleFonts.plusJakartaSans(
+        unselectedLabelStyle: TextStyle(fontFamily: AppFonts.seller, 
           fontSize: 14,
           fontWeight: FontWeight.w500,
           letterSpacing: -0.1,
@@ -190,7 +190,7 @@ class _EmptyTab extends StatelessWidget {
             const SizedBox(height: 14),
             Text(
               message,
-              style: GoogleFonts.plusJakartaSans(
+              style: TextStyle(fontFamily: AppFonts.seller, 
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
                 color: _grey,
@@ -281,7 +281,7 @@ class _CardHeader extends StatelessWidget {
             orderId,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.plusJakartaSans(
+            style: TextStyle(fontFamily: AppFonts.seller, 
               fontSize: 15,
               fontWeight: FontWeight.w700,
               color: _ink,
@@ -295,7 +295,7 @@ class _CardHeader extends StatelessWidget {
         const SizedBox(width: 4),
         Text(
           time,
-          style: GoogleFonts.plusJakartaSans(
+          style: TextStyle(fontFamily: AppFonts.seller, 
             fontSize: 12,
             fontWeight: FontWeight.w500,
             color: _grey,
@@ -330,7 +330,7 @@ class _CardContent extends StatelessWidget {
                 customerName,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.plusJakartaSans(
+                style: TextStyle(fontFamily: AppFonts.seller, 
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: _ink,
@@ -354,7 +354,7 @@ class _CardContent extends StatelessWidget {
                 itemsSummary,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.plusJakartaSans(
+                style: TextStyle(fontFamily: AppFonts.seller, 
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                   color: _grey,
@@ -385,7 +385,7 @@ class _CardPriceRow extends StatelessWidget {
             children: [
               Text(
                 'Jami',
-                style: GoogleFonts.plusJakartaSans(
+                style: TextStyle(fontFamily: AppFonts.seller, 
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
                   color: _greyMid,
@@ -396,7 +396,7 @@ class _CardPriceRow extends StatelessWidget {
               RichText(
                 text: TextSpan(
                   text: priceLabel,
-                  style: GoogleFonts.plusJakartaSans(
+                  style: TextStyle(fontFamily: AppFonts.seller, 
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
                     color: _ink,
@@ -406,7 +406,7 @@ class _CardPriceRow extends StatelessWidget {
                   children: [
                     TextSpan(
                       text: '  UZS',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: TextStyle(fontFamily: AppFonts.seller, 
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                         color: _greyMid,
@@ -427,7 +427,7 @@ class _CardPriceRow extends StatelessWidget {
           ),
           child: Text(
             'Kutilmoqda',
-            style: GoogleFonts.plusJakartaSans(
+            style: TextStyle(fontFamily: AppFonts.seller, 
               fontSize: 11,
               fontWeight: FontWeight.w700,
               color: _amberFg,
@@ -462,14 +462,14 @@ class _CardActions extends StatelessWidget {
                 padding: EdgeInsets.zero,
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                textStyle: GoogleFonts.plusJakartaSans(
+                textStyle: TextStyle(fontFamily: AppFonts.seller, 
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               child: Text(
                 'Bekor qilish',
-                style: GoogleFonts.plusJakartaSans(
+                style: TextStyle(fontFamily: AppFonts.seller, 
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: _ink,
@@ -494,14 +494,14 @@ class _CardActions extends StatelessWidget {
                 padding: EdgeInsets.zero,
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                textStyle: GoogleFonts.plusJakartaSans(
+                textStyle: TextStyle(fontFamily: AppFonts.seller, 
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               child: Text(
                 'Qabul qilish',
-                style: GoogleFonts.plusJakartaSans(
+                style: TextStyle(fontFamily: AppFonts.seller, 
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,

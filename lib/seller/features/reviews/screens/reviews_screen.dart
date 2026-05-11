@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/theme/app_fonts.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../../core/theme/app_colors.dart';
@@ -225,7 +225,7 @@ class _ReviewsAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       title: Text(
         'Mijozlar sharhlari',
-        style: GoogleFonts.plusJakartaSans(
+        style: TextStyle(fontFamily: AppFonts.seller, 
           fontSize: 18,
           fontWeight: FontWeight.w700,
           color: _ink,
@@ -307,7 +307,7 @@ class _FilterChip extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: GoogleFonts.plusJakartaSans(
+                style: TextStyle(fontFamily: AppFonts.seller, 
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: fg,
@@ -330,7 +330,7 @@ class _FilterChip extends StatelessWidget {
                   alignment: Alignment.center,
                   child: Text(
                     '$badgeCount',
-                    style: GoogleFonts.plusJakartaSans(
+                    style: TextStyle(fontFamily: AppFonts.seller, 
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
@@ -382,7 +382,7 @@ class _ReviewCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             review.text,
-            style: GoogleFonts.plusJakartaSans(
+            style: TextStyle(fontFamily: AppFonts.seller, 
               fontSize: 13.5,
               fontWeight: FontWeight.w500,
               color: const Color(0xFF3A3A3A),
@@ -433,7 +433,7 @@ class _CardHeader extends StatelessWidget {
             review.productName,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.plusJakartaSans(
+            style: TextStyle(fontFamily: AppFonts.seller, 
               fontSize: 13,
               fontWeight: FontWeight.w600,
               color: _ink,
@@ -445,7 +445,7 @@ class _CardHeader extends StatelessWidget {
         const SizedBox(width: 10),
         Text(
           review.timeAgo,
-          style: GoogleFonts.plusJakartaSans(
+          style: TextStyle(fontFamily: AppFonts.seller, 
             fontSize: 11,
             fontWeight: FontWeight.w500,
             color: _grey,
@@ -469,7 +469,7 @@ class _CustomerLine extends StatelessWidget {
         Expanded(
           child: Text(
             review.customerName,
-            style: GoogleFonts.plusJakartaSans(
+            style: TextStyle(fontFamily: AppFonts.seller, 
               fontSize: 14,
               fontWeight: FontWeight.w700,
               color: _ink,
@@ -524,7 +524,7 @@ class _ReplyButton extends StatelessWidget {
         icon: const Icon(Iconsax.edit, size: 16, color: AppColors.terracotta),
         label: Text(
           'Javob yozish',
-          style: GoogleFonts.plusJakartaSans(
+          style: TextStyle(fontFamily: AppFonts.seller, 
             fontSize: 13.5,
             fontWeight: FontWeight.w700,
             color: AppColors.terracotta,
@@ -585,7 +585,7 @@ class _SellerReplyBlock extends StatelessWidget {
               children: [
                 Text(
                   'Sizning javobingiz',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: TextStyle(fontFamily: AppFonts.seller, 
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                     color: AppColors.terracotta,
@@ -596,7 +596,7 @@ class _SellerReplyBlock extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   reply,
-                  style: GoogleFonts.plusJakartaSans(
+                  style: TextStyle(fontFamily: AppFonts.seller, 
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                     color: _ink,
@@ -655,7 +655,7 @@ class _ReplySheetState extends State<_ReplySheet> {
           const SizedBox(height: 16),
           Text(
             'Javob yozish',
-            style: GoogleFonts.plusJakartaSans(
+            style: TextStyle(fontFamily: AppFonts.seller, 
               fontSize: 18,
               fontWeight: FontWeight.w700,
               color: _ink,
@@ -665,7 +665,7 @@ class _ReplySheetState extends State<_ReplySheet> {
           const SizedBox(height: 4),
           Text(
             '${widget.review.customerName} • ${widget.review.productName}',
-            style: GoogleFonts.plusJakartaSans(
+            style: TextStyle(fontFamily: AppFonts.seller, 
               fontSize: 12,
               fontWeight: FontWeight.w500,
               color: _grey,
@@ -676,7 +676,7 @@ class _ReplySheetState extends State<_ReplySheet> {
           TextField(
             controller: _controller,
             maxLines: 5,
-            style: GoogleFonts.plusJakartaSans(
+            style: TextStyle(fontFamily: AppFonts.seller, 
               fontSize: 14,
               fontWeight: FontWeight.w500,
               color: _ink,
@@ -684,7 +684,7 @@ class _ReplySheetState extends State<_ReplySheet> {
             ),
             decoration: InputDecoration(
               hintText: 'Mijozga samimiy javob yozing...',
-              hintStyle: GoogleFonts.plusJakartaSans(
+              hintStyle: TextStyle(fontFamily: AppFonts.seller, 
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
                 color: _greyMid,
@@ -712,7 +712,7 @@ class _ReplySheetState extends State<_ReplySheet> {
               ),
               child: Text(
                 'Yuborish',
-                style: GoogleFonts.plusJakartaSans(
+                style: TextStyle(fontFamily: AppFonts.seller, 
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
                   color: Colors.white,
@@ -758,7 +758,7 @@ class _EmptyState extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               'Sharhlar topilmadi',
-              style: GoogleFonts.plusJakartaSans(
+              style: TextStyle(fontFamily: AppFonts.seller, 
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
                 color: _ink,
@@ -769,7 +769,7 @@ class _EmptyState extends StatelessWidget {
             Text(
               'Tanlangan filtr bo\'yicha sharhlar yo\'q.',
               textAlign: TextAlign.center,
-              style: GoogleFonts.plusJakartaSans(
+              style: TextStyle(fontFamily: AppFonts.seller, 
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
                 color: _grey,

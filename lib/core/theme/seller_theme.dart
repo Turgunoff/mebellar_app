@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'app_fonts.dart';
 
 import 'app_colors.dart';
 import 'app_theme.dart' show appSystemOverlay;
@@ -24,7 +24,7 @@ import 'app_typography.dart';
 ///   * Seller UI files (e.g. `dashboard_screen.dart`, `kpi_card.dart`) use
 ///     plain `TextStyle(...)` without `fontFamily`, so the family inherits
 ///     from this theme. To swap the seller font in the future, edit *only*
-///     the call below and the four `GoogleFonts.plusJakartaSans(...)` lines
+///     the call below and the four `TextStyle(fontFamily: AppFonts.seller, ...)` lines
 ///     — the screens don't need to change.
 ThemeData _build(Brightness brightness) {
   final scheme = ColorScheme.fromSeed(
@@ -44,12 +44,12 @@ ThemeData _build(Brightness brightness) {
       elevation: 0,
       backgroundColor: scheme.surface,
       foregroundColor: scheme.onSurface,
-      titleTextStyle: GoogleFonts.plusJakartaSans(
+      titleTextStyle: TextStyle(fontFamily: AppFonts.seller, 
         fontSize: 18,
         fontWeight: FontWeight.w700,
         color: scheme.onSurface,
       ),
-      toolbarTextStyle: GoogleFonts.plusJakartaSans(
+      toolbarTextStyle: TextStyle(fontFamily: AppFonts.seller, 
         fontSize: 14,
         fontWeight: FontWeight.w500,
         color: scheme.onSurface,
@@ -59,7 +59,7 @@ ThemeData _build(Brightness brightness) {
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         minimumSize: const Size.fromHeight(52),
-        textStyle: GoogleFonts.plusJakartaSans(
+        textStyle: TextStyle(fontFamily: AppFonts.seller, 
           fontSize: 15,
           fontWeight: FontWeight.w600,
         ),
@@ -70,7 +70,7 @@ ThemeData _build(Brightness brightness) {
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
-        textStyle: GoogleFonts.plusJakartaSans(
+        textStyle: TextStyle(fontFamily: AppFonts.seller, 
           fontSize: 15,
           fontWeight: FontWeight.w600,
         ),
@@ -78,7 +78,7 @@ ThemeData _build(Brightness brightness) {
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
-        textStyle: GoogleFonts.plusJakartaSans(
+        textStyle: TextStyle(fontFamily: AppFonts.seller, 
           fontSize: 14,
           fontWeight: FontWeight.w600,
         ),
@@ -87,8 +87,8 @@ ThemeData _build(Brightness brightness) {
     inputDecorationTheme: InputDecorationTheme(
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       filled: true,
-      labelStyle: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w500),
-      hintStyle: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w400),
+      labelStyle: TextStyle(fontFamily: AppFonts.seller, fontWeight: FontWeight.w500),
+      hintStyle: TextStyle(fontFamily: AppFonts.seller, fontWeight: FontWeight.w400),
     ),
   );
 }

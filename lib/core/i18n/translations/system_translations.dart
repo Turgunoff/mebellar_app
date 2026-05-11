@@ -1,21 +1,24 @@
 // Cross-cutting infra: offline indicator and the deep-link debug tester.
 
 const Map<String, dynamic> offlineUz = {
-  'banner': 'Offline rejim — tarmoqsiz ishlamoqda',
+  'banner': 'Internet aloqasi yo\'q',
+  'restored': 'Aloqa tiklandi',
   'toggle_title': 'Tarmoq holati',
   'toggle_online': 'Online — barcha so\'rovlar oddiy ketadi',
   'toggle_offline': 'Offline — banner ko\'rinadi, kesh fallback ishlatiladi',
 };
 
 const Map<String, dynamic> offlineRu = {
-  'banner': 'Офлайн режим — без сети',
+  'banner': 'Нет подключения к интернету',
+  'restored': 'Соединение восстановлено',
   'toggle_title': 'Состояние сети',
   'toggle_online': 'Online — запросы работают как обычно',
   'toggle_offline': 'Offline — показывается баннер, используется кэш',
 };
 
 const Map<String, dynamic> offlineEn = {
-  'banner': 'Offline — running without a network',
+  'banner': 'No internet connection',
+  'restored': 'Connection restored',
   'toggle_title': 'Network status',
   'toggle_online': 'Online — requests run normally',
   'toggle_offline': 'Offline — the banner shows, cache fallback is used',

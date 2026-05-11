@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/connectivity/network_cubit.dart';
 import '../../../../shared/models/banner.dart';
 import '../../../../shared/models/supabase_product_model.dart';
 import '../../../../shared/repositories/banner_repository.dart';
@@ -57,14 +60,37 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   HomeBloc({
     required BannerRepository bannerRepo,
     required SupabaseProductDataSource productSource,
+    NetworkCubit? networkCubit,
   }) : _bannerRepo = bannerRepo,
        _productSource = productSource,
+       _networkCubit = networkCubit,
        super(const HomeState()) {
     on<HomeRequested>(_onRequested);
+
+    // Auto-retry when connectivity comes back. We only fire the refresh
+    // when the previous load actually failed — there's no point hammering
+    // the API every time the user toggles airplane mode if the feed is
+    // already up to date.
+    final cubit = _networkCubit;
+    if (cubit != null) {
+      _netSub = cubit.stream.listen((next) {
+        final wasOffline = _lastNetwork == NetworkStatus.offline;
+        _lastNetwork = next;
+        if (wasOffline &&
+            next == NetworkStatus.online &&
+            state.status == HomeStatus.failure) {
+          add(const HomeRequested(refresh: true));
+        }
+      });
+      _lastNetwork = cubit.state;
+    }
   }
 
   final BannerRepository _bannerRepo;
   final SupabaseProductDataSource _productSource;
+  final NetworkCubit? _networkCubit;
+  StreamSubscription<NetworkStatus>? _netSub;
+  NetworkStatus _lastNetwork = NetworkStatus.initial;
 
   Future<void> _onRequested(
     HomeRequested event,
@@ -91,5 +117,11 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     } catch (e) {
       emit(state.copyWith(status: HomeStatus.failure, error: e.toString()));
     }
+  }
+
+  @override
+  Future<void> close() async {
+    await _netSub?.cancel();
+    return super.close();
   }
 }

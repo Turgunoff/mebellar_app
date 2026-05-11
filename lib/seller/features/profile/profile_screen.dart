@@ -1,5 +1,5 @@
 ﻿import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../../core/theme/app_fonts.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
 
@@ -16,7 +16,7 @@ import '../tariff/screens/tariff_screen.dart';
 
 // Local tokens — kept here so the screen reads top-to-bottom without
 // chasing theme indirection. Plus Jakarta Sans is applied to every
-// `Text` explicitly via `GoogleFonts.plusJakartaSans` so the surface
+// `Text` explicitly via `AppFonts.seller` so the surface
 // is immune to theme regressions and the M3 surface tint that the
 // teal seller seed otherwise bleeds onto neutral backgrounds.
 const _ink = Color(0xFF1D1D1D);
@@ -156,7 +156,7 @@ class _ProfileHeaderBar extends StatelessWidget {
           Expanded(
             child: Text(
               tr('profile.title'),
-              style: GoogleFonts.plusJakartaSans(
+              style: TextStyle(fontFamily: AppFonts.seller, 
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
                 color: _ink,
@@ -233,7 +233,7 @@ class _NotificationBell extends StatelessWidget {
                         alignment: Alignment.center,
                         child: Text(
                           count > 9 ? '9+' : '$count',
-                          style: GoogleFonts.plusJakartaSans(
+                          style: TextStyle(fontFamily: AppFonts.seller, 
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
                             color: Colors.white,
@@ -281,7 +281,7 @@ class _ProfileIdentity extends StatelessWidget {
         const SizedBox(height: 14),
         Text(
           shopName,
-          style: GoogleFonts.plusJakartaSans(
+          style: TextStyle(fontFamily: AppFonts.seller, 
             fontSize: 20,
             fontWeight: FontWeight.w700,
             color: _ink,
@@ -314,7 +314,7 @@ class _VerifiedBadge extends StatelessWidget {
           const SizedBox(width: 5),
           Text(
             'Tasdiqlangan sotuvchi',
-            style: GoogleFonts.plusJakartaSans(
+            style: TextStyle(fontFamily: AppFonts.seller, 
               fontSize: 11,
               fontWeight: FontWeight.w700,
               color: _verifiedFg,
@@ -341,7 +341,7 @@ class _SectionLabel extends StatelessWidget {
       padding: const EdgeInsets.only(left: 4),
       child: Text(
         text,
-        style: GoogleFonts.plusJakartaSans(
+        style: TextStyle(fontFamily: AppFonts.seller, 
           fontSize: 12,
           fontWeight: FontWeight.w700,
           color: _grey,
@@ -437,7 +437,7 @@ class _SettingsItem extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: GoogleFonts.plusJakartaSans(
+                      style: TextStyle(fontFamily: AppFonts.seller, 
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                         color: titleColor ?? _ink,
@@ -449,7 +449,7 @@ class _SettingsItem extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         subtitle!,
-                        style: GoogleFonts.plusJakartaSans(
+                        style: TextStyle(fontFamily: AppFonts.seller, 
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                           color: _grey,

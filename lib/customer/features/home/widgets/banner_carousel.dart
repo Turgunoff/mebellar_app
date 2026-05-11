@@ -3,6 +3,7 @@ import 'package:woody_app/core/i18n/i18n.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../shared/models/banner.dart';
+import '../../../../shared/widgets/image_error_placeholder.dart';
 
 class BannerCarousel extends StatefulWidget {
   const BannerCarousel({super.key, required this.banners, this.onTap});
@@ -51,11 +52,8 @@ class _BannerCarouselState extends State<BannerCarousel> {
                         CachedNetworkImage(
                           imageUrl: b.imageUrl,
                           fit: BoxFit.cover,
-                          errorWidget: (_, _, _) => Container(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .surfaceContainerHighest,
-                          ),
+                          errorWidget: (_, _, _) =>
+                              const ImageErrorPlaceholder(iconSize: 40),
                         ),
                         if (b.title != null)
                           Positioned(

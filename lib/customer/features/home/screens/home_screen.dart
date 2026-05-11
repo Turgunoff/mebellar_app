@@ -34,60 +34,174 @@ class HomeScreen extends StatelessWidget {
         color: pt.background,
         child: SafeArea(
           bottom: false,
-          child: ListView(
-            padding: EdgeInsets.only(
-              bottom: GlassBottomNav.reservedHeight(context) + 16,
-            ),
-            physics: const BouncingScrollPhysics(),
-            children: [
-              const _DiscoverAppBar(),
-              const SizedBox(height: 20),
-              const _PremiumSearchBar(),
-              const SizedBox(height: 28),
-              BlocBuilder<HomeBloc, HomeState>(
-                buildWhen: (prev, curr) =>
-                    prev.status != curr.status || prev.banners != curr.banners,
-                builder: (context, state) {
-                  if (state.status == HomeStatus.loading ||
-                      state.status == HomeStatus.initial) {
-                    return const GlassBannerShimmer();
-                  }
-                  final banners = state.banners.isNotEmpty
-                      ? state.banners
-                      : _fallbackBanners;
-                  return GlassBanner(banners: banners);
-                },
-              ),
-              const SizedBox(height: 32),
-              _SectionHeader(
-                title: tr('home.categories'),
-                actionLabel: tr('home.see_all'),
-                onAction: () => context.push('/categories'),
-              ),
-              const SizedBox(height: 16),
-              const _CategoriesRow(),
-              const SizedBox(height: 32),
+          child: BlocBuilder<HomeBloc, HomeState>(
+            buildWhen: (a, b) => a.status != b.status,
+            builder: (context, state) {
+              // When the very first load failed and we have nothing cached
+              // to show, replace the entire content with a centred premium
+              // error state. The discover header + search bar stay pinned
+              // so the user always has a way back to other tabs (cart,
+              // favorites — both cached in Hive and fully usable offline).
+              // The bottom nav lives in the shell, so it stays too.
+              final showError = state.status == HomeStatus.failure &&
+                  state.banners.isEmpty &&
+                  state.recommended.isEmpty;
+              if (showError) {
+                return Column(
+                  children: [
+                    const SizedBox(height: 12),
+                    const _DiscoverAppBar(),
+                    const SizedBox(height: 20),
+                    const _PremiumSearchBar(),
+                    Expanded(
+                      child: _HomeErrorState(
+                        onRetry: () => context
+                            .read<HomeBloc>()
+                            .add(const HomeRequested(refresh: true)),
+                      ),
+                    ),
+                    SizedBox(
+                      height: GlassBottomNav.reservedHeight(context) + 16,
+                    ),
+                  ],
+                );
+              }
 
-              // ───────────────────── Top Brands (hidden for MVP) ───────────────
-              // The Top Brands rail is intentionally commented out until we
-              // ship a real Brands table + admin UI. Keep the dead code in
-              // place so we can light it back up without re-deriving the UX.
-              //
-              // _SectionHeader(title: 'Top Brands', onAction: () {}),
-              // const SizedBox(height: 16),
-              // _BrandsRow(brands: _mockBrands),
-              // const SizedBox(height: 32),
-              // ─────────────────────────────────────────────────────────────────
+              return ListView(
+                padding: EdgeInsets.only(
+                  bottom: GlassBottomNav.reservedHeight(context) + 16,
+                ),
+                physics: const BouncingScrollPhysics(),
+                children: [
+                  const _DiscoverAppBar(),
+                  const SizedBox(height: 20),
+                  const _PremiumSearchBar(),
+                  const SizedBox(height: 28),
+                  BlocBuilder<HomeBloc, HomeState>(
+                    buildWhen: (prev, curr) =>
+                        prev.status != curr.status ||
+                        prev.banners != curr.banners,
+                    builder: (context, state) {
+                      if (state.status == HomeStatus.loading ||
+                          state.status == HomeStatus.initial) {
+                        return const GlassBannerShimmer();
+                      }
+                      final banners = state.banners.isNotEmpty
+                          ? state.banners
+                          : _fallbackBanners;
+                      return GlassBanner(banners: banners);
+                    },
+                  ),
+                  const SizedBox(height: 32),
+                  _SectionHeader(
+                    title: tr('home.categories'),
+                    actionLabel: tr('home.see_all'),
+                    onAction: () => context.push('/categories'),
+                  ),
+                  const SizedBox(height: 16),
+                  const _CategoriesRow(),
+                  const SizedBox(height: 32),
 
-              _SectionHeader(
-                title: tr('home.recommended'),
-                actionLabel: tr('home.see_all'),
-                onAction: () => context.push('/categories'),
-              ),
-              const SizedBox(height: 16),
-              const _RecommendedGrid(),
-            ],
+                  // ──────────────── Top Brands (hidden for MVP) ────────────────
+                  // The Top Brands rail is intentionally commented out until we
+                  // ship a real Brands table + admin UI. Keep the dead code in
+                  // place so we can light it back up without re-deriving the UX.
+                  //
+                  // _SectionHeader(title: 'Top Brands', onAction: () {}),
+                  // const SizedBox(height: 16),
+                  // _BrandsRow(brands: _mockBrands),
+                  // const SizedBox(height: 32),
+                  // ─────────────────────────────────────────────────────────────
+
+                  _SectionHeader(
+                    title: tr('home.recommended'),
+                    actionLabel: tr('home.see_all'),
+                    onAction: () => context.push('/categories'),
+                  ),
+                  const SizedBox(height: 16),
+                  const _RecommendedGrid(),
+                ],
+              );
+            },
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────── Error state ───────────────────────────
+
+/// Premium "we couldn't load the feed" state.
+///
+/// Shown in place of the carousels + grid when [HomeBloc] reports
+/// `failure` and there's no cached payload to fall back on. Keeps the
+/// discover header and search bar above it so the user can navigate
+/// to Cart / Favorites / Profile via the bottom nav (all of which
+/// work offline thanks to Hive).
+class _HomeErrorState extends StatelessWidget {
+  const _HomeErrorState({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 88,
+              height: 88,
+              decoration: BoxDecoration(
+                color: PremiumTokens.accent.withValues(alpha: 0.10),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.wifi_off_rounded,
+                size: 40,
+                color: PremiumTokens.accent,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              tr('home.error_title'),
+              textAlign: TextAlign.center,
+              style: PremiumTokens.display(size: 20, letterSpacing: -0.2),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              tr('home.error_subtitle'),
+              textAlign: TextAlign.center,
+              style: PremiumTokens.body(size: 14, color: pt.grey, height: 1.4),
+            ),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: Text(tr('home.error_retry')),
+              style: FilledButton.styleFrom(
+                backgroundColor: PremiumTokens.accent,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 28,
+                  vertical: 14,
+                ),
+                minimumSize: const Size(0, 48),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(100),
+                ),
+                textStyle: PremiumTokens.body(
+                  size: 14,
+                  weight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

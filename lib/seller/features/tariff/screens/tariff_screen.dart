@@ -1,6 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/theme/app_fonts.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
 
@@ -16,7 +16,7 @@ import 'tariff_pending_screen.dart';
 
 // Local design tokens. Repeated across the seller surface so each screen
 // reads top-to-bottom without theme indirection. Plus Jakarta Sans is
-// applied directly via `GoogleFonts.plusJakartaSans` so the M3 surface
+// applied directly via `AppFonts.seller` so the M3 surface
 // tint never leaks into our white cards.
 const _ink = Color(0xFF1D1D1D);
 const _grey = Color(0xFF757575);
@@ -104,7 +104,7 @@ class _TariffAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       title: Text(
         tr('tariff.title'),
-        style: GoogleFonts.plusJakartaSans(
+        style: TextStyle(fontFamily: AppFonts.seller, 
           fontSize: 18,
           fontWeight: FontWeight.w700,
           color: _ink,
@@ -235,7 +235,7 @@ class _PendingBanner extends StatelessWidget {
                         'tariff.pending_banner_title',
                         args: [tr('tariff.plan.${subscription.plan.code}_label')],
                       ),
-                      style: GoogleFonts.plusJakartaSans(
+                      style: TextStyle(fontFamily: AppFonts.seller, 
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: _ink,
@@ -245,7 +245,7 @@ class _PendingBanner extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       tr('tariff.pending_banner_subtitle'),
-                      style: GoogleFonts.plusJakartaSans(
+                      style: TextStyle(fontFamily: AppFonts.seller, 
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                         color: _grey,
@@ -346,7 +346,7 @@ class _PeriodTab extends StatelessWidget {
           children: [
             Text(
               label,
-              style: GoogleFonts.plusJakartaSans(
+              style: TextStyle(fontFamily: AppFonts.seller, 
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
                 color: isActive ? Colors.white : _grey,
@@ -365,7 +365,7 @@ class _PeriodTab extends StatelessWidget {
                 ),
                 child: Text(
                   savingsLabel,
-                  style: GoogleFonts.plusJakartaSans(
+                  style: TextStyle(fontFamily: AppFonts.seller, 
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
                     color: Colors.white,
@@ -496,7 +496,7 @@ class _PlanHeader extends StatelessWidget {
         Expanded(
           child: Text(
             tr('tariff.plan.${plan.code}_label'),
-            style: GoogleFonts.plusJakartaSans(
+            style: TextStyle(fontFamily: AppFonts.seller, 
               fontSize: 20,
               fontWeight: FontWeight.w700,
               color: _ink,
@@ -547,7 +547,7 @@ class _StaticChip extends StatelessWidget {
           ],
           Text(
             label,
-            style: GoogleFonts.plusJakartaSans(
+            style: TextStyle(fontFamily: AppFonts.seller, 
               fontSize: 10,
               fontWeight: FontWeight.w800,
               color: foreground,
@@ -590,7 +590,7 @@ class _RecommendedRibbon extends StatelessWidget {
           const SizedBox(width: 5),
           Text(
             label,
-            style: GoogleFonts.plusJakartaSans(
+            style: TextStyle(fontFamily: AppFonts.seller, 
               fontSize: 10,
               fontWeight: FontWeight.w800,
               color: Colors.white,
@@ -617,7 +617,7 @@ class _PriceRow extends StatelessWidget {
     if (plan.isFree) {
       return Text(
         tr('tariff.price_free'),
-        style: GoogleFonts.plusJakartaSans(
+        style: TextStyle(fontFamily: AppFonts.seller, 
           fontSize: 30,
           fontWeight: FontWeight.w800,
           color: _ink,
@@ -652,7 +652,7 @@ class _PriceRow extends StatelessWidget {
         children: [
           Text(
             _formatPrice(price),
-            style: GoogleFonts.plusJakartaSans(
+            style: TextStyle(fontFamily: AppFonts.seller, 
               fontSize: 30,
               fontWeight: FontWeight.w800,
               color: _ink,
@@ -665,7 +665,7 @@ class _PriceRow extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 4),
             child: Text(
               "so'm",
-              style: GoogleFonts.plusJakartaSans(
+              style: TextStyle(fontFamily: AppFonts.seller, 
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
                 color: _ink,
@@ -678,7 +678,7 @@ class _PriceRow extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 5),
             child: Text(
               suffix,
-              style: GoogleFonts.plusJakartaSans(
+              style: TextStyle(fontFamily: AppFonts.seller, 
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
                 color: _grey,
@@ -736,7 +736,7 @@ class _FeatureList extends StatelessWidget {
                 Expanded(
                   child: Text(
                     text,
-                    style: GoogleFonts.plusJakartaSans(
+                    style: TextStyle(fontFamily: AppFonts.seller, 
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                       color: _ink,
@@ -815,7 +815,7 @@ class _PlanCta extends StatelessWidget {
         ),
         child: Text(
           label,
-          style: GoogleFonts.plusJakartaSans(
+          style: TextStyle(fontFamily: AppFonts.seller, 
             fontSize: 14,
             fontWeight: FontWeight.w700,
             color: foreground,

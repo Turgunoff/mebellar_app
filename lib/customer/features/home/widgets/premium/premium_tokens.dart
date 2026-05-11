@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../../../../core/theme/app_fonts.dart';
 
 import '../../../../../core/theme/app_colors.dart';
 
@@ -77,7 +77,7 @@ class PremiumTokens {
     double height = 1.15,
     double letterSpacing = -0.5,
   }) =>
-      GoogleFonts.playfairDisplay(
+      TextStyle(fontFamily: AppFonts.display, 
         fontSize: size,
         fontWeight: weight,
         color: color,
@@ -92,7 +92,7 @@ class PremiumTokens {
     double height = 1.35,
     double letterSpacing = 0,
   }) =>
-      GoogleFonts.inter(
+      TextStyle(fontFamily: AppFonts.body, 
         fontSize: size,
         fontWeight: weight,
         color: color,

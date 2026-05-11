@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/theme/app_fonts.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../../core/theme/app_colors.dart';
@@ -10,7 +10,7 @@ import '../../../../shared/models/seller_product.dart';
 
 // Local tokens — kept here so the screen reads top-to-bottom without
 // chasing theme indirection. Plus Jakarta Sans is applied to every
-// `Text` explicitly via `GoogleFonts.plusJakartaSans` so the surface
+// `Text` explicitly via `AppFonts.seller` so the surface
 // is immune to the M3 surface tint that the teal seller seed otherwise
 // bleeds onto neutral backgrounds.
 const _ink = Color(0xFF1D1D1D);
@@ -201,7 +201,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
         ),
         title: Text(
           'Maxsus chegirma',
-          style: GoogleFonts.plusJakartaSans(
+          style: TextStyle(fontFamily: AppFonts.seller, 
             fontSize: 16,
             fontWeight: FontWeight.w700,
             color: _ink,
@@ -214,7 +214,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           autofocus: true,
           cursorColor: AppColors.terracotta,
-          style: GoogleFonts.plusJakartaSans(
+          style: TextStyle(fontFamily: AppFonts.seller, 
             fontSize: 14,
             fontWeight: FontWeight.w600,
             color: _ink,
@@ -245,7 +245,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
             onPressed: () => Navigator.of(ctx).pop(),
             child: Text(
               'Bekor qilish',
-              style: GoogleFonts.plusJakartaSans(
+              style: TextStyle(fontFamily: AppFonts.seller, 
                 fontWeight: FontWeight.w600,
                 color: _grey,
               ),
@@ -265,7 +265,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
             },
             child: Text(
               'Saqlash',
-              style: GoogleFonts.plusJakartaSans(
+              style: TextStyle(fontFamily: AppFonts.seller, 
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -287,7 +287,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
         behavior: SnackBarBehavior.floating,
         content: Text(
           "Mahsulot e'lon qilindi",
-          style: GoogleFonts.plusJakartaSans(
+          style: TextStyle(fontFamily: AppFonts.seller, 
             fontWeight: FontWeight.w600,
             color: Colors.white,
           ),
@@ -403,7 +403,7 @@ class _FormAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       title: Text(
         isEdit ? 'Mahsulotni tahrirlash' : "Mahsulot qo'shish",
-        style: GoogleFonts.plusJakartaSans(
+        style: TextStyle(fontFamily: AppFonts.seller, 
           fontSize: 18,
           fontWeight: FontWeight.w700,
           color: _ink,
@@ -428,7 +428,7 @@ class _SectionTitle extends StatelessWidget {
       padding: const EdgeInsets.only(left: 4, bottom: 10),
       child: Text(
         text,
-        style: GoogleFonts.plusJakartaSans(
+        style: TextStyle(fontFamily: AppFonts.seller, 
           fontSize: 15,
           fontWeight: FontWeight.w700,
           color: _ink,
@@ -567,7 +567,7 @@ class _AddPhotoTile extends StatelessWidget {
                   Text(
                     'Rasm qo\'shish',
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.plusJakartaSans(
+                    style: TextStyle(fontFamily: AppFonts.seller, 
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
                       color: accent,
@@ -578,7 +578,7 @@ class _AddPhotoTile extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     '($count/$max)',
-                    style: GoogleFonts.plusJakartaSans(
+                    style: TextStyle(fontFamily: AppFonts.seller, 
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
                       color: enabled
@@ -638,7 +638,7 @@ class _ImageThumbnail extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   'Rasm $index',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: TextStyle(fontFamily: AppFonts.seller, 
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
                     color: AppColors.terracotta,
@@ -663,7 +663,7 @@ class _ImageThumbnail extends StatelessWidget {
                 ),
                 child: Text(
                   'Asosiy',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: TextStyle(fontFamily: AppFonts.seller, 
                     fontSize: 9,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
@@ -852,7 +852,7 @@ class _PickerField extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 6, left: 2),
           child: Text(
             label,
-            style: GoogleFonts.plusJakartaSans(
+            style: TextStyle(fontFamily: AppFonts.seller, 
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: _grey,
@@ -884,7 +884,7 @@ class _PickerField extends StatelessWidget {
                 Expanded(
                   child: Text(
                     hasValue ? value! : placeholder,
-                    style: GoogleFonts.plusJakartaSans(
+                    style: TextStyle(fontFamily: AppFonts.seller, 
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: hasValue ? _ink : _greyMid,
@@ -940,7 +940,7 @@ class _SpecsSection extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 8, left: 2),
                 child: Text(
                   "O'lchamlari (sm)",
-                  style: GoogleFonts.plusJakartaSans(
+                  style: TextStyle(fontFamily: AppFonts.seller, 
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: _grey,
@@ -983,7 +983,7 @@ class _SpecsSection extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 8, left: 2),
                 child: Text(
                   'Rangi',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: TextStyle(fontFamily: AppFonts.seller, 
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: _grey,
@@ -1033,7 +1033,7 @@ class _DimensionField extends StatelessWidget {
       ],
       cursorColor: AppColors.terracotta,
       textAlign: TextAlign.center,
-      style: GoogleFonts.plusJakartaSans(
+      style: TextStyle(fontFamily: AppFonts.seller, 
         fontSize: 14,
         fontWeight: FontWeight.w700,
         color: _ink,
@@ -1046,7 +1046,7 @@ class _DimensionField extends StatelessWidget {
           vertical: 12,
         ),
         hintText: label,
-        hintStyle: GoogleFonts.plusJakartaSans(
+        hintStyle: TextStyle(fontFamily: AppFonts.seller, 
           fontSize: 12,
           fontWeight: FontWeight.w500,
           color: _greyMid,
@@ -1112,7 +1112,7 @@ class _ColorChip extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 label,
-                style: GoogleFonts.plusJakartaSans(
+                style: TextStyle(fontFamily: AppFonts.seller, 
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                   color: selected ? AppColors.terracotta : _ink,
@@ -1170,7 +1170,7 @@ class _PricingSection extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 8, left: 2),
                 child: Text(
                   'Chegirma foizi',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: TextStyle(fontFamily: AppFonts.seller, 
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: _grey,
@@ -1264,7 +1264,7 @@ class _DiscountChip extends StatelessWidget {
           ),
           child: Text(
             label,
-            style: GoogleFonts.plusJakartaSans(
+            style: TextStyle(fontFamily: AppFonts.seller, 
               fontSize: 12,
               fontWeight: FontWeight.w700,
               color: selected ? Colors.white : _ink,
@@ -1321,7 +1321,7 @@ class _DiscountSummary extends StatelessWidget {
               children: [
                 Text(
                   hasDiscount ? 'Chegirma bilan' : 'Chegirmasiz',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: TextStyle(fontFamily: AppFonts.seller, 
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                     color: _grey,
@@ -1333,7 +1333,7 @@ class _DiscountSummary extends StatelessWidget {
                   hasPrice
                       ? '${_formatThousands(discountedPrice)} UZS'
                       : '— UZS',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: TextStyle(fontFamily: AppFonts.seller, 
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
                     color: hasPrice && hasDiscount
@@ -1358,7 +1358,7 @@ class _DiscountSummary extends StatelessWidget {
               ),
               child: Text(
                 '-$discountPercent%',
-                style: GoogleFonts.plusJakartaSans(
+                style: TextStyle(fontFamily: AppFonts.seller, 
                   fontSize: 11,
                   fontWeight: FontWeight.w800,
                   color: Colors.white,
@@ -1515,7 +1515,7 @@ class _ToggleRow extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: GoogleFonts.plusJakartaSans(
+                style: TextStyle(fontFamily: AppFonts.seller, 
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: _ink,
@@ -1525,7 +1525,7 @@ class _ToggleRow extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 subtitle,
-                style: GoogleFonts.plusJakartaSans(
+                style: TextStyle(fontFamily: AppFonts.seller, 
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                   color: _grey,
@@ -1585,7 +1585,7 @@ class _FormField extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 6, left: 2),
           child: Text(
             label,
-            style: GoogleFonts.plusJakartaSans(
+            style: TextStyle(fontFamily: AppFonts.seller, 
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: _grey,
@@ -1600,7 +1600,7 @@ class _FormField extends StatelessWidget {
           minLines: minLines,
           maxLines: maxLines,
           cursorColor: AppColors.terracotta,
-          style: GoogleFonts.plusJakartaSans(
+          style: TextStyle(fontFamily: AppFonts.seller, 
             fontSize: 14,
             fontWeight: FontWeight.w600,
             color: _ink,
@@ -1613,13 +1613,13 @@ class _FormField extends StatelessWidget {
               vertical: 14,
             ),
             hintText: hint,
-            hintStyle: GoogleFonts.plusJakartaSans(
+            hintStyle: TextStyle(fontFamily: AppFonts.seller, 
               fontSize: 14,
               fontWeight: FontWeight.w500,
               color: _greyMid,
             ),
             suffixText: suffix,
-            suffixStyle: GoogleFonts.plusJakartaSans(
+            suffixStyle: TextStyle(fontFamily: AppFonts.seller, 
               fontSize: 12,
               fontWeight: FontWeight.w700,
               color: _greyMid,
@@ -1643,7 +1643,7 @@ class _FormField extends StatelessWidget {
             padding: const EdgeInsets.only(top: 6, left: 2),
             child: Text(
               helper!,
-              style: GoogleFonts.plusJakartaSans(
+              style: TextStyle(fontFamily: AppFonts.seller, 
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
                 color: _grey,
@@ -1692,7 +1692,7 @@ class _SaveBottomBar extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
-                textStyle: GoogleFonts.plusJakartaSans(
+                textStyle: TextStyle(fontFamily: AppFonts.seller, 
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -0.1,
@@ -1756,7 +1756,7 @@ class _CategoryPickerSheet<T> extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               title,
-              style: GoogleFonts.plusJakartaSans(
+              style: TextStyle(fontFamily: AppFonts.seller, 
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
                 color: _ink,
@@ -1811,7 +1811,7 @@ class _PickerTile<T> extends StatelessWidget {
             Expanded(
               child: Text(
                 entry.label,
-                style: GoogleFonts.plusJakartaSans(
+                style: TextStyle(fontFamily: AppFonts.seller, 
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: _ink,

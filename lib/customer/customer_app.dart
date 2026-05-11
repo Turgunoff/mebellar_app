@@ -15,12 +15,13 @@ import '../core/i18n/i18n.dart';
 import '../core/logging/debug_talker_overlay.dart';
 import '../core/logging/talker.dart';
 import '../core/notifications/notification_handler.dart';
+import '../core/connectivity/network_cubit.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/theme_cubit.dart';
 import 'features/categories/bloc/categories_bloc.dart';
 import '../main.dart' show AppLocaleScope;
 import '../shared/repositories/notifications_repository.dart';
-import '../shared/widgets/offline_banner.dart';
+import '../shared/widgets/network_overlay_wrapper.dart';
 import 'features/cart/bloc/cart_bloc.dart';
 import 'features/cart/screens/cart_screen.dart';
 import 'features/categories/screens/categories_screen.dart';
@@ -98,6 +99,7 @@ class _CustomerAppState extends State<CustomerApp> {
           BlocProvider<FavoritesBloc>.value(value: sl<FavoritesBloc>()),
           BlocProvider<CategoriesBloc>.value(value: sl<CategoriesBloc>()),
           BlocProvider<HomeBloc>.value(value: sl<HomeBloc>()),
+          BlocProvider<NetworkCubit>.value(value: sl<NetworkCubit>()),
         ],
         child: MaterialApp.router(
           title: 'Woody',
@@ -116,9 +118,11 @@ class _CustomerAppState extends State<CustomerApp> {
           routerConfig: _router,
           builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
             value: appSystemOverlay(Theme.of(context).brightness),
-            child: DebugTalkerOverlay(
-              navigatorKey: customerNavigatorKey,
-              child: child,
+            child: NetworkOverlayWrapper(
+              child: DebugTalkerOverlay(
+                navigatorKey: customerNavigatorKey,
+                child: child,
+              ),
             ),
           ),
         ),
@@ -217,16 +221,12 @@ class _CustomerHomeShellState extends State<CustomerHomeShell> {
                 _NotificationsAppBarAction(),
               ],
             ),
-      body: Column(
-        children: [
-          const OfflineBanner(),
-          Expanded(
-            child: IndexedStack(
-              index: _index,
-              children: tabs,
-            ),
-          ),
-        ],
+      // The connectivity banner is mounted globally by NetworkOverlayWrapper
+      // in MaterialApp.builder, so it survives route changes and we don't
+      // need a per-shell Column wrapper here.
+      body: IndexedStack(
+        index: _index,
+        children: tabs,
       ),
       bottomNavigationBar: GlassBottomNav(
         currentIndex: _index,

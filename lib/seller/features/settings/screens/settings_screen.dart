@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/theme/app_fonts.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../../core/theme/app_colors.dart';
 
 // Local tokens — kept here so the screen reads top-to-bottom without
 // chasing theme indirection. Plus Jakarta Sans is applied to every
-// `Text` explicitly via `GoogleFonts.plusJakartaSans` so the surface
+// `Text` explicitly via `AppFonts.seller` so the surface
 // is immune to the M3 surface tint that the teal seller seed otherwise
 // bleeds onto neutral backgrounds.
 const _ink = Color(0xFF1D1D1D);
@@ -147,7 +147,7 @@ class _SettingsAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       title: Text(
         'Sozlamalar',
-        style: GoogleFonts.plusJakartaSans(
+        style: TextStyle(fontFamily: AppFonts.seller, 
           fontSize: 18,
           fontWeight: FontWeight.w700,
           color: _ink,
@@ -172,7 +172,7 @@ class _SectionLabel extends StatelessWidget {
       padding: const EdgeInsets.only(left: 4),
       child: Text(
         text,
-        style: GoogleFonts.plusJakartaSans(
+        style: TextStyle(fontFamily: AppFonts.seller, 
           fontSize: 12,
           fontWeight: FontWeight.w700,
           color: _grey,
@@ -261,7 +261,7 @@ class _NavRow extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: GoogleFonts.plusJakartaSans(
+                  style: TextStyle(fontFamily: AppFonts.seller, 
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: _ink,
@@ -274,7 +274,7 @@ class _NavRow extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   trailingText!,
-                  style: GoogleFonts.plusJakartaSans(
+                  style: TextStyle(fontFamily: AppFonts.seller, 
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                     color: _grey,
@@ -331,7 +331,7 @@ class _SwitchRow extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: GoogleFonts.plusJakartaSans(
+                      style: TextStyle(fontFamily: AppFonts.seller, 
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                         color: _ink,
@@ -343,7 +343,7 @@ class _SwitchRow extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         subtitle!,
-                        style: GoogleFonts.plusJakartaSans(
+                        style: TextStyle(fontFamily: AppFonts.seller, 
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                           color: _grey,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+
+import 'app_fonts.dart';
 
 class AppTypography {
   const AppTypography._();
@@ -31,7 +32,7 @@ class AppTypography {
     final base = brightness == Brightness.dark
         ? Typography.whiteMountainView
         : Typography.blackMountainView;
-    final familied = GoogleFonts.plusJakartaSansTextTheme(base);
+    final familied = base.apply(fontFamily: AppFonts.seller);
 
     return familied.copyWith(
       // Hero numbers — KPI values, dashboard headlines.

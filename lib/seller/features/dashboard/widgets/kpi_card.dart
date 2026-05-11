@@ -15,7 +15,7 @@ import '../../../../core/theme/app_colors.dart';
 /// Typography note: every `TextStyle` here intentionally omits `fontFamily`.
 /// The seller theme pins the family to Plus Jakarta Sans via
 /// `AppTypography.plusJakartaSansTextTheme(...)`, and the styles below merge
-/// on top of that default. Don't reintroduce a hardcoded `GoogleFonts.xxx(...)`
+/// on top of that default. Don't reintroduce a hardcoded `AppFonts.xxx(...)`
 /// here — it would defeat the theme-level swap.
 class SellerKpiCard extends StatelessWidget {
   const SellerKpiCard({
