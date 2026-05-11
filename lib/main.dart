@@ -1,0 +1,185 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_phoenix/flutter_phoenix.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import 'config/app_mode.dart';
+import 'core/auth/auth_cubit.dart';
+import 'core/di/service_locator.dart';
+import 'core/i18n/i18n.dart';
+import 'core/logging/talker.dart';
+import 'core/storage/hive_boxes.dart';
+import 'core/theme/theme_cubit.dart';
+import 'core/widgets/app_splash_screen.dart';
+import 'customer/customer_app.dart';
+import 'seller/seller_app.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  talker.info('App boot started');
+  await initRootScope();
+
+  final initialMode = getInitialMode();
+  await initModeScope(initialMode);
+
+  // Boot the locale controller from the Hive `settings` box so the
+  // `MaterialApp` rebuilds when the user switches language.
+  final settingsBox = sl<Box>(instanceName: HiveBoxes.settings);
+  final localeController = AppLocaleController.fromBox(settingsBox);
+  // Seed the singleton so any `tr(...)` invoked before the first
+  // `Localizations.load` (e.g. boot logging) resolves correctly.
+  AppTranslations.setInstance(
+    AppTranslations.forLocale(localeController.value),
+  );
+
+  runApp(
+    MultiBlocProvider(
+      providers: [
+        BlocProvider<ThemeCubit>.value(value: sl<ThemeCubit>()),
+        BlocProvider<AuthCubit>.value(value: sl<AuthCubit>()),
+      ],
+      child: _AppRoot(localeController: localeController),
+    ),
+  );
+}
+
+class _AppRoot extends StatelessWidget {
+  const _AppRoot({required this.localeController});
+
+  final AppLocaleController localeController;
+
+  @override
+  Widget build(BuildContext context) {
+    return Phoenix(
+      child: _LocaleScope(
+        controller: localeController,
+        // _ModeRouter sits *ins55ide* Phoenix on purpose. Phoenix.rebirth
+        // changes the subtree key, which forces _ModeRouter to be built
+        // afresh — its build() re-reads `getInitialMode()` from Hive so
+        // the post-rebirth tree picks up the new app_mode written by
+        // `switchAppMode`. Capturing the mode in `_App1Root` (above Phoenix)
+        // would freeze it at startup and ignore mode flips.
+        child: const _ModeRouter(),
+      ),
+    );
+  }
+}
+
+/// Holds the splash for a minimum dwell time on cold start, then crossfades
+/// into the active mode app. Without this, on a fast device the brand splash
+/// would barely register — the heavy init in `main()` is already done by the
+/// time we get here, so we deliberately gate the transition on a timer.
+///
+/// Phoenix.rebirth (mode switch) recreates this widget with a new key, so
+/// the splash also briefly shows on customer↔seller flips, masking any
+/// flicker from the DI scope swap. If you want instantaneous mode switches
+/// instead, lower [_minSplashDuration] or branch on a `coldStart` flag.
+class _ModeRouter extends StatefulWidget {
+  const _ModeRouter();
+
+  @override
+  State<_ModeRouter> createState() => _ModeRouterState();
+}
+
+class _ModeRouterState extends State<_ModeRouter> {
+  static const _minSplashDuration = Duration(milliseconds: 1400);
+  static const _crossfadeDuration = Duration(milliseconds: 360);
+
+  bool _splashDone = false;
+
+  @override
+  void initState() {
+    super.initState();
+    Future<void>.delayed(_minSplashDuration, () {
+      if (mounted) setState(() => _splashDone = true);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final app = switch (getInitialMode()) {
+      AppMode.customer => const CustomerApp(),
+      AppMode.seller => const SellerApp(),
+    };
+    // We sit above MaterialApp, so Directionality / DefaultTextStyle aren't
+    // provided yet. AnimatedSwitcher's Stack and the splash's Text widgets
+    // both need a TextDirection — explicit LTR keeps them rendering during
+    // the crossfade window (the inner MaterialApp takes over once `app`
+    // mounts, so this wrapper is only consulted during splash).
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: AnimatedSwitcher(
+        duration: _crossfadeDuration,
+        switchInCurve: Curves.easeOut,
+        switchOutCurve: Curves.easeIn,
+        child: _splashDone
+            ? KeyedSubtree(key: const ValueKey('app'), child: app)
+            : const KeyedSubtree(
+                key: ValueKey('splash'),
+                child: AppSplashScreen(),
+              ),
+      ),
+    );
+  }
+}
+
+class _LocaleScope extends StatefulWidget {
+  const _LocaleScope({required this.controller, required this.child});
+
+  final AppLocaleController controller;
+  final Widget child;
+
+  @override
+  State<_LocaleScope> createState() => _LocaleScopeState();
+}
+
+class _LocaleScopeState extends State<_LocaleScope> {
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onLocaleChanged);
+    // Expose the controller via the resolver in i18n.dart so widgets
+    // like the language picker can find it without a DI lookup.
+    registerAppLocaleControllerResolver(() => widget.controller);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onLocaleChanged);
+    super.dispose();
+  }
+
+  void _onLocaleChanged() {
+    if (!mounted) return;
+    AppTranslations.setInstance(
+      AppTranslations.forLocale(widget.controller.value),
+    );
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AppLocaleScope(
+      controller: widget.controller,
+      child: widget.child,
+    );
+  }
+}
+
+/// `InheritedWidget` so child widgets can read the active locale controller
+/// (e.g. a language picker dropdown writes the new locale through it).
+class AppLocaleScope extends InheritedNotifier<AppLocaleController> {
+  const AppLocaleScope({
+    super.key,
+    required AppLocaleController controller,
+    required super.child,
+  }) : super(notifier: controller);
+
+  static AppLocaleController of(BuildContext context) {
+    final scope =
+        context.dependOnInheritedWidgetOfExactType<AppLocaleScope>();
+    assert(scope != null, 'AppLocaleScope ancestor missing');
+    return scope!.notifier!;
+  }
+}

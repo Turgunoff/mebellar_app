@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm -f .git/ORIG_HEAD)",
+      "Bash(git pull *)",
+      "Bash(xargs grep *)",
+      "mcp__plugin_supabase_supabase__list_projects",
+      "mcp__plugin_supabase_supabase__execute_sql",
+      "Bash(flutter analyze *)",
+      "Bash(xargs ls -la)",
+      "Bash(dart pub *)",
+      "mcp__plugin_supabase_supabase__list_tables",
+      "Bash(flutter pub *)",
+      "Bash(ruby --version)",
+      "Bash(gem --version)",
+      "Bash(brew --version)",
+      "Bash(pod *)",
+      "Bash(flutter doctor *)",
+      "Read(//usr/local/Cellar/cocoapods/1.16.2_2/bin/**)",
+      "Bash(flutter config *)",
+      "Bash(flutter build *)",
+      "Bash(flutter run *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(claude mcp *)",
+      "mcp__supabase__get_project",
+      "mcp__supabase__list_tables",
+      "mcp__supabase__list_migrations",
+      "mcp__supabase__execute_sql",
+      "mcp__supabase__apply_migration",
+      "Bash(Get-ChildItem -Path \"c:\\\\Projects\\\\mebellar_new\\\\mebellar_new_app\" -Force)",
+      "Bash(Select-Object -Property Name, FullName)",
+      "Bash(flutter clean *)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "supabase"
+  ]
+}

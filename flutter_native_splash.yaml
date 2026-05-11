@@ -1,0 +1,32 @@
+# Run after editing: dart run flutter_native_splash:create
+#
+# Native splash bridges the gap between OS launch and Flutter's first frame.
+# Color matches `AppColors.lightBackground` (#FAFAFA) and the in-Flutter
+# `AppSplashScreen` so the cold-start sequence is visually continuous:
+#
+#   OS launch  →  native splash (#FAFAFA)
+#               →  Flutter `AppSplashScreen` (same #FAFAFA + animated mark)
+#               →  CustomerApp / SellerApp (depending on persisted mode)
+#
+# Drop a 512×512 transparent PNG at `assets/images/splash_logo.png`, then
+# uncomment the `image:` lines below and re-run the generator to embed the
+# brand mark on the native side.
+flutter_native_splash:
+  color: "#FAFAFA"
+  color_dark: "#121212"
+
+  # image: assets/images/splash_logo.png
+  # image_dark: assets/images/splash_logo.png
+
+  android: true
+  ios: true
+
+  android_12:
+    color: "#FAFAFA"
+    color_dark: "#121212"
+    # image: assets/images/splash_logo.png
+    # image_dark: assets/images/splash_logo.png
+
+  android_gravity: center
+  ios_content_mode: center
+  fullscreen: false

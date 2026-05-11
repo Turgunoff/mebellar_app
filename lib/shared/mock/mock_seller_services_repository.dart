@@ -1,0 +1,26 @@
+import '../models/shop_service_config.dart';
+import '../repositories/seller_services_repository.dart';
+import 'mock_shop_settings.dart';
+
+class MockSellerServicesRepository implements SellerServicesRepository {
+  MockSellerServicesRepository() {
+    _configs = MockShopSettings.defaultServices();
+  }
+
+  static const _delay = Duration(milliseconds: 250);
+
+  List<ShopServiceConfig> _configs = const [];
+
+  @override
+  Future<List<ShopServiceConfig>> list() async {
+    await Future<void>.delayed(_delay);
+    return List<ShopServiceConfig>.unmodifiable(_configs);
+  }
+
+  @override
+  Future<List<ShopServiceConfig>> save(List<ShopServiceConfig> configs) async {
+    await Future<void>.delayed(_delay);
+    _configs = List<ShopServiceConfig>.unmodifiable(configs);
+    return _configs;
+  }
+}

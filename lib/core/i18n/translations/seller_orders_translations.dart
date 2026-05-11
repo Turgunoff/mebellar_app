@@ -1,0 +1,55 @@
+// Seller-side incoming orders queue.
+
+const Map<String, dynamic> sellerOrdersUz = {
+  'tab_newTab': 'Yangi',
+  'tab_active': 'Faol',
+  'tab_done': 'Yetkazilgan',
+  'tab_cancelled': 'Bekor qilingan',
+  'empty': 'Buyurtmalar yo\'q',
+  'empty_hint': 'Yangi buyurtmalar shu yerda paydo bo\'ladi',
+  'customer': 'Mijoz',
+  'action_confirm': 'Tasdiqlash',
+  'action_preparing': 'Tayyorlanmoqda',
+  'action_shipped': 'Yuborildi',
+  'action_delivered': 'Yetkazildi',
+  'cancel_title': 'Buyurtmani bekor qilasizmi?',
+  'cancel_subtitle': 'Sababni yozib qoldiring (mijoz ko\'radi):',
+  'cancel_reason_hint': 'Masalan: Mahsulot omborda tugadi',
+  'cancel_reason_default': 'Sotuvchi tomonidan bekor qilindi',
+};
+
+const Map<String, dynamic> sellerOrdersRu = {
+  'tab_newTab': 'Новые',
+  'tab_active': 'Активные',
+  'tab_done': 'Доставленные',
+  'tab_cancelled': 'Отменённые',
+  'empty': 'Заказов нет',
+  'empty_hint': 'Новые заказы появятся здесь',
+  'customer': 'Покупатель',
+  'action_confirm': 'Подтвердить',
+  'action_preparing': 'Готовится',
+  'action_shipped': 'Отправлен',
+  'action_delivered': 'Доставлен',
+  'cancel_title': 'Отменить заказ?',
+  'cancel_subtitle': 'Укажите причину (увидит покупатель):',
+  'cancel_reason_hint': 'Например: Товар закончился',
+  'cancel_reason_default': 'Отменено продавцом',
+};
+
+const Map<String, dynamic> sellerOrdersEn = {
+  'tab_newTab': 'New',
+  'tab_active': 'Active',
+  'tab_done': 'Delivered',
+  'tab_cancelled': 'Cancelled',
+  'empty': 'No orders',
+  'empty_hint': 'New orders will appear here',
+  'customer': 'Customer',
+  'action_confirm': 'Confirm',
+  'action_preparing': 'Preparing',
+  'action_shipped': 'Shipped',
+  'action_delivered': 'Delivered',
+  'cancel_title': 'Cancel this order?',
+  'cancel_subtitle': 'Tell the customer why:',
+  'cancel_reason_hint': 'e.g. Out of stock',
+  'cancel_reason_default': 'Cancelled by seller',
+};

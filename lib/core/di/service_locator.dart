@@ -1,0 +1,432 @@
+import 'dart:async';
+
+import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_phoenix/flutter_phoenix.dart';
+import 'package:get_it/get_it.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../config/app_config.dart';
+import '../../config/app_mode.dart';
+import '../../customer/features/cart/bloc/cart_bloc.dart';
+import '../../customer/features/categories/bloc/categories_bloc.dart';
+import '../../customer/features/favorites/bloc/favorites_bloc.dart';
+import '../../customer/features/home/bloc/home_bloc.dart';
+import '../../customer/services/order_tracking_service.dart';
+import '../../seller/services/new_orders_listener.dart';
+import '../../shared/mock/mock_address_repository.dart';
+import '../../shared/mock/mock_banner_repository.dart';
+import '../../shared/mock/mock_cart_repository.dart';
+import '../../shared/mock/mock_category_repository.dart';
+import '../../shared/mock/mock_favorites_repository.dart';
+import '../../shared/mock/mock_notifications_repository.dart';
+import '../../shared/mock/mock_order_repository.dart';
+import '../../shared/mock/mock_product_repository.dart';
+import '../../shared/mock/mock_region_repository.dart';
+import '../../shared/mock/mock_regions.dart';
+import '../../shared/mock/mock_seller_dashboard_repository.dart';
+import '../../shared/mock/mock_seller_onboarding_repository.dart';
+import '../../shared/repositories/supabase_seller_onboarding_repository.dart';
+import '../../shared/mock/mock_seller_order_repository.dart';
+import '../../shared/mock/mock_seller_product_repository.dart';
+import '../../shared/mock/mock_seller_services_repository.dart';
+import '../../shared/mock/mock_seller_verification_repository.dart';
+import '../../shared/mock/mock_shop_repository.dart';
+import '../../shared/mock/mock_shop_settings_repository.dart';
+import '../../shared/mock/mock_tariff_repository.dart';
+import '../../shared/repositories/address_repository.dart';
+import '../../shared/repositories/banner_repository.dart';
+import '../../shared/repositories/supabase_banner_repository.dart';
+import '../../shared/repositories/cart_repository.dart';
+import '../../shared/repositories/category_repository.dart';
+import '../../shared/repositories/favorites_repository.dart';
+import '../../shared/repositories/hive_cart_repository.dart';
+import '../../shared/repositories/hive_favorites_repository.dart';
+import '../../shared/repositories/hybrid_cart_repository.dart';
+import '../../shared/repositories/hybrid_favorites_repository.dart';
+import '../../shared/repositories/supabase_cart_repository.dart';
+import '../../shared/repositories/supabase_category_repository.dart';
+import '../../shared/repositories/supabase_favorites_repository.dart';
+import '../../shared/repositories/supabase_product_data_source.dart';
+import '../../shared/repositories/supabase_notifications_repository.dart';
+import '../../shared/repositories/notifications_repository.dart';
+import '../../shared/repositories/order_repository.dart';
+import '../../shared/repositories/product_repository.dart';
+import '../../shared/repositories/region_repository.dart';
+import '../../shared/repositories/seller_dashboard_repository.dart';
+import '../../shared/repositories/seller_onboarding_repository.dart';
+import '../../shared/repositories/seller_order_repository.dart';
+import '../../shared/repositories/seller_product_repository.dart';
+import '../../shared/repositories/seller_services_repository.dart';
+import '../../shared/repositories/seller_verification_repository.dart';
+import '../../shared/repositories/shop_repository.dart';
+import '../../shared/repositories/shop_settings_repository.dart';
+import '../../shared/repositories/tariff_repository.dart';
+import '../auth/auth_cubit.dart';
+import '../auth/auth_repository.dart';
+import '../connectivity/connectivity_service.dart';
+import '../deep_links/deep_link_service.dart';
+import '../network/api_client.dart';
+import '../network/supabase_client.dart';
+import '../notifications/notification_handler.dart';
+import '../storage/cache_store.dart';
+import '../storage/hive_boxes.dart';
+import '../storage/secure_storage.dart';
+import '../theme/theme_cubit.dart';
+
+final GetIt sl = GetIt.instance;
+
+bool _rootInitialised = false;
+
+/// Boots the singletons that survive every mode switch (Hive boxes, Supabase
+/// client, Dio, AuthRepository, OneSignal handler placeholder, ...).
+Future<void> initRootScope() async {
+  if (_rootInitialised) return;
+
+  final boxes = await openCoreBoxes();
+  sl.registerSingleton<Box>(boxes.settings, instanceName: HiveBoxes.settings);
+  sl.registerSingleton<Box>(boxes.cache, instanceName: HiveBoxes.cache);
+  sl.registerSingleton<Box>(
+    boxes.pendingRoute,
+    instanceName: HiveBoxes.pendingRoute,
+  );
+  sl.registerSingleton<Box>(
+    boxes.onboardingDraft,
+    instanceName: HiveBoxes.onboardingDraft,
+  );
+  sl.registerSingleton<Box>(
+    boxes.favorites,
+    instanceName: HiveBoxes.favorites,
+  );
+  sl.registerSingleton<Box>(
+    boxes.cart,
+    instanceName: HiveBoxes.cart,
+  );
+
+  sl.registerSingleton<ThemeCubit>(
+    ThemeCubit(boxes.settings),
+    dispose: (c) => c.close(),
+  );
+
+  sl.registerSingleton<SecureStorage>(SecureStorage());
+
+  // Sprint 11 polish: connectivity + deep links + cache wrapper. The mock
+  // connectivity service is used regardless of `useMocks` for now —
+  // production flips to a `connectivity_plus`-backed adapter in Sprint 12.
+  sl.registerSingleton<ConnectivityService>(MockConnectivityService(),
+      dispose: (s) => s.dispose());
+  sl.registerSingleton<DeepLinkService>(MockDeepLinkService(),
+      dispose: (s) => s.dispose());
+  sl.registerLazySingleton<CacheStore>(
+    () => CacheStore(sl<Box>(instanceName: HiveBoxes.cache)),
+  );
+
+  final supabase = await initSupabase();
+  if (supabase != null) {
+    sl.registerSingleton<SupabaseClient>(supabase);
+  }
+
+  sl.registerLazySingleton<Dio>(
+    buildDioClient,
+    dispose: (dio) => dio.close(force: true),
+  );
+
+  if (supabase != null) {
+    sl.registerLazySingleton<AuthRepository>(
+      () => AuthRepository(sl<SupabaseClient>(), sl<Dio>()),
+      dispose: (repo) => repo.dispose(),
+    );
+  }
+
+  sl.registerLazySingleton<NotificationHandler>(
+    () => NotificationHandler(sl<Box>(instanceName: HiveBoxes.pendingRoute)),
+  );
+
+  // Single global auth listener — survives customer↔seller mode switches.
+  sl.registerSingleton<AuthCubit>(
+    AuthCubit(
+      sl.isRegistered<SupabaseClient>() ? sl<SupabaseClient>() : null,
+    ),
+    dispose: (c) => c.close(),
+  );
+
+  // CategoryDataSource — Supabase when available, mock otherwise.
+  sl.registerLazySingleton<CategoryDataSource>(
+    () => sl.isRegistered<SupabaseClient>()
+        ? SupabaseCategoryRepository(supabase: sl<SupabaseClient>())
+        : MockCategoryDataSource(),
+  );
+
+  // SupabaseProductDataSource — Supabase when available, mock otherwise.
+  sl.registerLazySingleton<SupabaseProductDataSource>(
+    () => sl.isRegistered<SupabaseClient>()
+        ? SupabaseProductRepository(supabase: sl<SupabaseClient>())
+        : MockSupabaseProductDataSource(),
+  );
+
+  // NotificationDataSource — backed by `public.notifications` when Supabase
+  // is available; otherwise a small canned mock so the inbox renders.
+  sl.registerLazySingleton<NotificationDataSource>(
+    () => sl.isRegistered<SupabaseClient>()
+        ? SupabaseNotificationsRepository(supabase: sl<SupabaseClient>())
+        : MockNotificationDataSource(),
+  );
+
+  // Shared repositories — when AppConfig.useMocks is true, register the
+  // canned in-memory implementations so the catalog UI works without a live
+  // backend. Flip the flag in env/<env>.json once the API is ready.
+  if (AppConfig.useMocks) {
+    sl.registerLazySingleton<ProductRepository>(MockProductRepository.new);
+    sl.registerLazySingleton<CategoryRepository>(MockCategoryRepository.new);
+    sl.registerLazySingleton<ShopRepository>(MockShopRepository.new);
+    sl.registerLazySingleton<BannerRepository>(
+      () => sl.isRegistered<SupabaseClient>()
+          ? SupabaseBannerRepository(supabase: sl<SupabaseClient>())
+          : MockBannerRepository(),
+    );
+    sl.registerLazySingleton<CartRepository>(
+      () => sl.isRegistered<SupabaseClient>()
+          ? HybridCartRepository(
+              hive: HiveCartRepository(
+                sl<Box>(instanceName: HiveBoxes.cart),
+              ),
+              remote: SupabaseCartRepository(
+                supabase: sl<SupabaseClient>(),
+              ),
+              supabase: sl<SupabaseClient>(),
+            )
+          : MockCartRepository(),
+    );
+    sl.registerLazySingleton<FavoritesRepository>(
+      () => sl.isRegistered<SupabaseClient>()
+          ? HybridFavoritesRepository(
+              hive: HiveFavoritesRepository(
+                sl<Box>(instanceName: HiveBoxes.favorites),
+              ),
+              remote: SupabaseFavoritesRepository(
+                supabase: sl<SupabaseClient>(),
+              ),
+              supabase: sl<SupabaseClient>(),
+            )
+          : MockFavoritesRepository(),
+    );
+    sl.registerLazySingleton<RegionRepository>(MockRegionRepository.new);
+    sl.registerLazySingleton<AddressRepository>(MockAddressRepository.new);
+    sl.registerLazySingleton<OrderRepository>(MockOrderRepository.new);
+    sl.registerLazySingleton<SellerOnboardingRepository>(
+      () => sl.isRegistered<SupabaseClient>()
+          ? SupabaseSellerOnboardingRepository(
+              supabase: sl<SupabaseClient>(),
+              draftBox: sl<Box>(instanceName: HiveBoxes.onboardingDraft),
+            )
+          : MockSellerOnboardingRepository(
+              draftBox: sl<Box>(instanceName: HiveBoxes.onboardingDraft),
+              findRegionById: MockRegions.findById,
+            ),
+    );
+    sl.registerLazySingleton<SellerVerificationRepository>(
+      MockSellerVerificationRepository.new,
+    );
+    sl.registerLazySingleton<SellerProductRepository>(
+      MockSellerProductRepository.new,
+    );
+    sl.registerLazySingleton<SellerDashboardRepository>(
+      () => MockSellerDashboardRepository(
+        productRepo: sl<SellerProductRepository>() as MockSellerProductRepository,
+      ),
+    );
+    sl.registerLazySingleton<SellerOrderRepository>(
+      MockSellerOrderRepository.new,
+    );
+    sl.registerLazySingleton<ShopSettingsRepository>(
+      MockShopSettingsRepository.new,
+    );
+    sl.registerLazySingleton<SellerServicesRepository>(
+      MockSellerServicesRepository.new,
+    );
+    sl.registerLazySingleton<TariffRepository>(MockTariffRepository.new);
+    sl.registerLazySingleton<NotificationsRepository>(
+      MockNotificationsRepository.new,
+    );
+  } else {
+    sl.registerLazySingleton<ProductRepository>(
+      () => RemoteProductRepository(sl<Dio>()),
+    );
+    sl.registerLazySingleton<CategoryRepository>(
+      () => RemoteCategoryRepository(sl<Dio>()),
+    );
+    sl.registerLazySingleton<ShopRepository>(
+      () => RemoteShopRepository(sl<Dio>()),
+    );
+    sl.registerLazySingleton<BannerRepository>(
+      () => sl.isRegistered<SupabaseClient>()
+          ? SupabaseBannerRepository(supabase: sl<SupabaseClient>())
+          : RemoteBannerRepository(sl<Dio>()),
+    );
+    sl.registerLazySingleton<CartRepository>(
+      () => sl.isRegistered<SupabaseClient>()
+          ? HybridCartRepository(
+              hive: HiveCartRepository(
+                sl<Box>(instanceName: HiveBoxes.cart),
+              ),
+              remote: SupabaseCartRepository(
+                supabase: sl<SupabaseClient>(),
+              ),
+              supabase: sl<SupabaseClient>(),
+            )
+          : RemoteCartRepository(sl<Dio>()),
+    );
+    sl.registerLazySingleton<FavoritesRepository>(
+      () => sl.isRegistered<SupabaseClient>()
+          ? HybridFavoritesRepository(
+              hive: HiveFavoritesRepository(
+                sl<Box>(instanceName: HiveBoxes.favorites),
+              ),
+              remote: SupabaseFavoritesRepository(
+                supabase: sl<SupabaseClient>(),
+              ),
+              supabase: sl<SupabaseClient>(),
+            )
+          : RemoteFavoritesRepository(sl<Dio>()),
+    );
+    sl.registerLazySingleton<RegionRepository>(
+      () => RemoteRegionRepository(sl<Dio>()),
+    );
+    sl.registerLazySingleton<AddressRepository>(
+      () => RemoteAddressRepository(sl<Dio>()),
+    );
+    sl.registerLazySingleton<OrderRepository>(
+      () => RemoteOrderRepository(sl<Dio>()),
+    );
+    sl.registerLazySingleton<SellerOnboardingRepository>(
+      () => sl.isRegistered<SupabaseClient>()
+          ? SupabaseSellerOnboardingRepository(
+              supabase: sl<SupabaseClient>(),
+              draftBox: sl<Box>(instanceName: HiveBoxes.onboardingDraft),
+            )
+          : RemoteSellerOnboardingRepository(
+              dio: sl<Dio>(),
+              draftBox: sl<Box>(instanceName: HiveBoxes.onboardingDraft),
+              findRegionById: (id) => null,
+            ),
+    );
+    sl.registerLazySingleton<SellerVerificationRepository>(
+      () => RemoteSellerVerificationRepository(sl<Dio>()),
+    );
+    sl.registerLazySingleton<SellerProductRepository>(
+      () => RemoteSellerProductRepository(sl<Dio>()),
+    );
+    sl.registerLazySingleton<SellerDashboardRepository>(
+      () => RemoteSellerDashboardRepository(sl<Dio>()),
+    );
+    sl.registerLazySingleton<SellerOrderRepository>(
+      () => RemoteSellerOrderRepository(sl<Dio>()),
+    );
+    sl.registerLazySingleton<ShopSettingsRepository>(
+      () => RemoteShopSettingsRepository(sl<Dio>()),
+    );
+    sl.registerLazySingleton<SellerServicesRepository>(
+      () => RemoteSellerServicesRepository(sl<Dio>()),
+    );
+    sl.registerLazySingleton<TariffRepository>(
+      () => RemoteTariffRepository(sl<Dio>()),
+    );
+    sl.registerLazySingleton<NotificationsRepository>(
+      () => RemoteNotificationsRepository(sl<Dio>()),
+    );
+  }
+
+  _rootInitialised = true;
+}
+
+Future<void> initModeScope(AppMode mode) async {
+  sl.pushNewScope(scopeName: mode.name);
+  switch (mode) {
+    case AppMode.customer:
+      _registerCustomerDependencies();
+    case AppMode.seller:
+      _registerSellerDependencies();
+  }
+}
+
+void _registerCustomerDependencies() {
+  sl.registerLazySingleton<HomeBloc>(
+    () => HomeBloc(
+      bannerRepo: sl<BannerRepository>(),
+      productSource: sl<SupabaseProductDataSource>(),
+    )..add(const HomeRequested()),
+    dispose: (bloc) => bloc.close(),
+  );
+  sl.registerLazySingleton<OrderTrackingService>(
+    () => OrderTrackingService(
+      sl.isRegistered<SupabaseClient>() ? sl<SupabaseClient>() : null,
+    ),
+    dispose: (svc) => svc.dispose(),
+  );
+  // CartBloc + FavoritesBloc are mode-scoped singletons so the cart badge in
+  // the bottom nav and the cart screen share state. Both rely on the
+  // cart/favorites repositories which live on the root scope.
+  sl.registerLazySingleton<CartBloc>(
+    () => CartBloc(sl<CartRepository>())..add(const LoadCart()),
+    dispose: (bloc) => bloc.close(),
+  );
+  sl.registerLazySingleton<FavoritesBloc>(
+    () => FavoritesBloc(sl<FavoritesRepository>())
+      ..add(const FavoritesRequested()),
+    dispose: (bloc) => bloc.close(),
+  );
+  sl.registerLazySingleton<CategoriesBloc>(
+    () => CategoriesBloc(sl<CategoryDataSource>())
+      ..add(const CategoriesRequested()),
+    dispose: (bloc) => bloc.close(),
+  );
+}
+
+void _registerSellerDependencies() {
+  sl.registerLazySingleton<NewOrdersListener>(
+    () => NewOrdersListener(
+      sl.isRegistered<SupabaseClient>() ? sl<SupabaseClient>() : null,
+    ),
+    dispose: (svc) => svc.dispose(),
+  );
+  // Sprint 7+: seller BLoC factories (DashboardBloc, SellerProductsBloc, ...)
+  // land here.
+}
+
+AppMode getInitialMode() {
+  final settings = sl<Box>(instanceName: HiveBoxes.settings);
+  return AppMode.fromName(settings.get('app_mode') as String?);
+}
+
+/// Pop the active mode scope (disposing every singleton registered in it),
+/// install the new mode, and Phoenix-rebirth so the widget tree is rebuilt
+/// against the new dependencies.
+///
+/// Splash masking was tried earlier but caused `Navigator.of` failures when
+/// the caller's context lived under `MaterialApp.router` (go_router) and
+/// didn't expose a root Navigator that `showGeneralDialog` could resolve.
+/// Phoenix's swap is fast enough that the splash didn't earn its keep.
+Future<void> switchAppMode(BuildContext context, AppMode newMode) async {
+  await sl<Box>(instanceName: HiveBoxes.settings).put('app_mode', newMode.name);
+  await sl.popScope();
+  await initModeScope(newMode);
+  if (context.mounted) {
+    Phoenix.rebirth(context);
+  }
+}
+
+/// Sign-out flow: clear cache, drop the saved mode (so next login defaults to
+/// customer), tear down the active mode scope and reboot the widget tree.
+Future<void> performLogout(BuildContext context) async {
+  if (sl.isRegistered<AuthRepository>()) {
+    await sl<AuthRepository>().signOut();
+  }
+  await sl<Box>(instanceName: HiveBoxes.cache).clear();
+  await sl<Box>(instanceName: HiveBoxes.settings).delete('app_mode');
+  await sl.popScope();
+  await initModeScope(AppMode.customer);
+  if (context.mounted) {
+    Phoenix.rebirth(context);
+  }
+}
