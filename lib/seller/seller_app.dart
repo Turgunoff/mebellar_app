@@ -66,6 +66,10 @@ class _SellerAppState extends State<SellerApp> {
       supportedLocales: AppTranslations.supportedLocales,
       locale: AppLocaleScope.of(context).value,
       home: const SellerHomeShell(),
+      builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
+        value: appSystemOverlay(Theme.of(context).brightness),
+        child: child ?? const SizedBox.shrink(),
+      ),
     );
   }
 }
