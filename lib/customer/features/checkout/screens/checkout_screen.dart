@@ -11,6 +11,7 @@ import '../../../../shared/models/cart_item_model.dart';
 import '../../../../shared/repositories/cart_repository.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../cubit/checkout_cubit.dart';
+import 'map_address_picker_screen.dart';
 
 class CheckoutScreen extends StatelessWidget {
   const CheckoutScreen({super.key, required this.items});
@@ -193,7 +194,17 @@ class _DeliveryCard extends StatelessWidget {
       color: Colors.transparent,
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
-        onTap: () => _showAddressSheet(context, state.deliveryAddress),
+        onTap: () async {
+          final address = await Navigator.of(context, rootNavigator: true)
+              .push<String>(MaterialPageRoute(
+            builder: (_) => MapAddressPickerScreen(
+              initialAddress: state.deliveryAddress,
+            ),
+          ));
+          if (address != null && context.mounted) {
+            context.read<CheckoutCubit>().updateAddress(address);
+          }
+        },
         borderRadius: BorderRadius.circular(20),
         splashColor: PremiumTokens.accent.withValues(alpha: 0.06),
         highlightColor: PremiumTokens.accent.withValues(alpha: 0.04),
@@ -309,175 +320,6 @@ class _DeliveryCard extends StatelessWidget {
     );
   }
 
-  void _showAddressSheet(BuildContext context, String currentAddress) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      useRootNavigator: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withValues(alpha: 0.45),
-      builder: (_) => _AddressSheet(
-        initialAddress: currentAddress,
-        onConfirm: (address) =>
-            context.read<CheckoutCubit>().updateAddress(address),
-      ),
-    );
-  }
-}
-
-// ── Address bottom sheet ──────────────────────────────────────────────────────
-
-class _AddressSheet extends StatefulWidget {
-  const _AddressSheet({
-    required this.initialAddress,
-    required this.onConfirm,
-  });
-
-  final String initialAddress;
-  final ValueChanged<String> onConfirm;
-
-  @override
-  State<_AddressSheet> createState() => _AddressSheetState();
-}
-
-class _AddressSheetState extends State<_AddressSheet> {
-  late final TextEditingController _ctrl =
-      TextEditingController(text: widget.initialAddress);
-  final _focusNode = FocusNode();
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => _focusNode.requestFocus(),
-    );
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    _focusNode.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final pt = PremiumTokens.of(context);
-    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-    return Container(
-      decoration: BoxDecoration(
-        color: pt.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      padding: EdgeInsets.fromLTRB(24, 0, 24, bottomInset + 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Drag handle
-          Center(
-            child: Container(
-              margin: const EdgeInsets.only(top: 12, bottom: 24),
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: pt.divider,
-                borderRadius: BorderRadius.circular(99),
-              ),
-            ),
-          ),
-          // Title row
-          Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: PremiumTokens.accent.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Iconsax.location,
-                  color: PremiumTokens.accent,
-                  size: 18,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'Yetkazib berish manzili',
-                style:
-                    PremiumTokens.display(size: 18, letterSpacing: -0.3),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          // Address field
-          TextField(
-            controller: _ctrl,
-            focusNode: _focusNode,
-            maxLines: 3,
-            minLines: 3,
-            textCapitalization: TextCapitalization.sentences,
-            style: PremiumTokens.body(size: 15),
-            decoration: InputDecoration(
-              hintText:
-                  'Masalan: Toshkent shahar, Yunusobod tumani, 1-mavze, 12-uy',
-              hintStyle: PremiumTokens.body(size: 14, color: pt.greyLight),
-              filled: true,
-              fillColor: pt.imageBg,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide.none,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: pt.divider),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(
-                  color: PremiumTokens.accent,
-                  width: 1.5,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          // Confirm button
-          SizedBox(
-            width: double.infinity,
-            height: 54,
-            child: FilledButton(
-              onPressed: () {
-                final text = _ctrl.text.trim();
-                if (text.isEmpty) return;
-                widget.onConfirm(text);
-                Navigator.pop(context);
-              },
-              style: FilledButton.styleFrom(
-                backgroundColor: PremiumTokens.accent,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-              child: Text(
-                'Tasdiqlash',
-                style: PremiumTokens.body(
-                  size: 15,
-                  weight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 // ── Section 2: Payment ───────────────────────────────────────────────────────
