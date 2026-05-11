@@ -12,6 +12,7 @@ const Map<String, dynamic> productUz = {
   'list_empty': 'Mahsulotlar topilmadi',
   'list_error_title': 'Mahsulotlarni yuklab bo\'lmadi',
   'retry': 'Qayta urinish',
+  'you_might_like': 'Sizga yoqishi mumkin',
 };
 
 const Map<String, dynamic> productRu = {
@@ -26,6 +27,7 @@ const Map<String, dynamic> productRu = {
   'list_empty': 'Товаров не найдено',
   'list_error_title': 'Не удалось загрузить товары',
   'retry': 'Повторить',
+  'you_might_like': 'Вам также понравится',
 };
 
 const Map<String, dynamic> productEn = {
@@ -40,6 +42,7 @@ const Map<String, dynamic> productEn = {
   'list_empty': 'No products found',
   'list_error_title': 'Could not load products',
   'retry': 'Retry',
+  'you_might_like': 'You might also like',
 };
 
 const Map<String, dynamic> attributesUz = {
