@@ -22,7 +22,7 @@ import 'features/product_list/screens/supabase_product_detail_screen.dart';
 import 'features/checkout/screens/checkout_screen.dart';
 import 'features/favorites/screens/favorites_screen.dart';
 import 'features/orders/screens/order_detail_screen.dart';
-import 'features/orders/screens/orders_screen.dart';
+import 'features/orders/screens/orders_history_screen.dart';
 import 'features/product_detail/screens/product_detail_screen.dart';
 import 'features/profile/addresses/screens/addresses_screen.dart';
 import 'features/notifications/screens/notifications_screen.dart' as customer_notifications;
@@ -132,7 +132,7 @@ GoRouter buildCustomerRouter() {
       ),
       GoRoute(
         path: '/orders',
-        builder: (context, state) => const OrdersScreen(),
+        builder: (context, state) => const OrdersHistoryScreen(),
       ),
       GoRoute(
         path: '/orders/:id',

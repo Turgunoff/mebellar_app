@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:shimmer/shimmer.dart';
@@ -11,9 +13,9 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/logging/talker.dart';
 import '../../../../core/storage/hive_boxes.dart';
 import '../../../../core/storage/secure_storage.dart';
-import '../../../../seller/features/onboarding/screens/onboarding_screen.dart';
 import '../../../widgets/glass_bottom_nav.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
+import '../../orders/cubit/profile_orders_cubit.dart';
 import 'about_screen.dart';
 import 'help_screen.dart';
 import 'settings_screen.dart';
@@ -29,11 +31,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   _ProfileData? _profile;
   bool _isLoading = true;
   StreamSubscription<AuthState>? _authSub;
+  late final ProfileOrdersCubit _ordersCubit;
 
   @override
   void initState() {
     super.initState();
+    _ordersCubit = ProfileOrdersCubit(sl<SupabaseClient>());
     _fetchProfile();
+    _ordersCubit.fetch();
     // Re-fetch when step 3 of auth (profile save) completes.
     // updateUser() emits userUpdated on the auth stream.
     _authSub = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
@@ -45,6 +50,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   void dispose() {
+    _ordersCubit.close();
     _authSub?.cancel();
     super.dispose();
   }
@@ -206,9 +212,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final ctrl = TextEditingController();
     bool isLoading = false;
 
+    // Capture the navigator and scaffold messenger from the outer screen
+    // context BEFORE entering the dialog. The dialog's own BuildContext (ctx)
+    // can become stale after async gaps and StatefulBuilder rebuilds, causing
+    // "_dependents.isEmpty is not true" assertion failures.
+    final rootNav = Navigator.of(context, rootNavigator: true);
+    final messenger = ScaffoldMessenger.of(context);
+
     await showDialog<bool>(
       context: context,
-      barrierDismissible: false, // Prevent dismissal during loading
+      barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setStateDialog) => Dialog(
           backgroundColor: pt.surface,
@@ -260,7 +273,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 TextField(
                   controller: ctrl,
                   autofocus: true,
-                  enabled: !isLoading, // Disable input during loading
+                  enabled: !isLoading,
                   style: PremiumTokens.body(
                     size: 14,
                     weight: FontWeight.w600,
@@ -297,9 +310,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: isLoading
-                            ? null
-                            : () => Navigator.of(ctx).pop(false),
+                        // Use the pre-captured rootNav so this never touches
+                        // the potentially-stale dialog ctx.
+                        onPressed: isLoading ? null : rootNav.pop,
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size(0, 48),
                           shape: RoundedRectangleBorder(
@@ -327,26 +340,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   setStateDialog(() => isLoading = true);
 
                                   try {
-                                    // Hard-delete the auth user via SECURITY DEFINER
-                                    // RPC. profiles → sellers → shops cascade
-                                    // through their FKs; favorites cascades
-                                    // directly from auth.users.
+                                    // Hard-delete the auth user via SECURITY
+                                    // DEFINER RPC. profiles → sellers → shops
+                                    // cascade through their FKs.
                                     await Supabase.instance.client.rpc(
                                       'delete_user_account',
                                     );
 
                                     await _clearLocalAfterDelete();
 
-                                    if (ctx.mounted) {
-                                      Navigator.of(
-                                        ctx,
-                                        rootNavigator: true,
-                                      ).pop(true);
-                                    }
+                                    // Pop the dialog before signing out so
+                                    // the GoRouter transition is clean.
+                                    rootNav.pop();
 
-                                    // signOut() drops the local JWT and fires
-                                    // AuthCubit → root rebuild → ProfileScreen
-                                    // unmounts.
                                     await Supabase.instance.client.auth
                                         .signOut();
 
@@ -360,11 +366,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       st,
                                     );
 
-                                    if (!ctx.mounted) return;
-
                                     setStateDialog(() => isLoading = false);
 
-                                    ScaffoldMessenger.of(ctx).showSnackBar(
+                                    messenger.showSnackBar(
                                       SnackBar(
                                         content: Text(
                                           "Xato: $e",
@@ -450,16 +454,109 @@ class _ProfileScreenState extends State<ProfileScreen> {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
   }
 
-  Future<void> _openSellerOnboarding() async {
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const OnboardingScreen()));
-    _fetchProfile();
+  void _openSellerOnboarding() {
+    final pt = PremiumTokens.of(context);
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.45),
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: pt.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        padding: EdgeInsets.fromLTRB(
+          28,
+          0,
+          28,
+          MediaQuery.paddingOf(ctx).bottom + 28,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Center(
+              child: Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 28),
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: pt.divider,
+                  borderRadius: BorderRadius.circular(99),
+                ),
+              ),
+            ),
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [PremiumTokens.accent, PremiumTokens.accentDeep],
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: PremiumTokens.accentDeep.withValues(alpha: 0.25),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              alignment: Alignment.center,
+              child: const Icon(
+                Icons.storefront_outlined,
+                size: 36,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 22),
+            Text(
+              'Tez orada!',
+              style: PremiumTokens.display(size: 24, letterSpacing: -0.4),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Sotuvchi paneli tez orada ishga tushadi.\nBiz bilan qoling!',
+              textAlign: TextAlign.center,
+              style: PremiumTokens.body(
+                size: 14,
+                color: pt.grey,
+                height: 1.55,
+              ),
+            ),
+            const SizedBox(height: 28),
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: FilledButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                style: FilledButton.styleFrom(
+                  backgroundColor: PremiumTokens.accent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: Text(
+                  'Tushunarli',
+                  style: PremiumTokens.body(
+                    size: 15,
+                    weight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   List<_MenuEntry> _buildMenuItems(BuildContext context) => [
-    _MenuEntry(icon: Iconsax.location, label: 'Mening manzillarim'),
-    _MenuEntry(icon: Iconsax.card, label: "To'lov usullari"),
+    // MVP: addresses and payment methods are not yet implemented.
+    // _MenuEntry(icon: Iconsax.location, label: 'Mening manzillarim'),
+    // _MenuEntry(icon: Iconsax.card, label: "To'lov usullari"),
     _MenuEntry(
       icon: Iconsax.setting_2,
       label: 'Sozlamalar',
@@ -480,37 +577,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
-    return ColoredBox(
-      color: pt.background,
-      child: SafeArea(
-        bottom: false,
-        child: ListView(
-          physics: const BouncingScrollPhysics(),
-          padding: EdgeInsets.fromLTRB(
-            16,
-            8,
-            16,
-            GlassBottomNav.reservedHeight(context) + 24,
+    return BlocProvider.value(
+      value: _ordersCubit,
+      child: ColoredBox(
+        color: pt.background,
+        child: SafeArea(
+          bottom: false,
+          child: ListView(
+            physics: const BouncingScrollPhysics(),
+            padding: EdgeInsets.fromLTRB(
+              16,
+              8,
+              16,
+              GlassBottomNav.reservedHeight(context) + 24,
+            ),
+            children: [
+              const _ProfileHeader(notificationCount: 0),
+              const SizedBox(height: 20),
+              if (_isLoading)
+                const _UserCardShimmer()
+              else if (_profile != null)
+                _UserCard(profile: _profile!),
+              const SizedBox(height: 24),
+              const _OrdersBlock(),
+              const SizedBox(height: 20),
+              if (_profile?.isSellerPending == true)
+                const _SellerPendingBanner()
+              else
+                _BecomeSellerBanner(onTap: _openSellerOnboarding),
+              const SizedBox(height: 24),
+              _MenuListCard(items: _buildMenuItems(context)),
+              const SizedBox(height: 28),
+              _DangerZone(
+                  onSignOut: _signOut, onDeleteAccount: _deleteAccount),
+            ],
           ),
-          children: [
-            const _ProfileHeader(notificationCount: 0),
-            const SizedBox(height: 20),
-            if (_isLoading)
-              const _UserCardShimmer()
-            else if (_profile != null)
-              _UserCard(profile: _profile!),
-            const SizedBox(height: 24),
-            const _OrdersBlock(),
-            const SizedBox(height: 20),
-            if (_profile?.isSellerPending == true)
-              const _SellerPendingBanner()
-            else
-              _BecomeSellerBanner(onTap: _openSellerOnboarding),
-            const SizedBox(height: 24),
-            _MenuListCard(items: _buildMenuItems(context)),
-            const SizedBox(height: 28),
-            _DangerZone(onSignOut: _signOut, onDeleteAccount: _deleteAccount),
-          ],
         ),
       ),
     );
@@ -802,99 +903,107 @@ class _OrdersBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: pt.surface,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: PremiumTokens.softShadow,
-      ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18, 16, 12, 8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Buyurtmalarim',
-                    style: PremiumTokens.body(
-                      size: 16,
-                      weight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                TextButton(
-                  onPressed: () {},
-                  style: TextButton.styleFrom(
-                    foregroundColor: PremiumTokens.accent,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Barchasi',
+    return BlocBuilder<ProfileOrdersCubit, ProfileOrdersState>(
+      builder: (context, ordersState) {
+        return Container(
+          decoration: BoxDecoration(
+            color: pt.surface,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: PremiumTokens.softShadow,
+          ),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 16, 12, 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Buyurtmalarim',
                         style: PremiumTokens.body(
-                          size: 13,
+                          size: 16,
                           weight: FontWeight.w600,
-                          color: PremiumTokens.accent,
                         ),
                       ),
-                      const SizedBox(width: 2),
-                      const Icon(
-                        Iconsax.arrow_right_3,
-                        size: 14,
-                        color: PremiumTokens.accent,
+                    ),
+                    TextButton(
+                      onPressed: () => context.push('/orders'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: PremiumTokens.accent,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
-                    ],
-                  ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Barchasi',
+                            style: PremiumTokens.body(
+                              size: 13,
+                              weight: FontWeight.w600,
+                              color: PremiumTokens.accent,
+                            ),
+                          ),
+                          const SizedBox(width: 2),
+                          const Icon(
+                            Iconsax.arrow_right_3,
+                            size: 14,
+                            color: PremiumTokens.accent,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 4, 8, 18),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _OrderStatusTile(
+                        icon: Iconsax.clock,
+                        label: 'Kutilmoqda',
+                        count: ordersState.pendingCount,
+                        onTap: () => context.push('/orders'),
+                      ),
+                    ),
+                    Expanded(
+                      child: _OrderStatusTile(
+                        icon: Iconsax.box_1,
+                        label: 'Tayyorlanmoqda',
+                        count: ordersState.processingCount,
+                        onTap: () => context.push('/orders'),
+                      ),
+                    ),
+                    Expanded(
+                      child: _OrderStatusTile(
+                        icon: Iconsax.box_time,
+                        label: "Yo'lda",
+                        count: ordersState.deliveringCount,
+                        onTap: () => context.push('/orders'),
+                      ),
+                    ),
+                    Expanded(
+                      child: _OrderStatusTile(
+                        icon: Iconsax.tick_circle,
+                        label: 'Yetkazilgan',
+                        count: 0,
+                        showCount: false,
+                        onTap: () => context.push('/orders'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(8, 4, 8, 18),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _OrderStatusTile(
-                    icon: Iconsax.clock,
-                    label: 'Kutilmoqda',
-                    count: 0,
-                  ),
-                ),
-                Expanded(
-                  child: _OrderStatusTile(
-                    icon: Iconsax.box_1,
-                    label: 'Tayyorlanmoqda',
-                    count: 0,
-                  ),
-                ),
-                Expanded(
-                  child: _OrderStatusTile(
-                    icon: Iconsax.box_time,
-                    label: "Yo'lda",
-                    count: 0,
-                  ),
-                ),
-                Expanded(
-                  child: _OrderStatusTile(
-                    icon: Iconsax.tick_circle,
-                    label: 'Yetkazilgan',
-                    count: 0,
-                    showCount: false,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -904,12 +1013,14 @@ class _OrderStatusTile extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.count,
+    required this.onTap,
     this.showCount = true,
   });
 
   final IconData icon;
   final String label;
   final int count;
+  final VoidCallback onTap;
 
   /// Delivered orders accumulate over time and aren't actionable, so the
   /// badge is suppressed there to keep the row's visual weight balanced.
@@ -919,7 +1030,7 @@ class _OrderStatusTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
     return InkWell(
-      onTap: () {},
+      onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
