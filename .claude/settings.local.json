@@ -38,7 +38,8 @@
       "Bash(awk '{print $NF}')",
       "Bash(npx skills *)",
       "mcp__dart__pub",
-      "mcp__dart__analyze_files"
+      "mcp__dart__analyze_files",
+      "Bash(grep -E \"\\\\.\\(dart\\)$\")"
     ]
   },
   "enableAllProjectMcpServers": true,

@@ -9,7 +9,7 @@ import '../shared/models/supabase_product_model.dart';
 import '../shared/repositories/supabase_product_data_source.dart';
 import '../core/logging/console_nav_observer.dart';
 import '../core/logging/talker.dart';
-import '../shared/models/cart.dart';
+import '../shared/models/cart_item_model.dart';
 import '../shared/widgets/notification_simulator_screen.dart';
 import '../shared/widgets/notifications_screen.dart';
 import 'customer_app.dart';
@@ -118,16 +118,16 @@ GoRouter buildCustomerRouter() {
       GoRoute(
         path: '/checkout',
         builder: (context, state) {
-          final cart = state.extra as Cart?;
-          if (cart == null) {
+          final items = state.extra as List<CartItemModel>?;
+          if (items == null || items.isEmpty) {
             return Scaffold(
               appBar: AppBar(),
               body: const Center(
-                child: Text('Cart kerak — savatchadan ochiling'),
+                child: Text('Savatch bo\'sh — orqaga qayting'),
               ),
             );
           }
-          return CheckoutScreen(cart: cart);
+          return CheckoutScreen(items: items);
         },
       ),
       GoRoute(

@@ -2,8 +2,11 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../auth/auth_bottom_sheet.dart';
+import '../../../../core/auth/auth_cubit.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../shared/models/cart_item_model.dart';
 import '../../../../shared/widgets/premium_empty_state.dart';
@@ -132,7 +135,7 @@ class CartScreen extends StatelessWidget {
                 bottom: 0,
                 child: _StickyCheckout(
                   totalPrice: state.totalPrice,
-                  onCheckout: () => _onCheckout(context),
+                  onCheckout: () => _onCheckout(context, state.items),
                 ),
               ),
             ],
@@ -142,17 +145,14 @@ class CartScreen extends StatelessWidget {
     );
   }
 
-  void _onCheckout(BuildContext context) {
+  void _onCheckout(BuildContext context, List<CartItemModel> items) {
     HapticFeedback.lightImpact();
-    // Checkout integration with the new snapshot model is tracked separately;
-    // for now the button confirms the intent so the flow is testable.
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(tr('cart.checkout_placeholder')),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    final authState = context.read<AuthCubit>().state;
+    if (authState is AppAuthUnauthenticated) {
+      showAuthBottomSheet(context);
+      return;
+    }
+    context.push('/checkout', extra: items);
   }
 }
 
