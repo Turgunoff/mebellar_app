@@ -115,6 +115,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/logo/
+    - assets/google_fonts/
 
   # Native Flutter font registration — replaces the `google_fonts` package.
   # Every family/weight referenced via `AppFonts.*` in the code points back

@@ -36,7 +36,9 @@
       "Bash(git stash *)",
       "Bash(grep -E \"^\\(web|macos|linux|windows\\)$\")",
       "Bash(awk '{print $NF}')",
-      "Bash(npx skills *)"
+      "Bash(npx skills *)",
+      "mcp__dart__pub",
+      "mcp__dart__analyze_files"
     ]
   },
   "enableAllProjectMcpServers": true,

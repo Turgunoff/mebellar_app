@@ -6,6 +6,8 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../../core/i18n/i18n.dart';
 import '../../../../shared/models/cart_item_model.dart';
+import '../../../../shared/widgets/premium_empty_state.dart';
+import '../../../customer_app.dart';
 import '../../../widgets/glass_bottom_nav.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../bloc/cart_bloc.dart';
@@ -33,7 +35,16 @@ class CartScreen extends StatelessWidget {
               return const Center(child: CircularProgressIndicator());
             }
             if (state.isEmpty) {
-              return const _CartEmptyState();
+              return PremiumEmptyState(
+                icon: Iconsax.shopping_bag,
+                title: "Savatchangiz bo'sh",
+                subtitle:
+                    "Katalogga o'tib, o'zingizga yoqqan premium mebellarni xarid qiling.",
+                buttonText: "Katalogga o'tish",
+                onButtonPressed: () =>
+                    CustomerShellScope.of(context).goToTab(0),
+                bottomPadding: GlassBottomNav.reservedHeight(context) + 24,
+              );
             }
             return Column(
               children: [
@@ -407,65 +418,6 @@ class _StickyCheckout extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-// ── Empty state ────────────────────────────────────────────────────────────
-
-class _CartEmptyState extends StatelessWidget {
-  const _CartEmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    final pt = PremiumTokens.of(context);
-    final bottomPad = GlassBottomNav.reservedHeight(context) + 24;
-    return ListView(
-      physics: const BouncingScrollPhysics(),
-      padding: EdgeInsets.fromLTRB(24, 12, 24, bottomPad),
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
-          child: Text(
-            tr('cart.title'),
-            style: PremiumTokens.display(size: 32, letterSpacing: -0.6),
-          ),
-        ),
-        const SizedBox(height: 60),
-        Center(
-          child: Container(
-            width: 140,
-            height: 140,
-            decoration: BoxDecoration(
-              color: pt.surface,
-              shape: BoxShape.circle,
-              boxShadow: PremiumTokens.softShadow,
-            ),
-            alignment: Alignment.center,
-            child: const Icon(
-              Iconsax.shopping_bag,
-              size: 64,
-              color: PremiumTokens.accent,
-            ),
-          ),
-        ),
-        const SizedBox(height: 32),
-        Text(
-          tr('cart.empty'),
-          textAlign: TextAlign.center,
-          style: PremiumTokens.display(size: 22, letterSpacing: -0.3),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          tr('cart.empty_hint'),
-          textAlign: TextAlign.center,
-          style: PremiumTokens.body(
-            size: 14,
-            color: pt.grey,
-            height: 1.5,
-          ),
-        ),
-      ],
     );
   }
 }

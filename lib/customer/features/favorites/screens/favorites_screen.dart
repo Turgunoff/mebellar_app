@@ -5,6 +5,7 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../../core/i18n/i18n.dart';
 import '../../../../shared/models/product.dart';
+import '../../../../shared/widgets/premium_empty_state.dart';
 import '../../../customer_app.dart';
 import '../../../widgets/glass_bottom_nav.dart';
 import '../../home/widgets/premium/premium_product_card.dart';
@@ -58,7 +59,16 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               );
             }
             if (state.products.isEmpty) {
-              return _FavoritesEmptyState(bottomPad: bottomPad);
+              return PremiumEmptyState(
+                icon: Iconsax.heart,
+                title: 'Sizda hozircha sevimlilar yo\'q',
+                subtitle:
+                    'Sizga yoqqan har qanday mahsulotni yurakcha tugmasi orqali saqlang — keyin osongina topib oling.',
+                buttonText: 'Katalogga o\'tish',
+                onButtonPressed: () =>
+                    CustomerShellScope.of(context).goToTab(0),
+                bottomPadding: bottomPad,
+              );
             }
             return CustomScrollView(
               physics: const BouncingScrollPhysics(),
@@ -147,102 +157,6 @@ class _FavoritesHeader extends StatelessWidget {
   }
 }
 
-class _FavoritesEmptyState extends StatelessWidget {
-  const _FavoritesEmptyState({required this.bottomPad});
-
-  final double bottomPad;
-
-  @override
-  Widget build(BuildContext context) {
-    final pt = PremiumTokens.of(context);
-    return ListView(
-      physics: const BouncingScrollPhysics(),
-      padding: EdgeInsets.fromLTRB(24, 12, 24, bottomPad),
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
-          child: Text(
-            'Sevimlilar',
-            style: PremiumTokens.display(size: 32, letterSpacing: -0.6),
-          ),
-        ),
-        const SizedBox(height: 60),
-        Center(
-          child: Container(
-            width: 140,
-            height: 140,
-            decoration: BoxDecoration(
-              color: pt.surface,
-              shape: BoxShape.circle,
-              boxShadow: PremiumTokens.softShadow,
-            ),
-            alignment: Alignment.center,
-            child: const Icon(
-              Iconsax.heart,
-              size: 64,
-              color: PremiumTokens.accent,
-            ),
-          ),
-        ),
-        const SizedBox(height: 32),
-        Text(
-          'Sizda hozircha sevimlilar yo\'q',
-          textAlign: TextAlign.center,
-          style: PremiumTokens.display(size: 22, letterSpacing: -0.3),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'Sizga yoqqan har qanday mahsulotni '
-          'yurakcha tugmasi orqali saqlang — keyin '
-          'osongina topib oling.',
-          textAlign: TextAlign.center,
-          style: PremiumTokens.body(
-            size: 14,
-            color: pt.grey,
-            height: 1.5,
-          ),
-        ),
-        const SizedBox(height: 32),
-        SizedBox(
-          height: 56,
-          child: Material(
-            color: PremiumTokens.accent,
-            borderRadius: BorderRadius.circular(16),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(16),
-              // Switch the bottom-nav tab back to Home (index 0) instead of
-              // pushing a new route — pushing would hide the bottom nav and
-              // require an extra back-tap to recover.
-              onTap: () => CustomerShellScope.of(context).goToTab(0),
-              child: Center(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Katalogga o\'tish',
-                      style: PremiumTokens.body(
-                        size: 15,
-                        weight: FontWeight.w600,
-                        color: Colors.white,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    const Icon(
-                      Iconsax.arrow_right_1,
-                      size: 18,
-                      color: Colors.white,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
 
 String _formatPrice(num value) {
   final s = value.toInt().toString();
