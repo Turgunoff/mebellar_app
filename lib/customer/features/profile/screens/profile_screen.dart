@@ -204,9 +204,107 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  void _showActiveOrdersWarning() {
+    final pt = PremiumTokens.of(context);
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.45),
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: pt.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        padding: EdgeInsets.fromLTRB(
+          28,
+          0,
+          28,
+          MediaQuery.paddingOf(ctx).bottom + 28,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Center(
+              child: Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 28),
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: pt.divider,
+                  borderRadius: BorderRadius.circular(99),
+                ),
+              ),
+            ),
+            Container(
+              width: 64,
+              height: 64,
+              decoration: const BoxDecoration(
+                color: Color(0x1AE05A4A),
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: const Icon(
+                Icons.error_outline_rounded,
+                size: 32,
+                color: Color(0xFFE05A4A),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              "Amalni bajarib bo'lmaydi",
+              style: PremiumTokens.display(size: 22, letterSpacing: -0.3),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              "Sizda faol buyurtmalar mavjud. Akkauntni o'chirish uchun "
+              "avval ularni qabul qiling yoki bekor qiling.",
+              textAlign: TextAlign.center,
+              style: PremiumTokens.body(
+                size: 14,
+                color: pt.grey,
+                height: 1.55,
+              ),
+            ),
+            const SizedBox(height: 28),
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: FilledButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                style: FilledButton.styleFrom(
+                  backgroundColor: PremiumTokens.accent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: Text(
+                  'Tushunarli',
+                  style: PremiumTokens.body(
+                    size: 15,
+                    weight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _deleteAccount() async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) return;
+
+    // Guard: block deletion when active orders exist.
+    final s = _ordersCubit.state;
+    final activeCount = s.pendingCount + s.processingCount + s.deliveringCount;
+    if (activeCount > 0) {
+      _showActiveOrdersWarning();
+      return;
+    }
 
     final pt = PremiumTokens.of(context);
     final ctrl = TextEditingController();
@@ -228,8 +326,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
           ),
-          insetPadding: const EdgeInsets.symmetric(horizontal: 28),
-          child: Padding(
+          insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(28),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -425,7 +523,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
     );
-    ctrl.dispose();
+    // ctrl is intentionally not disposed here. The dialog's exit animation
+    // is still in flight when showDialog() returns; disposing immediately
+    // triggers "TextEditingController used after being disposed" inside the
+    // TextField's _AnimatedState.didUpdateWidget. The controller is lightweight
+    // and becomes unreachable (GC'd) once the dialog fully unmounts.
   }
 
   Future<void> _clearLocalAfterDelete() async {
