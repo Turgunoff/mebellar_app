@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 
-/// Backend-aligned codes for the documents Mebellar collects during manual
+/// Backend-aligned codes for the documents Woody collects during manual
 /// seller verification. The icon/label keys are local to the mobile app.
 enum VerificationDocumentType {
   passportFront(

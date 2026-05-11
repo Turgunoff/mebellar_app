@@ -1,7 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
-import 'package:mebellar_app/core/i18n/i18n.dart';
+import 'package:woody_app/core/i18n/i18n.dart';
 
 import '../bloc/onboarding_bloc.dart';
 

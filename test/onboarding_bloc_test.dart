@@ -2,11 +2,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:mebellar_app/seller/features/onboarding/bloc/onboarding_bloc.dart';
-import 'package:mebellar_app/shared/mock/mock_regions.dart';
-import 'package:mebellar_app/shared/mock/mock_seller_onboarding_repository.dart';
-import 'package:mebellar_app/shared/mock/mock_seller_state.dart';
-import 'package:mebellar_app/shared/models/business_type.dart';
+import 'package:woody_app/seller/features/onboarding/bloc/onboarding_bloc.dart';
+import 'package:woody_app/shared/mock/mock_regions.dart';
+import 'package:woody_app/shared/mock/mock_seller_onboarding_repository.dart';
+import 'package:woody_app/shared/mock/mock_seller_state.dart';
+import 'package:woody_app/shared/models/business_type.dart';
 
 void main() {
   late Box draftBox;

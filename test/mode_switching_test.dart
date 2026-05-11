@@ -3,11 +3,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive/hive.dart';
-import 'package:mebellar_app/config/app_mode.dart';
-import 'package:mebellar_app/core/di/service_locator.dart';
-import 'package:mebellar_app/core/storage/hive_boxes.dart';
-import 'package:mebellar_app/customer/services/order_tracking_service.dart';
-import 'package:mebellar_app/seller/services/new_orders_listener.dart';
+import 'package:woody_app/config/app_mode.dart';
+import 'package:woody_app/core/di/service_locator.dart';
+import 'package:woody_app/core/storage/hive_boxes.dart';
+import 'package:woody_app/customer/services/order_tracking_service.dart';
+import 'package:woody_app/seller/services/new_orders_listener.dart';
 
 /// Validates the Sprint 2 mode-switch invariants:
 ///   - mode-scope singletons are disposed when the scope is popped

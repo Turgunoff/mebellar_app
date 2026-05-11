@@ -4,7 +4,7 @@
 const Map<String, dynamic> onboardingUz = {
   'title': 'Sotuvchi onboarding',
   'submit': 'Tasdiqlash va yuborish',
-  'welcome_title': 'Mebellar olamida sotuvchi bo\'ling',
+  'welcome_title': 'Woody olamida sotuvchi bo\'ling',
   'welcome_subtitle': '5-7 daqiqa ichida do\'koningizni rasmiylashtiring',
   'welcome_bullet_1': '5 dan kam qadamda ro\'yxatdan o\'ting',
   'welcome_bullet_2': 'Hujjatlaringizni yuklang va tasdiqlang',
@@ -49,7 +49,7 @@ const Map<String, dynamic> onboardingUz = {
 const Map<String, dynamic> onboardingRu = {
   'title': 'Онбординг продавца',
   'submit': 'Подтвердить и отправить',
-  'welcome_title': 'Станьте продавцом в Mebellar',
+  'welcome_title': 'Станьте продавцом в Woody',
   'welcome_subtitle': 'Оформите магазин за 5-7 минут',
   'welcome_bullet_1': 'Менее 5 шагов регистрации',
   'welcome_bullet_2': 'Загрузите документы и пройдите проверку',
@@ -88,7 +88,7 @@ const Map<String, dynamic> onboardingRu = {
 const Map<String, dynamic> onboardingEn = {
   'title': 'Seller onboarding',
   'submit': 'Confirm and submit',
-  'welcome_title': 'Become a Mebellar seller',
+  'welcome_title': 'Become a Woody seller',
   'welcome_subtitle': 'Set up your store in 5-7 minutes',
   'welcome_bullet_1': 'Fewer than 5 steps to register',
   'welcome_bullet_2': 'Upload documents and get verified',

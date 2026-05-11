@@ -202,7 +202,7 @@ class _GuestMenuListCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         child: Column(
           children: [
-            _SellOnMebellarRow(onTap: onSell),
+            _SellOnWoodyRow(onTap: onSell),
             Divider(height: 1, color: pt.divider),
             for (var i = 0; i < items.length; i++) ...[
               _MenuRow(entry: items[i]),
@@ -225,8 +225,8 @@ class _GuestMenuListCard extends StatelessWidget {
 /// rows — Terracotta-tinted background, bold title, subtitle copy, and a
 /// brand-colored chevron — because guests who happen to be furniture sellers
 /// would otherwise have no obvious entry point into the seller flow.
-class _SellOnMebellarRow extends StatelessWidget {
-  const _SellOnMebellarRow({required this.onTap});
+class _SellOnWoodyRow extends StatelessWidget {
+  const _SellOnWoodyRow({required this.onTap});
 
   final VoidCallback onTap;
 
@@ -261,7 +261,7 @@ class _SellOnMebellarRow extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Mebellar'da soting",
+                      "Woody'da soting",
                       style: PremiumTokens.body(
                         size: 14,
                         weight: FontWeight.w700,

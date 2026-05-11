@@ -1,7 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
-import 'package:mebellar_app/core/i18n/i18n.dart';
+import 'package:woody_app/core/i18n/i18n.dart';
 
 import '../../../config/app_mode.dart';
 import '../../../core/di/service_locator.dart';

@@ -1,8 +1,8 @@
 ﻿import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mebellar_app/customer/features/favorites/bloc/favorites_bloc.dart';
-import 'package:mebellar_app/shared/mock/mock_data.dart';
-import 'package:mebellar_app/shared/mock/mock_favorites_repository.dart';
+import 'package:woody_app/customer/features/favorites/bloc/favorites_bloc.dart';
+import 'package:woody_app/shared/mock/mock_data.dart';
+import 'package:woody_app/shared/mock/mock_favorites_repository.dart';
 
 void main() {
   group('FavoritesBloc (mock repository)', () {

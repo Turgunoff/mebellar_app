@@ -1,4 +1,4 @@
-﻿import 'package:mebellar_app/core/i18n/i18n.dart';
+﻿import 'package:woody_app/core/i18n/i18n.dart';
 import 'package:flutter/material.dart';
 
 /// V1 map placeholder. Sprint 5 backlog calls for `flutter_map`/Google Maps;

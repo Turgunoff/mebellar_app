@@ -1,11 +1,13 @@
 ﻿import 'dart:math' as math;
 
-import 'package:mebellar_app/core/i18n/i18n.dart';
+import 'package:woody_app/core/i18n/i18n.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../../core/di/service_locator.dart';
 import '../../../core/storage/hive_boxes.dart';
+import '../../../core/theme/app_colors.dart';
 
 const String _tutorialSeenKey = 'tutorial_seen_v1';
 
@@ -20,7 +22,7 @@ Future<void> markTutorialSeen() async {
 }
 
 /// First-launch onboarding for the customer app — the user's first impression
-/// of Mebellar. Three swipeable slides themed around the furniture journey
+/// of Woody. Three swipeable slides themed around the furniture journey
 /// (discover, order, sell). Once dismissed, [markTutorialSeen] flips a Hive
 /// flag so the screen never reappears.
 class CustomerTutorialScreen extends StatefulWidget {
@@ -149,37 +151,40 @@ class _CustomerTutorialScreenState extends State<CustomerTutorialScreen> {
 
   // --- Slide data ----------------------------------------------------------
 
+  // Woody MVP palette. Each slide picks a wood-tone accent that crossfades
+  // with its neighbour as the user swipes — terracotta → warm taupe →
+  // espresso slate. Light/dark variants are tuned so the foreground text
+  // stays readable on both the gradient and the glassmorphic chips.
   List<_SlideData> _slides(bool isDark) {
-    final scheme = Theme.of(context).colorScheme;
     return [
       _SlideData(
         title: tr('tutorial.slide1_title'),
         body: tr('tutorial.slide1_body'),
-        bgTop: isDark ? const Color(0xFF221712) : const Color(0xFFFBF3EA),
-        bgBottom: isDark ? const Color(0xFF120B07) : const Color(0xFFF1E0CB),
-        accent: const Color(0xFF8B5E3C),
+        bgTop: isDark ? const Color(0xFF231410) : const Color(0xFFFBF1E8),
+        bgBottom: isDark ? const Color(0xFF120907) : const Color(0xFFF2DBC4),
+        accent: AppColors.terracotta,
         foreground: isDark ? Colors.white : const Color(0xFF2A1A0E),
-        scene: _SceneType.discover,
+        scene: _SceneType.welcome,
       ),
       _SlideData(
         title: tr('tutorial.slide2_title'),
         body: tr('tutorial.slide2_body'),
-        bgTop: isDark ? const Color(0xFF1F1A12) : const Color(0xFFFDF6E7),
-        bgBottom: isDark ? const Color(0xFF120E08) : const Color(0xFFF6E6BD),
-        accent: const Color(0xFFD9A24A),
-        foreground: isDark ? Colors.white : const Color(0xFF2B1F0A),
-        scene: _SceneType.order,
+        bgTop: isDark ? const Color(0xFF20180F) : const Color(0xFFFAF3E8),
+        bgBottom: isDark ? const Color(0xFF120B06) : const Color(0xFFEAD3B3),
+        accent: const Color(0xFFA47148),
+        foreground: isDark ? Colors.white : const Color(0xFF2B1E10),
+        scene: _SceneType.shop,
       ),
       _SlideData(
         title: tr('tutorial.slide3_title'),
         body: tr('tutorial.slide3_body'),
-        bgTop: isDark ? const Color(0xFF0F1B1A) : const Color(0xFFE8F5F2),
-        bgBottom: isDark ? const Color(0xFF06100F) : const Color(0xFFCFE8E1),
-        accent: scheme.brightness == Brightness.dark
-            ? const Color(0xFF2DD4BF)
-            : const Color(0xFF0F766E),
-        foreground: isDark ? Colors.white : const Color(0xFF062826),
-        scene: _SceneType.sell,
+        bgTop: isDark ? const Color(0xFF181410) : const Color(0xFFEFE6DC),
+        bgBottom: isDark ? const Color(0xFF0A0806) : const Color(0xFFCFBFA9),
+        accent: isDark
+            ? const Color(0xFF7A6754)
+            : const Color(0xFF4A3F35),
+        foreground: isDark ? Colors.white : const Color(0xFF1E1611),
+        scene: _SceneType.deliver,
       ),
     ];
   }
@@ -220,13 +225,16 @@ class _TopBar extends StatelessWidget {
       child: Row(
         children: [
           // Wordmark — the brand should be present from the first frame.
+          // Playfair Display matches the splash mark and gives the
+          // onboarding a premium editorial feel.
           Text(
-            'Mebellar',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.4,
+            'Woody',
+            style: GoogleFonts.playfairDisplay(
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.4,
               color: foreground,
+              height: 1.0,
             ),
           ),
           const Spacer(),
@@ -366,36 +374,36 @@ class _HeroScene extends StatelessWidget {
 
   Widget _hero(_SceneType type) {
     switch (type) {
-      case _SceneType.discover:
+      case _SceneType.welcome:
         return _HeroCard(
           accent: slide.accent,
           foreground: slide.foreground,
           icon: Icons.weekend_rounded,
           chip: _Chip(
-            icon: Icons.search_rounded,
-            label: 'sofa',
+            icon: Icons.auto_awesome_rounded,
+            label: 'premium',
             accent: slide.accent,
           ),
         );
-      case _SceneType.order:
+      case _SceneType.shop:
         return _HeroCard(
           accent: slide.accent,
           foreground: slide.foreground,
-          icon: Icons.local_shipping_rounded,
+          icon: Icons.shopping_bag_rounded,
           chip: _Chip(
             icon: Icons.bolt_rounded,
             label: '1-tap',
             accent: slide.accent,
           ),
         );
-      case _SceneType.sell:
+      case _SceneType.deliver:
         return _HeroCard(
           accent: slide.accent,
           foreground: slide.foreground,
-          icon: Icons.storefront_rounded,
+          icon: Icons.local_shipping_rounded,
           chip: _Chip(
-            icon: Icons.trending_up_rounded,
-            label: '+24%',
+            icon: Icons.verified_rounded,
+            label: 'safe',
             accent: slide.accent,
           ),
         );
@@ -420,7 +428,7 @@ class _HeroScene extends StatelessWidget {
     }
 
     switch (type) {
-      case _SceneType.discover:
+      case _SceneType.welcome:
         return [
           place(
             left: size * 0.05,
@@ -436,21 +444,21 @@ class _HeroScene extends StatelessWidget {
           place(
             left: size * 0.72,
             top: size * 0.7,
-            child: _MiniIcon(icon: Icons.lightbulb_rounded, accent: slide.accent),
+            child: _MiniIcon(icon: Icons.table_restaurant_rounded, accent: slide.accent),
             driftFactor: 0.6,
           ),
         ];
-      case _SceneType.order:
+      case _SceneType.shop:
         return [
           place(
             left: size * 0.08,
             top: size * 0.14,
-            child: _MiniIcon(icon: Icons.shopping_bag_rounded, accent: slide.accent),
+            child: _MiniIcon(icon: Icons.favorite_rounded, accent: slide.accent),
           ),
           place(
             left: size * 0.74,
             top: size * 0.12,
-            child: _MiniIcon(icon: Icons.location_on_rounded, accent: slide.accent),
+            child: _MiniIcon(icon: Icons.add_shopping_cart_rounded, accent: slide.accent),
             driftFactor: -1,
           ),
           place(
@@ -460,7 +468,7 @@ class _HeroScene extends StatelessWidget {
             driftFactor: 0.6,
           ),
         ];
-      case _SceneType.sell:
+      case _SceneType.deliver:
         return [
           place(
             left: size * 0.06,
@@ -470,13 +478,13 @@ class _HeroScene extends StatelessWidget {
           place(
             left: size * 0.78,
             top: size * 0.2,
-            child: _MiniIcon(icon: Icons.bar_chart_rounded, accent: slide.accent),
+            child: _MiniIcon(icon: Icons.location_on_rounded, accent: slide.accent),
             driftFactor: -1,
           ),
           place(
             left: size * 0.74,
             top: size * 0.7,
-            child: _MiniIcon(icon: Icons.verified_rounded, accent: slide.accent),
+            child: _MiniIcon(icon: Icons.schedule_rounded, accent: slide.accent),
             driftFactor: 0.6,
           ),
         ];
@@ -774,7 +782,7 @@ class _BottomCta extends StatelessWidget {
 
 // --- Data ------------------------------------------------------------------
 
-enum _SceneType { discover, order, sell }
+enum _SceneType { welcome, shop, deliver }
 
 class _SlideData {
   const _SlideData({

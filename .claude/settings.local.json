@@ -31,7 +31,12 @@
       "mcp__supabase__apply_migration",
       "Bash(Get-ChildItem -Path \"c:\\\\Projects\\\\mebellar_new\\\\mebellar_new_app\" -Force)",
       "Bash(Select-Object -Property Name, FullName)",
-      "Bash(flutter clean *)"
+      "Bash(flutter clean *)",
+      "Bash(xargs sed -i '' 's|package:mebellar_app/|package:woody_app/|g')",
+      "Bash(git stash *)",
+      "Bash(grep -E \"^\\(web|macos|linux|windows\\)$\")",
+      "Bash(awk '{print $NF}')",
+      "Bash(npx skills *)"
     ]
   },
   "enableAllProjectMcpServers": true,

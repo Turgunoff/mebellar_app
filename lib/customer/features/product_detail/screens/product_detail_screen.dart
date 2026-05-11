@@ -1,4 +1,4 @@
-﻿import 'package:mebellar_app/core/i18n/i18n.dart';
+﻿import 'package:woody_app/core/i18n/i18n.dart';
 import 'package:flutter/material.dart';
 // SystemUiOverlayStyle / SystemUiOverlayStyle.dark live in services.dart;
 // material re-exports the type elsewhere but not as a usable type-argument

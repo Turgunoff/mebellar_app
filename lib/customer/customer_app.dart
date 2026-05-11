@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../core/auth/auth_cubit.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -18,7 +19,6 @@ import '../core/theme/app_theme.dart';
 import '../core/theme/theme_cubit.dart';
 import 'features/categories/bloc/categories_bloc.dart';
 import '../main.dart' show AppLocaleScope;
-import 'features/tutorial/tutorial_screen.dart';
 import '../shared/repositories/notifications_repository.dart';
 import '../shared/widgets/offline_banner.dart';
 import 'features/cart/bloc/cart_bloc.dart';
@@ -44,14 +44,12 @@ class CustomerApp extends StatefulWidget {
 class _CustomerAppState extends State<CustomerApp> {
   late final GoRouter _router = buildCustomerRouter();
   StreamSubscription<DeepLinkTarget>? _deepLinkSub;
-  bool _tutorialDispatched = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _consumePendingRoute();
-      _showTutorialIfFirstLaunch();
     });
     if (sl.isRegistered<DeepLinkService>()) {
       _deepLinkSub = sl<DeepLinkService>().watch().listen(_onDeepLink);
@@ -86,21 +84,6 @@ class _CustomerAppState extends State<CustomerApp> {
     }
   }
 
-  Future<void> _showTutorialIfFirstLaunch() async {
-    if (_tutorialDispatched) return;
-    _tutorialDispatched = true;
-    if (isTutorialSeen()) return;
-    if (!mounted) return;
-    final navigatorKey = _router.routerDelegate.navigatorKey;
-    final navigator = navigatorKey.currentState;
-    if (navigator == null) return;
-    await navigator.push(MaterialPageRoute(
-      builder: (ctx) => CustomerTutorialScreen(
-        onDone: () => Navigator.of(ctx).pop(),
-      ),
-    ));
-  }
-
   @override
   Widget build(BuildContext context) {
     // Cart + Favorites BLoCs live in the customer scope (registered in DI),
@@ -117,7 +100,7 @@ class _CustomerAppState extends State<CustomerApp> {
           BlocProvider<HomeBloc>.value(value: sl<HomeBloc>()),
         ],
         child: MaterialApp.router(
-          title: 'Mebellar',
+          title: 'Woody',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
@@ -131,9 +114,12 @@ class _CustomerAppState extends State<CustomerApp> {
           supportedLocales: AppTranslations.supportedLocales,
           locale: AppLocaleScope.of(context).value,
           routerConfig: _router,
-          builder: (context, child) => DebugTalkerOverlay(
-            navigatorKey: customerNavigatorKey,
-            child: child,
+          builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
+            value: appSystemOverlay(Theme.of(context).brightness),
+            child: DebugTalkerOverlay(
+              navigatorKey: customerNavigatorKey,
+              child: child,
+            ),
           ),
         ),
       ),
@@ -187,7 +173,7 @@ class _CustomerHomeShellState extends State<CustomerHomeShell> {
 
   String _titleForTab(int i) {
     return switch (i) {
-      0 => 'Mebellar',
+      0 => 'Woody',
       1 => tr('home.categories'),
       2 => tr('cart.title'),
       3 => 'Sevimlilar',

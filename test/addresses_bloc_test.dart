@@ -1,9 +1,9 @@
 ﻿import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mebellar_app/customer/features/profile/addresses/bloc/addresses_bloc.dart';
-import 'package:mebellar_app/shared/mock/mock_address_repository.dart';
-import 'package:mebellar_app/shared/mock/mock_orders_data.dart';
-import 'package:mebellar_app/shared/models/address.dart';
+import 'package:woody_app/customer/features/profile/addresses/bloc/addresses_bloc.dart';
+import 'package:woody_app/shared/mock/mock_address_repository.dart';
+import 'package:woody_app/shared/mock/mock_orders_data.dart';
+import 'package:woody_app/shared/models/address.dart';
 
 void main() {
   group('AddressesBloc (mock repository)', () {

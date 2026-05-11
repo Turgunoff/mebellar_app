@@ -2,12 +2,12 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:mebellar_app/config/app_mode.dart';
-import 'package:mebellar_app/core/notifications/notification_handler.dart';
-import 'package:mebellar_app/shared/bloc/notifications_bloc.dart';
-import 'package:mebellar_app/shared/mock/mock_notifications_data.dart';
-import 'package:mebellar_app/shared/mock/mock_notifications_repository.dart';
-import 'package:mebellar_app/shared/models/app_notification.dart';
+import 'package:woody_app/config/app_mode.dart';
+import 'package:woody_app/core/notifications/notification_handler.dart';
+import 'package:woody_app/shared/bloc/notifications_bloc.dart';
+import 'package:woody_app/shared/mock/mock_notifications_data.dart';
+import 'package:woody_app/shared/mock/mock_notifications_repository.dart';
+import 'package:woody_app/shared/models/app_notification.dart';
 
 void main() {
   setUpAll(() {

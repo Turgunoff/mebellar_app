@@ -1,9 +1,9 @@
 ﻿import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mebellar_app/seller/features/products/bloc/product_form_bloc.dart';
-import 'package:mebellar_app/shared/mock/mock_seller_product_repository.dart';
-import 'package:mebellar_app/shared/mock/mock_seller_products.dart';
-import 'package:mebellar_app/shared/models/seller_product.dart';
+import 'package:woody_app/seller/features/products/bloc/product_form_bloc.dart';
+import 'package:woody_app/shared/mock/mock_seller_product_repository.dart';
+import 'package:woody_app/shared/mock/mock_seller_products.dart';
+import 'package:woody_app/shared/models/seller_product.dart';
 
 void main() {
   group('ProductFormBloc (mock repository)', () {

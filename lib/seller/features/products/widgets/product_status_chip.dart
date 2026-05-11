@@ -1,5 +1,5 @@
 ﻿import 'package:flutter/material.dart';
-import 'package:mebellar_app/core/i18n/i18n.dart';
+import 'package:woody_app/core/i18n/i18n.dart';
 
 import '../../../../shared/models/seller_product.dart';
 

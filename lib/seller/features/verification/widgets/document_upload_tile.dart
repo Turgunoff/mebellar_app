@@ -1,6 +1,6 @@
 ﻿import 'dart:io';
 
-import 'package:mebellar_app/core/i18n/i18n.dart';
+import 'package:woody_app/core/i18n/i18n.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 

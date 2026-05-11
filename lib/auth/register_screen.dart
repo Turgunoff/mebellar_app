@@ -1,5 +1,5 @@
 ﻿import 'package:flutter/material.dart';
-import 'package:mebellar_app/core/i18n/i18n.dart';
+import 'package:woody_app/core/i18n/i18n.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/auth/auth_repository.dart';

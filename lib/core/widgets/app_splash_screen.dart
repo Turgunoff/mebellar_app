@@ -95,7 +95,7 @@ class _AppSplashScreenState extends State<AppSplashScreen>
                   FadeTransition(
                     opacity: _wordmarkFade,
                     child: Text(
-                      'Mebellar',
+                      'Woody',
                       style: GoogleFonts.playfairDisplay(
                         fontSize: 38,
                         fontWeight: FontWeight.w600,

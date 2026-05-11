@@ -1,10 +1,10 @@
 ﻿import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mebellar_app/customer/features/catalog/bloc/catalog_bloc.dart';
-import 'package:mebellar_app/shared/models/multilingual_text.dart';
-import 'package:mebellar_app/shared/models/paginated.dart';
-import 'package:mebellar_app/shared/models/product.dart';
-import 'package:mebellar_app/shared/repositories/product_repository.dart';
+import 'package:woody_app/customer/features/catalog/bloc/catalog_bloc.dart';
+import 'package:woody_app/shared/models/multilingual_text.dart';
+import 'package:woody_app/shared/models/paginated.dart';
+import 'package:woody_app/shared/models/product.dart';
+import 'package:woody_app/shared/repositories/product_repository.dart';
 import 'package:mocktail/mocktail.dart';
 
 class _MockProductRepo extends Mock implements ProductRepository {}

@@ -1039,7 +1039,7 @@ class _BecomeSellerBanner extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            "Mebellar'da o'z biznesingizni boshlang",
+            "Woody'da o'z biznesingizni boshlang",
             style: PremiumTokens.display(
               size: 22,
               color: Colors.white,

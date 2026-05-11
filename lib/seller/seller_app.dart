@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:talker_flutter/talker_flutter.dart';
@@ -9,6 +10,7 @@ import '../core/i18n/i18n.dart';
 import '../core/logging/console_nav_observer.dart';
 import '../core/logging/talker.dart';
 import '../core/notifications/notification_handler.dart';
+import '../core/theme/app_theme.dart' show appSystemOverlay;
 import '../core/theme/seller_theme.dart';
 import '../main.dart' show AppLocaleScope;
 import '../shared/widgets/offline_banner.dart';
@@ -49,7 +51,7 @@ class _SellerAppState extends State<SellerApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Mebellar Seller',
+      title: 'Woody Seller',
       debugShowCheckedModeBanner: false,
       theme: sellerLightTheme,
       darkTheme: sellerDarkTheme,

@@ -27,6 +27,7 @@ import 'features/product_detail/screens/product_detail_screen.dart';
 import 'features/profile/addresses/screens/addresses_screen.dart';
 import 'features/notifications/screens/notifications_screen.dart' as customer_notifications;
 import 'features/search/screens/search_screen.dart';
+import 'features/tutorial/tutorial_screen.dart';
 import '../seller/features/onboarding/screens/onboarding_screen.dart';
 
 /// Customer-side navigation. The shell hosts the bottom tabs; the rest are
@@ -37,10 +38,28 @@ GoRouter buildCustomerRouter() {
     initialLocation: '/',
     navigatorKey: customerNavigatorKey,
     observers: [TalkerRouteObserver(talker), ConsoleNavObserver()],
+    // First-launch onboarding gate. Runs on every navigation: if the user
+    // hasn't completed the tutorial, route them to `/tutorial` regardless of
+    // the intended destination. This replaces an earlier imperative push that
+    // raced with the Navigator's mount order under `_ModeRouter`'s crossfade
+    // and silently no-op'd when `navigatorKey.currentState` was momentarily
+    // null.
+    redirect: (context, state) {
+      final atTutorial = state.matchedLocation == '/tutorial';
+      if (!isTutorialSeen() && !atTutorial) return '/tutorial';
+      if (isTutorialSeen() && atTutorial) return '/';
+      return null;
+    },
     routes: [
       GoRoute(
         path: '/',
         builder: (context, state) => const CustomerHomeShell(),
+      ),
+      GoRoute(
+        path: '/tutorial',
+        builder: (context, state) => CustomerTutorialScreen(
+          onDone: () => context.go('/'),
+        ),
       ),
       GoRoute(
         path: '/categories',

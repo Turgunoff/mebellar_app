@@ -58,7 +58,7 @@ class AboutScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  'Mebellar Olami',
+                  'Woody',
                   style: PremiumTokens.display(size: 26, letterSpacing: -0.3),
                 ),
                 const SizedBox(height: 6),
@@ -115,7 +115,7 @@ class AboutScreen extends StatelessWidget {
           // Footer
           Center(
             child: Text(
-              '© 2025 Mebellar Olami',
+              '© 2025 Woody',
               style: PremiumTokens.body(
                 size: 12,
                 color: pt.greyLight,

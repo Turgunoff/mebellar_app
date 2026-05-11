@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'app_colors.dart';
+import 'app_theme.dart' show appSystemOverlay;
 import 'app_typography.dart';
 
 /// Seller-mode theme.
@@ -53,6 +54,7 @@ ThemeData _build(Brightness brightness) {
         fontWeight: FontWeight.w500,
         color: scheme.onSurface,
       ),
+      systemOverlayStyle: appSystemOverlay(brightness),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(

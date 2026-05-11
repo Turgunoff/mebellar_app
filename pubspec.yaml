@@ -1,5 +1,5 @@
-name: mebellar_app
-description: "Mebellar olami mobile app"
+name: woody_app
+description: "Woody — Mebel do'koni"
 publish_to: "none"
 version: 1.0.0+1
 
@@ -76,6 +76,32 @@ dev_dependencies:
   bloc_test: ^10.0.0
   mocktail: ^1.0.4
   flutter_native_splash: ^2.4.4
+  flutter_launcher_icons: ^0.14.1
+
+# Generated iOS/Android launcher icons from a single 1024×1024 master.
+# Run after changes:  dart run flutter_launcher_icons
+flutter_launcher_icons:
+  android: "ic_launcher"
+  ios: true
+  # Use the padded foreground (W in central 65%) for both iOS and the
+  # legacy ic_launcher.png — same safe zone as Android adaptive, flattened
+  # to cream for iOS.
+  image_path: "assets/logo/woody_logo_foreground.png"
+  min_sdk_android: 21
+  # Apple App Store rejects icons with an alpha channel — flatten the iOS
+  # variant against the cream brand background instead of leaving it
+  # transparent.
+  remove_alpha_ios: true
+  background_color_ios: "#FBF1E8"
+  # Adaptive icon (Android 8+): cream background + W foreground with the
+  # 17.5% safe-zone padding pre-baked into woody_logo_foreground.png.
+  adaptive_icon_background: "#FBF1E8"
+  adaptive_icon_foreground: "assets/logo/woody_logo_foreground.png"
+  # Themed icons (Android 13+): the system tints this silhouette to match
+  # the user's wallpaper, so colour is dropped here on purpose.
+  adaptive_icon_monochrome: "assets/logo/woody_logo_monochrome.png"
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/logo/

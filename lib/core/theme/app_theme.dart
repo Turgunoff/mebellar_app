@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'app_colors.dart';
@@ -53,6 +54,7 @@ class AppTheme {
         foregroundColor: colorScheme.onSurface,
         centerTitle: false,
         titleTextStyle: textTheme.titleLarge,
+        systemOverlayStyle: appSystemOverlay(brightness),
       ),
 
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -293,4 +295,26 @@ class AppTheme {
       labelSmall: body.labelSmall?.copyWith(color: secondary),
     );
   }
+}
+
+/// Status / system-navigation bar styling for the given theme brightness.
+///
+/// Dark theme → light icons (visible on dark backgrounds).
+/// Light theme → dark icons (visible on the cream/white backgrounds).
+///
+/// Used by both the customer and seller `AppBarTheme.systemOverlayStyle` and
+/// by the `AnnotatedRegion` wrapper in each `MaterialApp.builder`, so screens
+/// without an `AppBar` (e.g. the profile guest screen with its custom
+/// header) still get the right contrast.
+SystemUiOverlayStyle appSystemOverlay(Brightness themeBrightness) {
+  final isDark = themeBrightness == Brightness.dark;
+  return SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+    statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+    systemNavigationBarColor: Colors.transparent,
+    systemNavigationBarIconBrightness:
+        isDark ? Brightness.light : Brightness.dark,
+    systemNavigationBarDividerColor: Colors.transparent,
+  );
 }

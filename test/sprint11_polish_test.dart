@@ -1,10 +1,10 @@
 ﻿import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:mebellar_app/config/app_mode.dart';
-import 'package:mebellar_app/core/connectivity/connectivity_service.dart';
-import 'package:mebellar_app/core/deep_links/deep_link_service.dart';
-import 'package:mebellar_app/core/storage/cache_store.dart';
+import 'package:woody_app/config/app_mode.dart';
+import 'package:woody_app/core/connectivity/connectivity_service.dart';
+import 'package:woody_app/core/deep_links/deep_link_service.dart';
+import 'package:woody_app/core/storage/cache_store.dart';
 
 void main() {
   setUpAll(() {

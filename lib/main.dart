@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_phoenix/flutter_phoenix.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
@@ -17,6 +18,20 @@ import 'seller/seller_app.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // The default Flutter overlay style on iOS leaves the status bar with
+  // light icons, which become invisible on the app's light splash and
+  // background. Set a dark-icon default at boot; per-theme appBarTheme
+  // and the AnnotatedRegion in CustomerApp/SellerApp take over once the
+  // MaterialApp mounts and react to theme changes.
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarBrightness: Brightness.light,
+      statusBarIconBrightness: Brightness.dark,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarIconBrightness: Brightness.dark,
+    ),
+  );
   talker.info('App boot started');
   await initRootScope();
 

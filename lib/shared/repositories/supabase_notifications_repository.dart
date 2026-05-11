@@ -80,7 +80,7 @@ class MockNotificationDataSource implements NotificationDataSource {
     NotificationModel(
       id: 'mock-1',
       userId: 'guest',
-      title: 'Welcome to Mebellar',
+      title: 'Welcome to Woody',
       body: 'Tap the heart on any product to save it for later.',
       isRead: false,
       createdAt: DateTime.now().subtract(const Duration(minutes: 12)),

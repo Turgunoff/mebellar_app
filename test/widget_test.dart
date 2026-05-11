@@ -1,7 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mebellar_app/auth/widgets/mode_chooser_bottom_sheet.dart';
-import 'package:mebellar_app/config/app_mode.dart';
+import 'package:woody_app/auth/widgets/mode_chooser_bottom_sheet.dart';
+import 'package:woody_app/config/app_mode.dart';
 
 void main() {
   testWidgets('Mode chooser returns the picked mode', (tester) async {

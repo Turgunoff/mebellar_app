@@ -2,13 +2,13 @@
 
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mebellar_app/seller/features/verification/bloc/verification_bloc.dart';
-import 'package:mebellar_app/shared/mock/mock_seller_state.dart';
-import 'package:mebellar_app/shared/mock/mock_seller_verification_repository.dart';
-import 'package:mebellar_app/shared/models/business_type.dart';
-import 'package:mebellar_app/shared/models/onboarding_draft.dart';
-import 'package:mebellar_app/shared/models/verification_document.dart';
-import 'package:mebellar_app/shared/models/verification_status.dart';
+import 'package:woody_app/seller/features/verification/bloc/verification_bloc.dart';
+import 'package:woody_app/shared/mock/mock_seller_state.dart';
+import 'package:woody_app/shared/mock/mock_seller_verification_repository.dart';
+import 'package:woody_app/shared/models/business_type.dart';
+import 'package:woody_app/shared/models/onboarding_draft.dart';
+import 'package:woody_app/shared/models/verification_document.dart';
+import 'package:woody_app/shared/models/verification_status.dart';
 
 /// We don't need a real file on disk — `MockSellerVerificationRepository`
 /// only stashes the path. A non-existent path is fine for state assertions.

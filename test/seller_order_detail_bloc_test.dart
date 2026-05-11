@@ -1,10 +1,10 @@
 ﻿import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mebellar_app/seller/features/orders/bloc/seller_order_detail_bloc.dart';
-import 'package:mebellar_app/shared/mock/mock_orders_data.dart';
-import 'package:mebellar_app/shared/mock/mock_seller_order_repository.dart';
-import 'package:mebellar_app/shared/models/order_status.dart';
-import 'package:mebellar_app/shared/repositories/seller_order_repository.dart';
+import 'package:woody_app/seller/features/orders/bloc/seller_order_detail_bloc.dart';
+import 'package:woody_app/shared/mock/mock_orders_data.dart';
+import 'package:woody_app/shared/mock/mock_seller_order_repository.dart';
+import 'package:woody_app/shared/models/order_status.dart';
+import 'package:woody_app/shared/repositories/seller_order_repository.dart';
 
 void main() {
   group('SellerOrderDetailBloc (mock repository)', () {

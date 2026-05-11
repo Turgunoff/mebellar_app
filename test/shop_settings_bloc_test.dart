@@ -1,11 +1,11 @@
 ﻿import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mebellar_app/seller/features/settings/bloc/services_bloc.dart';
-import 'package:mebellar_app/seller/features/settings/bloc/shop_settings_bloc.dart';
-import 'package:mebellar_app/shared/mock/mock_seller_services_repository.dart';
-import 'package:mebellar_app/shared/mock/mock_shop_settings_repository.dart';
-import 'package:mebellar_app/shared/models/shop_service.dart';
-import 'package:mebellar_app/shared/models/shop_settings.dart';
+import 'package:woody_app/seller/features/settings/bloc/services_bloc.dart';
+import 'package:woody_app/seller/features/settings/bloc/shop_settings_bloc.dart';
+import 'package:woody_app/shared/mock/mock_seller_services_repository.dart';
+import 'package:woody_app/shared/mock/mock_shop_settings_repository.dart';
+import 'package:woody_app/shared/models/shop_service.dart';
+import 'package:woody_app/shared/models/shop_settings.dart';
 
 void main() {
   group('ShopSettingsBloc (mock repository)', () {

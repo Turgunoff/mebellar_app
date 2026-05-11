@@ -2,7 +2,7 @@
 
 const Map<String, dynamic> sellerUz = {
   'become_title': 'Sotuvchi bo\'lish',
-  'become_subtitle': 'Mebellar olamida o\'z do\'koningizni oching',
+  'become_subtitle': 'Woody olamida o\'z do\'koningizni oching',
   'approved_subtitle': 'Sotuvchi rejimiga o\'tish',
   'pending_title': 'Sotuvchi rejimi (ko\'rib chiqilmoqda)',
   'rejected_title': 'Sotuvchi rejimi (rad etildi)',
@@ -75,7 +75,7 @@ const Map<String, dynamic> sellerUz = {
 
 const Map<String, dynamic> sellerRu = {
   'become_title': 'Стать продавцом',
-  'become_subtitle': 'Откройте свой магазин в Mebellar',
+  'become_subtitle': 'Откройте свой магазин в Woody',
   'approved_subtitle': 'Перейти в режим продавца',
   'pending_title': 'Режим продавца (на проверке)',
   'rejected_title': 'Режим продавца (отклонено)',
@@ -148,7 +148,7 @@ const Map<String, dynamic> sellerRu = {
 
 const Map<String, dynamic> sellerEn = {
   'become_title': 'Become a seller',
-  'become_subtitle': 'Open your store on Mebellar',
+  'become_subtitle': 'Open your store on Woody',
   'approved_subtitle': 'Switch to seller mode',
   'pending_title': 'Seller mode (under review)',
   'rejected_title': 'Seller mode (rejected)',

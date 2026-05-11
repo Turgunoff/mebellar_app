@@ -6,9 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
-import 'package:mebellar_app/config/app_config.dart';
-import 'package:mebellar_app/core/i18n/i18n.dart';
-import 'package:mebellar_app/core/maps/yandex_mapkit_initializer.dart';
+import 'package:woody_app/config/app_config.dart';
+import 'package:woody_app/core/i18n/i18n.dart';
+import 'package:woody_app/core/maps/yandex_mapkit_initializer.dart';
 import 'package:yandex_mapkit/yandex_mapkit.dart';
 
 import '../../../../customer/features/home/widgets/premium/premium_tokens.dart';
@@ -175,7 +175,7 @@ class _ShopAddressStepState extends State<ShopAddressStep> {
         'zoom': '18',
       });
       final response = await http
-          .get(uri, headers: const {'User-Agent': 'MebellarOlamiApp/1.0'})
+          .get(uri, headers: const {'User-Agent': 'WoodyApp/1.0'})
           .timeout(const Duration(seconds: 8));
 
       developer.log(
