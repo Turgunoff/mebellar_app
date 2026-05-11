@@ -44,22 +44,25 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
     return ColoredBox(
       color: pt.background,
-      child: SafeArea(
-        bottom: false,
-        child: BlocBuilder<FavoritesBloc, FavoritesState>(
-          buildWhen: (a, b) =>
-              a.status != b.status || a.products != b.products,
-          builder: (context, state) {
-            if (state.status == FavoritesStatus.loading ||
-                state.status == FavoritesStatus.initial) {
-              return const Center(
+      child: BlocBuilder<FavoritesBloc, FavoritesState>(
+        buildWhen: (a, b) =>
+            a.status != b.status || a.products != b.products,
+        builder: (context, state) {
+          if (state.status == FavoritesStatus.loading ||
+              state.status == FavoritesStatus.initial) {
+            return const SafeArea(
+              bottom: false,
+              child: Center(
                 child: CircularProgressIndicator(
                   color: PremiumTokens.accent,
                 ),
-              );
-            }
-            if (state.products.isEmpty) {
-              return PremiumEmptyState(
+              ),
+            );
+          }
+          if (state.products.isEmpty) {
+            return SafeArea(
+              bottom: false,
+              child: PremiumEmptyState(
                 icon: Iconsax.heart,
                 title: 'Sizda hozircha sevimlilar yo\'q',
                 subtitle:
@@ -68,37 +71,69 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 onButtonPressed: () =>
                     CustomerShellScope.of(context).goToTab(0),
                 bottomPadding: bottomPad,
-              );
-            }
-            return CustomScrollView(
-              physics: const BouncingScrollPhysics(),
-              slivers: [
-                SliverToBoxAdapter(
-                  child: _FavoritesHeader(count: state.products.length),
-                ),
-                SliverPadding(
-                  padding: EdgeInsets.fromLTRB(16, 8, 16, bottomPad),
-                  sliver: SliverGrid(
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      mainAxisSpacing: 14,
-                      crossAxisSpacing: 14,
-                      childAspectRatio: 0.65,
+              ),
+            );
+          }
+          return CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              SliverAppBar(
+                pinned: true,
+                expandedHeight: 130.0,
+                backgroundColor: pt.surface,
+                surfaceTintColor: Colors.transparent,
+                elevation: 0,
+                scrolledUnderElevation: 0,
+                automaticallyImplyLeading: false,
+                flexibleSpace: FlexibleSpaceBar(
+                  centerTitle: false,
+                  expandedTitleScale: 1.6,
+                  titlePadding: const EdgeInsetsDirectional.only(
+                    start: 20,
+                    bottom: 14,
+                  ),
+                  title: Text(
+                    'Sevimlilar',
+                    style: PremiumTokens.display(
+                      size: 20,
+                      letterSpacing: -0.4,
                     ),
-                    delegate: SliverChildBuilderDelegate(
-                      (context, i) {
-                        final product = state.products[i];
-                        return _FavoriteProductTile(product: product);
-                      },
-                      childCount: state.products.length,
+                  ),
+                  background: Container(
+                    alignment: Alignment.bottomLeft,
+                    padding: const EdgeInsets.only(left: 20, bottom: 52),
+                    child: Text(
+                      '${state.products.length} saqlangan mahsulot',
+                      style: PremiumTokens.body(
+                        size: 13,
+                        color: pt.grey,
+                      ),
                     ),
                   ),
                 ),
-              ],
-            );
-          },
-        ),
+              ),
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPad),
+                sliver: SliverGrid(
+                  gridDelegate:
+                      const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 14,
+                    crossAxisSpacing: 14,
+                    childAspectRatio: 0.65,
+                  ),
+                  delegate: SliverChildBuilderDelegate(
+                    (context, i) {
+                      final product = state.products[i];
+                      return _FavoriteProductTile(product: product);
+                    },
+                    childCount: state.products.length,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -125,38 +160,6 @@ class _FavoriteProductTile extends StatelessWidget {
     );
   }
 }
-
-class _FavoritesHeader extends StatelessWidget {
-  const _FavoritesHeader({required this.count});
-
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    final pt = PremiumTokens.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Sevimlilar',
-            style: PremiumTokens.display(size: 32, letterSpacing: -0.6),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '$count saqlangan mahsulot',
-            style: PremiumTokens.body(
-              size: 13,
-              color: pt.grey,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 
 String _formatPrice(num value) {
   final s = value.toInt().toString();

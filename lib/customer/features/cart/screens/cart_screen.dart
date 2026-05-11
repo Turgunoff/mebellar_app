@@ -27,15 +27,18 @@ class CartScreen extends StatelessWidget {
     final pt = PremiumTokens.of(context);
     return ColoredBox(
       color: pt.background,
-      child: SafeArea(
-        bottom: false,
-        child: BlocBuilder<CartBloc, CartState>(
-          builder: (context, state) {
-            if (state.status == CartStatus.loading && state.items.isEmpty) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (state.isEmpty) {
-              return PremiumEmptyState(
+      child: BlocBuilder<CartBloc, CartState>(
+        builder: (context, state) {
+          if (state.status == CartStatus.loading && state.items.isEmpty) {
+            return const SafeArea(
+              bottom: false,
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
+          if (state.isEmpty) {
+            return SafeArea(
+              bottom: false,
+              child: PremiumEmptyState(
                 icon: Iconsax.shopping_bag,
                 title: "Savatchangiz bo'sh",
                 subtitle:
@@ -44,48 +47,97 @@ class CartScreen extends StatelessWidget {
                 onButtonPressed: () =>
                     CustomerShellScope.of(context).goToTab(0),
                 bottomPadding: GlassBottomNav.reservedHeight(context) + 24,
-              );
-            }
-            return Column(
-              children: [
-                _CartHeader(itemCount: state.totalUnits),
-                Expanded(
-                  child: ListView.separated(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                    itemCount: state.items.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 12),
-                    itemBuilder: (context, i) {
-                      final item = state.items[i];
-                      return _CartItemRow(
-                        item: item,
-                        onIncrement: () => context.read<CartBloc>().add(
-                              UpdateQuantity(
-                                productId: item.productId,
-                                newQuantity: item.quantity + 1,
-                              ),
-                            ),
-                        onDecrement: () => context.read<CartBloc>().add(
-                              UpdateQuantity(
-                                productId: item.productId,
-                                newQuantity: item.quantity - 1,
-                              ),
-                            ),
-                        onRemove: () => context.read<CartBloc>().add(
-                              RemoveFromCart(item.productId),
-                            ),
-                      );
-                    },
+              ),
+            );
+          }
+          return Stack(
+            children: [
+              CustomScrollView(
+                physics: const BouncingScrollPhysics(),
+                slivers: [
+                  SliverAppBar(
+                    pinned: true,
+                    expandedHeight: 120.0,
+                    backgroundColor: pt.surface,
+                    surfaceTintColor: Colors.transparent,
+                    elevation: 0,
+                    scrolledUnderElevation: 0,
+                    automaticallyImplyLeading: false,
+                    flexibleSpace: FlexibleSpaceBar(
+                      centerTitle: false,
+                      expandedTitleScale: 1.6,
+                      titlePadding: const EdgeInsetsDirectional.only(
+                        start: 20,
+                        bottom: 14,
+                      ),
+                      title: Text(
+                        tr('cart.title'),
+                        style: PremiumTokens.display(
+                          size: 20,
+                          letterSpacing: -0.4,
+                        ),
+                      ),
+                      background: Container(
+                        alignment: Alignment.bottomLeft,
+                        padding: const EdgeInsets.only(left: 20, bottom: 52),
+                        child: Text(
+                          tr('cart.units_count',
+                              args: ['${state.totalUnits}']),
+                          style: PremiumTokens.body(size: 13, color: pt.grey),
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-                _StickyCheckout(
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 160),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, i) {
+                          final item = state.items[i];
+                          return Padding(
+                            padding: EdgeInsets.only(
+                              bottom: i < state.items.length - 1 ? 12 : 0,
+                            ),
+                            child: _CartItemRow(
+                              item: item,
+                              onIncrement: () =>
+                                  context.read<CartBloc>().add(
+                                        UpdateQuantity(
+                                          productId: item.productId,
+                                          newQuantity: item.quantity + 1,
+                                        ),
+                                      ),
+                              onDecrement: () =>
+                                  context.read<CartBloc>().add(
+                                        UpdateQuantity(
+                                          productId: item.productId,
+                                          newQuantity: item.quantity - 1,
+                                        ),
+                                      ),
+                              onRemove: () => context.read<CartBloc>().add(
+                                    RemoveFromCart(item.productId),
+                                  ),
+                            ),
+                          );
+                        },
+                        childCount: state.items.length,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: _StickyCheckout(
                   totalPrice: state.totalPrice,
                   onCheckout: () => _onCheckout(context),
                 ),
-              ],
-            );
-          },
-        ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -99,44 +151,6 @@ class CartScreen extends StatelessWidget {
         content: Text(tr('cart.checkout_placeholder')),
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 2),
-      ),
-    );
-  }
-}
-
-// ── Header ─────────────────────────────────────────────────────────────────
-
-class _CartHeader extends StatelessWidget {
-  const _CartHeader({required this.itemCount});
-
-  final int itemCount;
-
-  @override
-  Widget build(BuildContext context) {
-    final pt = PremiumTokens.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Expanded(
-            child: Text(
-              tr('cart.title'),
-              style: PremiumTokens.display(size: 32, letterSpacing: -0.6),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: Text(
-              tr('cart.units_count', args: ['$itemCount']),
-              style: PremiumTokens.body(
-                size: 13,
-                color: pt.grey,
-                letterSpacing: 0.2,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

@@ -12,6 +12,7 @@ import '../../../../shared/models/multilingual_text.dart';
 import '../../../../shared/models/product.dart';
 import '../../../../shared/models/supabase_product_model.dart';
 import '../../../../shared/repositories/supabase_notifications_repository.dart';
+import '../../../customer_app.dart';
 import '../../../widgets/glass_bottom_nav.dart';
 import '../../categories/bloc/categories_bloc.dart';
 import '../../favorites/bloc/favorites_bloc.dart';
@@ -96,7 +97,8 @@ class HomeScreen extends StatelessWidget {
                   _SectionHeader(
                     title: tr('home.categories'),
                     actionLabel: tr('home.see_all'),
-                    onAction: () => context.push('/categories'),
+                    onAction: () =>
+                        CustomerShellScope.of(context).goToTab(1),
                   ),
                   const SizedBox(height: 16),
                   const _CategoriesRow(),
@@ -115,8 +117,6 @@ class HomeScreen extends StatelessWidget {
 
                   _SectionHeader(
                     title: tr('home.recommended'),
-                    actionLabel: tr('home.see_all'),
-                    onAction: () => context.push('/categories'),
                   ),
                   const SizedBox(height: 16),
                   const _RecommendedGrid(),

@@ -32,45 +32,42 @@ class ProductListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
 
-    return ColoredBox(
-      color: pt.background,
-      child: SafeArea(
-        bottom: false,
-        child: BlocBuilder<ProductListCubit, ProductListState>(
-          builder: (context, state) {
-            if (state.status == ProductListStatus.failure) {
-              return _ErrorView(
-                message: state.error ?? '',
-                onRetry: () => context
-                    .read<ProductListCubit>()
-                    .load(categoryId: categoryId, subcategoryId: subcategoryId),
-              );
-            }
-
-            final isLoading = state.status == ProductListStatus.initial ||
-                state.status == ProductListStatus.loading;
-
-            return CustomScrollView(
-              physics: const BouncingScrollPhysics(),
-              slivers: [
-                _AppBar(title: categoryName),
-                SliverPadding(
-                  padding: EdgeInsets.fromLTRB(
-                    16,
-                    8,
-                    16,
-                    GlassBottomNav.reservedHeight(context) + 24,
-                  ),
-                  sliver: isLoading
-                      ? const _SkeletonGrid()
-                      : state.products.isEmpty
-                          ? const _EmptySliver()
-                          : _ProductGrid(products: state.products),
-                ),
-              ],
+    return Scaffold(
+      backgroundColor: pt.background,
+      body: BlocBuilder<ProductListCubit, ProductListState>(
+        builder: (context, state) {
+          if (state.status == ProductListStatus.failure) {
+            return _ErrorView(
+              message: state.error ?? '',
+              onRetry: () => context
+                  .read<ProductListCubit>()
+                  .load(categoryId: categoryId, subcategoryId: subcategoryId),
             );
-          },
-        ),
+          }
+
+          final isLoading = state.status == ProductListStatus.initial ||
+              state.status == ProductListStatus.loading;
+
+          return CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              _AppBar(title: categoryName),
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  8,
+                  16,
+                  GlassBottomNav.reservedHeight(context) + 24,
+                ),
+                sliver: isLoading
+                    ? const _SkeletonGrid()
+                    : state.products.isEmpty
+                        ? const _EmptySliver()
+                        : _ProductGrid(products: state.products),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -90,6 +87,7 @@ class _AppBar extends StatelessWidget {
     final pt = PremiumTokens.of(context);
     return SliverAppBar(
       backgroundColor: pt.background,
+      surfaceTintColor: Colors.transparent,
       foregroundColor: pt.dark,
       pinned: true,
       elevation: 0,
