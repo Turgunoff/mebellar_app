@@ -3,7 +3,15 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/notification_model.dart';
 
 abstract class NotificationDataSource {
+  /// Returns every notification for the *currently authenticated* user,
+  /// newest first. Returns an empty list when there is no session.
   Future<List<NotificationModel>> list();
+
+  /// Same as [list] but lets the caller pass an explicit user id. Useful
+  /// when the cubit holds the id from auth state and wants to avoid the
+  /// implicit `currentUser` lookup.
+  Future<List<NotificationModel>> fetchNotifications(String userId);
+
   Future<int> unreadCount();
   Future<void> markRead(String id);
   Future<void> markAllRead();
@@ -24,10 +32,15 @@ class SupabaseNotificationsRepository implements NotificationDataSource {
   Future<List<NotificationModel>> list() async {
     final user = _supabase.auth.currentUser;
     if (user == null) return const [];
+    return fetchNotifications(user.id);
+  }
+
+  @override
+  Future<List<NotificationModel>> fetchNotifications(String userId) async {
     final data = await _supabase
         .from('notifications')
         .select()
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .order('created_at', ascending: false);
     return (data as List)
         .whereType<Map<String, dynamic>>()
@@ -82,6 +95,8 @@ class MockNotificationDataSource implements NotificationDataSource {
       userId: 'guest',
       title: 'Welcome to Woody',
       body: 'Tap the heart on any product to save it for later.',
+      kind: NotificationKind.general,
+      referenceId: null,
       isRead: false,
       createdAt: DateTime.now().subtract(const Duration(minutes: 12)),
     ),
@@ -90,6 +105,8 @@ class MockNotificationDataSource implements NotificationDataSource {
       userId: 'guest',
       title: 'Spring Collection 2026',
       body: 'Discover the new arrivals — up to 30% off this week.',
+      kind: NotificationKind.promo,
+      referenceId: null,
       isRead: false,
       createdAt: DateTime.now().subtract(const Duration(hours: 2)),
     ),
@@ -98,6 +115,8 @@ class MockNotificationDataSource implements NotificationDataSource {
       userId: 'guest',
       title: 'Free delivery',
       body: 'Orders above 5M UZS now ship free across Tashkent.',
+      kind: NotificationKind.news,
+      referenceId: null,
       isRead: true,
       createdAt: DateTime.now().subtract(const Duration(days: 1)),
     ),
@@ -105,6 +124,14 @@ class MockNotificationDataSource implements NotificationDataSource {
 
   @override
   Future<List<NotificationModel>> list() async {
+    await Future<void>.delayed(_delay);
+    return List.unmodifiable(_items);
+  }
+
+  @override
+  Future<List<NotificationModel>> fetchNotifications(String userId) async {
+    // The mock ignores the user id and returns the canned list — useful in
+    // tests / guest browsing where the cubit still calls through.
     await Future<void>.delayed(_delay);
     return List.unmodifiable(_items);
   }

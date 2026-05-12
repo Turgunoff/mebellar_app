@@ -320,6 +320,8 @@ class PushService {
       userId: _supabase?.auth.currentUser?.id ?? 'guest',
       title: n?.title ?? '',
       body: n?.body ?? '',
+      kind: NotificationKind.fromString(message.data['kind'] as String?),
+      referenceId: message.data['reference_id'] as String?,
       isRead: false,
       createdAt: DateTime.now(),
     );

@@ -49,6 +49,29 @@ class _NotificationsViewState extends State<_NotificationsView> {
     });
   }
 
+  /// Tap behaviour:
+  ///   1. Optimistically flip `is_read` so the badge clears immediately.
+  ///   2. If the notification carries a `reference_id` and the kind has a
+  ///      known route (currently only `order`), push the destination.
+  /// Other kinds (news / promo / review / general) just dismiss the unread
+  /// state — they're informational and don't deep-link anywhere yet.
+  void _handleTap(BuildContext context, NotificationModel notification) {
+    context.read<NotificationsCubit>().markRead(notification.id);
+    final ref = notification.referenceId;
+    if (ref == null || ref.isEmpty) return;
+    switch (notification.kind) {
+      case NotificationKind.order:
+        context.push('/orders/$ref');
+      case NotificationKind.news:
+      case NotificationKind.promo:
+      case NotificationKind.review:
+      case NotificationKind.general:
+        // No destination wired yet — extend here when product / promo
+        // detail screens land.
+        break;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
@@ -116,9 +139,7 @@ class _NotificationsViewState extends State<_NotificationsView> {
                       separatorBuilder: (_, _) => const SizedBox(height: 12),
                       itemBuilder: (_, i) => _NotificationTile(
                         notification: state.items[i],
-                        onTap: () => context
-                            .read<NotificationsCubit>()
-                            .markRead(state.items[i].id),
+                        onTap: () => _handleTap(context, state.items[i]),
                       ),
                     ),
                   ),
@@ -142,19 +163,25 @@ class _NotificationTile extends StatelessWidget {
     final formatted = DateFormat('dd MMM, HH:mm', lang)
         .format(notification.createdAt.toLocal());
     final isRead = notification.isRead;
+    final kindAccent = notification.kind.accent;
+    // Unread rows get a faint tinted background + bolder title, so the
+    // inbox immediately surfaces what the user hasn't seen yet. The tint
+    // is the kind's accent at very low alpha so order/promo/news are also
+    // visually distinguishable at a glance.
+    final unreadTint = kindAccent.withValues(alpha: 0.05);
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
         padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
         decoration: BoxDecoration(
-          color: pt.surface,
+          color: isRead ? pt.surface : unreadTint,
           borderRadius: BorderRadius.circular(18),
           boxShadow: PremiumTokens.softShadow,
           border: isRead
               ? null
               : Border.all(
-                  color: PremiumTokens.accent.withValues(alpha: 0.18),
+                  color: kindAccent.withValues(alpha: 0.22),
                   width: 1,
                 ),
         ),
@@ -167,13 +194,13 @@ class _NotificationTile extends StatelessWidget {
               decoration: BoxDecoration(
                 color: isRead
                     ? pt.imageBg
-                    : PremiumTokens.accent.withValues(alpha: 0.12),
+                    : kindAccent.withValues(alpha: 0.14),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(
-                Iconsax.notification,
+                notification.kind.icon,
                 size: 20,
-                color: isRead ? pt.grey : PremiumTokens.accent,
+                color: isRead ? pt.grey : kindAccent,
               ),
             ),
             const SizedBox(width: 12),
