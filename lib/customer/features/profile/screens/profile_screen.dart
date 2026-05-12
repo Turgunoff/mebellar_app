@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -16,6 +14,7 @@ import '../../../../core/storage/secure_storage.dart';
 import '../../../widgets/glass_bottom_nav.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../../orders/cubit/profile_orders_cubit.dart';
+import '../cubit/profile_cubit.dart';
 import 'about_screen.dart';
 import 'help_screen.dart';
 import 'settings_screen.dart';
@@ -28,79 +27,11 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  _ProfileData? _profile;
-  bool _isLoading = true;
-  StreamSubscription<AuthState>? _authSub;
-
   @override
   void initState() {
     super.initState();
-    _fetchProfile();
-    // Refresh global orders cubit whenever this tab mounts.
+    sl<ProfileCubit>().fetch();
     sl<ProfileOrdersCubit>().fetch();
-    // Re-fetch when step 3 of auth (profile save) completes.
-    // updateUser() emits userUpdated on the auth stream.
-    _authSub = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
-      if (data.event == AuthChangeEvent.userUpdated && mounted) {
-        _fetchProfile();
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _authSub?.cancel();
-    super.dispose();
-  }
-
-  Future<void> _fetchProfile() async {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) {
-      if (mounted) setState(() => _isLoading = false);
-      return;
-    }
-    try {
-      final data = await Supabase.instance.client
-          .from('profiles')
-          .select('full_name, phone, avatar_url, is_seller_pending')
-          .eq('id', user.id)
-          .single();
-      if (mounted) {
-        setState(() {
-          _profile = _ProfileData(
-            email: user.email ?? '',
-            name: data['full_name'] as String?,
-            phone: data['phone'] as String?,
-            avatarUrl: data['avatar_url'] as String?,
-            isSellerPending: (data['is_seller_pending'] as bool?) ?? false,
-          );
-          _isLoading = false;
-        });
-      }
-    } on PostgrestException catch (e) {
-      // PGRST116: ".single() found 0 rows" — the account was deleted from the
-      // DB but the local JWT is still cached (ghost session).
-      if (e.code == 'PGRST116') {
-        talker.warning(
-          'Ghost session detected: profile row missing for user ${user.id}. '
-          'Forcing local sign-out.',
-        );
-        await Supabase.instance.client.auth.signOut();
-        // signOut() fires onAuthStateChange → shell sets _isAuthenticated=false
-        // → ProfileScreen is unmounted. Clear state defensively in case
-        // the widget is still in the tree during the transition frame.
-        if (mounted) {
-          setState(() {
-            _profile = null;
-            _isLoading = false;
-          });
-        }
-      } else {
-        if (mounted) setState(() => _isLoading = false);
-      }
-    } catch (_) {
-      if (mounted) setState(() => _isLoading = false);
-    }
   }
 
   Future<void> _signOut() async {
@@ -297,8 +228,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) return;
 
-    // Guard: read live state from the global cubit — always up-to-date even
-    // after orders are cancelled in OrdersHistoryScreen.
     final s = context.read<ProfileOrdersCubit>().state;
     final activeCount = s.pendingCount + s.processingCount + s.deliveringCount;
     if (activeCount > 0) {
@@ -310,10 +239,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final ctrl = TextEditingController();
     bool isLoading = false;
 
-    // Capture the navigator and scaffold messenger from the outer screen
-    // context BEFORE entering the dialog. The dialog's own BuildContext (ctx)
-    // can become stale after async gaps and StatefulBuilder rebuilds, causing
-    // "_dependents.isEmpty is not true" assertion failures.
     final rootNav = Navigator.of(context, rootNavigator: true);
     final messenger = ScaffoldMessenger.of(context);
 
@@ -408,8 +333,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        // Use the pre-captured rootNav so this never touches
-                        // the potentially-stale dialog ctx.
                         onPressed: isLoading ? null : rootNav.pop,
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size(0, 48),
@@ -436,24 +359,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           onPressed: val.text == 'DELETE' && !isLoading
                               ? () async {
                                   setStateDialog(() => isLoading = true);
-
                                   try {
-                                    // Hard-delete the auth user via SECURITY
-                                    // DEFINER RPC. profiles → sellers → shops
-                                    // cascade through their FKs.
                                     await Supabase.instance.client.rpc(
                                       'delete_user_account',
                                     );
-
                                     await _clearLocalAfterDelete();
-
-                                    // Pop the dialog before signing out so
-                                    // the GoRouter transition is clean.
                                     rootNav.pop();
-
                                     await Supabase.instance.client.auth
                                         .signOut();
-
                                     talker.info(
                                       'Account hard-deleted successfully',
                                     );
@@ -463,9 +376,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       e,
                                       st,
                                     );
-
                                     setStateDialog(() => isLoading = false);
-
                                     messenger.showSnackBar(
                                       SnackBar(
                                         content: Text(
@@ -523,11 +434,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
     );
-    // ctrl is intentionally not disposed here. The dialog's exit animation
-    // is still in flight when showDialog() returns; disposing immediately
-    // triggers "TextEditingController used after being disposed" inside the
-    // TextField's _AnimatedState.didUpdateWidget. The controller is lightweight
-    // and becomes unreachable (GC'd) once the dialog fully unmounts.
   }
 
   Future<void> _clearLocalAfterDelete() async {
@@ -547,45 +453,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
         }
       }
     } catch (e, st) {
-      // Best-effort: a stale local cache must not block account deletion.
       talker.warning('Local cleanup after delete failed', e, st);
     }
   }
 
-  Future<void> _updateProfile(String newName, String newPhone) async {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) return;
-
-    await Supabase.instance.client
-        .from('profiles')
-        .update({
-          'full_name': newName.trim(),
-          'phone': newPhone.trim(),
-        })
-        .eq('id', user.id);
-
-    if (mounted) {
-      setState(() {
-        _profile = _ProfileData(
-          email: _profile?.email ?? user.email ?? '',
-          name: newName.trim().isEmpty ? null : newName.trim(),
-          phone: newPhone.trim().isEmpty ? null : newPhone.trim(),
-          avatarUrl: _profile?.avatarUrl,
-          isSellerPending: _profile?.isSellerPending ?? false,
-        );
-      });
-    }
-  }
-
-  void _showEditSheet() {
+  void _showEditSheet(ProfileState profile) {
+    final cubit = context.read<ProfileCubit>();
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _EditProfileSheet(
-        currentName: _profile?.name ?? '',
-        currentPhone: _profile?.phone ?? '',
-        onSave: _updateProfile,
+      builder: (_) => BlocProvider.value(
+        value: cubit,
+        child: _EditProfileSheet(
+          currentName: profile.name ?? '',
+          currentPhone: profile.phone ?? '',
+        ),
       ),
     );
   }
@@ -694,9 +577,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   List<_MenuEntry> _buildMenuItems(BuildContext context) => [
-    // MVP: addresses and payment methods are not yet implemented.
-    // _MenuEntry(icon: Iconsax.location, label: 'Mening manzillarim'),
-    // _MenuEntry(icon: Iconsax.card, label: "To'lov usullari"),
     _MenuEntry(
       icon: Iconsax.setting_2,
       label: 'Sozlamalar',
@@ -717,6 +597,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
+    final profileState = context.watch<ProfileCubit>().state;
     return Scaffold(
       backgroundColor: pt.background,
       appBar: AppBar(
@@ -739,14 +620,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
           GlassBottomNav.reservedHeight(context) + 24,
         ),
         children: [
-          if (_isLoading)
+          if (profileState.isLoading)
             const _UserCardShimmer()
-          else if (_profile != null)
-            _UserCard(profile: _profile!, onEdit: _showEditSheet),
+          else if (profileState.email.isNotEmpty)
+            _UserCard(
+              profile: profileState,
+              onEdit: () => _showEditSheet(profileState),
+            ),
           const SizedBox(height: 24),
           const _OrdersBlock(),
           const SizedBox(height: 20),
-          if (_profile?.isSellerPending == true)
+          if (profileState.isSellerPending)
             const _SellerPendingBanner()
           else
             _BecomeSellerBanner(onTap: _openSellerOnboarding),
@@ -761,46 +645,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 }
 
 // ---------------------------------------------------------------------------
-// Profile data model
-// ---------------------------------------------------------------------------
-
-class _ProfileData {
-  const _ProfileData({
-    required this.email,
-    this.name,
-    this.phone,
-    this.avatarUrl,
-    this.isSellerPending = false,
-  });
-
-  final String email;
-  final String? name;
-  final String? phone;
-  final String? avatarUrl;
-  final bool isSellerPending;
-
-  bool get hasName => name != null && name!.isNotEmpty;
-
-  /// Primary line: full_name if available, otherwise email.
-  String get displayName => hasName ? name! : email;
-
-  /// Secondary line: phone if available, otherwise email (only shown when
-  /// we already show the name as primary).
-  String? get secondaryLine {
-    if (!hasName) return null;
-    return (phone != null && phone!.isNotEmpty) ? phone : email;
-  }
-}
-
-
-// ---------------------------------------------------------------------------
 // User identity card
 // ---------------------------------------------------------------------------
 
 class _UserCard extends StatelessWidget {
   const _UserCard({required this.profile, required this.onEdit});
 
-  final _ProfileData profile;
+  final ProfileState profile;
   final VoidCallback onEdit;
 
   @override
@@ -1076,9 +927,6 @@ class _OrderStatusTile extends StatelessWidget {
   final String label;
   final int count;
   final VoidCallback onTap;
-
-  /// Delivered orders accumulate over time and aren't actionable, so the
-  /// badge is suppressed there to keep the row's visual weight balanced.
   final bool showCount;
 
   @override
@@ -1482,12 +1330,10 @@ class _EditProfileSheet extends StatefulWidget {
   const _EditProfileSheet({
     required this.currentName,
     required this.currentPhone,
-    required this.onSave,
   });
 
   final String currentName;
   final String currentPhone;
-  final Future<void> Function(String name, String phone) onSave;
 
   @override
   State<_EditProfileSheet> createState() => _EditProfileSheetState();
@@ -1517,7 +1363,10 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _saving = true);
     try {
-      await widget.onSave(_nameCtrl.text.trim(), _phoneCtrl.text.trim());
+      await context.read<ProfileCubit>().updateProfile(
+            name: _nameCtrl.text.trim(),
+            phone: _phoneCtrl.text.trim(),
+          );
       if (mounted) Navigator.of(context).pop();
     } catch (_) {
       if (mounted) setState(() => _saving = false);
@@ -1541,7 +1390,6 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Handle bar
             Center(
               child: Container(
                 margin: const EdgeInsets.only(top: 12, bottom: 20),
@@ -1553,7 +1401,6 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
                 ),
               ),
             ),
-            // Title row
             Row(
               children: [
                 Container(
@@ -1577,7 +1424,6 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
               ],
             ),
             const SizedBox(height: 24),
-            // Full name field
             Text(
               'Ism',
               style: PremiumTokens.body(
@@ -1597,7 +1443,6 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
               decoration: _fieldDecoration(pt, hint: 'To\'liq ismingiz'),
             ),
             const SizedBox(height: 16),
-            // Phone field
             Text(
               'Telefon raqam',
               style: PremiumTokens.body(
@@ -1617,7 +1462,6 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
               decoration: _fieldDecoration(pt, hint: '+998 XX XXX XX XX'),
             ),
             const SizedBox(height: 28),
-            // Save button
             SizedBox(
               width: double.infinity,
               height: 52,

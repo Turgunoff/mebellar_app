@@ -25,6 +25,7 @@ import '../shared/widgets/network_overlay_wrapper.dart';
 import 'features/cart/bloc/cart_bloc.dart';
 import 'features/cart/screens/cart_screen.dart';
 import 'features/orders/cubit/profile_orders_cubit.dart';
+import 'features/profile/cubit/profile_cubit.dart';
 import 'features/categories/screens/categories_screen.dart';
 import 'features/favorites/bloc/favorites_bloc.dart';
 import 'features/favorites/screens/favorites_screen.dart';
@@ -104,6 +105,7 @@ class _CustomerAppState extends State<CustomerApp> {
           BlocProvider<ProfileOrdersCubit>.value(
             value: sl<ProfileOrdersCubit>(),
           ),
+          BlocProvider<ProfileCubit>.value(value: sl<ProfileCubit>()),
         ],
         child: MaterialApp.router(
           title: 'Woody',

@@ -1,18 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../../../core/i18n/app_locale_controller.dart';
-import '../../../../core/theme/theme_cubit.dart';
-import '../../../../main.dart' show AppLocaleScope;
 import '../../home/widgets/premium/premium_tokens.dart';
-
-const _languages = [
-  (code: 'uz', label: "O'zbekcha"),
-  (code: 'ru', label: 'Русский'),
-  (code: 'en', label: 'English'),
-];
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -24,73 +13,90 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _pushNotifications = true;
   bool _orderUpdates = true;
-  bool _promotions = false;
 
-  bool get _isLoggedIn =>
-      Supabase.instance.client.auth.currentSession != null;
-
-  String _localeName(String code) =>
-      _languages.firstWhere((l) => l.code == code, orElse: () => _languages.first).label;
-
-  Future<void> _pickLanguage(AppLocaleController controller) async {
+  void _showComingSoon(BuildContext context, String feature) {
     final pt = PremiumTokens.of(context);
-    final current = controller.value.languageCode;
-    await showModalBottomSheet<void>(
+    showModalBottomSheet<void>(
       context: context,
-      backgroundColor: pt.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => SafeArea(
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.45),
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: pt.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        padding: EdgeInsets.fromLTRB(
+          28,
+          0,
+          28,
+          MediaQuery.paddingOf(ctx).bottom + 28,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: 12),
-            Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: pt.divider,
-                borderRadius: BorderRadius.circular(2),
+            Center(
+              child: Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 28),
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: pt.divider,
+                  borderRadius: BorderRadius.circular(99),
+                ),
               ),
             ),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.only(left: 20, bottom: 8),
-              child: Align(
-                alignment: Alignment.centerLeft,
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: PremiumTokens.accent.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: const Icon(
+                Icons.hourglass_top_rounded,
+                size: 30,
+                color: PremiumTokens.accent,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              feature,
+              style: PremiumTokens.display(size: 20, letterSpacing: -0.3),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              "Ushbu funksiya keyingi versiyada qo'shiladi.\nBiz bilan qoling!",
+              textAlign: TextAlign.center,
+              style: PremiumTokens.body(
+                size: 14,
+                color: pt.grey,
+                height: 1.55,
+              ),
+            ),
+            const SizedBox(height: 28),
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: FilledButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                style: FilledButton.styleFrom(
+                  backgroundColor: PremiumTokens.accent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
                 child: Text(
-                  'Ilova tili',
+                  'Tushunarli',
                   style: PremiumTokens.body(
                     size: 15,
-                    weight: FontWeight.w600,
+                    weight: FontWeight.w700,
+                    color: Colors.white,
                   ),
                 ),
               ),
             ),
-            ..._languages.map((lang) => ListTile(
-                  title: Text(
-                    lang.label,
-                    style: PremiumTokens.body(
-                      size: 14,
-                      weight: lang.code == current
-                          ? FontWeight.w600
-                          : FontWeight.w400,
-                      color: lang.code == current
-                          ? PremiumTokens.accent
-                          : pt.dark,
-                    ),
-                  ),
-                  trailing: lang.code == current
-                      ? const Icon(Icons.check_rounded,
-                          color: PremiumTokens.accent, size: 20)
-                      : null,
-                  onTap: () async {
-                    await controller.setLocale(Locale(lang.code));
-                    if (mounted) Navigator.of(context).pop();
-                  },
-                )),
-            const SizedBox(height: 8),
           ],
         ),
       ),
@@ -133,38 +139,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
         physics: const BouncingScrollPhysics(),
         children: [
-          if (_isLoggedIn) ...[
-            const _SectionLabel('Profil'),
-            const SizedBox(height: 8),
-            _Card(
-              children: [
-                _NavRow(
-                  icon: Iconsax.edit_2,
-                  title: 'Profilni yangilash',
-                  onTap: () {},
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-          ],
           const _SectionLabel('Til'),
           const SizedBox(height: 8),
-          Builder(builder: (ctx) {
-            final controller = AppLocaleScope.of(ctx);
-            return ValueListenableBuilder<Locale>(
-              valueListenable: controller,
-              builder: (_, locale, _) => _Card(
-                children: [
-                  _NavRow(
-                    icon: Iconsax.language_square,
-                    title: 'Ilova tili',
-                    trailingLabel: _localeName(locale.languageCode),
-                    onTap: () => _pickLanguage(controller),
-                  ),
-                ],
+          _Card(
+            children: [
+              _NavRow(
+                icon: Iconsax.language_square,
+                title: 'Ilova tili',
+                trailingLabel: "O'zbekcha",
+                onTap: () => _showComingSoon(context, 'Ilova tili'),
               ),
-            );
-          }),
+            ],
+          ),
           const SizedBox(height: 24),
           const _SectionLabel('Bildirishnomalar'),
           const SizedBox(height: 8),
@@ -183,29 +169,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 value: _orderUpdates,
                 onChanged: (v) => setState(() => _orderUpdates = v),
               ),
-              const _RowDivider(),
-              _SwitchRow(
-                icon: Iconsax.discount_shape,
-                title: 'Aksiyalar va takliflar',
-                value: _promotions,
-                onChanged: (v) => setState(() => _promotions = v),
-              ),
             ],
           ),
           const SizedBox(height: 24),
           const _SectionLabel("Ko'rinish"),
           const SizedBox(height: 8),
-          BlocBuilder<ThemeCubit, ThemeState>(
-            builder: (context, themeState) => _Card(
-              children: [
-                _SwitchRow(
-                  icon: Iconsax.moon,
-                  title: "Qorong'i rejim",
-                  value: themeState.themeMode == ThemeMode.dark,
-                  onChanged: (v) => context.read<ThemeCubit>().setDark(v),
-                ),
-              ],
-            ),
+          _Card(
+            children: [
+              _NavRow(
+                icon: Iconsax.moon,
+                title: "Qorong'i rejim",
+                trailingWidget: const _ComingSoonBadge(),
+                onTap: () => _showComingSoon(context, "Qorong'i rejim"),
+              ),
+            ],
           ),
         ],
       ),
@@ -277,12 +254,14 @@ class _NavRow extends StatelessWidget {
     required this.icon,
     required this.title,
     this.trailingLabel,
+    this.trailingWidget,
     required this.onTap,
   });
 
   final IconData icon;
   final String title;
   final String? trailingLabel;
+  final Widget? trailingWidget;
   final VoidCallback onTap;
 
   @override
@@ -315,7 +294,9 @@ class _NavRow extends StatelessWidget {
                   style: PremiumTokens.body(size: 14, weight: FontWeight.w500),
                 ),
               ),
-              if (trailingLabel != null)
+              if (trailingWidget != null)
+                trailingWidget!
+              else if (trailingLabel != null) ...[
                 Text(
                   trailingLabel!,
                   style: PremiumTokens.body(
@@ -324,12 +305,10 @@ class _NavRow extends StatelessWidget {
                     weight: FontWeight.w500,
                   ),
                 ),
-              const SizedBox(width: 6),
-              Icon(
-                Icons.chevron_right,
-                size: 18,
-                color: pt.greyLight,
-              ),
+                const SizedBox(width: 6),
+                Icon(Icons.chevron_right, size: 18, color: pt.greyLight),
+              ] else
+                Icon(Icons.chevron_right, size: 18, color: pt.greyLight),
             ],
           ),
         ),
@@ -382,6 +361,29 @@ class _SwitchRow extends StatelessWidget {
             activeTrackColor: PremiumTokens.accent,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ComingSoonBadge extends StatelessWidget {
+  const _ComingSoonBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: PremiumTokens.accent.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        'Tez orada',
+        style: PremiumTokens.body(
+          size: 11,
+          weight: FontWeight.w600,
+          color: PremiumTokens.accent,
+        ),
       ),
     );
   }

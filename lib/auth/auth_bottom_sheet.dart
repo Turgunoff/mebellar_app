@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/di/service_locator.dart';
 import '../core/logging/talker.dart';
+import '../customer/features/profile/cubit/profile_cubit.dart';
 
 const _terracotta = Color(0xFFC27A5F);
 const _terracottaDeep = Color(0xFFB85C38);
@@ -210,6 +211,16 @@ class _AuthBottomSheetState extends State<_AuthBottomSheet> {
         });
       }
       talker.info('✓ Profile metadata and public.profiles updated');
+      // Push the new profile into the global cubit BEFORE popping so that
+      // ProfileScreen rebuilds with the correct data the instant the sheet
+      // closes — no separate fetch needed, and no race with userUpdated.
+      if (sl.isRegistered<ProfileCubit>()) {
+        sl<ProfileCubit>().applySignup(
+          name: name,
+          phone: phone,
+          email: client.auth.currentUser?.email ?? '',
+        );
+      }
       if (!mounted) return;
       Navigator.of(context, rootNavigator: true).pop(true);
     } on AuthException catch (e, st) {
