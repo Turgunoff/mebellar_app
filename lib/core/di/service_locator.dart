@@ -46,6 +46,7 @@ import '../../shared/repositories/supabase_banner_repository.dart';
 import '../../shared/repositories/cart_repository.dart';
 import '../../shared/repositories/category_repository.dart';
 import '../../shared/repositories/favorites_repository.dart';
+import '../../shared/repositories/news_repository.dart';
 import '../../shared/repositories/hive_cart_repository.dart';
 import '../../shared/repositories/hive_favorites_repository.dart';
 import '../../shared/repositories/hybrid_cart_repository.dart';
@@ -111,6 +112,10 @@ Future<void> initRootScope() async {
   sl.registerSingleton<Box>(
     boxes.cart,
     instanceName: HiveBoxes.cart,
+  );
+  sl.registerSingleton<Box>(
+    boxes.newsReads,
+    instanceName: HiveBoxes.newsReads,
   );
 
   sl.registerSingleton<ThemeCubit>(
@@ -201,6 +206,19 @@ Future<void> initRootScope() async {
         ? SupabaseNotificationsRepository(supabase: sl<SupabaseClient>())
         : MockNotificationDataSource(),
   );
+
+  // NewsDataSource — public broadcast feed visible to anonymous users too.
+  // Registered at root scope (not customer-scoped) because logging out
+  // shouldn't tear down the news subscription — the same instance keeps
+  // streaming for the now-anonymous session.
+  if (sl.isRegistered<SupabaseClient>()) {
+    sl.registerLazySingleton<NewsDataSource>(
+      () => SupabaseNewsRepository(
+        supabase: sl<SupabaseClient>(),
+        readsBox: sl<Box>(instanceName: HiveBoxes.newsReads),
+      ),
+    );
+  }
 
   // Shared repositories — when AppConfig.useMocks is true, register the
   // canned in-memory implementations so the catalog UI works without a live
@@ -434,6 +452,7 @@ void _registerCustomerDependencies() {
       sl<NotificationDataSource>(),
       supabase:
           sl.isRegistered<SupabaseClient>() ? sl<SupabaseClient>() : null,
+      newsRepo: sl.isRegistered<NewsDataSource>() ? sl<NewsDataSource>() : null,
     )..load(),
     dispose: (c) => c.close(),
   );

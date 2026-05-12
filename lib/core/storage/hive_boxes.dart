@@ -9,6 +9,13 @@ class HiveBoxes {
   static const String onboardingDraft = 'onboarding_draft';
   static const String favorites = 'favorites';
   static const String cart = 'cart';
+
+  /// Stores read-state for `news` rows. Anonymous users have no auth.uid,
+  /// so we can't keep their per-news read flag server-side — Hive holds a
+  /// `Set<String>` of read news ids keyed by 'read_ids'. Cleared when the
+  /// user clears app data; that's an acceptable trade-off for marketing
+  /// pings.
+  static const String newsReads = 'news_reads';
 }
 
 typedef CoreBoxes = ({
@@ -18,6 +25,7 @@ typedef CoreBoxes = ({
   Box onboardingDraft,
   Box favorites,
   Box cart,
+  Box newsReads,
 });
 
 Future<CoreBoxes> openCoreBoxes() async {
@@ -28,6 +36,7 @@ Future<CoreBoxes> openCoreBoxes() async {
   final onboardingDraft = await Hive.openBox(HiveBoxes.onboardingDraft);
   final favorites = await Hive.openBox(HiveBoxes.favorites);
   final cart = await Hive.openBox(HiveBoxes.cart);
+  final newsReads = await Hive.openBox(HiveBoxes.newsReads);
   return (
     settings: settings,
     cache: cache,
@@ -35,5 +44,6 @@ Future<CoreBoxes> openCoreBoxes() async {
     onboardingDraft: onboardingDraft,
     favorites: favorites,
     cart: cart,
+    newsReads: newsReads,
   );
 }
