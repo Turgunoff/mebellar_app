@@ -1,3 +1,7 @@
+import 'dart:async';
+
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_phoenix/flutter_phoenix.dart';
@@ -10,10 +14,12 @@ import 'core/auth/auth_cubit.dart';
 import 'core/di/service_locator.dart';
 import 'core/i18n/i18n.dart';
 import 'core/logging/talker.dart';
+import 'core/notifications/push_service.dart';
 import 'core/storage/hive_boxes.dart';
 import 'core/theme/theme_cubit.dart';
 import 'core/widgets/app_splash_screen.dart';
 import 'customer/customer_app.dart';
+import 'firebase_options.dart';
 import 'seller/seller_app.dart';
 
 Future<void> main() async {
@@ -33,10 +39,28 @@ Future<void> main() async {
     ),
   );
   talker.info('App boot started');
+
+  // Boot Firebase before the DI scope so PushService can be registered with
+  // a live FirebaseMessaging.instance. The background handler must be
+  // registered *before* the first await on FCM, hence its placement here.
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  } catch (e, st) {
+    talker.handle(e, st, 'Firebase init failed — push disabled this run');
+  }
+
   await initRootScope();
 
   final initialMode = getInitialMode();
   await initModeScope(initialMode);
+
+  // Permission prompt + topic subscription. Fire-and-forget so the splash
+  // isn't held back by the OS dialog — the user can still browse if they
+  // dismiss it.
+  unawaited(sl<PushService>().initialise());
 
   // Boot the locale controller from the Hive `settings` box so the
   // `MaterialApp` rebuilds when the user switches language.

@@ -1,5 +1,6 @@
 import Flutter
 import UIKit
+import UserNotifications
 import YandexMapsMobile
 
 @main
@@ -20,6 +21,11 @@ import YandexMapsMobile
     // the actual map screen mounts much later.
     YMKMapKit.setApiKey(yandexMapKitApiKey)
     YMKMapKit.setLocale("uz_UZ")
+
+    // FCM bridges incoming pushes through UNUserNotificationCenter; without
+    // this assignment, foreground notifications never reach the Dart-side
+    // onMessage handler on iOS.
+    UNUserNotificationCenter.current().delegate = self
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }

@@ -8,12 +8,13 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
-    <!-- Camera / storage (image_picker for profile & product photos) -->
+    <!-- Camera (image_picker uses Android Photo Picker for gallery — no storage permission required) -->
     <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <!-- Legacy storage for Android < 13 -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
-        android:maxSdkVersion="32" />
+
+    <!-- Push notifications. POST_NOTIFICATIONS is the runtime prompt on
+         Android 13+; FCM declares the rest of its receiver/service in its
+         own manifest. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!--
         Declare hardware features as NOT required so the app is visible on
@@ -60,6 +61,13 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- Default notification channel for FCM. Without this, foreground
+             pushes on Android 8+ fall back to the catch-all channel and the
+             user can't toggle "news" off independently. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="news" />
     </application>
 
     <queries>

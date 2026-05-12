@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_phoenix/flutter_phoenix.dart';
 import 'package:get_it/get_it.dart';
@@ -74,6 +75,7 @@ import '../deep_links/deep_link_service.dart';
 import '../network/api_client.dart';
 import '../network/supabase_client.dart';
 import '../notifications/notification_handler.dart';
+import '../notifications/push_service.dart';
 import '../storage/cache_store.dart';
 import '../storage/hive_boxes.dart';
 import '../storage/secure_storage.dart';
@@ -153,6 +155,16 @@ Future<void> initRootScope() async {
 
   sl.registerLazySingleton<NotificationHandler>(
     () => NotificationHandler(sl<Box>(instanceName: HiveBoxes.pendingRoute)),
+  );
+
+  // FCM push handler. Initialised in `main.dart` after Firebase.initializeApp
+  // — registration here only wires the dependency, no network calls happen
+  // until `sl<PushService>().initialise()` is awaited.
+  sl.registerLazySingleton<PushService>(
+    () => PushService(
+      messaging: FirebaseMessaging.instance,
+      supabase: sl.isRegistered<SupabaseClient>() ? sl<SupabaseClient>() : null,
+    ),
   );
 
   // Single global auth listener — survives customer↔seller mode switches.
