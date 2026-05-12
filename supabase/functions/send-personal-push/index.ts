@@ -238,12 +238,27 @@ function stringifyValues(obj: Record<string, unknown>): Record<string, string> {
  * exchanging it at the Google token endpoint. The Web Crypto API is used
  * directly so we don't need to pull in a dependency.
  */
+// In-flight token mint promise. When N concurrent invocations land on the
+// same cold isolate, only the first one calls Google's OAuth endpoint —
+// the rest await the same promise. Without this, three near-simultaneous
+// inserts could each fire their own JWT exchange, occasionally tripping
+// Google's per-second rate limit and dropping pushes.
+let mintInFlight: Promise<string> | null = null;
+
 async function getAccessToken(sa: ServiceAccount): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
   if (cachedToken && cachedToken.expiresAt > now + 60) {
     return cachedToken.token;
   }
+  if (mintInFlight) return mintInFlight;
+  mintInFlight = _mintAccessToken(sa).finally(() => {
+    mintInFlight = null;
+  });
+  return mintInFlight;
+}
 
+async function _mintAccessToken(sa: ServiceAccount): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
   const header = { alg: "RS256", typ: "JWT" };
   const claims = {
     iss: sa.client_email,

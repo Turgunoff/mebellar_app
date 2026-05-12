@@ -274,39 +274,51 @@ class PushService {
       await _showLocalNotification(message);
     }
 
-    // Mirror into the Supabase inbox so the bell-icon screen renders the
-    // entry. We can only insert when authenticated — anonymous users keep
-    // the system tray notification only.
-    final user = _supabase?.auth.currentUser;
-    if (user == null || _supabase == null) return;
-    try {
-      await _supabase.from('notifications').insert({
-        'user_id': user.id,
-        'title': notification.title ?? '',
-        'body': notification.body ?? '',
-        'is_read': false,
-      });
-    } catch (e, st) {
-      talker.handle(e, st, 'PushService inbox mirror failed');
-    }
+    // Belt-and-suspenders inbox sync: Supabase Realtime should already
+    // have surfaced this row to the cubit, but if the realtime channel is
+    // momentarily down (network blip, paused tab) the foreground push is
+    // a second nudge to refresh. The notify call is fire-and-forget — any
+    // failure is logged inside the cubit and doesn't block the local
+    // notification display.
+    _onForegroundPush?.call(message);
   }
+
+  /// Optional hook injected by the app shell so that a foreground push can
+  /// trigger an inbox refresh. Wired in `main.dart` to call
+  /// `NotificationsCubit.load()`. Decoupled via callback so PushService
+  /// stays free of feature-layer imports.
+  void Function(RemoteMessage message)? _onForegroundPush;
+  set onForegroundPush(void Function(RemoteMessage)? cb) =>
+      _onForegroundPush = cb;
+
+  /// Monotonically increasing id for local notifications. Two pushes that
+  /// arrive in the same millisecond would produce the same hashCode if we
+  /// used the timestamp as a string — Android then overwrites the prior
+  /// notification instead of stacking them. A simple counter (mod the 32-bit
+  /// notification id space) sidesteps that race.
+  int _localNotificationCounter = 0;
 
   Future<void> _showLocalNotification(RemoteMessage message) async {
     final n = message.notification;
     if (n == null) return;
-    const androidDetails = AndroidNotificationDetails(
+    final androidDetails = AndroidNotificationDetails(
       _kNewsChannelId,
       'Yangiliklar',
       channelDescription: 'Yangiliklar va aksiyalar haqida bildirishnomalar',
       importance: Importance.high,
       priority: Priority.high,
       icon: '@mipmap/ic_launcher',
+      // Tag forces every notification to occupy its own tray slot even when
+      // bodies are identical (e.g. 3 rapid order-update pings) — without
+      // this, Android's auto-grouping replaces older entries on some OEM
+      // skins.
+      tag: message.messageId ?? '${DateTime.now().microsecondsSinceEpoch}',
     );
-    const details = NotificationDetails(android: androidDetails);
-    // The FCM message id is unique per push; use its hashCode as the
-    // local-notification id so multiple pushes don't overwrite each other
-    // in the tray.
-    final id = (message.messageId ?? DateTime.now().toIso8601String()).hashCode;
+    final details = NotificationDetails(android: androidDetails);
+    // Wrap to stay inside Android's 32-bit signed int id range. The counter
+    // pattern guarantees uniqueness within a process; the tag above
+    // provides cross-process uniqueness once the channel is reused.
+    final id = (_localNotificationCounter++) & 0x7FFFFFFF;
     await _localNotifications.show(id, n.title, n.body, details);
   }
 

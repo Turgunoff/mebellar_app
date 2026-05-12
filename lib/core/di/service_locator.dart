@@ -15,6 +15,7 @@ import '../../customer/features/cart/bloc/cart_bloc.dart';
 import '../../customer/features/categories/bloc/categories_bloc.dart';
 import '../../customer/features/favorites/bloc/favorites_bloc.dart';
 import '../../customer/features/home/bloc/home_bloc.dart';
+import '../../customer/features/notifications/cubit/notifications_cubit.dart';
 import '../../customer/features/orders/cubit/profile_orders_cubit.dart';
 import '../../customer/features/profile/cubit/profile_cubit.dart';
 import '../../customer/services/order_tracking_service.dart';
@@ -420,6 +421,20 @@ void _registerCustomerDependencies() {
   );
   sl.registerLazySingleton<ProfileCubit>(
     () => ProfileCubit(sl<SupabaseClient>()),
+    dispose: (c) => c.close(),
+  );
+  // NotificationsCubit lives in the customer scope as a singleton so the
+  // bell-icon badge in the home shell, the inbox screen, and any future
+  // surface (e.g. settings counter) all read the same in-memory state.
+  // The cubit owns its own Realtime channel — when an INSERT lands on
+  // public.notifications for the current user, the unread count updates
+  // everywhere without a manual refresh.
+  sl.registerLazySingleton<NotificationsCubit>(
+    () => NotificationsCubit(
+      sl<NotificationDataSource>(),
+      supabase:
+          sl.isRegistered<SupabaseClient>() ? sl<SupabaseClient>() : null,
+    )..load(),
     dispose: (c) => c.close(),
   );
 }

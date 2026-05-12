@@ -12,7 +12,6 @@ import '../../../../shared/models/category_model.dart';
 import '../../../../shared/models/multilingual_text.dart';
 import '../../../../shared/models/product.dart';
 import '../../../../shared/models/supabase_product_model.dart';
-import '../../../../shared/repositories/supabase_notifications_repository.dart';
 import '../../../customer_app.dart';
 import '../../../widgets/glass_bottom_nav.dart';
 import '../../categories/bloc/categories_bloc.dart';
@@ -29,9 +28,12 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
-    return BlocProvider<NotificationsCubit>(
-      create: (_) =>
-          NotificationsCubit(sl<NotificationDataSource>())..load(),
+    // .value here is critical — using `create` would spawn a fresh cubit
+    // per HomeScreen mount, defeating the singleton (the bell badge would
+    // diverge from the inbox screen). The DI singleton owns the Realtime
+    // channel; we just hand the same instance down the tree.
+    return BlocProvider<NotificationsCubit>.value(
+      value: sl<NotificationsCubit>(),
       child: ColoredBox(
         color: pt.background,
         child: BlocBuilder<HomeBloc, HomeState>(

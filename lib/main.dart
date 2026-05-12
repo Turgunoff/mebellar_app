@@ -13,6 +13,7 @@ import 'core/di/service_locator.dart';
 import 'core/i18n/i18n.dart';
 import 'core/logging/talker.dart';
 import 'core/notifications/push_service.dart';
+import 'customer/features/notifications/cubit/notifications_cubit.dart';
 import 'core/storage/hive_boxes.dart';
 import 'core/theme/theme_cubit.dart';
 import 'core/widgets/app_splash_screen.dart';
@@ -61,6 +62,7 @@ Future<void> main() async {
   // tanks opt-in rates and feels intrusive.
   await sl<PushService>().bootstrap();
   _wireAuthToPushTokens();
+  _wirePushToInboxRefresh();
 
   // Boot the locale controller from the Hive `settings` box so the
   // `MaterialApp` rebuilds when the user switches language.
@@ -81,6 +83,19 @@ Future<void> main() async {
       child: _AppRoot(localeController: localeController),
     ),
   );
+}
+
+/// Tells [PushService] how to nudge the inbox when a foreground push lands.
+/// Resolution is lazy — the [NotificationsCubit] is customer-scoped and
+/// not yet registered at app boot, so we look it up at fire time and
+/// silently skip if the user is currently in seller mode (where the
+/// customer cubit isn't installed).
+void _wirePushToInboxRefresh() {
+  sl<PushService>().onForegroundPush = (_) {
+    if (sl.isRegistered<NotificationsCubit>()) {
+      sl<NotificationsCubit>().load();
+    }
+  };
 }
 
 /// Subscribes to the global [AuthCubit] so that:

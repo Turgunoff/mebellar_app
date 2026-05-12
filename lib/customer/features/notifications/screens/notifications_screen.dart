@@ -7,7 +7,6 @@ import 'package:shimmer/shimmer.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../shared/models/notification_model.dart';
-import '../../../../shared/repositories/supabase_notifications_repository.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/error_state.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
@@ -18,9 +17,11 @@ class NotificationsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<NotificationsCubit>(
-      create: (_) =>
-          NotificationsCubit(sl<NotificationDataSource>())..load(),
+    // Reuse the customer-scoped singleton so this screen and the home-shell
+    // bell badge share state — marking a notification read here flips the
+    // badge in the same frame (no second fetch).
+    return BlocProvider<NotificationsCubit>.value(
+      value: sl<NotificationsCubit>(),
       child: const _NotificationsView(),
     );
   }
