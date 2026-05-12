@@ -5,6 +5,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../home/widgets/premium/premium_tokens.dart';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Screen
+// ─────────────────────────────────────────────────────────────────────────────
+
 class OrdersHistoryScreen extends StatefulWidget {
   const OrdersHistoryScreen({super.key});
 
@@ -13,23 +17,62 @@ class OrdersHistoryScreen extends StatefulWidget {
 }
 
 class _OrdersHistoryScreenState extends State<OrdersHistoryScreen> {
-  late Future<List<Map<String, dynamic>>> _future;
+  late List<Map<String, dynamic>> _orders = [];
+  bool _loading = true;
 
   @override
   void initState() {
     super.initState();
-    _future = _fetchOrders();
+    _load();
   }
 
-  Future<List<Map<String, dynamic>>> _fetchOrders() async {
-    final userId = Supabase.instance.client.auth.currentUser?.id;
-    if (userId == null) return [];
-    final rows = await Supabase.instance.client
-        .from('orders')
-        .select('id, total_amount, status, delivery_address, created_at')
-        .eq('user_id', userId)
-        .order('created_at', ascending: false);
-    return List<Map<String, dynamic>>.from(rows);
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) {
+        setState(() {
+          _orders = [];
+          _loading = false;
+        });
+        return;
+      }
+      final rows = await Supabase.instance.client
+          .from('orders')
+          .select('id, total_amount, status, delivery_address, created_at, cancellation_reason')
+          .eq('user_id', userId)
+          .order('created_at', ascending: false);
+      if (mounted) {
+        setState(() {
+          _orders = List<Map<String, dynamic>>.from(rows);
+          _loading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _cancelOrder(String orderId, String reason) async {
+    await Supabase.instance.client.from('orders').update({
+      'status': 'cancelled',
+      'cancellation_reason': reason,
+    }).eq('id', orderId);
+
+    // Optimistically update local state
+    if (mounted) {
+      setState(() {
+        final idx = _orders.indexWhere((o) => o['id'] == orderId);
+        if (idx != -1) {
+          _orders = List.from(_orders)
+            ..[idx] = {
+              ..._orders[idx],
+              'status': 'cancelled',
+              'cancellation_reason': reason,
+            };
+        }
+      });
+    }
   }
 
   @override
@@ -63,56 +106,55 @@ class _OrdersHistoryScreenState extends State<OrdersHistoryScreen> {
               ),
             ),
           ),
-          FutureBuilder<List<Map<String, dynamic>>>(
-            future: _future,
-            builder: (context, snap) {
-              if (snap.connectionState != ConnectionState.done) {
-                return const SliverFillRemaining(
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      color: PremiumTokens.accent,
+          if (_loading)
+            const SliverFillRemaining(
+              child: Center(
+                child: CircularProgressIndicator(color: PremiumTokens.accent),
+              ),
+            )
+          else if (_orders.isEmpty)
+            SliverFillRemaining(child: _EmptyOrders(pt: pt))
+          else
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (ctx, i) => Padding(
+                    padding: EdgeInsets.only(
+                        bottom: i < _orders.length - 1 ? 12 : 0),
+                    child: _OrderCard(
+                      order: _orders[i],
+                      pt: pt,
+                      onCancel: (reason) =>
+                          _cancelOrder(_orders[i]['id'] as String, reason),
                     ),
                   ),
-                );
-              }
-
-              final orders = snap.data ?? [];
-              if (orders.isEmpty) {
-                return SliverFillRemaining(
-                  child: _EmptyOrders(pt: pt),
-                );
-              }
-
-              return SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (ctx, i) => Padding(
-                      padding: EdgeInsets.only(
-                          bottom: i < orders.length - 1 ? 12 : 0),
-                      child: _OrderCard(order: orders[i], pt: pt),
-                    ),
-                    childCount: orders.length,
-                  ),
+                  childCount: _orders.length,
                 ),
-              );
-            },
-          ),
+              ),
+            ),
         ],
       ),
     );
   }
 }
 
-// ---------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // Order card
-// ---------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _OrderCard extends StatelessWidget {
-  const _OrderCard({required this.order, required this.pt});
+  const _OrderCard({
+    required this.order,
+    required this.pt,
+    required this.onCancel,
+  });
 
   final Map<String, dynamic> order;
   final PremiumTokens pt;
+  final Future<void> Function(String reason) onCancel;
+
+  static const _cancellableStatuses = {'pending', 'processing'};
 
   @override
   Widget build(BuildContext context) {
@@ -120,12 +162,13 @@ class _OrderCard extends StatelessWidget {
     final shortId = '#${id.substring(0, 8).toUpperCase()}';
     final rawDate = order['created_at'] as String?;
     final date = rawDate != null
-        ? DateFormat('dd MMM yyyy, HH:mm').format(DateTime.parse(rawDate).toLocal())
+        ? DateFormat('dd MMM yyyy, HH:mm')
+            .format(DateTime.parse(rawDate).toLocal())
         : '—';
     final total = (order['total_amount'] as num?)?.toDouble() ?? 0.0;
     final status = order['status'] as String? ?? 'pending';
     final address = order['delivery_address'] as String? ?? '';
-
+    final canCancel = _cancellableStatuses.contains(status);
     final statusInfo = _statusInfo(status);
 
     return Container(
@@ -139,7 +182,7 @@ class _OrderCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         child: InkWell(
           borderRadius: BorderRadius.circular(18),
-          onTap: () {}, // detail screen hookup in future sprint
+          onTap: () {},
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -153,31 +196,27 @@ class _OrderCard extends StatelessWidget {
                     color: statusInfo.color.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(statusInfo.icon, size: 22, color: statusInfo.color),
+                  child:
+                      Icon(statusInfo.icon, size: 22, color: statusInfo.color),
                 ),
                 const SizedBox(width: 14),
-                // Details
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // ID + status chip row
                       Row(
                         children: [
                           Expanded(
                             child: Text(
                               shortId,
                               style: PremiumTokens.body(
-                                size: 15,
-                                weight: FontWeight.w700,
-                              ),
+                                  size: 15, weight: FontWeight.w700),
                             ),
                           ),
-                          // Status chip
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
+                                horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
                               color: statusInfo.color.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(20),
@@ -202,19 +241,14 @@ class _OrderCard extends StatelessWidget {
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            Icon(
-                              Iconsax.location,
-                              size: 12,
-                              color: pt.greyLight,
-                            ),
+                            Icon(Iconsax.location,
+                                size: 12, color: pt.greyLight),
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
                                 address,
                                 style: PremiumTokens.body(
-                                  size: 12,
-                                  color: pt.greyLight,
-                                ),
+                                    size: 12, color: pt.greyLight),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -229,7 +263,8 @@ class _OrderCard extends StatelessWidget {
                         children: [
                           Text(
                             'Jami summa',
-                            style: PremiumTokens.body(size: 13, color: pt.grey),
+                            style:
+                                PremiumTokens.body(size: 13, color: pt.grey),
                           ),
                           const Spacer(),
                           Text(
@@ -242,6 +277,17 @@ class _OrderCard extends StatelessWidget {
                           ),
                         ],
                       ),
+                      // Cancel button — only for pending/processing
+                      if (canCancel) ...[
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: _CancelButton(
+                            pt: pt,
+                            onConfirm: onCancel,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -289,9 +335,271 @@ class _OrderCard extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// Cancel button — opens the bottom sheet
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _CancelButton extends StatefulWidget {
+  const _CancelButton({required this.pt, required this.onConfirm});
+
+  final PremiumTokens pt;
+  final Future<void> Function(String reason) onConfirm;
+
+  @override
+  State<_CancelButton> createState() => _CancelButtonState();
+}
+
+class _CancelButtonState extends State<_CancelButton> {
+  bool _busy = false;
+
+  Future<void> _open() async {
+    final reason = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _CancellationSheet(pt: widget.pt),
+    );
+    if (reason == null || !mounted) return;
+    setState(() => _busy = true);
+    try {
+      await widget.onConfirm(reason);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_busy) {
+      return const SizedBox(
+        width: 18,
+        height: 18,
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          color: Color(0xFFDC2626),
+        ),
+      );
+    }
+    return GestureDetector(
+      onTap: _open,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+        decoration: BoxDecoration(
+          color: const Color(0xFFDC2626).withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: const Color(0xFFDC2626).withValues(alpha: 0.25),
+          ),
+        ),
+        child: Text(
+          'Bekor qilish',
+          style: PremiumTokens.body(
+            size: 12,
+            weight: FontWeight.w600,
+            color: const Color(0xFFDC2626),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Cancellation bottom sheet
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _CancellationSheet extends StatefulWidget {
+  const _CancellationSheet({required this.pt});
+
+  final PremiumTokens pt;
+
+  @override
+  State<_CancellationSheet> createState() => _CancellationSheetState();
+}
+
+class _CancellationSheetState extends State<_CancellationSheet> {
+  static const _reasons = [
+    'Fikrimdan qaytdim',
+    'Manzilni xato kiritdim',
+    'Boshqa mebel topdim',
+    'Kutish vaqti juda uzoq',
+    'Boshqa',
+  ];
+
+  String? _selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final pt = widget.pt;
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: pt.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      padding: EdgeInsets.fromLTRB(24, 0, 24, 24 + bottomInset),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Handle bar
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(top: 12, bottom: 20),
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: pt.divider,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          // Title
+          Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDC2626).withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Iconsax.close_circle,
+                  size: 20,
+                  color: Color(0xFFDC2626),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Buyurtmani bekor qilish',
+                style:
+                    PremiumTokens.display(size: 18, letterSpacing: -0.3),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.only(left: 50),
+            child: Text(
+              'Bekor qilish sababini tanlang',
+              style: PremiumTokens.body(size: 13, color: pt.grey),
+            ),
+          ),
+          const SizedBox(height: 20),
+          // Reasons
+          ..._reasons.map((reason) => _ReasonRow(
+                reason: reason,
+                selected: _selected == reason,
+                pt: pt,
+                onTap: () => setState(() => _selected = reason),
+              )),
+          const SizedBox(height: 24),
+          // Confirm button
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: _selected == null
+                  ? null
+                  : () => Navigator.of(context).pop(_selected),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFDC2626),
+                disabledBackgroundColor:
+                    const Color(0xFFDC2626).withValues(alpha: 0.35),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              child: Text(
+                'Bekor qilishni tasdiqlash',
+                style: PremiumTokens.body(
+                  size: 15,
+                  weight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReasonRow extends StatelessWidget {
+  const _ReasonRow({
+    required this.reason,
+    required this.selected,
+    required this.pt,
+    required this.onTap,
+  });
+
+  final String reason;
+  final bool selected;
+  final PremiumTokens pt;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: selected
+              ? const Color(0xFFDC2626).withValues(alpha: 0.06)
+              : pt.background,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: selected
+                ? const Color(0xFFDC2626).withValues(alpha: 0.4)
+                : pt.divider,
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                reason,
+                style: PremiumTokens.body(
+                  size: 14,
+                  weight: selected ? FontWeight.w600 : FontWeight.w400,
+                  color: selected ? const Color(0xFFDC2626) : pt.dark,
+                ),
+              ),
+            ),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: selected
+                      ? const Color(0xFFDC2626)
+                      : pt.greyLight,
+                  width: selected ? 5.5 : 1.5,
+                ),
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Empty state
-// ---------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _EmptyOrders extends StatelessWidget {
   const _EmptyOrders({required this.pt});
@@ -334,9 +642,9 @@ class _EmptyOrders extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // Price formatter
-// ---------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 String _fmtPrice(num value) {
   final s = value.toStringAsFixed(0);
