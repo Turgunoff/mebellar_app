@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:intl/intl.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../home/widgets/premium/premium_tokens.dart';
+import '../cubit/profile_orders_cubit.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Screen
@@ -17,62 +18,14 @@ class OrdersHistoryScreen extends StatefulWidget {
 }
 
 class _OrdersHistoryScreenState extends State<OrdersHistoryScreen> {
-  late List<Map<String, dynamic>> _orders = [];
-  bool _loading = true;
-
   @override
   void initState() {
     super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    setState(() => _loading = true);
-    try {
-      final userId = Supabase.instance.client.auth.currentUser?.id;
-      if (userId == null) {
-        setState(() {
-          _orders = [];
-          _loading = false;
-        });
-        return;
-      }
-      final rows = await Supabase.instance.client
-          .from('orders')
-          .select('id, total_amount, status, delivery_address, created_at, cancellation_reason')
-          .eq('user_id', userId)
-          .order('created_at', ascending: false);
-      if (mounted) {
-        setState(() {
-          _orders = List<Map<String, dynamic>>.from(rows);
-          _loading = false;
-        });
-      }
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _cancelOrder(String orderId, String reason) async {
-    await Supabase.instance.client.from('orders').update({
-      'status': 'cancelled',
-      'cancellation_reason': reason,
-    }).eq('id', orderId);
-
-    // Optimistically update local state
-    if (mounted) {
-      setState(() {
-        final idx = _orders.indexWhere((o) => o['id'] == orderId);
-        if (idx != -1) {
-          _orders = List.from(_orders)
-            ..[idx] = {
-              ..._orders[idx],
-              'status': 'cancelled',
-              'cancellation_reason': reason,
-            };
-        }
-      });
-    }
+    // Re-fetch on entry so the list is always fresh when the user navigates
+    // here (e.g. from a deep link or after the app resumes).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<ProfileOrdersCubit>().fetch();
+    });
   }
 
   @override
@@ -80,60 +33,74 @@ class _OrdersHistoryScreenState extends State<OrdersHistoryScreen> {
     final pt = PremiumTokens.of(context);
     return Scaffold(
       backgroundColor: pt.background,
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: 110,
-            backgroundColor: pt.surface,
-            surfaceTintColor: Colors.transparent,
-            elevation: 0,
-            scrolledUnderElevation: 0,
-            foregroundColor: pt.dark,
-            leading: IconButton(
-              icon: Icon(Iconsax.arrow_left, color: pt.dark),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            flexibleSpace: FlexibleSpaceBar(
-              centerTitle: false,
-              titlePadding:
-                  const EdgeInsetsDirectional.only(start: 20, bottom: 14),
-              expandedTitleScale: 1.4,
-              title: Text(
-                'Mening buyurtmalarim',
-                style: PremiumTokens.display(size: 18, letterSpacing: -0.3),
-              ),
-            ),
-          ),
-          if (_loading)
-            const SliverFillRemaining(
-              child: Center(
-                child: CircularProgressIndicator(color: PremiumTokens.accent),
-              ),
-            )
-          else if (_orders.isEmpty)
-            SliverFillRemaining(child: _EmptyOrders(pt: pt))
-          else
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (ctx, i) => Padding(
-                    padding: EdgeInsets.only(
-                        bottom: i < _orders.length - 1 ? 12 : 0),
-                    child: _OrderCard(
-                      order: _orders[i],
-                      pt: pt,
-                      onCancel: (reason) =>
-                          _cancelOrder(_orders[i]['id'] as String, reason),
-                    ),
+      body: BlocBuilder<ProfileOrdersCubit, ProfileOrdersState>(
+        builder: (ctx, state) {
+          return CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              SliverAppBar(
+                pinned: true,
+                expandedHeight: 110,
+                backgroundColor: pt.surface,
+                surfaceTintColor: Colors.transparent,
+                elevation: 0,
+                scrolledUnderElevation: 0,
+                foregroundColor: pt.dark,
+                leading: IconButton(
+                  icon: Icon(Iconsax.arrow_left, color: pt.dark),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+                flexibleSpace: FlexibleSpaceBar(
+                  centerTitle: false,
+                  titlePadding:
+                      const EdgeInsetsDirectional.only(start: 20, bottom: 14),
+                  expandedTitleScale: 1.4,
+                  title: Text(
+                    'Mening buyurtmalarim',
+                    style:
+                        PremiumTokens.display(size: 18, letterSpacing: -0.3),
                   ),
-                  childCount: _orders.length,
                 ),
               ),
-            ),
-        ],
+              if (state.isLoading)
+                const SliverFillRemaining(
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: PremiumTokens.accent,
+                    ),
+                  ),
+                )
+              else if (state.orders.isEmpty)
+                SliverFillRemaining(child: _EmptyOrders(pt: pt))
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (_, i) {
+                        final order = state.orders[i];
+                        return Padding(
+                          padding: EdgeInsets.only(
+                            bottom: i < state.orders.length - 1 ? 12 : 0,
+                          ),
+                          child: _OrderCard(
+                            order: order,
+                            pt: pt,
+                            onCancel: (reason) =>
+                                ctx.read<ProfileOrdersCubit>().cancelOrder(
+                                  order['id'] as String,
+                                  reason,
+                                ),
+                          ),
+                        );
+                      },
+                      childCount: state.orders.length,
+                    ),
+                  ),
+                ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -188,7 +155,6 @@ class _OrderCard extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Status icon circle
                 Container(
                   width: 46,
                   height: 46,
@@ -196,15 +162,13 @@ class _OrderCard extends StatelessWidget {
                     color: statusInfo.color.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
-                  child:
-                      Icon(statusInfo.icon, size: 22, color: statusInfo.color),
+                  child: Icon(statusInfo.icon, size: 22, color: statusInfo.color),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // ID + status chip row
                       Row(
                         children: [
                           Expanded(
@@ -277,7 +241,6 @@ class _OrderCard extends StatelessWidget {
                           ),
                         ],
                       ),
-                      // Cancel button — only for pending/processing
                       if (canCancel) ...[
                         const SizedBox(height: 8),
                         Align(
@@ -443,7 +406,6 @@ class _CancellationSheetState extends State<_CancellationSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Handle bar
           Center(
             child: Container(
               margin: const EdgeInsets.only(top: 12, bottom: 20),
@@ -455,7 +417,6 @@ class _CancellationSheetState extends State<_CancellationSheet> {
               ),
             ),
           ),
-          // Title
           Row(
             children: [
               Container(
@@ -474,8 +435,7 @@ class _CancellationSheetState extends State<_CancellationSheet> {
               const SizedBox(width: 12),
               Text(
                 'Buyurtmani bekor qilish',
-                style:
-                    PremiumTokens.display(size: 18, letterSpacing: -0.3),
+                style: PremiumTokens.display(size: 18, letterSpacing: -0.3),
               ),
             ],
           ),
@@ -488,7 +448,6 @@ class _CancellationSheetState extends State<_CancellationSheet> {
             ),
           ),
           const SizedBox(height: 20),
-          // Reasons
           ..._reasons.map((reason) => _ReasonRow(
                 reason: reason,
                 selected: _selected == reason,
@@ -496,7 +455,6 @@ class _CancellationSheetState extends State<_CancellationSheet> {
                 onTap: () => setState(() => _selected = reason),
               )),
           const SizedBox(height: 24),
-          // Confirm button
           SizedBox(
             width: double.infinity,
             height: 52,
@@ -582,9 +540,7 @@ class _ReasonRow extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: selected
-                      ? const Color(0xFFDC2626)
-                      : pt.greyLight,
+                  color: selected ? const Color(0xFFDC2626) : pt.greyLight,
                   width: selected ? 5.5 : 1.5,
                 ),
                 color: Colors.white,

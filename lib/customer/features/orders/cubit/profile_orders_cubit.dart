@@ -4,23 +4,38 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ProfileOrdersState extends Equatable {
   const ProfileOrdersState({
-    this.pendingCount = 0,
-    this.processingCount = 0,
-    this.deliveringCount = 0,
+    this.orders = const [],
     this.isLoading = false,
   });
 
-  final int pendingCount;
-  final int processingCount;
-  final int deliveringCount;
+  final List<Map<String, dynamic>> orders;
   final bool isLoading;
+
+  // Derived counts — always reflect latest state without extra fields.
+  int get pendingCount =>
+      orders.where((o) => o['status'] == 'pending').length;
+  int get processingCount => orders
+      .where((o) =>
+          o['status'] == 'processing' || o['status'] == 'tayyorlanmoqda')
+      .length;
+  int get deliveringCount => orders
+      .where((o) => o['status'] == 'delivering' || o['status'] == 'yolda')
+      .length;
 
   bool get hasActivity =>
       pendingCount > 0 || processingCount > 0 || deliveringCount > 0;
 
+  ProfileOrdersState copyWith({
+    List<Map<String, dynamic>>? orders,
+    bool? isLoading,
+  }) =>
+      ProfileOrdersState(
+        orders: orders ?? this.orders,
+        isLoading: isLoading ?? this.isLoading,
+      );
+
   @override
-  List<Object?> get props =>
-      [pendingCount, processingCount, deliveringCount, isLoading];
+  List<Object?> get props => [orders, isLoading];
 }
 
 class ProfileOrdersCubit extends Cubit<ProfileOrdersState> {
@@ -32,35 +47,45 @@ class ProfileOrdersCubit extends Cubit<ProfileOrdersState> {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) return;
 
-    emit(const ProfileOrdersState(isLoading: true));
+    emit(state.copyWith(isLoading: true));
 
     try {
       final rows = await _supabase
           .from('orders')
-          .select('status')
-          .eq('user_id', userId);
-
-      int pending = 0, processing = 0, delivering = 0;
-      for (final row in rows) {
-        switch (row['status'] as String? ?? '') {
-          case 'pending':
-            pending++;
-          case 'processing':
-          case 'tayyorlanmoqda':
-            processing++;
-          case 'delivering':
-          case 'yolda':
-            delivering++;
-        }
-      }
+          .select(
+            'id, total_amount, status, delivery_address, created_at, cancellation_reason',
+          )
+          .eq('user_id', userId)
+          .order('created_at', ascending: false);
 
       emit(ProfileOrdersState(
-        pendingCount: pending,
-        processingCount: processing,
-        deliveringCount: delivering,
+        orders: List<Map<String, dynamic>>.from(rows),
       ));
     } catch (_) {
-      emit(const ProfileOrdersState());
+      emit(state.copyWith(isLoading: false));
     }
+  }
+
+  /// Updates Supabase, then patches the in-memory list so every listener
+  /// (OrdersHistoryScreen, ProfileScreen badges, delete-account guard)
+  /// immediately reflects the cancellation without a full re-fetch.
+  Future<void> cancelOrder(String orderId, String reason) async {
+    await _supabase.from('orders').update({
+      'status': 'cancelled',
+      'cancellation_reason': reason,
+    }).eq('id', orderId);
+
+    final updated = state.orders.map((o) {
+      if (o['id'] == orderId) {
+        return <String, dynamic>{
+          ...o,
+          'status': 'cancelled',
+          'cancellation_reason': reason,
+        };
+      }
+      return o;
+    }).toList();
+
+    emit(state.copyWith(orders: updated));
   }
 }

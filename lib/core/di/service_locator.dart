@@ -13,6 +13,7 @@ import '../../customer/features/cart/bloc/cart_bloc.dart';
 import '../../customer/features/categories/bloc/categories_bloc.dart';
 import '../../customer/features/favorites/bloc/favorites_bloc.dart';
 import '../../customer/features/home/bloc/home_bloc.dart';
+import '../../customer/features/orders/cubit/profile_orders_cubit.dart';
 import '../../customer/services/order_tracking_service.dart';
 import '../../seller/services/new_orders_listener.dart';
 import '../../shared/mock/mock_address_repository.dart';
@@ -392,6 +393,10 @@ void _registerCustomerDependencies() {
       networkCubit: sl<NetworkCubit>(),
     )..add(const CategoriesRequested()),
     dispose: (bloc) => bloc.close(),
+  );
+  sl.registerLazySingleton<ProfileOrdersCubit>(
+    () => ProfileOrdersCubit(sl<SupabaseClient>()),
+    dispose: (c) => c.close(),
   );
 }
 

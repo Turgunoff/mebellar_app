@@ -31,14 +31,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   _ProfileData? _profile;
   bool _isLoading = true;
   StreamSubscription<AuthState>? _authSub;
-  late final ProfileOrdersCubit _ordersCubit;
 
   @override
   void initState() {
     super.initState();
-    _ordersCubit = ProfileOrdersCubit(sl<SupabaseClient>());
     _fetchProfile();
-    _ordersCubit.fetch();
+    // Refresh global orders cubit whenever this tab mounts.
+    sl<ProfileOrdersCubit>().fetch();
     // Re-fetch when step 3 of auth (profile save) completes.
     // updateUser() emits userUpdated on the auth stream.
     _authSub = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
@@ -50,7 +49,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   void dispose() {
-    _ordersCubit.close();
     _authSub?.cancel();
     super.dispose();
   }
@@ -91,11 +89,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // signOut() fires onAuthStateChange → shell sets _isAuthenticated=false
         // → ProfileScreen is unmounted. Clear state defensively in case
         // the widget is still in the tree during the transition frame.
-        if (mounted)
+        if (mounted) {
           setState(() {
             _profile = null;
             _isLoading = false;
           });
+        }
       } else {
         if (mounted) setState(() => _isLoading = false);
       }
@@ -298,8 +297,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) return;
 
-    // Guard: block deletion when active orders exist.
-    final s = _ordersCubit.state;
+    // Guard: read live state from the global cubit — always up-to-date even
+    // after orders are cancelled in OrdersHistoryScreen.
+    final s = context.read<ProfileOrdersCubit>().state;
     final activeCount = s.pendingCount + s.processingCount + s.deliveringCount;
     if (activeCount > 0) {
       _showActiveOrdersWarning();
@@ -679,41 +679,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
-    return BlocProvider.value(
-      value: _ordersCubit,
-      child: ColoredBox(
-        color: pt.background,
-        child: SafeArea(
-          bottom: false,
-          child: ListView(
-            physics: const BouncingScrollPhysics(),
-            padding: EdgeInsets.fromLTRB(
-              16,
-              8,
-              16,
-              GlassBottomNav.reservedHeight(context) + 24,
-            ),
-            children: [
-              const _ProfileHeader(notificationCount: 0),
-              const SizedBox(height: 20),
-              if (_isLoading)
-                const _UserCardShimmer()
-              else if (_profile != null)
-                _UserCard(profile: _profile!),
-              const SizedBox(height: 24),
-              const _OrdersBlock(),
-              const SizedBox(height: 20),
-              if (_profile?.isSellerPending == true)
-                const _SellerPendingBanner()
-              else
-                _BecomeSellerBanner(onTap: _openSellerOnboarding),
-              const SizedBox(height: 24),
-              _MenuListCard(items: _buildMenuItems(context)),
-              const SizedBox(height: 28),
-              _DangerZone(
-                  onSignOut: _signOut, onDeleteAccount: _deleteAccount),
-            ],
+    return ColoredBox(
+      color: pt.background,
+      child: SafeArea(
+        bottom: false,
+        child: ListView(
+          physics: const BouncingScrollPhysics(),
+          padding: EdgeInsets.fromLTRB(
+            16,
+            8,
+            16,
+            GlassBottomNav.reservedHeight(context) + 24,
           ),
+          children: [
+            const _ProfileHeader(),
+            const SizedBox(height: 20),
+            if (_isLoading)
+              const _UserCardShimmer()
+            else if (_profile != null)
+              _UserCard(profile: _profile!),
+            const SizedBox(height: 24),
+            const _OrdersBlock(),
+            const SizedBox(height: 20),
+            if (_profile?.isSellerPending == true)
+              const _SellerPendingBanner()
+            else
+              _BecomeSellerBanner(onTap: _openSellerOnboarding),
+            const SizedBox(height: 24),
+            _MenuListCard(items: _buildMenuItems(context)),
+            const SizedBox(height: 28),
+            _DangerZone(onSignOut: _signOut, onDeleteAccount: _deleteAccount),
+          ],
         ),
       ),
     );
@@ -757,85 +753,15 @@ class _ProfileData {
 // ---------------------------------------------------------------------------
 
 class _ProfileHeader extends StatelessWidget {
-  const _ProfileHeader({required this.notificationCount});
-
-  final int notificationCount;
+  const _ProfileHeader();
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 4, 0, 0),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              'Profil',
-              style: PremiumTokens.display(size: 32, letterSpacing: -0.6),
-            ),
-          ),
-          _NotificationBell(count: notificationCount),
-        ],
-      ),
-    );
-  }
-}
-
-class _NotificationBell extends StatelessWidget {
-  const _NotificationBell({required this.count});
-
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    final pt = PremiumTokens.of(context);
-    return Material(
-      color: pt.surface,
-      shape: const CircleBorder(),
-      child: InkWell(
-        onTap: () {},
-        customBorder: const CircleBorder(),
-        child: Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: pt.divider),
-          ),
-          child: Stack(
-            alignment: Alignment.center,
-            clipBehavior: Clip.none,
-            children: [
-              Icon(Iconsax.notification, size: 20, color: pt.dark),
-              if (count > 0)
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 4,
-                      vertical: 1,
-                    ),
-                    constraints: const BoxConstraints(minWidth: 16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE05A4A),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: pt.surface, width: 1.5),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      count > 9 ? '9+' : '$count',
-                      style: PremiumTokens.body(
-                        size: 9,
-                        weight: FontWeight.w700,
-                        color: Colors.white,
-                        height: 1.2,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
+      child: Text(
+        'Profil',
+        style: PremiumTokens.display(size: 32, letterSpacing: -0.6),
       ),
     );
   }
