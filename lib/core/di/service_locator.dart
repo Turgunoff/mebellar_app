@@ -166,6 +166,7 @@ Future<void> initRootScope() async {
     () => PushService(
       messaging: FirebaseMessaging.instance,
       localNotifications: FlutterLocalNotificationsPlugin(),
+      notificationHandler: sl<NotificationHandler>(),
       supabase: sl.isRegistered<SupabaseClient>() ? sl<SupabaseClient>() : null,
     ),
   );

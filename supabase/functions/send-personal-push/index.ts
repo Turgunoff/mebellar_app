@@ -53,17 +53,26 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "Method not allowed" }, 405);
   }
 
-  let payload: PushRequest;
+  let raw: unknown;
   try {
-    payload = await req.json();
+    raw = await req.json();
   } catch {
     return jsonResponse({ error: "Invalid JSON body" }, 400);
   }
 
-  const { user_id, title, body, data } = payload;
-  if (!user_id || !title) {
-    return jsonResponse({ error: "user_id and title are required" }, 400);
+  // Accept two payload shapes:
+  //   1. Direct invocation (curl / admin tools): { user_id, title, body, data? }
+  //   2. Database Webhook on `notifications` table: unpack `record`
+  // Only INSERTs trigger a push — UPDATE/DELETE webhooks are dropped so
+  // marking a notification read doesn't re-send it.
+  const payload = unpackPayload(raw);
+  if (payload === null) {
+    return jsonResponse(
+      { error: "Payload must include user_id and title (direct or webhook record)" },
+      400,
+    );
   }
+  const { user_id, title, body, data } = payload;
 
   const serviceAccountJson = Deno.env.get("FCM_SERVICE_ACCOUNT_JSON");
   if (!serviceAccountJson) {
@@ -176,6 +185,45 @@ function jsonResponse(payload: unknown, status = 200): Response {
     status,
     headers: { "Content-Type": "application/json" },
   });
+}
+
+function unpackPayload(raw: unknown): PushRequest | null {
+  if (!raw || typeof raw !== "object") return null;
+  const obj = raw as Record<string, unknown>;
+
+  // Webhook shape: { type, table, record: {...} }. Only INSERT triggers a
+  // push; UPDATE (e.g. marking is_read) and DELETE are silently dropped.
+  if (typeof obj.type === "string" && obj.record && typeof obj.record === "object") {
+    if (obj.type !== "INSERT") return null;
+    const record = obj.record as Record<string, unknown>;
+    const userId = record.user_id;
+    const title = record.title;
+    if (typeof userId !== "string" || typeof title !== "string") return null;
+    // Pass the row's `data` JSONB through to FCM as the message data
+    // payload — the Flutter side reads `data.route` on tap to deep-link
+    // into a specific screen.
+    const dataField = record.data;
+    return {
+      user_id: userId,
+      title,
+      body: typeof record.body === "string" ? record.body : "",
+      data: (dataField && typeof dataField === "object")
+        ? (dataField as Record<string, string>)
+        : undefined,
+    };
+  }
+
+  // Direct shape: { user_id, title, body, data? }
+  if (typeof obj.user_id === "string" && typeof obj.title === "string") {
+    return {
+      user_id: obj.user_id,
+      title: obj.title,
+      body: typeof obj.body === "string" ? obj.body : "",
+      data: obj.data as Record<string, string> | undefined,
+    };
+  }
+
+  return null;
 }
 
 function stringifyValues(obj: Record<string, unknown>): Record<string, string> {

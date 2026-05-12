@@ -7,8 +7,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../config/app_mode.dart';
 import '../../shared/models/notification_model.dart';
 import '../logging/talker.dart';
+import 'notification_handler.dart';
 
 /// FCM topic the app subscribes to for marketing / news pushes.
 /// Sending to this topic from the Firebase Console (or HTTP v1 API) reaches
@@ -38,24 +40,31 @@ class PushService {
   PushService({
     required FirebaseMessaging messaging,
     required FlutterLocalNotificationsPlugin localNotifications,
+    required NotificationHandler notificationHandler,
     required SupabaseClient? supabase,
   })  : _messaging = messaging,
         _localNotifications = localNotifications,
+        _notificationHandler = notificationHandler,
         _supabase = supabase;
 
   final FirebaseMessaging _messaging;
   final FlutterLocalNotificationsPlugin _localNotifications;
+  final NotificationHandler _notificationHandler;
   final SupabaseClient? _supabase;
 
   bool _bootstrapped = false;
   bool _permissionRequested = false;
   StreamSubscription<String>? _tokenRefreshSub;
 
-  /// Wires the foreground listener, the token-refresh listener, and
-  /// initialises the local notifications plugin. The plugin owns the
-  /// Android notification channel that both background-tray pushes (handled
-  /// by FCM directly) and foreground pushes (re-posted by us) flow through,
-  /// so creating it at boot guarantees both paths land in the same channel.
+  /// Wires every FCM-related listener and initialises the local
+  /// notifications plugin. Called once at app boot:
+  ///
+  ///   * `onMessage`         — foreground pushes (re-posted via local
+  ///                           notification so they show in the tray)
+  ///   * `onMessageOpenedApp` — push tapped while app was in background
+  ///   * `getInitialMessage` — push tapped while app was killed
+  ///                           (the launching push is consumed once)
+  ///   * `onTokenRefresh`     — FCM rotates the token (app reinstall, etc.)
   ///
   /// Safe to call multiple times.
   Future<void> bootstrap() async {
@@ -63,6 +72,13 @@ class PushService {
     _bootstrapped = true;
     await _initLocalNotifications();
     FirebaseMessaging.onMessage.listen(_onForegroundMessage);
+    FirebaseMessaging.onMessageOpenedApp.listen(_onMessageTapped);
+    // Cold-start path: when the app is launched from a tap on a tray
+    // notification (process was killed), `getInitialMessage` returns that
+    // message exactly once. Stash the route so the customer/seller shell
+    // consumes it on first frame, mirroring the in-app simulator flow.
+    final initial = await _messaging.getInitialMessage();
+    if (initial != null) _onMessageTapped(initial);
     // FCM rotates tokens occasionally (app data wipe, restore, etc.). When
     // it does, re-save the new token under the currently logged-in user so
     // the server-side sender keeps reaching this device.
@@ -71,6 +87,23 @@ class PushService {
       if (userId == null) return;
       await _upsertToken(token: token, userId: userId);
     });
+  }
+
+  /// Invoked when the user taps a push (background or cold start). Reads
+  /// `route` and optional `mode` from the message data payload and stashes
+  /// them via [NotificationHandler] so the active app shell consumes them
+  /// on the next frame. If the target mode differs from the running mode,
+  /// the handler also flips `app_mode` for Phoenix-rebirth on next boot.
+  void _onMessageTapped(RemoteMessage message) {
+    final route = message.data['route'] as String?;
+    if (route == null || route.isEmpty) return;
+    final modeName = (message.data['mode'] as String?) ?? AppMode.customer.name;
+    debugPrint('[FCM] push tapped → route: $route (mode: $modeName)');
+    _notificationHandler.savePendingRoute(
+      route,
+      modeName,
+      kind: message.data['kind'] as String?,
+    );
   }
 
   Future<void> _initLocalNotifications() async {
