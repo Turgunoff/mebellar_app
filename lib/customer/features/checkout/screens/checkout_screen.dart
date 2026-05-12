@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/auth/auth_cubit.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../orders/cubit/profile_orders_cubit.dart';
 import '../../../../shared/models/cart_item_model.dart';
 import '../../../../shared/repositories/cart_repository.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
@@ -41,6 +42,8 @@ class _CheckoutView extends StatelessWidget {
       listenWhen: (a, b) => a.status != b.status,
       listener: (ctx, state) {
         if (state.status == CheckoutStatus.success) {
+          // Refresh the global orders state so Profile badges update instantly.
+          sl<ProfileOrdersCubit>().fetch();
           _showSuccessDialog(ctx);
         }
         if (state.status == CheckoutStatus.failure) {

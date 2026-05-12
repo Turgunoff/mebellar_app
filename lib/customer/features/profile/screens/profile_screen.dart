@@ -552,6 +552,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _updateProfile(String newName, String newPhone) async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+
+    await Supabase.instance.client
+        .from('profiles')
+        .update({
+          'full_name': newName.trim(),
+          'phone': newPhone.trim(),
+        })
+        .eq('id', user.id);
+
+    if (mounted) {
+      setState(() {
+        _profile = _ProfileData(
+          email: _profile?.email ?? user.email ?? '',
+          name: newName.trim().isEmpty ? null : newName.trim(),
+          phone: newPhone.trim().isEmpty ? null : newPhone.trim(),
+          avatarUrl: _profile?.avatarUrl,
+          isSellerPending: _profile?.isSellerPending ?? false,
+        );
+      });
+    }
+  }
+
+  void _showEditSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _EditProfileSheet(
+        currentName: _profile?.name ?? '',
+        currentPhone: _profile?.phone ?? '',
+        onSave: _updateProfile,
+      ),
+    );
+  }
+
   void _push(BuildContext context, Widget screen) {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
   }
@@ -679,38 +717,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
-    return ColoredBox(
-      color: pt.background,
-      child: SafeArea(
-        bottom: false,
-        child: ListView(
-          physics: const BouncingScrollPhysics(),
-          padding: EdgeInsets.fromLTRB(
-            16,
-            8,
-            16,
-            GlassBottomNav.reservedHeight(context) + 24,
-          ),
-          children: [
-            const _ProfileHeader(),
-            const SizedBox(height: 20),
-            if (_isLoading)
-              const _UserCardShimmer()
-            else if (_profile != null)
-              _UserCard(profile: _profile!),
-            const SizedBox(height: 24),
-            const _OrdersBlock(),
-            const SizedBox(height: 20),
-            if (_profile?.isSellerPending == true)
-              const _SellerPendingBanner()
-            else
-              _BecomeSellerBanner(onTap: _openSellerOnboarding),
-            const SizedBox(height: 24),
-            _MenuListCard(items: _buildMenuItems(context)),
-            const SizedBox(height: 28),
-            _DangerZone(onSignOut: _signOut, onDeleteAccount: _deleteAccount),
-          ],
+    return Scaffold(
+      backgroundColor: pt.background,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: false,
+        title: Text(
+          'Profil',
+          style: PremiumTokens.display(size: 28, letterSpacing: -0.5),
         ),
+      ),
+      body: ListView(
+        physics: const BouncingScrollPhysics(),
+        padding: EdgeInsets.fromLTRB(
+          16,
+          8,
+          16,
+          GlassBottomNav.reservedHeight(context) + 24,
+        ),
+        children: [
+          if (_isLoading)
+            const _UserCardShimmer()
+          else if (_profile != null)
+            _UserCard(profile: _profile!, onEdit: _showEditSheet),
+          const SizedBox(height: 24),
+          const _OrdersBlock(),
+          const SizedBox(height: 20),
+          if (_profile?.isSellerPending == true)
+            const _SellerPendingBanner()
+          else
+            _BecomeSellerBanner(onTap: _openSellerOnboarding),
+          const SizedBox(height: 24),
+          _MenuListCard(items: _buildMenuItems(context)),
+          const SizedBox(height: 28),
+          _DangerZone(onSignOut: _signOut, onDeleteAccount: _deleteAccount),
+        ],
       ),
     );
   }
@@ -748,33 +792,16 @@ class _ProfileData {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Header
-// ---------------------------------------------------------------------------
-
-class _ProfileHeader extends StatelessWidget {
-  const _ProfileHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 4, 0, 0),
-      child: Text(
-        'Profil',
-        style: PremiumTokens.display(size: 32, letterSpacing: -0.6),
-      ),
-    );
-  }
-}
 
 // ---------------------------------------------------------------------------
 // User identity card
 // ---------------------------------------------------------------------------
 
 class _UserCard extends StatelessWidget {
-  const _UserCard({required this.profile});
+  const _UserCard({required this.profile, required this.onEdit});
 
   final _ProfileData profile;
+  final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -824,7 +851,7 @@ class _UserCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     InkResponse(
-                      onTap: () {},
+                      onTap: onEdit,
                       radius: 18,
                       child: Padding(
                         padding: const EdgeInsets.all(2),
@@ -1445,4 +1472,219 @@ class _MenuEntry {
   final IconData icon;
   final String label;
   final VoidCallback? onTap;
+}
+
+// ---------------------------------------------------------------------------
+// Edit profile bottom sheet
+// ---------------------------------------------------------------------------
+
+class _EditProfileSheet extends StatefulWidget {
+  const _EditProfileSheet({
+    required this.currentName,
+    required this.currentPhone,
+    required this.onSave,
+  });
+
+  final String currentName;
+  final String currentPhone;
+  final Future<void> Function(String name, String phone) onSave;
+
+  @override
+  State<_EditProfileSheet> createState() => _EditProfileSheetState();
+}
+
+class _EditProfileSheetState extends State<_EditProfileSheet> {
+  late final TextEditingController _nameCtrl;
+  late final TextEditingController _phoneCtrl;
+  final _formKey = GlobalKey<FormState>();
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameCtrl = TextEditingController(text: widget.currentName);
+    _phoneCtrl = TextEditingController(text: widget.currentPhone);
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _phoneCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    setState(() => _saving = true);
+    try {
+      await widget.onSave(_nameCtrl.text.trim(), _phoneCtrl.text.trim());
+      if (mounted) Navigator.of(context).pop();
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: pt.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      padding: EdgeInsets.fromLTRB(24, 0, 24, 24 + bottomInset),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Handle bar
+            Center(
+              child: Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 20),
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: pt.divider,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            // Title row
+            Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: PremiumTokens.accent.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Iconsax.edit_2,
+                    size: 18,
+                    color: PremiumTokens.accent,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Profilni tahrirlash',
+                  style: PremiumTokens.display(size: 18, letterSpacing: -0.3),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            // Full name field
+            Text(
+              'Ism',
+              style: PremiumTokens.body(
+                size: 13,
+                weight: FontWeight.w600,
+                color: pt.grey,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _nameCtrl,
+              enabled: !_saving,
+              textInputAction: TextInputAction.next,
+              style: PremiumTokens.body(size: 14, weight: FontWeight.w500),
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Ismni kiriting' : null,
+              decoration: _fieldDecoration(pt, hint: 'To\'liq ismingiz'),
+            ),
+            const SizedBox(height: 16),
+            // Phone field
+            Text(
+              'Telefon raqam',
+              style: PremiumTokens.body(
+                size: 13,
+                weight: FontWeight.w600,
+                color: pt.grey,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _phoneCtrl,
+              enabled: !_saving,
+              textInputAction: TextInputAction.done,
+              keyboardType: TextInputType.phone,
+              style: PremiumTokens.body(size: 14, weight: FontWeight.w500),
+              onFieldSubmitted: (_) => _submit(),
+              decoration: _fieldDecoration(pt, hint: '+998 XX XXX XX XX'),
+            ),
+            const SizedBox(height: 28),
+            // Save button
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: FilledButton(
+                onPressed: _saving ? null : _submit,
+                style: FilledButton.styleFrom(
+                  backgroundColor: PremiumTokens.accent,
+                  disabledBackgroundColor:
+                      PremiumTokens.accent.withValues(alpha: 0.5),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: _saving
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : Text(
+                        'Saqlash',
+                        style: PremiumTokens.body(
+                          size: 15,
+                          weight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  InputDecoration _fieldDecoration(PremiumTokens pt, {required String hint}) {
+    final border = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: pt.divider),
+    );
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: PremiumTokens.body(size: 14, color: pt.greyLight),
+      filled: true,
+      fillColor: pt.background,
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      enabledBorder: border,
+      disabledBorder: border,
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide:
+            const BorderSide(color: PremiumTokens.accent, width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFEF4444)),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide:
+            const BorderSide(color: Color(0xFFEF4444), width: 1.5),
+      ),
+    );
+  }
 }
