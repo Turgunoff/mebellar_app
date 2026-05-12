@@ -7,6 +7,7 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/auth/sign_out.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/logging/talker.dart';
 import '../../../../core/storage/hive_boxes.dart';
@@ -130,7 +131,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
     if (confirmed == true && mounted) {
-      await Supabase.instance.client.auth.signOut();
+      await signOutWithPushCleanup(Supabase.instance.client);
     }
   }
 

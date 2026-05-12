@@ -43,3 +43,9 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Firebase Admin SDK service-account JSONs — contain a private key that
+# can mint OAuth2 tokens against the Firebase project. Never commit.
+# woody-*-firebase-adminsdk-*.json
+# *-firebase-adminsdk-*.json
+# serviceAccountKey.json

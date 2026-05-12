@@ -15,6 +15,7 @@ import '../core/i18n/i18n.dart';
 import '../core/logging/debug_talker_overlay.dart';
 import '../core/logging/talker.dart';
 import '../core/notifications/notification_handler.dart';
+import '../core/notifications/push_service.dart';
 import '../core/connectivity/network_cubit.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/theme_cubit.dart';
@@ -175,6 +176,22 @@ class CustomerHomeShell extends StatefulWidget {
 
 class _CustomerHomeShellState extends State<CustomerHomeShell> {
   int _index = 0;
+
+  /// Mounts after splash + tutorial gate. Wait one second so the home feed
+  /// renders first, then surface the OS notification permission prompt —
+  /// asking earlier (splash / onboarding) lowers opt-in rates significantly.
+  static const _permissionPromptDelay = Duration(seconds: 1);
+
+  @override
+  void initState() {
+    super.initState();
+    if (sl.isRegistered<PushService>()) {
+      Future<void>.delayed(_permissionPromptDelay, () {
+        if (!mounted) return;
+        sl<PushService>().requestPermissionAndSubscribe();
+      });
+    }
+  }
 
   void _goToTab(int i) {
     if (i == _index) return;

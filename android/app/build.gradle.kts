@@ -23,6 +23,11 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
+        // Core library desugaring is required by flutter_local_notifications
+        // 18+ because the plugin uses java.time on minSdk 26-… via the
+        // backport. Without this flag the build fails with
+        // "requires core library desugaring to be enabled".
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
     }
@@ -67,4 +72,8 @@ flutter {
 
 dependencies {
     implementation("com.yandex.android:maps.mobile:4.22.0-lite")
+    // Backport of java.time and other Java 8+ APIs to older Android — paired
+    // with `isCoreLibraryDesugaringEnabled` above. Required by
+    // flutter_local_notifications.
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

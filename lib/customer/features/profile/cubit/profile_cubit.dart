@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/auth/sign_out.dart';
 import '../../../../core/logging/talker.dart';
 
 class ProfileState extends Equatable {
@@ -66,7 +67,7 @@ class ProfileCubit extends Cubit<ProfileState> {
         talker.warning(
           'Ghost session: profile row missing for ${user.id}. Forcing sign-out.',
         );
-        await _supabase.auth.signOut();
+        await signOutWithPushCleanup(_supabase);
       }
       emit(ProfileState(email: user.email ?? ''));
     } catch (_) {

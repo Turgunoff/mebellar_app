@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_phoenix/flutter_phoenix.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -69,6 +70,7 @@ import '../../shared/repositories/shop_settings_repository.dart';
 import '../../shared/repositories/tariff_repository.dart';
 import '../auth/auth_cubit.dart';
 import '../auth/auth_repository.dart';
+import '../auth/sign_out.dart';
 import '../connectivity/connectivity_service.dart';
 import '../connectivity/network_cubit.dart';
 import '../deep_links/deep_link_service.dart';
@@ -163,6 +165,7 @@ Future<void> initRootScope() async {
   sl.registerLazySingleton<PushService>(
     () => PushService(
       messaging: FirebaseMessaging.instance,
+      localNotifications: FlutterLocalNotificationsPlugin(),
       supabase: sl.isRegistered<SupabaseClient>() ? sl<SupabaseClient>() : null,
     ),
   );
@@ -456,8 +459,10 @@ Future<void> switchAppMode(BuildContext context, AppMode newMode) async {
 /// Sign-out flow: clear cache, drop the saved mode (so next login defaults to
 /// customer), tear down the active mode scope and reboot the widget tree.
 Future<void> performLogout(BuildContext context) async {
-  if (sl.isRegistered<AuthRepository>()) {
-    await sl<AuthRepository>().signOut();
+  // Token cleanup runs as part of `signOutWithPushCleanup` below. The
+  // AuthRepository wrapper is bypassed here so we don't double-call signOut.
+  if (sl.isRegistered<SupabaseClient>()) {
+    await signOutWithPushCleanup(sl<SupabaseClient>());
   }
   await sl<Box>(instanceName: HiveBoxes.cache).clear();
   await sl<Box>(instanceName: HiveBoxes.settings).delete('app_mode');

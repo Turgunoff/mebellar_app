@@ -1,6 +1,10 @@
+import 'dart:async';
+import 'dart:io' show Platform;
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../shared/models/notification_model.dart';
@@ -10,6 +14,14 @@ import '../logging/talker.dart';
 /// Sending to this topic from the Firebase Console (or HTTP v1 API) reaches
 /// every install that has notifications enabled.
 const String kNewsTopic = 'news';
+
+/// Android notification channel id. Must match the
+/// `default_notification_channel_id` meta-data in AndroidManifest.xml so
+/// the OS routes background pushes through the same channel that
+/// `flutter_local_notifications` uses for foreground display — otherwise
+/// the user would see two separate "categories" in app settings and
+/// silencing one would not silence the other.
+const String _kNewsChannelId = 'news';
 
 /// Background isolate entrypoint. FCM requires a top-level (or static)
 /// function annotated with @pragma so it survives tree-shaking.
@@ -25,25 +37,77 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 class PushService {
   PushService({
     required FirebaseMessaging messaging,
+    required FlutterLocalNotificationsPlugin localNotifications,
     required SupabaseClient? supabase,
   })  : _messaging = messaging,
+        _localNotifications = localNotifications,
         _supabase = supabase;
 
   final FirebaseMessaging _messaging;
+  final FlutterLocalNotificationsPlugin _localNotifications;
   final SupabaseClient? _supabase;
 
-  bool _initialised = false;
+  bool _bootstrapped = false;
+  bool _permissionRequested = false;
+  StreamSubscription<String>? _tokenRefreshSub;
 
-  /// Bootstraps FCM:
-  ///   1. requests notification permission (iOS + Android 13+)
-  ///   2. subscribes to the `news` topic so promo broadcasts are delivered
-  ///   3. wires the foreground handler so a push received while the app is
-  ///      open mirrors into the in-app inbox
+  /// Wires the foreground listener, the token-refresh listener, and
+  /// initialises the local notifications plugin. The plugin owns the
+  /// Android notification channel that both background-tray pushes (handled
+  /// by FCM directly) and foreground pushes (re-posted by us) flow through,
+  /// so creating it at boot guarantees both paths land in the same channel.
   ///
-  /// Safe to call multiple times — the second invocation is a no-op.
-  Future<void> initialise() async {
-    if (_initialised) return;
-    _initialised = true;
+  /// Safe to call multiple times.
+  Future<void> bootstrap() async {
+    if (_bootstrapped) return;
+    _bootstrapped = true;
+    await _initLocalNotifications();
+    FirebaseMessaging.onMessage.listen(_onForegroundMessage);
+    // FCM rotates tokens occasionally (app data wipe, restore, etc.). When
+    // it does, re-save the new token under the currently logged-in user so
+    // the server-side sender keeps reaching this device.
+    _tokenRefreshSub = _messaging.onTokenRefresh.listen((token) async {
+      final userId = _supabase?.auth.currentUser?.id;
+      if (userId == null) return;
+      await _upsertToken(token: token, userId: userId);
+    });
+  }
+
+  Future<void> _initLocalNotifications() async {
+    // Android side wants an icon resource that exists in the launcher
+    // mipmaps; @mipmap/ic_launcher always exists since flutter_launcher_icons
+    // generates it, so it is the safest default.
+    const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const init = InitializationSettings(android: androidInit);
+    await _localNotifications.initialize(init);
+
+    // Channel must exist before the first notification is shown; without it
+    // Android 8+ silently drops the post. The id matches the manifest's
+    // default_notification_channel_id so background-tray pushes (handled by
+    // FCM) and our foreground re-posts share one channel.
+    const channel = AndroidNotificationChannel(
+      _kNewsChannelId,
+      'Yangiliklar',
+      description: 'Yangiliklar va aksiyalar haqida bildirishnomalar',
+      importance: Importance.high,
+    );
+    await _localNotifications
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(channel);
+  }
+
+  /// Triggers the OS notification permission dialog and subscribes the
+  /// device to the `news` topic on success. Idempotent within a session —
+  /// once the user has responded (allow / deny), subsequent calls are a
+  /// no-op so we don't re-pester them.
+  ///
+  /// Call this **after** the user reaches the home screen — never from the
+  /// splash or onboarding, where the prompt would feel intrusive and is
+  /// known to lower opt-in rates significantly.
+  Future<void> requestPermissionAndSubscribe() async {
+    if (_permissionRequested) return;
+    _permissionRequested = true;
 
     try {
       final settings = await _messaging.requestPermission(
@@ -54,6 +118,7 @@ class PushService {
       talker.info(
         'FCM permission: ${settings.authorizationStatus.name}',
       );
+      debugPrint('[FCM] permission: ${settings.authorizationStatus.name}');
       final granted =
           settings.authorizationStatus == AuthorizationStatus.authorized ||
           settings.authorizationStatus == AuthorizationStatus.provisional;
@@ -69,10 +134,11 @@ class PushService {
 
       await _messaging.subscribeToTopic(kNewsTopic);
       talker.info('Subscribed to FCM topic: $kNewsTopic');
-
-      FirebaseMessaging.onMessage.listen(_onForegroundMessage);
+      debugPrint('[FCM] subscribed to topic: $kNewsTopic');
     } catch (e, st) {
-      talker.handle(e, st, 'PushService.initialise failed');
+      // Reset so a manual retry (e.g. settings toggle later) can re-prompt.
+      _permissionRequested = false;
+      talker.handle(e, st, 'PushService.requestPermissionAndSubscribe failed');
     }
   }
 
@@ -86,10 +152,94 @@ class PushService {
     }
   }
 
+  /// Fetches the current FCM token and upserts it into `device_tokens`
+  /// under the given user. Called from the auth flow on sign-in.
+  ///
+  /// Idempotent — a re-login with the same token just bumps `updated_at`.
+  /// Cross-account on the same device works because `token` is the PK,
+  /// so the upsert overwrites the prior `user_id`.
+  Future<void> syncTokenForUser(String userId) async {
+    if (_supabase == null) return;
+    try {
+      final token = await _messaging.getToken();
+      if (token == null) {
+        talker.warning('FCM getToken returned null — skipping sync');
+        debugPrint('[FCM] getToken returned null — skipping sync');
+        return;
+      }
+      debugPrint('[FCM] token (first 24): ${token.substring(0, 24)}...');
+      await _upsertToken(token: token, userId: userId);
+    } catch (e, st) {
+      talker.handle(e, st, 'PushService.syncTokenForUser failed');
+      debugPrint('[FCM] syncTokenForUser failed: $e');
+    }
+  }
+
+  /// Deletes this device's token from the DB. Must be invoked **before**
+  /// `supabase.auth.signOut()` — once the session is cleared, RLS denies the
+  /// delete and the row is orphaned (eventually GC'd via the cascade when
+  /// the user account is deleted, but stale until then).
+  Future<void> removeCurrentToken() async {
+    if (_supabase == null) return;
+    try {
+      final token = await _messaging.getToken();
+      if (token == null) return;
+      await _supabase
+          .from('device_tokens')
+          .delete()
+          .eq('token', token);
+      talker.info('FCM token removed from device_tokens');
+      debugPrint('[FCM] token removed from device_tokens');
+    } catch (e, st) {
+      talker.handle(e, st, 'PushService.removeCurrentToken failed');
+    }
+  }
+
+  Future<void> _upsertToken({
+    required String token,
+    required String userId,
+  }) async {
+    if (_supabase == null) return;
+    final platform = _platformLabel();
+    await _supabase.from('device_tokens').upsert({
+      'token': token,
+      'user_id': userId,
+      'platform': platform,
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    }, onConflict: 'token');
+    talker.info('FCM token saved (platform=$platform)');
+    debugPrint('[FCM] token saved to device_tokens (platform=$platform, user=$userId)');
+  }
+
+  String _platformLabel() {
+    if (kIsWeb) return 'web';
+    if (Platform.isAndroid) return 'android';
+    if (Platform.isIOS) return 'ios';
+    return 'web';
+  }
+
+  /// Cancels long-lived subscriptions. Currently only the token-refresh
+  /// listener; called when the DI scope hosting this service tears down
+  /// (e.g. during a hard logout that pops the customer scope).
+  Future<void> dispose() async {
+    await _tokenRefreshSub?.cancel();
+    _tokenRefreshSub = null;
+  }
+
   Future<void> _onForegroundMessage(RemoteMessage message) async {
     final notification = message.notification;
     if (notification == null) return;
     talker.info('FCM foreground: ${notification.title}');
+    debugPrint('[FCM] foreground push received: "${notification.title}" — "${notification.body}"');
+
+    // Android suppresses tray notifications when the app is in the
+    // foreground — re-post via flutter_local_notifications so the user
+    // actually sees the ping. iOS already handles this through the
+    // setForegroundNotificationPresentationOptions call in
+    // requestPermissionAndSubscribe(), so we only re-post on Android.
+    if (!kIsWeb && Platform.isAndroid) {
+      await _showLocalNotification(message);
+    }
 
     // Mirror into the Supabase inbox so the bell-icon screen renders the
     // entry. We can only insert when authenticated — anonymous users keep
@@ -106,6 +256,25 @@ class PushService {
     } catch (e, st) {
       talker.handle(e, st, 'PushService inbox mirror failed');
     }
+  }
+
+  Future<void> _showLocalNotification(RemoteMessage message) async {
+    final n = message.notification;
+    if (n == null) return;
+    const androidDetails = AndroidNotificationDetails(
+      _kNewsChannelId,
+      'Yangiliklar',
+      channelDescription: 'Yangiliklar va aksiyalar haqida bildirishnomalar',
+      importance: Importance.high,
+      priority: Priority.high,
+      icon: '@mipmap/ic_launcher',
+    );
+    const details = NotificationDetails(android: androidDetails);
+    // The FCM message id is unique per push; use its hashCode as the
+    // local-notification id so multiple pushes don't overwrite each other
+    // in the tray.
+    final id = (message.messageId ?? DateTime.now().toIso8601String()).hashCode;
+    await _localNotifications.show(id, n.title, n.body, details);
   }
 
   /// Exposed so debug tooling (push simulator screen) can preview a payload

@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -57,10 +55,12 @@ Future<void> main() async {
   final initialMode = getInitialMode();
   await initModeScope(initialMode);
 
-  // Permission prompt + topic subscription. Fire-and-forget so the splash
-  // isn't held back by the OS dialog — the user can still browse if they
-  // dismiss it.
-  unawaited(sl<PushService>().initialise());
+  // Wire the foreground push listener at boot, but defer the OS permission
+  // prompt until the user reaches the customer home shell (see
+  // `_CustomerHomeShellState.initState`). Asking on splash / onboarding
+  // tanks opt-in rates and feels intrusive.
+  await sl<PushService>().bootstrap();
+  _wireAuthToPushTokens();
 
   // Boot the locale controller from the Hive `settings` box so the
   // `MaterialApp` rebuilds when the user switches language.
@@ -81,6 +81,31 @@ Future<void> main() async {
       child: _AppRoot(localeController: localeController),
     ),
   );
+}
+
+/// Subscribes to the global [AuthCubit] so that:
+///   * a successful sign-in (or a restored session at cold start) saves the
+///     current FCM token under the user's id, and
+///   * a sign-out tear-down is handled separately by `performLogout`, which
+///     calls `removeCurrentToken()` *before* clearing the Supabase session
+///     (RLS would deny the delete after sign-out).
+///
+/// Listener fires once per state change after registration; we also push
+/// the current state through it manually so a session restored synchronously
+/// in `AuthCubit._init` (before this subscription was attached) still
+/// triggers a token sync.
+void _wireAuthToPushTokens() {
+  final authCubit = sl<AuthCubit>();
+  final pushService = sl<PushService>();
+
+  void handleState(AppAuthState state) {
+    if (state is AppAuthAuthenticated) {
+      pushService.syncTokenForUser(state.userId);
+    }
+  }
+
+  handleState(authCubit.state);
+  authCubit.stream.listen(handleState);
 }
 
 class _AppRoot extends StatelessWidget {
