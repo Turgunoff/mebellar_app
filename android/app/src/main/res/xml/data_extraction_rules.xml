@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Android 12+ (API 31+) cloud-backup and device-transfer rules.
+    Sensitive local data (auth tokens, Hive boxes) is excluded so a
+    restored device cannot replay another user's session.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="FlutterSecureStorage" />
+        <exclude domain="database" />
+        <exclude domain="file" path="hive" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="FlutterSecureStorage" />
+        <exclude domain="database" />
+        <exclude domain="file" path="hive" />
+    </device-transfer>
+</data-extraction-rules>

@@ -36,14 +36,13 @@ class Address extends Equatable {
   final bool isDefault;
 
   String formatted(String lang) {
-    final parts = <String>[
+    return <String>[
       region.name.get(lang),
       city.name.get(lang),
       if (district != null) district!.name.get(lang),
       streetLine,
       if (apartment != null && apartment!.isNotEmpty) 'kv. $apartment',
-    ];
-    return parts.join(', ');
+    ].where((p) => p.isNotEmpty).join(', ');
   }
 
   Address copyWith({

@@ -107,6 +107,66 @@ class _DetailBody extends StatelessWidget {
   final int quantity;
   final ValueChanged<int> onQuantityChanged;
 
+  void _showShopComingSoon(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE0E0E0),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Icon(Icons.storefront_outlined, size: 48, color: Color(0xFFC27A5F)),
+            const SizedBox(height: 16),
+            Text(
+              tr('shop.coming_soon_title'),
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w600),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              tr('shop.coming_soon_body'),
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: const Color(0xFF9E9E9E)),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFFC27A5F),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(100),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                child: Text(tr('common.ok')),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _addToCart(BuildContext context, {bool buyNow = false}) {
     context.read<CartBloc>().add(
           AddToCart(_toSupabaseModel(product), quantity: quantity),
@@ -298,8 +358,7 @@ class _DetailBody extends StatelessWidget {
                   if (product.shop != null)
                     ShopCard(
                       shop: product.shop!,
-                      onTap: () =>
-                          context.push('/shops/${product.shop!.slug}'),
+                      onTap: () => _showShopComingSoon(context),
                     ),
                   const SizedBox(height: 20),
                   // Shop services

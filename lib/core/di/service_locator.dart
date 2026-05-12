@@ -52,6 +52,7 @@ import '../../shared/repositories/supabase_category_repository.dart';
 import '../../shared/repositories/supabase_favorites_repository.dart';
 import '../../shared/repositories/supabase_product_data_source.dart';
 import '../../shared/repositories/supabase_notifications_repository.dart';
+import '../../shared/repositories/supabase_order_repository.dart';
 import '../../shared/repositories/notifications_repository.dart';
 import '../../shared/repositories/order_repository.dart';
 import '../../shared/repositories/product_repository.dart';
@@ -308,7 +309,9 @@ Future<void> initRootScope() async {
       () => RemoteAddressRepository(sl<Dio>()),
     );
     sl.registerLazySingleton<OrderRepository>(
-      () => RemoteOrderRepository(sl<Dio>()),
+      () => sl.isRegistered<SupabaseClient>()
+          ? SupabaseOrderRepository(sl<SupabaseClient>())
+          : RemoteOrderRepository(sl<Dio>()),
     );
     sl.registerLazySingleton<SellerOnboardingRepository>(
       () => sl.isRegistered<SupabaseClient>()

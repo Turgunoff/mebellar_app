@@ -209,7 +209,12 @@ class _Body extends StatelessWidget {
               leading: const Icon(Icons.location_on_outlined),
               title: Text(order.address.label),
               subtitle: Text(
-                '${order.address.recipientName}\n${order.address.phone}\n${order.address.formatted(lang)}',
+                [
+                  if (order.address.recipientName.isNotEmpty)
+                    order.address.recipientName,
+                  if (order.address.phone.isNotEmpty) order.address.phone,
+                  order.address.formatted(lang),
+                ].join('\n'),
               ),
               isThreeLine: true,
             ),

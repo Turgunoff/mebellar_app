@@ -162,13 +162,6 @@ GoRouter buildCustomerRouter() {
         builder: (context, state) =>
             const NotificationSimulatorScreen(currentMode: AppMode.customer),
       ),
-      GoRoute(
-        path: '/shops/:slug',
-        builder: (context, state) => _PlaceholderRoute(
-          title: 'Shop: ${state.pathParameters['slug']}',
-          subtitle: 'Sprint 6+: shop detail screen',
-        ),
-      ),
     ],
   );
 }
@@ -200,26 +193,3 @@ class _ProductDetailLoader extends StatelessWidget {
   }
 }
 
-class _PlaceholderRoute extends StatelessWidget {
-  const _PlaceholderRoute({required this.title, required this.subtitle});
-
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(
-            subtitle,
-            style: Theme.of(context).textTheme.bodyMedium,
-            textAlign: TextAlign.center,
-          ),
-        ),
-      ),
-    );
-  }
-}

@@ -1,8 +1,17 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
 android {
@@ -30,22 +39,21 @@ android {
         versionName = flutter.versionName
     }
 
-    buildTypes {
-        debug {
-            // Debug builds only target the architectures we actually run during
-            // development: x86_64 emulator and arm64-v8a physical devices.
-            // Skipping armeabi-v7a / x86 cuts native compile time roughly in
-            // half on a clean build (the Yandex MapKit native libs alone add
-            // several minutes per ABI).
-            ndk {
-                abiFilters.addAll(listOf("x86_64", "arm64-v8a"))
-            }
+    signingConfigs {
+        create("release") {
+            keyAlias = keystoreProperties["keyAlias"] as String
+            keyPassword = keystoreProperties["keyPassword"] as String
+            storeFile = keystoreProperties["storeFile"]?.let { file(it) }
+            storePassword = keystoreProperties["storePassword"] as String
         }
+    }
+    buildTypes {
         release {
             // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
+            // Signing with the debug keys for now,
+            // so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
-            // Release ships every ABI Google Play asks for; let Gradle decide.
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }
