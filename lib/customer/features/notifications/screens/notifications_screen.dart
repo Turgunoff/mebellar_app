@@ -35,21 +35,6 @@ class _NotificationsView extends StatefulWidget {
 }
 
 class _NotificationsViewState extends State<_NotificationsView> {
-  bool _allReadOnEnter = false;
-
-  @override
-  void initState() {
-    super.initState();
-    // Mark every visible notification as read once the screen settles. The
-    // user opening the inbox is intent enough to treat all entries as seen,
-    // matching the requirement to clear the badge on open.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || _allReadOnEnter) return;
-      _allReadOnEnter = true;
-      context.read<NotificationsCubit>().markAllRead();
-    });
-  }
-
   /// Tap behaviour:
   ///   1. Optimistically flip `is_read` so the badge clears immediately.
   ///   2. If the notification carries a `reference_id` and the kind has a
