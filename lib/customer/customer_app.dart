@@ -67,10 +67,25 @@ class _CustomerAppState extends State<CustomerApp> {
   }
 
   void _consumePendingRoute() {
-    if (!sl.isRegistered<NotificationHandler>()) return;
-    final route =
-        sl<NotificationHandler>().consumeFor(AppMode.customer.name);
-    if (route != null && mounted) _router.go(route);
+    // Two independent pending-route channels can hold a destination at boot:
+    //   1. [NotificationHandler] — written by system-tray push taps. Keyed
+    //      by mode, so the customer shell only sees customer routes.
+    //   2. [DeepLinkService.consumePendingRoute] — written by the in-app
+    //      inbox routing interceptor when a cross-mode tap triggered a
+    //      Phoenix.rebirth. It has no mode key (the rebirth already
+    //      delivered the user to the right shell), so the first shell to
+    //      mount after the rebirth consumes it.
+    // The DeepLinkService route wins when both are present; that's the
+    // route the user just explicitly tapped on.
+    if (!mounted) return;
+    String? route;
+    if (sl.isRegistered<DeepLinkService>()) {
+      route = sl<DeepLinkService>().consumePendingRoute();
+    }
+    if (route == null && sl.isRegistered<NotificationHandler>()) {
+      route = sl<NotificationHandler>().consumeFor(AppMode.customer.name);
+    }
+    if (route != null) _router.go(route);
   }
 
   /// Listens for incoming app/universal links. Sprint 11 mock: the simulator

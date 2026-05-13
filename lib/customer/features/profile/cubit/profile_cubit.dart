@@ -1,8 +1,12 @@
+import 'dart:async';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/auth/app_mode_cubit.dart';
 import '../../../../core/auth/sign_out.dart';
+import '../../../../core/di/service_locator.dart';
 import '../../../../core/logging/talker.dart';
 import '../../../../shared/models/verification_status.dart';
 
@@ -52,6 +56,8 @@ class ProfileState extends Equatable {
 
   bool get isSellerRejected => sellerVerificationStatus.isRejected;
 
+  bool get isSellerApproved => sellerVerificationStatus.isApproved;
+
   @override
   List<Object?> get props => [
     email,
@@ -97,7 +103,7 @@ class ProfileCubit extends Cubit<ProfileState> {
       final data = results[0] as Map<String, dynamic>;
       final seller = results[1] as Map<String, dynamic>?;
 
-      emit(ProfileState(
+      final next = ProfileState(
         email: user.email ?? '',
         name: data['full_name'] as String?,
         phone: data['phone'] as String?,
@@ -107,7 +113,15 @@ class ProfileCubit extends Cubit<ProfileState> {
           seller?['verification_status'] as String?,
         ),
         sellerRejectionReason: seller?['rejection_reason'] as String?,
-      ));
+      );
+      emit(next);
+      // Inform the global mode cubit so it can (a) refresh the cached
+      // approval flag used by the boot-time guard and (b) demote the user
+      // out of seller mode immediately if approval has been revoked
+      // between launches.
+      if (sl.isRegistered<AppModeCubit>()) {
+        unawaited(sl<AppModeCubit>().recordSellerApproval(next.isSellerApproved));
+      }
     } on PostgrestException catch (e) {
       if (e.code == 'PGRST116') {
         talker.warning(

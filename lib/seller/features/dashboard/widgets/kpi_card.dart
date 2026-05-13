@@ -5,9 +5,13 @@ import '../../../../core/theme/app_colors.dart';
 /// Premium KPI tile used on the seller dashboard 2×2 grid.
 ///
 /// Visual contract: pure white surface, 16px radius, a clean drop shadow,
-/// and an optional terracotta border on the headline metric so the eye
-/// lands there first. The card is intentionally never dimmed — pre-approval
-/// state is communicated by the amber banner, not by lowering data contrast.
+/// and an optional Indigo border on the headline metric so the eye lands
+/// there first. The card is intentionally never dimmed — pre-approval state
+/// is communicated by the amber banner, not by lowering data contrast.
+///
+/// Accent color is `AppColors.sellerPrimary` (Deep Indigo) — distinct from
+/// the customer surface's terracotta so the seller dashboard reads as
+/// "Backoffice" on first glance.
 ///
 /// Long values (e.g. "151 850 000 UZS") are wrapped in a `FittedBox` so they
 /// shrink to fit instead of getting truncated with an ellipsis.
@@ -60,7 +64,9 @@ class SellerKpiCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: important
-            ? Border.all(color: AppColors.terracotta.withValues(alpha: 0.35))
+            ? Border.all(
+                color: AppColors.sellerPrimary.withValues(alpha: 0.35),
+              )
             : null,
         boxShadow: [
           BoxShadow(
@@ -81,10 +87,10 @@ class SellerKpiCard extends StatelessWidget {
                 height: 34,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFBF1ED),
+                  color: AppColors.sellerPrimaryTint,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(icon, size: 18, color: AppColors.terracottaDeep),
+                child: Icon(icon, size: 18, color: AppColors.sellerPrimaryDeep),
               ),
               const Spacer(),
               if (indicator != null) _buildIndicator(indicator!),
@@ -124,7 +130,7 @@ class SellerKpiCard extends StatelessWidget {
                     letterSpacing: -0.4,
                     height: 1.1,
                     color: accentValue
-                        ? AppColors.terracotta
+                        ? AppColors.sellerPrimary
                         : const Color(0xFF1D1D1D),
                   ),
                 ),
@@ -215,14 +221,18 @@ class KpiIndicator {
         tint: const Color(0xFFFDECEA),
       );
 
-  /// On-brand variant: terracotta foreground over a soft terracotta tint.
+  /// On-brand variant: Deep Indigo foreground over a soft Indigo tint.
   /// Used on cards where a hard "danger" red would feel too alarming and
   /// clash with the seller mode's premium aesthetic (e.g. a polite
   /// "Limit oshdi" nudge on the products tile).
+  ///
+  /// Named `.terracotta` for backwards compatibility with the original
+  /// customer-brand palette — the seller surface now resolves the same
+  /// factory to its Indigo palette instead.
   factory KpiIndicator.terracotta(String label) => KpiIndicator._(
         label: label,
-        fg: AppColors.terracottaDeep,
-        tint: const Color(0xFFFBF1ED),
+        fg: AppColors.sellerPrimaryDeep,
+        tint: AppColors.sellerPrimaryTint,
       );
 
   factory KpiIndicator.warning(String label) => KpiIndicator._(

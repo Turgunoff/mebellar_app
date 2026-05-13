@@ -70,6 +70,7 @@ import '../../shared/repositories/seller_verification_repository.dart';
 import '../../shared/repositories/shop_repository.dart';
 import '../../shared/repositories/shop_settings_repository.dart';
 import '../../shared/repositories/tariff_repository.dart';
+import '../auth/app_mode_cubit.dart';
 import '../auth/auth_cubit.dart';
 import '../auth/auth_repository.dart';
 import '../auth/sign_out.dart';
@@ -123,6 +124,15 @@ Future<void> initRootScope() async {
     dispose: (c) => c.close(),
   );
 
+  // Reactive view over the persisted app mode. Survives mode switches because
+  // it lives on the root scope; the mode-switch flow below emits new state on
+  // it so widgets reading `BlocBuilder<AppModeCubit>` rebuild even when the
+  // caller goes through `switchAppMode(...)` rather than `cubit.switchMode`.
+  sl.registerSingleton<AppModeCubit>(
+    AppModeCubit(boxes.settings),
+    dispose: (c) => c.close(),
+  );
+
   sl.registerSingleton<SecureStorage>(SecureStorage());
 
   // Connectivity supervisor. Real implementation combines `connectivity_plus`
@@ -138,8 +148,17 @@ Future<void> initRootScope() async {
     NetworkCubit(sl<ConnectivityService>()),
     dispose: (c) => c.close(),
   );
-  sl.registerSingleton<DeepLinkService>(MockDeepLinkService(),
-      dispose: (s) => s.dispose());
+  // DeepLinkService doubles as the pending-route store used by the inbox
+  // routing interceptor: cross-mode taps stash a path here, the rebuilt app
+  // root consumes it on init. Backed by the shared `pending_route` Hive box
+  // so the route survives `Phoenix.rebirth` (and cold starts triggered by
+  // a tray push that flips `app_mode`).
+  sl.registerSingleton<DeepLinkService>(
+    MockDeepLinkService(
+      pendingRouteBox: sl<Box>(instanceName: HiveBoxes.pendingRoute),
+    ),
+    dispose: (s) => s.dispose(),
+  );
   sl.registerLazySingleton<CacheStore>(
     () => CacheStore(sl<Box>(instanceName: HiveBoxes.cache)),
   );
@@ -219,6 +238,25 @@ Future<void> initRootScope() async {
       ),
     );
   }
+
+  // NotificationsCubit lives in the ROOT scope (not mode-scoped) so a single
+  // instance feeds both the customer inbox + bell badge AND the seller inbox
+  // + bell badge. Each screen filters by `kind.targetMode` locally — the
+  // cubit always holds the union. Side benefits of root-scoping:
+  //   * Realtime subscription survives customer↔seller mode switches, so an
+  //     INSERT while the user is mid-rebirth isn't dropped.
+  //   * The cross-mode routing interceptor can `markRead(...)` from one mode
+  //     and the OTHER mode's badge reflects it on the next frame.
+  sl.registerLazySingleton<NotificationsCubit>(
+    () => NotificationsCubit(
+      sl<NotificationDataSource>(),
+      supabase:
+          sl.isRegistered<SupabaseClient>() ? sl<SupabaseClient>() : null,
+      newsRepo:
+          sl.isRegistered<NewsDataSource>() ? sl<NewsDataSource>() : null,
+    )..load(),
+    dispose: (c) => c.close(),
+  );
 
   // Shared repositories — when AppConfig.useMocks is true, register the
   // canned in-memory implementations so the catalog UI works without a live
@@ -441,21 +479,9 @@ void _registerCustomerDependencies() {
     () => ProfileCubit(sl<SupabaseClient>()),
     dispose: (c) => c.close(),
   );
-  // NotificationsCubit lives in the customer scope as a singleton so the
-  // bell-icon badge in the home shell, the inbox screen, and any future
-  // surface (e.g. settings counter) all read the same in-memory state.
-  // The cubit owns its own Realtime channel — when an INSERT lands on
-  // public.notifications for the current user, the unread count updates
-  // everywhere without a manual refresh.
-  sl.registerLazySingleton<NotificationsCubit>(
-    () => NotificationsCubit(
-      sl<NotificationDataSource>(),
-      supabase:
-          sl.isRegistered<SupabaseClient>() ? sl<SupabaseClient>() : null,
-      newsRepo: sl.isRegistered<NewsDataSource>() ? sl<NewsDataSource>() : null,
-    )..load(),
-    dispose: (c) => c.close(),
-  );
+  // NotificationsCubit moved to root scope (see initRootScope) so seller
+  // mode can subscribe to the same instance — keep this customer init
+  // free of notification wiring.
 }
 
 void _registerSellerDependencies() {
@@ -469,26 +495,24 @@ void _registerSellerDependencies() {
   // land here.
 }
 
-AppMode getInitialMode() {
-  final settings = sl<Box>(instanceName: HiveBoxes.settings);
-  return AppMode.fromName(settings.get('app_mode') as String?);
-}
+/// Returns the mode the app should boot into. Delegates to [AppModeCubit] so
+/// the same security guard (downgrade to customer if Hive says `seller` but
+/// cached approval is false) runs both at cold start and after a Phoenix
+/// rebirth — `_ModeRouter` re-reads this and re-creates the AppModeCubit
+/// after rebirth, so the resolution stays consistent.
+AppMode getInitialMode() => sl<AppModeCubit>().state;
 
-/// Pop the active mode scope (disposing every singleton registered in it),
-/// install the new mode, and Phoenix-rebirth so the widget tree is rebuilt
-/// against the new dependencies.
+/// Compatibility wrapper around [AppModeCubit.switchMode]. The actual scope
+/// swap + Phoenix.rebirth happens in the root-level `BlocListener<AppModeCubit>`
+/// installed in `main.dart`, which is now the single owner of that flow —
+/// having two paths racing on `popScope()` produced intermittent disposal
+/// failures, so all callers funnel through the cubit.
 ///
-/// Splash masking was tried earlier but caused `Navigator.of` failures when
-/// the caller's context lived under `MaterialApp.router` (go_router) and
-/// didn't expose a root Navigator that `showGeneralDialog` could resolve.
-/// Phoenix's swap is fast enough that the splash didn't earn its keep.
+/// The [context] argument is retained for source compatibility with existing
+/// callsites (e.g. seller profile "Xaridor rejimi" item) and is currently
+/// unused; the listener uses its own Phoenix context.
 Future<void> switchAppMode(BuildContext context, AppMode newMode) async {
-  await sl<Box>(instanceName: HiveBoxes.settings).put('app_mode', newMode.name);
-  await sl.popScope();
-  await initModeScope(newMode);
-  if (context.mounted) {
-    Phoenix.rebirth(context);
-  }
+  await sl<AppModeCubit>().switchMode(newMode);
 }
 
 /// Sign-out flow: clear cache, drop the saved mode (so next login defaults to
@@ -500,9 +524,23 @@ Future<void> performLogout(BuildContext context) async {
     await signOutWithPushCleanup(sl<SupabaseClient>());
   }
   await sl<Box>(instanceName: HiveBoxes.cache).clear();
-  await sl<Box>(instanceName: HiveBoxes.settings).delete('app_mode');
+  await sl<Box>(instanceName: HiveBoxes.settings).delete(AppModeCubit.modeKey);
+  // Clear the cached approval flag too — the next user signing in on this
+  // device must not inherit the previous user's seller authorization.
+  await sl<Box>(instanceName: HiveBoxes.settings)
+      .delete(AppModeCubit.sellerApprovedCacheKey);
+  // Tear down the active scope ourselves rather than going through
+  // `cubit.switchMode(...)`. Two reasons: (1) logout must clear scope
+  // singletons even when the user is already in customer mode (so cubits
+  // holding stale auth-derived state are disposed); cubit's no-op-on-same
+  // state would skip that. (2) Bypassing the cubit means the root-level
+  // mode-swap listener doesn't fire here and race with our pop/push pair.
   await sl.popScope();
   await initModeScope(AppMode.customer);
+  // Sync the cubit so widgets observing it see `customer` post-logout, but
+  // do it via the protected emit equivalent — we already swapped the scope
+  // above, so a redundant emit→listener round-trip would double-pop.
+  sl<AppModeCubit>().syncFromHive();
   if (context.mounted) {
     Phoenix.rebirth(context);
   }

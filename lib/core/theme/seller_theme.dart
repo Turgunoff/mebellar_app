@@ -27,16 +27,56 @@ import 'app_typography.dart';
 ///     the call below and the four `TextStyle(fontFamily: AppFonts.seller, ...)` lines
 ///     — the screens don't need to change.
 ThemeData _build(Brightness brightness) {
-  final scheme = ColorScheme.fromSeed(
-    seedColor: AppColors.sellerSeed,
+  final isDark = brightness == Brightness.dark;
+  // Explicit ColorScheme construction (not `fromSeed`) so the seller brand
+  // stays exactly on-spec — `fromSeed` would interpolate the Deep Indigo
+  // through Material's tonal palette and we'd lose the saturated business
+  // accent the dashboard relies on.
+  final scheme = ColorScheme(
     brightness: brightness,
+    primary: AppColors.sellerPrimary,
+    onPrimary: Colors.white,
+    primaryContainer: AppColors.sellerPrimaryDeep,
+    onPrimaryContainer: Colors.white,
+    secondary: AppColors.sellerPrimaryDeep,
+    onSecondary: Colors.white,
+    secondaryContainer: AppColors.sellerPrimaryTint,
+    onSecondaryContainer: AppColors.sellerPrimaryDeep,
+    tertiary: AppColors.sellerPrimaryDeep,
+    onTertiary: Colors.white,
+    error: AppColors.danger,
+    onError: Colors.white,
+    surface: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+    onSurface:
+        isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+    surfaceContainerLowest:
+        isDark ? AppColors.darkBackground : AppColors.lightBackground,
+    surfaceContainerLow:
+        isDark ? AppColors.darkSurface : AppColors.lightSurface,
+    surfaceContainer:
+        isDark ? AppColors.darkSurface : AppColors.lightSurface,
+    surfaceContainerHigh:
+        isDark ? AppColors.darkImageBg : AppColors.lightImageBg,
+    surfaceContainerHighest:
+        isDark ? AppColors.darkImageBg : AppColors.lightImageBg,
+    onSurfaceVariant:
+        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+    outline: isDark ? AppColors.darkDivider : AppColors.lightDivider,
+    outlineVariant:
+        isDark ? AppColors.darkDivider : AppColors.lightDivider,
+    surfaceTint: Colors.transparent,
   );
 
   final textTheme = AppTypography.plusJakartaSansTextTheme(brightness);
 
   return ThemeData(
     useMaterial3: true,
+    brightness: brightness,
     colorScheme: scheme,
+    scaffoldBackgroundColor:
+        isDark ? AppColors.darkBackground : AppColors.lightBackground,
+    canvasColor:
+        isDark ? AppColors.darkBackground : AppColors.lightBackground,
     textTheme: textTheme,
     primaryTextTheme: textTheme,
     appBarTheme: AppBarTheme(
@@ -44,12 +84,12 @@ ThemeData _build(Brightness brightness) {
       elevation: 0,
       backgroundColor: scheme.surface,
       foregroundColor: scheme.onSurface,
-      titleTextStyle: TextStyle(fontFamily: AppFonts.seller, 
+      titleTextStyle: TextStyle(fontFamily: AppFonts.seller,
         fontSize: 18,
         fontWeight: FontWeight.w700,
         color: scheme.onSurface,
       ),
-      toolbarTextStyle: TextStyle(fontFamily: AppFonts.seller, 
+      toolbarTextStyle: TextStyle(fontFamily: AppFonts.seller,
         fontSize: 14,
         fontWeight: FontWeight.w500,
         color: scheme.onSurface,
@@ -58,8 +98,10 @@ ThemeData _build(Brightness brightness) {
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
+        backgroundColor: scheme.primary,
+        foregroundColor: scheme.onPrimary,
         minimumSize: const Size.fromHeight(52),
-        textStyle: TextStyle(fontFamily: AppFonts.seller, 
+        textStyle: TextStyle(fontFamily: AppFonts.seller,
           fontSize: 15,
           fontWeight: FontWeight.w600,
         ),
@@ -70,7 +112,9 @@ ThemeData _build(Brightness brightness) {
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
-        textStyle: TextStyle(fontFamily: AppFonts.seller, 
+        foregroundColor: scheme.primary,
+        side: BorderSide(color: scheme.primary, width: 1),
+        textStyle: TextStyle(fontFamily: AppFonts.seller,
           fontSize: 15,
           fontWeight: FontWeight.w600,
         ),
@@ -78,7 +122,8 @@ ThemeData _build(Brightness brightness) {
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
-        textStyle: TextStyle(fontFamily: AppFonts.seller, 
+        foregroundColor: scheme.primary,
+        textStyle: TextStyle(fontFamily: AppFonts.seller,
           fontSize: 14,
           fontWeight: FontWeight.w600,
         ),
@@ -86,10 +131,17 @@ ThemeData _build(Brightness brightness) {
     ),
     inputDecorationTheme: InputDecorationTheme(
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: scheme.primary, width: 1.5),
+      ),
       filled: true,
       labelStyle: TextStyle(fontFamily: AppFonts.seller, fontWeight: FontWeight.w500),
       hintStyle: TextStyle(fontFamily: AppFonts.seller, fontWeight: FontWeight.w400),
     ),
+    progressIndicatorTheme:
+        ProgressIndicatorThemeData(color: scheme.primary),
+    iconTheme: IconThemeData(color: scheme.onSurface, size: 22),
   );
 }
 

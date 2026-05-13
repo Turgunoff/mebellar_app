@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -9,20 +8,34 @@ import '../../../../core/auth/app_mode_cubit.dart';
 import '../../../../core/deep_links/deep_link_service.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../customer/features/notifications/cubit/notifications_cubit.dart';
 import '../../../../shared/models/notification_model.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/error_state.dart';
-import '../../home/widgets/premium/premium_tokens.dart';
-import '../cubit/notifications_cubit.dart';
 
+// Tones picked to match the seller dashboard surface — same `_ink` / `_grey`
+// the dashboard uses, so the inbox feels like an extension of "Backoffice"
+// rather than a separate screen. Indigo accents come from `AppColors`.
+const _ink = Color(0xFF1D1D1D);
+const _grey = Color(0xFF757575);
+const _greyLight = Color(0xFFBDBDBD);
+const _surfaceWhite = Colors.white;
+
+/// Seller-mode inbox. Mirrors the customer screen's layout but renders with
+/// the seller theme (Indigo accents, Plus Jakarta Sans inherited from the
+/// theme, opaque white tiles like the dashboard cards).
+///
+/// Data source: the root-scoped [NotificationsCubit] (same instance the
+/// customer screen consumes). Filtering by `kind.targetMode == seller`
+/// hides customer-only kinds (news, promo, price drops, order status, ...)
+/// from the seller view while keeping the unread badge math consistent
+/// across both shells.
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Reuse the customer-scoped singleton so this screen and the home-shell
-    // bell badge share state — marking a notification read here flips the
-    // badge in the same frame (no second fetch).
     return BlocProvider<NotificationsCubit>.value(
       value: sl<NotificationsCubit>(),
       child: const _NotificationsView(),
@@ -38,17 +51,12 @@ class _NotificationsView extends StatefulWidget {
 }
 
 class _NotificationsViewState extends State<_NotificationsView> {
-  /// Tap behaviour — single routing interceptor that all kinds flow through:
-  ///   1. Optimistically flip `is_read` so the badge clears immediately.
-  ///   2. Resolve the destination route from the notification's kind and
-  ///      payload (see [determineRouteFor]).
-  ///   3. Compare `notification.kind.targetMode` to the active [AppMode]:
-  ///        * Match → `context.push(route)` and we stay in this shell.
-  ///        * Mismatch → stash the route in [DeepLinkService] and switch
-  ///          modes via [AppModeCubit.switchMode]. The mode-swap listener
-  ///          in `main.dart` will trigger `Phoenix.rebirth`; the target
-  ///          shell's `initState` consumes the pending route and navigates.
-  ///   4. `null` route → only the read-flag flip runs (informational kind).
+  /// Same routing interceptor as the customer screen — see
+  /// `customer/features/notifications/screens/notifications_screen.dart` for
+  /// the full doc. The difference here is the cross-mode direction: a
+  /// `promo` or `news` tap from seller mode stashes the route then flips
+  /// `AppModeCubit` to customer; Phoenix.rebirth lands the user on the
+  /// customer router which consumes the pending route.
   void _handleTap(BuildContext context, NotificationModel notification) {
     context.read<NotificationsCubit>().markRead(notification.id);
     final route = determineRouteFor(notification);
@@ -58,28 +66,22 @@ class _NotificationsViewState extends State<_NotificationsView> {
     final currentMode = context.read<AppModeCubit>().state;
 
     if (currentMode != targetMode) {
-      // Cross-mode: persist the destination *before* requesting the mode
-      // swap. Phoenix.rebirth will replace this widget tree, so any state
-      // we hold on the way out is lost — only the Hive-backed pending
-      // route survives the rebirth and is consumed by the new shell's
-      // `_consumePendingRoute` on the next frame.
       sl<DeepLinkService>().setPendingRoute(route);
       context.read<AppModeCubit>().switchMode(targetMode);
       return;
     }
 
-    context.push(route);
+    // Same-mode push for seller routes (e.g. seller_new_order →
+    // /seller/orders/:id). The seller MaterialApp doesn't ship a
+    // GoRouter yet — `pushNamed` is a no-op when the route isn't mapped
+    // in `onGenerateRoute`. The cubit's `markRead` still fires, so the
+    // badge stays correct even if navigation can't complete.
+    Navigator.of(context).pushNamed(route);
   }
 
-  /// Resolves the deep-link destination for [n]. Returns `null` for purely
-  /// informational kinds (news / promo / review / general) so the caller
-  /// stops at the read-flag flip.
-  ///
-  /// Routes are deliberately literal here — once the seller GoRouter lands
-  /// in a follow-up Sprint, the `/seller/...` paths will resolve directly
-  /// against it; until then they're picked up by `Navigator.pushNamed` in
-  /// the seller shell (currently a no-op for unmapped names, which is OK
-  /// — the mode swap alone delivers the user to the right surface).
+  /// Mirrors the customer-side `determineRouteFor` (kept in sync by hand —
+  /// when adding a kind, update both). Returns `null` for purely
+  /// informational kinds so the caller only flips the read flag.
   static String? determineRouteFor(NotificationModel n) {
     final ref = n.referenceId;
     final orderId = ref ?? (n.payload?['order_id'] as String?);
@@ -87,7 +89,7 @@ class _NotificationsViewState extends State<_NotificationsView> {
     final productSlug = n.payload?['product_slug'] as String?;
 
     return switch (n.kind) {
-      // ---- Customer ------------------------------------------------------
+      // ---- Customer (cross-mode taps from seller) ------------------------
       NotificationKind.order ||
       NotificationKind.orderCreated ||
       NotificationKind.orderShipped ||
@@ -117,46 +119,21 @@ class _NotificationsViewState extends State<_NotificationsView> {
             : '/seller/products',
       NotificationKind.sellerLowStock => '/seller/products',
 
-      // ---- Global broadcasts ---------------------------------------------
-      // Marketing/system kinds always target customer mode (see
-      // `NotificationKindRouting.targetMode`). When a seller taps one, the
-      // interceptor stashes the route here, flips mode, and the rebirthed
-      // customer shell consumes it on first frame.
-      //
-      // The routes are deliberately literal placeholders for now — the
-      // dedicated `/promo` and `/news` screens land in a follow-up. Until
-      // then a missing route in GoRouter falls back to its error page;
-      // wire those routes (or remap to `/` as a safe fallback) before
-      // shipping these notification types to production users.
-      NotificationKind.promo => _firstPayloadString(
-            n,
-            const ['promo_id', 'campaign_id'],
-            prefix: '/promo/',
-          ) ??
-          '/promo',
-      NotificationKind.news => _firstPayloadString(
-            n,
-            const ['news_id', 'article_id'],
-            prefix: '/news/',
-          ) ??
-          '/news',
+      // ---- Broadcasts (also cross-mode from seller) ----------------------
+      NotificationKind.promo => _payloadDeepLink(n, const ['promo_id', 'campaign_id'], '/promo/') ?? '/promo',
+      NotificationKind.news => _payloadDeepLink(n, const ['news_id', 'article_id'], '/news/') ?? '/news',
       NotificationKind.systemAlert => '/system-alert',
 
-      // ---- Informational — read-only, no destination ---------------------
       NotificationKind.review ||
       NotificationKind.general => null,
     };
   }
 
-  /// Returns the first non-empty payload value at any of [keys], wrapped in
-  /// [prefix]. Lets a single promo notification land on `/promo/sale-2026`
-  /// when the backend includes a `promo_id` and gracefully degrade to the
-  /// generic `/promo` listing otherwise.
-  static String? _firstPayloadString(
+  static String? _payloadDeepLink(
     NotificationModel n,
-    List<String> keys, {
-    required String prefix,
-  }) {
+    List<String> keys,
+    String prefix,
+  ) {
     final payload = n.payload;
     if (payload == null) return null;
     for (final key in keys) {
@@ -168,36 +145,46 @@ class _NotificationsViewState extends State<_NotificationsView> {
 
   @override
   Widget build(BuildContext context) {
-    final pt = PremiumTokens.of(context);
     return Scaffold(
-      backgroundColor: pt.background,
+      backgroundColor: AppColors.lightBackground,
       appBar: AppBar(
-        backgroundColor: pt.background,
-        foregroundColor: pt.dark,
+        backgroundColor: AppColors.lightBackground,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: pt.dark),
-          onPressed: () => context.pop(),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            size: 20,
+            color: _ink,
+          ),
+          onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
           tr('notifications.title'),
-          style: PremiumTokens.display(size: 22, letterSpacing: -0.4),
+          // fontFamily intentionally omitted — seller theme pins Plus
+          // Jakarta Sans on every TextStyle, see seller_theme.dart.
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: _ink,
+            letterSpacing: -0.3,
+          ),
         ),
         actions: [
           BlocBuilder<NotificationsCubit, NotificationsState>(
-            buildWhen: (a, b) => a.unreadCount != b.unreadCount,
+            buildWhen: (a, b) =>
+                _unreadFor(a) != _unreadFor(b),
             builder: (context, state) {
-              if (state.unreadCount == 0) return const SizedBox.shrink();
+              if (_unreadFor(state) == 0) return const SizedBox.shrink();
               return TextButton(
                 onPressed: () =>
                     context.read<NotificationsCubit>().markAllRead(),
                 child: Text(
                   tr('notifications.mark_all_read'),
-                  style: PremiumTokens.body(
-                    size: 13,
-                    weight: FontWeight.w600,
-                    color: PremiumTokens.accent,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.sellerPrimary,
                   ),
                 ),
               );
@@ -207,21 +194,22 @@ class _NotificationsViewState extends State<_NotificationsView> {
       ),
       body: BlocBuilder<NotificationsCubit, NotificationsState>(
         builder: (context, state) {
+          final items = _sellerItems(state.items);
           return switch (state.status) {
             NotificationsStatus.initial ||
-            NotificationsStatus.loading => const _NotificationsSkeleton(),
-            NotificationsStatus.failure when state.items.isEmpty => ErrorState(
+            NotificationsStatus.loading => const _SellerNotificationsSkeleton(),
+            NotificationsStatus.failure when items.isEmpty => ErrorState(
               message: state.error,
               onRetry: () => context.read<NotificationsCubit>().load(),
             ),
-            _ => state.items.isEmpty
+            _ => items.isEmpty
                 ? EmptyState(
                     icon: Iconsax.notification,
                     title: tr('notifications.empty'),
                     message: tr('notifications.empty_hint'),
                   )
                 : RefreshIndicator(
-                    color: PremiumTokens.accent,
+                    color: AppColors.sellerPrimary,
                     onRefresh: () =>
                         context.read<NotificationsCubit>().load(),
                     child: ListView.separated(
@@ -229,11 +217,11 @@ class _NotificationsViewState extends State<_NotificationsView> {
                         parent: BouncingScrollPhysics(),
                       ),
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                      itemCount: state.items.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 12),
+                      itemCount: items.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 10),
                       itemBuilder: (_, i) => _NotificationTile(
-                        notification: state.items[i],
-                        onTap: () => _handleTap(context, state.items[i]),
+                        notification: items[i],
+                        onTap: () => _handleTap(context, items[i]),
                       ),
                     ),
                   ),
@@ -241,6 +229,19 @@ class _NotificationsViewState extends State<_NotificationsView> {
         },
       ),
     );
+  }
+
+  /// Filters the cubit's unified inbox down to rows whose `targetMode` is
+  /// seller. The customer screen does the symmetric filter — both screens
+  /// share the same in-memory list and pick what to render locally.
+  static List<NotificationModel> _sellerItems(List<NotificationModel> all) {
+    return all
+        .where((n) => n.kind.targetMode == AppMode.seller)
+        .toList(growable: false);
+  }
+
+  static int _unreadFor(NotificationsState state) {
+    return _sellerItems(state.items).where((n) => !n.isRead).length;
   }
 }
 
@@ -250,56 +251,58 @@ class _NotificationTile extends StatelessWidget {
   final NotificationModel notification;
   final VoidCallback onTap;
 
-  bool _hasViewCta(NotificationKind kind) {
-    return kind == NotificationKind.sellerApproved ||
-        kind == NotificationKind.sellerRejected;
-  }
-
   @override
   Widget build(BuildContext context) {
-    final pt = PremiumTokens.of(context);
     final lang = context.locale.languageCode;
     final formatted = DateFormat('dd MMM, HH:mm', lang)
         .format(notification.createdAt.toLocal());
     final isRead = notification.isRead;
     final kindAccent = notification.kind.accent;
-    // Unread rows get a faint tinted background + bolder title, so the
-    // inbox immediately surfaces what the user hasn't seen yet. The tint
-    // is the kind's accent at very low alpha so order/promo/news are also
-    // visually distinguishable at a glance.
-    final unreadTint = kindAccent.withValues(alpha: 0.05);
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: isRead ? pt.surface : unreadTint,
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: PremiumTokens.softShadow,
+          // Seller surface aesthetic: pure white tiles with a soft drop
+          // shadow, matching the dashboard's KPI cards and order rows.
+          // Unread state is signalled by the indigo dot + left-edge stripe
+          // rather than a tinted background — keeps the inbox calm.
+          color: _surfaceWhite,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
           border: isRead
               ? null
-              : Border.all(
-                  color: kindAccent.withValues(alpha: 0.22),
-                  width: 1,
+              : Border(
+                  left: BorderSide(
+                    color: AppColors.sellerPrimary,
+                    width: 3,
+                  ),
                 ),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              width: 44,
-              height: 44,
+              width: 40,
+              height: 40,
+              alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: isRead
-                    ? pt.imageBg
+                    ? const Color(0xFFF2F2F2)
                     : kindAccent.withValues(alpha: 0.14),
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 notification.kind.icon,
-                size: 20,
-                color: isRead ? pt.grey : kindAccent,
+                size: 18,
+                color: isRead ? _grey : kindAccent,
               ),
             ),
             const SizedBox(width: 12),
@@ -314,10 +317,11 @@ class _NotificationTile extends StatelessWidget {
                           notification.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: PremiumTokens.body(
-                            size: 14,
-                            weight: isRead ? FontWeight.w600 : FontWeight.w700,
-                            color: pt.dark,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight:
+                                isRead ? FontWeight.w600 : FontWeight.w700,
+                            color: _ink,
                             letterSpacing: -0.1,
                           ),
                         ),
@@ -327,7 +331,7 @@ class _NotificationTile extends StatelessWidget {
                           width: 8,
                           height: 8,
                           decoration: const BoxDecoration(
-                            color: PremiumTokens.accent,
+                            color: AppColors.sellerPrimary,
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -339,42 +343,20 @@ class _NotificationTile extends StatelessWidget {
                       notification.body,
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
-                      style: PremiumTokens.body(
-                        size: 13,
-                        color: pt.grey,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: _grey,
                         height: 1.35,
                       ),
-                    ),
-                  ],
-                  if (_hasViewCta(notification.kind)) ...[
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Text(
-                          "Ko'rish",
-                          style: PremiumTokens.body(
-                            size: 12,
-                            weight: FontWeight.w700,
-                            color: kindAccent,
-                            letterSpacing: 0.2,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Icon(
-                          Iconsax.arrow_right_3,
-                          size: 14,
-                          color: kindAccent,
-                        ),
-                      ],
                     ),
                   ],
                   const SizedBox(height: 8),
                   Text(
                     formatted,
-                    style: PremiumTokens.body(
-                      size: 11,
-                      weight: FontWeight.w500,
-                      color: pt.greyLight,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: _greyLight,
                     ),
                   ),
                 ],
@@ -387,25 +369,24 @@ class _NotificationTile extends StatelessWidget {
   }
 }
 
-class _NotificationsSkeleton extends StatelessWidget {
-  const _NotificationsSkeleton();
+class _SellerNotificationsSkeleton extends StatelessWidget {
+  const _SellerNotificationsSkeleton();
 
   @override
   Widget build(BuildContext context) {
-    final pt = PremiumTokens.of(context);
     return ListView.separated(
       physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       itemCount: 6,
-      separatorBuilder: (_, _) => const SizedBox(height: 12),
+      separatorBuilder: (_, _) => const SizedBox(height: 10),
       itemBuilder: (_, _) => Shimmer.fromColors(
-        baseColor: pt.imageBg,
-        highlightColor: pt.surface,
+        baseColor: const Color(0xFFF2F2F2),
+        highlightColor: _surfaceWhite,
         child: Container(
-          height: 92,
+          height: 88,
           decoration: BoxDecoration(
-            color: pt.imageBg,
-            borderRadius: BorderRadius.circular(18),
+            color: const Color(0xFFF2F2F2),
+            borderRadius: BorderRadius.circular(14),
           ),
         ),
       ),

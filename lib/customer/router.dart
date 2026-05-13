@@ -13,6 +13,7 @@ import '../shared/models/cart_item_model.dart';
 import '../shared/widgets/notification_simulator_screen.dart';
 import '../shared/widgets/notifications_screen.dart';
 import 'customer_app.dart';
+import 'features/broadcasts/screens/broadcast_placeholder_screen.dart';
 import 'features/cart/screens/cart_screen.dart';
 import 'features/catalog/screens/catalog_screen.dart';
 import 'features/categories/screens/categories_screen.dart';
@@ -151,6 +152,43 @@ GoRouter buildCustomerRouter() {
         path: '/notifications',
         builder: (context, state) =>
             const NotificationsScreen(mode: AppMode.customer),
+      ),
+      // ---- Broadcast deep-link placeholders -------------------------------
+      // Promo / news / system-alert notifications resolve to these routes
+      // via `determineRouteFor` in notifications_screen.dart. Until the
+      // dedicated screens land, all three share `BroadcastPlaceholderScreen`
+      // — see its dartdoc for the rationale. Two GoRoutes per kind (with
+      // and without id) so the routing helper's payload-id fallback still
+      // resolves cleanly.
+      GoRoute(
+        path: '/promo',
+        builder: (context, state) =>
+            const BroadcastPlaceholderScreen(kind: BroadcastKind.promo),
+      ),
+      GoRoute(
+        path: '/promo/:id',
+        builder: (context, state) => BroadcastPlaceholderScreen(
+          kind: BroadcastKind.promo,
+          referenceId: state.pathParameters['id'],
+        ),
+      ),
+      GoRoute(
+        path: '/news',
+        builder: (context, state) =>
+            const BroadcastPlaceholderScreen(kind: BroadcastKind.news),
+      ),
+      GoRoute(
+        path: '/news/:id',
+        builder: (context, state) => BroadcastPlaceholderScreen(
+          kind: BroadcastKind.news,
+          referenceId: state.pathParameters['id'],
+        ),
+      ),
+      GoRoute(
+        path: '/system-alert',
+        builder: (context, state) => const BroadcastPlaceholderScreen(
+          kind: BroadcastKind.systemAlert,
+        ),
       ),
       GoRoute(
         path: '/customer/notifications',

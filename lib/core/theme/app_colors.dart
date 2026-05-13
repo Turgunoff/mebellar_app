@@ -48,5 +48,18 @@ class AppColors {
   // Retained so the existing seller_theme.dart and customer_theme.dart
   // continue to compile while the codebase migrates to AppTheme.
   static const Color customerSeed = Color(0xFF8B5E3C);
-  static const Color sellerSeed = Color(0xFF0F766E);
+  static const Color sellerSeed = Color(0xFF3949AB);
+
+  // ---- Seller business palette --------------------------------------------
+  // Deep Indigo, intentionally far from the customer Terracotta so the user
+  // instantly registers the mode switch as "Backoffice". Used by
+  // [seller_theme.dart] and by every seller-side surface that previously
+  // hardcoded [terracotta] (bottom nav, KPI accents, CTA buttons).
+  //
+  // Why Indigo over teal: teal reads as a consumer/wellness accent; indigo
+  // reads as enterprise/fintech — the right register for an inventory and
+  // analytics surface.
+  static const Color sellerPrimary = Color(0xFF3949AB);
+  static const Color sellerPrimaryDeep = Color(0xFF283593);
+  static const Color sellerPrimaryTint = Color(0xFFE8EAF6);
 }

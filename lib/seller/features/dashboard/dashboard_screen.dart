@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/theme/app_fonts.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../config/app_mode.dart';
+import '../../../core/di/service_locator.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../customer/features/notifications/cubit/notifications_cubit.dart';
+import '../../../shared/models/notification_model.dart';
+import '../notifications/screens/notifications_screen.dart';
 import 'widgets/kpi_card.dart';
 
 // Typography note for this screen:
@@ -38,7 +44,7 @@ class SellerDashboardScreen extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            const _DashboardHeader(unreadCount: 4),
+            const _DashboardHeader(),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
@@ -67,12 +73,14 @@ class SellerDashboardScreen extends StatelessWidget {
 }
 
 // =============================================================================
-// 1. Header — "Boshqaruv" title + borderless Iconsax bell with terracotta badge
+// 1. Header — "Boshqaruv" title + borderless Iconsax bell with Indigo badge
+//
+// Badge count and bell tap are wired to the root-scoped NotificationsCubit
+// (registered in initRootScope). Filters to seller-target kinds locally so
+// the customer side's broadcasts and order updates don't inflate the count.
 // =============================================================================
 class _DashboardHeader extends StatelessWidget {
-  const _DashboardHeader({required this.unreadCount});
-
-  final int unreadCount;
+  const _DashboardHeader();
 
   @override
   Widget build(BuildContext context) {
@@ -80,8 +88,8 @@ class _DashboardHeader extends StatelessWidget {
       color: AppColors.lightBackground,
       padding: const EdgeInsets.fromLTRB(20, 12, 12, 12),
       child: Row(
-        children: [
-          const Expanded(
+        children: const [
+          Expanded(
             child: Text(
               'Boshqaruv',
               style: TextStyle(
@@ -93,7 +101,7 @@ class _DashboardHeader extends StatelessWidget {
               ),
             ),
           ),
-          _NotificationBell(unreadCount: unreadCount),
+          _NotificationBell(),
         ],
       ),
     );
@@ -101,8 +109,50 @@ class _DashboardHeader extends StatelessWidget {
 }
 
 class _NotificationBell extends StatelessWidget {
-  const _NotificationBell({required this.unreadCount});
+  const _NotificationBell();
 
+  void _open(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => const NotificationsScreen(),
+      ),
+    );
+  }
+
+  /// Counts unread rows whose `targetMode` is seller. Matches the filter the
+  /// seller inbox screen applies, so the badge and the list agree.
+  static int _sellerUnread(NotificationsState state) {
+    return state.items
+        .where((n) => !n.isRead && n.kind.targetMode == AppMode.seller)
+        .length;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // The cubit lives in root scope but isn't provided in seller's widget
+    // tree (no MultiBlocProvider on SellerApp). Use the GetIt instance
+    // directly via BlocProvider.value — BlocBuilder then subscribes to its
+    // stream and rebuilds when the unread count changes.
+    if (!sl.isRegistered<NotificationsCubit>()) {
+      return _BellShell(onTap: () => _open(context), unreadCount: 0);
+    }
+    return BlocProvider<NotificationsCubit>.value(
+      value: sl<NotificationsCubit>(),
+      child: BlocBuilder<NotificationsCubit, NotificationsState>(
+        buildWhen: (a, b) => _sellerUnread(a) != _sellerUnread(b),
+        builder: (context, state) => _BellShell(
+          onTap: () => _open(context),
+          unreadCount: _sellerUnread(state),
+        ),
+      ),
+    );
+  }
+}
+
+class _BellShell extends StatelessWidget {
+  const _BellShell({required this.onTap, required this.unreadCount});
+
+  final VoidCallback onTap;
   final int unreadCount;
 
   @override
@@ -111,7 +161,7 @@ class _NotificationBell extends StatelessWidget {
       color: Colors.transparent,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
-        onTap: () {},
+        onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: SizedBox(
           width: 44,
@@ -135,7 +185,7 @@ class _NotificationBell extends StatelessWidget {
                       minHeight: 18,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.terracotta,
+                      color: AppColors.sellerPrimary,
                       borderRadius: BorderRadius.circular(9),
                       border: Border.all(
                         color: AppColors.lightBackground,
@@ -216,7 +266,12 @@ class _KpiGrid extends StatelessWidget {
       mainAxisSpacing: 12,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 1.15,
+      // 1.15 was tight enough that the "Mahsulotlar" card — the only one
+      // with a subtitle (tariff plan) under the value — overflowed by ~3px
+      // on standard-width phones. Dropping to 1.05 buys roughly 7px of
+      // vertical headroom, which fits the subtitle without making the
+      // subtitle-less cards look obviously empty.
+      childAspectRatio: 1.05,
       children: [
         const SellerKpiCard(
           icon: Iconsax.wallet_2,
@@ -275,7 +330,7 @@ class _RecentOrdersHeader extends StatelessWidget {
         TextButton(
           onPressed: onSeeAll ?? () {},
           style: TextButton.styleFrom(
-            foregroundColor: AppColors.terracotta,
+            foregroundColor: AppColors.sellerPrimary,
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             minimumSize: Size.zero,
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -285,10 +340,10 @@ class _RecentOrdersHeader extends StatelessWidget {
             children: [
               Text(
                 'Barchasi',
-                style: TextStyle(fontFamily: AppFonts.accent, 
+                style: TextStyle(fontFamily: AppFonts.accent,
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.terracotta,
+                  color: AppColors.sellerPrimary,
                   height: 1.2,
                 ),
               ),
@@ -296,7 +351,7 @@ class _RecentOrdersHeader extends StatelessWidget {
               const Icon(
                 Iconsax.arrow_right_3,
                 size: 16,
-                color: AppColors.terracotta,
+                color: AppColors.sellerPrimary,
               ),
             ],
           ),

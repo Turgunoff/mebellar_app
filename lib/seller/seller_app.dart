@@ -7,6 +7,7 @@ import 'package:talker_flutter/talker_flutter.dart';
 
 import '../config/app_mode.dart';
 import '../core/connectivity/network_cubit.dart';
+import '../core/deep_links/deep_link_service.dart';
 import '../core/di/service_locator.dart';
 import '../core/i18n/i18n.dart';
 import '../core/logging/console_nav_observer.dart';
@@ -40,8 +41,25 @@ class _SellerAppState extends State<SellerApp> {
   }
 
   void _consumePendingRoute() {
-    if (!sl.isRegistered<NotificationHandler>()) return;
-    sl<NotificationHandler>().consumeFor(AppMode.seller.name);
+    // Same two-channel resolution as the customer shell:
+    //   1. [DeepLinkService] — in-app inbox routing interceptor wrote here
+    //      before triggering the Phoenix.rebirth that landed us in seller.
+    //   2. [NotificationHandler] — system-tray push tap stashed a seller
+    //      route while the user was in customer mode.
+    // The DeepLinkService route wins when both are present.
+    String? route;
+    if (sl.isRegistered<DeepLinkService>()) {
+      route = sl<DeepLinkService>().consumePendingRoute();
+    }
+    if (route == null && sl.isRegistered<NotificationHandler>()) {
+      route = sl<NotificationHandler>().consumeFor(AppMode.seller.name);
+    }
+    if (route == null) return;
+    // SellerApp is a plain `MaterialApp` (no GoRouter), so we push via the
+    // global navigator key wired into `MaterialApp.navigatorKey`. Routes
+    // that aren't mapped in `onGenerateRoute` will no-op silently — fine
+    // for the dummy-route phase of the Sprint.
+    sellerNavigatorKey.currentState?.pushNamed(route);
   }
 
   // No silent redirect-on-missing-auth here: the saved `app_mode` is the

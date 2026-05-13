@@ -7,6 +7,8 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../config/app_mode.dart';
+import '../../../../core/auth/app_mode_cubit.dart';
 import '../../../../core/auth/sign_out.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/logging/talker.dart';
@@ -542,7 +544,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 24),
           const _OrdersBlock(),
           const SizedBox(height: 20),
-          if (profileState.isSellerRejected)
+          if (profileState.isSellerApproved)
+            _SellerApprovedBanner(
+              onOpenDashboard: () {
+                // Defence-in-depth: refresh the cached approval flag before
+                // flipping. The banner only renders when approved, but the
+                // boot-time guard depends on this cache being true to honor
+                // a persisted `seller` mode on the next cold start.
+                sl<AppModeCubit>().recordSellerApproval(true);
+                context.read<AppModeCubit>().switchMode(AppMode.seller);
+                // Phoenix.rebirth (triggered by the root-level mode-swap
+                // listener in main.dart) tears this widget tree down and
+                // mounts SellerApp — no further navigation needed here.
+              },
+            )
+          else if (profileState.isSellerRejected)
             _SellerRejectedBanner(
               reason: profileState.sellerRejectionReason,
               onEdit: _openSellerOnboarding,
@@ -1219,6 +1235,128 @@ class _SellerPendingBanner extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Seller approved banner
+// ---------------------------------------------------------------------------
+
+class _SellerApprovedBanner extends StatelessWidget {
+  const _SellerApprovedBanner({required this.onOpenDashboard});
+
+  final VoidCallback onOpenDashboard;
+
+  static const Color _accent = Color(0xFF2F9E6E); // emerald
+  static const Color _accentDeep = Color(0xFF237955);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 22, 20, 22),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [_accent, _accentDeep],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: _accentDeep.withValues(alpha: 0.25),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
+            spreadRadius: -6,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18),
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.storefront,
+                  size: 18,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'TASDIQLANDI',
+                style: PremiumTokens.body(
+                  size: 12,
+                  weight: FontWeight.w600,
+                  color: Colors.white.withValues(alpha: 0.85),
+                  letterSpacing: 1.4,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            "Do'koningiz tasdiqlandi!",
+            style: PremiumTokens.display(
+              size: 22,
+              color: Colors.white,
+              letterSpacing: -0.3,
+              height: 1.25,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "Siz endi Woody platformasida rasmiy sotuvchisiz.",
+            style: PremiumTokens.body(
+              size: 13,
+              color: Colors.white.withValues(alpha: 0.9),
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 18),
+          SizedBox(
+            height: 44,
+            child: Material(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              child: InkWell(
+                onTap: onOpenDashboard,
+                borderRadius: BorderRadius.circular(14),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 18),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        "Sotuvchi paneliga o'tish",
+                        style: PremiumTokens.body(
+                          size: 14,
+                          weight: FontWeight.w600,
+                          color: _accentDeep,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(
+                        Iconsax.arrow_right_1,
+                        size: 16,
+                        color: _accentDeep,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
         ],

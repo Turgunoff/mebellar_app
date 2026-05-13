@@ -11,8 +11,9 @@ import '../../core/theme/app_colors.dart';
 /// - Material 3's `NavigationBar` ships with a pill indicator behind the
 ///   active icon. We want the active state to be communicated by color +
 ///   weight only, matching the rest of the seller premium aesthetic.
-/// - We hardcode [AppColors.terracotta] for the active color so the nav
-///   stays on-brand even if the seller theme seed is changed independently.
+/// - The active color reads from `Theme.of(context).colorScheme.primary`,
+///   so the nav automatically follows the seller theme's Deep Indigo and
+///   stays visually distinct from the customer's Terracotta nav.
 ///
 /// Typography note: the label `TextStyle` deliberately omits `fontFamily`
 /// — the seller theme pins everything to Plus Jakarta Sans, and we want the
@@ -95,8 +96,9 @@ class _NavTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color =
-        selected ? AppColors.terracotta : AppColors.lightTextSecondary;
+    final color = selected
+        ? Theme.of(context).colorScheme.primary
+        : AppColors.lightTextSecondary;
     return Material(
       color: Colors.transparent,
       child: InkWell(

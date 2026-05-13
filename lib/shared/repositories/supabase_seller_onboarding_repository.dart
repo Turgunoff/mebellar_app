@@ -181,25 +181,43 @@ class SupabaseSellerOnboardingRepository implements SellerOnboardingRepository {
     );
   }
 
-  /// Uploads to `{userId}/{objectName}.{ext}` with `upsert=true` so retries
-  /// overwrite rather than accumulating orphan files. Bucket is private; the
-  /// returned value is the storage path — clients fetch via signed URLs.
+  /// Compresses the picked image to WebP and uploads it to
+  /// `{userId}/{objectName}.webp` with `upsert=true` so retries overwrite
+  /// rather than accumulating orphan files. Bucket is private; the returned
+  /// value is the storage path — clients fetch via signed URLs.
+  ///
+  /// Quality 78 is the sweet spot for KYC: small enough to shave ~70-80%
+  /// off a 3-4 MB camera shot, high enough to keep passport text readable.
+  /// Compression runs on a native platform channel (`flutter_image_compress`
+  /// → libwebp), not the UI thread, so the wizard stays responsive while a
+  /// multi-MB original is being re-encoded.
   Future<String> _uploadDocument({
     required String userId,
     required String objectName,
     required String localPath,
   }) async {
-    final extension = _extensionOf(localPath);
-    final objectPath = '$userId/$objectName.$extension';
+    final Uint8List? compressed = await FlutterImageCompress.compressWithFile(
+      localPath,
+      format: CompressFormat.webp,
+      quality: 78,
+      keepExif: false,
+    );
+    if (compressed == null) {
+      throw StateError(
+        'WebP compression returned no bytes for $objectName ($localPath)',
+      );
+    }
+
+    final objectPath = '$userId/$objectName.webp';
 
     await _supabase.storage
         .from(_documentsBucket)
-        .upload(
+        .uploadBinary(
           objectPath,
-          File(localPath),
-          fileOptions: FileOptions(
+          compressed,
+          fileOptions: const FileOptions(
             upsert: true,
-            contentType: _contentTypeFor(extension),
+            contentType: 'image/webp',
             cacheControl: '3600',
           ),
         );
@@ -228,16 +246,4 @@ class SupabaseSellerOnboardingRepository implements SellerOnboardingRepository {
     return null;
   }
 
-  String _extensionOf(String path) {
-    final dot = path.lastIndexOf('.');
-    if (dot == -1 || dot == path.length - 1) return 'jpg';
-    return path.substring(dot + 1).toLowerCase();
-  }
-
-  String _contentTypeFor(String extension) => switch (extension) {
-    'png' => 'image/png',
-    'webp' => 'image/webp',
-    'heic' => 'image/heic',
-    _ => 'image/jpeg',
-  };
 }

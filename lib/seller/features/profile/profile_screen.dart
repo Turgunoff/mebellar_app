@@ -6,8 +6,7 @@ import 'package:woody_app/core/i18n/i18n.dart';
 import '../../../config/app_mode.dart';
 import '../../../core/di/service_locator.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../shared/repositories/notifications_repository.dart';
-import '../../../shared/widgets/notifications_screen.dart';
+import '../notifications/screens/notifications_screen.dart';
 import '../reviews/screens/reviews_screen.dart';
 import '../settings/screens/services_screen.dart';
 import '../settings/screens/settings_screen.dart';
@@ -89,10 +88,8 @@ class SellerProfileScreen extends StatelessWidget {
                       _SettingsItem(
                         icon: Iconsax.notification,
                         title: 'Bildirishnomalar',
-                        onTap: () => _push(
-                          context,
-                          const NotificationsScreen(mode: AppMode.seller),
-                        ),
+                        onTap: () =>
+                            _push(context, const NotificationsScreen()),
                       ),
                       _SettingsItem(
                         icon: Iconsax.setting_2,
@@ -171,86 +168,12 @@ class _ProfileHeaderBar extends StatelessWidget {
   }
 }
 
-class _NotificationBell extends StatelessWidget {
-  const _NotificationBell();
-
-  void _open(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const NotificationsScreen(mode: AppMode.seller),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final stream = sl.isRegistered<NotificationsRepository>()
-        ? sl<NotificationsRepository>().watchUnread(mode: AppMode.seller.name)
-        : const Stream<int>.empty();
-
-    return StreamBuilder<int>(
-      stream: stream,
-      initialData: sl.isRegistered<NotificationsRepository>()
-          ? sl<NotificationsRepository>().unreadCount(mode: AppMode.seller.name)
-          : 0,
-      builder: (context, snap) {
-        final count = snap.data ?? 0;
-        return Material(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          child: InkWell(
-            onTap: () => _open(context),
-            borderRadius: BorderRadius.circular(12),
-            child: SizedBox(
-              width: 44,
-              height: 44,
-              child: Stack(
-                clipBehavior: Clip.none,
-                alignment: Alignment.center,
-                children: [
-                  const Icon(Iconsax.notification, size: 24, color: _ink),
-                  if (count > 0)
-                    Positioned(
-                      top: 6,
-                      right: 6,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 5,
-                          vertical: 2,
-                        ),
-                        constraints: const BoxConstraints(
-                          minWidth: 18,
-                          minHeight: 18,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.terracotta,
-                          borderRadius: BorderRadius.circular(9),
-                          border: Border.all(
-                            color: AppColors.lightBackground,
-                            width: 1.5,
-                          ),
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          count > 9 ? '9+' : '$count',
-                          style: TextStyle(fontFamily: AppFonts.seller, 
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                            height: 1.0,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
+// Note: the seller profile header doesn't render a bell — notifications
+// are reached through the "Bildirishnomalar" settings item above, and the
+// dashboard tab has its own bell with badge wired to NotificationsCubit.
+// An older `_NotificationBell` class lived here; it was never instantiated
+// and used the legacy NotificationsRepository — removed when the inbox
+// moved to the root-scoped NotificationsCubit.
 
 // =============================================================================
 // 2. Identity card — large avatar, shop name, "Verified seller" pill

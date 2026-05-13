@@ -8,6 +8,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'config/app_mode.dart';
+import 'core/auth/app_mode_cubit.dart';
 import 'core/auth/auth_cubit.dart';
 import 'core/di/service_locator.dart';
 import 'core/i18n/i18n.dart';
@@ -79,6 +80,11 @@ Future<void> main() async {
       providers: [
         BlocProvider<ThemeCubit>.value(value: sl<ThemeCubit>()),
         BlocProvider<AuthCubit>.value(value: sl<AuthCubit>()),
+        // AppModeCubit sits above Phoenix so customer↔seller surfaces can read
+        // the active mode without going through `getInitialMode()` and so a
+        // `switchMode(...)` from anywhere triggers the listener that owns the
+        // scope swap + Phoenix.rebirth (wired inside `_AppRoot`).
+        BlocProvider<AppModeCubit>.value(value: sl<AppModeCubit>()),
       ],
       child: _AppRoot(localeController: localeController),
     ),
@@ -131,15 +137,36 @@ class _AppRoot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Phoenix(
-      child: _LocaleScope(
-        controller: localeController,
-        // _ModeRouter sits *ins55ide* Phoenix on purpose. Phoenix.rebirth
-        // changes the subtree key, which forces _ModeRouter to be built
-        // afresh — its build() re-reads `getInitialMode()` from Hive so
-        // the post-rebirth tree picks up the new app_mode written by
-        // `switchAppMode`. Capturing the mode in `_App1Root` (above Phoenix)
-        // would freeze it at startup and ignore mode flips.
-        child: const _ModeRouter(),
+      // The mode-swap listener sits *inside* Phoenix so it has a context that
+      // Phoenix can rebirth. When AppModeCubit emits a new mode (e.g. from a
+      // button calling `cubit.switchMode(...)` or from the security guard
+      // demoting an unapproved seller), this listener invokes the same
+      // scope-swap + Phoenix.rebirth flow `switchAppMode(...)` already runs.
+      //
+      // It skips when `getInitialMode()` already matches the new mode —
+      // that's the case where `switchAppMode(...)` was the caller and the
+      // scope swap has already happened by the time the cubit's emit landed.
+      child: BlocListener<AppModeCubit, AppMode>(
+        listenWhen: (prev, next) => prev != next,
+        listener: (context, mode) async {
+          // The boot scope already matches the boot-resolved mode; skip if
+          // the active GetIt scope is already what the cubit just emitted.
+          // This handles redundant emits without double-disposing services.
+          if (sl.currentScopeName == mode.name) return;
+          await sl.popScope();
+          await initModeScope(mode);
+          if (context.mounted) Phoenix.rebirth(context);
+        },
+        child: _LocaleScope(
+          controller: localeController,
+          // _ModeRouter sits inside Phoenix on purpose. Phoenix.rebirth
+          // changes the subtree key, which forces _ModeRouter to be built
+          // afresh — its build() re-reads `getInitialMode()` so the
+          // post-rebirth tree picks up the new app_mode written by the
+          // cubit. Capturing the mode in `_AppRoot` (above Phoenix) would
+          // freeze it at startup and ignore mode flips.
+          child: const _ModeRouter(),
+        ),
       ),
     );
   }
