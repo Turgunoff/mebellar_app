@@ -14,6 +14,10 @@ import '../../../../shared/repositories/seller_onboarding_repository.dart';
 /// shopInfo and shopAddress are split intentionally — keeping them together
 /// turns the screen into a long scrollable form and forced multilingual tabs
 /// for the brand name. One concern per step is friendlier to fill out.
+///
+/// documentUpload sits between review and done so KYC document selection is
+/// part of the wizard's state machine rather than an external route. The
+/// backend submission fires when leaving documentUpload, not review.
 enum OnboardingStep {
   welcome,
   businessType,
@@ -21,9 +25,31 @@ enum OnboardingStep {
   shopInfo,
   shopAddress,
   review,
+  documentUpload,
   done;
 
-  static const total = 7;
+  static const total = 8;
+}
+
+/// Document ids required to complete onboarding, derived from business type.
+/// Mirrors the seller-side KYC checklist surfaced in the documentUpload step.
+/// Passport is collected as two separate sides — front + back — so the
+/// reviewer can read both the photo page and the address page.
+List<String> requiredDocumentIdsFor(BusinessType type) {
+  return switch (type) {
+    BusinessType.individual => const ['passport_front', 'passport_back'],
+    BusinessType.selfEmployed => const [
+      'passport_front',
+      'passport_back',
+      'certificate',
+    ],
+    BusinessType.llc || BusinessType.corporation => const [
+      'passport_front',
+      'passport_back',
+      'guvohnoma',
+      'inn',
+    ],
+  };
 }
 
 sealed class OnboardingEvent extends Equatable {
@@ -135,6 +161,17 @@ class OnboardingVerifyChoiceChanged extends OnboardingEvent {
   List<Object?> get props => [verifyNow];
 }
 
+class OnboardingDocumentPicked extends OnboardingEvent {
+  const OnboardingDocumentPicked({required this.documentId, this.filePath});
+  final String documentId;
+
+  /// `null` clears the picked file for this document id.
+  final String? filePath;
+
+  @override
+  List<Object?> get props => [documentId, filePath];
+}
+
 class OnboardingSubmitted extends OnboardingEvent {
   const OnboardingSubmitted();
 }
@@ -143,19 +180,14 @@ class OnboardingReset extends OnboardingEvent {
   const OnboardingReset();
 }
 
-enum OnboardingStatus {
-  editing,
-  submitting,
-  submitted,
-  navigateDocuments,
-  failure,
-}
+enum OnboardingStatus { editing, submitting, submitted, failure }
 
 class OnboardingState extends Equatable {
   const OnboardingState({
     this.status = OnboardingStatus.editing,
     this.step = OnboardingStep.welcome,
     this.draft = const OnboardingDraft(),
+    this.documentFiles = const {},
     this.resultStatus,
     this.error,
     this.shopId,
@@ -164,6 +196,10 @@ class OnboardingState extends Equatable {
   final OnboardingStatus status;
   final OnboardingStep step;
   final OnboardingDraft draft;
+
+  /// Picked KYC file paths keyed by document id (see [requiredDocumentIdsFor]).
+  /// Held in state so canAdvance for documentUpload can gate the submit button.
+  final Map<String, String> documentFiles;
   final VerificationStatus? resultStatus;
   final String? error;
   final String? shopId; // Populated after successful submission
@@ -181,14 +217,22 @@ class OnboardingState extends Equatable {
             draft.shopLng != null &&
             (draft.shopStreetLine?.trim().isNotEmpty ?? false),
       OnboardingStep.review => true,
+      OnboardingStep.documentUpload => _allRequiredDocumentsPicked,
       OnboardingStep.done => false,
     };
+  }
+
+  bool get _allRequiredDocumentsPicked {
+    final type = draft.businessType;
+    if (type == null) return false;
+    return requiredDocumentIdsFor(type).every(documentFiles.containsKey);
   }
 
   OnboardingState copyWith({
     OnboardingStatus? status,
     OnboardingStep? step,
     OnboardingDraft? draft,
+    Map<String, String>? documentFiles,
     VerificationStatus? resultStatus,
     String? error,
     bool clearError = false,
@@ -198,6 +242,7 @@ class OnboardingState extends Equatable {
       status: status ?? this.status,
       step: step ?? this.step,
       draft: draft ?? this.draft,
+      documentFiles: documentFiles ?? this.documentFiles,
       resultStatus: resultStatus ?? this.resultStatus,
       error: clearError ? null : (error ?? this.error),
       shopId: shopId ?? this.shopId,
@@ -205,7 +250,15 @@ class OnboardingState extends Equatable {
   }
 
   @override
-  List<Object?> get props => [status, step, draft, resultStatus, error, shopId];
+  List<Object?> get props => [
+    status,
+    step,
+    draft,
+    documentFiles,
+    resultStatus,
+    error,
+    shopId,
+  ];
 }
 
 class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
@@ -218,6 +271,7 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
     on<OnboardingPersonalInfoChanged>(_onPersonal);
     on<OnboardingShopInfoChanged>(_onShop);
     on<OnboardingVerifyChoiceChanged>(_onVerify);
+    on<OnboardingDocumentPicked>(_onDocumentPicked);
     on<OnboardingSubmitted>(_onSubmitted);
     on<OnboardingReset>(_onReset);
   }
@@ -229,7 +283,21 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
     OnboardingStarted event,
     Emitter<OnboardingState> emit,
   ) async {
-    final draft = _repo.loadDraft();
+    var draft = _repo.loadDraft();
+
+    // Local Hive draft is wiped at successful submit time, so for a
+    // resubmit-after-rejection flow the wizard would otherwise open blank.
+    // Fall through to the server's last-known answers when local is empty.
+    if (draft.isEmpty) {
+      final remote = await _repo.loadRemoteDraft();
+      if (remote != null) {
+        draft = remote;
+        // Pre-fill arrives only via the rejected path. Start the user at the
+        // review step so they can scan + edit instead of re-walking welcome.
+        draft = draft.copyWith(lastStep: OnboardingStep.review.index);
+      }
+    }
+
     final resumeStep = OnboardingStep
         .values[draft.lastStep.clamp(0, OnboardingStep.values.length - 1)];
     emit(state.copyWith(draft: draft, step: resumeStep));
@@ -326,17 +394,37 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
     _scheduleSave();
   }
 
+  void _onDocumentPicked(
+    OnboardingDocumentPicked event,
+    Emitter<OnboardingState> emit,
+  ) {
+    final next = Map<String, String>.from(state.documentFiles);
+    if (event.filePath == null) {
+      next.remove(event.documentId);
+    } else {
+      next[event.documentId] = event.filePath!;
+    }
+    emit(state.copyWith(documentFiles: next));
+  }
+
   Future<void> _onSubmitted(
     OnboardingSubmitted event,
     Emitter<OnboardingState> emit,
   ) async {
     emit(state.copyWith(status: OnboardingStatus.submitting, clearError: true));
     try {
-      final result = await _repo.submit(state.draft);
+      // Forward the picked passport image paths so the repository can upload
+      // them to storage and persist their paths on the sellers row. Keys
+      // match the document ids emitted by the documentUpload step.
+      final result = await _repo.submit(
+        state.draft,
+        passportFrontPath: state.documentFiles['passport_front'],
+        passportBackPath: state.documentFiles['passport_back'],
+      );
       await _repo.clearDraft();
       emit(
         state.copyWith(
-          status: OnboardingStatus.navigateDocuments,
+          status: OnboardingStatus.submitted,
           resultStatus: result.verificationStatus,
           shopId: result.shopId,
           step: OnboardingStep.done,

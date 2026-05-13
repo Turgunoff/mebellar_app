@@ -59,6 +59,20 @@ class OnboardingDraft extends Equatable {
       (shopNameRu?.isNotEmpty ?? false) ||
       (shopNameEn?.isNotEmpty ?? false);
 
+  /// True when none of the wizard-collected fields carry user input. Used by
+  /// the bloc to decide whether to fall through to a remote hydrate (e.g.
+  /// after rejection, where the local Hive draft was cleared at submit time
+  /// but the server still has the previous answers).
+  bool get isEmpty =>
+      businessType == null &&
+      (legalName?.isEmpty ?? true) &&
+      (contactPhone?.isEmpty ?? true) &&
+      (contactEmail?.isEmpty ?? true) &&
+      !hasShopName &&
+      (shopStreetLine?.isEmpty ?? true) &&
+      shopLat == null &&
+      shopLng == null;
+
   MultilingualText get shopNameMl =>
       MultilingualText(uz: shopNameUz, ru: shopNameRu, en: shopNameEn);
 

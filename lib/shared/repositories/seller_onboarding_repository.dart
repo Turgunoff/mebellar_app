@@ -25,6 +25,14 @@ abstract class SellerOnboardingRepository {
   /// when the user has never started the wizard.
   OnboardingDraft loadDraft();
 
+  /// Hydrate an [OnboardingDraft] from the user's existing sellers + shops
+  /// rows. Used for the resubmit-after-rejection flow so the wizard isn't
+  /// blank when the user taps "Edit application". Returns `null` when no
+  /// remote record exists (first-time onboarding) or when the user isn't
+  /// authenticated, in which case the caller should fall back to
+  /// [loadDraft].
+  Future<OnboardingDraft?> loadRemoteDraft();
+
   /// Persist the draft after every meaningful change so the user can resume
   /// after closing the app mid-flow.
   Future<void> saveDraft(OnboardingDraft draft);
@@ -32,7 +40,15 @@ abstract class SellerOnboardingRepository {
   /// Wipe the draft once the form has been submitted successfully.
   Future<void> clearDraft();
 
-  Future<OnboardingSubmissionResult> submit(OnboardingDraft draft);
+  /// Submit the completed onboarding form. When [passportFrontPath] and/or
+  /// [passportBackPath] are provided, the implementation is expected to upload
+  /// those files to storage and persist their paths alongside the rest of the
+  /// onboarding data. Paths are local filesystem paths from the image picker.
+  Future<OnboardingSubmissionResult> submit(
+    OnboardingDraft draft, {
+    String? passportFrontPath,
+    String? passportBackPath,
+  });
 }
 
 /// Real backend stub. Sprint 6 will wire it once the endpoints are live.
@@ -74,8 +90,18 @@ class RemoteSellerOnboardingRepository implements SellerOnboardingRepository {
     await _draftBox.delete(_draftKey);
   }
 
+  /// Stub class — Sprint 6 will replace it once the HTTP backend is live.
+  /// No remote draft hydration is possible without a finalised contract, so
+  /// callers should fall back to [loadDraft].
   @override
-  Future<OnboardingSubmissionResult> submit(OnboardingDraft draft) async {
+  Future<OnboardingDraft?> loadRemoteDraft() async => null;
+
+  @override
+  Future<OnboardingSubmissionResult> submit(
+    OnboardingDraft draft, {
+    String? passportFrontPath,
+    String? passportBackPath,
+  }) async {
     // If Supabase is available, use it. Otherwise fall back to HTTP.
     if (supabase != null && supabase!.auth.currentUser != null) {
       return _submitToSupabase(draft, supabase!);

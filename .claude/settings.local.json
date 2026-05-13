@@ -41,7 +41,9 @@
       "mcp__dart__analyze_files",
       "Bash(grep -E \"\\\\.\\(dart\\)$\")",
       "Bash(xargs cat)",
-      "mcp__supabase__list_projects"
+      "mcp__supabase__list_projects",
+      "Bash(git *)",
+      "mcp__dart__dart_format"
     ]
   },
   "enableAllProjectMcpServers": true,

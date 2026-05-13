@@ -478,8 +478,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
   }
 
-  void _openSellerOnboarding() {
-    context.push('/seller/onboarding');
+  Future<void> _openSellerOnboarding() async {
+    // Wait for the onboarding stack to pop so we can refresh the profile
+    // afterwards. Without this, `profiles.is_seller_pending` flips to true
+    // server-side but the banner here keeps showing "Become a seller" until
+    // the next app launch refetches the row.
+    await context.push('/seller/onboarding');
+    if (!mounted) return;
+    await context.read<ProfileCubit>().fetch();
   }
 
   List<_MenuEntry> _buildMenuItems(BuildContext context) => [
@@ -536,7 +542,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 24),
           const _OrdersBlock(),
           const SizedBox(height: 20),
-          if (profileState.isSellerPending)
+          if (profileState.isSellerRejected)
+            _SellerRejectedBanner(
+              reason: profileState.sellerRejectionReason,
+              onEdit: _openSellerOnboarding,
+            )
+          else if (profileState.isSellerPending)
             const _SellerPendingBanner()
           else
             _BecomeSellerBanner(onTap: _openSellerOnboarding),
@@ -1208,6 +1219,104 @@ class _SellerPendingBanner extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Seller rejected banner
+// ---------------------------------------------------------------------------
+
+class _SellerRejectedBanner extends StatelessWidget {
+  const _SellerRejectedBanner({required this.reason, required this.onEdit});
+
+  final String? reason;
+  final VoidCallback onEdit;
+
+  static const Color _errorColor = Color(0xFFE05A4A);
+
+  @override
+  Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
+    final hasReason = reason != null && reason!.trim().isNotEmpty;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+      decoration: BoxDecoration(
+        color: pt.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _errorColor.withValues(alpha: 0.4)),
+        boxShadow: PremiumTokens.softShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: _errorColor.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.error_outline_rounded,
+                  size: 24,
+                  color: _errorColor,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Rad etildi',
+                      style: PremiumTokens.body(
+                        size: 15,
+                        weight: FontWeight.w600,
+                        color: _errorColor,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      hasReason
+                          ? reason!.trim()
+                          : 'Arizangiz rad etildi. Iltimos, ma\'lumotlarni '
+                                'qayta tekshirib, qaytadan yuboring.',
+                      style: PremiumTokens.body(
+                        size: 13,
+                        color: pt.grey,
+                        height: 1.45,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            height: 44,
+            child: FilledButton.icon(
+              onPressed: onEdit,
+              icon: const Icon(Icons.edit_outlined, size: 18),
+              label: const Text('Arizani tahrirlash'),
+              style: FilledButton.styleFrom(
+                backgroundColor: _errorColor,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
             ),
           ),
         ],

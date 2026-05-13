@@ -3,7 +3,17 @@
 
 const Map<String, dynamic> onboardingUz = {
   'title': 'Sotuvchi onboarding',
-  'submit': 'Tasdiqlash va yuborish',
+  'submit': 'Yuborish',
+  'go_to_documents': 'Davom etish',
+  'step_documents_title': 'Hujjatlarni yuklang',
+  'step_documents_subtitle':
+      "KYC tekshiruvi uchun quyidagi hujjatlarni yuklang.",
+  'doc_passport_front_title': 'Pasportning old tomoni',
+  'doc_passport_back_title': 'Pasportning orqa tomoni',
+  'doc_passport_subtitle': "JSHSHIR ko'rinadigan tomon",
+  'doc_pick_gallery_cta': 'Galereyadan tanlash',
+  'doc_replace_cta': 'Almashtirish',
+  'doc_picked_label': 'Tanlandi',
   'welcome_title': 'Woody olamida sotuvchi bo\'ling',
   'welcome_subtitle': '5-7 daqiqa ichida do\'koningizni rasmiylashtiring',
   'welcome_bullet_1': '5 dan kam qadamda ro\'yxatdan o\'ting',
@@ -42,13 +52,21 @@ const Map<String, dynamic> onboardingUz = {
   'done_title': 'Tabriklaymiz!',
   'done_subtitle_pending':
       'Endi tasdiqlash bosqichi qoldi — hujjatlaringizni yuklang',
-  'done_subtitle_later':
-      'Sotuvchi rejimiga o\'ting va do\'koningizni sozlang',
+  'done_subtitle_later': 'Sotuvchi rejimiga o\'ting va do\'koningizni sozlang',
 };
 
 const Map<String, dynamic> onboardingRu = {
   'title': 'Онбординг продавца',
-  'submit': 'Подтвердить и отправить',
+  'submit': 'Отправить',
+  'go_to_documents': 'Продолжить',
+  'step_documents_title': 'Загрузите документы',
+  'step_documents_subtitle': 'Загрузите следующие документы для KYC-проверки.',
+  'doc_passport_front_title': 'Лицевая сторона паспорта',
+  'doc_passport_back_title': 'Обратная сторона паспорта',
+  'doc_passport_subtitle': 'Сторона с ПИНФЛ',
+  'doc_pick_gallery_cta': 'Выбрать из галереи',
+  'doc_replace_cta': 'Заменить',
+  'doc_picked_label': 'Выбрано',
   'welcome_title': 'Станьте продавцом в Woody',
   'welcome_subtitle': 'Оформите магазин за 5-7 минут',
   'welcome_bullet_1': 'Менее 5 шагов регистрации',
@@ -61,8 +79,7 @@ const Map<String, dynamic> onboardingRu = {
   'step_shop_title': 'Информация о магазине',
   'step_shop_subtitle': 'Эти данные увидят покупатели на странице магазина',
   'step_address_title': 'Адрес магазина',
-  'step_address_subtitle':
-      'Точный адрес используется для доставки покупателям',
+  'step_address_subtitle': 'Точный адрес используется для доставки покупателям',
   'step_verify_title': 'Начнём верификацию сейчас?',
   'step_verify_subtitle': 'Документы можно загрузить и позже',
   'legal_name': 'Полное имя (как в паспорте)',
@@ -87,7 +104,16 @@ const Map<String, dynamic> onboardingRu = {
 
 const Map<String, dynamic> onboardingEn = {
   'title': 'Seller onboarding',
-  'submit': 'Confirm and submit',
+  'submit': 'Submit',
+  'go_to_documents': 'Continue',
+  'step_documents_title': 'Upload documents',
+  'step_documents_subtitle': 'Upload the following documents for KYC review.',
+  'doc_passport_front_title': 'Passport — front side',
+  'doc_passport_back_title': 'Passport — back side',
+  'doc_passport_subtitle': 'Side with your personal ID number',
+  'doc_pick_gallery_cta': 'Choose from gallery',
+  'doc_replace_cta': 'Replace',
+  'doc_picked_label': 'Selected',
   'welcome_title': 'Become a Woody seller',
   'welcome_subtitle': 'Set up your store in 5-7 minutes',
   'welcome_bullet_1': 'Fewer than 5 steps to register',
@@ -100,8 +126,7 @@ const Map<String, dynamic> onboardingEn = {
   'step_shop_title': 'Shop info',
   'step_shop_subtitle': 'These details show up on your store page',
   'step_address_title': 'Shop address',
-  'step_address_subtitle':
-      'The exact address is used for delivering to buyers',
+  'step_address_subtitle': 'The exact address is used for delivering to buyers',
   'step_verify_title': 'Start verification now?',
   'step_verify_subtitle': 'You can also upload documents later',
   'legal_name': 'Full legal name',
@@ -174,8 +199,7 @@ const Map<String, dynamic> verificationUz = {
   'pick_gallery': 'Galereyadan tanlash',
   'banner': {
     'none_title': 'Tasdiqlash boshlanmagan',
-    'none_subtitle':
-        'Hujjatlaringizni yuklang va tasdiqlash uchun yuboring',
+    'none_subtitle': 'Hujjatlaringizni yuklang va tasdiqlash uchun yuboring',
     'pending_title': 'Tasdiqlash kutilmoqda',
     'pending_subtitle': 'Admin 24 soat ichida ko\'rib chiqadi',
     'in_review_title': 'Ko\'rib chiqilmoqda',

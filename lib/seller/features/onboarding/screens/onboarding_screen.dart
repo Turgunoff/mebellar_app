@@ -9,6 +9,7 @@ import '../../../../customer/features/home/widgets/premium/premium_tokens.dart';
 import '../../../../shared/repositories/seller_onboarding_repository.dart';
 import '../bloc/onboarding_bloc.dart';
 import '../widgets/business_type_step.dart';
+import '../widgets/document_upload_step.dart';
 import '../widgets/done_step.dart';
 import '../widgets/personal_info_step.dart';
 import '../widgets/review_step.dart';
@@ -16,7 +17,6 @@ import '../widgets/shop_address_step.dart';
 import '../widgets/shop_info_step.dart';
 import '../widgets/step_indicator.dart';
 import '../widgets/welcome_step.dart';
-import 'document_upload_screen.dart';
 
 class OnboardingScreen extends StatelessWidget {
   const OnboardingScreen({super.key});
@@ -74,6 +74,7 @@ class _OnboardingViewState extends State<_OnboardingView> {
       case OnboardingStep.shopInfo:
         return _shopFormKey.currentState?.validate() ?? false;
       case OnboardingStep.shopAddress:
+      case OnboardingStep.documentUpload:
         return state.canAdvance;
       case OnboardingStep.businessType:
       case OnboardingStep.welcome:
@@ -95,7 +96,9 @@ class _OnboardingViewState extends State<_OnboardingView> {
       if (!valid) return;
     }
 
-    if (state.step == OnboardingStep.review) {
+    // Backend submission now fires at the end of the documentUpload step,
+    // not at review. Review just transitions forward to documentUpload.
+    if (state.step == OnboardingStep.documentUpload) {
       bloc.add(const OnboardingSubmitted());
       return;
     }
@@ -135,29 +138,10 @@ class _OnboardingViewState extends State<_OnboardingView> {
     return BlocConsumer<OnboardingBloc, OnboardingState>(
       listenWhen: (a, b) => a.status != b.status,
       listener: (context, state) {
-        // Handle error
         if (state.error != null && state.status == OnboardingStatus.failure) {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text(state.error!)));
-        }
-
-        // Handle navigation to document upload screen
-        if (state.status == OnboardingStatus.navigateDocuments &&
-            state.shopId != null &&
-            state.draft.businessType != null) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (context) => DocumentUploadScreen(
-                shopId: state.shopId!,
-                businessType: state.draft.businessType!,
-                onSubmit: () {
-                  // After documents submitted, navigate to dashboard
-                  Navigator.of(context).popUntil((route) => route.isFirst);
-                },
-              ),
-            ),
-          );
         }
       },
       builder: (context, state) {
@@ -204,6 +188,7 @@ class _OnboardingViewState extends State<_OnboardingView> {
                         OnboardingGoToStep(step),
                       ),
                     ),
+                    const DocumentUploadStep(),
                     const DoneStep(),
                   ],
                 ),
@@ -234,10 +219,10 @@ class _BottomBarState extends State<_BottomBar> {
   Widget build(BuildContext context) {
     final state = widget.state;
     final isFirst = state.step == OnboardingStep.welcome;
-    final isLast = state.step == OnboardingStep.review;
     final canAdvance = switch (state.step) {
       OnboardingStep.businessType => state.canAdvance,
       OnboardingStep.shopAddress => state.canAdvance,
+      OnboardingStep.documentUpload => state.canAdvance,
       OnboardingStep.welcome => true,
       OnboardingStep.personalInfo => true,
       OnboardingStep.shopInfo => true,
@@ -246,6 +231,24 @@ class _BottomBarState extends State<_BottomBar> {
     };
     final isBusy = state.status == OnboardingStatus.submitting;
 
+    final (String label, IconData icon) = switch (state.step) {
+      OnboardingStep.review => (
+        tr('onboarding.go_to_documents'),
+        Icons.arrow_forward,
+      ),
+      OnboardingStep.documentUpload => (
+        tr('onboarding.submit'),
+        Icons.send_outlined,
+      ),
+      _ => (tr('common.next'), Icons.arrow_forward),
+    };
+
+    // Fixed height ensures the Back and Next buttons never disagree, even
+    // when localized labels are short on one side and long on the other.
+    // Labels are forced to one line; FittedBox scales the text down if the
+    // translation still doesn't fit at a glance.
+    const double buttonHeight = 52;
+
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
@@ -253,33 +256,54 @@ class _BottomBarState extends State<_BottomBar> {
           children: [
             if (!isFirst)
               Expanded(
-                child: OutlinedButton(
-                  onPressed: isBusy
-                      ? null
-                      : () => context.read<OnboardingBloc>().add(
-                          const OnboardingPreviousStep(),
-                        ),
-                  child: Text(tr('common.back')),
+                child: SizedBox(
+                  height: buttonHeight,
+                  child: OutlinedButton(
+                    onPressed: isBusy
+                        ? null
+                        : () => context.read<OnboardingBloc>().add(
+                            const OnboardingPreviousStep(),
+                          ),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                    ),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        tr('common.back'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             if (!isFirst) const SizedBox(width: 12),
             Expanded(
-              child: FilledButton.icon(
-                onPressed: isBusy || !canAdvance
-                    ? null
-                    : () => widget.onNextPressed(state),
-                icon: isBusy
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Icon(isLast ? Icons.send_outlined : Icons.arrow_forward),
-                label: Text(
-                  isLast ? tr('onboarding.submit') : tr('common.next'),
-                ),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+              child: SizedBox(
+                height: buttonHeight,
+                child: FilledButton.icon(
+                  onPressed: isBusy || !canAdvance
+                      ? null
+                      : () => widget.onNextPressed(state),
+                  icon: isBusy
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(icon),
+                  label: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                  ),
                 ),
               ),
             ),

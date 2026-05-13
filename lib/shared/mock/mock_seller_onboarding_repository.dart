@@ -40,11 +40,21 @@ class MockSellerOnboardingRepository implements SellerOnboardingRepository {
     await _draftBox.delete(_draftKey);
   }
 
+  /// Mock can't replay rejected submissions — [MockSellerState] only keeps
+  /// the most recent draft, which `loadDraft` already returns. Callers
+  /// should fall through to that path.
+  @override
+  Future<OnboardingDraft?> loadRemoteDraft() async => null;
+
   /// Mock submit: persists the form into [MockSellerState] so subsequent
   /// `fetchMe()` calls (and the seller dashboard) can see the new pending
   /// profile. Returns synthetic ids that look believable.
   @override
-  Future<OnboardingSubmissionResult> submit(OnboardingDraft draft) async {
+  Future<OnboardingSubmissionResult> submit(
+    OnboardingDraft draft, {
+    String? passportFrontPath,
+    String? passportBackPath,
+  }) async {
     await Future<void>.delayed(_delay);
     final initialStatus = draft.verifyNow
         ? VerificationStatus.pending
