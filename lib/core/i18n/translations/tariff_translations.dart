@@ -9,7 +9,7 @@ const Map<String, dynamic> tariffUz = {
   'limit_subtitle':
       'Joriy tarifda {} / {} ta mahsulot. Yangi mahsulot qo\'shish uchun yuqori tarifga o\'ting.',
   'upgrade_hint':
-      'Pro tarifi 500 ta mahsulot, kengaytirilgan analitika va prioritet support beradi.',
+      'Pro tarifi 200 ta mahsulot, har biriga 10 ta rasm + video va atigi 4% komissiya beradi.',
   'upgrade_cta': 'Pro tarifiga o\'tish',
   'current_chip': 'JORIY',
   'recommended_chip': 'TAVSIYA',
@@ -23,18 +23,11 @@ const Map<String, dynamic> tariffUz = {
   'cta_pending': 'Tasdiqlash kutilmoqda',
   'cta_upgrade': 'Tanlash',
   'cta_downgrade': 'Bepul tarifga o\'tish',
+  // Server-driven plans (Sprint 10): per-plan feature bullets live in
+  // `subscription_plans.features_uz` / `features_ru`. The product-cap row is
+  // computed client-side from `max_products` using the two keys below.
   'feature_unlimited_products': 'Cheksiz mahsulotlar',
   'feature_products': '{} tagacha aktiv mahsulot',
-  'feature_free_1': 'Asosiy katalog ko\'rinishi',
-  'feature_free_2': 'Standart support',
-  'feature_basic_1': 'Kengaytirilgan filtr va analitika',
-  'feature_basic_2': 'Email support',
-  'feature_pro_1': 'Detali analitika va eksport',
-  'feature_pro_2': 'Prioritet Telegram support',
-  'feature_pro_3': 'Brend ranglari va premium kartochkalar',
-  'feature_enterprise_1': 'Cheksiz mahsulot va xodimlar',
-  'feature_enterprise_2': 'API kirishi va integratsiyalar',
-  'feature_enterprise_3': 'Shaxsiy account manager',
   'payment_title': 'To\'lov yo\'riqnomasi',
   'payment_subtitle': '{} tarif ({}) — {} so\'m',
   'tap_to_copy': 'Karta raqamini ko\'chirish uchun bosing',
@@ -93,7 +86,7 @@ const Map<String, dynamic> tariffRu = {
   'limit_subtitle':
       'На текущем тарифе {} / {} товаров. Чтобы добавить ещё, перейдите на тариф выше.',
   'upgrade_hint':
-      'Pro тариф даёт 500 товаров, расширенную аналитику и приоритетную поддержку.',
+      'Pro тариф даёт 200 товаров, по 10 фото + видео и комиссию всего 4%.',
   'upgrade_cta': 'Перейти на Pro',
   'current_chip': 'ТЕКУЩИЙ',
   'recommended_chip': 'РЕКОМЕНДУЕМ',
@@ -107,18 +100,9 @@ const Map<String, dynamic> tariffRu = {
   'cta_pending': 'Ожидает подтверждения',
   'cta_upgrade': 'Выбрать',
   'cta_downgrade': 'Перейти на Free',
+  // See tariffUz — feature bullets are server-driven via subscription_plans.
   'feature_unlimited_products': 'Неограниченные товары',
   'feature_products': 'До {} активных товаров',
-  'feature_free_1': 'Базовый каталог',
-  'feature_free_2': 'Стандартная поддержка',
-  'feature_basic_1': 'Расширенные фильтры и аналитика',
-  'feature_basic_2': 'Поддержка по email',
-  'feature_pro_1': 'Подробная аналитика и экспорт',
-  'feature_pro_2': 'Приоритетная Telegram-поддержка',
-  'feature_pro_3': 'Брендовые цвета и премиум-карточки',
-  'feature_enterprise_1': 'Без лимитов: товары и сотрудники',
-  'feature_enterprise_2': 'Доступ к API и интеграциям',
-  'feature_enterprise_3': 'Персональный менеджер',
   'payment_title': 'Инструкция по оплате',
   'payment_subtitle': '{} тариф ({}) — {} сум',
   'tap_to_copy': 'Нажмите, чтобы скопировать номер карты',
@@ -176,7 +160,7 @@ const Map<String, dynamic> tariffEn = {
   'limit_subtitle':
       'Your plan allows {} / {} products. Upgrade to add more.',
   'upgrade_hint':
-      'Pro grants 500 products, advanced analytics and priority support.',
+      'Pro grants 200 products, 10 photos + video per item and just 4% commission.',
   'upgrade_cta': 'Upgrade to Pro',
   'current_chip': 'CURRENT',
   'recommended_chip': 'RECOMMENDED',
@@ -190,18 +174,9 @@ const Map<String, dynamic> tariffEn = {
   'cta_pending': 'Awaiting approval',
   'cta_upgrade': 'Choose',
   'cta_downgrade': 'Switch to Free',
+  // See tariffUz — feature bullets are server-driven via subscription_plans.
   'feature_unlimited_products': 'Unlimited products',
   'feature_products': 'Up to {} active products',
-  'feature_free_1': 'Standard catalog visibility',
-  'feature_free_2': 'Standard support',
-  'feature_basic_1': 'Advanced filters and analytics',
-  'feature_basic_2': 'Email support',
-  'feature_pro_1': 'Detailed analytics and exports',
-  'feature_pro_2': 'Priority Telegram support',
-  'feature_pro_3': 'Brand colors and premium cards',
-  'feature_enterprise_1': 'Unlimited products and staff',
-  'feature_enterprise_2': 'API access and integrations',
-  'feature_enterprise_3': 'Dedicated account manager',
   'payment_title': 'Payment instructions',
   'payment_subtitle': '{} plan ({}) — {} UZS',
   'tap_to_copy': 'Tap to copy card number',

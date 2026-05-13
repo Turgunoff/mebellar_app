@@ -45,6 +45,7 @@ class TariffState extends Equatable {
     this.snapshot,
     this.pending,
     this.history = const [],
+    this.plans = const [],
     this.period = BillingPeriod.monthly,
     this.error,
   });
@@ -53,6 +54,11 @@ class TariffState extends Equatable {
   final TariffSnapshot? snapshot;
   final TariffSubscription? pending;
   final List<TariffSubscription> history;
+
+  /// Server-driven plan catalog. Iterated by the tariff screen so prices,
+  /// limits, features and the recommended ribbon all come from Supabase.
+  final List<SubscriptionPlan> plans;
+
   final BillingPeriod period;
   final String? error;
 
@@ -65,6 +71,7 @@ class TariffState extends Equatable {
     TariffSubscription? pending,
     bool clearPending = false,
     List<TariffSubscription>? history,
+    List<SubscriptionPlan>? plans,
     BillingPeriod? period,
     String? error,
     bool clearError = false,
@@ -74,6 +81,7 @@ class TariffState extends Equatable {
       snapshot: snapshot ?? this.snapshot,
       pending: clearPending ? null : (pending ?? this.pending),
       history: history ?? this.history,
+      plans: plans ?? this.plans,
       period: period ?? this.period,
       error: clearError ? null : (error ?? this.error),
     );
@@ -85,6 +93,7 @@ class TariffState extends Equatable {
         snapshot,
         pending,
         history.length,
+        plans,
         period,
         error,
       ];
@@ -127,15 +136,27 @@ class TariffBloc extends Bloc<TariffEvent, TariffState> {
   ) async {
     emit(state.copyWith(status: TariffStatus.loading, clearError: true));
     try {
-      final snapshot = await _repo.currentSnapshot();
-      final pending = await _repo.currentPending();
-      final history = await _repo.history();
+      // Run the four reads in parallel — they're independent and we want a
+      // single emit when everything is in (avoids flicker between cached
+      // snapshot and freshly-fetched plans).
+      final results = await Future.wait<dynamic>([
+        _repo.currentSnapshot(),
+        _repo.currentPending(),
+        _repo.history(),
+        _repo.fetchPlans(),
+      ]);
+      final snapshot = results[0] as TariffSnapshot;
+      final pending = results[1] as TariffSubscription?;
+      final history = results[2] as List<TariffSubscription>;
+      final plans = results[3] as List<SubscriptionPlan>;
+
       emit(state.copyWith(
         status: TariffStatus.ready,
         snapshot: snapshot,
         pending: pending,
         clearPending: pending == null,
         history: history,
+        plans: plans,
       ));
     } catch (e) {
       emit(state.copyWith(status: TariffStatus.failure, error: e.toString()));

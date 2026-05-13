@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../models/tariff.dart';
 import '../repositories/tariff_repository.dart';
 import 'mock_seller_state.dart';
@@ -8,10 +10,17 @@ import 'mock_seller_state.dart';
 /// Stateful mock that drives the entire upgrade UX. Sprint 9 spec: after
 /// submission, an admin "approves" the request via Telegram bot — here we
 /// fake that with a 12-second timer so demos can see the status flip live.
+///
+/// The plan catalog ([fetchPlans]) is the exception: it hits Supabase
+/// directly when [_supabase] is provided so the UI is fully server-driven
+/// (prices, limits, feature bullets, "TAVSIYA" ribbon). Falls back to the
+/// enum-derived static list when Supabase isn't wired (offline tests).
 class MockTariffRepository implements TariffRepository {
-  MockTariffRepository() {
+  MockTariffRepository({SupabaseClient? supabase}) : _supabase = supabase {
     _seedHistory();
   }
+
+  final SupabaseClient? _supabase;
 
   static const _delay = Duration(milliseconds: 280);
   static const _uploadDelay = Duration(milliseconds: 700);
@@ -49,6 +58,98 @@ class MockTariffRepository implements TariffRepository {
   Future<List<TariffSubscription>> history() async {
     await Future<void>.delayed(_delay);
     return List<TariffSubscription>.unmodifiable(_history);
+  }
+
+  @override
+  Future<List<SubscriptionPlan>> fetchPlans() async {
+    final supabase = _supabase;
+    if (supabase != null) {
+      try {
+        final rows = await supabase
+            .from('subscription_plans')
+            .select(
+              'id, code, name, price_monthly, max_products, '
+              'max_images_per_product, commission_rate, is_recommended, '
+              'features_uz, features_ru',
+            )
+            .order('price_monthly', ascending: true);
+        return rows
+            .map<SubscriptionPlan>(SubscriptionPlan.fromJson)
+            .toList(growable: false);
+      } catch (_) {
+        // Network/auth blip — drop through to the static fallback so the
+        // tariff screen still renders something sensible.
+      }
+    }
+    return _enumFallbackPlans();
+  }
+
+  /// Mirrors the rows the migration seeded so offline / no-Supabase runs
+  /// still have a non-empty catalog. Keep in sync with the SQL migration
+  /// in `subscription_plans_add_features_recommended`.
+  List<SubscriptionPlan> _enumFallbackPlans() {
+    SubscriptionPlan from(
+      TariffPlan plan, {
+      required bool isRecommended,
+      required List<String> uz,
+      required List<String> ru,
+    }) {
+      return SubscriptionPlan(
+        id: plan.code,
+        code: plan.code,
+        name: '${plan.code[0].toUpperCase()}${plan.code.substring(1)} tarif',
+        priceMonthly: plan.monthlyPriceUzs,
+        maxProducts: plan.maxActiveProducts,
+        maxImagesPerProduct: plan.maxImagesPerProduct,
+        commissionRate: plan.commissionRate,
+        isRecommended: isRecommended,
+        featuresUz: uz,
+        featuresRu: ru,
+      );
+    }
+
+    return [
+      from(
+        TariffPlan.free,
+        isRecommended: false,
+        uz: const ['Asosiy katalog ko\'rinishi', 'Standart support'],
+        ru: const ['Базовый вид каталога', 'Стандартная поддержка'],
+      ),
+      from(
+        TariffPlan.basic,
+        isRecommended: false,
+        uz: const ['Kengaytirilgan filtr va analitika', 'Email support'],
+        ru: const ['Расширенные фильтры и аналитика', 'Email поддержка'],
+      ),
+      from(
+        TariffPlan.pro,
+        isRecommended: true,
+        uz: const [
+          'Detali analitika va eksport',
+          'Prioritet Telegram support',
+          'Brend ranglari va premium kartochkalar',
+        ],
+        ru: const [
+          'Детальная аналитика и экспорт',
+          'Приоритетная поддержка в Telegram',
+          'Брендовые цвета и премиум карточки',
+        ],
+      ),
+      from(
+        TariffPlan.enterprise,
+        isRecommended: false,
+        uz: const [
+          'Cheksiz mahsulot va xodimlar',
+          'API kirishi va integratsiyalar',
+          'Shaxsiy account manager',
+        ],
+        ru: const [
+          'Безлимитные товары и сотрудники',
+          'Доступ к API и интеграции',
+          'Личный аккаунт-менеджер',
+        ],
+      ),
+    ];
   }
 
   @override

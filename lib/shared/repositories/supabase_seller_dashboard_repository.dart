@@ -30,9 +30,10 @@ class SupabaseSellerDashboardRepository implements SellerDashboardRepository {
 
   final SupabaseClient _client;
 
-  /// Hardcoded for now — the live `tariffs` table isn't wired into the
-  /// dashboard yet. Surfaced as `0 / 30` per the current spec.
-  static const int _productLimit = 30;
+  /// Until we hydrate the seller's actual plan from `shops.plan_id` on every
+  /// dashboard load, we surface the free-tier cap (matches the row inserted
+  /// by the Sprint 10 migration for new shops).
+  static final int _productLimit = TariffPlan.free.maxActiveProducts;
 
   String? get _userId => _client.auth.currentUser?.id;
 

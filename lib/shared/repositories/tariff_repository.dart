@@ -46,6 +46,12 @@ abstract class TariffRepository {
   Future<List<TariffSubscription>> history();
   Future<TariffPaymentInstructions> paymentInstructions();
 
+  /// Server-driven plan catalog backing the tariff cards (prices, limits,
+  /// feature bullets, recommended ribbon). Hits `public.subscription_plans`
+  /// when Supabase is wired; the mock implementation can fall back to
+  /// static enum-derived defaults until then.
+  Future<List<SubscriptionPlan>> fetchPlans();
+
   Future<String> uploadPaymentScreenshot({
     required File file,
     required String fileExtension,
@@ -80,6 +86,10 @@ class RemoteTariffRepository implements TariffRepository {
 
   @override
   Future<TariffPaymentInstructions> paymentInstructions() =>
+      throw UnimplementedError('Remote tariff — Sprint 9 backend');
+
+  @override
+  Future<List<SubscriptionPlan>> fetchPlans() =>
       throw UnimplementedError('Remote tariff — Sprint 9 backend');
 
   @override

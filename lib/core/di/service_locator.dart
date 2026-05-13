@@ -66,6 +66,8 @@ import '../../seller/features/dashboard/bloc/seller_dashboard_cubit.dart';
 import '../../shared/repositories/seller_onboarding_repository.dart';
 import '../../shared/repositories/seller_order_repository.dart';
 import '../../shared/repositories/seller_product_repository.dart';
+import '../../shared/repositories/supabase_seller_product_repository.dart';
+import '../../seller/features/products/data/add_product_repository.dart';
 import '../../shared/repositories/seller_services_repository.dart';
 import '../../shared/repositories/seller_verification_repository.dart';
 import '../../shared/repositories/shop_repository.dart';
@@ -314,9 +316,24 @@ Future<void> initRootScope() async {
     sl.registerLazySingleton<SellerVerificationRepository>(
       MockSellerVerificationRepository.new,
     );
+    // Seller products: prefer Supabase when the client is registered so the
+    // Sprint 11 "Made-to-Order" schema (no stock, no draft) is exercised on
+    // every mock-flagged dev build too. The mock impl stays as fallback for
+    // offline/unit-test runs without a live Supabase project.
     sl.registerLazySingleton<SellerProductRepository>(
-      MockSellerProductRepository.new,
+      () => sl.isRegistered<SupabaseClient>()
+          ? SupabaseSellerProductRepository(supabase: sl<SupabaseClient>())
+          : MockSellerProductRepository(),
     );
+    // Add-product flow owns its own repository so the cubit can stay
+    // dependency-free of the broader SellerProductRepository surface (which is
+    // still read-only / stubbed). Requires Supabase — falls back to the
+    // mock-mode no-op only when the client isn't registered (offline tests).
+    if (sl.isRegistered<SupabaseClient>()) {
+      sl.registerLazySingleton<AddProductRepository>(
+        () => AddProductRepository(supabase: sl<SupabaseClient>()),
+      );
+    }
     // Dashboard is intentionally NOT mocked — we want every build (even
     // the mock-flagged dev builds) to read live shop/product/order data so
     // the empty-state experience is exercised by default. Requires Supabase
@@ -333,7 +350,15 @@ Future<void> initRootScope() async {
     sl.registerLazySingleton<SellerServicesRepository>(
       MockSellerServicesRepository.new,
     );
-    sl.registerLazySingleton<TariffRepository>(MockTariffRepository.new);
+    // Mock for upgrade/payment flow, but the plan catalog reads live from
+    // Supabase so the tariff cards are fully server-driven (prices, limits,
+    // feature bullets, recommended ribbon).
+    sl.registerLazySingleton<TariffRepository>(
+      () => MockTariffRepository(
+        supabase:
+            sl.isRegistered<SupabaseClient>() ? sl<SupabaseClient>() : null,
+      ),
+    );
     sl.registerLazySingleton<NotificationsRepository>(
       MockNotificationsRepository.new,
     );
@@ -405,8 +430,15 @@ Future<void> initRootScope() async {
       () => RemoteSellerVerificationRepository(sl<Dio>()),
     );
     sl.registerLazySingleton<SellerProductRepository>(
-      () => RemoteSellerProductRepository(sl<Dio>()),
+      () => sl.isRegistered<SupabaseClient>()
+          ? SupabaseSellerProductRepository(supabase: sl<SupabaseClient>())
+          : RemoteSellerProductRepository(sl<Dio>()),
     );
+    if (sl.isRegistered<SupabaseClient>()) {
+      sl.registerLazySingleton<AddProductRepository>(
+        () => AddProductRepository(supabase: sl<SupabaseClient>()),
+      );
+    }
     sl.registerLazySingleton<SellerDashboardRepository>(
       () => SupabaseSellerDashboardRepository(sl<SupabaseClient>()),
     );

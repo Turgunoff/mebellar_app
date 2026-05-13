@@ -1,137 +1,119 @@
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../../../core/theme/app_fonts.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
+import 'package:image_picker/image_picker.dart';
 
+import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../shared/models/seller_product.dart';
+import '../../../../core/theme/app_fonts.dart';
+import '../../../../shared/models/category_model.dart';
+import '../../../../shared/models/tariff.dart';
+import '../bloc/add_product_cubit.dart';
+import '../data/add_product_repository.dart';
+import '../widgets/tariff_limit_dialog.dart';
 
-// Local tokens — kept here so the screen reads top-to-bottom without
-// chasing theme indirection. Plus Jakarta Sans is applied to every
-// `Text` explicitly via `AppFonts.seller` so the surface
-// is immune to the M3 surface tint that the teal seller seed otherwise
-// bleeds onto neutral backgrounds.
+// Local tokens kept on this screen so the form reads top-to-bottom without
+// chasing theme indirection. Branded interactive surfaces (the Save CTA,
+// chips, toggles, color rings) flow through `colorScheme.primary` so the
+// seller's Deep Indigo replaces the customer Terracotta.
 const _ink = Color(0xFF1D1D1D);
 const _grey = Color(0xFF757575);
 const _greyMid = Color(0xFFBDBDBD);
 const _divider = Color(0xFFEFEFEF);
 const _outline = Color(0xFFE3E3E3);
 const _fillSoft = Color(0xFFF7F7F7);
-const _terracottaTint = Color(0x14C27A5F);
 
-const int _kMaxPhotos = 10;
-
-class ProductFormScreen extends StatefulWidget {
-  const ProductFormScreen({super.key, this.existing});
-
-  final SellerProduct? existing;
+class ProductFormScreen extends StatelessWidget {
+  const ProductFormScreen({super.key});
 
   @override
-  State<ProductFormScreen> createState() => _ProductFormScreenState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => AddProductCubit(
+        repository: sl<AddProductRepository>(),
+      )..loadContext(),
+      child: const _ProductFormView(),
+    );
+  }
 }
 
-class _ProductFormScreenState extends State<ProductFormScreen> {
-  // Text controllers ---------------------------------------------------------
+class _ProductFormView extends StatefulWidget {
+  const _ProductFormView();
+
+  @override
+  State<_ProductFormView> createState() => _ProductFormViewState();
+}
+
+class _ProductFormViewState extends State<_ProductFormView> {
   late final TextEditingController _name;
   late final TextEditingController _description;
   late final TextEditingController _price;
-  late final TextEditingController _width;   // Eni
-  late final TextEditingController _length;  // Bo'yi
-  late final TextEditingController _depth;   // Chuqurligi
+  late final TextEditingController _width;
+  late final TextEditingController _height;
+  late final TextEditingController _depth;
   late final TextEditingController _material;
   late final TextEditingController _productionDays;
   late final TextEditingController _deliveryPrice;
-  late final TextEditingController _assemblyPrice;
   late final TextEditingController _warrantyMonths;
 
-  // Selection state ----------------------------------------------------------
-  String? _categorySlug;
-  String? _subCategorySlug;
-  final Set<String> _selectedColors = {};
-  int _discountPercent = 0;
-
-  // Toggles ------------------------------------------------------------------
-  bool _deliveryAvailable = true;
-  bool _assemblyAvailable = false;
-
-  // Mock images: monotonically increasing IDs so each thumbnail can be
-  // keyed and removed independently. The IDs themselves are arbitrary;
-  // the count drives the (n / max) caption.
-  final List<int> _images = [];
-  int _nextImageId = 1;
+  final ImagePicker _picker = ImagePicker();
+  bool _tariffPromptShown = false;
 
   @override
   void initState() {
     super.initState();
-    final existing = widget.existing;
-    _name = TextEditingController(text: existing?.name.get('uz') ?? '');
-    _description = TextEditingController(
-      text: existing?.description.get('uz') ?? '',
-    );
-    _price = TextEditingController(
-      text: existing == null || existing.price == 0
-          ? ''
-          : _formatThousands(existing.price.toInt()),
-    );
-    _width = TextEditingController(
-      text: existing?.widthCm?.toString() ?? '',
-    );
-    _length = TextEditingController(
-      text: existing?.lengthCm?.toString() ?? '',
-    );
-    _depth = TextEditingController(
-      text: existing?.heightCm?.toString() ?? '',
-    );
+    _name = TextEditingController();
+    _description = TextEditingController();
+    _price = TextEditingController();
+    _width = TextEditingController();
+    _height = TextEditingController();
+    _depth = TextEditingController();
     _material = TextEditingController();
     _productionDays = TextEditingController(text: '3-5');
     _deliveryPrice = TextEditingController();
-    _assemblyPrice = TextEditingController();
     _warrantyMonths = TextEditingController(text: '12');
-    _categorySlug = existing?.categorySlug;
-    _price.addListener(_onPriceChanged);
   }
 
   @override
   void dispose() {
-    _price.removeListener(_onPriceChanged);
     _name.dispose();
     _description.dispose();
     _price.dispose();
     _width.dispose();
-    _length.dispose();
+    _height.dispose();
     _depth.dispose();
     _material.dispose();
     _productionDays.dispose();
     _deliveryPrice.dispose();
-    _assemblyPrice.dispose();
     _warrantyMonths.dispose();
     super.dispose();
   }
 
-  void _onPriceChanged() {
-    // Calculated discount line below the chips depends on the live price
-    // value; rebuild so the UZS amount tracks every keystroke.
-    setState(() {});
+  Future<void> _pickImage(BuildContext context) async {
+    final cubit = context.read<AddProductCubit>();
+    final state = cubit.state;
+    if (!state.canPickMoreImages) return;
+
+    final picked = await _picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 2048,
+      imageQuality: 92,
+    );
+    if (picked == null) return;
+    cubit.addImage(File(picked.path));
   }
 
-  // Image picker actions -----------------------------------------------------
-  void _addImage() {
-    if (_images.length >= _kMaxPhotos) return;
-    setState(() {
-      _images.add(_nextImageId);
-      _nextImageId++;
-    });
-  }
+  Future<void> _openCategorySheet(BuildContext context) async {
+    final cubit = context.read<AddProductCubit>();
+    final categories = cubit.state.context?.categories ?? const [];
+    if (categories.isEmpty) return;
+    final primary = Theme.of(context).colorScheme.primary;
 
-  void _removeImage(int id) {
-    setState(() => _images.remove(id));
-  }
-
-  // Category sheets ----------------------------------------------------------
-  void _openCategorySheet() async {
-    final picked = await showModalBottomSheet<_FurnitureCategory>(
+    final picked = await showModalBottomSheet<CategoryModel>(
       context: context,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
@@ -139,69 +121,32 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       ),
       builder: (_) => _CategoryPickerSheet(
         title: 'Kategoriyani tanlang',
-        items: _kFurnitureCategories
-            .map(
-              (c) => _PickerEntry(
-                slug: c.slug,
-                label: c.label,
-                icon: c.icon,
-                payload: c,
-              ),
-            )
-            .toList(),
+        items: categories,
+        accent: primary,
       ),
     );
     if (picked != null) {
-      setState(() {
-        _categorySlug = picked.slug;
-        _subCategorySlug = null;
-      });
+      cubit.selectCategory(picked.id);
     }
   }
 
-  void _openSubCategorySheet() async {
-    final cat = _categoryBySlug(_categorySlug);
-    if (cat == null) return;
-    final picked = await showModalBottomSheet<_SubCategory>(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => _CategoryPickerSheet(
-        title: cat.label,
-        items: cat.subs
-            .map(
-              (s) => _PickerEntry(
-                slug: s.slug,
-                label: s.label,
-                icon: cat.icon,
-                payload: s,
-              ),
-            )
-            .toList(),
-      ),
-    );
-    if (picked != null) {
-      setState(() => _subCategorySlug = picked.slug);
-    }
-  }
-
-  // Discount chips -----------------------------------------------------------
-  Future<void> _openCustomDiscountDialog() async {
+  Future<void> _openCustomDiscountDialog(BuildContext context) async {
+    final cubit = context.read<AddProductCubit>();
+    final primary = Theme.of(context).colorScheme.primary;
     final controller = TextEditingController(
-      text: _discountPercent == 0 ? '' : '$_discountPercent',
+      text: cubit.state.discountPercent == 0
+          ? ''
+          : '${cubit.state.discountPercent}',
     );
     final picked = await showDialog<int>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        title: Text(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
           'Maxsus chegirma',
-          style: TextStyle(fontFamily: AppFonts.seller, 
+          style: TextStyle(
+            fontFamily: AppFonts.seller,
             fontSize: 16,
             fontWeight: FontWeight.w700,
             color: _ink,
@@ -213,8 +158,9 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           autofocus: true,
-          cursorColor: AppColors.terracotta,
-          style: TextStyle(fontFamily: AppFonts.seller, 
+          cursorColor: primary,
+          style: const TextStyle(
+            fontFamily: AppFonts.seller,
             fontSize: 14,
             fontWeight: FontWeight.w600,
             color: _ink,
@@ -233,19 +179,17 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(
-                color: AppColors.terracotta,
-                width: 1.4,
-              ),
+              borderSide: BorderSide(color: primary, width: 1.4),
             ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(
+            child: const Text(
               'Bekor qilish',
-              style: TextStyle(fontFamily: AppFonts.seller, 
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
                 fontWeight: FontWeight.w600,
                 color: _grey,
               ),
@@ -253,7 +197,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.terracotta,
+              backgroundColor: primary,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
@@ -263,9 +207,10 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
               final v = int.tryParse(controller.text) ?? 0;
               Navigator.of(ctx).pop(v.clamp(0, 100));
             },
-            child: Text(
+            child: const Text(
               'Saqlash',
-              style: TextStyle(fontFamily: AppFonts.seller, 
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -275,116 +220,179 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     );
     controller.dispose();
     if (picked != null) {
-      setState(() => _discountPercent = picked);
+      cubit.setDiscountPercent(picked);
     }
   }
 
-  void _save() {
-    FocusScope.of(context).unfocus();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: _ink,
-        behavior: SnackBarBehavior.floating,
-        content: Text(
-          "Mahsulot e'lon qilindi",
-          style: TextStyle(fontFamily: AppFonts.seller, 
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-      ),
-    );
-    Navigator.of(context).maybePop();
+  void _handleTariffBlocked(BuildContext context, TariffSnapshot? snap) {
+    if (_tariffPromptShown || snap == null) return;
+    _tariffPromptShown = true;
+    final navigator = Navigator.of(context);
+    showTariffLimitDialog(context, snapshot: snap).then((_) {
+      if (mounted) navigator.maybePop();
+    });
   }
 
-  // Derived values -----------------------------------------------------------
-  int get _priceValue => _parseAmount(_price.text);
-  int get _discountedPrice =>
-      (_priceValue * (100 - _discountPercent) / 100).round();
+  Future<void> _save(BuildContext context) async {
+    FocusScope.of(context).unfocus();
+    final cubit = context.read<AddProductCubit>();
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    final ok = await cubit.submit();
+    if (!mounted) return;
+    if (ok) {
+      messenger.showSnackBar(
+        const SnackBar(
+          backgroundColor: _ink,
+          behavior: SnackBarBehavior.floating,
+          content: Text(
+            "Mahsulot e'lon qilindi",
+            style: TextStyle(
+              fontFamily: AppFonts.seller,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      );
+      navigator.maybePop(true);
+    } else {
+      final err = cubit.state.error;
+      if (err != null) {
+        messenger.showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.danger,
+            behavior: SnackBarBehavior.floating,
+            content: Text(
+              err,
+              style: const TextStyle(
+                fontFamily: AppFonts.seller,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final cat = _categoryBySlug(_categorySlug);
-    final sub = cat == null ? null : _subBySlug(cat, _subCategorySlug);
+    return BlocConsumer<AddProductCubit, AddProductState>(
+      listenWhen: (prev, curr) => prev.status != curr.status,
+      listener: (context, state) {
+        if (state.status == AddProductStatus.tariffBlocked) {
+          _handleTariffBlocked(
+            context,
+            context.read<AddProductCubit>().tariffSnapshot,
+          );
+        }
+      },
+      builder: (context, state) {
+        return Scaffold(
+          backgroundColor: AppColors.lightBackground,
+          appBar: const _FormAppBar(),
+          body: switch (state.status) {
+            AddProductStatus.loadingContext => Center(
+                child: CircularProgressIndicator(
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            AddProductStatus.tariffBlocked => _TariffBlockedView(
+                snapshot:
+                    context.read<AddProductCubit>().tariffSnapshot,
+              ),
+            _ => _buildForm(context, state),
+          },
+          bottomNavigationBar: state.status == AddProductStatus.loadingContext
+              ? null
+              : _SaveBottomBar(
+                  enabled: state.canSubmit &&
+                      state.status != AddProductStatus.saving,
+                  busy: state.status == AddProductStatus.saving,
+                  onSave: () => _save(context),
+                ),
+        );
+      },
+    );
+  }
 
-    return Scaffold(
-      backgroundColor: AppColors.lightBackground,
-      appBar: _FormAppBar(isEdit: widget.existing != null),
-      body: SafeArea(
-        top: false,
-        bottom: false,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-          physics: const BouncingScrollPhysics(
-            parent: AlwaysScrollableScrollPhysics(),
-          ),
-          children: [
-            _MediaSection(
-              images: _images,
-              onAdd: _addImage,
-              onRemove: _removeImage,
-            ),
-            const SizedBox(height: 20),
-            _BasicInfoSection(
-              nameController: _name,
-              descriptionController: _description,
-              categoryLabel: cat?.label,
-              subCategoryLabel: sub?.label,
-              onCategoryTap: _openCategorySheet,
-              onSubCategoryTap:
-                  _categorySlug == null ? null : _openSubCategorySheet,
-            ),
-            const SizedBox(height: 20),
-            _SpecsSection(
-              widthController: _width,
-              lengthController: _length,
-              depthController: _depth,
-              materialController: _material,
-              selectedColors: _selectedColors,
-              onColorToggle: (slug) => setState(() {
-                if (!_selectedColors.add(slug)) {
-                  _selectedColors.remove(slug);
-                }
-              }),
-            ),
-            const SizedBox(height: 20),
-            _PricingSection(
-              priceController: _price,
-              discountPercent: _discountPercent,
-              onDiscountSelected: (v) =>
-                  setState(() => _discountPercent = v),
-              onCustomTapped: _openCustomDiscountDialog,
-              priceValue: _priceValue,
-              discountedPrice: _discountedPrice,
-            ),
-            const SizedBox(height: 20),
-            _LogisticsSection(
-              productionDaysController: _productionDays,
-              deliveryAvailable: _deliveryAvailable,
-              onDeliveryChanged: (v) =>
-                  setState(() => _deliveryAvailable = v),
-              deliveryPriceController: _deliveryPrice,
-              assemblyAvailable: _assemblyAvailable,
-              onAssemblyChanged: (v) =>
-                  setState(() => _assemblyAvailable = v),
-              assemblyPriceController: _assemblyPrice,
-              warrantyController: _warrantyMonths,
-            ),
-          ],
+  Widget _buildForm(BuildContext context, AddProductState state) {
+    final cubit = context.read<AddProductCubit>();
+    return SafeArea(
+      top: false,
+      bottom: false,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        physics: const BouncingScrollPhysics(
+          parent: AlwaysScrollableScrollPhysics(),
         ),
+        children: [
+          _MediaSection(
+            files: state.imageFiles,
+            maxImages: state.maxImages,
+            onAdd: () => _pickImage(context),
+            onRemove: cubit.removeImageAt,
+          ),
+          const SizedBox(height: 20),
+          _BasicInfoSection(
+            nameController: _name,
+            descriptionController: _description,
+            categoryLabel: cubit.findCategory(state.categoryId)?.name,
+            onCategoryTap: () => _openCategorySheet(context),
+            onNameChanged: cubit.setName,
+            onDescriptionChanged: cubit.setDescription,
+          ),
+          const SizedBox(height: 20),
+          _SpecsSection(
+            widthController: _width,
+            heightController: _height,
+            depthController: _depth,
+            materialController: _material,
+            selectedColor: state.colorSlug,
+            onWidthChanged: (v) => cubit.setDimensions(width: v),
+            onHeightChanged: (v) => cubit.setDimensions(height: v),
+            onDepthChanged: (v) => cubit.setDimensions(depth: v),
+            onMaterialChanged: cubit.setMaterial,
+            onColorToggle: cubit.selectColor,
+          ),
+          const SizedBox(height: 20),
+          _PricingSection(
+            priceController: _price,
+            discountPercent: state.discountPercent,
+            priceValue: state.price.toInt(),
+            discountedPrice: state.effectivePrice.toInt(),
+            onPriceChanged: cubit.setPrice,
+            onDiscountSelected: cubit.setDiscountPercent,
+            onCustomTapped: () => _openCustomDiscountDialog(context),
+          ),
+          const SizedBox(height: 20),
+          _LogisticsSection(
+            productionDaysController: _productionDays,
+            deliveryAvailable: state.hasDelivery,
+            onDeliveryChanged: cubit.setHasDelivery,
+            deliveryPriceController: _deliveryPrice,
+            assemblyAvailable: state.hasInstallation,
+            onAssemblyChanged: cubit.setHasInstallation,
+            warrantyController: _warrantyMonths,
+            onProductionDaysChanged: cubit.setProductionDays,
+            onDeliveryPriceChanged: cubit.setDeliveryPrice,
+            onWarrantyChanged: cubit.setWarrantyMonths,
+          ),
+          const SizedBox(height: 16),
+          _SkuFooter(sku: state.sku),
+        ],
       ),
-      bottomNavigationBar: _SaveBottomBar(onSave: _save),
     );
   }
 }
 
 // =============================================================================
-// 1. App bar — back arrow + bold title, no step indicator, no language tabs
+// App bar
 // =============================================================================
 class _FormAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const _FormAppBar({required this.isEdit});
-
-  final bool isEdit;
+  const _FormAppBar();
 
   @override
   Size get preferredSize => const Size.fromHeight(56);
@@ -401,9 +409,10 @@ class _FormAppBar extends StatelessWidget implements PreferredSizeWidget {
         icon: const Icon(Iconsax.arrow_left_2, size: 22, color: _ink),
         onPressed: () => Navigator.of(context).maybePop(),
       ),
-      title: Text(
-        isEdit ? 'Mahsulotni tahrirlash' : "Mahsulot qo'shish",
-        style: TextStyle(fontFamily: AppFonts.seller, 
+      title: const Text(
+        "Mahsulot qo'shish",
+        style: TextStyle(
+          fontFamily: AppFonts.seller,
           fontSize: 18,
           fontWeight: FontWeight.w700,
           color: _ink,
@@ -415,11 +424,10 @@ class _FormAppBar extends StatelessWidget implements PreferredSizeWidget {
 }
 
 // =============================================================================
-// 2. Section title — bold Jakarta header above each card
+// Section title + form card
 // =============================================================================
 class _SectionTitle extends StatelessWidget {
   const _SectionTitle(this.text);
-
   final String text;
 
   @override
@@ -428,7 +436,8 @@ class _SectionTitle extends StatelessWidget {
       padding: const EdgeInsets.only(left: 4, bottom: 10),
       child: Text(
         text,
-        style: TextStyle(fontFamily: AppFonts.seller, 
+        style: const TextStyle(
+          fontFamily: AppFonts.seller,
           fontSize: 15,
           fontWeight: FontWeight.w700,
           color: _ink,
@@ -440,12 +449,8 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-// =============================================================================
-// 3. Form card — pure white, 16px radius, soft shadow
-// =============================================================================
 class _FormCard extends StatelessWidget {
   const _FormCard({required this.child});
-
   final Widget child;
 
   @override
@@ -469,22 +474,26 @@ class _FormCard extends StatelessWidget {
 }
 
 // =============================================================================
-// 4. Media — horizontally scrollable, dashed Add tile + thumbnails (max 10)
+// Media section
 // =============================================================================
 class _MediaSection extends StatelessWidget {
   const _MediaSection({
-    required this.images,
+    required this.files,
+    required this.maxImages,
     required this.onAdd,
     required this.onRemove,
   });
 
-  final List<int> images;
+  final List<File> files;
+  final int maxImages;
   final VoidCallback onAdd;
   final ValueChanged<int> onRemove;
 
   @override
   Widget build(BuildContext context) {
-    final isFull = images.length >= _kMaxPhotos;
+    final unlimited = maxImages < 0;
+    final isFull = !unlimited && files.length >= maxImages;
+    final caption = unlimited ? '∞' : '$maxImages';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -498,17 +507,17 @@ class _MediaSection extends StatelessWidget {
               child: Row(
                 children: [
                   _AddPhotoTile(
-                    count: images.length,
-                    max: _kMaxPhotos,
+                    countLabel: '${files.length}/$caption',
                     enabled: !isFull,
                     onTap: onAdd,
                   ),
-                  for (var i = 0; i < images.length; i++) ...[
+                  for (var i = 0; i < files.length; i++) ...[
                     const SizedBox(width: 10),
                     _ImageThumbnail(
-                      key: ValueKey(images[i]),
-                      index: i + 1,
-                      onRemove: () => onRemove(images[i]),
+                      key: ValueKey('product-image-$i-${files[i].path}'),
+                      file: files[i],
+                      isPrimary: i == 0,
+                      onRemove: () => onRemove(i),
                     ),
                   ],
                 ],
@@ -523,20 +532,22 @@ class _MediaSection extends StatelessWidget {
 
 class _AddPhotoTile extends StatelessWidget {
   const _AddPhotoTile({
-    required this.count,
-    required this.max,
+    required this.countLabel,
     required this.enabled,
     required this.onTap,
   });
 
-  final int count;
-  final int max;
+  final String countLabel;
   final bool enabled;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final accent = enabled ? AppColors.terracotta : _greyMid;
+    final primary = Theme.of(context).colorScheme.primary;
+    final accent = enabled ? primary : _greyMid;
+    final tint = enabled
+        ? primary.withValues(alpha: 0.08)
+        : _fillSoft;
     return SizedBox(
       width: 110,
       height: 110,
@@ -553,7 +564,7 @@ class _AddPhotoTile extends StatelessWidget {
           ),
           child: Container(
             decoration: BoxDecoration(
-              color: enabled ? _terracottaTint : _fillSoft,
+              color: tint,
               borderRadius: BorderRadius.circular(14),
             ),
             alignment: Alignment.center,
@@ -565,9 +576,10 @@ class _AddPhotoTile extends StatelessWidget {
                   Icon(Iconsax.add_square, size: 26, color: accent),
                   const SizedBox(height: 6),
                   Text(
-                    'Rasm qo\'shish',
+                    "Rasm qo'shish",
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontFamily: AppFonts.seller, 
+                    style: TextStyle(
+                      fontFamily: AppFonts.seller,
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
                       color: accent,
@@ -577,12 +589,13 @@ class _AddPhotoTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '($count/$max)',
-                    style: TextStyle(fontFamily: AppFonts.seller, 
+                    '($countLabel)',
+                    style: TextStyle(
+                      fontFamily: AppFonts.seller,
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
                       color: enabled
-                          ? AppColors.terracotta.withValues(alpha: 0.8)
+                          ? primary.withValues(alpha: 0.8)
                           : _greyMid,
                       height: 1.0,
                     ),
@@ -600,15 +613,18 @@ class _AddPhotoTile extends StatelessWidget {
 class _ImageThumbnail extends StatelessWidget {
   const _ImageThumbnail({
     super.key,
-    required this.index,
+    required this.file,
+    required this.isPrimary,
     required this.onRemove,
   });
 
-  final int index;
+  final File file;
+  final bool isPrimary;
   final VoidCallback onRemove;
 
   @override
   Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
     return SizedBox(
       width: 110,
       height: 110,
@@ -619,36 +635,19 @@ class _ImageThumbnail extends StatelessWidget {
             width: 110,
             height: 110,
             decoration: BoxDecoration(
-              color: _terracottaTint,
+              color: _fillSoft,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: AppColors.terracotta.withValues(alpha: 0.35),
+                color: primary.withValues(alpha: 0.25),
                 width: 1.2,
               ),
-            ),
-            alignment: Alignment.center,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Iconsax.gallery,
-                  size: 22,
-                  color: AppColors.terracotta,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Rasm $index',
-                  style: TextStyle(fontFamily: AppFonts.seller, 
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.terracotta,
-                    letterSpacing: 0.1,
-                  ),
-                ),
-              ],
+              image: DecorationImage(
+                image: FileImage(file),
+                fit: BoxFit.cover,
+              ),
             ),
           ),
-          if (index == 1)
+          if (isPrimary)
             Positioned(
               left: 6,
               bottom: 6,
@@ -658,12 +657,13 @@ class _ImageThumbnail extends StatelessWidget {
                   vertical: 3,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.terracotta,
+                  color: primary,
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: Text(
+                child: const Text(
                   'Asosiy',
-                  style: TextStyle(fontFamily: AppFonts.seller, 
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
                     fontSize: 9,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
@@ -706,10 +706,6 @@ class _ImageThumbnail extends StatelessWidget {
   }
 }
 
-// Custom painter for the rounded-rect dashed border on the Add tile.
-// Implemented inline to avoid pulling a `dotted_border` dependency for
-// a single ornament. Walks the perimeter via `PathMetric.extractPath`
-// drawing alternating dash + gap segments.
 class _DashedBorderPainter extends CustomPainter {
   _DashedBorderPainter({
     required this.color,
@@ -759,24 +755,24 @@ class _DashedBorderPainter extends CustomPainter {
 }
 
 // =============================================================================
-// 5. Basics — name + cascading category fields + multi-line description
+// Basic info
 // =============================================================================
 class _BasicInfoSection extends StatelessWidget {
   const _BasicInfoSection({
     required this.nameController,
     required this.descriptionController,
     required this.categoryLabel,
-    required this.subCategoryLabel,
     required this.onCategoryTap,
-    required this.onSubCategoryTap,
+    required this.onNameChanged,
+    required this.onDescriptionChanged,
   });
 
   final TextEditingController nameController;
   final TextEditingController descriptionController;
   final String? categoryLabel;
-  final String? subCategoryLabel;
   final VoidCallback onCategoryTap;
-  final VoidCallback? onSubCategoryTap;
+  final ValueChanged<String> onNameChanged;
+  final ValueChanged<String> onDescriptionChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -791,6 +787,7 @@ class _BasicInfoSection extends StatelessWidget {
                 controller: nameController,
                 label: 'Mahsulot nomi',
                 hint: "Masalan, Burchakli divan «Roma»",
+                onChanged: onNameChanged,
               ),
               const SizedBox(height: 14),
               _PickerField(
@@ -801,22 +798,13 @@ class _BasicInfoSection extends StatelessWidget {
                 onTap: onCategoryTap,
               ),
               const SizedBox(height: 14),
-              _PickerField(
-                label: 'Sub-kategoriya',
-                value: subCategoryLabel,
-                placeholder: onSubCategoryTap == null
-                    ? 'Avval kategoriyani tanlang'
-                    : 'Sub-kategoriyani tanlang',
-                leadingIcon: Iconsax.category_2,
-                onTap: onSubCategoryTap,
-              ),
-              const SizedBox(height: 14),
               _FormField(
                 controller: descriptionController,
                 label: 'Mahsulot tavsifi',
                 hint: "Mahsulot haqida qisqacha ma'lumot",
                 minLines: 3,
                 maxLines: 6,
+                onChanged: onDescriptionChanged,
               ),
             ],
           ),
@@ -852,7 +840,8 @@ class _PickerField extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 6, left: 2),
           child: Text(
             label,
-            style: TextStyle(fontFamily: AppFonts.seller, 
+            style: const TextStyle(
+              fontFamily: AppFonts.seller,
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: _grey,
@@ -884,7 +873,8 @@ class _PickerField extends StatelessWidget {
                 Expanded(
                   child: Text(
                     hasValue ? value! : placeholder,
-                    style: TextStyle(fontFamily: AppFonts.seller, 
+                    style: TextStyle(
+                      fontFamily: AppFonts.seller,
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: hasValue ? _ink : _greyMid,
@@ -895,7 +885,9 @@ class _PickerField extends StatelessWidget {
                 Icon(
                   Iconsax.arrow_down_1,
                   size: 18,
-                  color: disabled ? _greyMid.withValues(alpha: 0.5) : _greyMid,
+                  color: disabled
+                      ? _greyMid.withValues(alpha: 0.5)
+                      : _greyMid,
                 ),
               ],
             ),
@@ -907,24 +899,32 @@ class _PickerField extends StatelessWidget {
 }
 
 // =============================================================================
-// 6. Specs — dimensions row + material + multi-select color chips
+// Specs
 // =============================================================================
 class _SpecsSection extends StatelessWidget {
   const _SpecsSection({
     required this.widthController,
-    required this.lengthController,
+    required this.heightController,
     required this.depthController,
     required this.materialController,
-    required this.selectedColors,
+    required this.selectedColor,
+    required this.onWidthChanged,
+    required this.onHeightChanged,
+    required this.onDepthChanged,
+    required this.onMaterialChanged,
     required this.onColorToggle,
   });
 
   final TextEditingController widthController;
-  final TextEditingController lengthController;
+  final TextEditingController heightController;
   final TextEditingController depthController;
   final TextEditingController materialController;
-  final Set<String> selectedColors;
-  final ValueChanged<String> onColorToggle;
+  final String? selectedColor;
+  final ValueChanged<int?> onWidthChanged;
+  final ValueChanged<int?> onHeightChanged;
+  final ValueChanged<int?> onDepthChanged;
+  final ValueChanged<String> onMaterialChanged;
+  final ValueChanged<String?> onColorToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -936,11 +936,12 @@ class _SpecsSection extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8, left: 2),
+              const Padding(
+                padding: EdgeInsets.only(bottom: 8, left: 2),
                 child: Text(
                   "O'lchamlari (sm)",
-                  style: TextStyle(fontFamily: AppFonts.seller, 
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: _grey,
@@ -954,13 +955,15 @@ class _SpecsSection extends StatelessWidget {
                     child: _DimensionField(
                       controller: widthController,
                       label: 'Eni',
+                      onChanged: (v) => onWidthChanged(int.tryParse(v)),
                     ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: _DimensionField(
-                      controller: lengthController,
+                      controller: heightController,
                       label: "Bo'yi",
+                      onChanged: (v) => onHeightChanged(int.tryParse(v)),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -968,6 +971,7 @@ class _SpecsSection extends StatelessWidget {
                     child: _DimensionField(
                       controller: depthController,
                       label: 'Chuqurligi',
+                      onChanged: (v) => onDepthChanged(int.tryParse(v)),
                     ),
                   ),
                 ],
@@ -977,13 +981,15 @@ class _SpecsSection extends StatelessWidget {
                 controller: materialController,
                 label: 'Material',
                 hint: "MDF, LDSP, Yog'och",
+                onChanged: onMaterialChanged,
               ),
               const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8, left: 2),
+              const Padding(
+                padding: EdgeInsets.only(bottom: 8, left: 2),
                 child: Text(
                   'Rangi',
-                  style: TextStyle(fontFamily: AppFonts.seller, 
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: _grey,
@@ -991,18 +997,22 @@ class _SpecsSection extends StatelessWidget {
                   ),
                 ),
               ),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final c in _kColors)
-                    _ColorChip(
+              SizedBox(
+                height: 40,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: kAddProductColorOptions.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: 8),
+                  itemBuilder: (_, i) {
+                    final c = kAddProductColorOptions[i];
+                    return _ColorChip(
                       label: c.label,
-                      swatch: c.swatch,
-                      selected: selectedColors.contains(c.slug),
+                      swatch: Color(c.swatch),
+                      selected: selectedColor == c.slug,
                       onTap: () => onColorToggle(c.slug),
-                    ),
-                ],
+                    );
+                  },
+                ),
               ),
             ],
           ),
@@ -1013,32 +1023,37 @@ class _SpecsSection extends StatelessWidget {
 }
 
 class _DimensionField extends StatelessWidget {
-  const _DimensionField({required this.controller, required this.label});
+  const _DimensionField({
+    required this.controller,
+    required this.label,
+    required this.onChanged,
+  });
 
   final TextEditingController controller;
   final String label;
+  final ValueChanged<String> onChanged;
 
   @override
   Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
     final border = OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
       borderSide: const BorderSide(color: _outline),
     );
     return TextField(
       controller: controller,
-      keyboardType:
-          const TextInputType.numberWithOptions(decimal: true),
-      inputFormatters: [
-        FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
-      ],
-      cursorColor: AppColors.terracotta,
+      keyboardType: TextInputType.number,
+      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+      cursorColor: primary,
       textAlign: TextAlign.center,
-      style: TextStyle(fontFamily: AppFonts.seller, 
+      style: const TextStyle(
+        fontFamily: AppFonts.seller,
         fontSize: 14,
         fontWeight: FontWeight.w700,
         color: _ink,
         letterSpacing: -0.1,
       ),
+      onChanged: onChanged,
       decoration: InputDecoration(
         isDense: true,
         contentPadding: const EdgeInsets.symmetric(
@@ -1046,7 +1061,8 @@ class _DimensionField extends StatelessWidget {
           vertical: 12,
         ),
         hintText: label,
-        hintStyle: TextStyle(fontFamily: AppFonts.seller, 
+        hintStyle: const TextStyle(
+          fontFamily: AppFonts.seller,
           fontSize: 12,
           fontWeight: FontWeight.w500,
           color: _greyMid,
@@ -1057,10 +1073,7 @@ class _DimensionField extends StatelessWidget {
         enabledBorder: border,
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: AppColors.terracotta,
-            width: 1.4,
-          ),
+          borderSide: BorderSide(color: primary, width: 1.4),
         ),
       ),
     );
@@ -1082,8 +1095,10 @@ class _ColorChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    final tint = primary.withValues(alpha: 0.08);
     return Material(
-      color: selected ? _terracottaTint : Colors.white,
+      color: selected ? tint : Colors.white,
       borderRadius: BorderRadius.circular(999),
       child: InkWell(
         onTap: onTap,
@@ -1093,7 +1108,7 @@ class _ColorChip extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(999),
             border: Border.all(
-              color: selected ? AppColors.terracotta : _outline,
+              color: selected ? primary : _outline,
               width: selected ? 1.4 : 1,
             ),
           ),
@@ -1112,10 +1127,11 @@ class _ColorChip extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 label,
-                style: TextStyle(fontFamily: AppFonts.seller, 
+                style: TextStyle(
+                  fontFamily: AppFonts.seller,
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
-                  color: selected ? AppColors.terracotta : _ink,
+                  color: selected ? primary : _ink,
                   letterSpacing: -0.1,
                 ),
               ),
@@ -1128,24 +1144,26 @@ class _ColorChip extends StatelessWidget {
 }
 
 // =============================================================================
-// 7. Pricing — formatted price + discount chips + live calculated total
+// Pricing
 // =============================================================================
 class _PricingSection extends StatelessWidget {
   const _PricingSection({
     required this.priceController,
     required this.discountPercent,
-    required this.onDiscountSelected,
-    required this.onCustomTapped,
     required this.priceValue,
     required this.discountedPrice,
+    required this.onPriceChanged,
+    required this.onDiscountSelected,
+    required this.onCustomTapped,
   });
 
   final TextEditingController priceController;
   final int discountPercent;
-  final ValueChanged<int> onDiscountSelected;
-  final VoidCallback onCustomTapped;
   final int priceValue;
   final int discountedPrice;
+  final ValueChanged<num> onPriceChanged;
+  final ValueChanged<int> onDiscountSelected;
+  final VoidCallback onCustomTapped;
 
   @override
   Widget build(BuildContext context) {
@@ -1164,13 +1182,18 @@ class _PricingSection extends StatelessWidget {
                 suffix: 'UZS',
                 keyboardType: TextInputType.number,
                 inputFormatters: const [_ThousandsSpaceFormatter()],
+                onChanged: (v) {
+                  final digits = v.replaceAll(RegExp(r'[^\d]'), '');
+                  onPriceChanged(int.tryParse(digits) ?? 0);
+                },
               ),
               const SizedBox(height: 18),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8, left: 2),
+              const Padding(
+                padding: EdgeInsets.only(bottom: 8, left: 2),
                 child: Text(
                   'Chegirma foizi',
-                  style: TextStyle(fontFamily: AppFonts.seller, 
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: _grey,
@@ -1246,25 +1269,26 @@ class _DiscountChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
     return Material(
-      color: selected ? AppColors.terracotta : Colors.white,
+      color: selected ? primary : Colors.white,
       borderRadius: BorderRadius.circular(999),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(999),
         child: Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(999),
             border: Border.all(
-              color: selected ? AppColors.terracotta : _outline,
+              color: selected ? primary : _outline,
               width: 1,
             ),
           ),
           child: Text(
             label,
-            style: TextStyle(fontFamily: AppFonts.seller, 
+            style: TextStyle(
+              fontFamily: AppFonts.seller,
               fontSize: 12,
               fontWeight: FontWeight.w700,
               color: selected ? Colors.white : _ink,
@@ -1290,17 +1314,20 @@ class _DiscountSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
     final hasPrice = priceValue > 0;
     final hasDiscount = discountPercent > 0;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: hasPrice && hasDiscount ? _terracottaTint : _fillSoft,
+        color: hasPrice && hasDiscount
+            ? primary.withValues(alpha: 0.08)
+            : _fillSoft,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: hasPrice && hasDiscount
-              ? AppColors.terracotta.withValues(alpha: 0.35)
+              ? primary.withValues(alpha: 0.35)
               : _outline,
           width: 1,
         ),
@@ -1310,9 +1337,7 @@ class _DiscountSummary extends StatelessWidget {
           Icon(
             hasDiscount ? Iconsax.discount_shape : Iconsax.tag,
             size: 18,
-            color: hasPrice && hasDiscount
-                ? AppColors.terracotta
-                : _greyMid,
+            color: hasPrice && hasDiscount ? primary : _greyMid,
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -1321,7 +1346,8 @@ class _DiscountSummary extends StatelessWidget {
               children: [
                 Text(
                   hasDiscount ? 'Chegirma bilan' : 'Chegirmasiz',
-                  style: TextStyle(fontFamily: AppFonts.seller, 
+                  style: const TextStyle(
+                    fontFamily: AppFonts.seller,
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                     color: _grey,
@@ -1333,12 +1359,11 @@ class _DiscountSummary extends StatelessWidget {
                   hasPrice
                       ? '${_formatThousands(discountedPrice)} UZS'
                       : '— UZS',
-                  style: TextStyle(fontFamily: AppFonts.seller, 
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
-                    color: hasPrice && hasDiscount
-                        ? AppColors.terracotta
-                        : _ink,
+                    color: hasPrice && hasDiscount ? primary : _ink,
                     letterSpacing: -0.2,
                     height: 1.1,
                   ),
@@ -1353,12 +1378,13 @@ class _DiscountSummary extends StatelessWidget {
                 vertical: 4,
               ),
               decoration: BoxDecoration(
-                color: AppColors.terracotta,
+                color: primary,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 '-$discountPercent%',
-                style: TextStyle(fontFamily: AppFonts.seller, 
+                style: const TextStyle(
+                  fontFamily: AppFonts.seller,
                   fontSize: 11,
                   fontWeight: FontWeight.w800,
                   color: Colors.white,
@@ -1373,8 +1399,7 @@ class _DiscountSummary extends StatelessWidget {
 }
 
 // =============================================================================
-// 8. Logistics — production days + delivery (with conditional price) +
-//    free assembly + warranty months
+// Logistics
 // =============================================================================
 class _LogisticsSection extends StatelessWidget {
   const _LogisticsSection({
@@ -1384,8 +1409,10 @@ class _LogisticsSection extends StatelessWidget {
     required this.deliveryPriceController,
     required this.assemblyAvailable,
     required this.onAssemblyChanged,
-    required this.assemblyPriceController,
     required this.warrantyController,
+    required this.onProductionDaysChanged,
+    required this.onDeliveryPriceChanged,
+    required this.onWarrantyChanged,
   });
 
   final TextEditingController productionDaysController;
@@ -1394,8 +1421,10 @@ class _LogisticsSection extends StatelessWidget {
   final TextEditingController deliveryPriceController;
   final bool assemblyAvailable;
   final ValueChanged<bool> onAssemblyChanged;
-  final TextEditingController assemblyPriceController;
   final TextEditingController warrantyController;
+  final ValueChanged<String> onProductionDaysChanged;
+  final ValueChanged<num> onDeliveryPriceChanged;
+  final ValueChanged<int> onWarrantyChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -1411,6 +1440,7 @@ class _LogisticsSection extends StatelessWidget {
                 label: 'Tayyorlash / Yetkazish muddati (kun)',
                 hint: '3-5',
                 suffix: 'kun',
+                onChanged: onProductionDaysChanged,
               ),
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 14),
@@ -1419,7 +1449,7 @@ class _LogisticsSection extends StatelessWidget {
               _ToggleRow(
                 icon: Iconsax.truck_fast,
                 title: 'Yetkazib berish mavjud',
-                subtitle: "Sotib oluvchiga yetkazib beriladi",
+                subtitle: 'Sotib oluvchiga yetkazib beriladi',
                 value: deliveryAvailable,
                 onChanged: onDeliveryChanged,
               ),
@@ -1433,6 +1463,10 @@ class _LogisticsSection extends StatelessWidget {
                   keyboardType: TextInputType.number,
                   inputFormatters: const [_ThousandsSpaceFormatter()],
                   helper: 'Faqat Toshkent shahri va viloyati uchun',
+                  onChanged: (v) {
+                    final digits = v.replaceAll(RegExp(r'[^\d]'), '');
+                    onDeliveryPriceChanged(int.tryParse(digits) ?? 0);
+                  },
                 ),
               ],
               const Padding(
@@ -1446,17 +1480,6 @@ class _LogisticsSection extends StatelessWidget {
                 value: assemblyAvailable,
                 onChanged: onAssemblyChanged,
               ),
-              if (assemblyAvailable) ...[
-                const SizedBox(height: 14),
-                _FormField(
-                  controller: assemblyPriceController,
-                  label: "O'rnatish narxi",
-                  hint: 'Bepul uchun 0 kiriting',
-                  suffix: 'UZS',
-                  keyboardType: TextInputType.number,
-                  inputFormatters: const [_ThousandsSpaceFormatter()],
-                ),
-              ],
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 14),
                 child: Divider(height: 1, thickness: 1, color: _divider),
@@ -1467,9 +1490,8 @@ class _LogisticsSection extends StatelessWidget {
                 hint: '0',
                 suffix: 'oy',
                 keyboardType: TextInputType.number,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                ],
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                onChanged: (v) => onWarrantyChanged(int.tryParse(v) ?? 0),
               ),
             ],
           ),
@@ -1496,17 +1518,18 @@ class _ToggleRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
     return Row(
       children: [
         Container(
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: _terracottaTint,
+            color: primary.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(10),
           ),
           alignment: Alignment.center,
-          child: Icon(icon, size: 18, color: AppColors.terracotta),
+          child: Icon(icon, size: 18, color: primary),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -1515,7 +1538,8 @@ class _ToggleRow extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: TextStyle(fontFamily: AppFonts.seller, 
+                style: const TextStyle(
+                  fontFamily: AppFonts.seller,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: _ink,
@@ -1525,7 +1549,8 @@ class _ToggleRow extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 subtitle,
-                style: TextStyle(fontFamily: AppFonts.seller, 
+                style: const TextStyle(
+                  fontFamily: AppFonts.seller,
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                   color: _grey,
@@ -1538,7 +1563,7 @@ class _ToggleRow extends StatelessWidget {
           value: value,
           onChanged: onChanged,
           activeThumbColor: Colors.white,
-          activeTrackColor: AppColors.terracotta,
+          activeTrackColor: primary,
         ),
       ],
     );
@@ -1546,7 +1571,7 @@ class _ToggleRow extends StatelessWidget {
 }
 
 // =============================================================================
-// 9. Form field — label above outlined input with optional helper text
+// Form field
 // =============================================================================
 class _FormField extends StatelessWidget {
   const _FormField({
@@ -1559,6 +1584,7 @@ class _FormField extends StatelessWidget {
     this.minLines,
     this.maxLines = 1,
     this.helper,
+    this.onChanged,
   });
 
   final TextEditingController controller;
@@ -1570,9 +1596,11 @@ class _FormField extends StatelessWidget {
   final int? minLines;
   final int? maxLines;
   final String? helper;
+  final ValueChanged<String>? onChanged;
 
   @override
   Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
     final border = OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
       borderSide: const BorderSide(color: _outline, width: 1),
@@ -1585,7 +1613,8 @@ class _FormField extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 6, left: 2),
           child: Text(
             label,
-            style: TextStyle(fontFamily: AppFonts.seller, 
+            style: const TextStyle(
+              fontFamily: AppFonts.seller,
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: _grey,
@@ -1599,8 +1628,10 @@ class _FormField extends StatelessWidget {
           inputFormatters: inputFormatters,
           minLines: minLines,
           maxLines: maxLines,
-          cursorColor: AppColors.terracotta,
-          style: TextStyle(fontFamily: AppFonts.seller, 
+          cursorColor: primary,
+          onChanged: onChanged,
+          style: const TextStyle(
+            fontFamily: AppFonts.seller,
             fontSize: 14,
             fontWeight: FontWeight.w600,
             color: _ink,
@@ -1613,13 +1644,15 @@ class _FormField extends StatelessWidget {
               vertical: 14,
             ),
             hintText: hint,
-            hintStyle: TextStyle(fontFamily: AppFonts.seller, 
+            hintStyle: const TextStyle(
+              fontFamily: AppFonts.seller,
               fontSize: 14,
               fontWeight: FontWeight.w500,
               color: _greyMid,
             ),
             suffixText: suffix,
-            suffixStyle: TextStyle(fontFamily: AppFonts.seller, 
+            suffixStyle: const TextStyle(
+              fontFamily: AppFonts.seller,
               fontSize: 12,
               fontWeight: FontWeight.w700,
               color: _greyMid,
@@ -1631,10 +1664,7 @@ class _FormField extends StatelessWidget {
             enabledBorder: border,
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(
-                color: AppColors.terracotta,
-                width: 1.4,
-              ),
+              borderSide: BorderSide(color: primary, width: 1.4),
             ),
           ),
         ),
@@ -1643,7 +1673,8 @@ class _FormField extends StatelessWidget {
             padding: const EdgeInsets.only(top: 6, left: 2),
             child: Text(
               helper!,
-              style: TextStyle(fontFamily: AppFonts.seller, 
+              style: const TextStyle(
+                fontFamily: AppFonts.seller,
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
                 color: _grey,
@@ -1657,15 +1688,50 @@ class _FormField extends StatelessWidget {
 }
 
 // =============================================================================
-// 10. Bottom bar — fixed terracotta save button with safe-area + top divider
+// SKU footer + Save bar + tariff blocked view
 // =============================================================================
-class _SaveBottomBar extends StatelessWidget {
-  const _SaveBottomBar({required this.onSave});
+class _SkuFooter extends StatelessWidget {
+  const _SkuFooter({required this.sku});
+  final String sku;
 
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Row(
+        children: [
+          const Icon(Iconsax.barcode, size: 14, color: _greyMid),
+          const SizedBox(width: 6),
+          Text(
+            'SKU: $sku',
+            style: const TextStyle(
+              fontFamily: AppFonts.seller,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: _greyMid,
+              letterSpacing: 0.2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SaveBottomBar extends StatelessWidget {
+  const _SaveBottomBar({
+    required this.enabled,
+    required this.busy,
+    required this.onSave,
+  });
+
+  final bool enabled;
+  final bool busy;
   final VoidCallback onSave;
 
   @override
   Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -1685,20 +1751,32 @@ class _SaveBottomBar extends StatelessWidget {
             height: 54,
             width: double.infinity,
             child: FilledButton(
-              onPressed: onSave,
+              onPressed: enabled && !busy ? onSave : null,
               style: FilledButton.styleFrom(
-                backgroundColor: AppColors.terracotta,
+                backgroundColor: primary,
                 foregroundColor: Colors.white,
+                disabledBackgroundColor: primary.withValues(alpha: 0.4),
+                disabledForegroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
-                textStyle: TextStyle(fontFamily: AppFonts.seller, 
+                textStyle: const TextStyle(
+                  fontFamily: AppFonts.seller,
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -0.1,
                 ),
               ),
-              child: const Text("Saqlash va e'lon qilish"),
+              child: busy
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.4,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text("Saqlash va e'lon qilish"),
             ),
           ),
         ),
@@ -1707,31 +1785,63 @@ class _SaveBottomBar extends StatelessWidget {
   }
 }
 
-// =============================================================================
-// 11. Picker bottom sheet — single-tap selector, reused for category + sub
-// =============================================================================
-class _PickerEntry<T> {
-  _PickerEntry({
-    required this.slug,
-    required this.label,
-    required this.icon,
-    required this.payload,
-  });
+class _TariffBlockedView extends StatelessWidget {
+  const _TariffBlockedView({required this.snapshot});
+  final TariffSnapshot? snapshot;
 
-  final String slug;
-  final String label;
-  final IconData icon;
-  final T payload;
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.lock_outline, color: primary, size: 40),
+            const SizedBox(height: 12),
+            const Text(
+              'Tarif chegarasi tugadi',
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: _ink,
+              ),
+            ),
+            if (snapshot != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                'Mahsulotlar: ${snapshot!.activeProductsCount} / '
+                '${snapshot!.plan.isUnlimited ? '∞' : snapshot!.plan.maxActiveProducts}',
+                style: const TextStyle(
+                  fontFamily: AppFonts.seller,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: _grey,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 }
 
-class _CategoryPickerSheet<T> extends StatelessWidget {
+// =============================================================================
+// Category picker sheet
+// =============================================================================
+class _CategoryPickerSheet extends StatelessWidget {
   const _CategoryPickerSheet({
     required this.title,
     required this.items,
+    required this.accent,
   });
 
   final String title;
-  final List<_PickerEntry<T>> items;
+  final List<CategoryModel> items;
+  final Color accent;
 
   @override
   Widget build(BuildContext context) {
@@ -1756,7 +1866,8 @@ class _CategoryPickerSheet<T> extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               title,
-              style: TextStyle(fontFamily: AppFonts.seller, 
+              style: const TextStyle(
+                fontFamily: AppFonts.seller,
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
                 color: _ink,
@@ -1770,7 +1881,10 @@ class _CategoryPickerSheet<T> extends StatelessWidget {
                 itemCount: items.length,
                 separatorBuilder: (_, _) =>
                     const Divider(height: 1, color: _divider),
-                itemBuilder: (_, i) => _PickerTile(entry: items[i]),
+                itemBuilder: (_, i) => _CategoryTile(
+                  category: items[i],
+                  accent: accent,
+                ),
               ),
             ),
           ],
@@ -1780,15 +1894,16 @@ class _CategoryPickerSheet<T> extends StatelessWidget {
   }
 }
 
-class _PickerTile<T> extends StatelessWidget {
-  const _PickerTile({required this.entry});
+class _CategoryTile extends StatelessWidget {
+  const _CategoryTile({required this.category, required this.accent});
 
-  final _PickerEntry<T> entry;
+  final CategoryModel category;
+  final Color accent;
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () => Navigator.of(context).pop(entry.payload),
+      onTap: () => Navigator.of(context).pop(category),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
         child: Row(
@@ -1797,21 +1912,18 @@ class _PickerTile<T> extends StatelessWidget {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: _terracottaTint,
+                color: accent.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(10),
               ),
               alignment: Alignment.center,
-              child: Icon(
-                entry.icon,
-                size: 18,
-                color: AppColors.terracotta,
-              ),
+              child: Icon(Iconsax.category, size: 18, color: accent),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                entry.label,
-                style: TextStyle(fontFamily: AppFonts.seller, 
+                category.name,
+                style: const TextStyle(
+                  fontFamily: AppFonts.seller,
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: _ink,
@@ -1832,7 +1944,7 @@ class _PickerTile<T> extends StatelessWidget {
 }
 
 // =============================================================================
-// 12. Number formatting — TextInputFormatter + helpers
+// Number formatting helpers
 // =============================================================================
 class _ThousandsSpaceFormatter extends TextInputFormatter {
   const _ThousandsSpaceFormatter();
@@ -1862,124 +1974,3 @@ String _formatThousands(int value) {
   }
   return value.isNegative ? '-${buf.toString()}' : buf.toString();
 }
-
-int _parseAmount(String text) {
-  final digits = text.replaceAll(RegExp(r'[^\d]'), '');
-  if (digits.isEmpty) return 0;
-  return int.tryParse(digits) ?? 0;
-}
-
-// =============================================================================
-// 13. Furniture taxonomy — mock category + sub-category data
-// =============================================================================
-@immutable
-class _FurnitureCategory {
-  const _FurnitureCategory({
-    required this.slug,
-    required this.label,
-    required this.icon,
-    required this.subs,
-  });
-
-  final String slug;
-  final String label;
-  final IconData icon;
-  final List<_SubCategory> subs;
-}
-
-@immutable
-class _SubCategory {
-  const _SubCategory({required this.slug, required this.label});
-
-  final String slug;
-  final String label;
-}
-
-const _kFurnitureCategories = <_FurnitureCategory>[
-  _FurnitureCategory(
-    slug: 'soft',
-    label: 'Yumshoq mebel',
-    icon: Iconsax.home_2,
-    subs: [
-      _SubCategory(slug: 'sofa', label: 'Divanlar'),
-      _SubCategory(slug: 'corner_sofa', label: 'Burchakli divanlar'),
-      _SubCategory(slug: 'armchair', label: 'Kreslolar'),
-      _SubCategory(slug: 'pouf', label: 'Pufiklar'),
-    ],
-  ),
-  _FurnitureCategory(
-    slug: 'tables_chairs',
-    label: 'Stol va stullar',
-    icon: Iconsax.element_3,
-    subs: [
-      _SubCategory(slug: 'dining_table', label: 'Yemak stoli'),
-      _SubCategory(slug: 'coffee_table', label: 'Jurnal stoli'),
-      _SubCategory(slug: 'chair', label: 'Stullar'),
-      _SubCategory(slug: 'bar_stool', label: 'Bar stullari'),
-    ],
-  ),
-  _FurnitureCategory(
-    slug: 'bedroom',
-    label: 'Yotoq xonasi',
-    icon: Iconsax.moon,
-    subs: [
-      _SubCategory(slug: 'bed', label: 'Krovatlar'),
-      _SubCategory(slug: 'wardrobe', label: 'Shkaflar'),
-      _SubCategory(slug: 'commode', label: 'Komodlar'),
-      _SubCategory(slug: 'nightstand', label: 'Tumbalar'),
-    ],
-  ),
-  _FurnitureCategory(
-    slug: 'kitchen',
-    label: 'Oshxona mebellari',
-    icon: Iconsax.cup,
-    subs: [
-      _SubCategory(slug: 'kitchen_set', label: 'Oshxona garnituri'),
-      _SubCategory(slug: 'kitchen_bar', label: 'Bar stoli'),
-      _SubCategory(slug: 'shelves', label: 'Polkalar'),
-    ],
-  ),
-];
-
-_FurnitureCategory? _categoryBySlug(String? slug) {
-  if (slug == null) return null;
-  for (final c in _kFurnitureCategories) {
-    if (c.slug == slug) return c;
-  }
-  return null;
-}
-
-_SubCategory? _subBySlug(_FurnitureCategory cat, String? slug) {
-  if (slug == null) return null;
-  for (final s in cat.subs) {
-    if (s.slug == slug) return s;
-  }
-  return null;
-}
-
-// =============================================================================
-// 14. Color swatch palette — used by `_ColorChip` in the specs section
-// =============================================================================
-@immutable
-class _ColorOption {
-  const _ColorOption({
-    required this.slug,
-    required this.label,
-    required this.swatch,
-  });
-
-  final String slug;
-  final String label;
-  final Color swatch;
-}
-
-const _kColors = <_ColorOption>[
-  _ColorOption(slug: 'white', label: 'Oq', swatch: Color(0xFFFFFFFF)),
-  _ColorOption(slug: 'black', label: 'Qora', swatch: Color(0xFF1D1D1D)),
-  _ColorOption(slug: 'grey', label: 'Kulrang', swatch: Color(0xFF9CA3AF)),
-  _ColorOption(slug: 'brown', label: 'Jigarrang', swatch: Color(0xFF8B5E3C)),
-  _ColorOption(slug: 'beige', label: 'Bej', swatch: Color(0xFFE9DCC4)),
-  _ColorOption(slug: 'green', label: 'Yashil', swatch: Color(0xFF4F7A52)),
-  _ColorOption(slug: 'blue', label: 'Ko\'k', swatch: Color(0xFF3B6CB5)),
-  _ColorOption(slug: 'yellow', label: 'Sariq', swatch: Color(0xFFE6C25C)),
-];

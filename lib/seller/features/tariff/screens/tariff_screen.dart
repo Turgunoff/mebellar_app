@@ -135,10 +135,10 @@ class _TariffBody extends StatelessWidget {
 
   final TariffState state;
 
-  Future<void> _onUpgrade(BuildContext context, TariffPlan plan) async {
+  Future<void> _onUpgrade(BuildContext context, SubscriptionPlan plan) async {
     final result = await showPaymentInstructionsSheet(
       context,
-      plan: plan,
+      plan: plan.asEnum,
       period: state.period,
     );
     if (result != null && context.mounted) {
@@ -153,6 +153,9 @@ class _TariffBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasPending = state.hasPending;
+    final plans = state.plans;
+    final currentPlanCode = state.currentPlan.code;
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
       physics: const BouncingScrollPhysics(
@@ -165,20 +168,19 @@ class _TariffBody extends StatelessWidget {
         ],
         _PeriodToggle(
           period: state.period,
-          onChanged: (p) => context
-              .read<TariffBloc>()
-              .add(TariffPeriodChanged(p)),
+          onChanged: (p) =>
+              context.read<TariffBloc>().add(TariffPeriodChanged(p)),
         ),
         const SizedBox(height: 20),
-        for (final plan in TariffPlan.values) ...[
+        for (var i = 0; i < plans.length; i++) ...[
           _PlanCard(
-            plan: plan,
+            plan: plans[i],
             period: state.period,
-            isCurrent: plan == state.currentPlan,
+            isCurrent: plans[i].code == currentPlanCode,
             isPending: hasPending,
-            onUpgrade: () => _onUpgrade(context, plan),
+            onUpgrade: () => _onUpgrade(context, plans[i]),
           ),
-          if (plan != TariffPlan.values.last) const SizedBox(height: 16),
+          if (i != plans.length - 1) const SizedBox(height: 16),
         ],
       ],
     );
@@ -395,14 +397,19 @@ class _PlanCard extends StatelessWidget {
     required this.onUpgrade,
   });
 
-  final TariffPlan plan;
+  final SubscriptionPlan plan;
   final BillingPeriod period;
   final bool isCurrent;
   final bool isPending;
   final VoidCallback onUpgrade;
 
-  bool get _isPro => plan == TariffPlan.pro;
-  bool get _isEnterprise => plan == TariffPlan.enterprise;
+  /// Terracotta border + ribbon are tied to the DB's `is_recommended` flag
+  /// so admins can move the spotlight to any plan without an app release.
+  bool get _isRecommended => plan.isRecommended;
+
+  /// Enterprise's dark-charcoal accent is purely cosmetic — keep it pinned
+  /// to the top tier (most expensive plan with unlimited products).
+  bool get _isEnterprise => plan.hasUnlimitedProducts;
 
   @override
   Widget build(BuildContext context) {
@@ -413,15 +420,15 @@ class _PlanCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
-            border: _isPro
+            border: _isRecommended
                 ? Border.all(color: AppColors.terracotta, width: 1.4)
                 : Border.all(color: _outline, width: 1),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(
-                  alpha: _isPro ? 0.08 : 0.05,
+                  alpha: _isRecommended ? 0.08 : 0.05,
                 ),
-                blurRadius: _isPro ? 20 : 14,
+                blurRadius: _isRecommended ? 20 : 14,
                 offset: const Offset(0, 6),
               ),
             ],
@@ -450,7 +457,7 @@ class _PlanCard extends StatelessWidget {
             ],
           ),
         ),
-        if (_isPro)
+        if (_isRecommended)
           Positioned(
             top: -10,
             right: 18,
@@ -471,7 +478,7 @@ class _PlanHeader extends StatelessWidget {
     required this.isEnterprise,
   });
 
-  final TariffPlan plan;
+  final SubscriptionPlan plan;
   final bool isCurrent;
   final bool isEnterprise;
 
@@ -495,8 +502,8 @@ class _PlanHeader extends StatelessWidget {
         ],
         Expanded(
           child: Text(
-            tr('tariff.plan.${plan.code}_label'),
-            style: TextStyle(fontFamily: AppFonts.seller, 
+            plan.name,
+            style: TextStyle(fontFamily: AppFonts.seller,
               fontSize: 20,
               fontWeight: FontWeight.w700,
               color: _ink,
@@ -609,7 +616,7 @@ class _RecommendedRibbon extends StatelessWidget {
 class _PriceRow extends StatelessWidget {
   const _PriceRow({required this.plan, required this.period});
 
-  final TariffPlan plan;
+  final SubscriptionPlan plan;
   final BillingPeriod period;
 
   @override
@@ -617,7 +624,7 @@ class _PriceRow extends StatelessWidget {
     if (plan.isFree) {
       return Text(
         tr('tariff.price_free'),
-        style: TextStyle(fontFamily: AppFonts.seller, 
+        style: TextStyle(fontFamily: AppFonts.seller,
           fontSize: 30,
           fontWeight: FontWeight.w800,
           color: _ink,
@@ -627,7 +634,7 @@ class _PriceRow extends StatelessWidget {
       );
     }
 
-    final price = plan.priceFor(period);
+    final price = plan.priceFor(period).toInt();
     final suffix = period == BillingPeriod.monthly
         ? '/ ${tr('tariff.month')}'
         : '/ ${tr('tariff.year')}';
@@ -692,62 +699,79 @@ class _PriceRow extends StatelessWidget {
 }
 
 // -----------------------------------------------------------------------------
-// 6d. Feature list — terracotta tick_circle icons + Jakarta body copy
+// 6d. Feature list — fully server-driven. The product/image limit lines are
+//     computed from the plan's caps; the rest of the bullets come straight
+//     from `subscription_plans.features_uz` / `features_ru`.
 // -----------------------------------------------------------------------------
 class _FeatureList extends StatelessWidget {
   const _FeatureList({required this.plan});
 
-  final TariffPlan plan;
+  final SubscriptionPlan plan;
 
+  /// Renders the product-cap row from the model. Unlimited (-1) falls back
+  /// to the i18n placeholder; capped tiers interpolate the integer cap.
   String _productLimitText() {
-    return plan.isUnlimited
+    return plan.hasUnlimitedProducts
         ? tr('tariff.feature_unlimited_products')
-        : tr('tariff.feature_products', args: ['${plan.maxActiveProducts}']);
+        : tr('tariff.feature_products', args: ['${plan.maxProducts}']);
   }
 
   @override
   Widget build(BuildContext context) {
-    final features = <String>[
-      _productLimitText(),
-      tr('tariff.feature_${plan.code}_1'),
-      tr('tariff.feature_${plan.code}_2'),
-      if (plan == TariffPlan.pro || plan == TariffPlan.enterprise)
-        tr('tariff.feature_${plan.code}_3'),
+    final lang = AppTranslations.instance.locale.languageCode;
+    final bullets = plan.featuresForLocale(lang);
+
+    // The Enterprise admin row ("Cheksiz mahsulot va xodimlar") already
+    // covers the product cap, so when products are unlimited we don't
+    // repeat it. Capped plans show the cap as the first row.
+    final lines = <String>[
+      if (!plan.hasUnlimitedProducts) _productLimitText(),
+      ...bullets,
     ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final text in features)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Padding(
-                  padding: EdgeInsets.only(top: 1),
-                  child: Icon(
-                    Iconsax.tick_circle,
-                    size: 18,
-                    color: AppColors.terracotta,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    text,
-                    style: TextStyle(fontFamily: AppFonts.seller, 
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: _ink,
-                      height: 1.35,
-                    ),
-                  ),
-                ),
-              ],
+        for (final text in lines) _FeatureRow(text: text),
+      ],
+    );
+  }
+}
+
+class _FeatureRow extends StatelessWidget {
+  const _FeatureRow({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 1),
+            child: Icon(
+              Iconsax.tick_circle,
+              size: 18,
+              color: AppColors.terracotta,
             ),
           ),
-      ],
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(fontFamily: AppFonts.seller,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: _ink,
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -765,7 +789,7 @@ class _PlanCta extends StatelessWidget {
     required this.onPressed,
   });
 
-  final TariffPlan plan;
+  final SubscriptionPlan plan;
   final bool isCurrent;
   final bool isPending;
   final bool isEnterprise;

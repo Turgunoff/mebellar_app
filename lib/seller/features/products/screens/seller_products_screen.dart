@@ -8,7 +8,6 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/models/seller_product.dart';
 import '../../../../shared/repositories/seller_product_repository.dart';
-import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/error_state.dart';
 import '../bloc/seller_products_bloc.dart';
 import '../widgets/product_status_chip.dart';
@@ -61,9 +60,9 @@ class _SellerProductsViewState extends State<_SellerProductsView> {
     super.dispose();
   }
 
-  void _openCreate(BuildContext context) {
+  Future<void> _openCreate(BuildContext context) async {
     final bloc = context.read<SellerProductsBloc>();
-    Navigator.of(context).push(
+    final created = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => BlocProvider.value(
           value: bloc,
@@ -71,23 +70,17 @@ class _SellerProductsViewState extends State<_SellerProductsView> {
         ),
       ),
     );
+    if (!mounted) return;
+    if (created == true) {
+      // Pull the catalog again so the just-created product shows up.
+      bloc.add(const SellerProductsRequested());
+    }
   }
 
-  void _openEdit(BuildContext context, SellerProduct product) {
-    final bloc = context.read<SellerProductsBloc>();
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => BlocProvider.value(
-          value: bloc,
-          child: ProductFormScreen(existing: product),
-        ),
-      ),
-    );
-  }
-
-  // Opens the customer-style preview of the seller's product. The preview's
-  // "Edit" CTA hands off to [_openEdit] via the [onEdit] callback, so the
-  // existing form flow is one tap away.
+  // Opens the customer-style preview of the seller's product. Edit support is
+  // re-enabled in a follow-up sprint — the add-product flow is the priority
+  // for this iteration, so the "Edit" CTA simply reopens the (single-variant)
+  // Add form for now.
   void _openPreview(BuildContext context, SellerProduct product) {
     final bloc = context.read<SellerProductsBloc>();
     Navigator.of(context).push(
@@ -97,7 +90,7 @@ class _SellerProductsViewState extends State<_SellerProductsView> {
           child: SellerProductDetailScreen(
             onEdit: () {
               Navigator.of(previewContext).pop();
-              _openEdit(context, product);
+              _openCreate(context);
             },
           ),
         ),
@@ -166,7 +159,11 @@ class _SellerProductsViewState extends State<_SellerProductsView> {
                                 state.filter.copyWith(statuses: const {}),
                               )),
                         ),
-                        for (final s in SellerProductStatus.values) ...[
+                        // Draft status is intentionally excluded: per Sprint 11
+                        // the product flow goes straight to pending_review on
+                        // submit, so sellers never see a "Qoralama" bucket.
+                        for (final s in SellerProductStatus.values.where(
+                            (s) => s != SellerProductStatus.draft)) ...[
                           const SizedBox(width: 8),
                           _StatusFilterChip(
                             label: tr('seller_product_status.${s.code}'),
@@ -208,13 +205,7 @@ class _SellerProductsViewState extends State<_SellerProductsView> {
                     .add(const SellerProductsRequested()),
               ),
             _ => visible.isEmpty
-                ? EmptyState(
-                    icon: Icons.inventory_2_outlined,
-                    title: tr('seller.products_empty'),
-                    message: tr('seller.products_empty_hint'),
-                    action: () => _openCreate(context),
-                    actionLabel: tr('seller.add_product'),
-                  )
+                ? _ProductsZeroState(onAdd: () => _openCreate(context))
                 : ListView.separated(
                     padding: const EdgeInsets.fromLTRB(20, 12, 20, 96),
                     itemCount: visible.length,
@@ -225,19 +216,22 @@ class _SellerProductsViewState extends State<_SellerProductsView> {
                     ),
                   ),
           },
+          // FAB color comes from the seller theme's `colorScheme.primary` so
+          // the "Mahsulot qo'shish" button stays on-brand (Deep Indigo) and
+          // can't drift into the customer terracotta accent again.
           floatingActionButton: FloatingActionButton.extended(
             onPressed: () => _openCreate(context),
-            backgroundColor: AppColors.terracotta,
-            foregroundColor: Colors.white,
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            foregroundColor: Theme.of(context).colorScheme.onPrimary,
             elevation: 4,
             highlightElevation: 6,
             icon: const Icon(Iconsax.add, size: 20),
             label: Text(
               tr('seller.add_product'),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.onPrimary,
                 letterSpacing: 0,
               ),
             ),
@@ -437,32 +431,17 @@ class _ProductTile extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          Text(
-                            "${priceFormat.format(product.price)} so'm",
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: _ink,
-                              letterSpacing: -0.2,
-                              height: 1.2,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            tr('seller.stock_label',
-                                args: ['${product.stock}']),
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: _grey,
-                              height: 1.2,
-                            ),
-                          ),
-                        ],
+                      // Stock is intentionally omitted: furniture is mostly
+                      // made-to-order, so seller list cards show price only.
+                      Text(
+                        "${priceFormat.format(product.price)} so'm",
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: _ink,
+                          letterSpacing: -0.2,
+                          height: 1.2,
+                        ),
                       ),
                       const SizedBox(height: 10),
                       Row(
@@ -518,6 +497,81 @@ class _ProductTile extends StatelessWidget {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// Zero-state — surfaces on first login (catalog empty). Uses the seller theme
+// primary tint so the empty inventory icon reads as on-brand instead of a
+// generic grey outline.
+// =============================================================================
+class _ProductsZeroState extends StatelessWidget {
+  const _ProductsZeroState({required this.onAdd});
+
+  final VoidCallback onAdd;
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 96),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 96,
+              height: 96,
+              decoration: BoxDecoration(
+                color: primary.withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: Icon(
+                Icons.inventory_2_outlined,
+                size: 44,
+                color: primary,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              tr('seller.products_empty'),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: _ink,
+                letterSpacing: -0.2,
+                height: 1.25,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              tr('seller.products_empty_hint'),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: _grey,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 24),
+            // FilledButton.icon(
+            //   onPressed: onAdd,
+            //   icon: const Icon(Iconsax.add, size: 18),
+            //   label: Text(tr('seller.add_product')),
+            //   style: FilledButton.styleFrom(
+            //     backgroundColor: primary,
+            //     foregroundColor: Theme.of(context).colorScheme.onPrimary,
+            //     padding:
+            //         const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            //   ),
+            // ),
+          ],
         ),
       ),
     );
