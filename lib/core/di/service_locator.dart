@@ -30,7 +30,6 @@ import '../../shared/mock/mock_order_repository.dart';
 import '../../shared/mock/mock_product_repository.dart';
 import '../../shared/mock/mock_region_repository.dart';
 import '../../shared/mock/mock_regions.dart';
-import '../../shared/mock/mock_seller_dashboard_repository.dart';
 import '../../shared/mock/mock_seller_onboarding_repository.dart';
 import '../../shared/repositories/supabase_seller_onboarding_repository.dart';
 import '../../shared/mock/mock_seller_order_repository.dart';
@@ -62,6 +61,8 @@ import '../../shared/repositories/order_repository.dart';
 import '../../shared/repositories/product_repository.dart';
 import '../../shared/repositories/region_repository.dart';
 import '../../shared/repositories/seller_dashboard_repository.dart';
+import '../../shared/repositories/supabase_seller_dashboard_repository.dart';
+import '../../seller/features/dashboard/bloc/seller_dashboard_cubit.dart';
 import '../../shared/repositories/seller_onboarding_repository.dart';
 import '../../shared/repositories/seller_order_repository.dart';
 import '../../shared/repositories/seller_product_repository.dart';
@@ -316,10 +317,12 @@ Future<void> initRootScope() async {
     sl.registerLazySingleton<SellerProductRepository>(
       MockSellerProductRepository.new,
     );
+    // Dashboard is intentionally NOT mocked — we want every build (even
+    // the mock-flagged dev builds) to read live shop/product/order data so
+    // the empty-state experience is exercised by default. Requires Supabase
+    // to be registered at root scope.
     sl.registerLazySingleton<SellerDashboardRepository>(
-      () => MockSellerDashboardRepository(
-        productRepo: sl<SellerProductRepository>() as MockSellerProductRepository,
-      ),
+      () => SupabaseSellerDashboardRepository(sl<SupabaseClient>()),
     );
     sl.registerLazySingleton<SellerOrderRepository>(
       MockSellerOrderRepository.new,
@@ -405,7 +408,7 @@ Future<void> initRootScope() async {
       () => RemoteSellerProductRepository(sl<Dio>()),
     );
     sl.registerLazySingleton<SellerDashboardRepository>(
-      () => RemoteSellerDashboardRepository(sl<Dio>()),
+      () => SupabaseSellerDashboardRepository(sl<SupabaseClient>()),
     );
     sl.registerLazySingleton<SellerOrderRepository>(
       () => RemoteSellerOrderRepository(sl<Dio>()),
@@ -490,6 +493,9 @@ void _registerSellerDependencies() {
       sl.isRegistered<SupabaseClient>() ? sl<SupabaseClient>() : null,
     ),
     dispose: (svc) => svc.dispose(),
+  );
+  sl.registerFactory<SellerDashboardCubit>(
+    () => SellerDashboardCubit(sl<SellerDashboardRepository>()),
   );
   // Sprint 7+: seller BLoC factories (DashboardBloc, SellerProductsBloc, ...)
   // land here.

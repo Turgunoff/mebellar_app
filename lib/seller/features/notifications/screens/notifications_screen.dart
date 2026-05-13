@@ -151,6 +151,11 @@ class _NotificationsViewState extends State<_NotificationsView> {
         backgroundColor: AppColors.lightBackground,
         elevation: 0,
         scrolledUnderElevation: 0,
+        // titleSpacing 0 + the smaller font reclaim room for the long
+        // "Hammasini o'qildi" action button. Without these tweaks the
+        // Uzbek title "Bildirishnomalar" (15 chars) gets ellipsis'd to
+        // "Bildirishnom..." next to the action.
+        titleSpacing: 0,
         leading: IconButton(
           icon: const Icon(
             Icons.arrow_back_ios_new_rounded,
@@ -161,13 +166,15 @@ class _NotificationsViewState extends State<_NotificationsView> {
         ),
         title: Text(
           tr('notifications.title'),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           // fontFamily intentionally omitted — seller theme pins Plus
           // Jakarta Sans on every TextStyle, see seller_theme.dart.
           style: const TextStyle(
-            fontSize: 20,
+            fontSize: 17,
             fontWeight: FontWeight.w700,
             color: _ink,
-            letterSpacing: -0.3,
+            letterSpacing: -0.2,
           ),
         ),
         actions: [
