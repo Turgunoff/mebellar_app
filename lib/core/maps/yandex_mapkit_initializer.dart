@@ -7,12 +7,15 @@ import 'package:geolocator/geolocator.dart';
 ///
 /// Initialization is split between the two platforms:
 ///
-/// - **Android**: `MapKitFactory.setApiKey` starts a `LocationSubscription`
-///   the moment it runs. Calling it at app boot before the user grants
-///   `ACCESS_FINE_LOCATION` floods logcat with `SecurityException`s on every
-///   cold start, so we defer it to here and request the permission first.
-///   The `com.mebellar.app/yandex_mapkit` MethodChannel handler in
-///   `MainActivity.kt` does the actual `setApiKey` call.
+/// - **Android**: the `yandex_mapkit` plugin calls
+///   `MapKitFactory.getInstance().onStart()` from its `onAttachedToActivity`,
+///   which runs at app boot (inside `GeneratedPluginRegistrant`). `onStart()`
+///   spins up Yandex's `LocationSubscription`, so before the user grants
+///   `ACCESS_FINE_LOCATION` it floods logcat with `SecurityException`s on
+///   every cold start. `MainActivity.kt` therefore calls `onStop()` straight
+///   after boot and re-runs `onStart()` only when this initializer invokes
+///   the `init` method on the `com.mebellar.app/yandex_mapkit` channel —
+///   after the permission prompt below.
 ///
 /// - **iOS**: `SwiftYandexMapkitPlugin.register(with:)` eagerly resolves
 ///   `YMKMapKit.mapKit` during plugin registration and crashes the

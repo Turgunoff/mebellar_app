@@ -1,265 +1,312 @@
-# Mebellar V2 — Flutter App
+# MEBELLAR APP — Two-Sided Furniture Marketplace (Flutter)
 
-> Two-sided mebel marketplace mobile app — bitta loyihada **customer** va **seller** rejimlari, `flutter_phoenix` orqali restart pattern bilan mode switch.
+> Internal codename: **Woody** (`pubspec.yaml` → `name: woody_app`). Brand: **Mebellar** — Uzbekistan-focused mebel (furniture) marketplace.
 
-[![Flutter](https://img.shields.io/badge/Flutter-3.41-02569B?logo=flutter)](https://flutter.dev)
-[![Dart](https://img.shields.io/badge/Dart-3.11-0175C2?logo=dart)](https://dart.dev)
-[![Status](https://img.shields.io/badge/Status-V1%20MVP%20development-yellow)]()
-[![Backend](https://img.shields.io/badge/Backend-FastAPI-009688?logo=fastapi)](../backend)
+[![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter)](https://flutter.dev)
+[![Dart](https://img.shields.io/badge/Dart-^3.11.5-0175C2?logo=dart)](https://dart.dev)
+[![Backend](https://img.shields.io/badge/Backend-Supabase-3ECF8E?logo=supabase)](https://supabase.com)
+[![Status](https://img.shields.io/badge/Status-Pre--release%20MVP-orange)]()
 
-## Tezkor navigatsiya
+---
 
-| Hujjat | Maqsad |
-|--------|--------|
-| [`docs/README.md`](./docs/README.md) | Mobile hujjatlari indeksi (16 fayl) |
-| [`docs/00-overview.md`](./docs/00-overview.md) | Loyiha umumiy ko'rinishi va mobile arxitekturasi |
-| [`docs/02-dual-entry-mode-switching.md`](./docs/02-dual-entry-mode-switching.md) | Dual entry-point, scoped DI, mode switch |
-| [`docs/05-notifications-deep-linking.md`](./docs/05-notifications-deep-linking.md) | Cross-mode push notification handling |
-| [`docs/07-api-reference.md`](./docs/07-api-reference.md) | Backend API kontrakti |
-| [`ROADMAP.md`](./ROADMAP.md) | Sprint-by-sprint amaliy reja |
-| [`../ROADMAP.md`](../ROADMAP.md) | Master timeline (backend bilan sinxron) |
+## 1. Purpose & Business Logic
 
-## Mebellar nima
+Mebellar is a **two-sided B2C/C2C marketplace** for furniture (`mebel`) targeting the Uzbekistan market. The app is a single Flutter binary that hosts **two independent product surfaces** — a buyer-facing storefront and a seller-facing back-office — switchable at runtime without re-installing.
 
-Mebellar — O'zbekistondagi mebel marketplace platformasi. Ikki tomonli (two-sided):
+### Business pillars
 
-- **Customer** — xaridor: catalog, search, cart, checkout, order tracking
-- **Seller** — sotuvchi: shop, mahsulot CRUD, order fulfillment, dashboard, tariff
+| Pillar | Description |
+| --- | --- |
+| **Catalog discovery** | Multi-level categories, search, banners, premium home blocks (`customer/features/home`, `catalog`, `search`). |
+| **Two-sided onboarding** | Buyers sign up with email/password; sellers go through a separate onboarding + KYC verification flow (`seller/features/onboarding`, `verification`). |
+| **Order fulfillment** | Customers place orders, sellers fulfill them; both sides see realtime status changes via Supabase Realtime CDC (`customer/features/orders`, `seller/features/orders`). |
+| **Monetization** | Sellers subscribe to tariff plans (`seller/features/tariff`), upgrade via in-app P2P payment flow. |
+| **Engagement** | Cross-mode push notifications (FCM topics for broadcasts, per-token personal pings) drive return visits. |
 
-V1 hech qaysi store'ga chiqarilmagan, shuning uchun **greenfield rewrite**.
+### Why a single binary instead of two apps?
 
-## Asosiy arxitektura xususiyatlari
+- One Flutter codebase, one Supabase project, one auth identity per user.
+- A user can be both a buyer and a seller — the runtime mode switch (`AppModeCubit` + `flutter_phoenix`) keeps the same Supabase session while swapping the entire DI scope, theme, router, and bottom-nav.
+- Reduces ASO/store-listing duplication: ships as `uz.mebellar.app` / `com.mebellar.app` on both platforms.
 
-- **Dual entry-point** — bitta loyiha, ikkita `MaterialApp` (`CustomerApp`, `SellerApp`)
-- **Scoped DI** (`get_it` + scope pattern) — root scope (Hive, Supabase, Dio) + mode scope (BLoC, realtime channels) — memory leak'siz mode switch
-- **`flutter_phoenix`** — widget tree restart, `main()` qayta chaqirilmaydi (scope manipulyatsiya rebirth'dan oldin)
-- **Cross-mode notification handling** — pending route Hive'ga saqlanadi, mode switch'dan keyin consume qilinadi
-- **Multilingual** — `easy_localization` (uz/ru/en) + backend JSONB
-- **Realtime** — Supabase Postgres CDC (orders status updates, yangi orderlar)
+---
 
-Tafsilotlar: [`docs/`](./docs/) ichida 16 fayl.
+## 2. Customer & Seller Modules
 
-## Stack
+The two product surfaces live side-by-side under `lib/customer/` and `lib/seller/`. They are **never both active at the same time** — the active `AppMode` (persisted in Hive under key `app_mode`) chooses which `MaterialApp` is mounted.
 
-| Layer | Texnologiya |
-|-------|-------------|
-| Framework | Flutter 3.41+, Dart 3.11+ |
-| State | `flutter_bloc` |
-| Routing | `go_router` (har AppMode uchun alohida router) |
-| DI | `get_it` + scope pattern |
-| HTTP | `dio` (Bearer token interceptor) |
-| Auth | `supabase_flutter` (email/password) |
-| Realtime | Supabase Realtime (Postgres CDC) |
-| Local storage | `hive_flutter` (settings, cache) |
-| Secure storage | `flutter_secure_storage` (refresh tokens) |
-| Push | `onesignal_flutter` |
-| App restart | `flutter_phoenix` |
-| Localization | `easy_localization` |
-| Image | `image_picker`, `image`, `cached_network_image` |
-| Monitoring | `sentry_flutter` |
+### Customer module — `lib/customer/`
 
-## Joriy holat
+| Feature | Path | Status |
+| --- | --- | --- |
+| Home (banners, premium blocks) | `features/home/` | Live (Supabase + mocks) |
+| Catalog / categories | `features/catalog/`, `features/categories/` | Live |
+| Product list (per category) | `features/product_list/` | Live (Supabase) |
+| Product detail | `features/product_detail/` | Live |
+| Search | `features/search/` | Live |
+| Favorites | `features/favorites/` | Hybrid (Hive + Supabase) |
+| Cart | `features/cart/` | Hybrid (Hive + Supabase) |
+| Checkout (incl. Yandex map address picker) | `features/checkout/` | Live |
+| Orders + tracking | `features/orders/` | Live (Supabase Realtime) |
+| Profile + addresses | `features/profile/` | Live |
+| Notifications inbox | `features/notifications/` | Live (Supabase Realtime) |
+| Onboarding tutorial | `features/tutorial/` | Gated via Hive flag |
+| Broadcast news | `features/broadcasts/` | Read-state in Hive |
 
-V1 implementatsiyasi **boshlanish bosqichida**. Hozirgi `lib/` papkasida demo skeleton bor (boshlanish kodi). Sprint plan asosida bosqichma-bosqich kengaytiriladi.
+**Customer shell:** `customer/customer_app.dart` (`CustomerApp` — `MaterialApp.router` + `GoRouter`) with `CustomerHomeShell` and a `GlassBottomNav`.
 
-Rejani [`ROADMAP.md`](./ROADMAP.md) faylda ko'ring.
+### Seller module — `lib/seller/`
 
-## Loyiha tuzilmasi (V2 maqsad)
+| Feature | Path | Status |
+| --- | --- | --- |
+| Onboarding (multi-step) | `features/onboarding/` | Live |
+| KYC verification (passport upload) | `features/verification/` | Live |
+| Dashboard (metrics) | `features/dashboard/` | Live (Supabase) |
+| Product CRUD (6-step form) | `features/products/` | Live |
+| Orders fulfillment | `features/orders/` | Mock-backed |
+| Shop settings (hours, services) | `features/settings/` | Mock-backed |
+| Tariff upgrade (P2P pay) | `features/tariff/` | Mock + live plan catalog |
+| Analytics | `features/analytics/` | Mock |
+| Reviews | `features/reviews/` | Mock |
+| Notifications inbox | `features/notifications/` | Live (Supabase Realtime) |
+
+**Seller shell:** `seller/seller_app.dart` (`SellerApp` — traditional `MaterialApp` + `onGenerateRoute`) with `SellerHomeShell` and `SellerBottomNav`.
+
+### How they interact
 
 ```
-lib/
-├── main.dart                  # bootstrap + mode detection + cold-start notif
-├── core/                      # SHARED — root scope dependencies
-│   ├── di/
-│   ├── network/               # Dio, Supabase client
-│   ├── storage/               # Hive boxes, secure storage
-│   ├── auth/                  # AuthRepository, TokenManager
-│   ├── theme/                 # customer + seller themes
-│   ├── localization/
-│   ├── notifications/         # cross-mode handler
-│   ├── widgets/
-│   └── utils/
-├── shared/                    # SHARED domain models & repositories
-│   ├── models/
-│   ├── repositories/
-│   └── widgets/
-├── customer/
-│   ├── customer_app.dart      # MaterialApp + GoRouter (customer)
-│   ├── router.dart
-│   ├── features/              # home, catalog, product_detail, cart, checkout, orders, ...
-│   └── widgets/
-├── seller/
-│   ├── seller_app.dart        # MaterialApp + GoRouter (seller)
-│   ├── router.dart
-│   ├── features/              # onboarding, dashboard, products, orders, analytics, tariff, ...
-│   └── widgets/
-└── auth/                      # SHARED auth screens (login, register, ...)
+                    ┌─────────────────────┐
+                    │  AppModeCubit       │  ← persists in Hive
+                    │  (root-scoped)      │
+                    └──────────┬──────────┘
+                               │ emits new AppMode
+                               ▼
+              ┌────────────────────────────────┐
+              │  Phoenix-wrapped BlocListener  │
+              └──────────┬─────────────────────┘
+                         │ popScope() + initModeScope(mode)
+                         │ + Phoenix.rebirth(context)
+                         ▼
+        ┌───────────────────────────────────────────┐
+        │  _ModeRouter (rebuilt under new key)      │
+        │  switch (getInitialMode()) {              │
+        │    AppMode.customer => CustomerApp(),     │
+        │    AppMode.seller   => SellerApp(),       │
+        │  }                                        │
+        └───────────────────────────────────────────┘
 ```
 
-Tafsilot: [`docs/01-project-structure.md`](./docs/01-project-structure.md).
+Cross-cutting state survives the swap:
 
-## Boshlash
+- `AuthCubit` (Supabase session) — root-scoped, same user identity in both modes.
+- `NotificationsCubit` — root-scoped intentionally, so a Realtime push that arrives during a mode swap is not lost.
+- Hive boxes (`settings`, `cache`, `pendingRoute`, `onboardingDraft`, `favorites`, `cart`, `newsReads`) — opened in root scope.
 
-### Talab qilinadi
+A push notification tapped in the wrong mode stashes its route in `pending_route` Hive box, the mode flips, Phoenix rebirths, then the new shell consumes the pending route on the first frame.
 
-- Flutter 3.41+ (`flutter --version`)
-- Dart 3.11+
-- Xcode 15+ (iOS uchun)
-- Android Studio + SDK 34+ (Android uchun)
-- Backend ishga tushgan bo'lishi shart — [`../backend/README.md`](../backend/README.md)
+---
 
-### O'rnatish
+## 3. Tech Stack
+
+### Runtime
+
+| Layer | Choice | Version |
+| --- | --- | --- |
+| Framework | Flutter | `^3.11.5` SDK constraint |
+| Language | Dart | `^3.11.5` |
+| Flutter channel (`.metadata`) | `stable` @ `cc0734ac71` | — |
+| Min Android SDK | 21 | (Android 5.0+) |
+| iOS bundle | `com.mebellar.app` | — |
+| Android bundle | `uz.mebellar.app` / `com.mebellar.app` | — |
+
+### Dependencies (from `pubspec.yaml`)
+
+| Concern | Package | Version |
+| --- | --- | --- |
+| State management | `flutter_bloc` | `^9.0.0` |
+| DI | `get_it` | `^8.0.0` |
+| Value equality | `equatable` | `^2.0.7` |
+| Routing (customer) | `go_router` | `^14.6.0` |
+| HTTP | `dio` | `^5.7.0` |
+| HTTP (secondary) | `http` | `^1.2.2` |
+| Backend (auth, DB, Realtime, Storage) | `supabase_flutter` | `^2.8.0` |
+| Firebase core | `firebase_core` | `^3.6.0` |
+| Push messaging | `firebase_messaging` | `^15.1.3` |
+| Local notifications (foreground display) | `flutter_local_notifications` | `^18.0.1` |
+| Local storage | `hive` + `hive_flutter` | `^2.2.3` / `^1.1.0` |
+| Secure storage | `flutter_secure_storage` | `^9.2.0` |
+| Runtime restart | `flutter_phoenix` | `^1.1.1` |
+| Localization helpers | `intl` | `^0.20.2` |
+| Image cache | `cached_network_image` | `^3.4.1` |
+| Image picker / compress / decode | `image_picker`, `flutter_image_compress`, `image` | `^1.1.2` / `^2.3.0` / `^4.3.0` |
+| SVG | `flutter_svg` | `^2.0.10` |
+| Loading shimmer | `shimmer` | `^3.0.0` |
+| Icons | `iconsax_flutter` | `^1.0.0` |
+| Masonry grid | `flutter_staggered_grid_view` | `^0.7.0` |
+| Charts | `fl_chart` | `^0.69.0` |
+| URL launcher | `url_launcher` | `^6.3.1` |
+| Maps | `yandex_mapkit` | `^4.2.1` |
+| Geolocation | `geolocator` | `^13.0.2` |
+| Permissions | `permission_handler` | `^11.4.0` |
+| Phone mask | `mask_text_input_formatter` | `^2.9.0` |
+| Logging | `talker_flutter` | `^5.1.16` |
+| Connectivity link | `connectivity_plus` | `^6.1.0` |
+| Connectivity reachability | `internet_connection_checker_plus` | `^2.5.2` |
+
+### Dev tooling
+
+| Tool | Package |
+| --- | --- |
+| Linting | `flutter_lints ^6.0.0` |
+| BLoC tests | `bloc_test ^10.0.0` |
+| Mocks | `mocktail ^1.0.4` |
+| Native splash | `flutter_native_splash ^2.4.4` |
+| Launcher icons | `flutter_launcher_icons ^0.14.1` |
+
+### Fonts (bundled — Google Fonts package removed)
+
+`Inter`, `Manrope`, `PlayfairDisplay`, `PlusJakartaSans` — all weights `400–800` shipped as TTFs under `assets/google_fonts/` and registered natively in `pubspec.yaml`. This allows Shorebird code-push to ship copy edits OTA.
+
+### What is NOT in the stack (despite older docs claiming otherwise)
+
+- ❌ `easy_localization` — replaced by hand-rolled `lib/core/i18n/` translations.
+- ❌ `onesignal_flutter` — replaced by `firebase_messaging` + FCM.
+- ❌ `sentry_flutter` — no crash reporting wired (uses `talker_flutter` for in-app logging only).
+- ❌ `google_fonts` package — fonts bundled as native assets.
+- ❌ Shorebird code-push — referenced in comments but not yet integrated.
+
+> See `BUGS_AND_ISSUES.md` for the documentation drift list.
+
+---
+
+## 4. Project Status
+
+- **Greenfield rewrite** — V1 was never shipped to either store.
+- **MVP under construction.** Customer flows are largely Supabase-backed; seller flows (orders, shop settings, services, tariff) still rely on mock repositories.
+- **`USE_MOCKS=true`** is the default in `env/dev.json`; flipping to `false` in `env/prod.json` exposes the actual Supabase RLS surface.
+- Approx. **53,000 lines of Dart** under `lib/` across 200+ files.
+
+---
+
+## 5. Setup
+
+### Prerequisites
+
+- Flutter `3.11+` (run `flutter --version`)
+- Dart `3.11+`
+- Android SDK 21+ / Xcode 15+
+- A Supabase project (URL + anon key) and a Firebase project (FCM enabled)
+
+### Clone & install
 
 ```bash
-git clone <repo-url>
-cd Mebellar-olami/app
+git clone <repo-url> mebellar_new
+cd mebellar_new/mebellar_app
 flutter pub get
 ```
 
-### Ishga tushirish (V2 — kelajakda)
+### Environment configuration
 
-V2 implementatsiyasi tugagandan keyin environment fayllar bilan:
+The app reads configuration via `--dart-define-from-file=env/<env>.json`. Two starter files exist:
+
+- `env/dev.json` — `USE_MOCKS: true`, default Supabase URL/key
+- `env/prod.json` — `USE_MOCKS: false`, same Supabase URL/key
+
+> ⚠️ **These files are currently committed and contain real credentials.** See `BUGS_AND_ISSUES.md` §1 for the remediation plan. Replace with `*.local.json` (already covered by `env/.gitignore`) before continuing.
+
+### Running
 
 ```bash
-# Dev (local backend + local Supabase)
+# Dev (mocks ON)
 flutter run --dart-define-from-file=env/dev.json
 
-# Staging
-flutter run --dart-define-from-file=env/staging.json
-
-# Production
+# Prod-like (Supabase live, mocks OFF)
 flutter run --dart-define-from-file=env/prod.json
 ```
 
-`env/dev.json` misoli:
-
-```json
-{
-  "SUPABASE_URL": "http://127.0.0.1:54321",
-  "SUPABASE_ANON_KEY": "...",
-  "API_BASE_URL": "http://127.0.0.1:8000/api/v1",
-  "ONESIGNAL_APP_ID": "...",
-  "SENTRY_DSN": ""
-}
-```
-
-> `env/*.json` fayllar `.gitignore`'da. `env/example.json` saqlash mumkin.
-
-### Hozirgi demo'ni ishga tushirish
+### Build
 
 ```bash
-flutter pub get
-flutter run
-```
-
-Demo Backend `/api/products` endpoint'idan mahsulot ro'yxatini fetch qiladi. Backend ishga tushgan bo'lishi shart (`../backend/run.sh`).
-
-API URL konfiguratsiyasi (`lib/main.dart`'dagi `defaultApiBaseUrl()`):
-
-| Platforma | URL |
-|-----------|-----|
-| Android emulator | `http://10.0.2.2:8000` (host loopback) |
-| iOS simulator / macOS / web | `http://127.0.0.1:8000` |
-| Real qurilma | Kompyuter local IP (masalan `http://192.168.1.50:8000`) |
-
-## Test
-
-```bash
-flutter test                              # widget + unit tests
-flutter test test/widget_test.dart        # alohida fayl
-flutter test --coverage                   # coverage hisoboti
-```
-
-## Lint va format
-
-```bash
-flutter analyze                           # static analysis
-dart format lib/ test/                    # auto-format
-```
-
-`analysis_options.yaml` strict rules bilan sozlangan.
-
-## Build
-
-```bash
-# Android (debug)
-flutter build apk
-
-# Android release (obfuscated, symbols Sentry uchun)
+# Android APK (release, obfuscated)
 flutter build apk --release \
-  --obfuscate \
-  --split-debug-info=build/symbols/
+  --obfuscate --split-debug-info=build/symbols/ \
+  --dart-define-from-file=env/prod.json
 
-# iOS (release, Apple Developer account kerak)
+# Android App Bundle (Play Store)
+flutter build appbundle --release \
+  --obfuscate --split-debug-info=build/symbols/ \
+  --dart-define-from-file=env/prod.json
+
+# iOS IPA
 flutter build ipa --release \
-  --obfuscate \
-  --split-debug-info=build/symbols/
-
-# Bundle size analiz
-flutter build apk --analyze-size
+  --obfuscate --split-debug-info=build/symbols/ \
+  --dart-define-from-file=env/prod.json
 ```
 
-## Bundle ID
+### Generate launcher icons / native splash
 
-| Platforma | ID |
-|-----------|-----|
-| iOS | `uz.mebellar.app` |
-| Android | `uz.mebellar.app` |
+```bash
+dart run flutter_launcher_icons
+dart run flutter_native_splash:create
+```
 
-## Roadmap
+### Test
 
-V1 implementatsiyasi 12 sprint (~3 oy optimistik / 6 oy realistik solo dev). Tafsilot:
+```bash
+flutter test                 # only 5 BLoC tests currently exist
+flutter test --coverage
+flutter analyze              # uses analysis_options.yaml
+dart format lib/ test/
+```
 
-- [`ROADMAP.md`](./ROADMAP.md) — Flutter sprint plan
-- [`../ROADMAP.md`](../ROADMAP.md) — Master timeline (backend bilan sinxron)
+---
 
-Asosiy bosqichlar:
+## 6. High-Level Folder Map
 
-| Sprint | Maqsad |
-|--------|--------|
-| 0 | Apple/Google account, design assets |
-| 1 | Mobile skeleton + auth + GET /me |
-| 2 | Mode switching + DI |
-| 3 | Customer home + catalog |
-| 4 | Product detail + cart |
-| 5 | Checkout + orders + realtime |
-| 6 | Seller onboarding + verification |
-| 7 | Seller dashboard + products |
-| 8 | Seller orders + shop settings |
-| 9 | Tariff upgrade UX (P2P payment) |
-| 10 | Cross-mode notifications |
-| 11 | Polish + QA |
-| 12 | Launch prep (App Store + Play Store) |
+```
+mebellar_app/
+├── android/                  # native Android (incl. google-services.json)
+├── ios/                      # native iOS (incl. GoogleService-Info.plist)
+├── assets/
+│   ├── google_fonts/         # bundled TTFs (replaces google_fonts pkg)
+│   └── logo/                 # brand assets for launcher / splash
+├── docs/                     # legacy in-Uzbek docs (16 files)
+├── env/
+│   ├── dev.json              # ⚠ committed; contains secrets
+│   └── prod.json             # ⚠ committed; contains secrets
+├── lib/
+│   ├── main.dart             # bootstrap, Firebase init, Phoenix-wrapped mode router
+│   ├── firebase_options.dart # generated; Android + iOS FCM keys hardcoded
+│   ├── config/               # AppConfig + AppMode enum
+│   ├── core/                 # shared infra (DI, auth, network, i18n, theme, …)
+│   ├── shared/               # cross-mode domain (models, repos, mocks, widgets)
+│   ├── auth/                 # shared login/register/verify screens
+│   ├── customer/             # customer surface (features/, services/, widgets/)
+│   └── seller/               # seller surface (features/, services/, widgets/)
+├── store/                    # Play Store listing + privacy policy
+├── test/                     # 5 BLoC tests
+└── pubspec.yaml
+```
 
-## Hujjatlar
+For the deep dive, see [`ARCHITECTURE.md`](./ARCHITECTURE.md).
 
-[`docs/`](./docs/) ichida 16 fayl — har biri bitta amaliy mavzuga bag'ishlangan. Boshlanish: [`docs/README.md`](./docs/README.md).
+---
 
-| # | Mavzu |
-|---|-------|
-| 00 | Overview |
-| 01 | Project structure |
-| 02 | Dual entry & mode switching |
-| 03 | Deferred components |
-| 04 | Realtime (Supabase) |
-| 05 | Notifications & deep linking |
-| 06 | Auth flow |
-| 07 | API reference |
-| 08 | Customer features |
-| 09 | Seller features |
-| 10 | Tariff upgrade UX |
-| 11 | Storage & image upload |
-| 12 | Localization |
-| 13 | Security |
-| 14 | Roadmap phases |
-| 15 | Glossary & open questions |
+## 7. Companion Documentation
 
-## Litsenziya
+| File | Scope |
+| --- | --- |
+| [`ARCHITECTURE.md`](./ARCHITECTURE.md) | System design, Firebase vs Supabase split, DI scopes, routing, state |
+| [`BUGS_AND_ISSUES.md`](./BUGS_AND_ISSUES.md) | Security, anti-patterns, broken logic, documentation drift |
+| [`REFACTORING.md`](./REFACTORING.md) | SOLID/DRY violations, files to split, scalability levers |
+| [`ROADMAP.md`](./ROADMAP.md) | Short / mid / long-term action plan to ship V1 |
+| [`docs/`](./docs/) | Legacy in-Uzbek deep-dives (still useful for historic context) |
 
-Private project — litsenziya hali tanlanmagan.
+---
 
-## Bog'lanish
+## 8. Maintainer
 
-Loyiha muallifi: [Eldor Turg'unov](https://github.com/eldor-eshniyazov)
+- Lead developer: **Eldor Turg'unov** (`Turgunoff`)
+- Internal codename remains `woody_app` in `pubspec.yaml`; brand-facing identifier is `uz.mebellar.app` / `com.mebellar.app`.
 
-Texnik savollar uchun: GitHub Issues (kelajakda) yoki Telegram.
+> The project is private and has no open-source license selected yet.

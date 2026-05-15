@@ -43,7 +43,10 @@
       "Bash(xargs cat)",
       "mcp__supabase__list_projects",
       "Bash(git *)",
-      "mcp__dart__dart_format"
+      "mcp__dart__dart_format",
+      "Bash(powershell -Command \"Get-ChildItem -Path lib -Directory | Select-Object Name\")",
+      "Bash(grep *)",
+      "Bash(powershell -Command \"Get-ChildItem -Recurse -Filter '*.dart' -Path lib | Get-Content | Measure-Object -Line\")"
     ]
   },
   "enableAllProjectMcpServers": true,

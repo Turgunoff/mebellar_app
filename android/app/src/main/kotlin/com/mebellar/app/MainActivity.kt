@@ -6,6 +6,10 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
+    // True once a map screen has asked us to boot Yandex MapKit. Keeps the
+    // 'init' channel call idempotent.
+    private var mapKitStarted = false
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         // Must run before super: YandexMapkitPlugin.onAttachedToEngine (called
         // by GeneratedPluginRegistrant inside super) calls
@@ -16,12 +20,30 @@ class MainActivity : FlutterActivity() {
 
         super.configureFlutterEngine(flutterEngine)
 
-        // Keep the MethodChannel so Dart-side YandexMapKitInitializer still
-        // compiles; the actual key was already set above, so this is a no-op.
+        // The yandex_mapkit plugin's onAttachedToActivity (run inside super)
+        // unconditionally calls MapKitFactory.getInstance().onStart(). That
+        // boots Yandex's location subscriptions the instant the app launches —
+        // before any map screen exists and before ACCESS_FINE_LOCATION is
+        // granted — which floods logcat with SecurityExceptions on every cold
+        // start. Stop it right back; the map screen restarts MapKit on demand
+        // through the 'init' channel call below.
+        MapKitFactory.getInstance().onStop()
+
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, MAPKIT_CHANNEL)
             .setMethodCallHandler { call, result ->
                 when (call.method) {
-                    "init" -> result.success(null)
+                    // Called by Dart's YandexMapKitInitializer right before a
+                    // YandexMap widget mounts (after the location permission
+                    // prompt). This is the only place MapKit is actually
+                    // started, so location services stay off until a map is
+                    // genuinely needed.
+                    "init" -> {
+                        if (!mapKitStarted) {
+                            MapKitFactory.getInstance().onStart()
+                            mapKitStarted = true
+                        }
+                        result.success(null)
+                    }
                     else -> result.notImplemented()
                 }
             }
