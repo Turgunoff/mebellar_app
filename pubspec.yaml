@@ -110,6 +110,10 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  # End-to-end happy-path test harness (ROADMAP B.5). Runs from
+  # `integration_test/` via `flutter test integration_test` on a device.
+  integration_test:
+    sdk: flutter
   flutter_lints: ^6.0.0
   bloc_test: ^10.0.0
   mocktail: ^1.0.4

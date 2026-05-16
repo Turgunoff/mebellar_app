@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_phoenix/flutter_phoenix.dart';
@@ -26,7 +27,11 @@ import 'firebase_options.dart';
 import 'seller/seller_app.dart';
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  // Sentry's binding (a WidgetsFlutterBinding subclass) must be the one that
+  // gets instantiated first, otherwise FramesTrackingIntegration disables
+  // itself ("incompatible binding"). It powers Sentry's UI frame-drop / jank
+  // tracking, so install it here in place of the plain binding.
+  SentryWidgetsFlutterBinding.ensureInitialized();
 
   // Fail fast: a build launched with no env file has empty Supabase / Yandex
   // credentials — abort here, loudly, rather than silently running blank.
@@ -45,7 +50,11 @@ Future<void> main() async {
       options.dsn = AppConfig.sentryDsn;
       options.environment = AppConfig.environment;
       options.tracesSampleRate = AppConfig.isProd ? 0.2 : 1.0;
-      options.debug = !AppConfig.isProd;
+      // Sentry's own diagnostic logging follows the build mode, not the
+      // environment: a debug build (even on the prod env) prints transport
+      // logs to the console so issues are visible locally; release builds
+      // stay quiet.
+      options.debug = kDebugMode;
     },
     appRunner: _bootstrapAndRun,
   );
@@ -70,6 +79,17 @@ Future<void> _bootstrapAndRun() async {
     ),
   );
   talker.info('App boot started');
+
+  // TEMP — Sentry connectivity check. Sends one test event to confirm the
+  // DSN/transport works end-to-end. Run once, verify it lands on the Sentry
+  // dashboard, then delete this block. Debug-only so release never sends it.
+  if (kDebugMode) {
+    final eventId = await Sentry.captureMessage(
+      'Sentry connectivity test — ${DateTime.now().toIso8601String()}',
+      level: SentryLevel.info,
+    );
+    talker.info('[Sentry] test event sent, id: $eventId');
+  }
 
   // Boot Firebase before the DI scope so PushService can be registered with
   // a live FirebaseMessaging.instance. The background handler must be
