@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:hive/hive.dart';
+import 'package:woody_app/core/logging/talker.dart';
 
 import '../models/cart.dart';
 import '../models/cart_item.dart';
@@ -105,7 +106,8 @@ class HiveCartRepository implements CartRepository {
           try {
             final raw = jsonDecode(jsonStr) as Map<String, dynamic>;
             return CartItemModel.fromJson(raw);
-          } catch (_) {
+          } catch (e, st) {
+            talker.handle(e, st, 'HiveCart.currentItems: corrupt row');
             return null;
           }
         })
@@ -134,7 +136,8 @@ class HiveCartRepository implements CartRepository {
           quantity: (existing.quantity + qtyClamped).clamp(1, 99),
         );
         store[product.id] = jsonEncode(next.toHiveJson());
-      } catch (_) {
+      } catch (e, st) {
+        talker.handle(e, st, 'HiveCart.addProduct: re-seeding corrupt row');
         store[product.id] = jsonEncode(
           CartItemModel.fromProduct(product, quantity: qtyClamped)
               .toHiveJson(),
@@ -167,7 +170,8 @@ class HiveCartRepository implements CartRepository {
         store[productId] = jsonEncode(
           current.copyWith(quantity: newQuantity.clamp(1, 99)).toHiveJson(),
         );
-      } catch (_) {
+      } catch (e, st) {
+        talker.handle(e, st, 'HiveCart.updateProductQuantity: corrupt row');
         store.remove(productId);
       }
     }
@@ -214,7 +218,9 @@ class HiveCartRepository implements CartRepository {
             .toHiveJson(),
       );
       await _writeStore(store);
-    } catch (_) {/* ignore */}
+    } catch (e, st) {
+      talker.handle(e, st, 'HiveCart.addItem: corrupt row');
+    }
     return _legacyCart;
   }
 

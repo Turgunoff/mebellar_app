@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:woody_app/core/logging/talker.dart';
 
 import '../models/product.dart';
 import 'favorites_repository.dart';
@@ -73,7 +74,9 @@ class SupabaseFavoritesRepository implements FavoritesRepository {
       if (snapshot is Map<String, dynamic>) {
         try {
           products.add(Product.fromJson({...snapshot, 'is_favorite': true}));
-        } catch (_) {}
+        } catch (e, st) {
+          talker.handle(e, st, 'SupabaseFavorites.list: corrupt snapshot');
+        }
       }
     }
 

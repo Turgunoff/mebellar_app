@@ -1,9 +1,11 @@
 ﻿import 'package:woody_app/core/i18n/i18n.dart';
+import 'package:woody_app/core/logging/talker.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/auth/auth_repository.dart';
 import '../core/di/service_locator.dart';
+import 'auth_error_messages.dart';
 import 'widgets/auth_scaffold.dart';
 
 class VerifyEmailScreen extends StatefulWidget {
@@ -27,10 +29,11 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(tr('auth.email_resent'))),
       );
-    } on AuthException catch (e) {
+    } on AuthException catch (e, st) {
+      talker.handle(e, st, 'verify_email: resend failed');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
+        SnackBar(content: Text(authErrorMessage(e))),
       );
     } finally {
       if (mounted) setState(() => _busy = false);

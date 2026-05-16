@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:woody_app/core/logging/talker.dart';
 
 import '../models/address.dart';
 import '../models/dashboard_snapshot.dart';
@@ -97,7 +98,8 @@ class SupabaseSellerDashboardRepository implements SellerDashboardRepository {
         shopName: _trimOrNull(shopRow?['name'] as String?),
         sellerName: _trimOrNull(sellerRow?['legal_name'] as String?),
       );
-    } catch (_) {
+    } catch (e, st) {
+      talker.handle(e, st, 'SellerDashboard.fetchShopInfo');
       return const SellerShopInfo();
     }
   }
@@ -126,7 +128,8 @@ class SupabaseSellerDashboardRepository implements SellerDashboardRepository {
           .eq('seller_id', userId)
           .maybeSingle();
       return row?['id'] as String?;
-    } catch (_) {
+    } catch (e, st) {
+      talker.handle(e, st, 'SellerDashboard._fetchShopId');
       return null;
     }
   }
@@ -139,7 +142,8 @@ class SupabaseSellerDashboardRepository implements SellerDashboardRepository {
           .select('id')
           .eq('shop_id', shopId);
       return rows.length;
-    } catch (_) {
+    } catch (e, st) {
+      talker.handle(e, st, 'SellerDashboard._safeCountProducts');
       return 0;
     }
   }
@@ -149,7 +153,8 @@ class SupabaseSellerDashboardRepository implements SellerDashboardRepository {
     try {
       final rows = await _todaysOrderRows(shopId, columns: 'id');
       return rows.length;
-    } catch (_) {
+    } catch (e, st) {
+      talker.handle(e, st, 'SellerDashboard._safeCountTodaysOrders');
       return 0;
     }
   }
@@ -163,7 +168,8 @@ class SupabaseSellerDashboardRepository implements SellerDashboardRepository {
         0,
         (sum, r) => sum + ((r['total_amount'] as num?) ?? 0),
       );
-    } catch (_) {
+    } catch (e, st) {
+      talker.handle(e, st, 'SellerDashboard._safeSumTodaysRevenue');
       return 0;
     }
   }
@@ -179,7 +185,8 @@ class SupabaseSellerDashboardRepository implements SellerDashboardRepository {
           .inFilter('id', orderIds)
           .eq('status', OrderStatus.pending.code);
       return rows.length;
-    } catch (_) {
+    } catch (e, st) {
+      talker.handle(e, st, 'SellerDashboard._safeCountPendingOrders');
       return 0;
     }
   }
@@ -196,7 +203,8 @@ class SupabaseSellerDashboardRepository implements SellerDashboardRepository {
           .order('created_at', ascending: false)
           .limit(5);
       return rows.map<Order>(_minimalOrderFromRow).toList();
-    } catch (_) {
+    } catch (e, st) {
+      talker.handle(e, st, 'SellerDashboard._safeRecentOrders');
       return const [];
     }
   }

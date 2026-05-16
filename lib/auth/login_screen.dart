@@ -1,9 +1,11 @@
 ﻿import 'package:woody_app/core/i18n/i18n.dart';
+import 'package:woody_app/core/logging/talker.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/auth/auth_repository.dart';
 import '../core/di/service_locator.dart';
+import 'auth_error_messages.dart';
 import 'forgot_password_screen.dart';
 import 'register_screen.dart';
 import 'verify_email_screen.dart';
@@ -48,22 +50,35 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       if (!repo.isEmailConfirmed) {
         if (!mounted) return;
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => VerifyEmailScreen(email: _email.text.trim()),
-          ),
-        );
+        _goToVerifyEmail();
         return;
       }
       if (!mounted) return;
       Navigator.of(context).pop(true);
-    } on AuthException catch (e) {
-      _showError(e.message);
-    } catch (_) {
-      _showError(tr('error.unknown'));
+    } on AuthException catch (e, st) {
+      // An unverified-email rejection is not a dead end — route the user
+      // straight to the resend screen rather than showing a snackbar.
+      if (isEmailNotConfirmed(e)) {
+        talker.handle(e, st, 'login: email not confirmed');
+        if (mounted) _goToVerifyEmail();
+        return;
+      }
+      talker.handle(e, st, 'login: signIn failed');
+      _showError(authErrorMessage(e));
+    } catch (e, st) {
+      talker.handle(e, st, 'login: signIn failed');
+      _showError(authErrorMessage(e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  void _goToVerifyEmail() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => VerifyEmailScreen(email: _email.text.trim()),
+      ),
+    );
   }
 
   void _showError(String message) {

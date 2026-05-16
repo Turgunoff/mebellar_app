@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
+import 'package:woody_app/core/logging/talker.dart';
 
 import '../models/cart.dart';
 import '../models/cart_item_model.dart';
@@ -67,7 +68,9 @@ class HybridCartRepository implements CartRepository {
       // receive a fresh snapshot for the new auth context.
       try {
         await _delegate.fetchItems();
-      } catch (_) {/* ignore — best effort */}
+      } catch (e, st) {
+        talker.handle(e, st, 'HybridCart: post-auth refetch failed');
+      }
     });
   }
 

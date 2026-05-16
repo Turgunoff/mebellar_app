@@ -2,6 +2,25 @@
 
 > Asl §11 mobile parts. Backend qism: `backend/docs/11-security.md`.
 
+> **⚠️ Archived & cross-checked (2026-05) against `BUGS_AND_ISSUES.md` §1 and
+> the current code — known drift in this file:**
+> - **§5 / §9** assume Sentry is unwired. Crash reporting is **now live**:
+>   `sentry_flutter` + `SentryTalkerObserver` forward `talker` errors to Sentry
+>   (ROADMAP A.3). There is no `Logger(filter:)` / `ProductionFilter` type.
+> - **§7** describes **OneSignal**. The app uses `firebase_messaging` (FCM) —
+>   OneSignal was removed; push permission is requested via `PushService`.
+> - **§10** lists `ONESIGNAL_APP_ID` and a hardcoded `apiBaseUrl` default at
+>   `lib/core/config/app_config.dart`. The real file is `lib/config/app_config.dart`
+>   and it ships **no** credential default — missing required keys abort boot
+>   via `AppConfig.assertConfigured()` (ROADMAP A.1).
+> - Not flagged here nor in `BUGS_AND_ISSUES.md` §1: a Firebase **Admin SDK**
+>   service-account private key was found committed at the repo root — rotate
+>   it and keep it out of the app repo.
+> - Still accurate: §1 token storage, §3 network security, §4 deep links,
+>   §9 obfuscation.
+>
+> Current security issue list: root **`BUGS_AND_ISSUES.md` §1**.
+
 ## 1. Token storage
 
 Supabase SDK avtomatik:

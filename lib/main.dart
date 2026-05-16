@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_phoenix/flutter_phoenix.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'config/app_config.dart';
 import 'config/app_mode.dart';
 import 'core/auth/app_mode_cubit.dart';
 import 'core/auth/auth_cubit.dart';
@@ -24,6 +26,29 @@ import 'seller/seller_app.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Fail fast: a build launched with no env file has empty Supabase / Yandex
+  // credentials — abort here, loudly, rather than silently running blank.
+  AppConfig.assertConfigured();
+
+  // Sentry wraps the whole app in an error-capturing zone. An empty
+  // SENTRY_DSN leaves the SDK initialised-but-disabled; Talker errors are
+  // additionally forwarded to Sentry via SentryTalkerObserver.
+  await SentryFlutter.init(
+    (options) {
+      options.dsn = AppConfig.sentryDsn;
+      options.environment = AppConfig.environment;
+      options.tracesSampleRate = AppConfig.isProd ? 0.2 : 1.0;
+      options.debug = !AppConfig.isProd;
+    },
+    appRunner: _bootstrapAndRun,
+  );
+}
+
+/// Boots every subsystem and mounts the widget tree. Runs inside the Sentry
+/// zone (via `SentryFlutter.init`'s `appRunner`) so uncaught errors during
+/// startup are still captured.
+Future<void> _bootstrapAndRun() async {
   // The default Flutter overlay style on iOS leaves the status bar with
   // light icons, which become invisible on the app's light splash and
   // background. Set a dark-icon default at boot; per-theme appBarTheme

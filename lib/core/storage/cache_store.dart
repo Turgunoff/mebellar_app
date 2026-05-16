@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:hive_flutter/hive_flutter.dart';
 
+import 'package:woody_app/core/logging/talker.dart';
+
 /// Thin wrapper over the root-scope Hive `cache` box. Repositories use it as
 /// a write-through cache so the offline banner has something to render
 /// against when the API is unreachable. Keys are namespaced by repository
@@ -45,7 +47,8 @@ class CacheStore {
     }
     try {
       return parse(jsonDecode(raw));
-    } catch (_) {
+    } catch (e, st) {
+      talker.handle(e, st, 'CacheStore: corrupt entry "$key"');
       _box.delete(key);
       _box.delete('$key$_ttlSuffix');
       return null;

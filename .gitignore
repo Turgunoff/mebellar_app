@@ -49,3 +49,11 @@ app.*.map.json
 # woody-*-firebase-adminsdk-*.json
 # *-firebase-adminsdk-*.json
 # serviceAccountKey.json
+
+# # Environment / secrets — every env file is ignored except the committed
+# # template. dev.json / prod.json were un-tracked via `git rm --cached`;
+# # real keys now live only in untracked env files (see env/example.json).
+# /env/dev.json
+# /env/prod.json
+# /env/*.json
+# !env/example.json

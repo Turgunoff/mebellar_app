@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_fonts.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
+import 'package:woody_app/config/app_config.dart';
+import 'package:woody_app/core/widgets/coming_soon_beta_widget.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import 'order_details_screen.dart';
@@ -28,6 +30,11 @@ class SellerOrdersScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // ROADMAP A.2 — the orders surface is mock-only; hide it behind the
+    // fulfillment flag so a release build never shows fake orders.
+    if (!AppConfig.sellerFulfillmentEnabled) {
+      return const ComingSoonBetaWidget();
+    }
     return DefaultTabController(
       length: 4,
       child: ColoredBox(

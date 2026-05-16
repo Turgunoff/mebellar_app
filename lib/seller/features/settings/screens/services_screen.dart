@@ -4,6 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_fonts.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
+import 'package:woody_app/config/app_config.dart';
+import 'package:woody_app/core/widgets/coming_soon_beta_widget.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -27,6 +29,11 @@ class SellerServicesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // ROADMAP A.2 — seller services is mock-only; show a placeholder instead
+    // of wiring the mock bloc when the fulfillment flag is off.
+    if (!AppConfig.sellerFulfillmentEnabled) {
+      return ComingSoonBetaWidget(title: tr('services.title'));
+    }
     return BlocProvider(
       create: (_) => ServicesBloc(sl<SellerServicesRepository>())
         ..add(const ServicesRequested()),

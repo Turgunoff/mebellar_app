@@ -313,9 +313,14 @@ Future<void> initRootScope() async {
               findRegionById: MockRegions.findById,
             ),
     );
-    sl.registerLazySingleton<SellerVerificationRepository>(
-      MockSellerVerificationRepository.new,
-    );
+    // ROADMAP A.2 — seller KYC verification is mock-only; register it only
+    // when the fulfillment feature flag is on (default off) so a release
+    // build can never surface a fake verification state.
+    if (AppConfig.sellerFulfillmentEnabled) {
+      sl.registerLazySingleton<SellerVerificationRepository>(
+        MockSellerVerificationRepository.new,
+      );
+    }
     // Seller products: prefer Supabase when the client is registered so the
     // Sprint 11 "Made-to-Order" schema (no stock, no draft) is exercised on
     // every mock-flagged dev build too. The mock impl stays as fallback for
@@ -341,15 +346,20 @@ Future<void> initRootScope() async {
     sl.registerLazySingleton<SellerDashboardRepository>(
       () => SupabaseSellerDashboardRepository(sl<SupabaseClient>()),
     );
-    sl.registerLazySingleton<SellerOrderRepository>(
-      MockSellerOrderRepository.new,
-    );
-    sl.registerLazySingleton<ShopSettingsRepository>(
-      MockShopSettingsRepository.new,
-    );
-    sl.registerLazySingleton<SellerServicesRepository>(
-      MockSellerServicesRepository.new,
-    );
+    // ROADMAP A.2 — orders / shop-settings / seller-services stay mock-only
+    // until their Supabase repositories ship (ROADMAP B.1). Gated behind the
+    // fulfillment flag so a production build never wires fake data.
+    if (AppConfig.sellerFulfillmentEnabled) {
+      sl.registerLazySingleton<SellerOrderRepository>(
+        MockSellerOrderRepository.new,
+      );
+      sl.registerLazySingleton<ShopSettingsRepository>(
+        MockShopSettingsRepository.new,
+      );
+      sl.registerLazySingleton<SellerServicesRepository>(
+        MockSellerServicesRepository.new,
+      );
+    }
     // Mock for upgrade/payment flow, but the plan catalog reads live from
     // Supabase so the tariff cards are fully server-driven (prices, limits,
     // feature bullets, recommended ribbon).
@@ -426,9 +436,13 @@ Future<void> initRootScope() async {
               findRegionById: (id) => null,
             ),
     );
-    sl.registerLazySingleton<SellerVerificationRepository>(
-      () => RemoteSellerVerificationRepository(sl<Dio>()),
-    );
+    // ROADMAP A.2 — gated identically to the mock branch; the remote KYC
+    // endpoint isn't live yet either.
+    if (AppConfig.sellerFulfillmentEnabled) {
+      sl.registerLazySingleton<SellerVerificationRepository>(
+        () => RemoteSellerVerificationRepository(sl<Dio>()),
+      );
+    }
     sl.registerLazySingleton<SellerProductRepository>(
       () => sl.isRegistered<SupabaseClient>()
           ? SupabaseSellerProductRepository(supabase: sl<SupabaseClient>())
@@ -442,15 +456,19 @@ Future<void> initRootScope() async {
     sl.registerLazySingleton<SellerDashboardRepository>(
       () => SupabaseSellerDashboardRepository(sl<SupabaseClient>()),
     );
-    sl.registerLazySingleton<SellerOrderRepository>(
-      () => RemoteSellerOrderRepository(sl<Dio>()),
-    );
-    sl.registerLazySingleton<ShopSettingsRepository>(
-      () => RemoteShopSettingsRepository(sl<Dio>()),
-    );
-    sl.registerLazySingleton<SellerServicesRepository>(
-      () => RemoteSellerServicesRepository(sl<Dio>()),
-    );
+    // ROADMAP A.2 — gated identically to the mock branch; these remote
+    // fulfillment endpoints aren't live yet.
+    if (AppConfig.sellerFulfillmentEnabled) {
+      sl.registerLazySingleton<SellerOrderRepository>(
+        () => RemoteSellerOrderRepository(sl<Dio>()),
+      );
+      sl.registerLazySingleton<ShopSettingsRepository>(
+        () => RemoteShopSettingsRepository(sl<Dio>()),
+      );
+      sl.registerLazySingleton<SellerServicesRepository>(
+        () => RemoteSellerServicesRepository(sl<Dio>()),
+      );
+    }
     sl.registerLazySingleton<TariffRepository>(
       () => RemoteTariffRepository(sl<Dio>()),
     );

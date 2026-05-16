@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:hive/hive.dart';
+import 'package:woody_app/core/logging/talker.dart';
 
 import '../models/product.dart';
 import 'favorites_repository.dart';
@@ -74,7 +75,8 @@ class HiveFavoritesRepository implements FavoritesRepository {
           try {
             final raw = jsonDecode(jsonStr) as Map<String, dynamic>;
             return Product.fromJson(raw);
-          } catch (_) {
+          } catch (e, st) {
+            talker.handle(e, st, 'HiveFavorites.list: corrupt row');
             return null;
           }
         })

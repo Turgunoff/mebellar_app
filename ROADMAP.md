@@ -29,9 +29,9 @@ The three horizons:
   !env/example.json
   ```
 - [ ] Commit `env/example.json` with placeholder shape.
-- [ ] Remove `defaultValue` strings from `lib/config/app_config.dart` — fail fast if env vars missing.
+- [x] Remove `defaultValue` strings from `lib/config/app_config.dart` — fail fast if env vars missing.
 - [ ] Set up a private dev Supabase project; populate `env/dev.local.json` (gitignored) with separate keys.
-- [ ] Document the new flow in `README.md`.
+- [x] Document the new flow in `README.md`.
 - [ ] Spot-check decompiled APK to confirm the old keys are gone.
 
 **Acceptance** — `flutter build apk` with **no** env file fails loudly. Decompiled release APK contains no readable Supabase/Yandex URL or key strings.
@@ -44,10 +44,10 @@ The three horizons:
 
 **Tasks**
 
-- [ ] Add `AppConfig.sellerFulfillmentEnabled` (default `false`).
-- [ ] In `service_locator.dart`, register the mock-backed seller repos only when the flag is on.
-- [ ] When the flag is off, swap the affected seller screens for a "Coming soon — beta" placeholder.
-- [ ] Same treatment for `shop_settings`, `seller_services`, `seller_verification` until their backends ship.
+- [x] Add `AppConfig.sellerFulfillmentEnabled` (default `false`).
+- [x] In `service_locator.dart`, register the mock-backed seller repos only when the flag is on.
+- [x] When the flag is off, swap the affected seller screens for a "Coming soon — beta" placeholder.
+- [x] Same treatment for `shop_settings`, `seller_services`, `seller_verification` until their backends ship.
 
 **Acceptance** — Running with `env/prod.json` does not surface mock data anywhere. Beta sellers see a clear "feature coming soon" instead of fake orders.
 
@@ -59,12 +59,12 @@ The three horizons:
 
 **Tasks**
 
-- [ ] Replace every `catch (_)` in `lib/auth/*.dart`, `lib/core/`, and `lib/shared/repositories/` with `catch (e, st) { talker.handle(e, st, '<ctx>'); }`.
-- [ ] Add Sentry (or Firebase Crashlytics — pick one):
+- [x] Replace every `catch (_)` in `lib/auth/*.dart`, `lib/core/`, and `lib/shared/repositories/` with `catch (e, st) { talker.handle(e, st, '<ctx>'); }`.
+- [x] Add Sentry (or Firebase Crashlytics — pick one):
   - `sentry_flutter` ^8.x with DSN injected via `--dart-define`.
   - Wire `talker_flutter` → Sentry adapter.
-- [ ] Surface user-facing errors via the existing `NetworkOverlayWrapper` / scaffold snackbars.
-- [ ] Map known Supabase `AuthException` codes (`email_not_confirmed`, `invalid_credentials`, `over_email_send_rate_limit`) to localised user messages.
+- [x] Surface user-facing errors via the existing `NetworkOverlayWrapper` / scaffold snackbars.
+- [x] Map known Supabase `AuthException` codes (`email_not_confirmed`, `invalid_credentials`, `over_email_send_rate_limit`) to localised user messages.
 
 **Acceptance** — A forced auth error appears both as a user toast in the app and as a structured event in Sentry within 10 seconds.
 
@@ -78,9 +78,9 @@ Already covered by A.1 — kept here as a separate review checkpoint to ensure t
 
 **Tasks**
 
-- [ ] Move `docs/` → `docs/legacy/` with a top-of-folder note: *"These predate the firebase_messaging / hand-rolled-i18n stack and may be inaccurate."*
-- [ ] Update `docs/README.md` to point at the new root docs.
-- [ ] Cross-check `docs/13-security.md` against the new `BUGS_AND_ISSUES.md` and either delete or update.
+- [x] Move `docs/` → `docs/legacy/` with a top-of-folder note: *"These predate the firebase_messaging / hand-rolled-i18n stack and may be inaccurate."*
+- [x] Update `docs/README.md` to point at the new root docs.
+- [x] Cross-check `docs/13-security.md` against the new `BUGS_AND_ISSUES.md` and either delete or update.
 
 **Acceptance** — A new contributor reading top-level docs encounters no contradictions.
 
@@ -90,9 +90,9 @@ Already covered by A.1 — kept here as a separate review checkpoint to ensure t
 
 Subset of A.3 worth highlighting:
 
-- [ ] `login_screen.dart` — distinguish "wrong password" vs "no internet" vs "email not verified".
-- [ ] `register_screen.dart` — surface "email already in use".
-- [ ] `forgot_password_screen.dart` — show success state even when Supabase rate-limits (per OWASP guidance, don't reveal whether the email exists).
+- [x] `login_screen.dart` — distinguish "wrong password" vs "no internet" vs "email not verified".
+- [x] `register_screen.dart` — surface "email already in use".
+- [x] `forgot_password_screen.dart` — show success state even when Supabase rate-limits (per OWASP guidance, don't reveal whether the email exists).
 
 **Acceptance** — A manual matrix test of 6 scenarios (good/bad credentials, no network, rate-limited, unverified, duplicate) produces a sensible message for each.
 

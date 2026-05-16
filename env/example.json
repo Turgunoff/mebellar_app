@@ -1,0 +1,10 @@
+{
+  "APP_ENV": "dev",
+  "API_BASE_URL": "https://YOUR-PROJECT-REF.supabase.co/functions/v1",
+  "USE_MOCKS": true,
+  "SELLER_FULFILLMENT_ENABLED": false,
+  "SUPABASE_URL": "",
+  "SUPABASE_ANON_KEY": "",
+  "SENTRY_DSN": "",
+  "YANDEX_GEOCODER_API_KEY": ""
+}

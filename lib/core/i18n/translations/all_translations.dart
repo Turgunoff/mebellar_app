@@ -5,6 +5,7 @@
 
 import 'address_translations.dart';
 import 'auth_translations.dart';
+import 'beta_translations.dart';
 import 'cart_translations.dart';
 import 'catalog_translations.dart';
 import 'checkout_translations.dart';
@@ -26,6 +27,7 @@ import 'tutorial_translations.dart';
 const Map<String, dynamic> uzTranslations = {
   'common': commonUz,
   'auth': authUz,
+  'beta': betaUz,
   'mode': modeUz,
   'home': homeUz,
   'catalog': catalogUz,
@@ -66,6 +68,7 @@ const Map<String, dynamic> uzTranslations = {
 const Map<String, dynamic> ruTranslations = {
   'common': commonRu,
   'auth': authRu,
+  'beta': betaRu,
   'mode': modeRu,
   'home': homeRu,
   'catalog': catalogRu,
@@ -106,6 +109,7 @@ const Map<String, dynamic> ruTranslations = {
 const Map<String, dynamic> enTranslations = {
   'common': commonEn,
   'auth': authEn,
+  'beta': betaEn,
   'mode': modeEn,
   'home': homeEn,
   'catalog': catalogEn,

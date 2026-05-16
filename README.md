@@ -150,6 +150,7 @@ A push notification tapped in the wrong mode stashes its route in `pending_route
 | Permissions | `permission_handler` | `^11.4.0` |
 | Phone mask | `mask_text_input_formatter` | `^2.9.0` |
 | Logging | `talker_flutter` | `^5.1.16` |
+| Crash reporting | `sentry_flutter` | `^8.0.0` |
 | Connectivity link | `connectivity_plus` | `^6.1.0` |
 | Connectivity reachability | `internet_connection_checker_plus` | `^2.5.2` |
 
@@ -171,7 +172,6 @@ A push notification tapped in the wrong mode stashes its route in `pending_route
 
 - ❌ `easy_localization` — replaced by hand-rolled `lib/core/i18n/` translations.
 - ❌ `onesignal_flutter` — replaced by `firebase_messaging` + FCM.
-- ❌ `sentry_flutter` — no crash reporting wired (uses `talker_flutter` for in-app logging only).
 - ❌ `google_fonts` package — fonts bundled as native assets.
 - ❌ Shorebird code-push — referenced in comments but not yet integrated.
 
@@ -207,12 +207,34 @@ flutter pub get
 
 ### Environment configuration
 
-The app reads configuration via `--dart-define-from-file=env/<env>.json`. Two starter files exist:
+All configuration is passed via `--dart-define-from-file=env/<env>.json`.
+**No credential has a compiled-in default.** `AppConfig.assertConfigured()`
+runs at the top of `main()` and aborts the app on launch if a required key is
+missing — a build with no env file fails loudly instead of silently running
+against blank credentials.
 
-- `env/dev.json` — `USE_MOCKS: true`, default Supabase URL/key
-- `env/prod.json` — `USE_MOCKS: false`, same Supabase URL/key
+| File | Purpose |
+| --- | --- |
+| `env/example.json` | Committed template — full key shape, secret values blank. Copy it to make a new env file. |
+| `env/dev.json` | Local development (`USE_MOCKS: true`). |
+| `env/prod.json` | Release builds (`USE_MOCKS: false`). |
 
-> ⚠️ **These files are currently committed and contain real credentials.** See `BUGS_AND_ISSUES.md` §1 for the remediation plan. Replace with `*.local.json` (already covered by `env/.gitignore`) before continuing.
+| Key | Required | Notes |
+| --- | --- | --- |
+| `SUPABASE_URL` | ✅ | Project URL. |
+| `SUPABASE_ANON_KEY` | ✅ | Public anon JWT — safe in the client, guarded by RLS. |
+| `YANDEX_GEOCODER_API_KEY` | ✅ | Restrict by package / referrer in Yandex Cloud. |
+| `SENTRY_DSN` | — | Empty ⇒ Sentry initialises disabled (no telemetry sent). |
+| `APP_ENV` | — | `dev` (default) or `prod`. |
+| `USE_MOCKS` | — | `true` ⇒ canned catalog data instead of the live API. |
+| `SELLER_FULFILLMENT_ENABLED` | — | `false` (default) ⇒ mock-only seller surfaces (orders, shop settings, services, KYC) render a "coming soon" placeholder instead of fake data. |
+
+> ⚠️ **`env/dev.json` / `env/prod.json` are committed to this private repo** so
+> config syncs across the maintainer's machines via `git pull`. The Supabase
+> anon key is low-risk by design, but treat the whole repo as a secret:
+> **rotate every key if it is cloned to an untrusted machine or the repo is
+> exposed.** A Firebase **Admin SDK** service-account private key must *never*
+> live in this repo — see `BUGS_AND_ISSUES.md` §1.
 
 ### Running
 
@@ -270,10 +292,11 @@ mebellar_app/
 ├── assets/
 │   ├── google_fonts/         # bundled TTFs (replaces google_fonts pkg)
 │   └── logo/                 # brand assets for launcher / splash
-├── docs/                     # legacy in-Uzbek docs (16 files)
+├── docs/legacy/              # archived in-Uzbek docs (18 files; see folder README)
 ├── env/
-│   ├── dev.json              # ⚠ committed; contains secrets
-│   └── prod.json             # ⚠ committed; contains secrets
+│   ├── example.json          # committed template (blank secrets)
+│   ├── dev.json              # committed; USE_MOCKS=true
+│   └── prod.json             # committed; USE_MOCKS=false
 ├── lib/
 │   ├── main.dart             # bootstrap, Firebase init, Phoenix-wrapped mode router
 │   ├── firebase_options.dart # generated; Android + iOS FCM keys hardcoded
@@ -300,7 +323,7 @@ For the deep dive, see [`ARCHITECTURE.md`](./ARCHITECTURE.md).
 | [`BUGS_AND_ISSUES.md`](./BUGS_AND_ISSUES.md) | Security, anti-patterns, broken logic, documentation drift |
 | [`REFACTORING.md`](./REFACTORING.md) | SOLID/DRY violations, files to split, scalability levers |
 | [`ROADMAP.md`](./ROADMAP.md) | Short / mid / long-term action plan to ship V1 |
-| [`docs/`](./docs/) | Legacy in-Uzbek deep-dives (still useful for historic context) |
+| [`docs/legacy/`](./docs/legacy/) | Archived in-Uzbek deep-dives — predate the FCM / hand-rolled-i18n stack (see the folder README) |
 
 ---
 

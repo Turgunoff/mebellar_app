@@ -25,6 +25,12 @@ const Map<String, dynamic> authUz = {
   'validation_email': 'To\'g\'ri elektron pochta kiriting',
   'validation_password': 'Parol kamida 8 ta belgidan iborat bo\'lishi kerak',
   'validation_required': 'Maydonni to\'ldiring',
+  'too_many_requests':
+      'Juda ko\'p urinish. Birozdan so\'ng qayta urinib ko\'ring',
+  'email_in_use': 'Bu elektron pochta allaqachon ro\'yxatdan o\'tgan',
+  'weak_password': 'Parol juda oddiy. Murakkabroq parol tanlang',
+  'reset_link_sent_generic':
+      'Agar bu pochta ro\'yxatdan o\'tgan bo\'lsa, tiklash havolasi yuborildi',
 };
 
 const Map<String, dynamic> authRu = {
@@ -52,6 +58,11 @@ const Map<String, dynamic> authRu = {
   'validation_email': 'Введите корректную почту',
   'validation_password': 'Пароль должен содержать минимум 8 символов',
   'validation_required': 'Заполните поле',
+  'too_many_requests': 'Слишком много попыток. Повторите позже',
+  'email_in_use': 'Эта почта уже зарегистрирована',
+  'weak_password': 'Пароль слишком простой. Выберите более сложный',
+  'reset_link_sent_generic':
+      'Если эта почта зарегистрирована, ссылка для сброса отправлена',
 };
 
 const Map<String, dynamic> authEn = {
@@ -79,4 +90,9 @@ const Map<String, dynamic> authEn = {
   'validation_email': 'Enter a valid email',
   'validation_password': 'Password must be at least 8 characters',
   'validation_required': 'This field is required',
+  'too_many_requests': 'Too many attempts. Please try again later',
+  'email_in_use': 'This email is already registered',
+  'weak_password': 'Password is too weak. Choose a stronger one',
+  'reset_link_sent_generic':
+      'If this email is registered, a reset link has been sent',
 };

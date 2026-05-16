@@ -1,10 +1,12 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
+import 'package:woody_app/core/logging/talker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/auth/auth_repository.dart';
 import '../core/di/service_locator.dart';
 import '../main.dart' show AppLocaleScope;
+import 'auth_error_messages.dart';
 import 'verify_email_screen.dart';
 import 'widgets/auth_scaffold.dart';
 
@@ -52,10 +54,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
           builder: (_) => VerifyEmailScreen(email: _email.text.trim()),
         ),
       );
-    } on AuthException catch (e) {
-      _showError(e.message);
-    } catch (_) {
-      _showError(tr('error.unknown'));
+    } on AuthException catch (e, st) {
+      talker.handle(e, st, 'register: signUp failed');
+      _showError(authErrorMessage(e));
+    } catch (e, st) {
+      talker.handle(e, st, 'register: signUp failed');
+      _showError(authErrorMessage(e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

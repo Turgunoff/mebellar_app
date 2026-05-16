@@ -1,4 +1,5 @@
 ﻿import 'package:woody_app/core/i18n/i18n.dart';
+import 'package:woody_app/core/logging/talker.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -33,18 +34,23 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     setState(() => _busy = true);
     try {
       await sl<AuthRepository>().resetPassword(_email.text.trim());
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(tr('auth.reset_link_sent'))),
-      );
-      Navigator.of(context).pop();
-    } on AuthException catch (e) {
-      _showError(e.message);
-    } catch (_) {
-      _showError(tr('error.unknown'));
+    } on AuthException catch (e, st) {
+      // OWASP: a reset request must look identical whether or not the
+      // address is registered, and whether or not Supabase rate-limited
+      // the call. Log the real cause for ourselves; never surface it.
+      talker.handle(e, st, 'forgot_password: suppressed AuthException');
+    } catch (e, st) {
+      talker.handle(e, st, 'forgot_password: suppressed error');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+    if (!mounted) return;
+    // Always show the same neutral confirmation regardless of the outcome
+    // above — per OWASP guidance, never reveal whether the email exists.
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(tr('auth.reset_link_sent_generic'))),
+    );
+    Navigator.of(context).pop();
   }
 
   void _showError(String message) {

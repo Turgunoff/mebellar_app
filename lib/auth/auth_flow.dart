@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:woody_app/core/logging/talker.dart';
+
 import '../config/app_mode.dart';
 import '../core/auth/auth_repository.dart';
 import '../core/di/service_locator.dart';
@@ -30,8 +32,9 @@ Future<bool> showAuthFlow(BuildContext context) async {
         await switchAppMode(context, AppMode.seller);
       }
     }
-  } catch (_) {
+  } catch (e, st) {
     // Profile lookup is best-effort here; the user is signed in either way.
+    talker.handle(e, st, 'showAuthFlow: profile lookup failed');
   }
   return true;
 }

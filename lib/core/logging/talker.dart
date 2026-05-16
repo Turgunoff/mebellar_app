@@ -1,6 +1,8 @@
 import 'package:flutter/widgets.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
+import 'sentry_talker_observer.dart';
+
 /// App-wide [Talker] instance. Pair with [TalkerRouteObserver] in
 /// `MaterialApp.navigatorObservers` (or `GoRouter.observers`) so every
 /// push/pop/replace also lands in the log.
@@ -12,6 +14,10 @@ final Talker talker = TalkerFlutter.init(
   settings: TalkerSettings(
     useConsoleLogs: false,
   ),
+  // Forwards every handled error/exception to Sentry. Safe to leave wired
+  // even with an empty SENTRY_DSN — Sentry is then disabled and the
+  // observer's `captureException` calls become no-ops.
+  observer: SentryTalkerObserver(),
 );
 
 /// Navigator keys exposed at module scope so the debug Talker overlay can
