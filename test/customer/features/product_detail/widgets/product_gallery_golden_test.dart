@@ -5,7 +5,7 @@ import 'package:woody_app/customer/features/product_detail/widgets/product_image
 /// ROADMAP B.5 — golden test for the product-detail image gallery.
 ///
 /// Regenerate the baseline:
-///   flutter test --update-goldens test/product_gallery_golden_test.dart
+///   flutter test --update-goldens test/customer/features/product_detail/widgets/product_gallery_golden_test.dart
 void main() {
   // The gallery's empty/placeholder state is used as the golden: a populated
   // gallery would mount `CachedNetworkImage`, whose `flutter_cache_manager`
@@ -23,7 +23,7 @@ void main() {
     await tester.pump();
     await expectLater(
       find.byType(ProductImageGallery),
-      matchesGoldenFile('goldens/product_gallery.png'),
+      matchesGoldenFile('../../../../goldens/product_gallery.png'),
     );
   });
 }

@@ -9,7 +9,7 @@ import 'package:woody_app/shared/models/cart_item_model.dart';
 /// ROADMAP B.5 — golden tests for the cart screen.
 ///
 /// Regenerate baselines:
-///   flutter test --update-goldens test/cart_screen_golden_test.dart
+///   flutter test --update-goldens test/customer/features/cart/screens/cart_screen_golden_test.dart
 class _MockCartBloc extends MockBloc<CartEvent, CartState>
     implements CartBloc {}
 
@@ -37,7 +37,7 @@ void main() {
     await pumpCart(tester, const CartState(status: CartStatus.ready));
     await expectLater(
       find.byType(CartScreen),
-      matchesGoldenFile('goldens/cart_empty.png'),
+      matchesGoldenFile('../../../../goldens/cart_empty.png'),
     );
   });
 
@@ -60,7 +60,7 @@ void main() {
     );
     await expectLater(
       find.byType(CartScreen),
-      matchesGoldenFile('goldens/cart_loaded.png'),
+      matchesGoldenFile('../../../../goldens/cart_loaded.png'),
     );
   });
 }

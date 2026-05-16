@@ -8,7 +8,7 @@ import 'package:woody_app/auth/register_screen.dart';
 /// Baseline PNGs live in `test/goldens/`. Regenerate them after an
 /// intentional UI change with:
 ///
-///   flutter test --update-goldens test/auth_golden_test.dart
+///   flutter test --update-goldens test/auth/auth_golden_test.dart
 ///
 /// Pixel output is renderer-dependent; if CI runs on a different OS than the
 /// baseline was generated on, regenerate there.
@@ -22,7 +22,7 @@ void main() {
     await pumpSized(tester, const LoginScreen());
     await expectLater(
       find.byType(LoginScreen),
-      matchesGoldenFile('goldens/login_screen.png'),
+      matchesGoldenFile('../goldens/login_screen.png'),
     );
   });
 
@@ -30,7 +30,7 @@ void main() {
     await pumpSized(tester, const RegisterScreen());
     await expectLater(
       find.byType(RegisterScreen),
-      matchesGoldenFile('goldens/register_screen.png'),
+      matchesGoldenFile('../goldens/register_screen.png'),
     );
   });
 }

@@ -110,9 +110,19 @@ mebellar_app/
 │   ├── auth/                  # shared login / register / verify / OTP screens
 │   ├── customer/              # customer surface — features/, services/, widgets/
 │   └── seller/                # seller surface — features/, services/, widgets/
-├── test/                      # 44 unit/widget/golden test files
+├── test/                      # mirrors lib/ exactly — every test sits at the
+│   │                          #   same path as its subject (e.g. a test for
+│   │                          #   lib/customer/features/cart/bloc/ lives in
+│   │                          #   test/customer/features/cart/bloc/)
+│   └── goldens/                # golden baseline PNGs — kept flat, not mirrored
 └── integration_test/          # end-to-end happy-path test
 ```
+
+> **Test layout convention.** The `test/` tree is a strict mirror of `lib/`: a
+> test file lives at the directory that mirrors the path of the class or widget
+> it covers. The only exception is `test/goldens/`, which stays a flat folder of
+> baseline images. New tests must follow this convention — do not add files to
+> the `test/` root.
 
 ---
 

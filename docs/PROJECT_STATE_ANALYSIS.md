@@ -95,6 +95,13 @@ Supabase is the system of record: Postgres tables with **Row-Level Security on e
 | Golden | auth, cart, product gallery (baselines in `test/goldens/`) |
 | Integration | `integration_test/app_test.dart` — launch → browse → cart → checkout happy path |
 
+**Test directory layout.** `test/` is a **strict mirror of `lib/`** — each test file
+sits at the directory that mirrors the path of its subject (e.g.
+`test/customer/features/cart/bloc/cart_bloc_test.dart` covers
+`lib/customer/features/cart/bloc/cart_bloc.dart`). `test/goldens/` is the sole
+exception: baseline PNGs stay in one flat folder. No test files remain in the
+`test/` root.
+
 ---
 
 ## 4. Technical Debt Register
