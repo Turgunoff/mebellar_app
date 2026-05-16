@@ -130,7 +130,10 @@ class ProfileCubit extends Cubit<ProfileState> {
         await signOutWithPushCleanup(_supabase);
       }
       emit(ProfileState(email: user.email ?? ''));
-    } catch (_) {
+    } catch (e, st) {
+      // Profile fetch is best-effort — fall back to the auth email so the
+      // screen still renders, but record the failure for production triage.
+      talker.handle(e, st, 'ProfileCubit.load failed');
       emit(ProfileState(email: user.email ?? ''));
     }
   }

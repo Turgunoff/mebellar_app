@@ -2,6 +2,8 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/logging/talker.dart';
+
 class ProfileOrdersState extends Equatable {
   const ProfileOrdersState({
     this.orders = const [],
@@ -61,7 +63,10 @@ class ProfileOrdersCubit extends Cubit<ProfileOrdersState> {
       emit(ProfileOrdersState(
         orders: List<Map<String, dynamic>>.from(rows),
       ));
-    } catch (_) {
+    } catch (e, st) {
+      // Order-list fetch failed — clear the spinner so the UI isn't stuck,
+      // and log the cause so an RLS denial isn't mistaken for an empty list.
+      talker.handle(e, st, 'ProfileOrdersCubit.load failed');
       emit(state.copyWith(isLoading: false));
     }
   }

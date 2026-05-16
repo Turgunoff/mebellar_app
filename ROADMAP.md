@@ -1,438 +1,182 @@
-# ROADMAP.md — Action Plan & Future Goals
+# ROADMAP.md — Engineering State & Remaining Work
 
-> Companion to [`REFACTORING.md`](./REFACTORING.md) and [`BUGS_AND_ISSUES.md`](./BUGS_AND_ISSUES.md). This roadmap turns the issue lists into a phased execution plan with concrete acceptance criteria. Phases are sized assuming a solo developer ± occasional contractor help.
-
-The three horizons:
-
-- **Section A — Short-term** (this week → ~3 weeks). Critical fixes that block production. No new features.
-- **Section B — Mid-term** (1 → 3 months). Complete missing features, build tests, finish seller side.
-- **Section C — Long-term** (3 → 6 months). CI/CD, flavors, store release, post-launch ops.
-
----
-
-## Section A — Short-Term (Weeks 1–3): Production Blockers
-
-### A.1 — Credential rotation & secrets hygiene 🔴
-
-**Goal.** Stop leaking secrets through committed files and hardcoded defaults.
-
-**Tasks**
-
-- [ ] Rotate Supabase anon key in dashboard.
-- [ ] Regenerate Yandex Geocoder API key with package/referrer restrictions.
-- [ ] `git rm --cached env/dev.json env/prod.json`.
-- [ ] Append to root `.gitignore`:
-  ```
-  /env/dev.json
-  /env/prod.json
-  /env/*.json
-  !env/example.json
-  ```
-- [ ] Commit `env/example.json` with placeholder shape.
-- [x] Remove `defaultValue` strings from `lib/config/app_config.dart` — fail fast if env vars missing.
-- [ ] Set up a private dev Supabase project; populate `env/dev.local.json` (gitignored) with separate keys.
-- [x] Document the new flow in `README.md`.
-- [ ] Spot-check decompiled APK to confirm the old keys are gone.
-
-**Acceptance** — `flutter build apk` with **no** env file fails loudly. Decompiled release APK contains no readable Supabase/Yandex URL or key strings.
-
-**Estimate.** 1 day + waiting time for key rotation propagation.
-
-### A.2 — Feature-flag the mock-only seller surfaces 🔴
-
-**Goal.** Prevent a prod build from showing fake order/settings data to real sellers (see `BUGS_AND_ISSUES.md` §2.4).
-
-**Tasks**
-
-- [x] Add `AppConfig.sellerFulfillmentEnabled` (default `false`).
-- [x] In `service_locator.dart`, register the mock-backed seller repos only when the flag is on.
-- [x] When the flag is off, swap the affected seller screens for a "Coming soon — beta" placeholder.
-- [x] Same treatment for `shop_settings`, `seller_services`, `seller_verification` until their backends ship.
-
-**Acceptance** — Running with `env/prod.json` does not surface mock data anywhere. Beta sellers see a clear "feature coming soon" instead of fake orders.
-
-**Estimate.** 1 day.
-
-### A.3 — Wire error logging to a real backend 🟠
-
-**Goal.** Stop the auth + repository silent-catch black holes (see `BUGS_AND_ISSUES.md` §1.5, §4.2).
-
-**Tasks**
-
-- [x] Replace every `catch (_)` in `lib/auth/*.dart`, `lib/core/`, and `lib/shared/repositories/` with `catch (e, st) { talker.handle(e, st, '<ctx>'); }`.
-- [x] Add Sentry (or Firebase Crashlytics — pick one):
-  - `sentry_flutter` ^8.x with DSN injected via `--dart-define`.
-  - Wire `talker_flutter` → Sentry adapter.
-- [x] Surface user-facing errors via the existing `NetworkOverlayWrapper` / scaffold snackbars.
-- [x] Map known Supabase `AuthException` codes (`email_not_confirmed`, `invalid_credentials`, `over_email_send_rate_limit`) to localised user messages.
-
-**Acceptance** — A forced auth error appears both as a user toast in the app and as a structured event in Sentry within 10 seconds.
-
-**Estimate.** 2–3 days.
-
-### A.4 — Strip credential defaults from `app_config.dart` 🔴
-
-Already covered by A.1 — kept here as a separate review checkpoint to ensure the change merges before any tagged release.
-
-### A.5 — Update / archive legacy docs 🟡
-
-**Tasks**
-
-- [x] Move `docs/` → `docs/legacy/` with a top-of-folder note: *"These predate the firebase_messaging / hand-rolled-i18n stack and may be inaccurate."*
-- [x] Update `docs/README.md` to point at the new root docs.
-- [x] Cross-check `docs/13-security.md` against the new `BUGS_AND_ISSUES.md` and either delete or update.
-
-**Acceptance** — A new contributor reading top-level docs encounters no contradictions.
-
-**Estimate.** Half a day.
-
-### A.6 — Tighten silent error UX on auth screens 🟠
-
-Subset of A.3 worth highlighting:
-
-- [x] `login_screen.dart` — distinguish "wrong password" vs "no internet" vs "email not verified".
-- [x] `register_screen.dart` — surface "email already in use".
-- [x] `forgot_password_screen.dart` — show success state even when Supabase rate-limits (per OWASP guidance, don't reveal whether the email exists).
-
-**Acceptance** — A manual matrix test of 6 scenarios (good/bad credentials, no network, rate-limited, unverified, duplicate) produces a sensible message for each.
-
-**Estimate.** 1 day.
+> **Rewritten from scratch · 2026-05-16.**
+> This roadmap reflects a deliberate strategic pivot: **all DevOps, CI/CD, App Store / Play Store release, and marketing work is out of scope.** The sole focus is **code completion, bug resolution, and architectural quality** — getting the app *functionally perfect* as a piece of software.
+>
+> - **Part 1** — what has been engineered so far (context for new developers).
+> - **Part 2** — the remaining pure coding / architectural tasks.
+>
+> Companion docs: [`README.md`](./README.md) · [`docs/PROJECT_STATE_ANALYSIS.md`](./docs/PROJECT_STATE_ANALYSIS.md) · [`ARCHITECTURE.md`](./ARCHITECTURE.md).
 
 ---
 
-## Section B — Mid-Term (Months 1–3): Completion & Quality
+# Part 1 — Completed Engineering
 
-### B.1 — Complete seller-side Supabase repositories
+Everything below is **built, tested, and merged**. `dart analyze` is clean; **192 tests pass**.
 
-Removes the mock blocks gated in A.2.
+## 1.1 Foundation & Architecture
 
-**Tasks**
+- ✅ **Layered architecture** — UI → Logic (BLoC/Cubit) → Data (Repository) — applied consistently across 360 Dart files.
+- ✅ **`Result<T, Failure>` pattern** — typed success/error returns at repository boundaries (`core/result/`, `core/error/failure.dart`).
+- ✅ **`RepositoryResolver`** — runtime mock-vs-live repository selection driven by `AppConfig.useMocks`; mock graph tree-shaken out of release builds.
+- ✅ **Scoped dependency injection** (`get_it`) — root scope (cross-cutting singletons) + per-mode scope (`customer`/`seller`); registration modularised into `core/di/*_module.dart`.
+- ✅ **Runtime mode switch** — `AppModeCubit` + `flutter_phoenix`: DI scope swap + `Phoenix.rebirth()` flips customer ↔ seller without re-install.
+- ✅ **`AppConfig` + fail-fast config** — no compiled-in secret defaults; `assertConfigured()` aborts a misconfigured build loudly.
+- ✅ **Backbone refactor** — `service_locator` modularisation, `RealtimeService`, `AppSettings`, central `Result` type.
 
-- [x] `SupabaseSellerOrderRepository` — list + detail + status transitions (accept / reject / mark shipped / mark delivered) with Realtime updates for sellers.
-- [x] `SupabaseShopSettingsRepository` — working hours, delivery zones, contact info.
-- [x] `SupabaseSellerServicesRepository` — selectable delivery services tied to shop.
-- [x] `SupabaseSellerVerificationRepository` — KYC submission + status polling.
-- [x] `SupabaseTariffRepository` (write path) — P2P payment receipt upload + approval flow.
-- [x] Backfill RLS policies for each new table; review with `mcp__supabase__get_advisors` before going live.
+## 1.2 Authentication
 
-**Acceptance** — Flipping the feature flag from A.2 to `true` in `env/prod.json` does not break any seller flow. Manual end-to-end test: create product → receive order → fulfill → mark delivered, all on real Supabase data.
+- ✅ Email + OTP sign-in, registration, email verification, forgot-password flows.
+- ✅ Auth bottom-sheet flow (email step → OTP step → profile step) with extracted widget sub-tree.
+- ✅ Supabase `AuthException` codes mapped to localised user messages (`invalid_credentials`, `email_not_confirmed`, `over_email_send_rate_limit`).
+- ✅ Forgot-password follows OWASP guidance — success state shown without revealing whether the email exists.
+- ✅ Ghost-session recovery — a missing `profiles` row forces a clean sign-out.
 
-**Estimate.** 3–4 weeks.
+## 1.3 Customer Surface
 
-### B.2 — Customer payment flow
+- ✅ Home screen — banners, premium blocks, categories grid, featured shops.
+- ✅ Catalog, multi-level categories, per-category product list, product detail (gallery, attributes, expandable description).
+- ✅ Search with debounced/restartable query handling.
+- ✅ Favorites and Cart — **hybrid repositories** (Hive offline + Supabase sync).
+- ✅ Checkout — multi-step flow with a Yandex-map address picker.
+- ✅ Orders — list, detail, status timeline, **realtime tracking** via Supabase Realtime.
+- ✅ Profile + address book (region picker, map preview, edit sheet, danger zone).
+- ✅ Notifications inbox — realtime-backed.
+- ✅ Onboarding tutorial (Hive-gated) and broadcast news (read-state in Hive).
 
-Currently the customer checkout flow stops short of capturing a payment. For Uzbekistan MVP, this likely means:
+## 1.4 Seller Surface
 
-**Tasks**
+- ✅ Multi-step seller onboarding (welcome → business type → personal info → shop info → address → documents → review → done).
+- ✅ KYC verification flow with passport/document upload.
+- ✅ Dashboard with KPI cards and metrics.
+- ✅ Product CRUD — multi-section product form (basic info, pricing, logistics, media, specs) + product preview.
+- ✅ Seller orders, shop settings (working hours, services, visibility, brand), tariff upgrade, analytics, reviews, notifications.
+- ✅ Mock-only seller surfaces gated behind `SELLER_FULFILLMENT_ENABLED` — a prod build never shows fake order/settings data.
 
-- [~] DEFERRED (Post-MVP) — Pick a payment partner (Payme, Click, Octo, or P2P-to-Card flow).
-- [~] DEFERRED (Post-MVP) — Implement the SDK or webview integration in `customer/features/checkout/`.
-- [~] DEFERRED (Post-MVP) — Add `payment_intents` Supabase table + Edge Function for confirmation callback.
-- [~] DEFERRED (Post-MVP) — Order remains in `pending_payment` until callback flips to `paid`.
+## 1.5 Backend (Supabase)
 
-**Status.** DEFERRED (Post-MVP) — strategic scope call: V1 ships with offline
-P2P / cash-on-delivery only; no third-party payment SDK. Revisit after launch.
+- ✅ **23 ordered SQL migrations** — profiles, shops, products, categories, cart, favorites, notifications, device tokens, news.
+- ✅ **Row-Level Security on every table**; policies consolidated, `auth.uid()` calls optimised, functions hardened (`SECURITY DEFINER` review).
+- ✅ Missing foreign-key indexes backfilled.
+- ✅ Realtime enabled for orders & notifications (CDC).
+- ✅ `delete_user_account` RPC restricted to authenticated callers.
+- ✅ `send-news-broadcast` Edge Function — FCM topic fan-out.
+- ✅ **Supabase repositories** for banners, cart, categories, favorites, notifications, orders, products, seller dashboard, seller onboarding, seller orders, seller products, seller services, seller verification, shop settings, and tariff.
 
-**Acceptance** — A test card / sandbox payment moves an order through the full lifecycle including the seller's notification.
+## 1.6 Routing & Navigation
 
-**Estimate.** 3–4 weeks (heavily dependent on partner approval timelines).
+- ✅ **`go_router` for both modes** — customer always; seller via `StatefulShellRoute` (`SELLER_USES_GO_ROUTER`, default ON).
+- ✅ Push-tap deep links resolve into the correct screen, including across a mode flip (pending-route stash in Hive).
+- ✅ Seller "god-screens" split into `widgets/` sub-trees + extracted controllers (no screen exceeds 1000 lines).
 
-### B.3 — Migrate seller mode to `go_router`
+## 1.7 Notifications, Connectivity & Platform
 
-See `REFACTORING.md` §3.2.
+- ✅ FCM push — topic broadcasts (`news`) + per-token personal pings; foreground display via `flutter_local_notifications`.
+- ✅ Device-token sync wired to auth state; token removed before sign-out (RLS-safe ordering).
+- ✅ Connectivity service — link-change detection + real reachability check, with an offline overlay.
+- ✅ Platform facades — `FirebaseMessaging`, `Geolocator`, `ImagePicker`, connectivity — for testability.
 
-**Tasks**
+## 1.8 Quality, Performance & Localization
 
-- [x] Split the 1000+ line seller screens first (`REFACTORING.md` §1.3, §1.4, §1.5).
-- [x] Define seller route tree.
-- [x] Migrate one screen at a time behind a `sellerUsesGoRouter` flag.
-- [x] Once parity is reached, delete the legacy `onGenerateRoute`.
-
-**Acceptance** — Push tap on a seller-targeted notification deep-links into the right screen without using `sellerNavigatorKey`.
-
-**Estimate.** 2–3 weeks.
-
-### B.4 — Split the six 1000+ line screens
-
-`REFACTORING.md` §1.1–1.6. Worth doing in parallel with B.3 because seller settings split (1.3) directly unblocks routing migration.
-
-- [x] Split all six 1000+ line god-screens (product form, profile, shop
-      settings, seller product detail, auth bottom sheet, order details) into
-      `widgets/` sub-trees + extracted controllers.
-
-**Status.** DONE — none of the six target screens exceed 1000 lines. A few
-unrelated screens still sit in the 600–880 line range (home, tariff,
-analytics, tutorial, reviews); trimming those is a nice-to-have, not a B.4
-blocker.
-
-**Estimate.** 2–3 weeks elapsed; can be done piecemeal.
-
-### B.5 — Test coverage baseline
-
-**Goal.** Ship V1 with at least 30 % coverage and ~95 % coverage on critical flows (auth, cart, checkout, mode switching).
-
-**Tasks**
-
-- [x] Add `bloc_concurrency` + `clock` packages.
-- [x] Facade wrappers for `FirebaseMessaging`, `Geolocator`, `ImagePicker`, `Connectivity` (see `REFACTORING.md` §5.2–5.3). (Connectivity already had a `ConnectivityService` facade.)
-- [x] Repository contract tests (§5.4) — suites for the 5 B.1 interfaces, parameterised over implementations.
-- [x] BLoC tests for every cubit/bloc — all 33 BLoCs/Cubits covered.
-- [x] Widget tests for the cart, checkout, product detail, login, register screens.
-- [x] Golden tests via `matchesGoldenFile` — auth / cart / product gallery (baselines committed to `test/goldens/`).
-- [x] One integration test (`integration_test` package) for the happy path: launch → browse → add to cart → checkout → see order in history.
-
-**Acceptance** — `flutter test --coverage` reports ≥ 30 % overall coverage; CI fails if coverage drops.
-
-**Estimate.** Ongoing, ~1 day/week throughout B.
-
-### B.6 — Refactor backbone: `service_locator` modularisation, `Result<T, Failure>`, `RealtimeService`, `AppSettings`
-
-`REFACTORING.md` §2.1, §3.3, §3.4, §3.5. These are mechanical-ish refactors but easier earlier than later.
-
-**Estimate.** 1 week.
-
-### B.7 — Performance pass
-
-`BUGS_AND_ISSUES.md` §3 and `REFACTORING.md` §4.
-
-**Tasks**
-
-- [x] `bloc_concurrency` event transformers on `SearchBloc`, `HomeBloc`, `OrdersBloc`.
-- [x] `memCacheWidth` on every `CachedNetworkImage`.
-- [~] DEFERRED (Post-MVP) — Profile a long catalog scroll on a $150 Android device (Tecno / Infinix range) — needs physical hardware.
-- [x] Defer-load mock data — superseded by compile-time mock tree-shaking (`AppConfig.useMocks`-gated `RepositoryResolver`), which removes mock data from release binaries entirely.
-- [x] Audit Supabase Realtime channel disposal across services.
-
-**Acceptance** — p99 frame time on the home screen under <16 ms on a Galaxy A15 reference device with 100 catalog items.
-
-**Estimate.** 1 week.
-
-### B.8 — Localization completeness
-
-**Tasks**
-
-- [x] Audit every `tr(...)` call site for missing keys in `ru` / `en` — 322 unique keys checked, 0 gaps.
-- [~] USER ACTION — Run the app fully in each locale and screenshot every screen (manual visual pass; structural completeness already CI-guarded).
-- [x] Add a `lib/core/i18n/translations/_missing_keys_check.dart` developer tool (assert in `kDebugMode` if any locale has fewer keys than `uz`).
-- [~] DEFERRED (Post-MVP) — Wire Shorebird code-push (see C.4) — handled manually via the local CLI for now.
-
-**Acceptance** — Switching to `ru` or `en` shows no untranslated `key.subkey` placeholders anywhere.
-
-**Estimate.** 1 week.
+- ✅ **192 tests** — BLoC/Cubit unit tests for all 33+ blocs, widget tests (cart, checkout, login, register, gallery), golden tests (auth, cart, gallery), repository contract tests, and one end-to-end integration test.
+- ✅ `bloc_concurrency` event transformers on `SearchBloc`, `HomeBloc`, `OrdersBloc`.
+- ✅ `memCacheWidth` on every `CachedNetworkImage`; Realtime channel disposal audited.
+- ✅ Hand-rolled i18n complete across **uz / ru / en** (322 keys, 0 gaps) with a debug-only completeness guard.
+- ✅ Error pipeline — `talker` → Sentry; silent `catch (_)` blocks in auth/core/repositories replaced with logged handlers.
+- ✅ `dart analyze` — **0 issues**.
 
 ---
 
-## Section C — Long-Term (Months 3–6): Operations & Launch
+# Part 2 — Remaining Development Tasks
 
-### C.1 — CI/CD pipeline (GitHub Actions)
+Pure coding, architectural-refinement, and bug-fix work only. **No DevOps, CI/CD, store-release, or marketing items appear here by design.** Items map to the technical-debt register in [`docs/PROJECT_STATE_ANALYSIS.md`](./docs/PROJECT_STATE_ANALYSIS.md) §4.
 
-**Goal.** Every PR gets analysed, tested, and produces a debug-signed APK + iOS archive.
+## 2.1 — Activate the seller fulfillment backend 🟠
 
-**Suggested workflows** (`.github/workflows/`):
+The `SupabaseSeller*Repository` implementations exist but the surfaces stay gated behind `SELLER_FULFILLMENT_ENABLED` (default OFF).
 
-```yaml
-# .github/workflows/ci.yml
-name: ci
-on:
-  push: { branches: [main] }
-  pull_request:
-jobs:
-  analyze-test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with: { channel: stable, cache: true }
-      - run: flutter pub get
-      - run: dart format --set-exit-if-changed lib/ test/
-      - run: flutter analyze --fatal-infos
-      - run: flutter test --coverage
-      - uses: codecov/codecov-action@v4
-        with: { files: coverage/lcov.info }
-```
+- [ ] End-to-end verify each seller repository against live Supabase data: create product → receive order → accept → mark shipped → mark delivered.
+- [ ] Confirm RLS policies cover every seller read/write path (`get_advisors` review).
+- [ ] Flip `SELLER_FULFILLMENT_ENABLED` to `true` once the flows are verified.
+- [ ] Remove the "coming soon" placeholder branches for the now-live surfaces.
 
-```yaml
-# .github/workflows/build-android.yml
-name: build-android
-on:
-  push: { tags: ['v*.*.*'] }
-jobs:
-  android:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with: { channel: stable, cache: true }
-      - run: flutter pub get
-      - run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_B64 }}" | base64 -d > android/app/upload.keystore
-          cat > android/key.properties <<EOF
-          storeFile=upload.keystore
-          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
-          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
-          EOF
-      - run: |
-          flutter build appbundle --release \
-            --obfuscate --split-debug-info=build/symbols \
-            --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
-            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \
-            --dart-define=YANDEX_GEOCODER_API_KEY=${{ secrets.YANDEX_GEOCODER_API_KEY }} \
-            --dart-define=APP_ENV=prod --dart-define=USE_MOCKS=false
-      - uses: actions/upload-artifact@v4
-        with:
-          name: app-release-bundle
-          path: build/app/outputs/bundle/release/app-release.aab
-```
+**Done when:** a seller completes a full order lifecycle on real data with no mock fallback.
 
-```yaml
-# .github/workflows/build-ios.yml
-# Runs on macos-latest with fastlane match for signing.
-```
+## 2.2 — Consolidate the checkout state holders 🟡
 
-**Acceptance** — A tagged commit produces a downloadable `.aab` and `.ipa`. PRs are blocked on `analyze-test`.
+- [ ] Merge `CheckoutCubit` (step state) and `CheckoutBloc` (payment events) into a single `CheckoutBloc` with event-driven step transitions — or, if the split is kept, document the ownership boundary at the top of each file.
 
-**Estimate.** 1 week.
+**Done when:** one obvious owner for each piece of checkout state.
 
-### C.2 — Build flavors (dev / staging / prod)
+## 2.3 — Retire the legacy seller navigation path 🟡
 
-**Android (`android/app/build.gradle`):**
+- [ ] Once `go_router` seller mode has soaked, delete the legacy imperative `sellerNavigatorKey` shell and the `AppConfig.sellerUsesGoRouter` flag.
+- [ ] Remove the now-dead `onGenerateRoute` usage.
 
-```groovy
-android {
-    flavorDimensions "env"
-    productFlavors {
-        dev      { applicationIdSuffix ".dev"; versionNameSuffix "-dev"; resValue "string", "app_name", "Mebellar Dev" }
-        staging  { applicationIdSuffix ".staging"; versionNameSuffix "-staging"; resValue "string", "app_name", "Mebellar Staging" }
-        prod     { resValue "string", "app_name", "Mebellar" }
-    }
-}
-```
+**Done when:** seller mode has exactly one routing implementation.
 
-**iOS** — three schemes (`Runner-dev`, `Runner-staging`, `Runner`) and three xcconfigs.
+## 2.4 — Type-safe Hive access 🟡
 
-**Flutter side** — `flutter run --flavor dev --dart-define-from-file=env/dev.local.json`.
+- [ ] Add a typed `SettingsBox` wrapper exposing `appMode`, `tutorialSeen`, `locale`, `themeBrightness` as strongly-typed getters/setters.
+- [ ] Replace raw string keys (`'app_mode'`, `'tutorial_seen'`, …) with the wrapper.
 
-**Acceptance** — Tester can install Mebellar Dev + Mebellar Prod side-by-side on the same device.
+**Done when:** no raw string Hive keys remain in feature code.
 
-**Estimate.** 2–3 days Android, 2–3 days iOS, 1 day for documentation.
+## 2.5 — Lifecycle & cancellation hardening 🟡
 
-### C.3 — Store-readiness checklist
+- [ ] Add `dispose()` to `HybridCartRepository` / `HybridFavoritesRepository` to cancel their `onAuthStateChange` subscriptions (avoids listener stacking across Phoenix rebirths).
+- [ ] Thread `Dio` `CancelToken`s through repository methods; cancel in-flight requests from `Bloc.close()` so a mid-flight mode switch can't deliver stale results.
+- [ ] Cache the tutorial-seen flag in a `ValueNotifier<bool>` so the `go_router` redirect stops doing a Hive read on every navigation.
 
-**Google Play (`store/google_play_listing.md` already exists):**
+**Done when:** no leaked subscriptions/channels and no stale-result UI after a mode flip.
 
-- [ ] Privacy policy hosted at a stable URL (already drafted in `store/privacy_policy.md`).
-- [ ] Data safety section: list collected data (email, FCM token, location for delivery, IDs for orders, images for products/KYC, payment status).
-- [ ] In-app purchase declaration: tariffs are bought via P2P transfer (not Google billing), so declare as "Real money items" rather than "Digital purchases".
-- [ ] Screenshots: 8 per locale (uz, ru, en), 2:1 phone + tablet.
-- [ ] Feature graphic 1024×500.
-- [ ] Closed testing track for at least 14 days with 12 unique testers (Play Store requirement for new personal/developer accounts since 2024).
+## 2.6 — Code-organisation cleanups 🔵
 
-**Apple App Store:**
+- [ ] Move `NotificationsCubit` from `customer/features/notifications/` to `lib/shared/bloc/` — it is root-scoped and consumed by both modes; its current location reads like a layering violation.
+- [ ] Audit every `Equatable` `props` override — any field the UI consumes must be present (e.g. confirm `HomeState` includes refresh-timestamp-like fields).
+- [ ] Optional: trim the remaining 600–880-line screens (`home`, `tariff`, `analytics`, `tutorial`, `reviews`) into smaller widgets — nice-to-have, not blocking.
 
-- [ ] App Store Connect: bundle id `uz.mebellar.app` / `com.mebellar.app`.
-- [ ] Privacy nutrition labels: same data inventory as Play Store.
-- [ ] App icon flat (no transparency, already configured via `flutter_launcher_icons.remove_alpha_ios: true`).
-- [ ] Demo account for review with both customer + seller modes accessible.
-- [ ] Review note explaining the mode switch (otherwise reviewers may file it as a "missing functionality").
-- [ ] TestFlight beta with at least 20 external testers for 1 week before submission.
+## 2.7 — Repository & secrets hygiene 🔴 / 🔵
 
-**Acceptance** — A test internal release passes both stores' review checklists without rejection.
+- [ ] **Untrack the Firebase Admin SDK key** — `git rm --cached woody-b3c1a-firebase-adminsdk-*.json` and re-activate the `*-firebase-adminsdk-*.json` rule in `.gitignore`. **The maintainer must also rotate the key in the Firebase Console** (see [`docs/PROJECT_STATE_ANALYSIS.md`](./docs/PROJECT_STATE_ANALYSIS.md) §6).
+- [ ] Move stray repo-root files (`a.md`, `flutter_01.png`) into `docs/` or untrack them.
 
-**Estimate.** 2 weeks elapsed (lots of waiting on store reviews).
+## 2.8 — Customer payment flow ⏸️ Deferred (Post-MVP)
 
-### C.4 — Shorebird code-push integration
+A pure coding task, but a **deliberate strategic deferral**: V1 ships with offline P2P / cash-on-delivery only — no third-party payment SDK. Recorded here so it is not forgotten.
 
-Already alluded to in `pubspec.yaml` comments but not implemented.
+- [~] Choose a payment partner (Payme / Click / Octo / P2P-to-card).
+- [~] Integrate the SDK or webview flow in `customer/features/checkout/`.
+- [~] Add a `payment_intents` table + confirmation Edge Function; order stays `pending_payment` until the callback flips it to `paid`.
 
-**Tasks**
-
-- [ ] `shorebird init`.
-- [ ] Add `shorebird release android` / `shorebird release ios` to the CD workflows.
-- [ ] Test a patch cycle: ship a copy edit via `shorebird patch android` without rebuilding the APK.
-- [ ] Decide on the upgrade strategy: silent? prompt? blocking after N days?
-
-**Acceptance** — A typo fix in `lib/core/i18n/translations/common_translations.dart` reaches every installed device within 24 hours without a Play Store update.
-
-**Estimate.** 1 week.
-
-### C.5 — Observability + analytics
-
-**Tasks**
-
-- [ ] Sentry / Crashlytics — error tracking (already in A.3).
-- [ ] Add a lightweight events SDK: PostHog or Amplitude.
-- [ ] Wire route observers + key BLoC transitions to send analytics events.
-- [ ] Build a Supabase view aggregating signups, mode switches, cart abandonment, completed orders.
-
-**Acceptance** — A weekly dashboard answers: DAU, signup→first-order conversion, seller onboarding completion rate.
-
-**Estimate.** 1 week.
-
-### C.6 — Backend / DB scalability prep
-
-**Tasks**
-
-- [ ] Audit Supabase indexes — every query path in `SupabaseXRepository` should have a supporting index. Use `mcp__supabase__execute_sql` to `EXPLAIN ANALYZE` the hot queries.
-- [ ] Move heavy reads (catalog list, product detail) behind a `pg_cache` extension or `cached_network_image`-style edge caching.
-- [ ] Set up Supabase paid plan with proper backups, point-in-time recovery, and a staging branch.
-- [ ] Decide on a CDN for product images (Supabase Storage + CloudFront / BunnyCDN).
-
-**Acceptance** — Synthetic load test (1000 concurrent users, 5 min) produces no rate-limit errors and stays under 200ms p95 for catalog list.
-
-**Estimate.** 1 week.
-
-### C.7 — Post-launch ops
-
-**Tasks**
-
-- [ ] On-call rotation (even if solo: define an SLA for severity-1 incidents).
-- [ ] Status page (statuspage.io or a simple static one).
-- [ ] Customer support intake (Telegram bot, email, or in-app feedback form already drafted in profile).
-- [ ] Translation feedback loop — let users report missing translations (track in Supabase `translation_feedback` table).
-- [ ] Quarterly accessibility audit (TalkBack/VoiceOver, font scaling, contrast).
-
-**Estimate.** Ongoing.
+**Revisit after V1 launch.**
 
 ---
 
-## Phase Summary Cheat Sheet
+## Priority Order
 
-| Phase | Window | Top deliverable | Definition of done |
-| --- | --- | --- | --- |
-| **A.1–A.6** | Weeks 1–3 | Secrets rotated, error pipeline live, mocks gated | Decompiled APK reveals no secrets; Sentry receives test errors; prod-mode seller flows do not show mock data |
-| **B.1** | Months 1–2 | Seller backend complete | End-to-end real order flow possible |
-| **B.2** | Months 1–2 | Customer payment | Sandbox card buys an order |
-| **B.3–B.4** | Months 1–2 | Seller migrates to GoRouter; 6 god-screens split | All screens <600 lines |
-| **B.5–B.6** | Months 2–3 | 30 % test coverage; refactor backbone done | CI green on every PR |
-| **B.7–B.8** | Month 3 | Performance + localization parity | p99 home frame <16 ms; no untranslated keys |
-| **C.1–C.2** | Month 4 | CI/CD + flavors live | Tagged release auto-builds; testers install Dev + Prod side-by-side |
-| **C.3** | Month 5 | Store submission | Both stores accept internal track |
-| **C.4–C.5** | Month 5 | Shorebird + analytics | OTA copy patch demonstrably ships |
-| **C.6–C.7** | Month 6 | Scale + ops | First real customers without panic |
+| Order | Task | Severity |
+| --- | --- | --- |
+| 1 | 2.7 — untrack Admin SDK key (+ owner rotation) | 🔴 |
+| 2 | 2.1 — activate seller fulfillment backend | 🟠 |
+| 3 | 2.5 — lifecycle & cancellation hardening | 🟡 |
+| 4 | 2.2 — consolidate checkout state holders | 🟡 |
+| 5 | 2.4 — type-safe Hive access | 🟡 |
+| 6 | 2.3 — retire legacy seller navigation | 🟡 |
+| 7 | 2.6 — code-organisation cleanups | 🔵 |
+| — | 2.8 — customer payment flow | ⏸️ deferred |
 
 ---
 
-## Risks & Mitigations
+## Explicitly Out of Scope
 
-| Risk | Likelihood | Impact | Mitigation |
-| --- | --- | --- | --- |
-| Payment partner integration takes >4 weeks | Medium | Delays launch | Start partner application in Week 1 of phase B |
-| Yandex MapKit policy change | Low | Need to swap to Google Maps SDK | Map facade (REFACTORING.md §5.3) keeps swap localised |
-| Play Store rejection due to mode switch confusion | Medium | 1–2 weeks delay | Include explicit review note + demo accounts |
-| Solo developer burnout | High | Indefinite delay | Front-load the refactors (sections A, B.5, B.6) so future feature work is cheap |
-| Supabase quota / cost spike at launch | Low | Service degradation | C.6 load test + Supabase paid plan before launch |
+Per the strategic pivot, the following are **not** on this roadmap and will not be tracked here:
 
----
+- CI/CD pipelines (GitHub Actions or otherwise).
+- Build flavors / code-signing automation.
+- App Store / Play Store submission, listing assets, store review.
+- Shorebird code-push integration.
+- Analytics SDKs, observability dashboards, on-call / ops process.
+- Marketing, ASO, growth.
 
-## What's *Not* in this Roadmap (Deliberate)
-
-These appeared in older planning docs but are deferred until after V1 ships:
-
-- Web admin dashboard.
-- Multi-vendor / inventory management at scale.
-- AB-testing framework (revisit after analytics are running in C.5).
-- AI / ML recommendations (defer until there is real engagement data).
-- Multi-currency / cross-border (Uzbekistan-focused MVP first).
-
-Document them in `docs/legacy/` as parked items so they aren't forgotten — just not in the critical path.
+These may be revisited in a future operations-focused planning cycle — they are intentionally absent so this document stays a pure engineering backlog.

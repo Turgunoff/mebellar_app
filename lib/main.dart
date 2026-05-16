@@ -80,17 +80,6 @@ Future<void> _bootstrapAndRun() async {
   );
   talker.info('App boot started');
 
-  // TEMP — Sentry connectivity check. Sends one test event to confirm the
-  // DSN/transport works end-to-end. Run once, verify it lands on the Sentry
-  // dashboard, then delete this block. Debug-only so release never sends it.
-  if (kDebugMode) {
-    final eventId = await Sentry.captureMessage(
-      'Sentry connectivity test — ${DateTime.now().toIso8601String()}',
-      level: SentryLevel.info,
-    );
-    talker.info('[Sentry] test event sent, id: $eventId');
-  }
-
   // Boot Firebase before the DI scope so PushService can be registered with
   // a live FirebaseMessaging.instance. The background handler must be
   // registered *before* the first await on FCM, hence its placement here.

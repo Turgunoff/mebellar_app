@@ -33,6 +33,9 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Hive boxes created at runtime by the test suite (zero-byte, timestamped).
+/test/.hive/
+
 # Symbolication related
 app.*.symbols
 
