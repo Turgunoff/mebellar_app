@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
+import '../config/app_config.dart';
 import '../config/app_mode.dart';
 import '../core/connectivity/network_cubit.dart';
 import '../core/deep_links/deep_link_service.dart';
@@ -22,6 +24,7 @@ import 'features/dashboard/dashboard_screen.dart';
 import 'features/orders/screens/seller_orders_screen.dart';
 import 'features/products/screens/seller_products_screen.dart';
 import 'features/profile/profile_screen.dart';
+import 'seller_router.dart';
 import 'widgets/seller_bottom_nav.dart';
 
 class SellerApp extends StatefulWidget {
@@ -32,12 +35,32 @@ class SellerApp extends StatefulWidget {
 }
 
 class _SellerAppState extends State<SellerApp> {
+  /// Built only when [AppConfig.sellerUsesGoRouter] is on; the legacy shell
+  /// path leaves this null and routes imperatively via [sellerNavigatorKey].
+  GoRouter? _router;
+
+  static const List<LocalizationsDelegate<dynamic>> _localizationsDelegates = [
+    AppLocalizationsDelegate(),
+    GlobalMaterialLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+  ];
+
   @override
   void initState() {
     super.initState();
+    if (AppConfig.sellerUsesGoRouter) {
+      _router = buildSellerRouter();
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _consumePendingRoute();
     });
+  }
+
+  @override
+  void dispose() {
+    _router?.dispose();
+    super.dispose();
   }
 
   void _consumePendingRoute() {
@@ -55,53 +78,81 @@ class _SellerAppState extends State<SellerApp> {
       route = sl<NotificationHandler>().consumeFor(AppMode.seller.name);
     }
     if (route == null) return;
-    // SellerApp is a plain `MaterialApp` (no GoRouter), so we push via the
-    // global navigator key wired into `MaterialApp.navigatorKey`. Routes
-    // that aren't mapped in `onGenerateRoute` will no-op silently — fine
-    // for the dummy-route phase of the Sprint.
-    sellerNavigatorKey.currentState?.pushNamed(route);
+    final router = _router;
+    if (router != null) {
+      // go_router path: the destination builds the full tab + detail stack;
+      // unmapped paths land on the router's errorBuilder rather than no-op.
+      router.go(route);
+    } else {
+      // Legacy path: push onto the global navigator. Unmapped routes no-op.
+      sellerNavigatorKey.currentState?.pushNamed(route);
+    }
   }
 
   // No silent redirect-on-missing-auth here: the saved `app_mode` is the
   // user's explicit choice and we honor it. If the session is later found
-  // to be missing, individual seller screens guard themselves (e.g. by
-  // showing a login banner or gated tab) rather than the shell yanking
-  // the user back to customer mode and overwriting the persisted choice.
+  // to be missing, individual seller screens guard themselves rather than
+  // the shell yanking the user back to customer mode.
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider<NetworkCubit>.value(
       value: sl<NetworkCubit>(),
-      child: MaterialApp(
-        title: 'Woody Seller',
-        debugShowCheckedModeBanner: false,
-        theme: sellerLightTheme,
-        darkTheme: sellerDarkTheme,
-        navigatorKey: sellerNavigatorKey,
-        navigatorObservers: [
-          TalkerRouteObserver(talker),
-          ConsoleNavObserver(),
-        ],
-        localizationsDelegates: const [
-          AppLocalizationsDelegate(),
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: AppTranslations.supportedLocales,
-        locale: AppLocaleScope.of(context).value,
-        home: const SellerHomeShell(),
-        builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
-          value: appSystemOverlay(Theme.of(context).brightness),
-          child: NetworkOverlayWrapper(
-            child: child ?? const SizedBox.shrink(),
-          ),
-        ),
+      child: _router != null
+          ? _buildRouterApp(context)
+          : _buildLegacyApp(context),
+    );
+  }
+
+  /// ROADMAP B.3 — `go_router`-driven seller shell.
+  Widget _buildRouterApp(BuildContext context) {
+    return MaterialApp.router(
+      title: 'Woody Seller',
+      debugShowCheckedModeBanner: false,
+      theme: sellerLightTheme,
+      darkTheme: sellerDarkTheme,
+      routerConfig: _router!,
+      localizationsDelegates: _localizationsDelegates,
+      supportedLocales: AppTranslations.supportedLocales,
+      locale: AppLocaleScope.of(context).value,
+      builder: _appBuilder,
+    );
+  }
+
+  /// Legacy imperative shell — kept behind the flag so the migration can be
+  /// reverted without a code change while debugging.
+  Widget _buildLegacyApp(BuildContext context) {
+    return MaterialApp(
+      title: 'Woody Seller',
+      debugShowCheckedModeBanner: false,
+      theme: sellerLightTheme,
+      darkTheme: sellerDarkTheme,
+      navigatorKey: sellerNavigatorKey,
+      navigatorObservers: [
+        TalkerRouteObserver(talker),
+        ConsoleNavObserver(),
+      ],
+      localizationsDelegates: _localizationsDelegates,
+      supportedLocales: AppTranslations.supportedLocales,
+      locale: AppLocaleScope.of(context).value,
+      home: const SellerHomeShell(),
+      builder: _appBuilder,
+    );
+  }
+
+  Widget _appBuilder(BuildContext context, Widget? child) {
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: appSystemOverlay(Theme.of(context).brightness),
+      child: NetworkOverlayWrapper(
+        child: child ?? const SizedBox.shrink(),
       ),
     );
   }
 }
 
+/// Legacy bottom-nav shell — used only when [AppConfig.sellerUsesGoRouter] is
+/// off. The `go_router` path uses [SellerRouterShell] instead. Delete this
+/// once the migration is permanent (ROADMAP B.3).
 class SellerHomeShell extends StatefulWidget {
   const SellerHomeShell({super.key});
 
@@ -115,8 +166,7 @@ class _SellerHomeShellState extends State<SellerHomeShell> {
   Widget _bodyForTab(int i) {
     // Mock-mode: every seller tab is unlocked regardless of verification
     // status, so the populated dashboard isn't undercut by lock screens on
-    // adjacent tabs. Re-introduce the `_approved` gate here when wiring this
-    // back up to a real verification flow.
+    // adjacent tabs.
     return switch (i) {
       0 => SellerDashboardScreen(
         onSeeAllOrders: () => setState(() => _index = 2),
@@ -132,12 +182,7 @@ class _SellerHomeShellState extends State<SellerHomeShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Every seller tab now renders its own premium header in-body, so the
-      // shell never paints an AppBar. This is what keeps the surface free of
-      // M3's teal-seeded surface tint on screens like Profile.
       appBar: null,
-      // Connectivity banner is mounted once at MaterialApp.builder via
-      // NetworkOverlayWrapper, so it doesn't need to live inside each shell.
       body: Column(
         children: [
           Expanded(child: _bodyForTab(_index)),

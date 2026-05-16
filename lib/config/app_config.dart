@@ -45,6 +45,16 @@ class AppConfig {
     defaultValue: false,
   );
 
+  /// Routes seller mode through `go_router` (a `StatefulShellRoute`) instead
+  /// of the legacy imperative `MaterialApp` + `sellerNavigatorKey` shell.
+  /// The extracted seller screen structure (ROADMAP B.4) is in place, so this
+  /// defaults ON; flip OFF in an env file to fall back to the legacy
+  /// navigation while debugging (ROADMAP B.3).
+  static const bool sellerUsesGoRouter = bool.fromEnvironment(
+    'SELLER_USES_GO_ROUTER',
+    defaultValue: true,
+  );
+
   static bool get isProd => environment == 'prod';
 
   static bool get hasSupabase =>

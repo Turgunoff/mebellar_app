@@ -91,7 +91,7 @@ dependencies:
   # Crash reporting — Sentry. The DSN is injected via env (SENTRY_DSN); an
   # empty DSN leaves the SDK initialised-but-disabled. Talker errors are
   # forwarded to Sentry through SentryTalkerObserver (see lib/core/logging/).
-  sentry_flutter: ^8.0.0
+  sentry_flutter: ^9.0.0
 
   # Connectivity — connectivity_plus detects link changes (wifi / cellular /
   # none), internet_connection_checker_plus verifies actual reachability so
