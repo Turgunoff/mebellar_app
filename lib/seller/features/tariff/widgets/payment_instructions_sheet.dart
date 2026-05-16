@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/result/result.dart';
 import '../../../../shared/models/tariff.dart';
 import '../../../../shared/repositories/tariff_repository.dart';
 import '../../../../shared/utils/image_upload.dart';
@@ -41,7 +42,7 @@ class _SheetBody extends StatefulWidget {
 }
 
 class _SheetBodyState extends State<_SheetBody> {
-  late Future<TariffPaymentInstructions> _instructions;
+  late Future<Result<TariffPaymentInstructions>> _instructions;
 
   @override
   void initState() {
@@ -111,13 +112,26 @@ class _SheetBodyState extends State<_SheetBody> {
           maxChildSize: 0.95,
           expand: false,
           builder: (_, scrollController) => SafeArea(
-            child: FutureBuilder<TariffPaymentInstructions>(
+            child: FutureBuilder<Result<TariffPaymentInstructions>>(
               future: _instructions,
               builder: (context, snap) {
-                if (!snap.hasData) {
+                final result = snap.data;
+                if (result == null) {
                   return const Center(child: CircularProgressIndicator());
                 }
-                final ins = snap.data!;
+                final ins = result.valueOrNull;
+                if (ins == null) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text(
+                        result.failureOrNull?.message ??
+                            "Ma'lumotni yuklab bo'lmadi",
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  );
+                }
                 return ListView(
                   controller: scrollController,
                   padding: const EdgeInsets.all(16),

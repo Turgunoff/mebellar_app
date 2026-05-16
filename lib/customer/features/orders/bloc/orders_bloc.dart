@@ -1,3 +1,4 @@
+import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -74,7 +75,9 @@ class OrdersState extends Equatable {
 
 class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
   OrdersBloc(this._repo) : super(const OrdersState()) {
-    on<OrdersRequested>(_onRequested);
+    // ROADMAP B.7 — droppable: ignores a refresh that arrives while a fetch
+    // is still running (e.g. rapid pull-to-refresh) instead of queueing it.
+    on<OrdersRequested>(_onRequested, transformer: droppable());
     on<OrdersTabChanged>(
         (event, emit) => emit(state.copyWith(tab: event.tab)));
   }

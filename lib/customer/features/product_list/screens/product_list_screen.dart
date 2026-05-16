@@ -163,6 +163,8 @@ class _ProductCard extends StatelessWidget {
                     if (product.thumbnail != null)
                       CachedNetworkImage(
                         imageUrl: product.thumbnail!,
+                        // ROADMAP B.7 — 2-column grid product card.
+                        memCacheWidth: 600,
                         fit: BoxFit.cover,
                         placeholder: (_, _) => Shimmer.fromColors(
                           baseColor: pt.imageBg,

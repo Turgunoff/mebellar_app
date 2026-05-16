@@ -21,6 +21,7 @@ import 'core/storage/hive_boxes.dart';
 import 'core/theme/theme_cubit.dart';
 import 'core/widgets/app_splash_screen.dart';
 import 'customer/customer_app.dart';
+import 'core/i18n/translations/_missing_keys_check.dart';
 import 'firebase_options.dart';
 import 'seller/seller_app.dart';
 
@@ -30,6 +31,11 @@ Future<void> main() async {
   // Fail fast: a build launched with no env file has empty Supabase / Yandex
   // credentials — abort here, loudly, rather than silently running blank.
   AppConfig.assertConfigured();
+
+  // ROADMAP B.8 — debug-only guard: throws the instant the ru/en bundles
+  // drift below the uz baseline, so a missing translation is caught at boot
+  // instead of shipping a raw `key.path` to users. No-op in release builds.
+  assertTranslationsComplete();
 
   // Sentry wraps the whole app in an error-capturing zone. An empty
   // SENTRY_DSN leaves the SDK initialised-but-disabled; Talker errors are

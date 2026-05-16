@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:clock/clock.dart';
+
+import '../../core/result/result.dart';
 import '../models/verification_document.dart';
 import '../models/verification_status.dart';
 import '../repositories/seller_verification_repository.dart';
@@ -25,7 +28,7 @@ class MockSellerVerificationRepository
   /// as the synthetic `remoteUrl` so the verification screen can preview the
   /// image without ever touching the network.
   @override
-  Future<VerificationDocument> uploadDocument({
+  Future<Result<VerificationDocument>> uploadDocument({
     required VerificationDocumentType type,
     required File file,
     required String fileExtension,
@@ -37,25 +40,25 @@ class MockSellerVerificationRepository
       uploading: true,
     ));
     await Future<void>.delayed(_uploadDelay);
-    final ts = DateTime.now().millisecondsSinceEpoch;
-    final fakeUrl =
-        'verification/${type.code}-$ts.$fileExtension';
+    final ts = clock.now().millisecondsSinceEpoch;
+    final fakeUrl = 'verification/${type.code}-$ts.$fileExtension';
     final updated = VerificationDocument(
       type: type,
       localPath: file.path,
       remoteUrl: fakeUrl,
     );
     MockSellerState.instance.upsertDocument(updated);
-    return updated;
+    return Ok(updated);
   }
 
   @override
-  Future<void> removeDocument(VerificationDocumentType type) async {
+  Future<Result<void>> removeDocument(VerificationDocumentType type) async {
     MockSellerState.instance.removeDocument(type);
+    return const Ok<void>(null);
   }
 
   @override
-  Future<VerificationStatus> submit() async {
+  Future<Result<VerificationStatus>> submit() async {
     await Future<void>.delayed(_submitDelay);
     MockSellerState.instance.setStatus(VerificationStatus.pending);
     // Simulate the admin moving the case to "in_review" after a short delay
@@ -66,7 +69,7 @@ class MockSellerVerificationRepository
         MockSellerState.instance.setStatus(VerificationStatus.inReview);
       }
     });
-    return VerificationStatus.pending;
+    return Ok(VerificationStatus.pending);
   }
 
   @override

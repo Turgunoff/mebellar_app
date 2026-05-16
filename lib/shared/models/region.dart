@@ -36,6 +36,16 @@ class Region extends Equatable {
     );
   }
 
+  /// Serialises the region as an embedded jsonb value (id + code + localized
+  /// name). `children` are intentionally omitted — they belong to the region
+  /// catalog, not to an embedded shop-address snapshot.
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'code': code,
+        'name': name.toJson(),
+        'parent_id': ?parentId,
+      };
+
   @override
   List<Object?> get props => [id, code, parentId, children.length];
 }

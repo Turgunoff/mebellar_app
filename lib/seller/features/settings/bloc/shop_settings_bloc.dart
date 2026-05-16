@@ -180,14 +180,13 @@ class ShopSettingsBloc extends Bloc<ShopSettingsEvent, ShopSettingsState> {
     Emitter<ShopSettingsState> emit,
   ) async {
     emit(state.copyWith(status: ShopSettingsStatus.loading, clearError: true));
-    try {
-      final settings = await _repo.get();
-      emit(state.copyWith(
-          status: ShopSettingsStatus.ready, settings: settings));
-    } catch (e) {
-      emit(state.copyWith(
-          status: ShopSettingsStatus.failure, error: e.toString()));
-    }
+    final result = await _repo.get();
+    result.fold(
+      ok: (settings) => emit(state.copyWith(
+          status: ShopSettingsStatus.ready, settings: settings)),
+      err: (failure) => emit(state.copyWith(
+          status: ShopSettingsStatus.failure, error: failure.message)),
+    );
   }
 
   void _onBasics(
@@ -271,19 +270,22 @@ class ShopSettingsBloc extends Bloc<ShopSettingsEvent, ShopSettingsState> {
     final s = state.settings;
     if (s == null) return;
     emit(state.copyWith(uploadingKind: event.kind, clearError: true));
-    try {
-      final url = await _repo.uploadAsset(
-        kind: event.kind,
-        file: event.file,
-        fileExtension: event.fileExtension,
-      );
-      final next = event.kind == 'logo'
-          ? s.copyWith(logoUrl: url)
-          : s.copyWith(coverUrl: url);
-      emit(state.copyWith(settings: next, clearUploadingKind: true));
-    } catch (e) {
-      emit(state.copyWith(error: e.toString(), clearUploadingKind: true));
-    }
+    final result = await _repo.uploadAsset(
+      kind: event.kind,
+      file: event.file,
+      fileExtension: event.fileExtension,
+    );
+    result.fold(
+      ok: (url) {
+        final next = event.kind == 'logo'
+            ? s.copyWith(logoUrl: url)
+            : s.copyWith(coverUrl: url);
+        emit(state.copyWith(settings: next, clearUploadingKind: true));
+      },
+      err: (failure) => emit(
+        state.copyWith(error: failure.message, clearUploadingKind: true),
+      ),
+    );
   }
 
   Future<void> _onSaved(
@@ -293,14 +295,13 @@ class ShopSettingsBloc extends Bloc<ShopSettingsEvent, ShopSettingsState> {
     final s = state.settings;
     if (s == null) return;
     emit(state.copyWith(status: ShopSettingsStatus.saving, clearError: true));
-    try {
-      final saved = await _repo.save(s);
-      emit(state.copyWith(
-          status: ShopSettingsStatus.saved, settings: saved));
-    } catch (e) {
-      emit(state.copyWith(
-          status: ShopSettingsStatus.failure, error: e.toString()));
-    }
+    final result = await _repo.save(s);
+    result.fold(
+      ok: (savedSettings) => emit(state.copyWith(
+          status: ShopSettingsStatus.saved, settings: savedSettings)),
+      err: (failure) => emit(state.copyWith(
+          status: ShopSettingsStatus.failure, error: failure.message)),
+    );
   }
 
   @override

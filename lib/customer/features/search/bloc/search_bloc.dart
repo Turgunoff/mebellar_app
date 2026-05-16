@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -83,7 +84,7 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
 
   static const _recentKey = 'search_recent';
   static const _maxRecent = 10;
-  static const _debounceDuration = Duration(milliseconds: 500);
+  static const _debounceDuration = Duration(milliseconds: 300);
 
   final SupabaseProductDataSource _source;
   final Box _cache;
@@ -96,13 +97,16 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
     return const [];
   }
 
-  /// Drops events that arrive within `_debounceDuration` of each other so we
-  /// don't fire a Supabase request on every keystroke.
+  /// ROADMAP B.7 — debounce + `restartable`. The debounce drops keystrokes
+  /// that arrive within `_debounceDuration` of each other so we don't fire a
+  /// Supabase request per keystroke; `restartable` then cancels any still
+  /// in-flight search when a newer query settles, so a slow request can't
+  /// land stale results over a fresher query.
   EventTransformer<E> _debounce<E>() {
     return (events, mapper) {
-      return events
-          .transform(_DebounceTransformer<E>(_debounceDuration))
-          .asyncExpand(mapper);
+      final debounced =
+          events.transform(_DebounceTransformer<E>(_debounceDuration));
+      return restartable<E>()(debounced, mapper);
     };
   }
 

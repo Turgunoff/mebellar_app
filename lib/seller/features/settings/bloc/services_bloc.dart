@@ -86,12 +86,14 @@ class ServicesBloc extends Bloc<ServicesEvent, ServicesState> {
     Emitter<ServicesState> emit,
   ) async {
     emit(state.copyWith(status: ServicesStatus.loading, clearError: true));
-    try {
-      final list = await _repo.list();
-      emit(state.copyWith(status: ServicesStatus.ready, configs: list));
-    } catch (e) {
-      emit(state.copyWith(status: ServicesStatus.failure, error: e.toString()));
-    }
+    final result = await _repo.list();
+    result.fold(
+      ok: (list) =>
+          emit(state.copyWith(status: ServicesStatus.ready, configs: list)),
+      err: (failure) => emit(
+        state.copyWith(status: ServicesStatus.failure, error: failure.message),
+      ),
+    );
   }
 
   void _onToggled(ServiceToggled event, Emitter<ServicesState> emit) {
@@ -120,11 +122,13 @@ class ServicesBloc extends Bloc<ServicesEvent, ServicesState> {
     Emitter<ServicesState> emit,
   ) async {
     emit(state.copyWith(status: ServicesStatus.saving, clearError: true));
-    try {
-      final saved = await _repo.save(state.configs);
-      emit(state.copyWith(status: ServicesStatus.saved, configs: saved));
-    } catch (e) {
-      emit(state.copyWith(status: ServicesStatus.failure, error: e.toString()));
-    }
+    final result = await _repo.save(state.configs);
+    result.fold(
+      ok: (saved) =>
+          emit(state.copyWith(status: ServicesStatus.saved, configs: saved)),
+      err: (failure) => emit(
+        state.copyWith(status: ServicesStatus.failure, error: failure.message),
+      ),
+    );
   }
 }

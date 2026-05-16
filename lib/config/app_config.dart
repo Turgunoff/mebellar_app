@@ -76,7 +76,7 @@ class AppConfig {
     if (missing.isEmpty) return;
     throw StateError(
       'AppConfig: missing required env keys: ${missing.join(', ')}. '
-      'Launch with --dart-define-from-file=env/dev.json '
+      'Launch with --dart-define-from-file=env/prod.json '
       '(see env/example.json for the expected shape).',
     );
   }

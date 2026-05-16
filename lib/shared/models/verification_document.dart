@@ -71,6 +71,31 @@ class VerificationDocument extends Equatable {
   bool get isUploaded => remoteUrl != null;
   bool get hasLocal => localPath != null;
 
+  /// Parses a `public.verification_documents` row. For the **private**
+  /// `verification-docs` bucket [remoteUrl] holds the storage *object path*
+  /// (`<seller_uid>/<type>.<ext>`), not a public URL — the UI fetches a
+  /// short-lived signed URL on demand. Throws a [FormatException] on an
+  /// unrecognised `document_type` so a stale row surfaces loudly.
+  factory VerificationDocument.fromJson(Map<String, dynamic> json) {
+    final code = json['document_type'] as String? ?? '';
+    final type = VerificationDocumentType.fromCode(code);
+    if (type == null) {
+      throw FormatException('Unknown verification document type: $code');
+    }
+    return VerificationDocument(
+      type: type,
+      remoteUrl: json['storage_path'] as String?,
+    );
+  }
+
+  /// Serialises the persisted columns. `seller_id` is attached by the
+  /// repository at write time; `localPath`/`uploading`/`error` are
+  /// UI-transient and never stored.
+  Map<String, dynamic> toJson() => {
+        'document_type': type.code,
+        'storage_path': remoteUrl,
+      };
+
   VerificationDocument copyWith({
     String? localPath,
     String? remoteUrl,

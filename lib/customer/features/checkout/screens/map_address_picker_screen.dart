@@ -9,7 +9,9 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:yandex_mapkit/yandex_mapkit.dart';
 
 import '../../../../config/app_config.dart';
+import '../../../../core/di/service_locator.dart';
 import '../../../../core/maps/yandex_mapkit_initializer.dart';
+import '../../../../core/platform/location_facade.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 
 const _kDefaultCenter = Point(latitude: 41.2995, longitude: 69.2401);
@@ -28,6 +30,7 @@ class MapAddressPickerScreen extends StatefulWidget {
 }
 
 class _MapAddressPickerScreenState extends State<MapAddressPickerScreen> {
+  final LocationFacade _location = sl<LocationFacade>();
   YandexMapController? _mapController;
   String? _geocodedAddress;
   bool _isGeocoding = false;
@@ -184,9 +187,9 @@ class _MapAddressPickerScreenState extends State<MapAddressPickerScreen> {
   }
 
   Future<void> _goToMyLocation() async {
-    var permission = await Geolocator.checkPermission();
+    var permission = await _location.checkPermission();
     if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
+      permission = await _location.requestPermission();
     }
     if (permission == LocationPermission.deniedForever ||
         permission == LocationPermission.denied) {
@@ -195,7 +198,7 @@ class _MapAddressPickerScreenState extends State<MapAddressPickerScreen> {
     if (!mounted) return;
 
     try {
-      final pos = await Geolocator.getCurrentPosition(
+      final pos = await _location.getCurrentPosition(
         locationSettings:
             const LocationSettings(accuracy: LocationAccuracy.high),
       );

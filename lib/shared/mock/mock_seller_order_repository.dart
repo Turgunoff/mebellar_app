@@ -1,5 +1,9 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart';
+
+import '../../core/error/failure.dart';
+import '../../core/result/result.dart';
 import '../models/order.dart';
 import '../models/order_status.dart';
 import '../repositories/seller_order_repository.dart';
@@ -13,7 +17,10 @@ class MockSellerOrderRepository implements SellerOrderRepository {
     _orders.addAll(MockOrdersData.orders);
     // Recurrent simulated insert — same cadence as the dashboard listener so
     // the orders list and the dashboard "Yangi orderlar" stay in sync.
-    _timer = Timer.periodic(const Duration(seconds: 25), (_) => _injectNewOrder());
+    _timer = Timer.periodic(
+      const Duration(seconds: 25),
+      (_) => _injectNewOrder(),
+    );
   }
 
   static const _delay = Duration(milliseconds: 250);
@@ -25,59 +32,63 @@ class MockSellerOrderRepository implements SellerOrderRepository {
   int _idCounter = 1100;
 
   @override
-  Future<List<Order>> list() async {
+  Future<Result<List<Order>>> list() async {
     await Future<void>.delayed(_delay);
     final sorted = List<Order>.from(_orders)
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    return sorted;
+    return Ok(sorted);
   }
 
   @override
-  Future<Order> getById(String id) async {
+  Future<Result<Order>> getById(String id) async {
     await Future<void>.delayed(_delay);
     final order = _orders.where((o) => o.id == id).firstOrNull;
-    if (order == null) throw StateError('Buyurtma topilmadi: $id');
-    return order;
+    if (order == null) {
+      return Err(ServerFailure(message: 'Buyurtma topilmadi: $id'));
+    }
+    return Ok(order);
   }
 
   @override
   Stream<Order> newOrders() => _newOrders.stream;
 
   @override
-  Future<Order> confirm(String id) async {
-    return _transition(id, from: {OrderStatus.pending}, to: OrderStatus.confirmed);
-  }
+  Future<Result<Order>> confirm(String id) =>
+      _transition(id, from: {OrderStatus.pending}, to: OrderStatus.confirmed);
 
   @override
-  Future<Order> markPreparing(String id) async {
-    return _transition(id,
-        from: {OrderStatus.confirmed}, to: OrderStatus.preparing);
-  }
+  Future<Result<Order>> markPreparing(String id) => _transition(
+        id,
+        from: {OrderStatus.confirmed},
+        to: OrderStatus.preparing,
+      );
 
   @override
-  Future<Order> markShipped(String id) async {
-    return _transition(
-      id,
-      from: {OrderStatus.confirmed, OrderStatus.preparing},
-      to: OrderStatus.shipped,
-    );
-  }
+  Future<Result<Order>> markShipped(String id) => _transition(
+        id,
+        from: {OrderStatus.confirmed, OrderStatus.preparing},
+        to: OrderStatus.shipped,
+      );
 
   @override
-  Future<Order> markDelivered(String id) async {
-    return _transition(id,
-        from: {OrderStatus.shipped}, to: OrderStatus.delivered);
-  }
+  Future<Result<Order>> markDelivered(String id) => _transition(
+        id,
+        from: {OrderStatus.shipped},
+        to: OrderStatus.delivered,
+      );
 
   @override
-  Future<Order> cancel(String id, {required String reason}) async {
+  Future<Result<Order>> cancel(String id, {required String reason}) async {
     await Future<void>.delayed(_delay);
     final idx = _orders.indexWhere((o) => o.id == id);
-    if (idx < 0) throw StateError('Buyurtma topilmadi: $id');
+    if (idx < 0) {
+      return Err(ServerFailure(message: 'Buyurtma topilmadi: $id'));
+    }
     final order = _orders[idx];
     if (order.status.isTerminal) {
-      throw StateError(
-          'Bu buyurtmani bekor qilib bo\'lmaydi (${order.status.code})');
+      return Err(ServerFailure(
+        message: "Bu buyurtmani bekor qilib bo'lmaydi (${order.status.code})",
+      ));
     }
     final updated = order.copyWith(
       status: OrderStatus.cancelled,
@@ -86,14 +97,14 @@ class MockSellerOrderRepository implements SellerOrderRepository {
         ...order.timeline,
         OrderStatusEvent(
           status: OrderStatus.cancelled,
-          timestamp: DateTime.now(),
+          timestamp: clock.now(),
           note: reason,
         ),
       ],
     );
     _orders[idx] = updated;
     _watchers[id]?.add(updated);
-    return updated;
+    return Ok(updated);
   }
 
   @override
@@ -105,29 +116,33 @@ class MockSellerOrderRepository implements SellerOrderRepository {
     return controller.stream;
   }
 
-  Future<Order> _transition(
+  Future<Result<Order>> _transition(
     String id, {
     required Set<OrderStatus> from,
     required OrderStatus to,
   }) async {
     await Future<void>.delayed(_delay);
     final idx = _orders.indexWhere((o) => o.id == id);
-    if (idx < 0) throw StateError('Buyurtma topilmadi: $id');
+    if (idx < 0) {
+      return Err(ServerFailure(message: 'Buyurtma topilmadi: $id'));
+    }
     final order = _orders[idx];
     if (!from.contains(order.status)) {
-      throw StateError(
-          'Joriy holatdan o\'tib bo\'lmaydi (${order.status.code} → ${to.code})');
+      return Err(ServerFailure(
+        message:
+            "Joriy holatdan o'tib bo'lmaydi (${order.status.code} → ${to.code})",
+      ));
     }
     final updated = order.copyWith(
       status: to,
       timeline: [
         ...order.timeline,
-        OrderStatusEvent(status: to, timestamp: DateTime.now()),
+        OrderStatusEvent(status: to, timestamp: clock.now()),
       ],
     );
     _orders[idx] = updated;
     _watchers[id]?.add(updated);
-    return updated;
+    return Ok(updated);
   }
 
   /// Generates a fresh pending order from a seed template. Used both by the
@@ -141,7 +156,7 @@ class MockSellerOrderRepository implements SellerOrderRepository {
     final id = 'ord-mock-$_idCounter';
     final fake = Order(
       id: id,
-      orderNumber: 'M-${DateTime.now().year}-NEW-$_idCounter',
+      orderNumber: 'M-${clock.now().year}-NEW-$_idCounter',
       shop: template.shop,
       items: template.items,
       address: template.address,
@@ -152,11 +167,11 @@ class MockSellerOrderRepository implements SellerOrderRepository {
       deliveryFee: template.deliveryFee,
       servicesFee: template.servicesFee,
       grandTotal: template.grandTotal,
-      createdAt: DateTime.now(),
+      createdAt: clock.now(),
       timeline: [
         OrderStatusEvent(
           status: OrderStatus.pending,
-          timestamp: DateTime.now(),
+          timestamp: clock.now(),
         ),
       ],
     );
@@ -164,6 +179,7 @@ class MockSellerOrderRepository implements SellerOrderRepository {
     _newOrders.add(fake);
   }
 
+  @override
   Future<void> dispose() async {
     _timer?.cancel();
     _timer = null;

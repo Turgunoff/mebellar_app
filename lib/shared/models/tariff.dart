@@ -215,6 +215,13 @@ enum BillingPeriod {
 
   const BillingPeriod(this.code);
   final String code;
+
+  static BillingPeriod fromCode(String? code) {
+    return values.firstWhere(
+      (p) => p.code == code,
+      orElse: () => BillingPeriod.monthly,
+    );
+  }
 }
 
 /// Backend would return more — this is enough for the dashboard KPI tile
@@ -300,6 +307,41 @@ class TariffSubscription extends Equatable {
   final String? rejectionReason;
   final String? paymentScreenshotUrl;
 
+  /// Parses a `public.subscription_receipts` row — the seller's P2P upgrade
+  /// request carrying the payment-receipt reference and approval status.
+  /// `payment_screenshot_path` is the **private** `payment-receipts` bucket
+  /// object path, never a public URL.
+  factory TariffSubscription.fromJson(Map<String, dynamic> json) {
+    return TariffSubscription(
+      id: json['id'] as String? ?? '',
+      plan: TariffPlan.fromCode(json['plan_code'] as String?),
+      period: BillingPeriod.fromCode(json['billing_period'] as String?),
+      amount: (json['amount'] as num?)?.toInt() ?? 0,
+      status: TariffUpgradeStatus.fromCode(json['status'] as String?),
+      submittedAt: DateTime.tryParse(json['submitted_at'] as String? ?? '') ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+      approvedAt: _parseDateOrNull(json['approved_at']),
+      rejectedAt: _parseDateOrNull(json['rejected_at']),
+      expiresAt: _parseDateOrNull(json['expires_at']),
+      rejectionReason: json['rejection_reason'] as String?,
+      paymentScreenshotUrl: json['payment_screenshot_path'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'plan_code': plan.code,
+        'billing_period': period.code,
+        'amount': amount,
+        'status': status.code,
+        'submitted_at': submittedAt.toIso8601String(),
+        'approved_at': approvedAt?.toIso8601String(),
+        'rejected_at': rejectedAt?.toIso8601String(),
+        'expires_at': expiresAt?.toIso8601String(),
+        'rejection_reason': rejectionReason,
+        'payment_screenshot_path': paymentScreenshotUrl,
+      };
+
   TariffSubscription copyWith({
     TariffUpgradeStatus? status,
     DateTime? approvedAt,
@@ -334,3 +376,6 @@ class TariffSubscription extends Equatable {
   List<Object?> get props =>
       [id, plan, period, amount, status, submittedAt, approvedAt, rejectedAt];
 }
+
+DateTime? _parseDateOrNull(Object? value) =>
+    value is String ? DateTime.tryParse(value) : null;

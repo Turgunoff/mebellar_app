@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:image_picker/image_picker.dart';
 
+import '../../core/platform/image_picker_facade.dart';
+
 /// Format/size guards we apply *before* trying to upload to storage. Backend
 /// may also reject (S3 policy + file type validator), but we want a fast
 /// client-side error before consuming the user's bandwidth.
@@ -38,30 +40,34 @@ class ImagePickError implements Exception {
 }
 
 class ImageUploadHelper {
-  ImageUploadHelper({ImagePicker? picker}) : _picker = picker ?? ImagePicker();
+  /// [picker] defaults to the real plugin-backed facade; a test injects a
+  /// fake [ImagePickerFacade] so the pick/validate logic runs without a
+  /// platform channel (ROADMAP B.5).
+  ImageUploadHelper({ImagePickerFacade? picker})
+      : _picker = picker ?? SystemImagePickerFacade();
 
-  final ImagePicker _picker;
+  final ImagePickerFacade _picker;
 
   /// Picks an image from the gallery (`source: gallery`) or camera, applies
   /// resize/quality limits via image_picker, and validates extension + size.
   /// Throws [ImagePickError] when validation fails so callers can surface a
   /// localised message.
   Future<PickedImage?> pick({required ImageSource source}) async {
-    final picked = await _picker.pickImage(
+    final path = await _picker.pickImagePath(
       source: source,
       maxWidth: ImagePickConfig.maxWidth,
       imageQuality: ImagePickConfig.quality,
     );
-    if (picked == null) return null;
+    if (path == null) return null;
 
-    final ext = _extensionOf(picked.path).toLowerCase();
+    final ext = _extensionOf(path).toLowerCase();
     if (!ImagePickConfig.allowedExtensions.contains(ext)) {
       throw ImagePickError(
         'invalid_format',
         'JPEG, PNG yoki WEBP formatidagi rasm tanlang',
       );
     }
-    final file = File(picked.path);
+    final file = File(path);
     final bytes = await file.length();
     if (bytes > ImagePickConfig.maxBytes) {
       throw ImagePickError(

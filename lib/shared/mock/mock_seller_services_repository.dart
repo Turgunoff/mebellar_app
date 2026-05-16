@@ -1,3 +1,4 @@
+import '../../core/result/result.dart';
 import '../models/shop_service_config.dart';
 import '../repositories/seller_services_repository.dart';
 import 'mock_shop_settings.dart';
@@ -12,15 +13,17 @@ class MockSellerServicesRepository implements SellerServicesRepository {
   List<ShopServiceConfig> _configs = const [];
 
   @override
-  Future<List<ShopServiceConfig>> list() async {
+  Future<Result<List<ShopServiceConfig>>> list() async {
     await Future<void>.delayed(_delay);
-    return List<ShopServiceConfig>.unmodifiable(_configs);
+    return Ok(List<ShopServiceConfig>.unmodifiable(_configs));
   }
 
   @override
-  Future<List<ShopServiceConfig>> save(List<ShopServiceConfig> configs) async {
+  Future<Result<List<ShopServiceConfig>>> save(
+    List<ShopServiceConfig> configs,
+  ) async {
     await Future<void>.delayed(_delay);
     _configs = List<ShopServiceConfig>.unmodifiable(configs);
-    return _configs;
+    return Ok(_configs);
   }
 }

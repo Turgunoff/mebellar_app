@@ -46,6 +46,9 @@ class CategoriesGrid extends StatelessWidget {
                         padding: const EdgeInsets.all(12),
                         child: CachedNetworkImage(
                           imageUrl: cat.iconUrl!,
+                          // ROADMAP B.7 — category icons render small; decode
+                          // them small too.
+                          memCacheWidth: 200,
                           errorWidget: (_, _, _) => Icon(
                             Icons.category_outlined,
                             color: scheme.primary,

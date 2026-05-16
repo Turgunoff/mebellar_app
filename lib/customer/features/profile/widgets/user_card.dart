@@ -36,6 +36,8 @@ class UserCard extends StatelessWidget {
               child: hasAvatar
                   ? CachedNetworkImage(
                       imageUrl: profile.avatarUrl!,
+                      // ROADMAP B.7 — 64px profile avatar.
+                      memCacheWidth: 200,
                       fit: BoxFit.cover,
                       placeholder: (_, _) => ColoredBox(color: pt.imageBg),
                       errorWidget: (_, _, _) => const _AvatarFallback(),

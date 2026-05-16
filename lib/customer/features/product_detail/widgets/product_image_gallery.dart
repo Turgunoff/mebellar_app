@@ -82,6 +82,8 @@ class _ProductImageGalleryState extends State<ProductImageGallery> {
               tag: tag,
               child: CachedNetworkImage(
                 imageUrl: img,
+                // ROADMAP B.7 — main gallery image; cap near device width.
+                memCacheWidth: 1080,
                 fit: BoxFit.contain,
                 placeholder: (_, _) => Container(color: surface),
                 errorWidget: (_, _, _) => Container(
@@ -190,6 +192,8 @@ class _FullscreenGalleryState extends State<_FullscreenGallery> {
                     child: InteractiveViewer(
                       child: CachedNetworkImage(
                         imageUrl: img,
+                        // ROADMAP B.7 — thumbnail strip; small decode.
+                        memCacheWidth: 300,
                         fit: BoxFit.contain,
                         placeholder: (_, _) =>
                             const CircularProgressIndicator(),

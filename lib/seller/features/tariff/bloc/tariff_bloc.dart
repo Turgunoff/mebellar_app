@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/result/result.dart';
 import '../../../../shared/models/tariff.dart';
 import '../../../../shared/repositories/tariff_repository.dart';
 
@@ -135,31 +136,44 @@ class TariffBloc extends Bloc<TariffEvent, TariffState> {
     Emitter<TariffState> emit,
   ) async {
     emit(state.copyWith(status: TariffStatus.loading, clearError: true));
-    try {
-      // Run the four reads in parallel — they're independent and we want a
-      // single emit when everything is in (avoids flicker between cached
-      // snapshot and freshly-fetched plans).
-      final results = await Future.wait<dynamic>([
-        _repo.currentSnapshot(),
-        _repo.currentPending(),
-        _repo.history(),
-        _repo.fetchPlans(),
-      ]);
-      final snapshot = results[0] as TariffSnapshot;
-      final pending = results[1] as TariffSubscription?;
-      final history = results[2] as List<TariffSubscription>;
-      final plans = results[3] as List<SubscriptionPlan>;
+    // Fire the four independent reads in parallel, then await each, so the
+    // screen gets a single emit when everything is in (no cached-vs-fresh
+    // flicker).
+    final futures = (
+      _repo.currentSnapshot(),
+      _repo.currentPending(),
+      _repo.history(),
+      _repo.fetchPlans(),
+    );
+    final snapshotR = await futures.$1;
+    final pendingR = await futures.$2;
+    final historyR = await futures.$3;
+    final plansR = await futures.$4;
 
-      emit(state.copyWith(
-        status: TariffStatus.ready,
-        snapshot: snapshot,
-        pending: pending,
-        clearPending: pending == null,
-        history: history,
-        plans: plans,
-      ));
-    } catch (e) {
-      emit(state.copyWith(status: TariffStatus.failure, error: e.toString()));
+    switch ((snapshotR, pendingR, historyR, plansR)) {
+      case (
+          Ok(value: final snapshot),
+          Ok(value: final pending),
+          Ok(value: final history),
+          Ok(value: final plans),
+        ):
+        emit(state.copyWith(
+          status: TariffStatus.ready,
+          snapshot: snapshot,
+          pending: pending,
+          clearPending: pending == null,
+          history: history,
+          plans: plans,
+        ));
+      default:
+        final failure = snapshotR.failureOrNull ??
+            pendingR.failureOrNull ??
+            historyR.failureOrNull ??
+            plansR.failureOrNull;
+        emit(state.copyWith(
+          status: TariffStatus.failure,
+          error: failure?.message,
+        ));
     }
   }
 

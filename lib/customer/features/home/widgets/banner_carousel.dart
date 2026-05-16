@@ -51,6 +51,9 @@ class _BannerCarouselState extends State<BannerCarousel> {
                       children: [
                         CachedNetworkImage(
                           imageUrl: b.imageUrl,
+                          // ROADMAP B.7 — full-bleed banner; cap near the
+                          // widest common device width.
+                          memCacheWidth: 1080,
                           fit: BoxFit.cover,
                           errorWidget: (_, _, _) =>
                               const ImageErrorPlaceholder(iconSize: 40),

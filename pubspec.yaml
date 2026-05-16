@@ -16,8 +16,15 @@ dependencies:
 
   # State management & DI
   flutter_bloc: ^9.0.0
+  # Event transformers (restartable / droppable) for the B.7 performance pass.
+  bloc_concurrency: ^0.3.0
   get_it: ^8.0.0
   equatable: ^2.0.7
+
+  # Testable time — `clock.now()` in place of `DateTime.now()` so tests can
+  # pin "now" with `withClock(...)` instead of waiting on the wall clock
+  # (ROADMAP B.5 test-coverage baseline).
+  clock: ^1.1.1
 
   # Routing
   go_router: ^14.6.0

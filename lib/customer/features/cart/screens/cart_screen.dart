@@ -194,6 +194,8 @@ class _CartItemRow extends StatelessWidget {
                   ? Icon(Iconsax.gallery_slash, color: pt.greyLight)
                   : CachedNetworkImage(
                       imageUrl: item.productImage,
+                      // ROADMAP B.7 — 80px cart-item thumbnail.
+                      memCacheWidth: 250,
                       fit: BoxFit.cover,
                       placeholder: (_, _) => ColoredBox(color: pt.imageBg),
                       errorWidget: (_, _, _) => Icon(

@@ -64,6 +64,59 @@ class ShopSettings extends Equatable {
     return Color(int.parse('FF$cleaned', radix: 16));
   }
 
+  /// Parses a `public.shops` row. `name`/`description`/`region`/`city`/
+  /// `district`/`working_hours` are stored as embedded jsonb so the seller
+  /// settings view needs no joins — see `docs/supabase_rls_policies.sql.md`.
+  factory ShopSettings.fromJson(Map<String, dynamic> json) {
+    return ShopSettings(
+      id: json['id'] as String? ?? '',
+      slug: json['slug'] as String? ?? '',
+      name: MultilingualText.fromJson(json['name'] as Map<String, dynamic>?),
+      description:
+          MultilingualText.fromJson(json['description'] as Map<String, dynamic>?),
+      logoUrl: json['logo_url'] as String?,
+      coverUrl: json['cover_url'] as String?,
+      contactPhone: json['contact_phone'] as String?,
+      contactEmail: json['contact_email'] as String?,
+      telegramUsername: json['telegram_username'] as String?,
+      brandColor: json['brand_color'] as String?,
+      region: _regionOrBlank(json['region']),
+      city: _regionOrBlank(json['city']),
+      district: json['district'] is Map<String, dynamic>
+          ? Region.fromJson(json['district'] as Map<String, dynamic>)
+          : null,
+      streetLine: json['street_line'] as String? ?? '',
+      lat: (json['lat'] as num?)?.toDouble(),
+      lng: (json['lng'] as num?)?.toDouble(),
+      workingHours:
+          WeeklyHours.fromJson(json['working_hours'] as Map<String, dynamic>?),
+      visibility: _visibilityFromName(json['visibility'] as String?),
+    );
+  }
+
+  /// Serialises the seller-editable columns of a `shops` row. Null fields are
+  /// written explicitly so clearing a value (e.g. removing a logo) persists.
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'slug': slug,
+        'name': name.toJson(),
+        'description': description.toJson(),
+        'logo_url': logoUrl,
+        'cover_url': coverUrl,
+        'contact_phone': contactPhone,
+        'contact_email': contactEmail,
+        'telegram_username': telegramUsername,
+        'brand_color': brandColor,
+        'region': region.toJson(),
+        'city': city.toJson(),
+        'district': district?.toJson(),
+        'street_line': streetLine,
+        'lat': lat,
+        'lng': lng,
+        'working_hours': workingHours.toJson(),
+        'visibility': visibility.name,
+      };
+
   ShopSettings copyWith({
     MultilingualText? name,
     MultilingualText? description,
@@ -126,4 +179,16 @@ class ShopSettings extends Equatable {
         workingHours,
         visibility,
       ];
+}
+
+const _blankRegion = Region(id: '_', code: '_', name: MultilingualText());
+
+Region _regionOrBlank(Object? raw) =>
+    raw is Map<String, dynamic> ? Region.fromJson(raw) : _blankRegion;
+
+ShopVisibility _visibilityFromName(String? name) {
+  return ShopVisibility.values.firstWhere(
+    (v) => v.name == name,
+    orElse: () => ShopVisibility.public,
+  );
 }

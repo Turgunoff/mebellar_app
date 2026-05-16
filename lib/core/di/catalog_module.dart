@@ -3,6 +3,7 @@ import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../config/app_config.dart';
 import '../../customer/features/notifications/cubit/notifications_cubit.dart';
 import '../../shared/mock/mock_address_repository.dart';
 import '../../shared/mock/mock_banner_repository.dart';
@@ -95,26 +96,26 @@ void registerCatalogModule(GetIt sl) {
   // --- catalog repositories (Supabase / mock / remote matrix) --------------
   sl.registerLazySingleton<ProductRepository>(
     () => resolver.resolve<ProductRepository>(
-      mock: MockProductRepository.new,
+      mock: AppConfig.useMocks ? MockProductRepository.new : null,
       remote: () => RemoteProductRepository(sl<Dio>()),
     ),
   );
   sl.registerLazySingleton<CategoryRepository>(
     () => resolver.resolve<CategoryRepository>(
-      mock: MockCategoryRepository.new,
+      mock: AppConfig.useMocks ? MockCategoryRepository.new : null,
       remote: () => RemoteCategoryRepository(sl<Dio>()),
     ),
   );
   sl.registerLazySingleton<ShopRepository>(
     () => resolver.resolve<ShopRepository>(
-      mock: MockShopRepository.new,
+      mock: AppConfig.useMocks ? MockShopRepository.new : null,
       remote: () => RemoteShopRepository(sl<Dio>()),
     ),
   );
   sl.registerLazySingleton<BannerRepository>(
     () => resolver.resolve<BannerRepository>(
       supabase: () => SupabaseBannerRepository(supabase: sl<SupabaseClient>()),
-      mock: MockBannerRepository.new,
+      mock: AppConfig.useMocks ? MockBannerRepository.new : null,
       remote: () => RemoteBannerRepository(sl<Dio>()),
     ),
   );
@@ -125,7 +126,7 @@ void registerCatalogModule(GetIt sl) {
         remote: SupabaseCartRepository(supabase: sl<SupabaseClient>()),
         supabase: sl<SupabaseClient>(),
       ),
-      mock: MockCartRepository.new,
+      mock: AppConfig.useMocks ? MockCartRepository.new : null,
       remote: () => RemoteCartRepository(sl<Dio>()),
     ),
   );
@@ -137,19 +138,19 @@ void registerCatalogModule(GetIt sl) {
         remote: SupabaseFavoritesRepository(supabase: sl<SupabaseClient>()),
         supabase: sl<SupabaseClient>(),
       ),
-      mock: MockFavoritesRepository.new,
+      mock: AppConfig.useMocks ? MockFavoritesRepository.new : null,
       remote: () => RemoteFavoritesRepository(sl<Dio>()),
     ),
   );
   sl.registerLazySingleton<RegionRepository>(
     () => resolver.resolve<RegionRepository>(
-      mock: MockRegionRepository.new,
+      mock: AppConfig.useMocks ? MockRegionRepository.new : null,
       remote: () => RemoteRegionRepository(sl<Dio>()),
     ),
   );
   sl.registerLazySingleton<AddressRepository>(
     () => resolver.resolve<AddressRepository>(
-      mock: MockAddressRepository.new,
+      mock: AppConfig.useMocks ? MockAddressRepository.new : null,
       remote: () => RemoteAddressRepository(sl<Dio>()),
     ),
   );
@@ -160,7 +161,10 @@ void registerCatalogModule(GetIt sl) {
   // Supabase. Do NOT collapse this into `resolver.resolve(...)`, which is
   // Supabase-preferred and would change behaviour for mock builds.
   sl.registerLazySingleton<OrderRepository>(() {
-    if (resolver.useMocks) return MockOrderRepository();
+    // `AppConfig.useMocks` (not `resolver.hasSupabase`) is read directly so a
+    // non-mock build const-folds this branch away and tree-shakes
+    // MockOrderRepository out of the binary (ROADMAP B.7).
+    if (AppConfig.useMocks) return MockOrderRepository();
     return resolver.hasSupabase
         ? SupabaseOrderRepository(sl<SupabaseClient>())
         : RemoteOrderRepository(sl<Dio>());
@@ -168,7 +172,7 @@ void registerCatalogModule(GetIt sl) {
 
   sl.registerLazySingleton<NotificationsRepository>(
     () => resolver.resolve<NotificationsRepository>(
-      mock: MockNotificationsRepository.new,
+      mock: AppConfig.useMocks ? MockNotificationsRepository.new : null,
       remote: () => RemoteNotificationsRepository(sl<Dio>()),
     ),
   );

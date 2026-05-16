@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -65,7 +66,10 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
        _productSource = productSource,
        _networkCubit = networkCubit,
        super(const HomeState()) {
-    on<HomeRequested>(_onRequested);
+    // ROADMAP B.7 — droppable: a refresh fired while a load is already in
+    // flight (connectivity retry + manual pull-to-refresh racing) is dropped
+    // rather than queued, so the home feed never double-fetches.
+    on<HomeRequested>(_onRequested, transformer: droppable());
 
     // Auto-retry when connectivity comes back. We only fire the refresh
     // when the previous load actually failed — there's no point hammering

@@ -246,6 +246,8 @@ class _EditorialCategoryCardState extends State<_EditorialCategoryCard> {
                   if (cat.imageUrl != null)
                     CachedNetworkImage(
                       imageUrl: cat.imageUrl!,
+                      // ROADMAP B.7 — full-width category card image.
+                      memCacheWidth: 600,
                       fit: BoxFit.cover,
                       placeholder: (_, _) => Shimmer.fromColors(
                         baseColor: pt.imageBg,

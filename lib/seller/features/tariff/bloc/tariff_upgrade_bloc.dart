@@ -140,21 +140,20 @@ class TariffUpgradeBloc
       clearError: true,
       clearUploadedScreenshot: true,
     ));
-    try {
-      final url = await _repo.uploadPaymentScreenshot(
-        file: event.file,
-        fileExtension: event.fileExtension,
-      );
-      emit(state.copyWith(
+    final result = await _repo.uploadPaymentScreenshot(
+      file: event.file,
+      fileExtension: event.fileExtension,
+    );
+    result.fold(
+      ok: (url) => emit(state.copyWith(
         status: TariffUpgradeFlowStatus.ready,
         uploadedScreenshotUrl: url,
-      ));
-    } catch (e) {
-      emit(state.copyWith(
+      )),
+      err: (failure) => emit(state.copyWith(
         status: TariffUpgradeFlowStatus.failure,
-        error: e.toString(),
-      ));
-    }
+        error: failure.message,
+      )),
+    );
   }
 
   Future<void> _onSubmitted(
@@ -166,22 +165,21 @@ class TariffUpgradeBloc
     if (plan == null || url == null) return;
     emit(state.copyWith(
         status: TariffUpgradeFlowStatus.submitting, clearError: true));
-    try {
-      final subscription = await _repo.upgrade(TariffUpgradeInput(
-        plan: plan,
-        period: state.period,
-        amount: state.amount,
-        paymentScreenshotUrl: url,
-      ));
-      emit(state.copyWith(
+    final result = await _repo.upgrade(TariffUpgradeInput(
+      plan: plan,
+      period: state.period,
+      amount: state.amount,
+      paymentScreenshotUrl: url,
+    ));
+    result.fold(
+      ok: (subscription) => emit(state.copyWith(
         status: TariffUpgradeFlowStatus.submitted,
         subscription: subscription,
-      ));
-    } catch (e) {
-      emit(state.copyWith(
+      )),
+      err: (failure) => emit(state.copyWith(
         status: TariffUpgradeFlowStatus.failure,
-        error: e.toString(),
-      ));
-    }
+        error: failure.message,
+      )),
+    );
   }
 }

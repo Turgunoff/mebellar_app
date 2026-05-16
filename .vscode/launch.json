@@ -1,0 +1,41 @@
+{
+  // VS Code launch configurations for the Woody app.
+  //
+  // All configs inject env/prod.json via --dart-define-from-file. The Run
+  // button (Start Debugging / Run Without Debugging) uses whichever config
+  // is selected in the Run-and-Debug dropdown — pick "Woody (prod)".
+  //
+  // There is intentionally no dev config: the app runs against prod only.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Woody (prod)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "toolArgs": [
+        "--dart-define-from-file=env/prod.json"
+      ]
+    },
+    {
+      "name": "Woody (prod · profile)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "flutterMode": "profile",
+      "toolArgs": [
+        "--dart-define-from-file=env/prod.json"
+      ]
+    },
+    {
+      "name": "Woody (prod · release)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "flutterMode": "release",
+      "toolArgs": [
+        "--dart-define-from-file=env/prod.json"
+      ]
+    }
+  ]
+}

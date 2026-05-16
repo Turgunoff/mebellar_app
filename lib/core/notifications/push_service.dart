@@ -10,6 +10,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../config/app_mode.dart';
 import '../../shared/models/notification_model.dart';
 import '../logging/talker.dart';
+import '../platform/messaging_facade.dart';
 import 'notification_handler.dart';
 
 /// FCM topic the app subscribes to for marketing / news pushes.
@@ -38,7 +39,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 class PushService {
   PushService({
-    required FirebaseMessaging messaging,
+    required MessagingFacade messaging,
     required FlutterLocalNotificationsPlugin localNotifications,
     required NotificationHandler notificationHandler,
     required SupabaseClient? supabase,
@@ -47,7 +48,7 @@ class PushService {
         _notificationHandler = notificationHandler,
         _supabase = supabase;
 
-  final FirebaseMessaging _messaging;
+  final MessagingFacade _messaging;
   final FlutterLocalNotificationsPlugin _localNotifications;
   final NotificationHandler _notificationHandler;
   final SupabaseClient? _supabase;
@@ -71,8 +72,8 @@ class PushService {
     if (_bootstrapped) return;
     _bootstrapped = true;
     await _initLocalNotifications();
-    FirebaseMessaging.onMessage.listen(_onForegroundMessage);
-    FirebaseMessaging.onMessageOpenedApp.listen(_onMessageTapped);
+    _messaging.onMessage.listen(_onForegroundMessage);
+    _messaging.onMessageOpenedApp.listen(_onMessageTapped);
     // Cold-start path: when the app is launched from a tap on a tray
     // notification (process was killed), `getInitialMessage` returns that
     // message exactly once. Stash the route so the customer/seller shell

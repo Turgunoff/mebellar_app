@@ -3,6 +3,7 @@ import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../config/app_config.dart';
 import '../../seller/features/products/data/add_product_repository.dart';
 import '../../shared/mock/mock_regions.dart';
 import '../../shared/mock/mock_seller_onboarding_repository.dart';
@@ -21,8 +22,14 @@ import '../../shared/repositories/seller_verification_repository.dart';
 import '../../shared/repositories/shop_settings_repository.dart';
 import '../../shared/repositories/supabase_seller_dashboard_repository.dart';
 import '../../shared/repositories/supabase_seller_onboarding_repository.dart';
+import '../../shared/repositories/supabase_seller_order_repository.dart';
 import '../../shared/repositories/supabase_seller_product_repository.dart';
+import '../../shared/repositories/supabase_seller_services_repository.dart';
+import '../../shared/repositories/supabase_seller_verification_repository.dart';
+import '../../shared/repositories/supabase_shop_settings_repository.dart';
+import '../../shared/repositories/supabase_tariff_repository.dart';
 import '../../shared/repositories/tariff_repository.dart';
+import '../realtime/realtime_service.dart';
 import '../storage/hive_boxes.dart';
 import 'repository_resolver.dart';
 
@@ -42,10 +49,12 @@ void registerSellerModule(GetIt sl) {
         supabase: sl<SupabaseClient>(),
         draftBox: draftBox,
       ),
-      mock: () => MockSellerOnboardingRepository(
-        draftBox: draftBox,
-        findRegionById: MockRegions.findById,
-      ),
+      mock: AppConfig.useMocks
+          ? () => MockSellerOnboardingRepository(
+                draftBox: draftBox,
+                findRegionById: MockRegions.findById,
+              )
+          : null,
       remote: () => RemoteSellerOnboardingRepository(
         dio: sl<Dio>(),
         draftBox: draftBox,
@@ -60,7 +69,10 @@ void registerSellerModule(GetIt sl) {
   resolver.whenFulfillmentEnabled(() {
     sl.registerLazySingleton<SellerVerificationRepository>(
       () => resolver.resolve<SellerVerificationRepository>(
-        mock: MockSellerVerificationRepository.new,
+        supabase: () => SupabaseSellerVerificationRepository(
+          supabase: sl<SupabaseClient>(),
+        ),
+        mock: AppConfig.useMocks ? MockSellerVerificationRepository.new : null,
         remote: () => RemoteSellerVerificationRepository(sl<Dio>()),
       ),
     );
@@ -70,7 +82,7 @@ void registerSellerModule(GetIt sl) {
     () => resolver.resolve<SellerProductRepository>(
       supabase: () =>
           SupabaseSellerProductRepository(supabase: sl<SupabaseClient>()),
-      mock: MockSellerProductRepository.new,
+      mock: AppConfig.useMocks ? MockSellerProductRepository.new : null,
       remote: () => RemoteSellerProductRepository(sl<Dio>()),
     ),
   );
@@ -96,32 +108,47 @@ void registerSellerModule(GetIt sl) {
   resolver.whenFulfillmentEnabled(() {
     sl.registerLazySingleton<SellerOrderRepository>(
       () => resolver.resolve<SellerOrderRepository>(
-        mock: MockSellerOrderRepository.new,
+        supabase: () => SupabaseSellerOrderRepository(
+          supabase: sl<SupabaseClient>(),
+          realtime: sl<RealtimeService>(),
+        ),
+        mock: AppConfig.useMocks ? MockSellerOrderRepository.new : null,
         remote: () => RemoteSellerOrderRepository(sl<Dio>()),
       ),
+      dispose: (repo) => repo.dispose(),
     );
     sl.registerLazySingleton<ShopSettingsRepository>(
       () => resolver.resolve<ShopSettingsRepository>(
-        mock: MockShopSettingsRepository.new,
+        supabase: () =>
+            SupabaseShopSettingsRepository(supabase: sl<SupabaseClient>()),
+        mock: AppConfig.useMocks ? MockShopSettingsRepository.new : null,
         remote: () => RemoteShopSettingsRepository(sl<Dio>()),
       ),
     );
     sl.registerLazySingleton<SellerServicesRepository>(
       () => resolver.resolve<SellerServicesRepository>(
-        mock: MockSellerServicesRepository.new,
+        supabase: () =>
+            SupabaseSellerServicesRepository(supabase: sl<SupabaseClient>()),
+        mock: AppConfig.useMocks ? MockSellerServicesRepository.new : null,
         remote: () => RemoteSellerServicesRepository(sl<Dio>()),
       ),
     );
   });
 
-  // Upgrade/payment flow is mock-backed, but MockTariffRepository reads the
-  // live plan catalog from Supabase so the tariff cards stay server-driven.
+  // ROADMAP B.1 — the live Supabase tariff write path (P2P receipt upload +
+  // upgrade request). The mock stays as the offline/no-Supabase fallback and
+  // still reads the live plan catalog when a client is available.
   sl.registerLazySingleton<TariffRepository>(
     () => resolver.resolve<TariffRepository>(
-      mock: () => MockTariffRepository(
-        supabase:
-            sl.isRegistered<SupabaseClient>() ? sl<SupabaseClient>() : null,
-      ),
+      supabase: () =>
+          SupabaseTariffRepository(supabase: sl<SupabaseClient>()),
+      mock: AppConfig.useMocks
+          ? () => MockTariffRepository(
+                supabase: sl.isRegistered<SupabaseClient>()
+                    ? sl<SupabaseClient>()
+                    : null,
+              )
+          : null,
       remote: () => RemoteTariffRepository(sl<Dio>()),
     ),
   );

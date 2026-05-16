@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/result/result.dart';
 import '../../../../shared/models/order.dart';
 import '../../../../shared/models/order_status.dart';
 import '../../../../shared/repositories/seller_order_repository.dart';
@@ -118,37 +119,40 @@ class SellerOrderDetailBloc
   ) async {
     emit(state.copyWith(
         status: SellerOrderDetailStatus.loading, clearError: true));
-    try {
-      final order = await _repo.getById(event.id);
-      emit(state.copyWith(
-          status: SellerOrderDetailStatus.ready, order: order));
-      await _sub?.cancel();
-      _sub = _repo
-          .watch(event.id)
-          .listen((u) => add(_SellerOrderRealtimeUpdated(u)));
-    } catch (e) {
-      emit(state.copyWith(
-          status: SellerOrderDetailStatus.failure, error: e.toString()));
+    final result = await _repo.getById(event.id);
+    switch (result) {
+      case Ok(:final value):
+        emit(state.copyWith(
+            status: SellerOrderDetailStatus.ready, order: value));
+        await _sub?.cancel();
+        _sub = _repo
+            .watch(event.id)
+            .listen((u) => add(_SellerOrderRealtimeUpdated(u)));
+      case Err(:final failure):
+        emit(state.copyWith(
+            status: SellerOrderDetailStatus.failure,
+            error: failure.message));
     }
   }
 
   EventHandler<SellerOrderDetailEvent, SellerOrderDetailState> _runAction(
-    Future<Order> Function(String id) op,
+    Future<Result<Order>> Function(String id) op,
   ) {
     return (event, emit) async {
       final order = state.order;
       if (order == null) return;
       emit(state.copyWith(status: SellerOrderDetailStatus.mutating));
-      try {
-        final updated = await op(order.id);
-        emit(state.copyWith(
-            status: SellerOrderDetailStatus.ready, order: updated));
-        onUpdated?.call(updated);
-      } catch (e) {
-        emit(state.copyWith(
-          status: SellerOrderDetailStatus.ready,
-          error: e.toString(),
-        ));
+      final result = await op(order.id);
+      switch (result) {
+        case Ok(:final value):
+          emit(state.copyWith(
+              status: SellerOrderDetailStatus.ready, order: value));
+          onUpdated?.call(value);
+        case Err(:final failure):
+          emit(state.copyWith(
+            status: SellerOrderDetailStatus.ready,
+            error: failure.message,
+          ));
       }
     };
   }

@@ -9,6 +9,7 @@ import '../connectivity/network_cubit.dart';
 import '../deep_links/deep_link_service.dart';
 import '../network/api_client.dart';
 import '../network/supabase_client.dart';
+import '../platform/location_facade.dart';
 import '../realtime/realtime_service.dart';
 import '../storage/app_settings.dart';
 import '../storage/cache_store.dart';
@@ -55,6 +56,10 @@ Future<void> registerCoreModule(GetIt sl) async {
   );
 
   sl.registerSingleton<SecureStorage>(SecureStorage());
+
+  // Location facade — wraps geolocator's static API behind an injectable
+  // seam (ROADMAP B.5). Tests substitute a fake via `sl.allowReassignment`.
+  sl.registerSingleton<LocationFacade>(const GeolocatorLocationFacade());
 
   // Connectivity supervisor. Tests substitute MockConnectivityService via
   // `sl.allowReassignment`.

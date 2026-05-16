@@ -7,8 +7,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:woody_app/config/app_config.dart';
+import 'package:woody_app/core/di/service_locator.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
 import 'package:woody_app/core/maps/yandex_mapkit_initializer.dart';
+import 'package:woody_app/core/platform/location_facade.dart';
 import 'package:yandex_mapkit/yandex_mapkit.dart';
 
 import '../../../../customer/features/home/widgets/premium/premium_tokens.dart';
@@ -26,6 +28,7 @@ class ShopAddressStep extends StatefulWidget {
 }
 
 class _ShopAddressStepState extends State<ShopAddressStep> {
+  final LocationFacade _location = sl<LocationFacade>();
   YandexMapController? _mapController;
   late CameraPosition _initialCameraPosition;
   String? _geocodedAddress;
@@ -201,9 +204,9 @@ class _ShopAddressStepState extends State<ShopAddressStep> {
   }
 
   Future<void> _goToMyLocation() async {
-    var permission = await Geolocator.checkPermission();
+    var permission = await _location.checkPermission();
     if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
+      permission = await _location.requestPermission();
     }
     if (permission == LocationPermission.deniedForever ||
         permission == LocationPermission.denied) {
@@ -212,7 +215,7 @@ class _ShopAddressStepState extends State<ShopAddressStep> {
     if (!mounted) return;
 
     try {
-      final pos = await Geolocator.getCurrentPosition(
+      final pos = await _location.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
         ),

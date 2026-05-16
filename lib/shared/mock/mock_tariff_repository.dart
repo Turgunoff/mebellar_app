@@ -1,8 +1,11 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:clock/clock.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/error/failure.dart';
+import '../../core/result/result.dart';
 import '../models/tariff.dart';
 import '../repositories/tariff_repository.dart';
 import 'mock_seller_state.dart';
@@ -12,9 +15,8 @@ import 'mock_seller_state.dart';
 /// fake that with a 12-second timer so demos can see the status flip live.
 ///
 /// The plan catalog ([fetchPlans]) is the exception: it hits Supabase
-/// directly when [_supabase] is provided so the UI is fully server-driven
-/// (prices, limits, feature bullets, "TAVSIYA" ribbon). Falls back to the
-/// enum-derived static list when Supabase isn't wired (offline tests).
+/// directly when [_supabase] is provided so the UI is fully server-driven.
+/// Falls back to the enum-derived static list when Supabase isn't wired.
 class MockTariffRepository implements TariffRepository {
   MockTariffRepository({SupabaseClient? supabase}) : _supabase = supabase {
     _seedHistory();
@@ -40,28 +42,28 @@ class MockTariffRepository implements TariffRepository {
   Stream<TariffPlan> watchCurrentPlan() => _planController.stream;
 
   @override
-  Future<TariffSnapshot> currentSnapshot() async {
+  Future<Result<TariffSnapshot>> currentSnapshot() async {
     await Future<void>.delayed(_delay);
-    return TariffSnapshot(
+    return Ok(TariffSnapshot(
       plan: _currentPlan,
       activeProductsCount: MockSellerState.instance.profile == null ? 0 : 12,
-    );
+    ));
   }
 
   @override
-  Future<TariffSubscription?> currentPending() async {
+  Future<Result<TariffSubscription?>> currentPending() async {
     await Future<void>.delayed(_delay);
-    return _pending;
+    return Ok(_pending);
   }
 
   @override
-  Future<List<TariffSubscription>> history() async {
+  Future<Result<List<TariffSubscription>>> history() async {
     await Future<void>.delayed(_delay);
-    return List<TariffSubscription>.unmodifiable(_history);
+    return Ok(List<TariffSubscription>.unmodifiable(_history));
   }
 
   @override
-  Future<List<SubscriptionPlan>> fetchPlans() async {
+  Future<Result<List<SubscriptionPlan>>> fetchPlans() async {
     final supabase = _supabase;
     if (supabase != null) {
       try {
@@ -73,20 +75,19 @@ class MockTariffRepository implements TariffRepository {
               'features_uz, features_ru',
             )
             .order('price_monthly', ascending: true);
-        return rows
+        return Ok(rows
             .map<SubscriptionPlan>(SubscriptionPlan.fromJson)
-            .toList(growable: false);
+            .toList(growable: false));
       } catch (_) {
         // Network/auth blip — drop through to the static fallback so the
         // tariff screen still renders something sensible.
       }
     }
-    return _enumFallbackPlans();
+    return Ok(_enumFallbackPlans());
   }
 
   /// Mirrors the rows the migration seeded so offline / no-Supabase runs
-  /// still have a non-empty catalog. Keep in sync with the SQL migration
-  /// in `subscription_plans_add_features_recommended`.
+  /// still have a non-empty catalog.
   List<SubscriptionPlan> _enumFallbackPlans() {
     SubscriptionPlan from(
       TariffPlan plan, {
@@ -153,34 +154,38 @@ class MockTariffRepository implements TariffRepository {
   }
 
   @override
-  Future<TariffPaymentInstructions> paymentInstructions() async {
+  Future<Result<TariffPaymentInstructions>> paymentInstructions() async {
     await Future<void>.delayed(const Duration(milliseconds: 150));
-    final shopId =
-        MockSellerState.instance.shopId ?? 'shop-mh';
-    return TariffPaymentInstructions(
+    final shopId = MockSellerState.instance.shopId ?? 'shop-mh';
+    return Ok(TariffPaymentInstructions(
       cardNumber: '8600 1234 5678 9012',
       cardHolder: 'KARIMOV AZIZ',
       bankName: 'Uzcard',
       note: 'SHOP-$shopId',
       telegramSupportUrl: 'tg://resolve?domain=MebellarSupportBot',
-    );
+    ));
   }
 
   @override
-  Future<String> uploadPaymentScreenshot({
+  Future<Result<String>> uploadPaymentScreenshot({
     required File file,
     required String fileExtension,
   }) async {
     await Future<void>.delayed(_uploadDelay);
-    return 'payments/upgrade-${DateTime.now().millisecondsSinceEpoch}.$fileExtension';
+    return Ok(
+      'payments/upgrade-'
+      '${clock.now().millisecondsSinceEpoch}.$fileExtension',
+    );
   }
 
   @override
-  Future<TariffSubscription> upgrade(TariffUpgradeInput input) async {
+  Future<Result<TariffSubscription>> upgrade(TariffUpgradeInput input) async {
     await Future<void>.delayed(_delay);
     if (_pending != null && _pending!.status.isPending) {
-      throw StateError(
-          'Sizda allaqachon kutayotgan to\'lov bor — uni tekshirib bo\'lguncha kuting');
+      return const Err(ServerFailure(
+        message: "Sizda allaqachon kutayotgan to'lov bor — "
+            "uni tekshirib bo'lguncha kuting",
+      ));
     }
     _idCounter += 1;
     final subscription = TariffSubscription(
@@ -189,40 +194,38 @@ class MockTariffRepository implements TariffRepository {
       period: input.period,
       amount: input.amount,
       status: TariffUpgradeStatus.pending,
-      submittedAt: DateTime.now(),
+      submittedAt: clock.now(),
       paymentScreenshotUrl: input.paymentScreenshotUrl,
     );
     _pending = subscription;
     _history.insert(0, subscription);
     _pendingController.add(subscription);
 
-    // Mock admin behaviour: 12s'dan keyin approve qiladi (90% holat). 10%
-    // hollarda rejected — tester ikkala flowni ham ko'ra olsin.
-    Future<void>.delayed(const Duration(seconds: 12), () {
-      _resolvePending();
-    });
-    return subscription;
+    // Mock admin behaviour: resolves after 12s.
+    Future<void>.delayed(const Duration(seconds: 12), _resolvePending);
+    return Ok(subscription);
   }
 
   @override
-  Future<void> cancelPending(String subscriptionId) async {
+  Future<Result<void>> cancelPending(String subscriptionId) async {
     await Future<void>.delayed(_delay);
     final p = _pending;
-    if (p == null || p.id != subscriptionId) return;
+    if (p == null || p.id != subscriptionId) return const Ok<void>(null);
     final cancelled = p.copyWith(status: TariffUpgradeStatus.cancelled);
     _pending = null;
     final idx = _history.indexWhere((s) => s.id == subscriptionId);
     if (idx >= 0) _history[idx] = cancelled;
     _pendingController.add(null);
+    return const Ok<void>(null);
   }
 
   void _resolvePending() {
     final pending = _pending;
     if (pending == null || !pending.status.isPending) return;
-    // Deterministic-ish: every odd-indexed upgrade is rejected so the
-    // demo flow always exercises both branches without RNG.
+    // Deterministic-ish: every third upgrade is rejected so the demo flow
+    // always exercises both branches without RNG.
     final shouldApprove = _idCounter % 3 != 0;
-    final now = DateTime.now();
+    final now = clock.now();
     final updated = shouldApprove
         ? pending.copyWith(
             status: TariffUpgradeStatus.approved,
@@ -250,9 +253,7 @@ class MockTariffRepository implements TariffRepository {
   }
 
   void _seedHistory() {
-    // Pretend the seller upgraded once 60 days ago to Basic, which then
-    // expired — gives the history screen something to render on first open.
-    final approvedAt = DateTime.now().subtract(const Duration(days: 60));
+    final approvedAt = clock.now().subtract(const Duration(days: 60));
     _history.add(
       TariffSubscription(
         id: 'sub-seed-1',

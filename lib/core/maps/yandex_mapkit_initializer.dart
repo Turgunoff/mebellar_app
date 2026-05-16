@@ -3,6 +3,9 @@ import 'dart:io' show Platform;
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 
+import '../di/service_locator.dart';
+import '../platform/location_facade.dart';
+
 /// Prepares Yandex MapKit for use right before a `YandexMap` widget mounts.
 ///
 /// Initialization is split between the two platforms:
@@ -40,9 +43,10 @@ class YandexMapKitInitializer {
   }
 
   static Future<void> _initialize() async {
-    var permission = await Geolocator.checkPermission();
+    final location = sl<LocationFacade>();
+    var permission = await location.checkPermission();
     if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
+      permission = await location.requestPermission();
     }
     // Init MapKit even when permission is denied — the map view itself
     // works without location, only the "my location" button needs it.

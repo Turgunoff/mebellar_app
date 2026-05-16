@@ -116,6 +116,8 @@ class _CoverImage extends StatelessWidget {
                       )
                     : CachedNetworkImage(
                         imageUrl: url!,
+                        // ROADMAP B.7 — full-width shop cover banner.
+                        memCacheWidth: 1080,
                         fit: BoxFit.cover,
                         errorWidget: (_, _, _) =>
                             const ColoredBox(color: kFillSoft),
@@ -221,6 +223,8 @@ class _LogoAvatar extends StatelessWidget {
               else
                 CachedNetworkImage(
                   imageUrl: url!,
+                  // ROADMAP B.7 — 80px shop-logo avatar.
+                  memCacheWidth: 240,
                   fit: BoxFit.cover,
                   errorWidget: (_, _, _) => const Center(
                     child: Icon(

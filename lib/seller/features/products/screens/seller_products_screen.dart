@@ -600,6 +600,8 @@ class _ProductThumbnail extends StatelessWidget {
             : (hero!.startsWith('http')
                 ? CachedNetworkImage(
                     imageUrl: hero!,
+                    // ROADMAP B.7 — list-row thumbnail; small decode.
+                    memCacheWidth: 400,
                     fit: BoxFit.cover,
                     placeholder: (_, _) => placeholder,
                     errorWidget: (_, _, _) => placeholder,

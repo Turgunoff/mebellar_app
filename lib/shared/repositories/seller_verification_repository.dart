@@ -1,65 +1,70 @@
 import 'dart:io';
 
-import 'package:dio/dio.dart';
-
+import '../../core/error/failure.dart';
+import '../../core/result/result.dart';
 import '../models/verification_document.dart';
 import '../models/verification_status.dart';
 
+/// Seller KYC verification — document upload + status polling.
+///
+/// ROADMAP B.1 — migrated to the `Result<T, Failure>` contract. The two
+/// realtime-ish feeds ([watchDocuments], [watchStatus]) stay plain `Stream`s.
 abstract class SellerVerificationRepository {
   /// Current set of documents for the seller — uploaded or in-flight.
   Stream<List<VerificationDocument>> watchDocuments();
   List<VerificationDocument> get documents;
 
-  /// Upload a single document to private storage. Returns the document with
-  /// `remoteUrl` populated.
-  Future<VerificationDocument> uploadDocument({
+  /// Uploads a single document to the private `verification-docs` bucket.
+  /// Resolves to the document with its storage path populated.
+  Future<Result<VerificationDocument>> uploadDocument({
     required VerificationDocumentType type,
     required File file,
     required String fileExtension,
   });
 
-  Future<void> removeDocument(VerificationDocumentType type);
+  Future<Result<void>> removeDocument(VerificationDocumentType type);
 
-  /// Submits the verification request. Mock variant flips status through
-  /// pending → in_review (after a short delay) so the UI can render the
-  /// banner transitions without a real backend.
-  Future<VerificationStatus> submit();
+  /// Submits the verification request; resolves to the new status.
+  Future<Result<VerificationStatus>> submit();
 
   Stream<VerificationStatus> watchStatus();
 }
 
+/// Legacy Dio stub — superseded by `SupabaseSellerVerificationRepository`.
+/// Kept so the `RepositoryResolver` remote branch still resolves on
+/// non-Supabase builds; every call returns an [Err].
 class RemoteSellerVerificationRepository
     implements SellerVerificationRepository {
   RemoteSellerVerificationRepository(this._dio);
 
-  // ignore: unused_field — Sprint 6 backend wires Supabase storage in
-  final Dio _dio;
+  // ignore: unused_field — superseded by the Supabase implementation.
+  final Object? _dio;
+
+  static const Failure _unavailable = UnknownFailure(
+    message: 'Remote verification — use the Supabase repository',
+  );
 
   @override
   List<VerificationDocument> get documents => const [];
 
   @override
-  Stream<List<VerificationDocument>> watchDocuments() =>
-      const Stream.empty();
+  Stream<List<VerificationDocument>> watchDocuments() => const Stream.empty();
 
   @override
-  Future<VerificationDocument> uploadDocument({
+  Future<Result<VerificationDocument>> uploadDocument({
     required VerificationDocumentType type,
     required File file,
     required String fileExtension,
-  }) async {
-    throw UnimplementedError('Remote verification — Sprint 6 backend');
-  }
+  }) async =>
+      const Err(_unavailable);
 
   @override
-  Future<void> removeDocument(VerificationDocumentType type) async {
-    throw UnimplementedError('Remote verification — Sprint 6 backend');
-  }
+  Future<Result<void>> removeDocument(VerificationDocumentType type) async =>
+      const Err(_unavailable);
 
   @override
-  Future<VerificationStatus> submit() async {
-    throw UnimplementedError('Remote verification — Sprint 6 backend');
-  }
+  Future<Result<VerificationStatus>> submit() async =>
+      const Err(_unavailable);
 
   @override
   Stream<VerificationStatus> watchStatus() => const Stream.empty();

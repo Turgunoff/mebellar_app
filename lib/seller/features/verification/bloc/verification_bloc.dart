@@ -164,22 +164,26 @@ class VerificationBloc extends Bloc<VerificationEvent, VerificationState> {
     VerificationDocumentUploadStarted event,
     Emitter<VerificationState> emit,
   ) async {
-    try {
-      await _repo.uploadDocument(
-        type: event.type,
-        file: event.file,
-        fileExtension: event.fileExtension,
-      );
-    } catch (e) {
-      emit(state.copyWith(error: e.toString()));
-    }
+    final result = await _repo.uploadDocument(
+      type: event.type,
+      file: event.file,
+      fileExtension: event.fileExtension,
+    );
+    result.fold(
+      ok: (_) {},
+      err: (failure) => emit(state.copyWith(error: failure.message)),
+    );
   }
 
   Future<void> _onRemove(
     VerificationDocumentRemoved event,
     Emitter<VerificationState> emit,
   ) async {
-    await _repo.removeDocument(event.type);
+    final result = await _repo.removeDocument(event.type);
+    result.fold(
+      ok: (_) {},
+      err: (failure) => emit(state.copyWith(error: failure.message)),
+    );
   }
 
   Future<void> _onSubmitted(
@@ -190,18 +194,17 @@ class VerificationBloc extends Bloc<VerificationEvent, VerificationState> {
       flowStatus: VerificationFlowStatus.submitting,
       clearError: true,
     ));
-    try {
-      final newStatus = await _repo.submit();
-      emit(state.copyWith(
+    final result = await _repo.submit();
+    result.fold(
+      ok: (newStatus) => emit(state.copyWith(
         flowStatus: VerificationFlowStatus.submitted,
         status: newStatus,
-      ));
-    } catch (e) {
-      emit(state.copyWith(
+      )),
+      err: (failure) => emit(state.copyWith(
         flowStatus: VerificationFlowStatus.failure,
-        error: e.toString(),
-      ));
-    }
+        error: failure.message,
+      )),
+    );
   }
 
   @override

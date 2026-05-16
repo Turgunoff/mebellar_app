@@ -42,6 +42,10 @@ class ProductCard extends StatelessWidget {
                   if (product.heroImage.isNotEmpty)
                     CachedNetworkImage(
                       imageUrl: product.heroImage,
+                      // ROADMAP B.7 — cap the decoded bitmap to roughly the
+                      // card's physical width so a long catalog scroll doesn't
+                      // hold full-res (1000px+) decodes in memory.
+                      memCacheWidth: 600,
                       fit: BoxFit.cover,
                       placeholder: (_, _) => Container(
                         color: scheme.surfaceContainerHighest,

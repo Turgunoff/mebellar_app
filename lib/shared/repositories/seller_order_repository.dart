@@ -1,5 +1,5 @@
-import 'package:dio/dio.dart';
-
+import '../../core/error/failure.dart';
+import '../../core/result/result.dart';
 import '../models/order.dart';
 import '../models/order_status.dart';
 
@@ -7,65 +7,77 @@ import '../models/order_status.dart';
 /// supports cancel + watch; this one adds the workflow transitions sellers
 /// drive (confirm → preparing → shipped → delivered) plus a stream of newly
 /// inserted pending orders so the orders list can update without re-fetching.
+///
+/// ROADMAP B.1 — migrated to the `Result<T, Failure>` contract. The two
+/// realtime feeds ([newOrders], [watch]) stay plain `Stream`s — a stream of
+/// `Result` would conflate "the socket dropped" with "this order is bad data".
 abstract class SellerOrderRepository {
-  Future<List<Order>> list();
-  Future<Order> getById(String id);
+  Future<Result<List<Order>>> list();
+  Future<Result<Order>> getById(String id);
 
-  /// Stream of newly pending orders (mock variant: same one as
-  /// `SellerDashboardRepository.newOrders` so the realtime cue is consistent
-  /// across screens).
+  /// Stream of newly pending orders for this seller's shop.
   Stream<Order> newOrders();
 
   /// State-machine transitions. Each enforces the legal source statuses on
-  /// the backend; the mock variant mirrors the same checks so the UI gets
-  /// the same `StateError` it would get in production.
-  Future<Order> confirm(String id);
-  Future<Order> markPreparing(String id);
-  Future<Order> markShipped(String id);
-  Future<Order> markDelivered(String id);
-  Future<Order> cancel(String id, {required String reason});
+  /// the backend; an illegal transition resolves to an [Err], not a throw.
+  Future<Result<Order>> confirm(String id);
+  Future<Result<Order>> markPreparing(String id);
+  Future<Result<Order>> markShipped(String id);
+  Future<Result<Order>> markDelivered(String id);
+  Future<Result<Order>> cancel(String id, {required String reason});
 
   Stream<Order> watch(String orderId);
+
+  /// Releases realtime channels / stream controllers. Wired into the DI
+  /// scope dispose callback.
+  Future<void> dispose();
 }
 
+/// Legacy Dio stub — superseded by `SupabaseSellerOrderRepository`. Kept so
+/// the `RepositoryResolver` remote branch still resolves on non-Supabase
+/// builds; every call returns an [Err].
 class RemoteSellerOrderRepository implements SellerOrderRepository {
   RemoteSellerOrderRepository(this._dio);
-  // ignore: unused_field — Sprint 8 backend wires real endpoints.
-  final Dio _dio;
+
+  // ignore: unused_field — superseded by the Supabase implementation.
+  final Object? _dio;
+
+  static const Failure _unavailable = UnknownFailure(
+    message: 'Remote seller orders — use the Supabase repository',
+  );
 
   @override
-  Future<List<Order>> list() =>
-      throw UnimplementedError('Remote seller orders — Sprint 8 backend');
+  Future<Result<List<Order>>> list() async => const Err(_unavailable);
 
   @override
-  Future<Order> getById(String id) =>
-      throw UnimplementedError('Remote seller orders — Sprint 8 backend');
+  Future<Result<Order>> getById(String id) async => const Err(_unavailable);
 
   @override
   Stream<Order> newOrders() => const Stream.empty();
 
   @override
-  Future<Order> confirm(String id) =>
-      throw UnimplementedError('Remote seller orders — Sprint 8 backend');
+  Future<Result<Order>> confirm(String id) async => const Err(_unavailable);
 
   @override
-  Future<Order> markPreparing(String id) =>
-      throw UnimplementedError('Remote seller orders — Sprint 8 backend');
+  Future<Result<Order>> markPreparing(String id) async =>
+      const Err(_unavailable);
 
   @override
-  Future<Order> markShipped(String id) =>
-      throw UnimplementedError('Remote seller orders — Sprint 8 backend');
+  Future<Result<Order>> markShipped(String id) async => const Err(_unavailable);
 
   @override
-  Future<Order> markDelivered(String id) =>
-      throw UnimplementedError('Remote seller orders — Sprint 8 backend');
+  Future<Result<Order>> markDelivered(String id) async =>
+      const Err(_unavailable);
 
   @override
-  Future<Order> cancel(String id, {required String reason}) =>
-      throw UnimplementedError('Remote seller orders — Sprint 8 backend');
+  Future<Result<Order>> cancel(String id, {required String reason}) async =>
+      const Err(_unavailable);
 
   @override
   Stream<Order> watch(String orderId) => const Stream.empty();
+
+  @override
+  Future<void> dispose() async {}
 }
 
 /// Mapping helper used by the action buttons widget — keeps the legal

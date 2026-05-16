@@ -162,6 +162,8 @@ class _Body extends StatelessWidget {
                                   ? const ColoredBox(color: Color(0x11000000))
                                   : CachedNetworkImage(
                                       imageUrl: item.thumbnail,
+                                      // ROADMAP B.7 — 48px order-item thumbnail.
+                                      memCacheWidth: 150,
                                       fit: BoxFit.cover,
                                     ),
                             ),

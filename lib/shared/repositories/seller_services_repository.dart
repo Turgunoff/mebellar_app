@@ -1,22 +1,40 @@
 import 'package:dio/dio.dart';
 
+import '../../core/error/failure.dart';
+import '../../core/result/result.dart';
 import '../models/shop_service_config.dart';
 
+/// Selectable delivery / service configuration tied to the seller's shop.
+///
+/// ROADMAP B.1 — migrated to the `Result<T, Failure>` contract: callers
+/// pattern-match the outcome instead of wrapping every call in try/catch.
 abstract class SellerServicesRepository {
-  Future<List<ShopServiceConfig>> list();
-  Future<List<ShopServiceConfig>> save(List<ShopServiceConfig> configs);
+  Future<Result<List<ShopServiceConfig>>> list();
+  Future<Result<List<ShopServiceConfig>>> save(List<ShopServiceConfig> configs);
 }
 
+/// Legacy Dio stub — superseded by `SupabaseSellerServicesRepository`. Kept so
+/// the `RepositoryResolver` remote branch still resolves on non-Supabase
+/// builds; every call returns an [Err].
 class RemoteSellerServicesRepository implements SellerServicesRepository {
   RemoteSellerServicesRepository(this._dio);
-  // ignore: unused_field — Sprint 8 backend wires real PUT endpoint.
+
+  // ignore: unused_field — superseded by the Supabase implementation.
   final Dio _dio;
 
-  @override
-  Future<List<ShopServiceConfig>> list() =>
-      throw UnimplementedError('Remote seller services — Sprint 8 backend');
+  static const Result<List<ShopServiceConfig>> _notImplemented =
+      Err<List<ShopServiceConfig>>(
+    UnknownFailure(
+      message: 'Remote seller services — use the Supabase repository',
+    ),
+  );
 
   @override
-  Future<List<ShopServiceConfig>> save(List<ShopServiceConfig> configs) =>
-      throw UnimplementedError('Remote seller services — Sprint 8 backend');
+  Future<Result<List<ShopServiceConfig>>> list() async => _notImplemented;
+
+  @override
+  Future<Result<List<ShopServiceConfig>>> save(
+    List<ShopServiceConfig> configs,
+  ) async =>
+      _notImplemented;
 }

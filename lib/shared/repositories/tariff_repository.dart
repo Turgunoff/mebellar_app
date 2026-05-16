@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:dio/dio.dart';
-
+import '../../core/error/failure.dart';
+import '../../core/result/result.dart';
 import '../models/tariff.dart';
 
 class TariffPaymentInstructions {
@@ -37,34 +37,44 @@ class TariffUpgradeInput {
   final String paymentScreenshotUrl;
 }
 
+/// Tariff plan catalog + the P2P upgrade write path (receipt upload → request
+/// → admin approval).
+///
+/// ROADMAP B.1 — migrated to the `Result<T, Failure>` contract. The two
+/// realtime feeds ([watchPending], [watchCurrentPlan]) stay plain `Stream`s.
 abstract class TariffRepository {
   Stream<TariffSubscription?> watchPending();
   Stream<TariffPlan> watchCurrentPlan();
 
-  Future<TariffSnapshot> currentSnapshot();
-  Future<TariffSubscription?> currentPending();
-  Future<List<TariffSubscription>> history();
-  Future<TariffPaymentInstructions> paymentInstructions();
+  Future<Result<TariffSnapshot>> currentSnapshot();
+  Future<Result<TariffSubscription?>> currentPending();
+  Future<Result<List<TariffSubscription>>> history();
+  Future<Result<TariffPaymentInstructions>> paymentInstructions();
 
-  /// Server-driven plan catalog backing the tariff cards (prices, limits,
-  /// feature bullets, recommended ribbon). Hits `public.subscription_plans`
-  /// when Supabase is wired; the mock implementation can fall back to
-  /// static enum-derived defaults until then.
-  Future<List<SubscriptionPlan>> fetchPlans();
+  /// Server-driven plan catalog backing the tariff cards.
+  Future<Result<List<SubscriptionPlan>>> fetchPlans();
 
-  Future<String> uploadPaymentScreenshot({
+  Future<Result<String>> uploadPaymentScreenshot({
     required File file,
     required String fileExtension,
   });
 
-  Future<TariffSubscription> upgrade(TariffUpgradeInput input);
-  Future<void> cancelPending(String subscriptionId);
+  Future<Result<TariffSubscription>> upgrade(TariffUpgradeInput input);
+  Future<Result<void>> cancelPending(String subscriptionId);
 }
 
+/// Legacy Dio stub — superseded by `SupabaseTariffRepository`. Kept so the
+/// `RepositoryResolver` remote branch still resolves on non-Supabase builds;
+/// every call returns an [Err].
 class RemoteTariffRepository implements TariffRepository {
   RemoteTariffRepository(this._dio);
-  // ignore: unused_field — Sprint 9 backend wires real endpoints.
-  final Dio _dio;
+
+  // ignore: unused_field — superseded by the Supabase implementation.
+  final Object? _dio;
+
+  static const Failure _unavailable = UnknownFailure(
+    message: 'Remote tariff — use the Supabase repository',
+  );
 
   @override
   Stream<TariffSubscription?> watchPending() => const Stream.empty();
@@ -73,37 +83,37 @@ class RemoteTariffRepository implements TariffRepository {
   Stream<TariffPlan> watchCurrentPlan() => const Stream.empty();
 
   @override
-  Future<TariffSnapshot> currentSnapshot() =>
-      throw UnimplementedError('Remote tariff — Sprint 9 backend');
+  Future<Result<TariffSnapshot>> currentSnapshot() async =>
+      const Err(_unavailable);
 
   @override
-  Future<TariffSubscription?> currentPending() =>
-      throw UnimplementedError('Remote tariff — Sprint 9 backend');
+  Future<Result<TariffSubscription?>> currentPending() async =>
+      const Err(_unavailable);
 
   @override
-  Future<List<TariffSubscription>> history() =>
-      throw UnimplementedError('Remote tariff — Sprint 9 backend');
+  Future<Result<List<TariffSubscription>>> history() async =>
+      const Err(_unavailable);
 
   @override
-  Future<TariffPaymentInstructions> paymentInstructions() =>
-      throw UnimplementedError('Remote tariff — Sprint 9 backend');
+  Future<Result<TariffPaymentInstructions>> paymentInstructions() async =>
+      const Err(_unavailable);
 
   @override
-  Future<List<SubscriptionPlan>> fetchPlans() =>
-      throw UnimplementedError('Remote tariff — Sprint 9 backend');
+  Future<Result<List<SubscriptionPlan>>> fetchPlans() async =>
+      const Err(_unavailable);
 
   @override
-  Future<String> uploadPaymentScreenshot({
+  Future<Result<String>> uploadPaymentScreenshot({
     required File file,
     required String fileExtension,
-  }) =>
-      throw UnimplementedError('Remote tariff — Sprint 9 backend');
+  }) async =>
+      const Err(_unavailable);
 
   @override
-  Future<TariffSubscription> upgrade(TariffUpgradeInput input) =>
-      throw UnimplementedError('Remote tariff — Sprint 9 backend');
+  Future<Result<TariffSubscription>> upgrade(TariffUpgradeInput input) async =>
+      const Err(_unavailable);
 
   @override
-  Future<void> cancelPending(String subscriptionId) =>
-      throw UnimplementedError('Remote tariff — Sprint 9 backend');
+  Future<Result<void>> cancelPending(String subscriptionId) async =>
+      const Err(_unavailable);
 }

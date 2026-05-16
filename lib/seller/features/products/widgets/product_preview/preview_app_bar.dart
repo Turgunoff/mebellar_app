@@ -104,6 +104,8 @@ class _ImageGalleryState extends State<_ImageGallery> {
             onPageChanged: (i) => setState(() => _index = i),
             itemBuilder: (_, i) => CachedNetworkImage(
               imageUrl: imgs[i],
+              // ROADMAP B.7 — full-width product preview image.
+              memCacheWidth: 1080,
               fit: BoxFit.cover,
               placeholder: (_, _) => Container(color: kImageBg),
               errorWidget: (_, _, _) => Container(

@@ -165,6 +165,8 @@ class _OrderTile extends StatelessWidget {
                               )
                             : CachedNetworkImage(
                                 imageUrl: order.items[i].thumbnail,
+                                // ROADMAP B.7 — 48px order-item thumbnail.
+                                memCacheWidth: 150,
                                 fit: BoxFit.cover,
                               ),
                       ),

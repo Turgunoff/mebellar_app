@@ -71,6 +71,26 @@ class WeeklyHours extends Equatable {
 
   bool get hasAnyOpenDay => byDay.values.any((h) => h.hasWindow);
 
+  /// Parses a `working_hours` jsonb object keyed by [DayOfWeek.code]
+  /// (`monday`…`sunday`); a missing day degrades to [DayHours.closedDay].
+  factory WeeklyHours.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return allClosed();
+    final byDay = <DayOfWeek, DayHours>{};
+    for (final day in DayOfWeek.values) {
+      final raw = json[day.code];
+      if (raw is Map<String, dynamic>) {
+        byDay[day] = DayHours.fromJson(raw);
+      }
+    }
+    return WeeklyHours(byDay: byDay);
+  }
+
+  /// Serialises to a jsonb object keyed by [DayOfWeek.code].
+  Map<String, dynamic> toJson() => {
+        for (final entry in byDay.entries)
+          entry.key.code: entry.value.toJson(),
+      };
+
   static WeeklyHours allClosed() => const WeeklyHours(byDay: {});
 
   static WeeklyHours weekdays9to6() => WeeklyHours(byDay: {

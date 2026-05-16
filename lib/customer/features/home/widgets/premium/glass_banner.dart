@@ -89,6 +89,8 @@ class _BannerCard extends StatelessWidget {
           children: [
             CachedNetworkImage(
               imageUrl: data.imageUrl,
+              // ROADMAP B.7 — full-width banner; cap near device width.
+              memCacheWidth: 1080,
               fit: BoxFit.cover,
               placeholder: (_, _) => Shimmer.fromColors(
                 baseColor: pt.imageBg,

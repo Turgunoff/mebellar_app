@@ -45,6 +45,8 @@ class PremiumProductCard extends StatelessWidget {
         CachedNetworkImage(
           imageUrl: imageUrl,
           width: double.infinity,
+          // ROADMAP B.7 — bound the in-memory decode for the home feed cards.
+          memCacheWidth: 600,
           fit: BoxFit.cover,
           placeholder: (_, _) => Shimmer.fromColors(
             baseColor: pt.imageBg,

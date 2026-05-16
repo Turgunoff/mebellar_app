@@ -131,13 +131,13 @@ class SellerOrdersBloc extends Bloc<SellerOrdersEvent, SellerOrdersState> {
   ) async {
     emit(state.copyWith(
         status: SellerOrdersStatus.loading, clearError: true));
-    try {
-      final list = await _repo.list();
-      emit(state.copyWith(status: SellerOrdersStatus.ready, orders: list));
-    } catch (e) {
-      emit(state.copyWith(
-          status: SellerOrdersStatus.failure, error: e.toString()));
-    }
+    final result = await _repo.list();
+    result.fold(
+      ok: (list) => emit(
+          state.copyWith(status: SellerOrdersStatus.ready, orders: list)),
+      err: (failure) => emit(state.copyWith(
+          status: SellerOrdersStatus.failure, error: failure.message)),
+    );
   }
 
   void _onInserted(
