@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:woody_app/config/app_config.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
-import 'package:woody_app/core/widgets/coming_soon_beta_widget.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -25,11 +23,6 @@ class ShopSettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ROADMAP A.2 — shop settings is mock-only; show a placeholder instead of
-    // wiring the mock bloc when the fulfillment flag is off.
-    if (!AppConfig.sellerFulfillmentEnabled) {
-      return ComingSoonBetaWidget(title: tr('shop_settings.title'));
-    }
     return BlocProvider(
       create: (_) => ShopSettingsBloc(sl<ShopSettingsRepository>())
         ..add(const ShopSettingsRequested()),

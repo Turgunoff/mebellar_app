@@ -1,6 +1,4 @@
 ﻿import 'package:woody_app/core/i18n/i18n.dart';
-import 'package:woody_app/config/app_config.dart';
-import 'package:woody_app/core/widgets/coming_soon_beta_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -24,11 +22,6 @@ class VerificationScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ROADMAP A.2 — KYC verification is mock-only; show a placeholder instead
-    // of wiring the mock bloc when the fulfillment flag is off.
-    if (!AppConfig.sellerFulfillmentEnabled) {
-      return ComingSoonBetaWidget(title: tr('verification.title'));
-    }
     return BlocProvider(
       create: (_) => VerificationBloc(sl<SellerVerificationRepository>())
         ..add(VerificationRequested(

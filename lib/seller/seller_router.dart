@@ -115,7 +115,9 @@ GoRouter buildSellerRouter() {
                   GoRoute(
                     path: ':id',
                     parentNavigatorKey: sellerRootNavigatorKey,
-                    builder: (_, _) => const OrderDetailsScreen(),
+                    builder: (context, state) => OrderDetailsScreen(
+                      orderId: state.pathParameters['id']!,
+                    ),
                   ),
                 ],
               ),

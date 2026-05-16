@@ -70,7 +70,9 @@ class SectionTitle extends StatelessWidget {
   }
 }
 
-/// One physical line item within an order.
+/// One physical line item within an order, as displayed in `ItemsCard`.
+/// The seller order-detail screen maps the domain `OrderItem` onto this
+/// presentation struct.
 @immutable
 class OrderItem {
   const OrderItem({
@@ -85,22 +87,3 @@ class OrderItem {
   final String unitPriceLabel;
   final String subtotalLabel;
 }
-
-// Mock data — bundled so the screen renders without a repository or bloc.
-// Swap to real data when the order API contract lands.
-const String kMockOrderId = '#ORD-2026-1102';
-
-const List<OrderItem> kMockOrderItems = [
-  OrderItem(
-    name: 'Klassik kuxnya jihozlari',
-    qty: 1,
-    unitPriceLabel: '10 000 000',
-    subtotalLabel: '10 000 000',
-  ),
-  OrderItem(
-    name: 'Modern Loft stoli',
-    qty: 2,
-    unitPriceLabel: '1 200 000',
-    subtotalLabel: '2 400 000',
-  ),
-];

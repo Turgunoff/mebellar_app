@@ -28,16 +28,20 @@ class OrderItem extends Equatable {
 
   num get lineTotal => unitPrice * quantity;
 
-  /// Maps a `public.order_items` row. `product_name` is stored as a plain
-  /// text snapshot of the name at order time; absent columns degrade to
-  /// empty defaults so a partial row can't crash the list.
+  /// Maps a `public.order_items` row. The live table carries only
+  /// `product_id`, `quantity` and `price`; name/slug/thumbnail are not stored
+  /// per-row, so absent columns degrade to empty defaults (the seller order
+  /// views show the line by quantity + price and may enrich the name later
+  /// via a `products` join).
   factory OrderItem.fromJson(Map<String, dynamic> json) {
     return OrderItem(
       productId: json['product_id'] as String? ?? '',
       productSlug: json['product_slug'] as String? ?? '',
       productName: MultilingualText(uz: json['product_name'] as String? ?? ''),
       thumbnail: json['thumbnail'] as String? ?? '',
-      unitPrice: (json['unit_price'] as num?) ?? 0,
+      // Live `order_items` column is `price`; `unit_price` is accepted as a
+      // fallback for any caller still passing the older key.
+      unitPrice: (json['price'] as num?) ?? (json['unit_price'] as num?) ?? 0,
       quantity: (json['quantity'] as num?)?.toInt() ?? 0,
     );
   }
@@ -169,7 +173,10 @@ class Order extends Equatable {
       createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0),
       timeline: timeline,
-      cancelReason: json['cancel_reason'] as String?,
+      // Live `orders` column is `cancellation_reason`; `cancel_reason` kept as
+      // a fallback so an older payload still resolves.
+      cancelReason: (json['cancellation_reason'] ?? json['cancel_reason'])
+          as String?,
       expectedDeliveryAt: _parseDateOrNull(json['expected_delivery_at']),
     );
   }
@@ -187,7 +194,7 @@ class Order extends Equatable {
         'delivery_method': deliveryMethod.code,
         'payment_method': paymentMethod.code,
         'created_at': createdAt.toIso8601String(),
-        if (cancelReason != null) 'cancel_reason': cancelReason,
+        if (cancelReason != null) 'cancellation_reason': cancelReason,
         if (expectedDeliveryAt != null)
           'expected_delivery_at': expectedDeliveryAt!.toIso8601String(),
       };

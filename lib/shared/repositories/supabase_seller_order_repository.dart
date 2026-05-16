@@ -12,11 +12,12 @@ import 'seller_order_repository.dart';
 
 /// Live Supabase implementation of [SellerOrderRepository] (ROADMAP B.1).
 ///
-/// Schema — see `docs/supabase_rls_policies.sql.md`:
+/// Schema — verified against the live database:
 /// ```
-///   orders      id · user_id · status · total_amount · created_at · ...
-///   order_items order_id · product_id · product_name · unit_price · quantity
-///   products    id · shop_id
+///   orders      id · user_id · status · total_amount · created_at ·
+///               delivery_address · cancellation_reason
+///   order_items id · order_id · product_id · quantity · price
+///   products    id · shop_id · seller_id
 /// ```
 /// `orders` has no `shop_id`; an order belongs to a seller transitively via
 /// `order_items → products → shops.seller_id`. Realtime therefore subscribes
@@ -100,9 +101,9 @@ class SupabaseSellerOrderRepository implements SellerOrderRepository {
   Future<Result<Order>> cancel(String id, {required String reason}) =>
       _transition(id, OrderStatus.cancelled, cancelReason: reason);
 
-  /// Applies a status update and returns the refreshed order. The legal
-  /// source-status state machine is enforced server-side (DB trigger); here
-  /// we surface whatever the row resolves to.
+  /// Applies a status update and returns the refreshed order. Row-level
+  /// access is scoped by the seller RLS policies on `orders`; the value
+  /// surfaced is whatever the updated row resolves to.
   Future<Result<Order>> _transition(
     String id,
     OrderStatus next, {
@@ -111,7 +112,9 @@ class SupabaseSellerOrderRepository implements SellerOrderRepository {
       runCatching(() async {
         final payload = <String, dynamic>{
           'status': next.code,
-          'cancel_reason': ?cancelReason,
+          // Live column is `cancellation_reason`; the null-aware entry is
+          // omitted entirely for non-cancel transitions.
+          'cancellation_reason': ?cancelReason,
         };
         final rows = await _client
             .from(_ordersTable)

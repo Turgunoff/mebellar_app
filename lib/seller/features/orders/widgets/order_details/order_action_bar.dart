@@ -3,22 +3,44 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
+import '../../../../../shared/models/order_status.dart';
+import '../../../../../shared/repositories/seller_order_repository.dart';
+import '../order_format.dart';
 import 'order_details_kit.dart';
 
-/// Sticky bottom action bar — Reject (outline) on the left, Accept (filled
-/// terracotta) on the right with a wider flex so the primary action
-/// visually dominates.
+/// Sticky bottom action bar for the seller order-detail screen.
 ///
-/// Sprint B.1 wires [onReject] / [onAccept] (and the later shipped/delivered
-/// transitions) to `SupabaseSellerOrderRepository`.
+/// Driven entirely by [status]: it surfaces the next legal forward
+/// transition (`pending → confirmed → preparing → shipped → delivered`) as the
+/// primary action and a Cancel button while the order is still cancellable.
+/// A terminal order (delivered / cancelled) collapses the bar away.
 class OrderActionBar extends StatelessWidget {
-  const OrderActionBar({super.key, this.onReject, this.onAccept});
+  const OrderActionBar({
+    super.key,
+    required this.status,
+    required this.busy,
+    required this.onTransition,
+    required this.onCancel,
+  });
 
-  final VoidCallback? onReject;
-  final VoidCallback? onAccept;
+  final OrderStatus status;
+
+  /// True while a transition is in flight — disables every button.
+  final bool busy;
+
+  /// Dispatched with the target status of the next forward transition.
+  final void Function(OrderStatus target) onTransition;
+  final VoidCallback onCancel;
 
   @override
   Widget build(BuildContext context) {
+    final forward = status.sellerForwardTransitions;
+    // Terminal order — nothing left for the seller to do.
+    if (forward.isEmpty) return const SizedBox.shrink();
+
+    final target = forward.first;
+    final canCancel = status.cancellable;
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -37,68 +59,85 @@ class OrderActionBar extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
           child: Row(
             children: [
-              Expanded(
-                flex: 5,
-                child: SizedBox(
-                  height: 52,
-                  child: OutlinedButton(
-                    onPressed: onReject ?? () {},
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: kInk,
-                      backgroundColor: Colors.white,
-                      side: const BorderSide(color: kOutline, width: 1),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+              if (canCancel) ...[
+                Expanded(
+                  flex: 5,
+                  child: SizedBox(
+                    height: 52,
+                    child: OutlinedButton(
+                      onPressed: busy ? null : onCancel,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: kInk,
+                        backgroundColor: Colors.white,
+                        side: const BorderSide(color: kOutline, width: 1),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        padding: EdgeInsets.zero,
                       ),
-                      padding: EdgeInsets.zero,
-                    ),
-                    child: const Text(
-                      'Rad etish',
-                      style: TextStyle(
-                        fontFamily: AppFonts.seller,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: kInk,
-                        height: 1.0,
+                      child: const Text(
+                        'Bekor qilish',
+                        style: TextStyle(
+                          fontFamily: AppFonts.seller,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: kInk,
+                          height: 1.0,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 10),
+                const SizedBox(width: 10),
+              ],
               Expanded(
                 flex: 7,
                 child: SizedBox(
                   height: 52,
                   child: FilledButton(
-                    onPressed: onAccept ?? () {},
+                    onPressed: busy ? null : () => onTransition(target),
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.terracotta,
                       foregroundColor: Colors.white,
+                      disabledBackgroundColor:
+                          AppColors.terracotta.withValues(alpha: 0.5),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),
                       padding: EdgeInsets.zero,
                     ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Iconsax.tick_circle,
-                            size: 18, color: Colors.white),
-                        SizedBox(width: 8),
-                        Text(
-                          'Buyurtmani qabul qilish',
-                          style: TextStyle(
-                            fontFamily: AppFonts.seller,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                            height: 1.0,
-                            letterSpacing: -0.1,
+                    child: busy
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.4,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Iconsax.tick_circle,
+                                  size: 18, color: Colors.white),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  sellerOrderActionLabel(target),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontFamily: AppFonts.seller,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                    height: 1.0,
+                                    letterSpacing: -0.1,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
-                    ),
                   ),
                 ),
               ),

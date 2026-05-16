@@ -12,11 +12,18 @@ class OrderMetaCard extends StatelessWidget {
     required this.orderId,
     required this.date,
     required this.statusLabel,
+    this.statusBg = kAmberBg,
+    this.statusFg = kAmberFg,
   });
 
   final String orderId;
   final String date;
   final String statusLabel;
+
+  /// Status-pill colours — default to amber (pending); the detail screen
+  /// passes the colours matching the live order status.
+  final Color statusBg;
+  final Color statusFg;
 
   @override
   Widget build(BuildContext context) {
@@ -63,16 +70,16 @@ class OrderMetaCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
             decoration: BoxDecoration(
-              color: kAmberBg,
+              color: statusBg,
               borderRadius: BorderRadius.circular(999),
             ),
             child: Text(
               statusLabel,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: AppFonts.seller,
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
-                color: kAmberFg,
+                color: statusFg,
                 height: 1.0,
               ),
             ),
