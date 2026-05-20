@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:woody_app/customer/features/cart/bloc/cart_bloc.dart';
 import 'package:woody_app/customer/features/cart/screens/cart_screen.dart';
 import 'package:woody_app/shared/models/cart_item_model.dart';
+import 'package:woody_app/shared/widgets/brand_refresh_indicator.dart';
 
 /// ROADMAP B.5 — widget tests for the cart screen. `CartBloc` is replaced by
 /// a `MockBloc` so each render state (loading / empty / loaded) is pinned
@@ -34,7 +35,9 @@ void main() {
     );
     await tester.pumpWidget(harness());
     await tester.pump();
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    // Cart loading state now renders the iOS-style brand indicator
+    // instead of the stock Material spinner.
+    expect(find.byType(BrandLoadingIndicator), findsOneWidget);
   });
 
   testWidgets('shows the empty state when the cart has no items',

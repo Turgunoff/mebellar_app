@@ -47,9 +47,32 @@ class SupabaseSellerOrderRepository implements SellerOrderRepository {
 
   late final StreamController<Order> _newOrders;
   RealtimeSubscription? _newOrdersSub;
+  RealtimeSubscription? _updatesSub;
   bool _subscribing = false;
+  bool _updatesSubscribing = false;
   bool _disposed = false;
   int _watchSeq = 0;
+
+  /// Broadcast feed of UPDATEs on any order the seller can read. The orders
+  /// list bloc listens here so a customer-side cancel (or another tab's
+  /// status change) flows back without a manual refresh. Realtime delivery
+  /// is RLS-gated by the seller policy on `orders`, so we still confirm
+  /// shop ownership before forwarding — Postgres' RLS bridging on logical
+  /// replication isn't 100% guaranteed across all releases.
+  late final StreamController<Order> _orderUpdates =
+      StreamController<Order>.broadcast(
+    onListen: () => unawaited(_ensureUpdatesSubscription()),
+    onCancel: () => unawaited(_teardownUpdatesSubscription()),
+  );
+
+  // Embedded select used by both list() and _fetchOrder so the line-items
+  // come back with the product name + first image already joined — sellers'
+  // line rows otherwise carry only ids, leaving the UI to render empty
+  // labels. `inner` keeps order_items whose product was filtered out by
+  // RLS off the result altogether.
+  static const String _itemEmbed =
+      'id, order_id, product_id, quantity, price, '
+      'products!inner(id, name, images)';
 
   @override
   Future<Result<List<Order>>> list() => runCatching(() async {
@@ -61,7 +84,22 @@ class SupabaseSellerOrderRepository implements SellerOrderRepository {
             .select()
             .inFilter('id', orderIds)
             .order('created_at', ascending: false);
-        return rows.map((row) => Order.fromJson(row)).toList(growable: false);
+        if (rows.isEmpty) return <Order>[];
+        // Fetch the joined item rows in one round-trip and bucket them by
+        // order_id so each `Order.fromJson` lands with its enriched lines.
+        // Per the RLS policy, sellers only see line items whose product is
+        // theirs — line counts in this map are scoped to the seller.
+        final itemsByOrder = await _fetchItemsByOrderId(rows
+            .map((r) => r['id'] as String)
+            .toList(growable: false));
+        return rows
+            .map(
+              (row) => Order.fromJson(
+                row,
+                items: itemsByOrder[row['id'] as String] ?? const [],
+              ),
+            )
+            .toList(growable: false);
       });
 
   @override
@@ -76,9 +114,52 @@ class SupabaseSellerOrderRepository implements SellerOrderRepository {
     if (row == null) {
       throw const ServerFailure(message: 'Buyurtma topilmadi');
     }
-    final itemRows = await _client.from(_itemsTable).select().eq('order_id', id);
-    final items = itemRows.map(OrderItem.fromJson).toList(growable: false);
-    return Order.fromJson(row, items: items);
+    final itemsByOrder = await _fetchItemsByOrderId([id]);
+    return Order.fromJson(row, items: itemsByOrder[id] ?? const []);
+  }
+
+  /// One-shot fetch of every visible line item across [orderIds], joined
+  /// with `products` for the name + first image. Returned as a
+  /// `{ order_id -> items }` map so the caller can stitch the lines onto
+  /// the parent Order without a per-order round-trip.
+  Future<Map<String, List<OrderItem>>> _fetchItemsByOrderId(
+    List<String> orderIds,
+  ) async {
+    if (orderIds.isEmpty) return const {};
+    final rows = await _client
+        .from(_itemsTable)
+        .select(_itemEmbed)
+        .inFilter('order_id', orderIds);
+    final result = <String, List<OrderItem>>{};
+    for (final row in rows) {
+      final orderId = row['order_id'] as String?;
+      if (orderId == null) continue;
+      result
+          .putIfAbsent(orderId, () => <OrderItem>[])
+          .add(_orderItemFromJoinedRow(row));
+    }
+    return result;
+  }
+
+  /// Adapts a joined `order_items + products` row into an [OrderItem]. The
+  /// `products!inner(...)` embed lands on the row under the `products`
+  /// key as a single object; we lift `name` and the first image so the
+  /// seller-side list/detail screens render something readable instead of
+  /// blank tiles.
+  static OrderItem _orderItemFromJoinedRow(Map<String, dynamic> row) {
+    final product = row['products'];
+    final name = product is Map<String, dynamic>
+        ? product['name'] as String? ?? ''
+        : '';
+    final images = product is Map<String, dynamic> ? product['images'] : null;
+    final firstImage = images is List && images.isNotEmpty
+        ? images.first?.toString() ?? ''
+        : '';
+    return OrderItem.fromJson({
+      ...row,
+      'product_name': name,
+      'thumbnail': firstImage,
+    });
   }
 
   @override
@@ -135,10 +216,68 @@ class SupabaseSellerOrderRepository implements SellerOrderRepository {
   @override
   Stream<Order> newOrders() => _newOrders.stream;
 
+  /// Broadcast feed of order updates the seller can read.
+  ///
+  /// Drives the orders list bloc's update path so customer-side cancels
+  /// (or status flips from another seller session) flow back without a
+  /// manual refresh. The repository owns the channel lifetime; the
+  /// controller's listener hooks bring the socket up and tear it down so
+  /// no websocket leaks across a mode switch.
+  @override
+  Stream<Order> orderUpdates() => _orderUpdates.stream;
+
   Future<void> _teardownNewOrdersSubscription() async {
     final sub = _newOrdersSub;
     _newOrdersSub = null;
     await sub?.close();
+  }
+
+  Future<void> _teardownUpdatesSubscription() async {
+    final sub = _updatesSub;
+    _updatesSub = null;
+    await sub?.close();
+  }
+
+  Future<void> _ensureUpdatesSubscription() async {
+    if (_disposed || _updatesSub != null || _updatesSubscribing) return;
+    _updatesSubscribing = true;
+    try {
+      final shopId = await _fetchShopIdOrNull();
+      if (shopId == null || _disposed || _updatesSub != null) return;
+      _updatesSub = _realtime.subscribe(
+        channelName: 'seller-orders-updates-$shopId',
+        table: _ordersTable,
+        onUpdate: (_, row) => unawaited(_handleOrderUpdate(row, shopId)),
+      );
+    } catch (e, st) {
+      talker.handle(
+        e,
+        st,
+        'SupabaseSellerOrderRepository.subscribeUpdates',
+      );
+    } finally {
+      _updatesSubscribing = false;
+    }
+  }
+
+  /// Same ownership confirmation as [_handleOrderInsert] — the realtime
+  /// payload doesn't carry shop_id, so a row UPDATE only reaches the
+  /// stream once we verify the order contains at least one product from
+  /// this seller's shop.
+  Future<void> _handleOrderUpdate(RealtimeRow row, String shopId) async {
+    try {
+      final id = row['id'] as String?;
+      if (id == null || _orderUpdates.isClosed) return;
+      if (!await _orderBelongsToShop(id, shopId)) return;
+      final order = await _fetchOrder(id);
+      if (!_orderUpdates.isClosed) _orderUpdates.add(order);
+    } catch (e, st) {
+      talker.handle(
+        e,
+        st,
+        'SupabaseSellerOrderRepository._handleOrderUpdate',
+      );
+    }
   }
 
   Future<void> _ensureNewOrdersSubscription() async {
@@ -213,7 +352,9 @@ class SupabaseSellerOrderRepository implements SellerOrderRepository {
     if (_disposed) return;
     _disposed = true;
     await _newOrdersSub?.close();
+    await _updatesSub?.close();
     if (!_newOrders.isClosed) await _newOrders.close();
+    if (!_orderUpdates.isClosed) await _orderUpdates.close();
   }
 
   // ─── Shop / ownership helpers ───────────────────────────────────────────

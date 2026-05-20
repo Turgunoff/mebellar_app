@@ -1,80 +1,152 @@
-﻿import 'package:bloc_test/bloc_test.dart';
+import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:woody_app/core/error/failure.dart';
+import 'package:woody_app/core/result/result.dart';
 import 'package:woody_app/seller/features/orders/bloc/seller_order_detail_bloc.dart';
-import 'package:woody_app/shared/mock/mock_orders_data.dart';
-import 'package:woody_app/shared/mock/mock_seller_order_repository.dart';
+import 'package:woody_app/shared/models/order.dart';
 import 'package:woody_app/shared/models/order_status.dart';
 import 'package:woody_app/shared/repositories/seller_order_repository.dart';
 
+import '../fake_seller_order_repository.dart';
+import '../order_fixtures.dart';
+
 void main() {
-  group('SellerOrderDetailBloc (mock repository)', () {
-    test('forward transitions table reflects state machine spec', () {
-      // Sanity-check the transitions extension since the action buttons widget
-      // relies on it to know which CTAs to render per state.
+  group('SellerOrderTransitions', () {
+    test('forward transitions match the spec', () {
       expect(OrderStatus.pending.sellerForwardTransitions,
           [OrderStatus.confirmed]);
       expect(OrderStatus.confirmed.sellerForwardTransitions,
           [OrderStatus.preparing, OrderStatus.shipped]);
+      expect(OrderStatus.preparing.sellerForwardTransitions,
+          [OrderStatus.shipped]);
       expect(OrderStatus.shipped.sellerForwardTransitions,
           [OrderStatus.delivered]);
       expect(OrderStatus.delivered.sellerForwardTransitions, isEmpty);
       expect(OrderStatus.cancelled.sellerForwardTransitions, isEmpty);
     });
+  });
+
+  group('SellerOrderDetailBloc (fake repository)', () {
+    late FakeSellerOrderRepository repo;
+
+    setUp(() {
+      repo = FakeSellerOrderRepository();
+      // Default getById: return a freshly cloned pending order for any id.
+      repo.getByIdResult = (id) => Ok(makeOrder(id: id));
+    });
+
+    tearDown(() => repo.dispose());
 
     blocTest<SellerOrderDetailBloc, SellerOrderDetailState>(
-      'confirm pending order moves it to confirmed',
-      build: () => SellerOrderDetailBloc(MockSellerOrderRepository()),
-      act: (bloc) async {
-        // Inject a fresh pending order so we have one to act on (seeded
-        // orders are mostly past-status).
-        final repo = MockSellerOrderRepository();
-        // Find the first pending order in the seed; the shipped order can be
-        // cancelled but we want a confirm path here.
-        final pendingId = MockOrdersData.orders.first.id;
-        bloc.add(SellerOrderDetailRequested(pendingId));
-        await Future<void>.delayed(const Duration(milliseconds: 400));
-        // The seed order #1 is already shipped — instead drive it through a
-        // bloc that uses the repo from the test scope for clarity.
-        // For the actual transition test, we drive a known pending one via
-        // the bloc's repo by side-effect: the seeded shipped order should
-        // not advance.
-        repo.list();
-      },
-      wait: const Duration(milliseconds: 200),
+      'load success exposes the order',
+      build: () => SellerOrderDetailBloc(repo),
+      act: (bloc) => bloc.add(const SellerOrderDetailRequested('o1')),
+      wait: const Duration(milliseconds: 10),
       verify: (bloc) {
-        // Bloc loaded *some* order successfully.
         expect(bloc.state.status, SellerOrderDetailStatus.ready);
+        expect(bloc.state.order?.id, 'o1');
+        expect(bloc.state.canCancel, isTrue);
       },
     );
 
     blocTest<SellerOrderDetailBloc, SellerOrderDetailState>(
-      'cancel terminates the order with reason',
-      build: () => SellerOrderDetailBloc(MockSellerOrderRepository()),
-      act: (bloc) async {
-        // The first seeded order is shipped — still cancellable per spec?
-        // No — shipped is not cancellable. Use the realtime new-order
-        // injection to get a pending one.
-        final repo = MockSellerOrderRepository();
-        // Kick the timer faster — instead just directly cancel the
-        // *cancelled* seed and expect a state error... Better: target the
-        // seeded shipped one via direct repo to confirm the bloc surfaces
-        // the error cleanly when the transition is illegal.
-        bloc.add(SellerOrderDetailRequested(MockOrdersData.orders[0].id));
-        await Future<void>.delayed(const Duration(milliseconds: 400));
-        bloc.add(const SellerOrderActionCancelled('Test'));
-        await Future<void>.delayed(const Duration(milliseconds: 400));
-        repo.list();
+      'load failure surfaces the failure message',
+      build: () {
+        repo.getByIdResult =
+            (_) => const Err(ServerFailure(message: 'not found'));
+        return SellerOrderDetailBloc(repo);
       },
-      wait: const Duration(milliseconds: 200),
+      act: (bloc) => bloc.add(const SellerOrderDetailRequested('missing')),
+      wait: const Duration(milliseconds: 10),
       verify: (bloc) {
-        // Either the cancel succeeded (cancellable status) or the bloc
-        // exposed the error — both are legal outcomes; the bloc must not
-        // have crashed.
-        expect(bloc.state.status, anyOf(
-          SellerOrderDetailStatus.ready,
-          SellerOrderDetailStatus.failure,
-        ));
+        expect(bloc.state.status, SellerOrderDetailStatus.failure);
+        expect(bloc.state.error, 'not found');
+      },
+    );
+
+    blocTest<SellerOrderDetailBloc, SellerOrderDetailState>(
+      'confirm transitions pending -> confirmed and fires onUpdated',
+      build: () => SellerOrderDetailBloc(
+        repo,
+        // Write straight into the test-scoped static — verify() reads it
+        // back after `act` has run. A closure-local variable would be
+        // hidden inside the build callback's frame.
+        onUpdated: (o) => _CapturedUpdate.value = o,
+      ),
+      act: (bloc) async {
+        _CapturedUpdate.value = null;
+        bloc.add(const SellerOrderDetailRequested('p1'));
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+        bloc.add(const SellerOrderActionConfirmed());
+      },
+      wait: const Duration(milliseconds: 30),
+      verify: (bloc) {
+        expect(bloc.state.order?.status, OrderStatus.confirmed);
+        expect(repo.confirmCalls, 1);
+        expect(_CapturedUpdate.value?.status, OrderStatus.confirmed);
+      },
+    );
+
+    blocTest<SellerOrderDetailBloc, SellerOrderDetailState>(
+      'cancel records the reason and moves status to cancelled',
+      build: () => SellerOrderDetailBloc(repo),
+      act: (bloc) async {
+        bloc.add(const SellerOrderDetailRequested('c1'));
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+        bloc.add(const SellerOrderActionCancelled('Mahsulot tugadi'));
+      },
+      wait: const Duration(milliseconds: 30),
+      verify: (bloc) {
+        expect(bloc.state.order?.status, OrderStatus.cancelled);
+        expect(bloc.state.order?.cancelReason, 'Mahsulot tugadi');
+        expect(repo.cancelCalls, 1);
+      },
+    );
+
+    blocTest<SellerOrderDetailBloc, SellerOrderDetailState>(
+      'realtime watch update mutates the loaded order in place',
+      build: () => SellerOrderDetailBloc(repo),
+      act: (bloc) async {
+        bloc.add(const SellerOrderDetailRequested('w1'));
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+        // Push a realtime update — bloc subscribes to repo.watch(id) when
+        // the load resolves.
+        repo.emitOrderUpdate(
+          makeOrder(id: 'w1', status: OrderStatus.shipped),
+        );
+      },
+      wait: const Duration(milliseconds: 30),
+      verify: (bloc) {
+        expect(bloc.state.order?.status, OrderStatus.shipped);
+      },
+    );
+
+    blocTest<SellerOrderDetailBloc, SellerOrderDetailState>(
+      'failed transition keeps the order intact and surfaces the message',
+      build: () => SellerOrderDetailBloc(repo),
+      act: (bloc) async {
+        bloc.add(const SellerOrderDetailRequested('f1'));
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+        // Swap in a builder that always rejects, then attempt to confirm.
+        repo.getByIdResult =
+            (_) => const Err(ServerFailure(message: 'denied'));
+        bloc.add(const SellerOrderActionConfirmed());
+      },
+      wait: const Duration(milliseconds: 30),
+      verify: (bloc) {
+        // The mutation surfaces the error, but the previously loaded order
+        // stays put so the screen doesn't blank out.
+        expect(bloc.state.status, SellerOrderDetailStatus.ready);
+        expect(bloc.state.error, 'denied');
+        expect(bloc.state.order?.id, 'f1');
       },
     );
   });
+}
+
+/// Test-scoped capture for the `onUpdated` callback. Lives outside the
+/// bloc so the `verify` block can read what the callback observed in the
+/// preceding `act` phase without leaking state across groups.
+class _CapturedUpdate {
+  static Order? value;
 }

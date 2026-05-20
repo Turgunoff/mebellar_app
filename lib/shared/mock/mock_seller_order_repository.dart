@@ -28,6 +28,10 @@ class MockSellerOrderRepository implements SellerOrderRepository {
   final List<Order> _orders = [];
   final Map<String, StreamController<Order>> _watchers = {};
   final _newOrders = StreamController<Order>.broadcast();
+  // Mock has no real realtime UPDATE channel — transitions are emitted
+  // here so the orders list bloc behaves the same against the mock as it
+  // does against Supabase (the live impl emits on every server UPDATE).
+  final _orderUpdates = StreamController<Order>.broadcast();
   Timer? _timer;
   int _idCounter = 1100;
 
@@ -51,6 +55,9 @@ class MockSellerOrderRepository implements SellerOrderRepository {
 
   @override
   Stream<Order> newOrders() => _newOrders.stream;
+
+  @override
+  Stream<Order> orderUpdates() => _orderUpdates.stream;
 
   @override
   Future<Result<Order>> confirm(String id) =>
@@ -104,6 +111,7 @@ class MockSellerOrderRepository implements SellerOrderRepository {
     );
     _orders[idx] = updated;
     _watchers[id]?.add(updated);
+    if (!_orderUpdates.isClosed) _orderUpdates.add(updated);
     return Ok(updated);
   }
 
@@ -142,6 +150,7 @@ class MockSellerOrderRepository implements SellerOrderRepository {
     );
     _orders[idx] = updated;
     _watchers[id]?.add(updated);
+    if (!_orderUpdates.isClosed) _orderUpdates.add(updated);
     return Ok(updated);
   }
 
@@ -185,6 +194,9 @@ class MockSellerOrderRepository implements SellerOrderRepository {
     _timer = null;
     if (!_newOrders.isClosed) {
       await _newOrders.close();
+    }
+    if (!_orderUpdates.isClosed) {
+      await _orderUpdates.close();
     }
     for (final c in _watchers.values) {
       if (!c.isClosed) await c.close();

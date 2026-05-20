@@ -14,6 +14,7 @@ import '../../shared/mock/mock_seller_services_repository.dart';
 import '../../shared/mock/mock_seller_verification_repository.dart';
 import '../../shared/mock/mock_shop_settings_repository.dart';
 import '../../shared/mock/mock_tariff_repository.dart';
+import '../../shared/repositories/seller_analytics_repository.dart';
 import '../../shared/repositories/seller_dashboard_repository.dart';
 import '../../shared/repositories/seller_onboarding_repository.dart';
 import '../../shared/repositories/seller_order_repository.dart';
@@ -21,6 +22,7 @@ import '../../shared/repositories/seller_product_repository.dart';
 import '../../shared/repositories/seller_services_repository.dart';
 import '../../shared/repositories/seller_verification_repository.dart';
 import '../../shared/repositories/shop_settings_repository.dart';
+import '../../shared/repositories/supabase_seller_analytics_repository.dart';
 import '../../shared/repositories/supabase_seller_dashboard_repository.dart';
 import '../../shared/repositories/supabase_seller_onboarding_repository.dart';
 import '../../shared/repositories/supabase_seller_order_repository.dart';
@@ -105,6 +107,14 @@ void registerSellerModule(GetIt sl) {
   // default. Requires Supabase to be registered at root scope.
   sl.registerLazySingleton<SellerDashboardRepository>(
     () => SupabaseSellerDashboardRepository(sl<SupabaseClient>()),
+  );
+
+  // Analytics also reads live data unconditionally — the empty-revenue
+  // state is the source of truth for sellers without orders yet, so a
+  // mock would mask that and the chart would show fake hockey-stick
+  // numbers in onboarding screenshots.
+  sl.registerLazySingleton<SellerAnalyticsRepository>(
+    () => SupabaseSellerAnalyticsRepository(supabase: sl<SupabaseClient>()),
   );
 
   // ROADMAP A.2 / B.1 — orders / shop-settings / seller-services stay gated

@@ -1,51 +1,62 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_fonts.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
+import 'package:intl/intl.dart';
 
+import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_fonts.dart';
+import '../../../../shared/models/analytics.dart';
+import '../../../../shared/repositories/seller_analytics_repository.dart';
+import '../../../../shared/widgets/brand_refresh_indicator.dart';
+import '../../../../shared/widgets/error_state.dart';
+import '../bloc/seller_analytics_cubit.dart';
 import '../widgets/revenue_line_chart.dart';
 
-// Local tokens — Plus Jakarta Sans is applied to every `Text`
-// explicitly per the design spec rather than inheriting from the
-// seller theme; this protects the screen from theme regressions.
+// Local tokens — Plus Jakarta Sans is applied to every `Text` explicitly per
+// the design spec rather than inheriting from the seller theme; this
+// protects the screen from theme regressions.
 const _ink = Color(0xFF1D1D1D);
 const _grey = Color(0xFF757575);
 const _greyMid = Color(0xFFBDBDBD);
 const _placeholderBg = Color(0xFFF1F1F1);
 const _segmentBg = Color(0xFFEFEFEF);
-const _positive = Color(0xFF1F9D55);
+const _negative = Color(0xFFDC2626);
 
-// Donut palette — handpicked against the spec; keep these locked
-// instead of pulling from theme so the legend swatches and slices
-// stay in sync regardless of theme tweaks.
-const _catSoft = AppColors.terracotta;
-const _catBedroom = Color(0xFF2C3E50);
-const _catKitchen = Color(0xFFF39C12);
-const _catOther = Color(0xFFBDC3C7);
+// Donut palette — handpicked against the spec. Slices cycle through this
+// list in order; the seller-side breakdown rarely exceeds 4-5 categories,
+// so a small palette is enough.
+const _donutPalette = <Color>[
+  AppColors.terracotta,
+  Color(0xFF2C3E50),
+  Color(0xFFF39C12),
+  Color(0xFF3949AB),
+  Color(0xFF22C55E),
+  Color(0xFFBDC3C7),
+];
 
-enum _Range { d7, d30, m12 }
-
-extension _RangeLabel on _Range {
-  String get label => switch (this) {
-        _Range.d7 => '7 kun',
-        _Range.d30 => '30 kun',
-        _Range.m12 => '12 oy',
-      };
-}
-
-// =============================================================================
-// Screen — premium analytics: range selector → hero chart → KPIs → donut → top
-// =============================================================================
-class SellerAnalyticsScreen extends StatefulWidget {
+/// =====================================================================
+/// Screen — premium analytics: range selector → hero chart → KPIs →
+/// donut → top products. Backed entirely by [SellerAnalyticsCubit] /
+/// [SellerAnalyticsRepository] — no mock data.
+/// =====================================================================
+class SellerAnalyticsScreen extends StatelessWidget {
   const SellerAnalyticsScreen({super.key});
 
   @override
-  State<SellerAnalyticsScreen> createState() => _SellerAnalyticsScreenState();
+  Widget build(BuildContext context) {
+    return BlocProvider<SellerAnalyticsCubit>(
+      create: (_) => SellerAnalyticsCubit(sl<SellerAnalyticsRepository>())
+        ..load(),
+      child: const _AnalyticsView(),
+    );
+  }
 }
 
-class _SellerAnalyticsScreenState extends State<SellerAnalyticsScreen> {
-  _Range _range = _Range.d30;
+class _AnalyticsView extends StatelessWidget {
+  const _AnalyticsView();
 
   @override
   Widget build(BuildContext context) {
@@ -53,41 +64,75 @@ class _SellerAnalyticsScreenState extends State<SellerAnalyticsScreen> {
       color: AppColors.lightBackground,
       child: SafeArea(
         bottom: false,
-        child: Column(
-          children: [
-            const _AnalyticsHeader(),
-            _RangeSelector(
-              value: _range,
-              onChanged: (r) => setState(() => _range = r),
-            ),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-                physics: const BouncingScrollPhysics(
-                  parent: AlwaysScrollableScrollPhysics(),
+        child: BlocBuilder<SellerAnalyticsCubit, SellerAnalyticsState>(
+          builder: (context, state) {
+            return Column(
+              children: [
+                const _AnalyticsHeader(),
+                _RangeSelector(
+                  value: state.range,
+                  // Disable taps during the very first load — there's no
+                  // snapshot to lay over, so a tap would just race the
+                  // initial fetch.
+                  enabled: !state.isInitialLoad,
+                  onChanged: (r) =>
+                      context.read<SellerAnalyticsCubit>().changeRange(r),
                 ),
-                children: [
-                  _SalesChartCard(range: _range),
-                  const SizedBox(height: 14),
-                  const _SecondaryKpiRow(),
-                  const SizedBox(height: 24),
-                  const _CategoryDistributionSection(),
-                  const SizedBox(height: 24),
-                  const _TopProductsHeader(),
-                  const SizedBox(height: 12),
-                  const _TopProductsList(),
-                ],
-              ),
-            ),
-          ],
+                Expanded(
+                  child: _AnalyticsBody(state: state),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
   }
 }
 
+class _AnalyticsBody extends StatelessWidget {
+  const _AnalyticsBody({required this.state});
+
+  final SellerAnalyticsState state;
+
+  @override
+  Widget build(BuildContext context) {
+    if (state.isInitialLoad) {
+      return const _SkeletonBody();
+    }
+    if (state.status == SellerAnalyticsStatus.failure &&
+        state.snapshot == null) {
+      return ErrorState(
+        message: state.error,
+        onRetry: () => context.read<SellerAnalyticsCubit>().load(),
+      );
+    }
+
+    final snapshot = state.effectiveSnapshot;
+    return BrandRefreshIndicator(
+      color: AppColors.sellerPrimary,
+      onRefresh: () => context.read<SellerAnalyticsCubit>().refresh(),
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        physics: const BouncingScrollPhysics(
+          parent: AlwaysScrollableScrollPhysics(),
+        ),
+        children: [
+          _SalesChartCard(snapshot: snapshot, refreshing: state.isReloading),
+          const SizedBox(height: 14),
+          _SecondaryKpiRow(snapshot: snapshot),
+          const SizedBox(height: 24),
+          _CategoryDistributionSection(snapshot: snapshot),
+          const SizedBox(height: 24),
+          _TopProductsSection(snapshot: snapshot),
+        ],
+      ),
+    );
+  }
+}
+
 // =============================================================================
-// 1. Header — "Analitika" title in bold Jakarta
+// 1. Header
 // =============================================================================
 class _AnalyticsHeader extends StatelessWidget {
   const _AnalyticsHeader();
@@ -102,7 +147,8 @@ class _AnalyticsHeader extends StatelessWidget {
           Expanded(
             child: Text(
               'Analitika',
-              style: TextStyle(fontFamily: AppFonts.seller, 
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
                 color: _ink,
@@ -118,13 +164,24 @@ class _AnalyticsHeader extends StatelessWidget {
 }
 
 // =============================================================================
-// 2. Range selector — pill-shaped segmented control, terracotta active
+// 2. Range selector — pill-shaped segmented control
 // =============================================================================
 class _RangeSelector extends StatelessWidget {
-  const _RangeSelector({required this.value, required this.onChanged});
+  const _RangeSelector({
+    required this.value,
+    required this.onChanged,
+    this.enabled = true,
+  });
 
-  final _Range value;
-  final ValueChanged<_Range> onChanged;
+  final AnalyticsRange value;
+  final ValueChanged<AnalyticsRange> onChanged;
+  final bool enabled;
+
+  static const _labels = <AnalyticsRange, String>{
+    AnalyticsRange.d7: '7 kun',
+    AnalyticsRange.d30: '30 kun',
+    AnalyticsRange.m12: '12 oy',
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -138,12 +195,14 @@ class _RangeSelector extends StatelessWidget {
         ),
         child: Row(
           children: [
-            for (final r in _Range.values)
-              Expanded(child: _RangeSegment(
-                label: r.label,
-                active: r == value,
-                onTap: () => onChanged(r),
-              )),
+            for (final r in AnalyticsRange.values)
+              Expanded(
+                child: _RangeSegment(
+                  label: _labels[r] ?? r.name,
+                  active: r == value,
+                  onTap: enabled ? () => onChanged(r) : null,
+                ),
+              ),
           ],
         ),
       ),
@@ -160,7 +219,7 @@ class _RangeSegment extends StatelessWidget {
 
   final String label;
   final bool active;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -187,7 +246,8 @@ class _RangeSegment extends StatelessWidget {
         ),
         child: Text(
           label,
-          style: TextStyle(fontFamily: AppFonts.seller, 
+          style: TextStyle(
+            fontFamily: AppFonts.seller,
             fontSize: 13,
             fontWeight: active ? FontWeight.w700 : FontWeight.w600,
             color: active ? Colors.white : _grey,
@@ -201,36 +261,24 @@ class _RangeSegment extends StatelessWidget {
 }
 
 // =============================================================================
-// 3. Sales chart card — title, hero number, trend chip, terracotta curve
+// 3. Hero sales chart card
 // =============================================================================
 class _SalesChartCard extends StatelessWidget {
-  const _SalesChartCard({required this.range});
+  const _SalesChartCard({required this.snapshot, this.refreshing = false});
 
-  final _Range range;
+  final AnalyticsSnapshot snapshot;
+  final bool refreshing;
+
+  static const _captions = <AnalyticsRange, String>{
+    AnalyticsRange.d7: "So'nggi 7 kun savdosi",
+    AnalyticsRange.d30: "So'nggi 30 kun savdosi",
+    AnalyticsRange.m12: "So'nggi 12 oy savdosi",
+  };
 
   @override
   Widget build(BuildContext context) {
-    final series = switch (range) {
-      _Range.d7 => _kSeries7,
-      _Range.d30 => _kSeries30,
-      _Range.m12 => _kSeries12,
-    };
-    final total = switch (range) {
-      _Range.d7 => '8 940 000',
-      _Range.d30 => '37 372 000',
-      _Range.m12 => '412 800 000',
-    };
-    final delta = switch (range) {
-      _Range.d7 => '+8.1%',
-      _Range.d30 => '+12.4%',
-      _Range.m12 => '+24.8%',
-    };
-    final caption = switch (range) {
-      _Range.d7 => "So'nggi 7 kun savdosi",
-      _Range.d30 => "So'nggi 30 kun savdosi",
-      _Range.m12 => "So'nggi 12 oy savdosi",
-    };
-
+    final caption = _captions[snapshot.range] ?? "So'nggi davr savdosi";
+    final values = snapshot.series.map((p) => p.revenue).toList();
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
       decoration: BoxDecoration(
@@ -247,14 +295,27 @@ class _SalesChartCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            caption,
-            style: TextStyle(fontFamily: AppFonts.seller, 
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: _grey,
-              height: 1.2,
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  caption,
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: _grey,
+                    height: 1.2,
+                  ),
+                ),
+              ),
+              if (refreshing)
+                const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: BrandLoadingIndicator(radius: 7),
+                ),
+            ],
           ),
           const SizedBox(height: 8),
           Row(
@@ -265,8 +326,9 @@ class _SalesChartCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   text: TextSpan(
-                    text: total,
-                    style: TextStyle(fontFamily: AppFonts.seller, 
+                    text: _NumberFmt.uzs(snapshot.totalRevenue),
+                    style: TextStyle(
+                      fontFamily: AppFonts.seller,
                       fontSize: 26,
                       fontWeight: FontWeight.w800,
                       color: _ink,
@@ -276,7 +338,8 @@ class _SalesChartCard extends StatelessWidget {
                     children: [
                       TextSpan(
                         text: '  UZS',
-                        style: TextStyle(fontFamily: AppFonts.seller, 
+                        style: TextStyle(
+                          fontFamily: AppFonts.seller,
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: _greyMid,
@@ -288,11 +351,14 @@ class _SalesChartCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              _TrendChip(label: delta),
+              _TrendChip(deltaPercent: snapshot.deltaPercent),
             ],
           ),
           const SizedBox(height: 14),
-          RevenueLineChart(values: series, height: 160),
+          if (values.isEmpty)
+            const _EmptyChart()
+          else
+            RevenueLineChart(values: values, height: 160),
         ],
       ),
     );
@@ -300,8 +366,46 @@ class _SalesChartCard extends StatelessWidget {
 }
 
 class _TrendChip extends StatelessWidget {
-  const _TrendChip({required this.label});
+  const _TrendChip({required this.deltaPercent});
 
+  /// `null` means "no comparison available" (previous period had zero
+  /// revenue). Renders as a neutral em-dash rather than a misleading
+  /// +100% / 0% chip.
+  final double? deltaPercent;
+
+  @override
+  Widget build(BuildContext context) {
+    final delta = deltaPercent;
+    if (delta == null) {
+      return _Chip(
+        background: const Color(0x14757575),
+        foreground: _grey,
+        icon: Iconsax.minus,
+        label: '—',
+      );
+    }
+    final positive = delta >= 0;
+    final color = positive ? AppColors.terracotta : _negative;
+    return _Chip(
+      background: color.withValues(alpha: 0.08),
+      foreground: color,
+      icon: positive ? Iconsax.trend_up : Iconsax.trend_down,
+      label: '${positive ? '+' : ''}${delta.toStringAsFixed(1)}%',
+    );
+  }
+}
+
+class _Chip extends StatelessWidget {
+  const _Chip({
+    required this.background,
+    required this.foreground,
+    required this.icon,
+    required this.label,
+  });
+
+  final Color background;
+  final Color foreground;
+  final IconData icon;
   final String label;
 
   @override
@@ -309,24 +413,21 @@ class _TrendChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
-        color: const Color(0x14C27A5F), // terracotta @ ~8%
+        color: background,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
-            Iconsax.trend_up,
-            size: 14,
-            color: AppColors.terracotta,
-          ),
+          Icon(icon, size: 14, color: foreground),
           const SizedBox(width: 4),
           Text(
             label,
-            style: TextStyle(fontFamily: AppFonts.seller, 
+            style: TextStyle(
+              fontFamily: AppFonts.seller,
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: AppColors.terracotta,
+              color: foreground,
               height: 1.0,
             ),
           ),
@@ -336,45 +437,75 @@ class _TrendChip extends StatelessWidget {
   }
 }
 
-// =============================================================================
-// 4. Secondary KPI row — Views / Conversion / Avg. order
-// =============================================================================
-class _SecondaryKpiRow extends StatelessWidget {
-  const _SecondaryKpiRow();
+class _EmptyChart extends StatelessWidget {
+  const _EmptyChart();
 
   @override
   Widget build(BuildContext context) {
-    // `IntrinsicHeight` lets `stretch` work inside the ListView's
-    // unbounded vertical axis: it gives the Row a finite height
-    // (the tallest child's intrinsic height), which is then handed
-    // back down so every card matches that height.
-    return const IntrinsicHeight(
+    return Container(
+      height: 160,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: _placeholderBg,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Iconsax.chart, size: 32, color: _greyMid),
+          const SizedBox(height: 8),
+          Text(
+            "Bu davr uchun savdo yo'q",
+            style: TextStyle(
+              fontFamily: AppFonts.seller,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: _grey,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// 4. Secondary KPI row — Orders / Avg. order / Units sold (all real)
+// =============================================================================
+class _SecondaryKpiRow extends StatelessWidget {
+  const _SecondaryKpiRow({required this.snapshot});
+
+  final AnalyticsSnapshot snapshot;
+
+  @override
+  Widget build(BuildContext context) {
+    return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(
             child: _MiniKpiCard(
-              icon: Iconsax.eye,
-              label: "Ko'rishlar",
-              value: '1 245',
+              icon: Iconsax.shopping_bag,
+              label: 'Buyurtmalar',
+              value: snapshot.ordersCount.toString(),
             ),
           ),
-          SizedBox(width: 10),
-          Expanded(
-            child: _MiniKpiCard(
-              icon: Iconsax.flash_1,
-              label: 'Konversiya',
-              value: '3.2%',
-              delta: '+0.3%',
-            ),
-          ),
-          SizedBox(width: 10),
+          const SizedBox(width: 10),
           Expanded(
             child: _MiniKpiCard(
               icon: Iconsax.receipt_2,
               label: "O'rtacha chek",
-              value: '2.4M',
+              value: _NumberFmt.compact(snapshot.avgOrderValue),
               unit: 'UZS',
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: _MiniKpiCard(
+              icon: Iconsax.box,
+              label: 'Sotilgan',
+              value: snapshot.unitsSold.toString(),
+              unit: 'dona',
             ),
           ),
         ],
@@ -389,14 +520,12 @@ class _MiniKpiCard extends StatelessWidget {
     required this.label,
     required this.value,
     this.unit,
-    this.delta,
   });
 
   final IconData icon;
   final String label;
   final String value;
   final String? unit;
-  final String? delta;
 
   @override
   Widget build(BuildContext context) {
@@ -431,7 +560,8 @@ class _MiniKpiCard extends StatelessWidget {
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontFamily: AppFonts.seller, 
+            style: TextStyle(
+              fontFamily: AppFonts.seller,
               fontSize: 11,
               fontWeight: FontWeight.w500,
               color: _grey,
@@ -444,7 +574,8 @@ class _MiniKpiCard extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             text: TextSpan(
               text: value,
-              style: TextStyle(fontFamily: AppFonts.seller, 
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
                 color: _ink,
@@ -455,7 +586,8 @@ class _MiniKpiCard extends StatelessWidget {
                 if (unit != null)
                   TextSpan(
                     text: '  $unit',
-                    style: TextStyle(fontFamily: AppFonts.seller, 
+                    style: TextStyle(
+                      fontFamily: AppFonts.seller,
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
                       color: _greyMid,
@@ -465,18 +597,6 @@ class _MiniKpiCard extends StatelessWidget {
               ],
             ),
           ),
-          if (delta != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              delta!,
-              style: TextStyle(fontFamily: AppFonts.seller, 
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: _positive,
-                height: 1.0,
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -484,19 +604,23 @@ class _MiniKpiCard extends StatelessWidget {
 }
 
 // =============================================================================
-// 5. Category distribution — donut chart with legend
+// 5. Category donut + legend
 // =============================================================================
 class _CategoryDistributionSection extends StatelessWidget {
-  const _CategoryDistributionSection();
+  const _CategoryDistributionSection({required this.snapshot});
+
+  final AnalyticsSnapshot snapshot;
 
   @override
   Widget build(BuildContext context) {
+    final slices = snapshot.categoryBreakdown;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Sotuvlar tarkibi',
-          style: TextStyle(fontFamily: AppFonts.seller, 
+          style: TextStyle(
+            fontFamily: AppFonts.seller,
             fontSize: 17,
             fontWeight: FontWeight.w700,
             color: _ink,
@@ -518,29 +642,37 @@ class _CategoryDistributionSection extends StatelessWidget {
               ),
             ],
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(
-                width: 130,
-                height: 130,
-                child: _CategoryDonut(),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
+          child: slices.isEmpty
+              ? _SectionEmpty(
+                  icon: Iconsax.chart_2,
+                  message: "Kategoriya bo'yicha ma'lumot yo'q",
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    for (var i = 0; i < _kCategories.length; i++) ...[
-                      if (i > 0) const SizedBox(height: 10),
-                      _LegendRow(slice: _kCategories[i]),
-                    ],
+                    SizedBox(
+                      width: 130,
+                      height: 130,
+                      child: _CategoryDonut(slices: slices),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          for (var i = 0; i < slices.length; i++) ...[
+                            if (i > 0) const SizedBox(height: 10),
+                            _LegendRow(
+                              slice: slices[i],
+                              color: _donutPalette[i % _donutPalette.length],
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
                   ],
                 ),
-              ),
-            ],
-          ),
         ),
       ],
     );
@@ -548,7 +680,9 @@ class _CategoryDistributionSection extends StatelessWidget {
 }
 
 class _CategoryDonut extends StatelessWidget {
-  const _CategoryDonut();
+  const _CategoryDonut({required this.slices});
+
+  final List<CategorySlice> slices;
 
   @override
   Widget build(BuildContext context) {
@@ -559,10 +693,10 @@ class _CategoryDonut extends StatelessWidget {
         startDegreeOffset: -90,
         borderData: FlBorderData(show: false),
         sections: [
-          for (final c in _kCategories)
+          for (var i = 0; i < slices.length; i++)
             PieChartSectionData(
-              value: c.percent,
-              color: c.color,
+              value: slices[i].percent,
+              color: _donutPalette[i % _donutPalette.length],
               radius: 22,
               showTitle: false,
             ),
@@ -573,9 +707,10 @@ class _CategoryDonut extends StatelessWidget {
 }
 
 class _LegendRow extends StatelessWidget {
-  const _LegendRow({required this.slice});
+  const _LegendRow({required this.slice, required this.color});
 
-  final _CategorySlice slice;
+  final CategorySlice slice;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
@@ -585,7 +720,7 @@ class _LegendRow extends StatelessWidget {
           width: 10,
           height: 10,
           decoration: BoxDecoration(
-            color: slice.color,
+            color: color,
             borderRadius: BorderRadius.circular(3),
           ),
         ),
@@ -595,7 +730,8 @@ class _LegendRow extends StatelessWidget {
             slice.label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontFamily: AppFonts.seller, 
+            style: TextStyle(
+              fontFamily: AppFonts.seller,
               fontSize: 13,
               fontWeight: FontWeight.w500,
               color: _ink,
@@ -606,7 +742,8 @@ class _LegendRow extends StatelessWidget {
         const SizedBox(width: 6),
         Text(
           '${slice.percent.toStringAsFixed(0)}%',
-          style: TextStyle(fontFamily: AppFonts.seller, 
+          style: TextStyle(
+            fontFamily: AppFonts.seller,
             fontSize: 13,
             fontWeight: FontWeight.w700,
             color: _ink,
@@ -619,38 +756,60 @@ class _LegendRow extends StatelessWidget {
 }
 
 // =============================================================================
-// 6. Top products section
+// 6. Top products
 // =============================================================================
-class _TopProductsHeader extends StatelessWidget {
-  const _TopProductsHeader();
+class _TopProductsSection extends StatelessWidget {
+  const _TopProductsSection({required this.snapshot});
+
+  final AnalyticsSnapshot snapshot;
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      'Top mahsulotlar',
-      style: TextStyle(fontFamily: AppFonts.seller, 
-        fontSize: 17,
-        fontWeight: FontWeight.w700,
-        color: _ink,
-        letterSpacing: -0.3,
-        height: 1.2,
-      ),
-    );
-  }
-}
-
-class _TopProductsList extends StatelessWidget {
-  const _TopProductsList();
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView.separated(
-      padding: EdgeInsets.zero,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: _kTopProducts.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 10),
-      itemBuilder: (_, i) => _TopProductTile(product: _kTopProducts[i]),
+    final products = snapshot.topProducts;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Top mahsulotlar',
+          style: TextStyle(
+            fontFamily: AppFonts.seller,
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            color: _ink,
+            letterSpacing: -0.3,
+            height: 1.2,
+          ),
+        ),
+        const SizedBox(height: 12),
+        if (products.isEmpty)
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: _SectionEmpty(
+              icon: Iconsax.box,
+              message: "Hali sotilgan mahsulot yo'q",
+            ),
+          )
+        else
+          ListView.separated(
+            padding: EdgeInsets.zero,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: products.length,
+            separatorBuilder: (_, _) => const SizedBox(height: 10),
+            itemBuilder: (_, i) => _TopProductTile(product: products[i]),
+          ),
+      ],
     );
   }
 }
@@ -658,7 +817,7 @@ class _TopProductsList extends StatelessWidget {
 class _TopProductTile extends StatelessWidget {
   const _TopProductTile({required this.product});
 
-  final _MockProduct product;
+  final TopProduct product;
 
   @override
   Widget build(BuildContext context) {
@@ -677,17 +836,26 @@ class _TopProductTile extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              color: _placeholderBg,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(
-              Iconsax.image,
-              size: 22,
-              color: _greyMid,
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: SizedBox(
+              width: 52,
+              height: 52,
+              child: product.imageUrl != null && product.imageUrl!.isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: product.imageUrl!,
+                      fit: BoxFit.cover,
+                      placeholder: (_, _) =>
+                          const ColoredBox(color: _placeholderBg),
+                      errorWidget: (_, _, _) => const ColoredBox(
+                        color: _placeholderBg,
+                        child: Icon(Iconsax.image, color: _greyMid, size: 22),
+                      ),
+                    )
+                  : const ColoredBox(
+                      color: _placeholderBg,
+                      child: Icon(Iconsax.image, color: _greyMid, size: 22),
+                    ),
             ),
           ),
           const SizedBox(width: 12),
@@ -700,7 +868,8 @@ class _TopProductTile extends StatelessWidget {
                   product.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontFamily: AppFonts.seller, 
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     color: _ink,
@@ -713,7 +882,8 @@ class _TopProductTile extends StatelessWidget {
                   '${product.unitsSold} dona sotildi',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontFamily: AppFonts.seller, 
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                     color: _grey,
@@ -727,8 +897,9 @@ class _TopProductTile extends StatelessWidget {
           RichText(
             textAlign: TextAlign.end,
             text: TextSpan(
-              text: product.revenueLabel,
-              style: TextStyle(fontFamily: AppFonts.seller, 
+              text: _NumberFmt.uzs(product.revenue),
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
                 color: _ink,
@@ -738,7 +909,8 @@ class _TopProductTile extends StatelessWidget {
               children: [
                 TextSpan(
                   text: '  UZS',
-                  style: TextStyle(fontFamily: AppFonts.seller, 
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
                     color: _greyMid,
@@ -755,76 +927,133 @@ class _TopProductTile extends StatelessWidget {
 }
 
 // =============================================================================
-// Mock data
+// Section empty state — used by the donut + top-products cards.
 // =============================================================================
-@immutable
-class _MockProduct {
-  const _MockProduct({
-    required this.name,
-    required this.unitsSold,
-    required this.revenueLabel,
-  });
+class _SectionEmpty extends StatelessWidget {
+  const _SectionEmpty({required this.icon, required this.message});
 
-  final String name;
-  final int unitsSold;
-  final String revenueLabel;
+  final IconData icon;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: _placeholderBg,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: _greyMid, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: _grey,
+                height: 1.3,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-@immutable
-class _CategorySlice {
-  const _CategorySlice({
-    required this.label,
-    required this.percent,
-    required this.color,
-  });
+// =============================================================================
+// Skeleton — shown on the very first load (no prior snapshot to lay over).
+// =============================================================================
+class _SkeletonBody extends StatelessWidget {
+  const _SkeletonBody();
 
-  final String label;
-  final double percent;
-  final Color color;
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      physics: const NeverScrollableScrollPhysics(),
+      children: [
+        _SkeletonCard(height: 220),
+        const SizedBox(height: 14),
+        const Row(
+          children: [
+            Expanded(child: _SkeletonCard(height: 96)),
+            SizedBox(width: 10),
+            Expanded(child: _SkeletonCard(height: 96)),
+            SizedBox(width: 10),
+            Expanded(child: _SkeletonCard(height: 96)),
+          ],
+        ),
+        const SizedBox(height: 24),
+        _SkeletonCard(height: 170),
+        const SizedBox(height: 24),
+        for (var i = 0; i < 3; i++) ...[
+          if (i > 0) const SizedBox(height: 10),
+          _SkeletonCard(height: 76),
+        ],
+      ],
+    );
+  }
 }
 
-const _kCategories = <_CategorySlice>[
-  _CategorySlice(label: 'Yumshoq mebellar', percent: 45, color: _catSoft),
-  _CategorySlice(label: 'Yotoqxona', percent: 30, color: _catBedroom),
-  _CategorySlice(label: 'Oshxona', percent: 15, color: _catKitchen),
-  _CategorySlice(label: 'Boshqa', percent: 10, color: _catOther),
-];
+class _SkeletonCard extends StatelessWidget {
+  const _SkeletonCard({required this.height});
 
-const _kTopProducts = <_MockProduct>[
-  _MockProduct(
-    name: 'Klassik kuxnya jihozlari',
-    unitsSold: 12,
-    revenueLabel: '11 600 000',
-  ),
-  _MockProduct(
-    name: '2 kishilik karavot "Verona"',
-    unitsSold: 4,
-    revenueLabel: '23 200 000',
-  ),
-  _MockProduct(
-    name: 'Burchakli divan "Loft"',
-    unitsSold: 2,
-    revenueLabel: '17 000 000',
-  ),
-  _MockProduct(
-    name: 'Velvet kresla',
-    unitsSold: 6,
-    revenueLabel: '11 100 000',
-  ),
-];
+  final double height;
 
-// Mock revenue series — gentle upward trends so the curve has a
-// natural shape regardless of which range is selected.
-const _kSeries7 = <num>[820, 1020, 940, 1180, 1340, 1490, 1620];
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: height,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
-const _kSeries30 = <num>[
-  640, 720, 880, 760, 540, 480, 920,
-  1050, 980, 1120, 1240, 980, 760, 1340,
-  1280, 1410, 1320, 1180, 980, 1450, 1620,
-  1580, 1480, 1390, 1240, 1520, 1740, 1890,
-  1820, 1960,
-];
+// =============================================================================
+// Number formatting helpers — kept local since this is the only place that
+// renders UZS with thousands separators and a compact ("2.4M") form.
+// =============================================================================
+class _NumberFmt {
+  _NumberFmt._();
 
-const _kSeries12 = <num>[
-  18, 22, 19, 25, 28, 31, 27, 32, 36, 41, 38, 45,
-];
+  static final _wholeUzs = NumberFormat('#,##0', 'uz_UZ');
+
+  /// "12 345 678" — non-breaking thin-space grouping. Decimals are
+  /// dropped: revenue rows always read as whole UZS.
+  static String uzs(num value) {
+    final formatted = _wholeUzs.format(value.round());
+    // Replace the locale's grouping char with a thin space so the result
+    // matches the design's typography regardless of system locale.
+    return formatted.replaceAll(',', ' ').replaceAll('.', ' ');
+  }
+
+  /// "2.4M" / "812K" / raw integer for small numbers. Used by the
+  /// avg-order-value KPI where the full number would overflow the
+  /// 1/3-width card.
+  static String compact(num value) {
+    final v = value.toDouble();
+    if (v.abs() >= 1e9) return '${(v / 1e9).toStringAsFixed(1)}B';
+    if (v.abs() >= 1e6) return '${(v / 1e6).toStringAsFixed(1)}M';
+    if (v.abs() >= 1e3) return '${(v / 1e3).toStringAsFixed(0)}K';
+    return value.round().toString();
+  }
+}

@@ -18,6 +18,13 @@ abstract class SellerOrderRepository {
   /// Stream of newly pending orders for this seller's shop.
   Stream<Order> newOrders();
 
+  /// Stream of UPDATEs on orders the seller can read — covers customer
+  /// cancellations and status flips from another session so the orders
+  /// list stays in sync without a manual refresh. Implementations that
+  /// don't have a realtime channel (mocks, the remote stub) may return
+  /// `const Stream.empty()`.
+  Stream<Order> orderUpdates();
+
   /// State-machine transitions. Each enforces the legal source statuses on
   /// the backend; an illegal transition resolves to an [Err], not a throw.
   Future<Result<Order>> confirm(String id);
@@ -54,6 +61,9 @@ class RemoteSellerOrderRepository implements SellerOrderRepository {
 
   @override
   Stream<Order> newOrders() => const Stream.empty();
+
+  @override
+  Stream<Order> orderUpdates() => const Stream.empty();
 
   @override
   Future<Result<Order>> confirm(String id) async => const Err(_unavailable);

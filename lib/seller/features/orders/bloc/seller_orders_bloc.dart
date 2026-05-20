@@ -120,10 +120,18 @@ class SellerOrdersBloc extends Bloc<SellerOrdersEvent, SellerOrdersState> {
     on<_SellerOrderUpdated>(_onUpdated);
 
     _newSub = _repo.newOrders().listen((order) => add(_SellerOrderInserted(order)));
+    // Mirror server-side UPDATEs into the list state so a customer cancel
+    // (or status flip from another session) is reflected without a manual
+    // refresh. The detail bloc still uses `pushOrderUpdate` for snappier
+    // local feedback when the seller themselves takes an action.
+    _updateSub = _repo
+        .orderUpdates()
+        .listen((order) => add(_SellerOrderUpdated(order)));
   }
 
   final SellerOrderRepository _repo;
   StreamSubscription<Order>? _newSub;
+  StreamSubscription<Order>? _updateSub;
 
   Future<void> _onRequested(
     SellerOrdersRequested event,
@@ -175,6 +183,7 @@ class SellerOrdersBloc extends Bloc<SellerOrdersEvent, SellerOrdersState> {
   @override
   Future<void> close() async {
     await _newSub?.cancel();
+    await _updateSub?.cancel();
     return super.close();
   }
 }
