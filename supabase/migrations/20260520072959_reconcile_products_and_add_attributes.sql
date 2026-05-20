@@ -1,14 +1,18 @@
--- Reconciles the products table with what the Dart layer has been writing in
--- production (drift between the original migration and Supabase Studio edits),
--- adds the auxiliary product_variants / product_images tables that the seller
--- repository assumes exist, and introduces the attribute_definitions /
--- attribute_options pair that powers the dynamic-attributes refactor.
+-- Brings the local migration tree in sync with what the live DB already has
+-- (Supabase Studio had been used to evolve `products`, `product_variants` and
+-- `product_images` outside version control), and introduces the
+-- attribute_definitions / attribute_options pair that powers the
+-- dynamic-attributes refactor.
 --
 -- Specs that used to be typed columns (width_cm, height_cm, depth_cm,
 -- material) intentionally live in products.attributes JSONB from this point
--- on — they're category-specific and don't belong on the row.
+-- on — they're category-specific and don't belong on the row. The legacy
+-- typed columns stay in the schema (no-op for new products) and will be
+-- dropped in a later cleanup migration once no rows reference them.
 
--- 1) Reconcile products with the columns the Dart repo already writes.
+-- 1) Reconcile products with the columns the Dart repo writes today. Every
+--    ADD is guarded with IF NOT EXISTS because this migration races against
+--    the Studio-applied drift that already exists on the live DB.
 alter table public.products
   add column if not exists seller_id             uuid references public.profiles(id),
   add column if not exists status                text not null default 'pending_review',
@@ -20,9 +24,10 @@ alter table public.products
 
 create index if not exists products_seller_id_idx on public.products(seller_id);
 
--- 2) product_variants: one row per buyable SKU under a product. Today the
---    add-product flow always creates a single variant; the model is here so
---    multi-variant (color/size) can be added later without a second migration.
+-- 2) product_variants — schema only. RLS policies are owned by the
+--    create_b1_seller_tables migration (`Sellers manage their variants` ALL,
+--    `Public reads variants of active products` SELECT); duplicating them
+--    here would trigger the multiple-permissive-policies linter.
 create table if not exists public.product_variants (
   id              uuid primary key default gen_random_uuid(),
   product_id      uuid not null references public.products(id) on delete cascade,
@@ -37,47 +42,9 @@ create index if not exists product_variants_product_id_idx
   on public.product_variants(product_id);
 
 alter table public.product_variants enable row level security;
-create policy "Public read product_variants"
-  on public.product_variants for select using (true);
-create policy "sellers can insert own product_variants"
-  on public.product_variants for insert
-  to authenticated
-  with check (
-    exists (
-      select 1
-      from public.products p
-      join public.shops s on s.id = p.shop_id
-      where p.id = product_variants.product_id
-        and s.seller_id = (select auth.uid())
-    )
-  );
-create policy "sellers can update own product_variants"
-  on public.product_variants for update
-  to authenticated
-  using (
-    exists (
-      select 1
-      from public.products p
-      join public.shops s on s.id = p.shop_id
-      where p.id = product_variants.product_id
-        and s.seller_id = (select auth.uid())
-    )
-  );
-create policy "sellers can delete own product_variants"
-  on public.product_variants for delete
-  to authenticated
-  using (
-    exists (
-      select 1
-      from public.products p
-      join public.shops s on s.id = p.shop_id
-      where p.id = product_variants.product_id
-        and s.seller_id = (select auth.uid())
-    )
-  );
 
--- 3) product_images: one row per image so the gallery preserves ordering and
---    knows which one is the primary card thumbnail.
+-- 3) product_images — same arrangement as product_variants; RLS is owned by
+--    `create_b1_seller_tables` and `tighten_product_images_select_policy`.
 create table if not exists public.product_images (
   id          uuid primary key default gen_random_uuid(),
   product_id  uuid not null references public.products(id) on delete cascade,
@@ -90,44 +57,6 @@ create index if not exists product_images_product_id_idx
   on public.product_images(product_id);
 
 alter table public.product_images enable row level security;
-create policy "Public read product_images"
-  on public.product_images for select using (true);
-create policy "sellers can insert own product_images"
-  on public.product_images for insert
-  to authenticated
-  with check (
-    exists (
-      select 1
-      from public.products p
-      join public.shops s on s.id = p.shop_id
-      where p.id = product_images.product_id
-        and s.seller_id = (select auth.uid())
-    )
-  );
-create policy "sellers can update own product_images"
-  on public.product_images for update
-  to authenticated
-  using (
-    exists (
-      select 1
-      from public.products p
-      join public.shops s on s.id = p.shop_id
-      where p.id = product_images.product_id
-        and s.seller_id = (select auth.uid())
-    )
-  );
-create policy "sellers can delete own product_images"
-  on public.product_images for delete
-  to authenticated
-  using (
-    exists (
-      select 1
-      from public.products p
-      join public.shops s on s.id = p.shop_id
-      where p.id = product_images.product_id
-        and s.seller_id = (select auth.uid())
-    )
-  );
 
 -- 4) attribute_definitions: schema for what's collectable per category /
 --    subcategory. A definition is scoped to exactly one level — the form

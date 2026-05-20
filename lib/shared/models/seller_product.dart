@@ -83,9 +83,13 @@ class SellerProduct extends Equatable {
     required this.name,
     required this.description,
     required this.categorySlug,
+    this.categoryName,
+    this.subcategoryId,
+    this.colors = const [],
     required this.price,
     this.oldPrice,
-    required this.stock,
+    this.discountPrice,
+    this.stock = 0,
     required this.sku,
     required this.images,
     this.primaryImageId,
@@ -94,6 +98,12 @@ class SellerProduct extends Equatable {
     this.widthCm,
     this.heightCm,
     this.weightKg,
+    this.productionTimeDays,
+    this.hasDelivery = false,
+    this.deliveryPrice = 0,
+    this.hasInstallation = false,
+    this.installationPrice = 0,
+    this.warrantyMonths = 0,
     required this.status,
     this.rejectionReason,
     required this.createdAt,
@@ -103,10 +113,36 @@ class SellerProduct extends Equatable {
   final String id;
   final MultilingualText name;
   final MultilingualText description;
+
+  /// Raw `category_id` UUID — the column was historically a slug, the seller
+  /// product table now stores UUIDs but the model field name is kept stable.
   final String categorySlug;
+
+  /// Resolved human-readable category name (joined from `categories.name_uz`
+  /// in the list query). Null when the join wasn't requested.
+  final String? categoryName;
+
+  /// Raw `subcategory_id` UUID; null for products only classified at the
+  /// category level. Used by the detail screen to load the right attribute
+  /// schema so option labels resolve to their localised display strings.
+  final String? subcategoryId;
+
+  /// Canonical color slugs (e.g. `['white','black']`) — populated from
+  /// `products.colors text[]`.
+  final List<String> colors;
+
   final num price;
   final num? oldPrice;
+
+  /// Discounted price persisted on `product_variants.discount_price`. Null
+  /// when there's no active discount.
+  final num? discountPrice;
+
+  /// Legacy stock column — not surfaced in any UI any more (Mebellar is
+  /// made-to-order). Kept as an internal default so older code paths
+  /// (favourites, cart) that still touch the field don't break.
   final int stock;
+
   final String sku;
   final List<SellerProductImage> images;
   final String? primaryImageId;
@@ -115,6 +151,16 @@ class SellerProduct extends Equatable {
   final num? widthCm;
   final num? heightCm;
   final num? weightKg;
+
+  /// Production lead time text (e.g. `"3-5"` days). Free-form because some
+  /// sellers prefer ranges and others write a single value.
+  final String? productionTimeDays;
+
+  final bool hasDelivery;
+  final num deliveryPrice;
+  final bool hasInstallation;
+  final num installationPrice;
+  final int warrantyMonths;
   final SellerProductStatus status;
   final String? rejectionReason;
   final DateTime createdAt;
@@ -135,8 +181,11 @@ class SellerProduct extends Equatable {
     MultilingualText? name,
     MultilingualText? description,
     String? categorySlug,
+    String? categoryName,
+    List<String>? colors,
     num? price,
     num? oldPrice,
+    num? discountPrice,
     int? stock,
     String? sku,
     List<SellerProductImage>? images,
@@ -156,8 +205,11 @@ class SellerProduct extends Equatable {
       name: name ?? this.name,
       description: description ?? this.description,
       categorySlug: categorySlug ?? this.categorySlug,
+      categoryName: categoryName ?? this.categoryName,
+      colors: colors ?? this.colors,
       price: price ?? this.price,
       oldPrice: oldPrice ?? this.oldPrice,
+      discountPrice: discountPrice ?? this.discountPrice,
       stock: stock ?? this.stock,
       sku: sku ?? this.sku,
       images: images ?? this.images,

@@ -8,6 +8,7 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/models/seller_product.dart';
 import '../../../../shared/repositories/seller_product_repository.dart';
+import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/error_state.dart';
 import '../bloc/seller_products_bloc.dart';
 import '../widgets/product_status_chip.dart';
@@ -88,6 +89,7 @@ class _SellerProductsViewState extends State<_SellerProductsView> {
         builder: (previewContext) => BlocProvider.value(
           value: bloc,
           child: SellerProductDetailScreen(
+            product: product,
             onEdit: () {
               Navigator.of(previewContext).pop();
               _openCreate(context);
@@ -193,9 +195,8 @@ class _SellerProductsViewState extends State<_SellerProductsView> {
           ),
           body: switch (state.status) {
             SellerProductsStatus.initial ||
-            SellerProductsStatus.loading =>
-              const Center(
-                child: CircularProgressIndicator(color: AppColors.terracotta),
+            SellerProductsStatus.loading => const Center(
+                child: BrandLoadingIndicator(),
               ),
             SellerProductsStatus.failure when state.products.isEmpty =>
               ErrorState(
@@ -204,17 +205,45 @@ class _SellerProductsViewState extends State<_SellerProductsView> {
                     .read<SellerProductsBloc>()
                     .add(const SellerProductsRequested()),
               ),
-            _ => visible.isEmpty
-                ? _ProductsZeroState(onAdd: () => _openCreate(context))
-                : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 96),
-                    itemCount: visible.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 10),
-                    itemBuilder: (context, i) => _ProductTile(
-                      product: visible[i],
-                      onTap: () => _openPreview(context, visible[i]),
-                    ),
-                  ),
+            _ => BrandRefreshIndicator(
+                color: AppColors.sellerPrimary,
+                onRefresh: () async {
+                  context
+                      .read<SellerProductsBloc>()
+                      .add(const SellerProductsRequested());
+                  // Wait until the bloc transitions back out of `loading` so
+                  // the spinner stays up for the full refetch instead of
+                  // disappearing the instant the event fires.
+                  await context.read<SellerProductsBloc>().stream.firstWhere(
+                        (s) => s.status != SellerProductsStatus.loading,
+                      );
+                },
+                child: visible.isEmpty
+                    ? ListView(
+                        // AlwaysScrollable so the empty state can still be
+                        // pulled-to-refresh — without it, the gesture never
+                        // generates the overscroll the indicator listens for.
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        children: [
+                          SizedBox(
+                            height: MediaQuery.of(context).size.height * 0.6,
+                            child: _ProductsZeroState(
+                              onAdd: () => _openCreate(context),
+                            ),
+                          ),
+                        ],
+                      )
+                    : ListView.separated(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(20, 12, 20, 96),
+                        itemCount: visible.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 10),
+                        itemBuilder: (context, i) => _ProductTile(
+                          product: visible[i],
+                          onTap: () => _openPreview(context, visible[i]),
+                        ),
+                      ),
+              ),
           },
           // FAB color comes from the seller theme's `colorScheme.primary` so
           // the "Mahsulot qo'shish" button stays on-brand (Deep Indigo) and

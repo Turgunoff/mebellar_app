@@ -10,6 +10,7 @@ import '../../../../core/deep_links/deep_link_service.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../shared/models/notification_model.dart';
+import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/error_state.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
@@ -220,7 +221,7 @@ class _NotificationsViewState extends State<_NotificationsView> {
                     title: tr('notifications.empty'),
                     message: tr('notifications.empty_hint'),
                   )
-                : RefreshIndicator(
+                : BrandRefreshIndicator(
                     color: PremiumTokens.accent,
                     onRefresh: () =>
                         context.read<NotificationsCubit>().load(),

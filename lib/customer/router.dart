@@ -10,6 +10,7 @@ import '../shared/repositories/supabase_product_data_source.dart';
 import '../core/logging/console_nav_observer.dart';
 import '../core/logging/talker.dart';
 import '../shared/models/cart_item_model.dart';
+import '../shared/widgets/brand_refresh_indicator.dart';
 import '../shared/widgets/notification_simulator_screen.dart';
 import '../shared/widgets/notifications_screen.dart';
 import 'customer_app.dart';
@@ -224,7 +225,7 @@ class _ProductDetailLoader extends StatelessWidget {
           );
         }
         return const Scaffold(
-          body: Center(child: CircularProgressIndicator()),
+          body: Center(child: BrandLoadingIndicator()),
         );
       },
     );

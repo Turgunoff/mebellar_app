@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../../../core/di/service_locator.dart';
 import '../../../../../shared/models/region.dart';
 import '../../../../../shared/repositories/region_repository.dart';
+import '../../../../../shared/widgets/brand_refresh_indicator.dart';
 
 /// 3-level drill-down picker: viloyat в†’ shahar в†’ tuman. Returned via
 /// `Navigator.pop` as a record so the caller can persist all 3 in the
@@ -85,7 +86,7 @@ class _RegionPickerScreenState extends State<RegionPickerScreen> {
         future: _treeFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: BrandLoadingIndicator());
           }
           final tree = snapshot.data ?? const <Region>[];
           if (_region == null) {

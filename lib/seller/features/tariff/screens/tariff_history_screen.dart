@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../shared/models/tariff.dart';
 import '../../../../shared/repositories/tariff_repository.dart';
+import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/error_state.dart';
 import '../bloc/tariff_bloc.dart';
@@ -34,7 +35,7 @@ class _HistoryView extends StatelessWidget {
           return switch (state.status) {
             TariffStatus.initial ||
             TariffStatus.loading =>
-              const Center(child: CircularProgressIndicator()),
+              const Center(child: BrandLoadingIndicator()),
             TariffStatus.failure when state.history.isEmpty => ErrorState(
                 message: state.error,
                 onRetry: () =>

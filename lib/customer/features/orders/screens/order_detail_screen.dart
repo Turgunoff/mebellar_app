@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../../shared/repositories/order_repository.dart';
+import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/error_state.dart';
 import '../bloc/order_detail_bloc.dart';
 import '../widgets/order_status_badge.dart';
@@ -43,7 +44,7 @@ class _OrderDetailView extends StatelessWidget {
             state.status == OrderDetailStatus.loading) {
           return Scaffold(
             appBar: AppBar(),
-            body: const Center(child: CircularProgressIndicator()),
+            body: const Center(child: BrandLoadingIndicator()),
           );
         }
         if (state.status == OrderDetailStatus.failure ||

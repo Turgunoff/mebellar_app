@@ -72,8 +72,8 @@ class ProductFormBody extends StatelessWidget {
           if (state.attributeSchema.isNotEmpty || state.categoryId != null)
             const SizedBox(height: 20),
           VariantSection(
-            selectedColor: state.colorSlug,
-            onColorToggle: cubit.selectColor,
+            selectedColors: state.colorSlugs,
+            onColorToggle: cubit.toggleColor,
           ),
           const SizedBox(height: 20),
           PricingSection(
@@ -93,6 +93,8 @@ class ProductFormBody extends StatelessWidget {
             deliveryPriceController: controllers.deliveryPrice,
             assemblyAvailable: state.hasInstallation,
             onAssemblyChanged: cubit.setHasInstallation,
+            installationPriceController: controllers.installationPrice,
+            onInstallationPriceChanged: cubit.setInstallationPrice,
             warrantyController: controllers.warrantyMonths,
             onProductionDaysChanged: cubit.setProductionDays,
             onDeliveryPriceChanged: cubit.setDeliveryPrice,
@@ -345,7 +347,7 @@ class _SkuFooter extends StatelessWidget {
           const Icon(Iconsax.barcode, size: 14, color: kGreyMid),
           const SizedBox(width: 6),
           Text(
-            'SKU: $sku',
+            'Mahsulot kodi: $sku',
             style: const TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 11,

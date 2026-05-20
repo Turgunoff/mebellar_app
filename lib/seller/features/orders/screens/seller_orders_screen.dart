@@ -7,6 +7,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/models/order.dart';
 import '../../../../shared/repositories/seller_order_repository.dart';
+import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../bloc/seller_orders_bloc.dart';
 import '../widgets/order_format.dart';
 import 'order_details_screen.dart';
@@ -95,11 +96,7 @@ class _SellerOrdersViewState extends State<_SellerOrdersView>
                   switch (state.status) {
                     case SellerOrdersStatus.initial:
                     case SellerOrdersStatus.loading:
-                      return const Center(
-                        child: CircularProgressIndicator(
-                          color: AppColors.terracotta,
-                        ),
-                      );
+                      return const Center(child: BrandLoadingIndicator());
                     case SellerOrdersStatus.failure:
                       return _OrdersError(
                         message: state.error ??
@@ -119,6 +116,19 @@ class _SellerOrdersViewState extends State<_SellerOrdersView>
                                   .where(tab.matches)
                                   .toList(growable: false),
                               emptyMessage: _emptyMessageFor(tab),
+                              onRefresh: () async {
+                                context
+                                    .read<SellerOrdersBloc>()
+                                    .add(const SellerOrdersRequested());
+                                await context
+                                    .read<SellerOrdersBloc>()
+                                    .stream
+                                    .firstWhere(
+                                      (s) =>
+                                          s.status !=
+                                          SellerOrdersStatus.loading,
+                                    );
+                              },
                             ),
                         ],
                       );
@@ -226,26 +236,51 @@ class _OrdersTabBar extends StatelessWidget {
 // Per-tab list
 // =============================================================================
 class _OrdersList extends StatelessWidget {
-  const _OrdersList({required this.orders, required this.emptyMessage});
+  const _OrdersList({
+    required this.orders,
+    required this.emptyMessage,
+    required this.onRefresh,
+  });
 
   final List<Order> orders;
   final String emptyMessage;
+  final Future<void> Function() onRefresh;
 
   @override
   Widget build(BuildContext context) {
-    if (orders.isEmpty) return _EmptyTab(message: emptyMessage);
     return ColoredBox(
       color: AppColors.lightBackground,
-      child: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-        physics: const BouncingScrollPhysics(
-          parent: AlwaysScrollableScrollPhysics(),
-        ),
-        itemCount: orders.length,
-        itemBuilder: (_, i) => Padding(
-          padding: EdgeInsets.only(bottom: i == orders.length - 1 ? 0 : 12),
-          child: _OrderCard(order: orders[i]),
-        ),
+      child: BrandRefreshIndicator(
+        color: AppColors.sellerPrimary,
+        onRefresh: onRefresh,
+        child: orders.isEmpty
+            // Empty state needs to be a scrollable so pull-to-refresh has
+            // overscroll to react to — a static widget would swallow the
+            // gesture and the indicator would never appear.
+            ? ListView(
+                physics: const BouncingScrollPhysics(
+                  parent: AlwaysScrollableScrollPhysics(),
+                ),
+                children: [
+                  SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.6,
+                    child: _EmptyTab(message: emptyMessage),
+                  ),
+                ],
+              )
+            : ListView.builder(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                physics: const BouncingScrollPhysics(
+                  parent: AlwaysScrollableScrollPhysics(),
+                ),
+                itemCount: orders.length,
+                itemBuilder: (_, i) => Padding(
+                  padding: EdgeInsets.only(
+                    bottom: i == orders.length - 1 ? 0 : 12,
+                  ),
+                  child: _OrderCard(order: orders[i]),
+                ),
+              ),
       ),
     );
   }

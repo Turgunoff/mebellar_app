@@ -11,6 +11,7 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../shared/models/product.dart';
 import '../../../../shared/models/supabase_product_model.dart';
 import '../../../../shared/repositories/product_repository.dart';
+import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/error_state.dart';
 import '../../../../shared/widgets/quantity_stepper.dart';
 import '../../../../shared/widgets/shop_card.dart';
@@ -71,7 +72,7 @@ class _ProductDetailViewState extends State<_ProductDetailView> {
             state.status == ProductDetailStatus.initial) {
           return Scaffold(
             appBar: AppBar(),
-            body: const Center(child: CircularProgressIndicator()),
+            body: const Center(child: BrandLoadingIndicator()),
           );
         }
         if (state.status == ProductDetailStatus.failure ||
@@ -197,7 +198,6 @@ class _DetailBody extends StatelessWidget {
     final lang = context.locale.languageCode;
     final scheme = Theme.of(context).colorScheme;
     final priceFormat = NumberFormat('#,###', lang);
-    final outOfStock = !product.inStock;
     final productName = product.name.get(lang);
     // Light backgrounds need dark status-bar glyphs; otherwise the time and
     // battery icons render white-on-white and disappear. Scoped via
@@ -333,22 +333,20 @@ class _DetailBody extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 8),
+                  // Mebellar is made-to-order: every approved listing is
+                  // available to order regardless of warehouse counts.
                   Row(
                     children: [
-                      Icon(
-                        outOfStock
-                            ? Icons.cancel_outlined
-                            : Icons.check_circle_outline,
+                      const Icon(
+                        Icons.check_circle_outline,
                         size: 18,
-                        color: outOfStock ? scheme.error : Colors.green,
+                        color: Colors.green,
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        outOfStock
-                            ? tr('product.out_of_stock')
-                            : tr('product.in_stock', args: ['${product.stock}']),
+                        tr('product.made_to_order'),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: outOfStock ? scheme.error : Colors.green,
+                              color: Colors.green,
                             ),
                       ),
                     ],
@@ -394,7 +392,7 @@ class _DetailBody extends StatelessWidget {
                       QuantityStepper(
                         value: quantity,
                         onChanged: onQuantityChanged,
-                        max: product.stock <= 0 ? 99 : product.stock,
+                        max: 99,
                       ),
                     ],
                   ),
@@ -412,7 +410,7 @@ class _DetailBody extends StatelessWidget {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: outOfStock ? null : () => _addToCart(context),
+                  onPressed: () => _addToCart(context),
                   icon: const Icon(Icons.add_shopping_cart_outlined),
                   label: Text(tr('cart.add')),
                   style: OutlinedButton.styleFrom(
@@ -423,8 +421,7 @@ class _DetailBody extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: FilledButton.icon(
-                  onPressed:
-                      outOfStock ? null : () => _addToCart(context, buyNow: true),
+                  onPressed: () => _addToCart(context, buyNow: true),
                   icon: const Icon(Icons.flash_on_outlined),
                   label: Text(tr('product.buy_now')),
                   style: FilledButton.styleFrom(

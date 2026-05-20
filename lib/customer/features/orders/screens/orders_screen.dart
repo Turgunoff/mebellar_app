@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../shared/models/order.dart';
 import '../../../../shared/repositories/order_repository.dart';
+import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/error_state.dart';
 import '../bloc/orders_bloc.dart';
@@ -52,14 +53,14 @@ class _OrdersView extends StatelessWidget {
             return switch (state.status) {
               OrdersStatus.initial ||
               OrdersStatus.loading =>
-                const Center(child: CircularProgressIndicator()),
+                const Center(child: BrandLoadingIndicator()),
               OrdersStatus.failure => ErrorState(
                   message: state.error,
                   onRetry: () => context
                       .read<OrdersBloc>()
                       .add(const OrdersRequested()),
                 ),
-              OrdersStatus.ready => RefreshIndicator(
+              OrdersStatus.ready => BrandRefreshIndicator(
                   onRefresh: () async => context
                       .read<OrdersBloc>()
                       .add(const OrdersRequested()),

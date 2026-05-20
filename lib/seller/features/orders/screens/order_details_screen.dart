@@ -7,6 +7,7 @@ import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/models/order.dart' as model;
 import '../../../../shared/models/order_status.dart';
 import '../../../../shared/repositories/seller_order_repository.dart';
+import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../bloc/seller_order_detail_bloc.dart';
 import '../bloc/seller_orders_bloc.dart';
 import '../widgets/order_details/items_card.dart';
@@ -141,9 +142,7 @@ class _OrderDetailView extends StatelessWidget {
               .add(SellerOrderDetailRequested(orderId)),
         );
       }
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.terracotta),
-      );
+      return const Center(child: BrandLoadingIndicator());
     }
 
     final colors = sellerOrderStatusColors(order.status);

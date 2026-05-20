@@ -12,6 +12,7 @@ class ProductFormControllers {
         price = TextEditingController(),
         productionDays = TextEditingController(text: '3-5'),
         deliveryPrice = TextEditingController(),
+        installationPrice = TextEditingController(),
         warrantyMonths = TextEditingController(text: '12');
 
   final TextEditingController name;
@@ -19,6 +20,7 @@ class ProductFormControllers {
   final TextEditingController price;
   final TextEditingController productionDays;
   final TextEditingController deliveryPrice;
+  final TextEditingController installationPrice;
   final TextEditingController warrantyMonths;
 
   List<TextEditingController> get _all => [
@@ -27,6 +29,7 @@ class ProductFormControllers {
         price,
         productionDays,
         deliveryPrice,
+        installationPrice,
         warrantyMonths,
       ];
 

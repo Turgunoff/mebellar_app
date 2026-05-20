@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../../shared/repositories/product_repository.dart';
+import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/error_state.dart';
 import '../../../../shared/widgets/product_card.dart';
@@ -139,7 +140,7 @@ class _CatalogGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return RefreshIndicator(
+    return BrandRefreshIndicator(
       onRefresh: () async {
         context.read<CatalogBloc>().add(const CatalogRequested());
       },

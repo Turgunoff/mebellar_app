@@ -8,6 +8,7 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/models/tariff.dart';
 import '../../../../shared/repositories/tariff_repository.dart';
+import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/error_state.dart';
 import '../bloc/tariff_bloc.dart';
 import '../widgets/payment_instructions_sheet.dart';
@@ -64,9 +65,7 @@ class _TariffView extends StatelessWidget {
           body: switch (state.status) {
             TariffStatus.initial ||
             TariffStatus.loading =>
-              const Center(
-                child: CircularProgressIndicator(color: AppColors.terracotta),
-              ),
+              const Center(child: BrandLoadingIndicator()),
             TariffStatus.failure when state.snapshot == null => ErrorState(
                 message: state.error,
                 onRetry: () => context

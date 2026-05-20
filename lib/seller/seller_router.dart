@@ -6,6 +6,7 @@ import 'package:talker_flutter/talker_flutter.dart';
 import '../core/i18n/i18n.dart';
 import '../core/logging/console_nav_observer.dart';
 import '../core/logging/talker.dart';
+import '../shared/models/seller_product.dart';
 import 'features/analytics/screens/analytics_screen.dart';
 import 'features/dashboard/dashboard_screen.dart';
 import 'features/notifications/screens/notifications_screen.dart';
@@ -87,7 +88,23 @@ GoRouter buildSellerRouter() {
                     parentNavigatorKey: sellerRootNavigatorKey,
                     builder: (context, state) {
                       final id = state.pathParameters['id']!;
+                      // The product is passed as GoRouter `extra` from the
+                      // list screen; deep-linking to this path without it
+                      // is not supported yet — surface a clear error instead
+                      // of crashing on the cast.
+                      final product = state.extra;
+                      if (product is! SellerProduct) {
+                        return const Scaffold(
+                          body: Center(
+                            child: Text(
+                              "Mahsulot ma'lumotlari topilmadi",
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        );
+                      }
                       return SellerProductDetailScreen(
+                        product: product,
                         onEdit: () =>
                             context.push('/seller/products/$id/edit'),
                       );

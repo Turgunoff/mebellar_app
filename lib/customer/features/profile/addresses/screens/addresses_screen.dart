@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../../core/di/service_locator.dart';
 import '../../../../../shared/repositories/address_repository.dart';
+import '../../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../../shared/widgets/empty_state.dart';
 import '../../../../../shared/widgets/error_state.dart';
 import '../bloc/addresses_bloc.dart';
@@ -34,7 +35,7 @@ class _AddressesView extends StatelessWidget {
           body: switch (state.status) {
             AddressesStatus.initial ||
             AddressesStatus.loading =>
-              const Center(child: CircularProgressIndicator()),
+              const Center(child: BrandLoadingIndicator()),
             AddressesStatus.failure => ErrorState(
                 message: state.error,
                 onRetry: () => context

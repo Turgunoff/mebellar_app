@@ -5,6 +5,7 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../../core/i18n/i18n.dart';
 import '../../../../shared/models/product.dart';
+import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/premium_empty_state.dart';
 import '../../../customer_app.dart';
 import '../../../widgets/glass_bottom_nav.dart';
@@ -53,9 +54,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             return const SafeArea(
               bottom: false,
               child: Center(
-                child: CircularProgressIndicator(
-                  color: PremiumTokens.accent,
-                ),
+                child: BrandLoadingIndicator(color: PremiumTokens.accent),
               ),
             );
           }

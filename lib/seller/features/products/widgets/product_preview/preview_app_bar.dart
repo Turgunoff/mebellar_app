@@ -3,13 +3,31 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import 'fullscreen_image_viewer.dart';
 import 'product_preview_kit.dart';
 
 /// Pinned, square-expanding image gallery app bar for the product preview.
+///
+/// Each gallery slide is wrapped in a [Hero] (keyed by [heroTagPrefix]+index)
+/// so tapping animates open the fullscreen viewer; the viewer is reached
+/// through [openFullscreenImageViewer].
+///
+/// As the user scrolls down, [titleOpacity] (driven by the parent screen's
+/// scroll controller) fades [productName] into the toolbar slot — so once
+/// the gallery scrolls off-screen, the title stays pinned at the top.
 class PreviewAppBar extends StatelessWidget {
-  const PreviewAppBar({super.key, required this.images});
+  const PreviewAppBar({
+    super.key,
+    required this.images,
+    required this.heroTagPrefix,
+    required this.productName,
+    this.titleOpacity = 0,
+  });
 
   final List<String> images;
+  final String heroTagPrefix;
+  final String productName;
+  final double titleOpacity;
 
   @override
   Widget build(BuildContext context) {
@@ -22,6 +40,25 @@ class PreviewAppBar extends StatelessWidget {
       elevation: 0,
       scrolledUnderElevation: 0,
       systemOverlayStyle: SystemUiOverlayStyle.dark,
+      titleSpacing: 0,
+      // Title sits in the toolbar slot. We render it ourselves with an
+      // opacity tween so it disappears entirely when the gallery is
+      // expanded, then fades in as the user scrolls past the image.
+      title: Opacity(
+        opacity: titleOpacity,
+        child: Text(
+          productName,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: kInk,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.2,
+            height: 1.2,
+          ),
+        ),
+      ),
       leading: Padding(
         padding: const EdgeInsets.all(8),
         child: _GlassIconButton(
@@ -36,7 +73,10 @@ class PreviewAppBar extends StatelessWidget {
         ),
       ],
       flexibleSpace: FlexibleSpaceBar(
-        background: _ImageGallery(images: images),
+        background: _ImageGallery(
+          images: images,
+          heroTagPrefix: heroTagPrefix,
+        ),
       ),
     );
   }
@@ -67,9 +107,13 @@ class _GlassIconButton extends StatelessWidget {
 }
 
 class _ImageGallery extends StatefulWidget {
-  const _ImageGallery({required this.images});
+  const _ImageGallery({
+    required this.images,
+    required this.heroTagPrefix,
+  });
 
   final List<String> images;
+  final String heroTagPrefix;
 
   @override
   State<_ImageGallery> createState() => _ImageGalleryState();
@@ -102,19 +146,31 @@ class _ImageGalleryState extends State<_ImageGallery> {
             controller: _controller,
             itemCount: imgs.length,
             onPageChanged: (i) => setState(() => _index = i),
-            itemBuilder: (_, i) => CachedNetworkImage(
-              imageUrl: imgs[i],
-              // ROADMAP B.7 — full-width product preview image.
-              memCacheWidth: 1080,
-              fit: BoxFit.cover,
-              placeholder: (_, _) => Container(color: kImageBg),
-              errorWidget: (_, _, _) => Container(
-                color: kImageBg,
-                alignment: Alignment.center,
-                child: const Icon(
-                  Iconsax.gallery_slash,
-                  size: 48,
-                  color: kGreyMid,
+            itemBuilder: (_, i) => GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => openFullscreenImageViewer(
+                context,
+                images: imgs,
+                initialIndex: i,
+                heroTagPrefix: widget.heroTagPrefix,
+              ),
+              child: Hero(
+                tag: '${widget.heroTagPrefix}-$i',
+                child: CachedNetworkImage(
+                  imageUrl: imgs[i],
+                  // ROADMAP B.7 — full-width product preview image.
+                  memCacheWidth: 1080,
+                  fit: BoxFit.cover,
+                  placeholder: (_, _) => Container(color: kImageBg),
+                  errorWidget: (_, _, _) => Container(
+                    color: kImageBg,
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      Iconsax.gallery_slash,
+                      size: 48,
+                      color: kGreyMid,
+                    ),
+                  ),
                 ),
               ),
             ),

@@ -10,6 +10,7 @@ import 'package:shimmer/shimmer.dart';
 
 import '../../../../core/i18n/i18n.dart';
 import '../../../../shared/models/category_model.dart';
+import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/image_error_placeholder.dart';
 import '../../../widgets/glass_bottom_nav.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
@@ -58,7 +59,7 @@ class CategoriesScreen extends StatelessWidget {
             final isFailure = state.status == CategoriesStatus.failure;
             final hasItems = state.categories.isNotEmpty;
             if (isFailure && !hasItems) {
-              return RefreshIndicator(
+              return BrandRefreshIndicator(
                 onRefresh: handleRefresh,
                 color: PremiumTokens.accent,
                 child: ListView(
@@ -93,7 +94,7 @@ class CategoriesScreen extends StatelessWidget {
                 state.status == CategoriesStatus.initial;
             final items = state.categories;
 
-            return RefreshIndicator(
+            return BrandRefreshIndicator(
               onRefresh: handleRefresh,
               color: PremiumTokens.accent,
               child: ListView.separated(

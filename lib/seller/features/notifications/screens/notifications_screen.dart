@@ -11,6 +11,7 @@ import '../../../../core/i18n/i18n.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../customer/features/notifications/cubit/notifications_cubit.dart';
 import '../../../../shared/models/notification_model.dart';
+import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/error_state.dart';
 
@@ -215,7 +216,7 @@ class _NotificationsViewState extends State<_NotificationsView> {
                     title: tr('notifications.empty'),
                     message: tr('notifications.empty_hint'),
                   )
-                : RefreshIndicator(
+                : BrandRefreshIndicator(
                     color: AppColors.sellerPrimary,
                     onRefresh: () =>
                         context.read<NotificationsCubit>().load(),

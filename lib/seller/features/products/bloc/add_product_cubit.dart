@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/logging/talker.dart';
 import '../../../../shared/models/attribute_definition.dart';
 import '../../../../shared/models/category_model.dart';
 import '../../../../shared/models/tariff.dart';
@@ -44,13 +45,14 @@ class AddProductState extends Equatable {
     this.attributeSchema = const [],
     this.attributes = const {},
     this.isLoadingSchema = false,
-    this.colorSlug,
+    this.colorSlugs = const <String>{},
     this.price = 0,
     this.discountPercent = 0,
     this.productionTimeDays = '3-5',
     this.hasDelivery = false,
     this.deliveryPrice = 0,
     this.hasInstallation = false,
+    this.installationPrice = 0,
     this.warrantyMonths = 12,
     this.imageFiles = const [],
     this.error,
@@ -66,13 +68,14 @@ class AddProductState extends Equatable {
   final List<AttributeDefinition> attributeSchema;
   final Map<String, dynamic> attributes;
   final bool isLoadingSchema;
-  final String? colorSlug;
+  final Set<String> colorSlugs;
   final num price;
   final int discountPercent;
   final String productionTimeDays;
   final bool hasDelivery;
   final num deliveryPrice;
   final bool hasInstallation;
+  final num installationPrice;
   final int warrantyMonths;
   final List<File> imageFiles;
   final String? error;
@@ -133,14 +136,14 @@ class AddProductState extends Equatable {
     List<AttributeDefinition>? attributeSchema,
     Map<String, dynamic>? attributes,
     bool? isLoadingSchema,
-    String? colorSlug,
-    bool clearColor = false,
+    Set<String>? colorSlugs,
     num? price,
     int? discountPercent,
     String? productionTimeDays,
     bool? hasDelivery,
     num? deliveryPrice,
     bool? hasInstallation,
+    num? installationPrice,
     int? warrantyMonths,
     List<File>? imageFiles,
     String? error,
@@ -158,13 +161,14 @@ class AddProductState extends Equatable {
       attributeSchema: attributeSchema ?? this.attributeSchema,
       attributes: attributes ?? this.attributes,
       isLoadingSchema: isLoadingSchema ?? this.isLoadingSchema,
-      colorSlug: clearColor ? null : (colorSlug ?? this.colorSlug),
+      colorSlugs: colorSlugs ?? this.colorSlugs,
       price: price ?? this.price,
       discountPercent: discountPercent ?? this.discountPercent,
       productionTimeDays: productionTimeDays ?? this.productionTimeDays,
       hasDelivery: hasDelivery ?? this.hasDelivery,
       deliveryPrice: deliveryPrice ?? this.deliveryPrice,
       hasInstallation: hasInstallation ?? this.hasInstallation,
+      installationPrice: installationPrice ?? this.installationPrice,
       warrantyMonths: warrantyMonths ?? this.warrantyMonths,
       imageFiles: imageFiles ?? this.imageFiles,
       error: clearError ? null : (error ?? this.error),
@@ -184,13 +188,14 @@ class AddProductState extends Equatable {
         attributeSchema,
         attributes,
         isLoadingSchema,
-        colorSlug,
+        colorSlugs,
         price,
         discountPercent,
         productionTimeDays,
         hasDelivery,
         deliveryPrice,
         hasInstallation,
+        installationPrice,
         warrantyMonths,
         imageFiles.length,
         error,
@@ -255,6 +260,7 @@ class AddProductCubit extends Cubit<AddProductState> {
   /// inside the previous category.
   void selectCategory(String? id) {
     if (id == null) {
+      talker.info('[add-product-cubit] selectCategory cleared');
       emit(state.copyWith(
         clearCategory: true,
         clearSubcategory: true,
@@ -264,6 +270,9 @@ class AddProductCubit extends Cubit<AddProductState> {
       return;
     }
     if (state.categoryId == id) return;
+    talker.info(
+      '[add-product-cubit] selectCategory id=$id (was ${state.categoryId})',
+    );
     emit(state.copyWith(
       categoryId: id,
       clearSubcategory: true,
@@ -278,6 +287,9 @@ class AddProductCubit extends Cubit<AddProductState> {
   /// subcategory so we don't ship orphan keys into JSONB.
   void selectSubcategory(String? id) {
     if (id == state.subcategoryId) return;
+    talker.info(
+      '[add-product-cubit] selectSubcategory id=$id (was ${state.subcategoryId})',
+    );
     final pruned = _pruneSubcategoryAttributes(state.attributes, state.attributeSchema);
     emit(state.copyWith(
       subcategoryId: id,
@@ -338,12 +350,13 @@ class AddProductCubit extends Cubit<AddProductState> {
     emit(state.copyWith(attributes: next));
   }
 
-  void selectColor(String? slug) {
-    if (slug == null || state.colorSlug == slug) {
-      emit(state.copyWith(clearColor: true));
-    } else {
-      emit(state.copyWith(colorSlug: slug));
-    }
+  /// Adds or removes [slug] from the current selection. The form supports
+  /// multi-colour — one product can ship in several colours — so this is a
+  /// toggle, not a single-select replacement.
+  void toggleColor(String slug) {
+    final next = {...state.colorSlugs};
+    if (!next.remove(slug)) next.add(slug);
+    emit(state.copyWith(colorSlugs: next));
   }
 
   void setPrice(num value) => emit(state.copyWith(price: value));
@@ -362,8 +375,17 @@ class AddProductCubit extends Cubit<AddProductState> {
   void setDeliveryPrice(num value) =>
       emit(state.copyWith(deliveryPrice: value));
 
-  void setHasInstallation(bool value) =>
-      emit(state.copyWith(hasInstallation: value));
+  void setHasInstallation(bool value) {
+    emit(state.copyWith(
+      hasInstallation: value,
+      // Same defensive reset as delivery — toggle off, price goes to zero so
+      // the disabled state never carries a stale value.
+      installationPrice: value ? state.installationPrice : 0,
+    ));
+  }
+
+  void setInstallationPrice(num value) =>
+      emit(state.copyWith(installationPrice: value));
 
   void setWarrantyMonths(int value) =>
       emit(state.copyWith(warrantyMonths: value.clamp(0, 120)));
@@ -402,13 +424,33 @@ class AddProductCubit extends Cubit<AddProductState> {
   /// screen can pop after the snackbar.
   Future<bool> submit() async {
     final ctx = state.context;
-    if (ctx == null) return false;
+    if (ctx == null) {
+      talker.warning('[add-product-cubit] submit aborted — no shop context');
+      return false;
+    }
     if (!ctx.canAddMoreProducts) {
+      talker.warning(
+        '[add-product-cubit] submit blocked by tariff '
+        'plan=${ctx.plan.code} active=${ctx.activeProductsCount}',
+      );
       emit(state.copyWith(status: AddProductStatus.tariffBlocked));
       return false;
     }
-    if (!state.canSubmit) return false;
+    if (!state.canSubmit) {
+      talker.warning(
+        '[add-product-cubit] submit blocked by validation '
+        'name=${state.name.isNotEmpty} category=${state.categoryId != null} '
+        'price=${state.price} images=${state.imageFiles.length} '
+        'requiredAttrsOk=${state.hasAllRequiredAttributes}',
+      );
+      return false;
+    }
 
+    talker.info(
+      '[add-product-cubit] submit start sku=${state.sku} '
+      'category=${state.categoryId} sub=${state.subcategoryId} '
+      'images=${state.imageFiles.length} attributes=${state.attributes.length}',
+    );
     emit(state.copyWith(status: AddProductStatus.saving, clearError: true));
     try {
       await _repository.createProduct(
@@ -422,7 +464,11 @@ class AddProductCubit extends Cubit<AddProductState> {
           price: state.price,
           discountPercent: state.discountPercent,
           sku: state.sku,
-          colorName: _colorNameFor(state.colorSlug),
+          colorSlugs: state.colorSlugs.toList(),
+          colorNames: [
+            for (final slug in state.colorSlugs)
+              _colorNameFor(slug) ?? slug,
+          ],
           attributes: Map<String, dynamic>.from(state.attributes),
           productionTimeDays: state.productionTimeDays.trim().isEmpty
               ? null
@@ -430,13 +476,17 @@ class AddProductCubit extends Cubit<AddProductState> {
           hasDelivery: state.hasDelivery,
           deliveryPrice: state.deliveryPrice,
           hasInstallation: state.hasInstallation,
+          installationPrice: state.installationPrice,
           warrantyMonths: state.warrantyMonths,
           imageFiles: state.imageFiles,
         ),
       );
       emit(state.copyWith(status: AddProductStatus.success));
+      talker.info('[add-product-cubit] submit ok sku=${state.sku}');
       return true;
-    } catch (e) {
+    } catch (e, st) {
+      talker.handle(e, st,
+          '[add-product-cubit] submit failed sku=${state.sku}');
       emit(state.copyWith(
         status: AddProductStatus.failure,
         error: e.toString(),

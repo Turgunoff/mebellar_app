@@ -8,6 +8,7 @@ import '../../core/notifications/notification_handler.dart';
 import '../bloc/notifications_bloc.dart';
 import '../models/app_notification.dart';
 import '../repositories/notifications_repository.dart';
+import 'brand_refresh_indicator.dart';
 import 'empty_state.dart';
 import 'error_state.dart';
 
@@ -80,7 +81,7 @@ class _NotificationsView extends StatelessWidget {
           body: switch (state.status) {
             NotificationsStatus.initial ||
             NotificationsStatus.loading =>
-              const Center(child: CircularProgressIndicator()),
+              const Center(child: BrandLoadingIndicator()),
             NotificationsStatus.failure when state.items.isEmpty =>
               ErrorState(
                 message: state.error,

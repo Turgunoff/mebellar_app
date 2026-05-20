@@ -10,6 +10,7 @@ import '../../../customer/features/notifications/cubit/notifications_cubit.dart'
 import '../../../shared/models/notification_model.dart';
 import '../../../shared/models/order.dart';
 import '../../../shared/models/order_status.dart';
+import '../../../shared/widgets/brand_refresh_indicator.dart';
 import '../notifications/screens/notifications_screen.dart';
 import 'bloc/seller_dashboard_cubit.dart';
 import 'widgets/kpi_card.dart';
@@ -71,7 +72,7 @@ class _DashboardView extends StatelessWidget {
                   ),
                 ),
                 Expanded(
-                  child: RefreshIndicator(
+                  child: BrandRefreshIndicator(
                     color: AppColors.sellerPrimary,
                     onRefresh: () =>
                         context.read<SellerDashboardCubit>().refresh(),

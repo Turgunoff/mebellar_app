@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
@@ -121,22 +122,31 @@ class StatusCard extends StatelessWidget {
 }
 
 /// Title, current price, strike-through old price, discount pill and an
-/// in-stock indicator.
+/// availability badge. Built directly from the live [SellerProduct] so the
+/// preview matches what's persisted in the DB.
 class TitlePriceCard extends StatelessWidget {
   const TitlePriceCard({super.key, required this.product});
 
-  final PreviewMockProduct product;
+  final SellerProduct product;
 
   @override
   Widget build(BuildContext context) {
-    final hasDiscount =
-        product.oldPriceLabel != null && product.oldPriceLabel!.isNotEmpty;
+    final priceFormat = NumberFormat('#,###', 'uz');
+    final hasDiscount = product.discountPrice != null &&
+        product.discountPrice! > 0 &&
+        product.discountPrice! < product.price;
+    final effectivePrice = hasDiscount ? product.discountPrice! : product.price;
+    final discountPercent = hasDiscount
+        ? (((product.price - product.discountPrice!) / product.price) * 100)
+            .round()
+        : 0;
+
     return SectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            product.title,
+            product.name.get('uz'),
             style: const TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 20,
@@ -152,7 +162,7 @@ class TitlePriceCard extends StatelessWidget {
             children: [
               RichText(
                 text: TextSpan(
-                  text: product.priceLabel,
+                  text: priceFormat.format(effectivePrice),
                   style: const TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 26,
@@ -180,7 +190,7 @@ class TitlePriceCard extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 3),
                   child: Text(
-                    "${product.oldPriceLabel!} UZS",
+                    "${priceFormat.format(product.price)} UZS",
                     style: const TextStyle(
                       fontFamily: AppFonts.seller,
                       fontSize: 13,
@@ -204,7 +214,7 @@ class TitlePriceCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                '-${product.discountPercent}%',
+                '-$discountPercent%',
                 style: const TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 12,
@@ -218,29 +228,32 @@ class TitlePriceCard extends StatelessWidget {
           const SizedBox(height: 14),
           const Divider(height: 1, thickness: 1, color: kDivider),
           const SizedBox(height: 14),
+          // Mebellar's catalog is made-to-order — every product is rendered
+          // as "available" once the moderator approves it; otherwise we
+          // surface the moderation state instead of a fake stock count.
           Row(
             children: [
               Icon(
-                product.stock > 0
+                product.status == SellerProductStatus.approved
                     ? Iconsax.tick_circle
-                    : Iconsax.close_circle,
+                    : Iconsax.clock,
                 size: 16,
-                color: product.stock > 0
+                color: product.status == SellerProductStatus.approved
                     ? const Color(0xFF1F6B49)
-                    : const Color(0xFFC0392B),
+                    : const Color(0xFF8C5A12),
               ),
               const SizedBox(width: 8),
               Text(
-                product.stock > 0
-                    ? 'Sotuvda mavjud · ${product.stock} dona'
-                    : 'Sotuvda yo\'q',
+                product.status == SellerProductStatus.approved
+                    ? 'Sotuvda mavjud · buyurtma bo\'yicha tayyorlanadi'
+                    : 'Hozircha sotuvda emas',
                 style: TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: product.stock > 0
+                  color: product.status == SellerProductStatus.approved
                       ? const Color(0xFF1F6B49)
-                      : const Color(0xFFC0392B),
+                      : const Color(0xFF8C5A12),
                   height: 1.2,
                 ),
               ),

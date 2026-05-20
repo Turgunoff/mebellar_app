@@ -16,6 +16,8 @@ class LogisticsSection extends StatelessWidget {
     required this.deliveryPriceController,
     required this.assemblyAvailable,
     required this.onAssemblyChanged,
+    required this.installationPriceController,
+    required this.onInstallationPriceChanged,
     required this.warrantyController,
     required this.onProductionDaysChanged,
     required this.onDeliveryPriceChanged,
@@ -28,6 +30,8 @@ class LogisticsSection extends StatelessWidget {
   final TextEditingController deliveryPriceController;
   final bool assemblyAvailable;
   final ValueChanged<bool> onAssemblyChanged;
+  final TextEditingController installationPriceController;
+  final ValueChanged<num> onInstallationPriceChanged;
   final TextEditingController warrantyController;
   final ValueChanged<String> onProductionDaysChanged;
   final ValueChanged<num> onDeliveryPriceChanged;
@@ -64,12 +68,14 @@ class LogisticsSection extends StatelessWidget {
                 const SizedBox(height: 14),
                 FormTextField(
                   controller: deliveryPriceController,
-                  label: 'Yetkazish narxi',
+                  label: 'Toshkent ichida yetkazish narxi',
                   hint: 'Bepul uchun 0 kiriting',
                   suffix: 'UZS',
                   keyboardType: TextInputType.number,
                   inputFormatters: const [ThousandsSpaceFormatter()],
-                  helper: 'Faqat Toshkent shahri va viloyati uchun',
+                  helper:
+                      'Hozircha faqat Toshkent shahri va viloyati. Boshqa viloyatlar '
+                      'keyinroq qo‘shiladi.',
                   onChanged: (v) {
                     final digits = v.replaceAll(RegExp(r'[^\d]'), '');
                     onDeliveryPriceChanged(int.tryParse(digits) ?? 0);
@@ -87,6 +93,21 @@ class LogisticsSection extends StatelessWidget {
                 value: assemblyAvailable,
                 onChanged: onAssemblyChanged,
               ),
+              if (assemblyAvailable) ...[
+                const SizedBox(height: 14),
+                FormTextField(
+                  controller: installationPriceController,
+                  label: "O'rnatish narxi",
+                  hint: 'Bepul uchun 0 kiriting',
+                  suffix: 'UZS',
+                  keyboardType: TextInputType.number,
+                  inputFormatters: const [ThousandsSpaceFormatter()],
+                  onChanged: (v) {
+                    final digits = v.replaceAll(RegExp(r'[^\d]'), '');
+                    onInstallationPriceChanged(int.tryParse(digits) ?? 0);
+                  },
+                ),
+              ],
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 14),
                 child: Divider(height: 1, thickness: 1, color: kDivider),

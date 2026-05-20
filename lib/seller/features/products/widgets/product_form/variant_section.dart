@@ -4,22 +4,24 @@ import '../../../../../core/theme/app_fonts.dart';
 import '../../bloc/add_product_cubit.dart';
 import 'form_kit.dart';
 
-/// Variant-level data section. Today only color is collected per variant; the
-/// section sits between the dynamic category attributes (product-level) and
-/// pricing so the visual grouping mirrors how the data is stored: dynamic
-/// `attributes` JSONB on the product row vs. `color_name` on the variant row.
+/// Variant-level data section. Today the only per-product variant axis is
+/// colour — the form supports **multi-select** so one product can ship in
+/// several colours. The chosen slugs persist to `products.colors text[]`;
+/// `product_variants.color_name` keeps the first selected label for any
+/// downstream consumer that still expects a single value.
 ///
-/// Lives in its own widget so multi-variant UI (e.g. one product → 3 colors)
-/// can drop in here without touching the dynamic schema engine.
+/// Lives in its own widget so a future full multi-variant UI (color × size
+/// → per-variant SKU/price) can grow here without touching the dynamic
+/// schema engine.
 class VariantSection extends StatelessWidget {
   const VariantSection({
     super.key,
-    required this.selectedColor,
+    required this.selectedColors,
     required this.onColorToggle,
   });
 
-  final String? selectedColor;
-  final ValueChanged<String?> onColorToggle;
+  final Set<String> selectedColors;
+  final ValueChanged<String> onColorToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +36,7 @@ class VariantSection extends StatelessWidget {
               const Padding(
                 padding: EdgeInsets.only(left: 2, bottom: 8),
                 child: Text(
-                  'Rangi',
+                  'Ranglar',
                   style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 12,
@@ -44,22 +46,31 @@ class VariantSection extends StatelessWidget {
                   ),
                 ),
               ),
-              SizedBox(
-                height: 40,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: kAddProductColorOptions.length,
-                  separatorBuilder: (_, _) => const SizedBox(width: 8),
-                  itemBuilder: (_, i) {
-                    final c = kAddProductColorOptions[i];
-                    return _ColorChip(
+              const Padding(
+                padding: EdgeInsets.only(left: 2, bottom: 10),
+                child: Text(
+                  'Bir nechtasini tanlash mumkin',
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: kGreyMid,
+                    letterSpacing: 0,
+                  ),
+                ),
+              ),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final c in kAddProductColorOptions)
+                    _ColorChip(
                       label: c.label,
                       swatch: Color(c.swatch),
-                      selected: selectedColor == c.slug,
+                      selected: selectedColors.contains(c.slug),
                       onTap: () => onColorToggle(c.slug),
-                    );
-                  },
-                ),
+                    ),
+                ],
               ),
             ],
           ),
@@ -104,15 +115,7 @@ class _ColorChip extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 16,
-                height: 16,
-                decoration: BoxDecoration(
-                  color: swatch,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: kOutline, width: 1),
-                ),
-              ),
+              _Swatch(color: swatch, checked: selected),
               const SizedBox(width: 8),
               Text(
                 label,
@@ -128,6 +131,34 @@ class _ColorChip extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _Swatch extends StatelessWidget {
+  const _Swatch({required this.color, required this.checked});
+
+  final Color color;
+  final bool checked;
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    // Pick a contrasting tick icon depending on the swatch brightness so the
+    // check stays visible against both light (e.g. white) and dark fills.
+    final tickColor = color.computeLuminance() > 0.6 ? primary : Colors.white;
+    return Container(
+      width: 18,
+      height: 18,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        border: Border.all(color: kOutline, width: 1),
+      ),
+      alignment: Alignment.center,
+      child: checked
+          ? Icon(Icons.check_rounded, size: 12, color: tickColor)
+          : null,
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/logging/talker.dart';
 import '../../../../shared/models/attribute_definition.dart';
 import '../../../../shared/models/attribute_option.dart';
 
@@ -64,59 +65,82 @@ class SupabaseAttributesRepository implements AttributesRepository {
     required String categoryId,
     String? subcategoryId,
   }) async {
-    // Pull category-scoped and (when requested) subcategory-scoped rows in
-    // parallel. Options are fetched in a single second round-trip so the
-    // schema render is a 2-query operation regardless of attribute count.
-    final defsFuture = Future.wait<List<Map<String, dynamic>>>([
-      _fetchRows(
-          _client.from('attribute_definitions').select(
-                'id, category_id, subcategory_id, key, label_uz, label_ru, '
-                'data_type, unit, is_required, sort_order',
-              ),
-          'category_id',
-          categoryId),
-      if (subcategoryId != null)
+    talker.info(
+      '[attributes] loadForCategory start categoryId=$categoryId '
+      'subcategoryId=$subcategoryId',
+    );
+    try {
+      // Pull category-scoped and (when requested) subcategory-scoped rows in
+      // parallel. Options are fetched in a single second round-trip so the
+      // schema render is a 2-query operation regardless of attribute count.
+      final defsFuture = Future.wait<List<Map<String, dynamic>>>([
         _fetchRows(
             _client.from('attribute_definitions').select(
                   'id, category_id, subcategory_id, key, label_uz, label_ru, '
                   'data_type, unit, is_required, sort_order',
                 ),
-            'subcategory_id',
-            subcategoryId)
-      else
-        Future.value(const <Map<String, dynamic>>[]),
-    ]);
-    final defsResults = await defsFuture;
-    final allDefRows = [...defsResults[0], ...defsResults[1]];
-    if (allDefRows.isEmpty) return const [];
+            'category_id',
+            categoryId),
+        if (subcategoryId != null)
+          _fetchRows(
+              _client.from('attribute_definitions').select(
+                    'id, category_id, subcategory_id, key, label_uz, label_ru, '
+                    'data_type, unit, is_required, sort_order',
+                  ),
+              'subcategory_id',
+              subcategoryId)
+        else
+          Future.value(const <Map<String, dynamic>>[]),
+      ]);
+      final defsResults = await defsFuture;
+      final allDefRows = [...defsResults[0], ...defsResults[1]];
+      if (allDefRows.isEmpty) {
+        talker.info(
+          '[attributes] loadForCategory ok categoryId=$categoryId merged=0',
+        );
+        return const [];
+      }
 
-    final defIds = [for (final r in allDefRows) r['id'] as String];
-    final optionRows = await _client
-        .from('attribute_options')
-        .select(
-            'id, attribute_id, value, label_uz, label_ru, sort_order')
-        .inFilter('attribute_id', defIds)
-        .order('sort_order', ascending: true);
+      final defIds = [for (final r in allDefRows) r['id'] as String];
+      final optionRows = await _client
+          .from('attribute_options')
+          .select(
+              'id, attribute_id, value, label_uz, label_ru, sort_order')
+          .inFilter('attribute_id', defIds)
+          .order('sort_order', ascending: true);
 
-    final optionsByDef = <String, List<AttributeOption>>{};
-    for (final row in (optionRows as List).whereType<Map<String, dynamic>>()) {
-      final opt = AttributeOption.fromJson(row);
-      optionsByDef.putIfAbsent(opt.attributeId, () => []).add(opt);
-    }
+      final optionsByDef = <String, List<AttributeOption>>{};
+      for (final row
+          in (optionRows as List).whereType<Map<String, dynamic>>()) {
+        final opt = AttributeOption.fromJson(row);
+        optionsByDef.putIfAbsent(opt.attributeId, () => []).add(opt);
+      }
 
-    AttributeDefinition build(Map<String, dynamic> row) {
-      return AttributeDefinition.fromJson(
-        row,
-        options: optionsByDef[row['id'] as String] ?? const [],
+      AttributeDefinition build(Map<String, dynamic> row) {
+        return AttributeDefinition.fromJson(
+          row,
+          options: optionsByDef[row['id'] as String] ?? const [],
+        );
+      }
+
+      final categoryDefs = [for (final r in defsResults[0]) build(r)];
+      final subcategoryDefs = [for (final r in defsResults[1]) build(r)];
+      final merged = mergeAttributeDefinitions(
+        categoryDefs: categoryDefs,
+        subcategoryDefs: subcategoryDefs,
       );
+      talker.info(
+        '[attributes] loadForCategory ok categoryId=$categoryId '
+        'subcategoryId=$subcategoryId '
+        'category=${categoryDefs.length} subcategory=${subcategoryDefs.length} '
+        'merged=${merged.length}',
+      );
+      return merged;
+    } catch (e, st) {
+      talker.handle(e, st,
+          '[attributes] loadForCategory failed categoryId=$categoryId');
+      rethrow;
     }
-
-    final categoryDefs = [for (final r in defsResults[0]) build(r)];
-    final subcategoryDefs = [for (final r in defsResults[1]) build(r)];
-    return mergeAttributeDefinitions(
-      categoryDefs: categoryDefs,
-      subcategoryDefs: subcategoryDefs,
-    );
   }
 
   Future<List<Map<String, dynamic>>> _fetchRows(

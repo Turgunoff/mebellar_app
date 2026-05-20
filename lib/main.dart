@@ -64,6 +64,18 @@ Future<void> main() async {
 /// zone (via `SentryFlutter.init`'s `appRunner`) so uncaught errors during
 /// startup are still captured.
 Future<void> _bootstrapAndRun() async {
+  // Force the system bars back on at every boot. The Flutter engine remembers
+  // the last `setEnabledSystemUIMode` call across hot restart and full
+  // process restarts on some platforms — if a screen ever entered
+  // `immersiveSticky` (e.g. the fullscreen image viewer) and didn't restore
+  // cleanly, the app would launch with the status bar still hidden until the
+  // user power-cycled the device. Resetting to `manual` with the full
+  // overlay list here makes boot deterministic.
+  SystemChrome.setEnabledSystemUIMode(
+    SystemUiMode.manual,
+    overlays: SystemUiOverlay.values,
+  );
+
   // The default Flutter overlay style on iOS leaves the status bar with
   // light icons, which become invisible on the app's light splash and
   // background. Set a dark-icon default at boot; per-theme appBarTheme

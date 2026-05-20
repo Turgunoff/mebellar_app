@@ -9,6 +9,7 @@ import '../../../../auth/auth_bottom_sheet.dart';
 import '../../../../core/auth/auth_cubit.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../shared/models/cart_item_model.dart';
+import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/premium_empty_state.dart';
 import '../../../customer_app.dart';
 import '../../../widgets/glass_bottom_nav.dart';
@@ -35,7 +36,7 @@ class CartScreen extends StatelessWidget {
           if (state.status == CartStatus.loading && state.items.isEmpty) {
             return const SafeArea(
               bottom: false,
-              child: Center(child: CircularProgressIndicator()),
+              child: Center(child: BrandLoadingIndicator()),
             );
           }
           if (state.isEmpty) {

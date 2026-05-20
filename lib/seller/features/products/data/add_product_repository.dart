@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/logging/talker.dart';
 import '../../../../shared/models/category_model.dart';
 import '../../../../shared/models/tariff.dart';
 
@@ -55,12 +56,14 @@ class AddProductInput {
     required this.price,
     required this.discountPercent,
     required this.sku,
-    required this.colorName,
+    required this.colorSlugs,
+    required this.colorNames,
     required this.attributes,
     required this.productionTimeDays,
     required this.hasDelivery,
     required this.deliveryPrice,
     required this.hasInstallation,
+    required this.installationPrice,
     required this.warrantyMonths,
     required this.imageFiles,
   });
@@ -74,12 +77,21 @@ class AddProductInput {
   final num price;
   final int discountPercent;
   final String sku;
-  final String? colorName;
+
+  /// Canonical color slugs (e.g. `['white','black']`) — persisted on the
+  /// product row as `colors text[]`. The variant row keeps a single
+  /// `color_name` for back-compat (first selection in [colorNames]).
+  final List<String> colorSlugs;
+
+  /// Human-readable color labels in the order matching [colorSlugs].
+  final List<String> colorNames;
+
   final Map<String, dynamic> attributes;
   final String? productionTimeDays;
   final bool hasDelivery;
   final num deliveryPrice;
   final bool hasInstallation;
+  final num installationPrice;
   final int warrantyMonths;
   final List<File> imageFiles;
 }
@@ -107,41 +119,58 @@ class AddProductRepository {
   Future<AddProductShopContext> loadShopContext() async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) {
+      talker.warning('[add-product] loadShopContext aborted — no auth.uid');
       throw StateError('Seller is not authenticated');
     }
+    talker.info('[add-product] loadShopContext start sellerId=$userId');
 
-    // Shop+plan and categories are independent — fetch in parallel so the
-    // form's `loadingContext` window is dominated by the slower of the two,
-    // not their sum.
-    final results = await Future.wait<Object?>([
-      _client
-          .from('shops')
-          .select('id, plan:subscription_plans(*)')
-          .eq('seller_id', userId)
-          .maybeSingle(),
-      _fetchCategories(),
-    ]);
-    final shopRow = results[0] as Map<String, dynamic>?;
-    final categories = results[1] as List<CategoryModel>;
+    try {
+      // Shop+plan and categories are independent — fetch in parallel so the
+      // form's `loadingContext` window is dominated by the slower of the two,
+      // not their sum.
+      final results = await Future.wait<Object?>([
+        _client
+            .from('shops')
+            .select('id, plan:subscription_plans(*)')
+            .eq('seller_id', userId)
+            .maybeSingle(),
+        _fetchCategories(),
+      ]);
+      final shopRow = results[0] as Map<String, dynamic>?;
+      final categories = results[1] as List<CategoryModel>;
 
-    if (shopRow == null) {
-      throw StateError("Shop is not yet created for the current seller");
+      if (shopRow == null) {
+        talker.warning(
+          '[add-product] loadShopContext: no shop row for sellerId=$userId',
+        );
+        throw StateError("Shop is not yet created for the current seller");
+      }
+
+      final planJson = shopRow['plan'];
+      final plan = planJson is Map<String, dynamic>
+          ? SubscriptionPlan.fromJson(planJson)
+          : _fallbackPlan;
+      final shopId = shopRow['id'] as String;
+      final productsCount = await _countActiveProducts(shopId);
+
+      talker.info(
+        '[add-product] loadShopContext ok shopId=$shopId '
+        'plan=${plan.code} categories=${categories.length} '
+        'activeProducts=$productsCount',
+      );
+
+      return AddProductShopContext(
+        shopId: shopId,
+        sellerId: userId,
+        plan: plan,
+        activeProductsCount: productsCount,
+        categories: categories,
+      );
+    } catch (e, st) {
+      talker.handle(e, st,
+          '[add-product] loadShopContext failed sellerId=$userId');
+      rethrow;
     }
-
-    final planJson = shopRow['plan'];
-    final plan = planJson is Map<String, dynamic>
-        ? SubscriptionPlan.fromJson(planJson)
-        : _fallbackPlan;
-    final shopId = shopRow['id'] as String;
-    final productsCount = await _countActiveProducts(shopId);
-
-    return AddProductShopContext(
-      shopId: shopId,
-      sellerId: userId,
-      plan: plan,
-      activeProductsCount: productsCount,
-      categories: categories,
-    );
   }
 
   Future<int> _countActiveProducts(String shopId) async {
@@ -189,71 +218,107 @@ class AddProductRepository {
   /// insert the product row, then the single variant, then one row per image.
   Future<AddProductResult> createProduct(AddProductInput input) async {
     if (input.imageFiles.isEmpty) {
+      talker.warning(
+        '[add-product] createProduct rejected — no images attached',
+      );
       throw StateError('At least one product image is required');
     }
-
-    final uploaded = await _uploadImages(
-      sellerId: input.sellerId,
-      files: input.imageFiles,
+    talker.info(
+      '[add-product] createProduct start sku=${input.sku} '
+      'sellerId=${input.sellerId} shopId=${input.shopId} '
+      'category=${input.categoryId} sub=${input.subcategoryId} '
+      'images=${input.imageFiles.length} colors=${input.colorSlugs.length} '
+      'attributes=${input.attributes.keys.toList()}',
     );
 
-    final productPayload = <String, dynamic>{
-      'shop_id': input.shopId,
-      'seller_id': input.sellerId,
-      'category_id': input.categoryId,
-      if (input.subcategoryId != null) 'subcategory_id': input.subcategoryId,
-      'name': input.name,
-      'description': input.description.isEmpty ? null : input.description,
-      'price': input.price,
-      'images': uploaded.map((u) => u.publicUrl).toList(),
-      'attributes': input.attributes.isEmpty ? null : input.attributes,
-      'production_time_days': input.productionTimeDays,
-      'has_delivery': input.hasDelivery,
-      'delivery_price': input.hasDelivery ? input.deliveryPrice : 0,
-      'has_installation': input.hasInstallation,
-      'warranty_months': input.warrantyMonths,
-      'status': 'pending_review',
-    };
+    try {
+      final uploaded = await _uploadImages(
+        sellerId: input.sellerId,
+        files: input.imageFiles,
+      );
 
-    final productRow = await _client
-        .from('products')
-        .insert(productPayload)
-        .select('id')
-        .single();
-    final productId = productRow['id'] as String;
+      final productPayload = <String, dynamic>{
+        'shop_id': input.shopId,
+        'seller_id': input.sellerId,
+        'category_id': input.categoryId,
+        if (input.subcategoryId != null) 'subcategory_id': input.subcategoryId,
+        'name': input.name,
+        'description': input.description.isEmpty ? null : input.description,
+        'price': input.price,
+        'images': uploaded.map((u) => u.publicUrl).toList(),
+        'attributes': input.attributes.isEmpty ? null : input.attributes,
+        'colors': input.colorSlugs,
+        'production_time_days': input.productionTimeDays,
+        'has_delivery': input.hasDelivery,
+        'delivery_price': input.hasDelivery ? input.deliveryPrice : 0,
+        'has_installation': input.hasInstallation,
+        'installation_price':
+            input.hasInstallation ? input.installationPrice : 0,
+        'warranty_months': input.warrantyMonths,
+        'status': 'pending_review',
+      };
 
-    final discountPrice = input.discountPercent > 0
-        ? (input.price *
-                (100 - input.discountPercent) /
-                100)
-            .roundToDouble()
-        : null;
+      talker.debug(
+        '[add-product] inserting product row '
+        'name="${input.name}" price=${input.price}',
+      );
+      final productRow = await _client
+          .from('products')
+          .insert(productPayload)
+          .select('id')
+          .single();
+      final productId = productRow['id'] as String;
+      talker.info('[add-product] product row inserted id=$productId');
 
-    await _client.from('product_variants').insert({
-      'product_id': productId,
-      'sku': input.sku,
-      'color_name': input.colorName,
-      'price': input.price,
-      'discount_price': discountPrice,
-    });
+      final discountPrice = input.discountPercent > 0
+          ? (input.price *
+                  (100 - input.discountPercent) /
+                  100)
+              .roundToDouble()
+          : null;
 
-    if (uploaded.isNotEmpty) {
-      final imageRows = <Map<String, dynamic>>[
-        for (var i = 0; i < uploaded.length; i++)
-          {
-            'product_id': productId,
-            'image_url': uploaded[i].publicUrl,
-            'is_main': i == 0,
-            'sort_order': i,
-          },
-      ];
-      await _client.from('product_images').insert(imageRows);
+      await _client.from('product_variants').insert({
+        'product_id': productId,
+        'sku': input.sku,
+        // Multi-color is stored on the product row; the variant keeps a single
+        // representative label for back-compat (first selected colour).
+        'color_name':
+            input.colorNames.isEmpty ? null : input.colorNames.first,
+        'price': input.price,
+        'discount_price': discountPrice,
+      });
+      talker.info(
+        '[add-product] variant inserted productId=$productId sku=${input.sku} '
+        'discountPrice=$discountPrice',
+      );
+
+      if (uploaded.isNotEmpty) {
+        final imageRows = <Map<String, dynamic>>[
+          for (var i = 0; i < uploaded.length; i++)
+            {
+              'product_id': productId,
+              'image_url': uploaded[i].publicUrl,
+              'is_main': i == 0,
+              'sort_order': i,
+            },
+        ];
+        await _client.from('product_images').insert(imageRows);
+        talker.info(
+          '[add-product] image rows inserted productId=$productId '
+          'count=${imageRows.length}',
+        );
+      }
+
+      talker.info('[add-product] createProduct ok productId=$productId');
+      return AddProductResult(
+        productId: productId,
+        imageUrls: uploaded.map((u) => u.publicUrl).toList(),
+      );
+    } catch (e, st) {
+      talker.handle(e, st,
+          '[add-product] createProduct failed sku=${input.sku}');
+      rethrow;
     }
-
-    return AddProductResult(
-      productId: productId,
-      imageUrls: uploaded.map((u) => u.publicUrl).toList(),
-    );
   }
 
   Future<List<_UploadedImage>> _uploadImages({
@@ -261,7 +326,13 @@ class AddProductRepository {
     required List<File> files,
   }) async {
     final results = <_UploadedImage>[];
-    for (final file in files) {
+    for (var i = 0; i < files.length; i++) {
+      final file = files[i];
+      final originalSize = await file.length();
+      talker.debug(
+        '[add-product] image ${i + 1}/${files.length} compressing '
+        'path=${file.path} originalBytes=$originalSize',
+      );
       final compressed = await FlutterImageCompress.compressWithFile(
         file.absolute.path,
         format: CompressFormat.webp,
@@ -272,16 +343,27 @@ class AddProductRepository {
       );
       final bytes = compressed ?? await file.readAsBytes();
       final objectPath = '$sellerId/${_randomObjectName()}.webp';
-      await _client.storage.from(_bucket).uploadBinary(
-            objectPath,
-            Uint8List.fromList(bytes),
-            fileOptions: const FileOptions(
-              upsert: false,
-              contentType: 'image/webp',
-              cacheControl: '3600',
-            ),
-          );
-      final publicUrl = _client.storage.from(_bucket).getPublicUrl(objectPath);
+      try {
+        await _client.storage.from(_bucket).uploadBinary(
+              objectPath,
+              Uint8List.fromList(bytes),
+              fileOptions: const FileOptions(
+                upsert: false,
+                contentType: 'image/webp',
+                cacheControl: '3600',
+              ),
+            );
+      } catch (e, st) {
+        talker.handle(e, st,
+            '[add-product] image upload failed path=$objectPath');
+        rethrow;
+      }
+      final publicUrl =
+          _client.storage.from(_bucket).getPublicUrl(objectPath);
+      talker.info(
+        '[add-product] image ${i + 1}/${files.length} uploaded '
+        'path=$objectPath compressedBytes=${bytes.length}',
+      );
       results.add(_UploadedImage(path: objectPath, publicUrl: publicUrl));
     }
     return results;

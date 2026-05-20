@@ -103,37 +103,3 @@ class SectionTitle extends StatelessWidget {
   }
 }
 
-/// Mock product bundled so the preview renders without a repository or bloc.
-/// Swap to real data when the API contract lands.
-@immutable
-class PreviewMockProduct {
-  const PreviewMockProduct({
-    required this.title,
-    required this.priceLabel,
-    required this.oldPriceLabel,
-    required this.discountPercent,
-    required this.stock,
-    required this.images,
-  });
-
-  final String title;
-  final String priceLabel;
-  final String? oldPriceLabel;
-  final int discountPercent;
-  final int stock;
-  final List<String> images;
-}
-
-const kPreviewMockProduct = PreviewMockProduct(
-  title: 'Klassik kuxnya jihozlari',
-  priceLabel: '9 800 000',
-  oldPriceLabel: '11 200 000',
-  discountPercent: 13,
-  stock: 2,
-  images: [
-    'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=900',
-    'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=900',
-    'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=900',
-    'https://images.unsplash.com/photo-1558211583-d26f610c1eb1?w=900',
-  ],
-);

@@ -200,6 +200,61 @@ void main() {
     ],
   );
 
+  blocTest<AddProductCubit, AddProductState>(
+    'setHasInstallation(false) resets a previously-entered installation price',
+    build: () => _cubit(repo),
+    seed: () => const AddProductState(
+      status: AddProductStatus.ready,
+      hasInstallation: true,
+      installationPrice: 120000,
+    ),
+    act: (cubit) => cubit.setHasInstallation(false),
+    expect: () => [
+      isA<AddProductState>()
+          .having((s) => s.hasInstallation, 'hasInstallation', false)
+          .having((s) => s.installationPrice, 'installationPrice', 0),
+    ],
+  );
+
+  group('toggleColor', () {
+    blocTest<AddProductCubit, AddProductState>(
+      'adds a colour when the slug is new',
+      build: () => _cubit(repo),
+      act: (cubit) {
+        cubit.toggleColor('white');
+        cubit.toggleColor('black');
+      },
+      expect: () => [
+        isA<AddProductState>().having(
+          (s) => s.colorSlugs,
+          'colorSlugs',
+          {'white'},
+        ),
+        isA<AddProductState>().having(
+          (s) => s.colorSlugs,
+          'colorSlugs',
+          {'white', 'black'},
+        ),
+      ],
+    );
+
+    blocTest<AddProductCubit, AddProductState>(
+      'removes a colour on second tap',
+      build: () => _cubit(repo),
+      seed: () => const AddProductState(
+        colorSlugs: {'white', 'black'},
+      ),
+      act: (cubit) => cubit.toggleColor('white'),
+      expect: () => [
+        isA<AddProductState>().having(
+          (s) => s.colorSlugs,
+          'colorSlugs',
+          {'black'},
+        ),
+      ],
+    );
+  });
+
   group('attributes', () {
     blocTest<AddProductCubit, AddProductState>(
       'setAttribute writes the value into the attributes map',

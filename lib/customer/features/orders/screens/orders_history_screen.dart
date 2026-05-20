@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../cubit/profile_orders_cubit.dart';
 
@@ -65,7 +66,7 @@ class _OrdersHistoryScreenState extends State<OrdersHistoryScreen> {
               if (state.isLoading)
                 const SliverFillRemaining(
                   child: Center(
-                    child: CircularProgressIndicator(
+                    child: BrandLoadingIndicator(
                       color: PremiumTokens.accent,
                     ),
                   ),
@@ -337,9 +338,11 @@ class _CancelButtonState extends State<_CancelButton> {
       return const SizedBox(
         width: 18,
         height: 18,
-        child: CircularProgressIndicator(
-          strokeWidth: 2,
-          color: Color(0xFFDC2626),
+        child: Center(
+          child: BrandLoadingIndicator(
+            color: Color(0xFFDC2626),
+            radius: 8,
+          ),
         ),
       );
     }

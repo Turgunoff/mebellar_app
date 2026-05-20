@@ -375,20 +375,23 @@ class _StockIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color =
-        product.inStock ? const Color(0xFF4CAF50) : const Color(0xFFE53935);
-    final label = product.inStock
-        ? tr('product.in_stock').replaceAll('{}', '${product.stock}')
-        : tr('product.out_of_stock');
+    // Mebellar is made-to-order — there's no warehouse count to surface.
+    const color = Color(0xFF4CAF50);
     return Row(
       children: [
         Container(
           width: 8,
           height: 8,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          decoration: const BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
         ),
         const SizedBox(width: 6),
-        Text(label, style: PremiumTokens.body(size: 12, color: color)),
+        Text(
+          tr('product.made_to_order'),
+          style: PremiumTokens.body(size: 12, color: color),
+        ),
       ],
     );
   }
@@ -454,8 +457,7 @@ class _BottomBar extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: FilledButton(
-              onPressed:
-                  product.inStock ? () => _addToCart(context, product) : null,
+              onPressed: () => _addToCart(context, product),
               style: FilledButton.styleFrom(
                 backgroundColor: PremiumTokens.accent,
                 disabledBackgroundColor: pt.imageBg,
@@ -467,20 +469,18 @@ class _BottomBar extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
+                  const Icon(
                     Iconsax.shopping_bag,
                     size: 18,
-                    color: product.inStock ? Colors.white : pt.grey,
+                    color: Colors.white,
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    product.inStock
-                        ? tr('cart.add')
-                        : tr('product.out_of_stock'),
+                    tr('cart.add'),
                     style: PremiumTokens.body(
                       size: 15,
                       weight: FontWeight.w700,
-                      color: product.inStock ? Colors.white : pt.grey,
+                      color: Colors.white,
                     ),
                   ),
                 ],
