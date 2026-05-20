@@ -13,6 +13,8 @@ const Map<String, dynamic> commonUz = {
   'skip': 'O\'tkazib yuborish',
   'ok': 'OK',
   'close': 'Yopish',
+  'yes': 'Ha',
+  'no': 'Yo\'q',
 };
 
 const Map<String, dynamic> commonRu = {
@@ -26,6 +28,8 @@ const Map<String, dynamic> commonRu = {
   'skip': 'Пропустить',
   'ok': 'ОК',
   'close': 'Закрыть',
+  'yes': 'Да',
+  'no': 'Нет',
 };
 
 const Map<String, dynamic> commonEn = {
@@ -39,6 +43,8 @@ const Map<String, dynamic> commonEn = {
   'skip': 'Skip',
   'ok': 'OK',
   'close': 'Close',
+  'yes': 'Yes',
+  'no': 'No',
 };
 
 const Map<String, dynamic> errorUz = {

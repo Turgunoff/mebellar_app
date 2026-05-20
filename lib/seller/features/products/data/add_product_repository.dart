@@ -42,6 +42,8 @@ class AddProductShopContext {
 /// Inputs the cubit hands to the repository when the user taps
 /// "Saqlash va e'lon qilish". Single-variant MVP: one product row + one
 /// variant row + N image rows are inserted atomically in [createProduct].
+/// Category-specific specs (dimensions, fabric, etc.) ride along inside the
+/// [attributes] JSONB payload; only logistics and variant data remain typed.
 class AddProductInput {
   const AddProductInput({
     required this.sellerId,
@@ -49,14 +51,12 @@ class AddProductInput {
     required this.name,
     required this.description,
     required this.categoryId,
+    required this.subcategoryId,
     required this.price,
     required this.discountPercent,
     required this.sku,
     required this.colorName,
-    required this.widthCm,
-    required this.heightCm,
-    required this.depthCm,
-    required this.material,
+    required this.attributes,
     required this.productionTimeDays,
     required this.hasDelivery,
     required this.deliveryPrice,
@@ -70,14 +70,12 @@ class AddProductInput {
   final String name;
   final String description;
   final String categoryId;
+  final String? subcategoryId;
   final num price;
   final int discountPercent;
   final String sku;
   final String? colorName;
-  final int? widthCm;
-  final int? heightCm;
-  final int? depthCm;
-  final String? material;
+  final Map<String, dynamic> attributes;
   final String? productionTimeDays;
   final bool hasDelivery;
   final num deliveryPrice;
@@ -112,11 +110,20 @@ class AddProductRepository {
       throw StateError('Seller is not authenticated');
     }
 
-    final shopRow = await _client
-        .from('shops')
-        .select('id, plan:subscription_plans(*)')
-        .eq('seller_id', userId)
-        .maybeSingle();
+    // Shop+plan and categories are independent — fetch in parallel so the
+    // form's `loadingContext` window is dominated by the slower of the two,
+    // not their sum.
+    final results = await Future.wait<Object?>([
+      _client
+          .from('shops')
+          .select('id, plan:subscription_plans(*)')
+          .eq('seller_id', userId)
+          .maybeSingle(),
+      _fetchCategories(),
+    ]);
+    final shopRow = results[0] as Map<String, dynamic>?;
+    final categories = results[1] as List<CategoryModel>;
+
     if (shopRow == null) {
       throw StateError("Shop is not yet created for the current seller");
     }
@@ -125,12 +132,11 @@ class AddProductRepository {
     final plan = planJson is Map<String, dynamic>
         ? SubscriptionPlan.fromJson(planJson)
         : _fallbackPlan;
-
-    final productsCount = await _countActiveProducts(shopRow['id'] as String);
-    final categories = await _fetchCategories();
+    final shopId = shopRow['id'] as String;
+    final productsCount = await _countActiveProducts(shopId);
 
     return AddProductShopContext(
-      shopId: shopRow['id'] as String,
+      shopId: shopId,
       sellerId: userId,
       plan: plan,
       activeProductsCount: productsCount,
@@ -147,19 +153,34 @@ class AddProductRepository {
   }
 
   Future<List<CategoryModel>> _fetchCategories() async {
+    // Embedded `subcategories(...)` triggers PostgREST's FK join so the form
+    // can render the subcategory picker without a second round-trip.
     final rows = await _client
         .from('categories')
-        .select('id, name, name_uz, name_ru, subtitle, image_url, sort_order')
+        .select(
+          'id, name, name_uz, name_ru, subtitle, image_url, sort_order, '
+          'subcategories(id, category_id, name)',
+        )
         .order('sort_order', ascending: true);
     return (rows as List)
         .whereType<Map<String, dynamic>>()
-        .map((r) => CategoryModel(
-              id: r['id'] as String,
-              name: (r['name_uz'] as String?) ?? (r['name'] as String? ?? ''),
-              subtitle: r['subtitle'] as String?,
-              imageUrl: r['image_url'] as String?,
-              sortOrder: r['sort_order'] as int? ?? 0,
-            ))
+        .map((r) {
+          final subRaw = r['subcategories'];
+          final subs = subRaw is List
+              ? subRaw
+                  .whereType<Map<String, dynamic>>()
+                  .map(SubcategoryModel.fromJson)
+                  .toList(growable: false)
+              : const <SubcategoryModel>[];
+          return CategoryModel(
+            id: r['id'] as String,
+            name: (r['name_uz'] as String?) ?? (r['name'] as String? ?? ''),
+            subtitle: r['subtitle'] as String?,
+            imageUrl: r['image_url'] as String?,
+            sortOrder: r['sort_order'] as int? ?? 0,
+            subcategories: subs,
+          );
+        })
         .toList(growable: false);
   }
 
@@ -180,14 +201,12 @@ class AddProductRepository {
       'shop_id': input.shopId,
       'seller_id': input.sellerId,
       'category_id': input.categoryId,
+      if (input.subcategoryId != null) 'subcategory_id': input.subcategoryId,
       'name': input.name,
       'description': input.description.isEmpty ? null : input.description,
       'price': input.price,
       'images': uploaded.map((u) => u.publicUrl).toList(),
-      'width_cm': input.widthCm,
-      'height_cm': input.heightCm,
-      'depth_cm': input.depthCm,
-      'material': input.material,
+      'attributes': input.attributes.isEmpty ? null : input.attributes,
       'production_time_days': input.productionTimeDays,
       'has_delivery': input.hasDelivery,
       'delivery_price': input.hasDelivery ? input.deliveryPrice : 0,

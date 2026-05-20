@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
 
-/// Owns the lifecycle of the ten `TextEditingController`s the product form
-/// needs. Extracted from `_ProductFormViewState` (ROADMAP B.4) so the screen
-/// shell no longer carries a 10-field `initState`/`dispose` boilerplate block.
+/// Owns the lifecycle of the `TextEditingController`s the product form needs
+/// outside of the dynamic-attributes engine. Specs-section controllers
+/// (width/height/depth/material) were removed when those fields moved into
+/// the per-category attribute schema — those values now live in cubit state
+/// only and are wired through the `DynamicAttributesSection` renderer.
 class ProductFormControllers {
   ProductFormControllers()
       : name = TextEditingController(),
         description = TextEditingController(),
         price = TextEditingController(),
-        width = TextEditingController(),
-        height = TextEditingController(),
-        depth = TextEditingController(),
-        material = TextEditingController(),
         productionDays = TextEditingController(text: '3-5'),
         deliveryPrice = TextEditingController(),
         warrantyMonths = TextEditingController(text: '12');
@@ -19,10 +17,6 @@ class ProductFormControllers {
   final TextEditingController name;
   final TextEditingController description;
   final TextEditingController price;
-  final TextEditingController width;
-  final TextEditingController height;
-  final TextEditingController depth;
-  final TextEditingController material;
   final TextEditingController productionDays;
   final TextEditingController deliveryPrice;
   final TextEditingController warrantyMonths;
@@ -31,10 +25,6 @@ class ProductFormControllers {
         name,
         description,
         price,
-        width,
-        height,
-        depth,
-        material,
         productionDays,
         deliveryPrice,
         warrantyMonths,

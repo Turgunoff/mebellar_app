@@ -6,17 +6,19 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import '../../../../../shared/models/category_model.dart';
 import '../../bloc/add_product_cubit.dart';
 import '../../controller/product_form_controllers.dart';
 import 'basic_info_section.dart';
 import 'category_picker_sheet.dart';
+import 'dynamic_attributes_section.dart';
 import 'form_kit.dart';
 import 'logistics_section.dart';
 import 'media_section.dart';
 import 'pricing_section.dart';
-import 'specs_section.dart';
+import 'variant_section.dart';
 
 /// Scrollable body of the product form — assembles every section and owns the
 /// picker/sheet/dialog interactions that the sections trigger.
@@ -47,7 +49,7 @@ class ProductFormBody extends StatelessWidget {
           MediaSection(
             files: state.imageFiles,
             maxImages: state.maxImages,
-            onAdd: () => _pickImage(context),
+            onAdd: () => _pickImages(context),
             onRemove: cubit.removeImageAt,
           ),
           const SizedBox(height: 20),
@@ -55,21 +57,22 @@ class ProductFormBody extends StatelessWidget {
             nameController: controllers.name,
             descriptionController: controllers.description,
             categoryLabel: cubit.findCategory(state.categoryId)?.name,
+            subcategoryLabel: _subcategoryLabel(cubit, state),
+            subcategoryEnabled: _subcategoryEnabled(cubit, state),
             onCategoryTap: () => _openCategorySheet(context),
+            onSubcategoryTap: () => _openSubcategorySheet(context),
             onNameChanged: cubit.setName,
             onDescriptionChanged: cubit.setDescription,
           ),
           const SizedBox(height: 20),
-          SpecsSection(
-            widthController: controllers.width,
-            heightController: controllers.height,
-            depthController: controllers.depth,
-            materialController: controllers.material,
+          DynamicAttributesSection(
+            state: state,
+            onChanged: cubit.setAttribute,
+          ),
+          if (state.attributeSchema.isNotEmpty || state.categoryId != null)
+            const SizedBox(height: 20),
+          VariantSection(
             selectedColor: state.colorSlug,
-            onWidthChanged: (v) => cubit.setDimensions(width: v),
-            onHeightChanged: (v) => cubit.setDimensions(height: v),
-            onDepthChanged: (v) => cubit.setDimensions(depth: v),
-            onMaterialChanged: cubit.setMaterial,
             onColorToggle: cubit.selectColor,
           ),
           const SizedBox(height: 20),
@@ -102,17 +105,68 @@ class ProductFormBody extends StatelessWidget {
     );
   }
 
-  Future<void> _pickImage(BuildContext context) async {
+  Future<void> _pickImages(BuildContext context) async {
     final cubit = context.read<AddProductCubit>();
-    if (!cubit.state.canPickMoreImages) return;
+    final state = cubit.state;
+    if (!state.canPickMoreImages) return;
 
-    final picked = await picker.pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 2048,
-      imageQuality: 92,
-    );
-    if (picked == null) return;
-    cubit.addImage(File(picked.path));
+    final unlimited = state.maxImages < 0;
+    final remaining =
+        unlimited ? null : state.maxImages - state.imageFiles.length;
+    if (!unlimited && (remaining ?? 0) <= 0) return;
+
+    final List<XFile> picked;
+    if (remaining == 1) {
+      // pickMultiImage requires `limit >= 2` on Android, so fall back to the
+      // single-pick API when the user has exactly one slot left.
+      final single = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 2048,
+        imageQuality: 92,
+      );
+      picked = single == null ? const [] : [single];
+    } else {
+      picked = await picker.pickMultiImage(
+        maxWidth: 2048,
+        imageQuality: 92,
+        limit: remaining,
+      );
+    }
+    if (picked.isEmpty) return;
+    final files = [for (final x in picked) File(x.path)];
+    final added = cubit.addImages(files);
+
+    if (!context.mounted) return;
+    if (added < picked.length) {
+      final cap = unlimited ? '∞' : '${state.maxImages}';
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.warning,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 4),
+            content: Row(
+              children: [
+                const Icon(Iconsax.info_circle, color: Colors.white, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Tarifingiz bo‘yicha 1 ta mahsulotga $cap ta rasm '
+                    'biriktirish mumkin. Faqat $added tasi qo‘shildi.',
+                    style: const TextStyle(
+                      fontFamily: AppFonts.seller,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                      height: 1.3,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+    }
   }
 
   Future<void> _openCategorySheet(BuildContext context) async {
@@ -136,6 +190,50 @@ class ProductFormBody extends StatelessWidget {
     if (picked != null) {
       cubit.selectCategory(picked.id);
     }
+  }
+
+  Future<void> _openSubcategorySheet(BuildContext context) async {
+    final cubit = context.read<AddProductCubit>();
+    final state = cubit.state;
+    final category = cubit.findCategory(state.categoryId);
+    if (category == null || category.subcategories.isEmpty) return;
+    final primary = Theme.of(context).colorScheme.primary;
+
+    final picked = await showModalBottomSheet<Object>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => SubcategoryPickerSheet(
+        parentName: category.name,
+        subcategories: category.subcategories,
+        selectedId: state.subcategoryId,
+        accent: primary,
+      ),
+    );
+    if (picked == null) return;
+    if (isClearSubcategoryResult(picked)) {
+      cubit.selectSubcategory(null);
+    } else if (picked is SubcategoryModel) {
+      cubit.selectSubcategory(picked.id);
+    }
+  }
+
+  String? _subcategoryLabel(AddProductCubit cubit, AddProductState state) {
+    final id = state.subcategoryId;
+    if (id == null) return null;
+    final category = cubit.findCategory(state.categoryId);
+    if (category == null) return null;
+    for (final s in category.subcategories) {
+      if (s.id == id) return s.name;
+    }
+    return null;
+  }
+
+  bool _subcategoryEnabled(AddProductCubit cubit, AddProductState state) {
+    final category = cubit.findCategory(state.categoryId);
+    return category != null && category.subcategories.isNotEmpty;
   }
 
   Future<void> _openCustomDiscountDialog(BuildContext context) async {

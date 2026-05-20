@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../config/app_config.dart';
 import '../../seller/features/products/data/add_product_repository.dart';
+import '../../seller/features/products/data/attributes_repository.dart';
 import '../../shared/mock/mock_regions.dart';
 import '../../shared/mock/mock_seller_onboarding_repository.dart';
 import '../../shared/mock/mock_seller_order_repository.dart';
@@ -93,6 +94,9 @@ void registerSellerModule(GetIt sl) {
   if (sl.isRegistered<SupabaseClient>()) {
     sl.registerLazySingleton<AddProductRepository>(
       () => AddProductRepository(supabase: sl<SupabaseClient>()),
+    );
+    sl.registerLazySingleton<AttributesRepository>(
+      () => SupabaseAttributesRepository(supabase: sl<SupabaseClient>()),
     );
   }
 

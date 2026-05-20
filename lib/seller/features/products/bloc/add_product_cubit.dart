@@ -4,9 +4,11 @@ import 'dart:math' as math;
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../shared/models/attribute_definition.dart';
 import '../../../../shared/models/category_model.dart';
 import '../../../../shared/models/tariff.dart';
 import '../data/add_product_repository.dart';
+import '../data/attributes_repository.dart';
 
 enum AddProductStatus {
   /// Loading the shop + plan + product count.
@@ -38,10 +40,10 @@ class AddProductState extends Equatable {
     this.name = '',
     this.description = '',
     this.categoryId,
-    this.widthCm,
-    this.heightCm,
-    this.depthCm,
-    this.material = '',
+    this.subcategoryId,
+    this.attributeSchema = const [],
+    this.attributes = const {},
+    this.isLoadingSchema = false,
     this.colorSlug,
     this.price = 0,
     this.discountPercent = 0,
@@ -60,10 +62,10 @@ class AddProductState extends Equatable {
   final String name;
   final String description;
   final String? categoryId;
-  final int? widthCm;
-  final int? heightCm;
-  final int? depthCm;
-  final String material;
+  final String? subcategoryId;
+  final List<AttributeDefinition> attributeSchema;
+  final Map<String, dynamic> attributes;
+  final bool isLoadingSchema;
   final String? colorSlug;
   final num price;
   final int discountPercent;
@@ -86,6 +88,20 @@ class AddProductState extends Equatable {
     return imageFiles.length < maxImages;
   }
 
+  /// True when every `is_required` definition in [attributeSchema] has a
+  /// non-empty value in [attributes]. An empty schema (no category-specific
+  /// attrs) is treated as valid.
+  bool get hasAllRequiredAttributes {
+    for (final def in attributeSchema) {
+      if (!def.isRequired) continue;
+      final value = attributes[def.key];
+      if (value == null) return false;
+      if (value is String && value.trim().isEmpty) return false;
+      if (value is List && value.isEmpty) return false;
+    }
+    return true;
+  }
+
   /// Form-level validity. Driven by the same rules that gate the bottom CTA.
   bool get canSubmit {
     if (context == null) return false;
@@ -97,6 +113,7 @@ class AddProductState extends Equatable {
     if (categoryId == null) return false;
     if (price <= 0) return false;
     if (hasDelivery && deliveryPrice < 0) return false;
+    if (!hasAllRequiredAttributes) return false;
     return true;
   }
 
@@ -111,10 +128,11 @@ class AddProductState extends Equatable {
     String? description,
     String? categoryId,
     bool clearCategory = false,
-    int? widthCm,
-    int? heightCm,
-    int? depthCm,
-    String? material,
+    String? subcategoryId,
+    bool clearSubcategory = false,
+    List<AttributeDefinition>? attributeSchema,
+    Map<String, dynamic>? attributes,
+    bool? isLoadingSchema,
     String? colorSlug,
     bool clearColor = false,
     num? price,
@@ -135,10 +153,11 @@ class AddProductState extends Equatable {
       name: name ?? this.name,
       description: description ?? this.description,
       categoryId: clearCategory ? null : (categoryId ?? this.categoryId),
-      widthCm: widthCm ?? this.widthCm,
-      heightCm: heightCm ?? this.heightCm,
-      depthCm: depthCm ?? this.depthCm,
-      material: material ?? this.material,
+      subcategoryId:
+          clearSubcategory ? null : (subcategoryId ?? this.subcategoryId),
+      attributeSchema: attributeSchema ?? this.attributeSchema,
+      attributes: attributes ?? this.attributes,
+      isLoadingSchema: isLoadingSchema ?? this.isLoadingSchema,
       colorSlug: clearColor ? null : (colorSlug ?? this.colorSlug),
       price: price ?? this.price,
       discountPercent: discountPercent ?? this.discountPercent,
@@ -161,10 +180,10 @@ class AddProductState extends Equatable {
         name,
         description,
         categoryId,
-        widthCm,
-        heightCm,
-        depthCm,
-        material,
+        subcategoryId,
+        attributeSchema,
+        attributes,
+        isLoadingSchema,
         colorSlug,
         price,
         discountPercent,
@@ -179,11 +198,20 @@ class AddProductState extends Equatable {
 }
 
 class AddProductCubit extends Cubit<AddProductState> {
-  AddProductCubit({required AddProductRepository repository})
-      : _repository = repository,
+  AddProductCubit({
+    required AddProductRepository repository,
+    required AttributesRepository attributesRepository,
+  })  : _repository = repository,
+        _attributesRepository = attributesRepository,
         super(AddProductState(sku: _generateSku()));
 
   final AddProductRepository _repository;
+  final AttributesRepository _attributesRepository;
+
+  /// Increments on every category/subcategory change. Stale responses from
+  /// the attributes repository are discarded by comparing against the
+  /// in-flight token so rapid taps don't paint the wrong schema.
+  int _schemaRequestId = 0;
 
   /// MH-{YYYY}-{4 digits}. Generated up-front so the user never has to type
   /// it; the variant row carries it through to the warehouse export.
@@ -219,24 +247,95 @@ class AddProductCubit extends Cubit<AddProductState> {
   void setName(String value) => emit(state.copyWith(name: value));
   void setDescription(String value) =>
       emit(state.copyWith(description: value));
-  void setMaterial(String value) => emit(state.copyWith(material: value));
   void setProductionDays(String value) =>
       emit(state.copyWith(productionTimeDays: value));
 
+  /// Selecting a (new) category wipes the entire [attributes] map and triggers
+  /// a fresh schema load. Subcategory is also cleared because it's scoped
+  /// inside the previous category.
   void selectCategory(String? id) {
     if (id == null) {
-      emit(state.copyWith(clearCategory: true));
-    } else {
-      emit(state.copyWith(categoryId: id));
+      emit(state.copyWith(
+        clearCategory: true,
+        clearSubcategory: true,
+        attributeSchema: const [],
+        attributes: const {},
+      ));
+      return;
+    }
+    if (state.categoryId == id) return;
+    emit(state.copyWith(
+      categoryId: id,
+      clearSubcategory: true,
+      attributeSchema: const [],
+      attributes: const {},
+    ));
+    _reloadSchema();
+  }
+
+  /// Selecting (or clearing) the subcategory keeps the category-scoped values
+  /// intact but drops anything that was tied to the previously-selected
+  /// subcategory so we don't ship orphan keys into JSONB.
+  void selectSubcategory(String? id) {
+    if (id == state.subcategoryId) return;
+    final pruned = _pruneSubcategoryAttributes(state.attributes, state.attributeSchema);
+    emit(state.copyWith(
+      subcategoryId: id,
+      clearSubcategory: id == null,
+      attributes: pruned,
+    ));
+    _reloadSchema();
+  }
+
+  Map<String, dynamic> _pruneSubcategoryAttributes(
+    Map<String, dynamic> values,
+    List<AttributeDefinition> schema,
+  ) {
+    final subKeys = {
+      for (final def in schema)
+        if (def.isSubcategoryScoped) def.key,
+    };
+    if (subKeys.isEmpty) return values;
+    return {
+      for (final entry in values.entries)
+        if (!subKeys.contains(entry.key)) entry.key: entry.value,
+    };
+  }
+
+  Future<void> _reloadSchema() async {
+    final categoryId = state.categoryId;
+    if (categoryId == null) return;
+    final token = ++_schemaRequestId;
+    emit(state.copyWith(isLoadingSchema: true));
+    try {
+      final schema = await _attributesRepository.loadForCategory(
+        categoryId: categoryId,
+        subcategoryId: state.subcategoryId,
+      );
+      if (token != _schemaRequestId) return; // stale response
+      emit(state.copyWith(
+        attributeSchema: schema,
+        isLoadingSchema: false,
+      ));
+    } catch (e) {
+      if (token != _schemaRequestId) return;
+      emit(state.copyWith(
+        isLoadingSchema: false,
+        error: e.toString(),
+      ));
     }
   }
 
-  void setDimensions({int? width, int? height, int? depth}) {
-    emit(state.copyWith(
-      widthCm: width ?? state.widthCm,
-      heightCm: height ?? state.heightCm,
-      depthCm: depth ?? state.depthCm,
-    ));
+  /// Writes a single attribute value. Passing `null` removes the key — the
+  /// form binds optional-clear chips this way.
+  void setAttribute(String key, dynamic value) {
+    final next = Map<String, dynamic>.from(state.attributes);
+    if (value == null) {
+      next.remove(key);
+    } else {
+      next[key] = value;
+    }
+    emit(state.copyWith(attributes: next));
   }
 
   void selectColor(String? slug) {
@@ -274,6 +373,23 @@ class AddProductCubit extends Cubit<AddProductState> {
     emit(state.copyWith(imageFiles: [...state.imageFiles, file]));
   }
 
+  /// Append multiple images, trimming the input to whatever quota remains.
+  /// Returns the number actually added so the UI can warn when the picker
+  /// returned more than the tariff allows.
+  int addImages(List<File> files) {
+    if (files.isEmpty || !state.canPickMoreImages) return 0;
+    final List<File> accepted;
+    if (state.maxImages < 0) {
+      accepted = files;
+    } else {
+      final remaining = state.maxImages - state.imageFiles.length;
+      if (remaining <= 0) return 0;
+      accepted = files.length <= remaining ? files : files.sublist(0, remaining);
+    }
+    emit(state.copyWith(imageFiles: [...state.imageFiles, ...accepted]));
+    return accepted.length;
+  }
+
   void removeImageAt(int index) {
     if (index < 0 || index >= state.imageFiles.length) return;
     final next = [...state.imageFiles]..removeAt(index);
@@ -302,14 +418,12 @@ class AddProductCubit extends Cubit<AddProductState> {
           name: state.name.trim(),
           description: state.description.trim(),
           categoryId: state.categoryId!,
+          subcategoryId: state.subcategoryId,
           price: state.price,
           discountPercent: state.discountPercent,
           sku: state.sku,
           colorName: _colorNameFor(state.colorSlug),
-          widthCm: state.widthCm,
-          heightCm: state.heightCm,
-          depthCm: state.depthCm,
-          material: state.material.trim().isEmpty ? null : state.material.trim(),
+          attributes: Map<String, dynamic>.from(state.attributes),
           productionTimeDays: state.productionTimeDays.trim().isEmpty
               ? null
               : state.productionTimeDays.trim(),

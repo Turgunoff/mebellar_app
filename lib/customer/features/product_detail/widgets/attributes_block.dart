@@ -7,7 +7,9 @@ class AttributesBlock extends StatelessWidget {
   final Map<String, dynamic> attributes;
 
   String _labelFor(String key) {
-    // Try i18n first, fall back to a humanised version of the raw key.
+    // Try i18n first, fall back to a humanised version of the raw key. DB
+    // labels (attribute_definitions.label_uz/label_ru) ship as canonical
+    // strings already so the i18n map remains a fallback only.
     final tk = 'attributes.$key';
     final translated = tr(tk);
     if (translated == tk) {
@@ -16,6 +18,18 @@ class AttributesBlock extends StatelessWidget {
           .replaceFirstMapped(RegExp(r'^.'), (m) => m[0]!.toUpperCase());
     }
     return translated;
+  }
+
+  /// Renders an attribute value for display. Booleans and lists used to print
+  /// `true` / `[a, b]` raw — handle them explicitly so the section reads
+  /// nicely regardless of the JSONB shape the seller produced.
+  String _renderValue(dynamic value) {
+    if (value == null) return '—';
+    if (value is bool) return value ? tr('common.yes') : tr('common.no');
+    if (value is List) {
+      return value.map((v) => v?.toString() ?? '').where((s) => s.isNotEmpty).join(', ');
+    }
+    return value.toString();
   }
 
   @override
@@ -59,7 +73,7 @@ class AttributesBlock extends StatelessWidget {
                       Expanded(
                         flex: 6,
                         child: Text(
-                          '${attributes.values.elementAt(i)}',
+                          _renderValue(attributes.values.elementAt(i)),
                           style: Theme.of(context).textTheme.bodyMedium,
                           textAlign: TextAlign.end,
                         ),
