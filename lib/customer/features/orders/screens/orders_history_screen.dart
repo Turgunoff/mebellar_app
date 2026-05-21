@@ -246,6 +246,39 @@ class _OrderCard extends StatelessWidget {
                           ),
                         ],
                       ),
+                      if (feePending) ...[
+                        const SizedBox(height: 10),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFF8EE),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                                color: const Color(0xFFFFD580), width: 1),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.local_shipping_outlined,
+                                  size: 15, color: Color(0xFF8C5A12)),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Yetkazish narxi o\'zgardi — tasdiqlash kerak',
+                                  style: PremiumTokens.body(
+                                    size: 12,
+                                    weight: FontWeight.w600,
+                                    color: const Color(0xFF8C5A12),
+                                  ),
+                                ),
+                              ),
+                              const Icon(Iconsax.arrow_right_3,
+                                  size: 13, color: Color(0xFF8C5A12)),
+                            ],
+                          ),
+                        ),
+                      ],
                       if (canCancel) ...[
                         const SizedBox(height: 8),
                         Align(
