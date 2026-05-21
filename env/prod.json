@@ -1,8 +1,6 @@
 {
   "APP_ENV": "prod",
   "API_BASE_URL": "https://oifdvxsfrciatzgivtgs.supabase.co/functions/v1",
-  "USE_MOCKS": false,
-  "SELLER_FULFILLMENT_ENABLED": true,
   "SUPABASE_URL": "https://oifdvxsfrciatzgivtgs.supabase.co",
   "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9pZmR2eHNmcmNpYXR6Z2l2dGdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2MzIyOTQsImV4cCI6MjA5MzIwODI5NH0.3ptpS4WFsLW-EHt6EVr-gSLOjGRAew405HTZ2CwWj98",
   "ONESIGNAL_APP_ID": "",

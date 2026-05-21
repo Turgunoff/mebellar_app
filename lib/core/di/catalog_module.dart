@@ -3,18 +3,7 @@ import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../config/app_config.dart';
 import '../../customer/features/notifications/cubit/notifications_cubit.dart';
-import '../../shared/mock/mock_address_repository.dart';
-import '../../shared/mock/mock_banner_repository.dart';
-import '../../shared/mock/mock_cart_repository.dart';
-import '../../shared/mock/mock_category_repository.dart';
-import '../../shared/mock/mock_favorites_repository.dart';
-import '../../shared/mock/mock_notifications_repository.dart';
-import '../../shared/mock/mock_order_repository.dart';
-import '../../shared/mock/mock_product_repository.dart';
-import '../../shared/mock/mock_region_repository.dart';
-import '../../shared/mock/mock_shop_repository.dart';
 import '../../shared/repositories/address_repository.dart';
 import '../../shared/repositories/banner_repository.dart';
 import '../../shared/repositories/cart_repository.dart';
@@ -41,37 +30,34 @@ import '../storage/hive_boxes.dart';
 import 'repository_resolver.dart';
 
 /// Root-scope catalog + customer-shared repositories and data sources.
-/// Every "which implementation" branch flows through [RepositoryResolver]
-/// instead of hand-rolled `isRegistered<SupabaseClient>()` ternaries.
+///
+/// Every read goes against Supabase when a client was produced at boot
+/// (`AppConfig.assertConfigured` makes that the only legal production
+/// state). The legacy Dio/REST `Remote*` variants stay as the fallback for
+/// builds without a Supabase client — a state that should never reach
+/// production but is exercised by integration tests that construct a Dio
+/// without a backing project.
 void registerCatalogModule(GetIt sl) {
   final resolver = RepositoryResolver.fromEnvironment(
     hasSupabase: sl.isRegistered<SupabaseClient>(),
   );
 
-  // --- data sources (Supabase, or an offline mock — no Dio variant) --------
-  sl.registerLazySingleton<CategoryDataSource>(
-    () => resolver.resolveOrFallback<CategoryDataSource>(
-      supabase: () =>
-          SupabaseCategoryRepository(supabase: sl<SupabaseClient>()),
-      fallback: MockCategoryDataSource.new,
-    ),
-  );
-  sl.registerLazySingleton<SupabaseProductDataSource>(
-    () => resolver.resolveOrFallback<SupabaseProductDataSource>(
-      supabase: () => SupabaseProductRepository(supabase: sl<SupabaseClient>()),
-      fallback: MockSupabaseProductDataSource.new,
-    ),
-  );
-  sl.registerLazySingleton<NotificationDataSource>(
-    () => resolver.resolveOrFallback<NotificationDataSource>(
-      supabase: () =>
-          SupabaseNotificationsRepository(supabase: sl<SupabaseClient>()),
-      fallback: MockNotificationDataSource.new,
-    ),
-  );
-
-  // NewsDataSource — public broadcast feed; only when Supabase is live.
+  // --- data sources (Supabase-only — no offline fallback) ------------------
+  // The customer-facing catalog data sources are Supabase-only: production
+  // never boots without `SUPABASE_URL` (see `AppConfig.assertConfigured`),
+  // so a fallback would only mask a misconfigured build.
   if (sl.isRegistered<SupabaseClient>()) {
+    sl.registerLazySingleton<CategoryDataSource>(
+      () => SupabaseCategoryRepository(supabase: sl<SupabaseClient>()),
+    );
+    sl.registerLazySingleton<SupabaseProductDataSource>(
+      () => SupabaseProductRepository(supabase: sl<SupabaseClient>()),
+    );
+    sl.registerLazySingleton<NotificationDataSource>(
+      () => SupabaseNotificationsRepository(supabase: sl<SupabaseClient>()),
+    );
+
+    // NewsDataSource — public broadcast feed; only when Supabase is live.
     sl.registerLazySingleton<NewsDataSource>(
       () => SupabaseNewsRepository(
         supabase: sl<SupabaseClient>(),
@@ -93,29 +79,25 @@ void registerCatalogModule(GetIt sl) {
     dispose: (c) => c.close(),
   );
 
-  // --- catalog repositories (Supabase / mock / remote matrix) --------------
+  // --- catalog repositories (Supabase or legacy REST) ----------------------
   sl.registerLazySingleton<ProductRepository>(
     () => resolver.resolve<ProductRepository>(
-      mock: AppConfig.useMocks ? MockProductRepository.new : null,
       remote: () => RemoteProductRepository(sl<Dio>()),
     ),
   );
   sl.registerLazySingleton<CategoryRepository>(
     () => resolver.resolve<CategoryRepository>(
-      mock: AppConfig.useMocks ? MockCategoryRepository.new : null,
       remote: () => RemoteCategoryRepository(sl<Dio>()),
     ),
   );
   sl.registerLazySingleton<ShopRepository>(
     () => resolver.resolve<ShopRepository>(
-      mock: AppConfig.useMocks ? MockShopRepository.new : null,
       remote: () => RemoteShopRepository(sl<Dio>()),
     ),
   );
   sl.registerLazySingleton<BannerRepository>(
     () => resolver.resolve<BannerRepository>(
       supabase: () => SupabaseBannerRepository(supabase: sl<SupabaseClient>()),
-      mock: AppConfig.useMocks ? MockBannerRepository.new : null,
       remote: () => RemoteBannerRepository(sl<Dio>()),
     ),
   );
@@ -126,7 +108,6 @@ void registerCatalogModule(GetIt sl) {
         remote: SupabaseCartRepository(supabase: sl<SupabaseClient>()),
         supabase: sl<SupabaseClient>(),
       ),
-      mock: AppConfig.useMocks ? MockCartRepository.new : null,
       remote: () => RemoteCartRepository(sl<Dio>()),
     ),
   );
@@ -138,41 +119,26 @@ void registerCatalogModule(GetIt sl) {
         remote: SupabaseFavoritesRepository(supabase: sl<SupabaseClient>()),
         supabase: sl<SupabaseClient>(),
       ),
-      mock: AppConfig.useMocks ? MockFavoritesRepository.new : null,
       remote: () => RemoteFavoritesRepository(sl<Dio>()),
     ),
   );
   sl.registerLazySingleton<RegionRepository>(
     () => resolver.resolve<RegionRepository>(
-      mock: AppConfig.useMocks ? MockRegionRepository.new : null,
       remote: () => RemoteRegionRepository(sl<Dio>()),
     ),
   );
   sl.registerLazySingleton<AddressRepository>(
     () => resolver.resolve<AddressRepository>(
-      mock: AppConfig.useMocks ? MockAddressRepository.new : null,
       remote: () => RemoteAddressRepository(sl<Dio>()),
     ),
   );
-
-  // OrderRepository — PRESERVED EXCEPTION (ROADMAP B.6 review note): unlike
-  // every other repository here, a mock build ALWAYS uses MockOrderRepository
-  // and never the Supabase implementation; only the non-mock build prefers
-  // Supabase. Do NOT collapse this into `resolver.resolve(...)`, which is
-  // Supabase-preferred and would change behaviour for mock builds.
-  sl.registerLazySingleton<OrderRepository>(() {
-    // `AppConfig.useMocks` (not `resolver.hasSupabase`) is read directly so a
-    // non-mock build const-folds this branch away and tree-shakes
-    // MockOrderRepository out of the binary (ROADMAP B.7).
-    if (AppConfig.useMocks) return MockOrderRepository();
-    return resolver.hasSupabase
+  sl.registerLazySingleton<OrderRepository>(
+    () => resolver.hasSupabase
         ? SupabaseOrderRepository(sl<SupabaseClient>())
-        : RemoteOrderRepository(sl<Dio>());
-  });
-
+        : RemoteOrderRepository(sl<Dio>()),
+  );
   sl.registerLazySingleton<NotificationsRepository>(
     () => resolver.resolve<NotificationsRepository>(
-      mock: AppConfig.useMocks ? MockNotificationsRepository.new : null,
       remote: () => RemoteNotificationsRepository(sl<Dio>()),
     ),
   );

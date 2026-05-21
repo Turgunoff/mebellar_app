@@ -1,6 +1,6 @@
-import '../models/address.dart';
-import '../models/order.dart';
-import '../models/order_status.dart';
+import 'package:woody_app/shared/models/address.dart';
+import 'package:woody_app/shared/models/order.dart';
+import 'package:woody_app/shared/models/order_status.dart';
 import 'mock_data.dart';
 import 'mock_regions.dart';
 

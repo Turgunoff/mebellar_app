@@ -2,17 +2,23 @@ import 'dart:async';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../shared/models/order.dart';
 import '../../../../shared/repositories/seller_dashboard_repository.dart';
 import '../../../../shared/repositories/supabase_seller_dashboard_repository.dart';
+import '../../profile/data/seller_identity_cache.dart';
 
 /// Single-state cubit that powers `SellerDashboardScreen`. The state always
 /// holds a valid (possibly zero-filled) `data` object so the UI never has to
 /// branch on null — the zero-state experience is just `data == empty`.
 class SellerDashboardCubit extends Cubit<SellerDashboardState> {
-  SellerDashboardCubit(this._repo)
-      : super(SellerDashboardState.initial()) {
+  SellerDashboardCubit(
+    this._repo, {
+    this.cache,
+    SupabaseClient? supabase,
+  })  : _supabase = supabase,
+        super(SellerDashboardState.initial()) {
     final repo = _repo;
     if (repo is SupabaseSellerDashboardRepository) {
       _shopInfoFetcher = repo.fetchShopInfo;
@@ -21,11 +27,27 @@ class SellerDashboardCubit extends Cubit<SellerDashboardState> {
   }
 
   final SellerDashboardRepository _repo;
+  final SellerIdentityCache? cache;
+  final SupabaseClient? _supabase;
   Future<SellerShopInfo> Function()? _shopInfoFetcher;
   StreamSubscription<Order>? _newOrdersSub;
 
   Future<void> load() async {
-    emit(state.copyWith(isLoading: true, clearError: true));
+    // Hydrate the greeting from cache so the user's shop name paints
+    // immediately while the live snapshot fetch is still in flight.
+    final cached = _readCachedGreeting();
+    if (cached != null) {
+      emit(state.copyWith(
+        isLoading: true,
+        clearError: true,
+        data: state.data.copyWith(
+          shopName: cached.shopName,
+          sellerName: cached.sellerName,
+        ),
+      ));
+    } else {
+      emit(state.copyWith(isLoading: true, clearError: true));
+    }
     await _loadInto(state.data);
   }
 
@@ -65,6 +87,10 @@ class SellerDashboardCubit extends Cubit<SellerDashboardState> {
           ),
         ),
       );
+      // Persist the greeting fields the profile screen also reads. `merge` so
+      // the profile-only fields (logo, verification, plan) survive when the
+      // dashboard is the first surface to populate the cache.
+      _writeCachedGreeting(info);
     } catch (e) {
       emit(
         SellerDashboardState(
@@ -74,6 +100,28 @@ class SellerDashboardCubit extends Cubit<SellerDashboardState> {
         ),
       );
     }
+  }
+
+  SellerIdentitySnapshot? _readCachedGreeting() {
+    final c = cache;
+    final userId = _supabase?.auth.currentUser?.id;
+    if (c == null || userId == null) return null;
+    final snapshot = c.read(userId);
+    if (snapshot == null || snapshot.isEmpty) return null;
+    return snapshot;
+  }
+
+  void _writeCachedGreeting(SellerShopInfo info) {
+    final c = cache;
+    final userId = _supabase?.auth.currentUser?.id;
+    if (c == null || userId == null) return;
+    unawaited(c.merge(
+      userId,
+      SellerIdentitySnapshot(
+        shopName: info.shopName,
+        sellerName: info.sellerName,
+      ),
+    ));
   }
 
   @override
@@ -113,6 +161,28 @@ class SellerDashboardData extends Equatable {
 
   bool get hasRecentOrders => recentOrders.isNotEmpty;
   bool get productLimitExceeded => productsCount > productLimit;
+
+  SellerDashboardData copyWith({
+    String? sellerName,
+    String? shopName,
+    num? todaysSales,
+    int? todaysOrders,
+    int? pendingOrders,
+    int? productsCount,
+    int? productLimit,
+    List<Order>? recentOrders,
+  }) {
+    return SellerDashboardData(
+      sellerName: sellerName ?? this.sellerName,
+      shopName: shopName ?? this.shopName,
+      todaysSales: todaysSales ?? this.todaysSales,
+      todaysOrders: todaysOrders ?? this.todaysOrders,
+      pendingOrders: pendingOrders ?? this.pendingOrders,
+      productsCount: productsCount ?? this.productsCount,
+      productLimit: productLimit ?? this.productLimit,
+      recentOrders: recentOrders ?? this.recentOrders,
+    );
+  }
 
   @override
   List<Object?> get props => [

@@ -1,4 +1,4 @@
-import '../models/app_notification.dart';
+import 'package:woody_app/shared/models/app_notification.dart';
 
 /// Initial notification feed shown when the user first opens the screen.
 /// Mix of customer + seller items so the unread badge logic has something

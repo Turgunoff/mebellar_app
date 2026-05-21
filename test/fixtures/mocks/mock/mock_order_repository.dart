@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:math' as math;
 
-import '../models/order.dart';
-import '../models/order_status.dart';
-import '../repositories/order_repository.dart';
+import 'package:woody_app/shared/models/order.dart';
+import 'package:woody_app/shared/models/order_status.dart';
+import 'package:woody_app/shared/repositories/order_repository.dart';
 import 'mock_orders_data.dart';
 
 /// Stateful mock used by orders list, order detail, and the realtime

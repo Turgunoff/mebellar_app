@@ -6,28 +6,27 @@ import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import 'settings_form_kit.dart';
 
-/// Brand colour swatch + region picker + street field.
+/// Brand colour swatch + address text field.
+///
+/// The region/city/district picker was removed when the `shops` schema
+/// rolled back to a flat `address text` column — the picker had no
+/// destination columns to write to. Restore it once the schema gains
+/// structured region columns.
 class BrandLocationCard extends StatelessWidget {
   const BrandLocationCard({
     super.key,
     required this.brandHex,
     required this.brandColor,
     required this.onPickColor,
-    required this.regionLabel,
-    required this.citySublabel,
-    required this.onPickRegion,
-    required this.streetController,
-    required this.onStreetChanged,
+    required this.addressController,
+    required this.onAddressChanged,
   });
 
   final String? brandHex;
   final Color? brandColor;
   final VoidCallback onPickColor;
-  final String regionLabel;
-  final String citySublabel;
-  final VoidCallback onPickRegion;
-  final TextEditingController streetController;
-  final VoidCallback onStreetChanged;
+  final TextEditingController addressController;
+  final VoidCallback onAddressChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -61,23 +60,11 @@ class BrandLocationCard extends StatelessWidget {
                 padding: EdgeInsets.symmetric(vertical: 12),
                 child: Divider(height: 1, thickness: 1, color: kDivider),
               ),
-              _ListRow(
-                onTap: onPickRegion,
-                leading: const IconTile(icon: Iconsax.location),
-                title: regionLabel,
-                subtitle: citySublabel.isEmpty ? '—' : citySublabel,
-                trailing: const Icon(
-                  Iconsax.arrow_right_3,
-                  size: 18,
-                  color: kGreyMid,
-                ),
-              ),
-              const SizedBox(height: 14),
               SettingsTextField(
-                controller: streetController,
+                controller: addressController,
                 label: tr('address.street'),
-                hint: "Ko'cha, uy raqami yoki mo'ljal",
-                onChanged: (_) => onStreetChanged(),
+                hint: "Shahar, ko'cha, uy raqami yoki mo'ljal",
+                onChanged: (_) => onAddressChanged(),
               ),
             ],
           ),

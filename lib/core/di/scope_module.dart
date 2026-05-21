@@ -1,4 +1,5 @@
 import 'package:get_it/get_it.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../customer/features/cart/bloc/cart_bloc.dart';
@@ -9,14 +10,19 @@ import '../../customer/features/orders/cubit/profile_orders_cubit.dart';
 import '../../customer/features/profile/cubit/profile_cubit.dart';
 import '../../customer/services/order_tracking_service.dart';
 import '../../seller/features/dashboard/bloc/seller_dashboard_cubit.dart';
+import '../../seller/features/profile/cubit/seller_profile_cubit.dart';
+import '../../seller/features/profile/data/seller_identity_cache.dart';
+import '../../seller/features/reviews/cubit/reviews_cubit.dart';
 import '../../seller/services/new_orders_listener.dart';
 import '../../shared/repositories/banner_repository.dart';
 import '../../shared/repositories/cart_repository.dart';
 import '../../shared/repositories/favorites_repository.dart';
 import '../../shared/repositories/seller_dashboard_repository.dart';
+import '../../shared/repositories/seller_reviews_repository.dart';
 import '../../shared/repositories/supabase_category_repository.dart';
 import '../../shared/repositories/supabase_product_data_source.dart';
 import '../connectivity/network_cubit.dart';
+import '../storage/hive_boxes.dart';
 
 /// Customer mode-scope: blocs and services torn down on a switch to seller.
 void registerCustomerScope(GetIt sl) {
@@ -70,7 +76,28 @@ void registerSellerScope(GetIt sl) {
     ),
     dispose: (svc) => svc.dispose(),
   );
-  sl.registerFactory<SellerDashboardCubit>(
-    () => SellerDashboardCubit(sl<SellerDashboardRepository>()),
+  // Hive-backed cache for the shop/seller/plan fields shown across the
+  // dashboard greeting + profile header. Lives in the shared `cache` box,
+  // which `performLogout` wipes — so the cache can never bleed across users.
+  sl.registerLazySingleton<SellerIdentityCache>(
+    () => SellerIdentityCache(sl<Box>(instanceName: HiveBoxes.cache)),
   );
+  sl.registerFactory<SellerDashboardCubit>(
+    () => SellerDashboardCubit(
+      sl<SellerDashboardRepository>(),
+      cache: sl<SellerIdentityCache>(),
+      supabase: sl.isRegistered<SupabaseClient>() ? sl<SupabaseClient>() : null,
+    ),
+  );
+  sl.registerFactory<SellerProfileCubit>(
+    () => SellerProfileCubit(
+      sl<SupabaseClient>(),
+      sl<SellerIdentityCache>(),
+    ),
+  );
+  if (sl.isRegistered<SellerReviewsRepository>()) {
+    sl.registerFactory<ReviewsCubit>(
+      () => ReviewsCubit(sl<SellerReviewsRepository>()),
+    );
+  }
 }

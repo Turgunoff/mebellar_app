@@ -4,10 +4,10 @@ import 'dart:io';
 import 'package:clock/clock.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../core/error/failure.dart';
-import '../../core/result/result.dart';
-import '../models/tariff.dart';
-import '../repositories/tariff_repository.dart';
+import 'package:woody_app/core/error/failure.dart';
+import 'package:woody_app/core/result/result.dart';
+import 'package:woody_app/shared/models/tariff.dart';
+import 'package:woody_app/shared/repositories/tariff_repository.dart';
 import 'mock_seller_state.dart';
 
 /// Stateful mock that drives the entire upgrade UX. Sprint 9 spec: after

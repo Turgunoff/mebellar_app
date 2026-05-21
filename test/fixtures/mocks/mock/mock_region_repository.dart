@@ -1,5 +1,5 @@
-import '../models/region.dart';
-import '../repositories/region_repository.dart';
+import 'package:woody_app/shared/models/region.dart';
+import 'package:woody_app/shared/repositories/region_repository.dart';
 import 'mock_regions.dart';
 
 class MockRegionRepository implements RegionRepository {

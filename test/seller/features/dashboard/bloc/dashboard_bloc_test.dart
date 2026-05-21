@@ -2,7 +2,7 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:woody_app/seller/features/dashboard/bloc/dashboard_bloc.dart';
-import 'package:woody_app/shared/mock/mock_orders_data.dart';
+import '../../../../fixtures/mocks/mock/mock_orders_data.dart';
 import 'package:woody_app/shared/models/dashboard_snapshot.dart';
 import 'package:woody_app/shared/models/order.dart';
 import 'package:woody_app/shared/models/tariff.dart';

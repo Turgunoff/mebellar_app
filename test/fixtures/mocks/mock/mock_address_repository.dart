@@ -1,5 +1,5 @@
-import '../models/address.dart';
-import '../repositories/address_repository.dart';
+import 'package:woody_app/shared/models/address.dart';
+import 'package:woody_app/shared/repositories/address_repository.dart';
 import 'mock_orders_data.dart';
 
 class MockAddressRepository implements AddressRepository {

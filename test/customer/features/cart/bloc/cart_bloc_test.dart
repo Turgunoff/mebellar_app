@@ -1,8 +1,8 @@
 ﻿import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:woody_app/customer/features/cart/bloc/cart_bloc.dart';
-import 'package:woody_app/shared/mock/mock_cart_repository.dart';
-import 'package:woody_app/shared/mock/mock_data.dart';
+import '../../../../fixtures/mocks/mock/mock_cart_repository.dart';
+import '../../../../fixtures/mocks/mock/mock_data.dart';
 import 'package:woody_app/shared/models/supabase_product_model.dart';
 
 /// Minimal smoke tests for the Sprint 12 cart bloc. Multi-shop grouping has

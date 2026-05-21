@@ -4,8 +4,6 @@ import 'dart:io';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../shared/models/multilingual_text.dart';
-import '../../../../shared/models/region.dart';
 import '../../../../shared/models/shop_settings.dart';
 import '../../../../shared/models/working_hours.dart';
 import '../../../../shared/repositories/shop_settings_repository.dart';
@@ -22,33 +20,21 @@ class ShopSettingsRequested extends ShopSettingsEvent {
 
 class ShopSettingsBasicsChanged extends ShopSettingsEvent {
   const ShopSettingsBasicsChanged({
-    this.nameUz,
-    this.nameRu,
-    this.nameEn,
-    this.descriptionUz,
-    this.descriptionRu,
-    this.descriptionEn,
+    this.name,
+    this.description,
     this.contactPhone,
     this.contactEmail,
     this.telegramUsername,
   });
-  final String? nameUz;
-  final String? nameRu;
-  final String? nameEn;
-  final String? descriptionUz;
-  final String? descriptionRu;
-  final String? descriptionEn;
+  final String? name;
+  final String? description;
   final String? contactPhone;
   final String? contactEmail;
   final String? telegramUsername;
   @override
   List<Object?> get props => [
-        nameUz,
-        nameRu,
-        nameEn,
-        descriptionUz,
-        descriptionRu,
-        descriptionEn,
+        name,
+        description,
         contactPhone,
         contactEmail,
         telegramUsername,
@@ -63,31 +49,12 @@ class ShopSettingsBrandColorChanged extends ShopSettingsEvent {
 }
 
 class ShopSettingsAddressChanged extends ShopSettingsEvent {
-  const ShopSettingsAddressChanged({
-    this.region,
-    this.city,
-    this.district,
-    this.streetLine,
-    this.lat,
-    this.lng,
-    this.clearDistrict = false,
-  });
-  final Region? region;
-  final Region? city;
-  final Region? district;
-  final String? streetLine;
+  const ShopSettingsAddressChanged({this.address, this.lat, this.lng});
+  final String? address;
   final double? lat;
   final double? lng;
-  final bool clearDistrict;
   @override
-  List<Object?> get props => [
-        region?.id,
-        city?.id,
-        district?.id,
-        streetLine,
-        lat,
-        lng,
-      ];
+  List<Object?> get props => [address, lat, lng];
 }
 
 class ShopSettingsHoursChanged extends ShopSettingsEvent {
@@ -195,22 +162,15 @@ class ShopSettingsBloc extends Bloc<ShopSettingsEvent, ShopSettingsState> {
   ) {
     final s = state.settings;
     if (s == null) return;
-    final next = s.copyWith(
-      name: MultilingualText(
-        uz: event.nameUz ?? s.name.uz,
-        ru: event.nameRu ?? s.name.ru,
-        en: event.nameEn ?? s.name.en,
+    emit(state.copyWith(
+      settings: s.copyWith(
+        name: event.name ?? s.name,
+        description: event.description ?? s.description,
+        contactPhone: event.contactPhone,
+        contactEmail: event.contactEmail,
+        telegramUsername: event.telegramUsername,
       ),
-      description: MultilingualText(
-        uz: event.descriptionUz ?? s.description.uz,
-        ru: event.descriptionRu ?? s.description.ru,
-        en: event.descriptionEn ?? s.description.en,
-      ),
-      contactPhone: event.contactPhone,
-      contactEmail: event.contactEmail,
-      telegramUsername: event.telegramUsername,
-    );
-    emit(state.copyWith(settings: next));
+    ));
   }
 
   void _onColor(
@@ -230,11 +190,7 @@ class ShopSettingsBloc extends Bloc<ShopSettingsEvent, ShopSettingsState> {
     if (s == null) return;
     emit(state.copyWith(
       settings: s.copyWith(
-        region: event.region,
-        city: event.city,
-        district: event.district,
-        clearDistrict: event.clearDistrict,
-        streetLine: event.streetLine,
+        address: event.address,
         lat: event.lat,
         lng: event.lng,
       ),

@@ -3,10 +3,10 @@ import 'dart:io';
 
 import 'package:clock/clock.dart';
 
-import '../../core/result/result.dart';
-import '../models/verification_document.dart';
-import '../models/verification_status.dart';
-import '../repositories/seller_verification_repository.dart';
+import 'package:woody_app/core/result/result.dart';
+import 'package:woody_app/shared/models/verification_document.dart';
+import 'package:woody_app/shared/models/verification_status.dart';
+import 'package:woody_app/shared/repositories/seller_verification_repository.dart';
 import 'mock_seller_state.dart';
 
 class MockSellerVerificationRepository

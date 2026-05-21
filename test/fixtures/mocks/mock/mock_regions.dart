@@ -1,5 +1,5 @@
-import '../models/multilingual_text.dart';
-import '../models/region.dart';
+import 'package:woody_app/shared/models/multilingual_text.dart';
+import 'package:woody_app/shared/models/region.dart';
 
 /// Hand-curated subset of Uzbekistan administrative tree. Enough breadth for
 /// the address picker UX (region → city → district drill-down) without

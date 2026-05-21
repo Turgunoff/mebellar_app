@@ -1,6 +1,5 @@
-// "Coming soon — beta" placeholder copy. Shown for seller surfaces whose
-// backend is not live yet, gated by AppConfig.sellerFulfillmentEnabled
-// (ROADMAP A.2). Consumed by ComingSoonBetaWidget.
+// "Coming soon — beta" placeholder copy. Consumed by ComingSoonBetaWidget
+// for surfaces that are not yet shipped.
 
 const Map<String, dynamic> betaUz = {
   'coming_soon_title': 'Tez orada — beta',

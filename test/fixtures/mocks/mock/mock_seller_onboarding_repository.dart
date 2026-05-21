@@ -1,9 +1,9 @@
 import 'package:hive_flutter/hive_flutter.dart';
 
-import '../models/onboarding_draft.dart';
-import '../models/region.dart';
-import '../models/verification_status.dart';
-import '../repositories/seller_onboarding_repository.dart';
+import 'package:woody_app/shared/models/onboarding_draft.dart';
+import 'package:woody_app/shared/models/region.dart';
+import 'package:woody_app/shared/models/verification_status.dart';
+import 'package:woody_app/shared/repositories/seller_onboarding_repository.dart';
 import 'mock_seller_state.dart';
 
 class MockSellerOnboardingRepository implements SellerOnboardingRepository {

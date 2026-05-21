@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:woody_app/core/error/failure.dart';
 import 'package:woody_app/core/result/result.dart';
 import 'package:woody_app/seller/features/orders/bloc/seller_orders_bloc.dart';
-import 'package:woody_app/shared/mock/mock_seller_order_repository.dart';
+import '../../../../fixtures/mocks/mock/mock_seller_order_repository.dart';
 import 'package:woody_app/shared/models/order.dart';
 import 'package:woody_app/shared/models/order_status.dart';
 

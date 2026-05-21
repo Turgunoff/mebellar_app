@@ -7,24 +7,24 @@ import '../../core/result/result.dart';
 import '../models/shop_settings.dart';
 import 'shop_settings_repository.dart';
 
-/// Live Supabase implementation of [ShopSettingsRepository] (ROADMAP B.1).
+/// Live Supabase implementation of [ShopSettingsRepository].
 ///
-/// Schema — `public.shops` (see `docs/supabase_rls_policies.sql.md`). The
-/// seller-editable view stores `name`, `description`, `region`, `city`,
-/// `district` and `working_hours` as embedded `jsonb`, so a settings load is
-/// a single row read with no joins. Logo/cover assets live in the public
-/// `shop-assets` storage bucket under `<shop_id>/...`.
+/// Reads/writes the seller-editable slice of `public.shops` plus the
+/// contact-channels slice of `public.sellers`. Logo / cover assets live in
+/// the public `shop-assets` storage bucket under `<shop_id>/...`.
 class SupabaseShopSettingsRepository implements ShopSettingsRepository {
   SupabaseShopSettingsRepository({required SupabaseClient supabase})
       : _client = supabase;
 
   final SupabaseClient _client;
 
-  static const String _table = 'shops';
+  static const String _shopsTable = 'shops';
+  static const String _sellersTable = 'sellers';
   static const String _assetBucket = 'shop-assets';
 
-  /// Shop settings rarely change out-of-band; the seller form is the single
-  /// writer, so an empty stream is correct here (no realtime fan-in needed).
+  /// Shop settings rarely change out-of-band; the seller form is the
+  /// single writer, so an empty stream is correct here (no realtime
+  /// fan-in needed).
   @override
   Stream<ShopSettings> watch() => const Stream.empty();
 
@@ -34,27 +34,61 @@ class SupabaseShopSettingsRepository implements ShopSettingsRepository {
         if (userId == null) {
           throw const AuthFailure(message: 'Tizimga kirish talab qilinadi');
         }
-        final row = await _client
-            .from(_table)
+        final shopFuture = _client
+            .from(_shopsTable)
             .select()
             .eq('seller_id', userId)
             .maybeSingle();
-        if (row == null) {
+        final sellerFuture = _client
+            .from(_sellersTable)
+            .select('contact_phone, contact_email, telegram_username')
+            .eq('id', userId)
+            .maybeSingle();
+        final results = await Future.wait<Map<String, dynamic>?>([
+          shopFuture,
+          sellerFuture,
+        ]);
+        final shop = results[0];
+        if (shop == null) {
           throw const ServerFailure(message: "Do'kon topilmadi");
         }
-        return ShopSettings.fromJson(row);
+        return ShopSettings.fromRow(
+          shopRow: shop,
+          sellerRow: results[1],
+        );
       });
 
   @override
   Future<Result<ShopSettings>> save(ShopSettings settings) =>
       runCatching(() async {
-        final row = await _client
-            .from(_table)
-            .update(settings.toJson())
+        final userId = _client.auth.currentUser?.id;
+        if (userId == null) {
+          throw const AuthFailure(message: 'Tizimga kirish talab qilinadi');
+        }
+
+        // Two updates in parallel — shops and sellers don't share a
+        // primary key so we can't bundle them into one upsert.
+        final shopFuture = _client
+            .from(_shopsTable)
+            .update(settings.toShopJson())
             .eq('id', settings.id)
             .select()
             .single();
-        return ShopSettings.fromJson(row);
+        final sellerFuture = _client
+            .from(_sellersTable)
+            .update(settings.toSellerContactJson())
+            .eq('id', userId)
+            .select('contact_phone, contact_email, telegram_username')
+            .maybeSingle();
+
+        final results = await Future.wait<Map<String, dynamic>?>([
+          shopFuture,
+          sellerFuture,
+        ]);
+        return ShopSettings.fromRow(
+          shopRow: results[0]!,
+          sellerRow: results[1],
+        );
       });
 
   @override
@@ -81,7 +115,7 @@ class SupabaseShopSettingsRepository implements ShopSettingsRepository {
       throw const AuthFailure(message: 'Tizimga kirish talab qilinadi');
     }
     final row = await _client
-        .from(_table)
+        .from(_shopsTable)
         .select('id')
         .eq('seller_id', userId)
         .maybeSingle();

@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import '../models/product.dart';
-import '../repositories/favorites_repository.dart';
+import 'package:woody_app/shared/models/product.dart';
+import 'package:woody_app/shared/repositories/favorites_repository.dart';
 import 'mock_data.dart';
 
 class MockFavoritesRepository implements FavoritesRepository {

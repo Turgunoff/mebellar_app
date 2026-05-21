@@ -3,9 +3,9 @@ import 'dart:io';
 
 import 'package:clock/clock.dart';
 
-import '../../core/result/result.dart';
-import '../models/shop_settings.dart';
-import '../repositories/shop_settings_repository.dart';
+import 'package:woody_app/core/result/result.dart';
+import 'package:woody_app/shared/models/shop_settings.dart';
+import 'package:woody_app/shared/repositories/shop_settings_repository.dart';
 import 'mock_shop_settings.dart';
 
 class MockShopSettingsRepository implements ShopSettingsRepository {

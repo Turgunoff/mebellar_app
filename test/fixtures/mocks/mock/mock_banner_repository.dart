@@ -1,5 +1,5 @@
-import '../models/banner.dart';
-import '../repositories/banner_repository.dart';
+import 'package:woody_app/shared/models/banner.dart';
+import 'package:woody_app/shared/repositories/banner_repository.dart';
 import 'mock_data.dart';
 
 class MockBannerRepository implements BannerRepository {

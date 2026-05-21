@@ -81,6 +81,33 @@ class ServicesBloc extends Bloc<ServicesEvent, ServicesState> {
 
   final SellerServicesRepository _repo;
 
+  /// Every service the UI knows about. The DB only stores rows for services
+  /// the seller has touched at least once, so on first load (or for any
+  /// service the seller has never opened) the list comes back missing
+  /// those service codes — the UI then renders empty cards under each
+  /// section title. We seed the missing entries with a default-disabled
+  /// config so every section has a tile to render.
+  static const List<ShopService> _allServices = [
+    ShopService.freeDelivery,
+    ShopService.express,
+    ShopService.assembly,
+    ShopService.warranty,
+    ShopService.installment,
+    ShopService.customOrder,
+  ];
+
+  /// Merges DB-fetched configs with defaults for the services the seller
+  /// has never configured. Preserves the order in [_allServices] so the
+  /// section grouping stays stable across saves.
+  List<ShopServiceConfig> _withDefaults(List<ShopServiceConfig> fromDb) {
+    final byCode = {for (final c in fromDb) c.service.code: c};
+    return [
+      for (final service in _allServices)
+        byCode[service.code] ??
+            ShopServiceConfig(service: service, enabled: false),
+    ];
+  }
+
   Future<void> _onRequested(
     ServicesRequested event,
     Emitter<ServicesState> emit,
@@ -88,8 +115,10 @@ class ServicesBloc extends Bloc<ServicesEvent, ServicesState> {
     emit(state.copyWith(status: ServicesStatus.loading, clearError: true));
     final result = await _repo.list();
     result.fold(
-      ok: (list) =>
-          emit(state.copyWith(status: ServicesStatus.ready, configs: list)),
+      ok: (list) => emit(state.copyWith(
+        status: ServicesStatus.ready,
+        configs: _withDefaults(list),
+      )),
       err: (failure) => emit(
         state.copyWith(status: ServicesStatus.failure, error: failure.message),
       ),

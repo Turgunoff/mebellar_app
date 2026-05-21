@@ -62,6 +62,12 @@ dependencies:
 
   # Images
   cached_network_image: ^3.4.1
+  # `flutter_cache_manager` is the disk-cache backend behind
+  # `cached_network_image`. Pinned explicitly so `performLogout` can call
+  # `DefaultCacheManager().emptyCache()` — the helper isn't re-exported by
+  # `cached_network_image`, so relying on the transitive resolution would
+  # break the import.
+  flutter_cache_manager: ^3.4.1
   image_picker: ^1.1.2
   image: ^4.3.0
   flutter_image_compress: ^2.3.0

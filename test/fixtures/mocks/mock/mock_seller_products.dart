@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
-import '../models/multilingual_text.dart';
-import '../models/seller_product.dart';
+import 'package:woody_app/shared/models/multilingual_text.dart';
+import 'package:woody_app/shared/models/seller_product.dart';
 
 /// Seed catalog for the seller dashboard. We hand-craft 12 products covering
 /// every status (draft / pending / approved / rejected / archived) so the

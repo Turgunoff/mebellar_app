@@ -1,9 +1,9 @@
-import '../models/banner.dart';
-import '../models/category.dart';
-import '../models/multilingual_text.dart';
-import '../models/product.dart';
-import '../models/shop.dart';
-import '../models/shop_service.dart';
+import 'package:woody_app/shared/models/banner.dart';
+import 'package:woody_app/shared/models/category.dart';
+import 'package:woody_app/shared/models/multilingual_text.dart';
+import 'package:woody_app/shared/models/product.dart';
+import 'package:woody_app/shared/models/shop.dart';
+import 'package:woody_app/shared/models/shop_service.dart';
 
 /// Centralised mock dataset used by the `Mock*Repository` classes when the
 /// app boots with `USE_MOCKS=true`. Designed to look believable in the UI:

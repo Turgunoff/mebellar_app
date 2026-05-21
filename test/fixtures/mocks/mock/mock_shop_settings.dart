@@ -1,10 +1,8 @@
-import '../models/multilingual_text.dart';
-import '../models/shop_service.dart';
-import '../models/shop_service_config.dart';
-import '../models/shop_settings.dart';
-import '../models/working_hours.dart';
+import 'package:woody_app/shared/models/shop_service.dart';
+import 'package:woody_app/shared/models/shop_service_config.dart';
+import 'package:woody_app/shared/models/shop_settings.dart';
+import 'package:woody_app/shared/models/working_hours.dart';
 import 'mock_data.dart';
-import 'mock_orders_data.dart';
 
 /// Default shop the seller dashboard ships with — pre-filled enough that the
 /// shop settings screen is meaningful out of the box even without onboarding
@@ -16,24 +14,16 @@ class MockShopSettings {
     final shop = MockData.shops.firstWhere((s) => s.id == 'shop-mh');
     return ShopSettings(
       id: shop.id,
-      slug: shop.slug,
-      name: shop.name,
-      description: shop.description ??
-          const MultilingualText(
-            uz: 'Yevropadan import qilingan zamonaviy mebellar',
-            ru: 'Современная мебель из Европы',
-            en: 'Modern furniture imported from Europe',
-          ),
+      name: shop.name.uz ?? 'Mebel House',
+      description: shop.description?.uz ??
+          'Yevropadan import qilingan zamonaviy mebellar',
       logoUrl: shop.logoUrl,
       coverUrl: 'https://picsum.photos/seed/shop-mh-cover/1200/400',
       contactPhone: shop.contactPhone,
       contactEmail: 'info@mebelhouse.uz',
       telegramUsername: shop.telegramUsername,
       brandColor: '#5E35B1',
-      region: MockOrdersData.tashkentCity,
-      city: MockOrdersData.tashkentCity,
-      district: MockOrdersData.chilanzar,
-      streetLine: 'Bunyodkor 24',
+      address: "Toshkent sh., Chilonzor t., Bunyodkor 24",
       lat: 41.2829,
       lng: 69.2167,
       workingHours: WeeklyHours.weekdays9to6().setDay(

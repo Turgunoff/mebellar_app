@@ -27,24 +27,6 @@ class AppConfig {
   static const String environment =
       String.fromEnvironment('APP_ENV', defaultValue: 'dev');
 
-  /// When true, content repositories (products, shops, categories, banners)
-  /// return canned data instead of hitting the API. Useful while the backend
-  /// catalog endpoints are still in development.
-  static const bool useMocks = bool.fromEnvironment(
-    'USE_MOCKS',
-    defaultValue: true,
-  );
-
-  /// Gates the seller fulfillment surfaces that are still backed only by
-  /// in-memory mocks — orders, shop settings, seller services, and KYC
-  /// verification. Defaults OFF so a production build can never surface fake
-  /// order/settings data to a real seller (ROADMAP A.2). Flip to true in an
-  /// env file once the Supabase repositories from ROADMAP B.1 ship.
-  static const bool sellerFulfillmentEnabled = bool.fromEnvironment(
-    'SELLER_FULFILLMENT_ENABLED',
-    defaultValue: false,
-  );
-
   /// Routes seller mode through `go_router` (a `StatefulShellRoute`) instead
   /// of the legacy imperative `MaterialApp` + `sellerNavigatorKey` shell.
   /// The extracted seller screen structure (ROADMAP B.4) is in place, so this

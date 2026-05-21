@@ -3,8 +3,8 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:woody_app/seller/features/verification/bloc/verification_bloc.dart';
-import 'package:woody_app/shared/mock/mock_seller_state.dart';
-import 'package:woody_app/shared/mock/mock_seller_verification_repository.dart';
+import '../../../../fixtures/mocks/mock/mock_seller_state.dart';
+import '../../../../fixtures/mocks/mock/mock_seller_verification_repository.dart';
 import 'package:woody_app/shared/models/business_type.dart';
 import 'package:woody_app/shared/models/onboarding_draft.dart';
 import 'package:woody_app/shared/models/verification_document.dart';

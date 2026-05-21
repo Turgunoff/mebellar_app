@@ -2,11 +2,11 @@ import 'dart:async';
 
 import 'package:clock/clock.dart';
 
-import '../../core/error/failure.dart';
-import '../../core/result/result.dart';
-import '../models/order.dart';
-import '../models/order_status.dart';
-import '../repositories/seller_order_repository.dart';
+import 'package:woody_app/core/error/failure.dart';
+import 'package:woody_app/core/result/result.dart';
+import 'package:woody_app/shared/models/order.dart';
+import 'package:woody_app/shared/models/order_status.dart';
+import 'package:woody_app/shared/repositories/seller_order_repository.dart';
 import 'mock_orders_data.dart';
 
 /// In-memory seller-side order book. The dashboard's fake "new order" timer

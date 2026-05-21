@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import '../models/app_notification.dart';
-import '../repositories/notifications_repository.dart';
+import 'package:woody_app/shared/models/app_notification.dart';
+import 'package:woody_app/shared/repositories/notifications_repository.dart';
 import 'mock_notifications_data.dart';
 
 /// In-memory feed driven by both the simulator screen and a recurring timer.

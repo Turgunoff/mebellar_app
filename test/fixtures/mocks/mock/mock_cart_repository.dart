@@ -1,10 +1,10 @@
 import 'dart:async';
 
-import '../models/cart.dart';
-import '../models/cart_item.dart';
-import '../models/cart_item_model.dart';
-import '../models/supabase_product_model.dart';
-import '../repositories/cart_repository.dart';
+import 'package:woody_app/shared/models/cart.dart';
+import 'package:woody_app/shared/models/cart_item.dart';
+import 'package:woody_app/shared/models/cart_item_model.dart';
+import 'package:woody_app/shared/models/supabase_product_model.dart';
+import 'package:woody_app/shared/repositories/cart_repository.dart';
 import 'mock_data.dart';
 
 /// In-memory cart used while the backend is not wired up. Items are looked up

@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:io';
 
-import '../models/multilingual_text.dart';
-import '../models/paginated.dart';
-import '../models/seller_product.dart';
-import '../models/tariff.dart';
-import '../repositories/seller_product_repository.dart';
+import 'package:woody_app/shared/models/multilingual_text.dart';
+import 'package:woody_app/shared/models/paginated.dart';
+import 'package:woody_app/shared/models/seller_product.dart';
+import 'package:woody_app/shared/models/tariff.dart';
+import 'package:woody_app/shared/repositories/seller_product_repository.dart';
 import 'mock_seller_products.dart';
 import 'mock_seller_state.dart';
 

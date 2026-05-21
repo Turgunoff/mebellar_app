@@ -1,20 +1,21 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 
-import 'multilingual_text.dart';
-import 'region.dart';
 import 'working_hours.dart';
 
 enum ShopVisibility { public, hidden }
 
-/// What the seller can edit in shop settings — distinct from `Shop` which
-/// is the read model the customer sees. We keep them separate so saving the
-/// seller form doesn't accidentally leak fields the customer endpoint
-/// doesn't return (e.g. `working_hours`).
+/// Seller-editable view of a `public.shops` row, plus the contact-info
+/// slice of the owning `public.sellers` row.
+///
+/// The DB stores shop name/description as plain text (no multilingual
+/// jsonb yet) and the seller's contact channels live on `sellers`, not
+/// `shops` — both quirks are surfaced here so the UI form binds to a
+/// single value type and the repository fans the save out to the two
+/// tables it actually touches.
 class ShopSettings extends Equatable {
   const ShopSettings({
     required this.id,
-    required this.slug,
     required this.name,
     required this.description,
     this.logoUrl,
@@ -23,10 +24,7 @@ class ShopSettings extends Equatable {
     this.contactEmail,
     this.telegramUsername,
     this.brandColor,
-    required this.region,
-    required this.city,
-    this.district,
-    required this.streetLine,
+    required this.address,
     this.lat,
     this.lng,
     required this.workingHours,
@@ -34,21 +32,24 @@ class ShopSettings extends Equatable {
   });
 
   final String id;
-  final String slug;
-  final MultilingualText name;
-  final MultilingualText description;
+  final String name;
+  final String description;
   final String? logoUrl;
   final String? coverUrl;
+
+  /// `sellers.contact_phone` — edited in the same form, saved to the
+  /// `sellers` row not `shops`.
   final String? contactPhone;
   final String? contactEmail;
   final String? telegramUsername;
 
-  /// Hex string like `#FF5733` (with leading hash). Mock data keeps it simple.
+  /// Hex string like `#FF5733` (with leading hash).
   final String? brandColor;
-  final Region region;
-  final Region city;
-  final Region? district;
-  final String streetLine;
+
+  /// Free-form address string. Until the schema gains region/city/district
+  /// columns, the form stores everything as a single text line plus the
+  /// map-picked lat/lng.
+  final String address;
   final double? lat;
   final double? lng;
   final WeeklyHours workingHours;
@@ -64,73 +65,67 @@ class ShopSettings extends Equatable {
     return Color(int.parse('FF$cleaned', radix: 16));
   }
 
-  /// Parses a `public.shops` row. `name`/`description`/`region`/`city`/
-  /// `district`/`working_hours` are stored as embedded jsonb so the seller
-  /// settings view needs no joins — see `docs/supabase_rls_policies.sql.md`.
-  factory ShopSettings.fromJson(Map<String, dynamic> json) {
+  /// Parses a `public.shops` row joined with the seller's contact slice.
+  /// The repository passes the seller fields under fixed top-level keys
+  /// (`seller_contact_phone` etc.) so this factory has no joined-row
+  /// shape to disambiguate.
+  factory ShopSettings.fromRow({
+    required Map<String, dynamic> shopRow,
+    Map<String, dynamic>? sellerRow,
+  }) {
     return ShopSettings(
-      id: json['id'] as String? ?? '',
-      slug: json['slug'] as String? ?? '',
-      name: MultilingualText.fromJson(json['name'] as Map<String, dynamic>?),
-      description:
-          MultilingualText.fromJson(json['description'] as Map<String, dynamic>?),
-      logoUrl: json['logo_url'] as String?,
-      coverUrl: json['cover_url'] as String?,
-      contactPhone: json['contact_phone'] as String?,
-      contactEmail: json['contact_email'] as String?,
-      telegramUsername: json['telegram_username'] as String?,
-      brandColor: json['brand_color'] as String?,
-      region: _regionOrBlank(json['region']),
-      city: _regionOrBlank(json['city']),
-      district: json['district'] is Map<String, dynamic>
-          ? Region.fromJson(json['district'] as Map<String, dynamic>)
-          : null,
-      streetLine: json['street_line'] as String? ?? '',
-      lat: (json['lat'] as num?)?.toDouble(),
-      lng: (json['lng'] as num?)?.toDouble(),
-      workingHours:
-          WeeklyHours.fromJson(json['working_hours'] as Map<String, dynamic>?),
-      visibility: _visibilityFromName(json['visibility'] as String?),
+      id: shopRow['id'] as String? ?? '',
+      name: (shopRow['name'] as String?)?.trim() ?? '',
+      description: (shopRow['description'] as String?)?.trim() ?? '',
+      logoUrl: shopRow['logo_url'] as String?,
+      coverUrl: shopRow['cover_url'] as String?,
+      contactPhone: sellerRow?['contact_phone'] as String?,
+      contactEmail: sellerRow?['contact_email'] as String?,
+      telegramUsername: sellerRow?['telegram_username'] as String?,
+      brandColor: shopRow['brand_color'] as String?,
+      address: (shopRow['address'] as String?) ?? '',
+      lat: (shopRow['latitude'] as num?)?.toDouble(),
+      lng: (shopRow['longitude'] as num?)?.toDouble(),
+      workingHours: WeeklyHours.fromJson(
+        shopRow['working_hours'] as Map<String, dynamic>?,
+      ),
+      visibility: _visibilityFromName(shopRow['visibility'] as String?),
     );
   }
 
-  /// Serialises the seller-editable columns of a `shops` row. Null fields are
-  /// written explicitly so clearing a value (e.g. removing a logo) persists.
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'slug': slug,
-        'name': name.toJson(),
-        'description': description.toJson(),
+  /// Serialises the seller-editable columns of a `shops` row. Null fields
+  /// are written explicitly so clearing a value (e.g. removing a logo)
+  /// persists. Contact fields are NOT included — those go to `sellers`.
+  Map<String, dynamic> toShopJson() => {
+        'name': name,
+        'description': description,
         'logo_url': logoUrl,
         'cover_url': coverUrl,
-        'contact_phone': contactPhone,
-        'contact_email': contactEmail,
-        'telegram_username': telegramUsername,
         'brand_color': brandColor,
-        'region': region.toJson(),
-        'city': city.toJson(),
-        'district': district?.toJson(),
-        'street_line': streetLine,
-        'lat': lat,
-        'lng': lng,
+        'address': address,
+        'latitude': lat,
+        'longitude': lng,
         'working_hours': workingHours.toJson(),
         'visibility': visibility.name,
       };
 
+  /// Contact-info slice destined for `public.sellers`.
+  Map<String, dynamic> toSellerContactJson() => {
+        'contact_phone': contactPhone,
+        'contact_email': contactEmail,
+        'telegram_username': telegramUsername,
+      };
+
   ShopSettings copyWith({
-    MultilingualText? name,
-    MultilingualText? description,
+    String? name,
+    String? description,
     String? logoUrl,
     String? coverUrl,
     String? contactPhone,
     String? contactEmail,
     String? telegramUsername,
     String? brandColor,
-    Region? region,
-    Region? city,
-    Region? district,
-    bool clearDistrict = false,
-    String? streetLine,
+    String? address,
     double? lat,
     double? lng,
     WeeklyHours? workingHours,
@@ -138,7 +133,6 @@ class ShopSettings extends Equatable {
   }) {
     return ShopSettings(
       id: id,
-      slug: slug,
       name: name ?? this.name,
       description: description ?? this.description,
       logoUrl: logoUrl ?? this.logoUrl,
@@ -147,10 +141,7 @@ class ShopSettings extends Equatable {
       contactEmail: contactEmail ?? this.contactEmail,
       telegramUsername: telegramUsername ?? this.telegramUsername,
       brandColor: brandColor ?? this.brandColor,
-      region: region ?? this.region,
-      city: city ?? this.city,
-      district: clearDistrict ? null : (district ?? this.district),
-      streetLine: streetLine ?? this.streetLine,
+      address: address ?? this.address,
       lat: lat ?? this.lat,
       lng: lng ?? this.lng,
       workingHours: workingHours ?? this.workingHours,
@@ -161,7 +152,6 @@ class ShopSettings extends Equatable {
   @override
   List<Object?> get props => [
         id,
-        slug,
         name,
         description,
         logoUrl,
@@ -170,21 +160,13 @@ class ShopSettings extends Equatable {
         contactEmail,
         telegramUsername,
         brandColor,
-        region.id,
-        city.id,
-        district?.id,
-        streetLine,
+        address,
         lat,
         lng,
         workingHours,
         visibility,
       ];
 }
-
-const _blankRegion = Region(id: '_', code: '_', name: MultilingualText());
-
-Region _regionOrBlank(Object? raw) =>
-    raw is Map<String, dynamic> ? Region.fromJson(raw) : _blankRegion;
 
 ShopVisibility _visibilityFromName(String? name) {
   return ShopVisibility.values.firstWhere(

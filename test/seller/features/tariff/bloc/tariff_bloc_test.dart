@@ -4,7 +4,7 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:woody_app/seller/features/tariff/bloc/tariff_bloc.dart';
 import 'package:woody_app/seller/features/tariff/bloc/tariff_upgrade_bloc.dart';
-import 'package:woody_app/shared/mock/mock_tariff_repository.dart';
+import '../../../../fixtures/mocks/mock/mock_tariff_repository.dart';
 import 'package:woody_app/shared/models/tariff.dart';
 
 void main() {

@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:woody_app/core/i18n/i18n.dart';
 
-import '../../../../../customer/features/profile/addresses/screens/region_picker_screen.dart';
 import '../../../../../shared/models/shop_settings.dart';
 import '../../../../../shared/models/working_hours.dart';
 import '../../../../../shared/utils/image_upload.dart';
@@ -32,18 +30,18 @@ class _SettingsFormState extends State<SettingsForm> {
   late final TextEditingController _phone;
   late final TextEditingController _email;
   late final TextEditingController _telegram;
-  late final TextEditingController _street;
+  late final TextEditingController _address;
 
   @override
   void initState() {
     super.initState();
     final s = widget.state.settings!;
-    _name = TextEditingController(text: s.name.uz ?? '');
-    _description = TextEditingController(text: s.description.uz ?? '');
+    _name = TextEditingController(text: s.name);
+    _description = TextEditingController(text: s.description);
     _phone = TextEditingController(text: s.contactPhone ?? '');
     _email = TextEditingController(text: s.contactEmail ?? '');
     _telegram = TextEditingController(text: s.telegramUsername ?? '');
-    _street = TextEditingController(text: s.streetLine);
+    _address = TextEditingController(text: s.address);
   }
 
   @override
@@ -53,27 +51,23 @@ class _SettingsFormState extends State<SettingsForm> {
     _phone.dispose();
     _email.dispose();
     _telegram.dispose();
-    _street.dispose();
+    _address.dispose();
     super.dispose();
   }
 
   void _emitBasics() {
-    // Only `nameUz` / `descriptionUz` are sent; the bloc handler preserves
-    // RU/EN via `?? s.name.ru` fallbacks. Phone/email/telegram, however, are
-    // assigned directly in the handler — passing null would nuke them, so we
-    // always send the current controller values.
     context.read<ShopSettingsBloc>().add(ShopSettingsBasicsChanged(
-          nameUz: _name.text,
-          descriptionUz: _description.text,
+          name: _name.text,
+          description: _description.text,
           contactPhone: _phone.text,
           contactEmail: _email.text,
           telegramUsername: _telegram.text,
         ));
   }
 
-  void _emitStreet() {
+  void _emitAddress() {
     context.read<ShopSettingsBloc>().add(
-          ShopSettingsAddressChanged(streetLine: _street.text),
+          ShopSettingsAddressChanged(address: _address.text),
         );
   }
 
@@ -96,21 +90,6 @@ class _SettingsFormState extends State<SettingsForm> {
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(e.toString())));
     }
-  }
-
-  Future<void> _pickRegion() async {
-    final result = await Navigator.of(context).push<RegionPickerResult>(
-      MaterialPageRoute(builder: (_) => const RegionPickerScreen()),
-    );
-    if (result == null || !mounted) return;
-    context.read<ShopSettingsBloc>().add(
-          ShopSettingsAddressChanged(
-            region: result.region,
-            city: result.city,
-            district: result.district,
-            clearDistrict: result.district == null,
-          ),
-        );
   }
 
   Future<void> _pickColor() async {
@@ -138,7 +117,6 @@ class _SettingsFormState extends State<SettingsForm> {
   Widget build(BuildContext context) {
     final state = widget.state;
     final s = state.settings!;
-    final lang = context.locale.languageCode;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
@@ -167,14 +145,8 @@ class _SettingsFormState extends State<SettingsForm> {
           brandHex: s.brandColor,
           brandColor: s.brandColorValue,
           onPickColor: _pickColor,
-          regionLabel: s.region.name.get(lang),
-          citySublabel: [
-            s.city.name.get(lang),
-            if (s.district != null) s.district!.name.get(lang),
-          ].join(', '),
-          onPickRegion: _pickRegion,
-          streetController: _street,
-          onStreetChanged: _emitStreet,
+          addressController: _address,
+          onAddressChanged: _emitAddress,
         ),
         const SizedBox(height: 20),
         WorkingHoursCard(

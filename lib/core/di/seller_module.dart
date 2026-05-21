@@ -3,22 +3,14 @@ import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../config/app_config.dart';
 import '../../seller/features/products/data/add_product_repository.dart';
 import '../../seller/features/products/data/attributes_repository.dart';
-import '../../shared/mock/mock_regions.dart';
-import '../../shared/mock/mock_seller_onboarding_repository.dart';
-import '../../shared/mock/mock_seller_order_repository.dart';
-import '../../shared/mock/mock_seller_product_repository.dart';
-import '../../shared/mock/mock_seller_services_repository.dart';
-import '../../shared/mock/mock_seller_verification_repository.dart';
-import '../../shared/mock/mock_shop_settings_repository.dart';
-import '../../shared/mock/mock_tariff_repository.dart';
 import '../../shared/repositories/seller_analytics_repository.dart';
 import '../../shared/repositories/seller_dashboard_repository.dart';
 import '../../shared/repositories/seller_onboarding_repository.dart';
 import '../../shared/repositories/seller_order_repository.dart';
 import '../../shared/repositories/seller_product_repository.dart';
+import '../../shared/repositories/seller_reviews_repository.dart';
 import '../../shared/repositories/seller_services_repository.dart';
 import '../../shared/repositories/seller_verification_repository.dart';
 import '../../shared/repositories/shop_settings_repository.dart';
@@ -27,6 +19,7 @@ import '../../shared/repositories/supabase_seller_dashboard_repository.dart';
 import '../../shared/repositories/supabase_seller_onboarding_repository.dart';
 import '../../shared/repositories/supabase_seller_order_repository.dart';
 import '../../shared/repositories/supabase_seller_product_repository.dart';
+import '../../shared/repositories/supabase_seller_reviews_repository.dart';
 import '../../shared/repositories/supabase_seller_services_repository.dart';
 import '../../shared/repositories/supabase_seller_verification_repository.dart';
 import '../../shared/repositories/supabase_shop_settings_repository.dart';
@@ -36,10 +29,10 @@ import '../realtime/realtime_service.dart';
 import '../storage/hive_boxes.dart';
 import 'repository_resolver.dart';
 
-/// Root-scope seller-side repositories. The A.2 fulfillment repositories stay
-/// unregistered until the feature flag flips — gated via
-/// [RepositoryResolver.whenFulfillmentEnabled] so a production build never
-/// wires fake data.
+/// Root-scope seller-side repositories. Every seller repo is wired against
+/// its Supabase implementation when a client is available; the legacy Dio/REST
+/// `Remote*` variants remain as the no-Supabase fallback used by integration
+/// tests that boot without a backing project.
 void registerSellerModule(GetIt sl) {
   final resolver = RepositoryResolver.fromEnvironment(
     hasSupabase: sl.isRegistered<SupabaseClient>(),
@@ -52,12 +45,6 @@ void registerSellerModule(GetIt sl) {
         supabase: sl<SupabaseClient>(),
         draftBox: draftBox,
       ),
-      mock: AppConfig.useMocks
-          ? () => MockSellerOnboardingRepository(
-                draftBox: draftBox,
-                findRegionById: MockRegions.findById,
-              )
-          : null,
       remote: () => RemoteSellerOnboardingRepository(
         dio: sl<Dio>(),
         draftBox: draftBox,
@@ -66,26 +53,28 @@ void registerSellerModule(GetIt sl) {
     ),
   );
 
-  // ROADMAP A.2 — seller KYC verification has no live backend yet; registered
-  // only when the fulfillment flag is on so a release build can never surface
-  // a fake verification state.
-  resolver.whenFulfillmentEnabled(() {
-    sl.registerLazySingleton<SellerVerificationRepository>(
-      () => resolver.resolve<SellerVerificationRepository>(
-        supabase: () => SupabaseSellerVerificationRepository(
-          supabase: sl<SupabaseClient>(),
-        ),
-        mock: AppConfig.useMocks ? MockSellerVerificationRepository.new : null,
-        remote: () => RemoteSellerVerificationRepository(sl<Dio>()),
+  sl.registerLazySingleton<SellerVerificationRepository>(
+    () => resolver.resolve<SellerVerificationRepository>(
+      supabase: () => SupabaseSellerVerificationRepository(
+        supabase: sl<SupabaseClient>(),
       ),
+      remote: () => RemoteSellerVerificationRepository(sl<Dio>()),
+    ),
+  );
+
+  // Reviews — Supabase-only (no legacy Dio variant; the table is new).
+  // Registered only when a Supabase client is available; integration tests
+  // without one will not exercise the reviews surface.
+  if (sl.isRegistered<SupabaseClient>()) {
+    sl.registerLazySingleton<SellerReviewsRepository>(
+      () => SupabaseSellerReviewsRepository(supabase: sl<SupabaseClient>()),
     );
-  });
+  }
 
   sl.registerLazySingleton<SellerProductRepository>(
     () => resolver.resolve<SellerProductRepository>(
       supabase: () =>
           SupabaseSellerProductRepository(supabase: sl<SupabaseClient>()),
-      mock: AppConfig.useMocks ? MockSellerProductRepository.new : null,
       remote: () => RemoteSellerProductRepository(sl<Dio>()),
     ),
   );
@@ -102,67 +91,47 @@ void registerSellerModule(GetIt sl) {
     );
   }
 
-  // Dashboard is intentionally NOT mocked — every build reads live
-  // shop/product/order data so the empty-state experience is exercised by
-  // default. Requires Supabase to be registered at root scope.
+  // Dashboard reads live shop/product/order data so the empty-state
+  // experience is exercised by default. Requires Supabase at root scope.
   sl.registerLazySingleton<SellerDashboardRepository>(
     () => SupabaseSellerDashboardRepository(sl<SupabaseClient>()),
   );
 
-  // Analytics also reads live data unconditionally — the empty-revenue
-  // state is the source of truth for sellers without orders yet, so a
-  // mock would mask that and the chart would show fake hockey-stick
-  // numbers in onboarding screenshots.
+  // Analytics reads live data — the empty-revenue state is the source of
+  // truth for sellers without orders yet.
   sl.registerLazySingleton<SellerAnalyticsRepository>(
     () => SupabaseSellerAnalyticsRepository(supabase: sl<SupabaseClient>()),
   );
 
-  // ROADMAP A.2 / B.1 — orders / shop-settings / seller-services stay gated
-  // behind the fulfillment flag until their Supabase repositories ship.
-  resolver.whenFulfillmentEnabled(() {
-    sl.registerLazySingleton<SellerOrderRepository>(
-      () => resolver.resolve<SellerOrderRepository>(
-        supabase: () => SupabaseSellerOrderRepository(
-          supabase: sl<SupabaseClient>(),
-          realtime: sl<RealtimeService>(),
-        ),
-        mock: AppConfig.useMocks ? MockSellerOrderRepository.new : null,
-        remote: () => RemoteSellerOrderRepository(sl<Dio>()),
+  sl.registerLazySingleton<SellerOrderRepository>(
+    () => resolver.resolve<SellerOrderRepository>(
+      supabase: () => SupabaseSellerOrderRepository(
+        supabase: sl<SupabaseClient>(),
+        realtime: sl<RealtimeService>(),
       ),
-      dispose: (repo) => repo.dispose(),
-    );
-    sl.registerLazySingleton<ShopSettingsRepository>(
-      () => resolver.resolve<ShopSettingsRepository>(
-        supabase: () =>
-            SupabaseShopSettingsRepository(supabase: sl<SupabaseClient>()),
-        mock: AppConfig.useMocks ? MockShopSettingsRepository.new : null,
-        remote: () => RemoteShopSettingsRepository(sl<Dio>()),
-      ),
-    );
-    sl.registerLazySingleton<SellerServicesRepository>(
-      () => resolver.resolve<SellerServicesRepository>(
-        supabase: () =>
-            SupabaseSellerServicesRepository(supabase: sl<SupabaseClient>()),
-        mock: AppConfig.useMocks ? MockSellerServicesRepository.new : null,
-        remote: () => RemoteSellerServicesRepository(sl<Dio>()),
-      ),
-    );
-  });
+      remote: () => RemoteSellerOrderRepository(sl<Dio>()),
+    ),
+    dispose: (repo) => repo.dispose(),
+  );
+  sl.registerLazySingleton<ShopSettingsRepository>(
+    () => resolver.resolve<ShopSettingsRepository>(
+      supabase: () =>
+          SupabaseShopSettingsRepository(supabase: sl<SupabaseClient>()),
+      remote: () => RemoteShopSettingsRepository(sl<Dio>()),
+    ),
+  );
+  sl.registerLazySingleton<SellerServicesRepository>(
+    () => resolver.resolve<SellerServicesRepository>(
+      supabase: () =>
+          SupabaseSellerServicesRepository(supabase: sl<SupabaseClient>()),
+      remote: () => RemoteSellerServicesRepository(sl<Dio>()),
+    ),
+  );
 
-  // ROADMAP B.1 — the live Supabase tariff write path (P2P receipt upload +
-  // upgrade request). The mock stays as the offline/no-Supabase fallback and
-  // still reads the live plan catalog when a client is available.
   sl.registerLazySingleton<TariffRepository>(
     () => resolver.resolve<TariffRepository>(
       supabase: () =>
           SupabaseTariffRepository(supabase: sl<SupabaseClient>()),
-      mock: AppConfig.useMocks
-          ? () => MockTariffRepository(
-                supabase: sl.isRegistered<SupabaseClient>()
-                    ? sl<SupabaseClient>()
-                    : null,
-              )
-          : null,
       remote: () => RemoteTariffRepository(sl<Dio>()),
     ),
   );

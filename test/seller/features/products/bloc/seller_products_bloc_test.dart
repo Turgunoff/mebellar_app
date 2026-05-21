@@ -1,7 +1,7 @@
 ﻿import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:woody_app/seller/features/products/bloc/seller_products_bloc.dart';
-import 'package:woody_app/shared/mock/mock_seller_product_repository.dart';
+import '../../../../fixtures/mocks/mock/mock_seller_product_repository.dart';
 import 'package:woody_app/shared/models/seller_product.dart';
 import 'package:woody_app/shared/repositories/seller_product_repository.dart';
 

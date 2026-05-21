@@ -1,10 +1,10 @@
 import 'dart:async';
 
-import '../models/business_type.dart';
-import '../models/me.dart';
-import '../models/onboarding_draft.dart';
-import '../models/verification_document.dart';
-import '../models/verification_status.dart';
+import 'package:woody_app/shared/models/business_type.dart';
+import 'package:woody_app/shared/models/me.dart';
+import 'package:woody_app/shared/models/onboarding_draft.dart';
+import 'package:woody_app/shared/models/verification_document.dart';
+import 'package:woody_app/shared/models/verification_status.dart';
 
 /// Singleton that holds the mocked seller-side state across the app lifetime
 /// (until process restart). Acts as the in-memory database for the

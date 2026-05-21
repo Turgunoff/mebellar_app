@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:math' as math;
 
-import '../models/dashboard_snapshot.dart';
-import '../models/order.dart';
-import '../models/order_status.dart';
-import '../models/seller_product.dart';
-import '../models/tariff.dart';
-import '../repositories/seller_dashboard_repository.dart';
+import 'package:woody_app/shared/models/dashboard_snapshot.dart';
+import 'package:woody_app/shared/models/order.dart';
+import 'package:woody_app/shared/models/order_status.dart';
+import 'package:woody_app/shared/models/seller_product.dart';
+import 'package:woody_app/shared/models/tariff.dart';
+import 'package:woody_app/shared/repositories/seller_dashboard_repository.dart';
 import 'mock_orders_data.dart';
 import 'mock_seller_product_repository.dart';
 import 'mock_seller_products.dart';

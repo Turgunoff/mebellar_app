@@ -1,17 +1,23 @@
-﻿import 'package:flutter/material.dart';
-import '../../../core/theme/app_fonts.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
 
 import '../../../config/app_mode.dart';
 import '../../../core/di/service_locator.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_fonts.dart';
+import '../../../shared/models/tariff.dart';
+import '../../../shared/models/verification_status.dart';
+import '../../../shared/widgets/brand_refresh_indicator.dart';
 import '../notifications/screens/notifications_screen.dart';
 import '../reviews/screens/reviews_screen.dart';
 import '../settings/screens/services_screen.dart';
 import '../settings/screens/settings_screen.dart';
 import '../settings/screens/shop_settings_screen.dart';
 import '../tariff/screens/tariff_screen.dart';
+import 'cubit/seller_profile_cubit.dart';
 
 // Local tokens — kept here so the screen reads top-to-bottom without
 // chasing theme indirection. Plus Jakarta Sans is applied to every
@@ -25,10 +31,28 @@ const _divider = Color(0xFFEFEFEF);
 const _avatarBg = Color(0xFFEDEDED);
 const _verifiedBg = Color(0xFFDCF1E5);
 const _verifiedFg = Color(0xFF1F6B49);
+const _pendingBg = Color(0xFFFFF1D6);
+const _pendingFg = Color(0xFF8A5A00);
+const _rejectedBg = Color(0xFFFCE4E4);
+const _rejectedFg = Color(0xFFB42318);
+const _neutralBadgeBg = Color(0xFFEFEFEF);
+const _neutralBadgeFg = Color(0xFF6B6B6B);
 const _gold = Color(0xFFD4A017);
 
 class SellerProfileScreen extends StatelessWidget {
   const SellerProfileScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider<SellerProfileCubit>(
+      create: (_) => sl<SellerProfileCubit>()..load(),
+      child: const _SellerProfileView(),
+    );
+  }
+}
+
+class _SellerProfileView extends StatelessWidget {
+  const _SellerProfileView();
 
   @override
   Widget build(BuildContext context) {
@@ -40,88 +64,100 @@ class SellerProfileScreen extends StatelessWidget {
           children: [
             const _ProfileHeaderBar(),
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-                physics: const BouncingScrollPhysics(
-                  parent: AlwaysScrollableScrollPhysics(),
+              child: BrandRefreshIndicator(
+                color: AppColors.sellerPrimary,
+                onRefresh: () =>
+                    context.read<SellerProfileCubit>().load(),
+                child: BlocBuilder<SellerProfileCubit, SellerProfileState>(
+                  builder: (context, state) {
+                    return ListView(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+                      physics: const BouncingScrollPhysics(
+                        parent: AlwaysScrollableScrollPhysics(),
+                      ),
+                      children: [
+                        _ProfileIdentity(state: state),
+                        const SizedBox(height: 24),
+                        const _SectionLabel(text: "Do'konni boshqarish"),
+                        const SizedBox(height: 8),
+                        _SettingsCard(
+                          items: [
+                            _SettingsItem(
+                              icon: Iconsax.shop,
+                              title: "Do'kon sozlamalari",
+                              subtitle: "Logo, ish vaqti, ko'rinish",
+                              onTap: () =>
+                                  _push(context, const ShopSettingsScreen()),
+                            ),
+                            _SettingsItem(
+                              icon: Iconsax.truck_fast,
+                              title: "Do'kon xizmatlari",
+                              subtitle: 'Yetkazib berish, kafolat',
+                              onTap: () =>
+                                  _push(context, const SellerServicesScreen()),
+                            ),
+                            _SettingsItem(
+                              icon: Iconsax.messages_2,
+                              title: 'Sharhlar va Baholar',
+                              subtitle: 'Mijozlar fikri va javoblar',
+                              onTap: () => _push(context, const ReviewsScreen()),
+                            ),
+                            _SettingsItem(
+                              icon: Iconsax.crown_1,
+                              iconColor: _gold,
+                              title: 'Tarif',
+                              subtitle: _planSubtitle(state),
+                              onTap: () => _push(context, const TariffScreen()),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        const _SectionLabel(text: 'Ilova sozlamalari'),
+                        const SizedBox(height: 8),
+                        _SettingsCard(
+                          items: [
+                            _SettingsItem(
+                              icon: Iconsax.notification,
+                              title: 'Bildirishnomalar',
+                              onTap: () => _push(
+                                  context, const NotificationsScreen()),
+                            ),
+                            _SettingsItem(
+                              icon: Iconsax.setting_2,
+                              title: 'Sozlamalar',
+                              subtitle: 'Til, mavzu va bildirishnomalar',
+                              onTap: () =>
+                                  _push(context, const SettingsScreen()),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        const _SectionLabel(text: 'Harakatlar'),
+                        const SizedBox(height: 8),
+                        _SettingsCard(
+                          items: [
+                            _SettingsItem(
+                              icon: Iconsax.user_octagon,
+                              iconColor: AppColors.terracotta,
+                              title: 'Xaridor rejimi',
+                              titleColor: AppColors.terracotta,
+                              onTap: () =>
+                                  switchAppMode(context, AppMode.customer),
+                            ),
+                            _SettingsItem(
+                              icon: Iconsax.logout,
+                              iconColor: _logoutRed,
+                              title: 'Chiqish',
+                              titleColor: _logoutRed,
+                              showTrailing: false,
+                              onTap: () => performLogout(context),
+                            ),
+                          ],
+                        ),
+                      ],
+                    );
+                  },
                 ),
-                children: [
-                  const _ProfileIdentity(shopName: 'Archa Design'),
-                  const SizedBox(height: 24),
-                  _SectionLabel(text: "Do'konni boshqarish"),
-                  const SizedBox(height: 8),
-                  _SettingsCard(
-                    items: [
-                      _SettingsItem(
-                        icon: Iconsax.shop,
-                        title: "Do'kon sozlamalari",
-                        subtitle: "Logo, ish vaqti, ko'rinish",
-                        onTap: () => _push(context, const ShopSettingsScreen()),
-                      ),
-                      _SettingsItem(
-                        icon: Iconsax.truck_fast,
-                        title: "Do'kon xizmatlari",
-                        subtitle: 'Yetkazib berish, kafolat',
-                        onTap: () =>
-                            _push(context, const SellerServicesScreen()),
-                      ),
-                      _SettingsItem(
-                        icon: Iconsax.messages_2,
-                        title: 'Sharhlar va Baholar',
-                        subtitle: 'Mijozlar fikri va javoblar',
-                        onTap: () => _push(context, const ReviewsScreen()),
-                      ),
-                      _SettingsItem(
-                        icon: Iconsax.crown_1,
-                        iconColor: _gold,
-                        title: 'Tarif',
-                        subtitle: 'Joriy tarif: Pro',
-                        onTap: () => _push(context, const TariffScreen()),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  _SectionLabel(text: 'Ilova sozlamalari'),
-                  const SizedBox(height: 8),
-                  _SettingsCard(
-                    items: [
-                      _SettingsItem(
-                        icon: Iconsax.notification,
-                        title: 'Bildirishnomalar',
-                        onTap: () =>
-                            _push(context, const NotificationsScreen()),
-                      ),
-                      _SettingsItem(
-                        icon: Iconsax.setting_2,
-                        title: 'Sozlamalar',
-                        subtitle: 'Til, mavzu va bildirishnomalar',
-                        onTap: () => _push(context, const SettingsScreen()),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  _SectionLabel(text: 'Harakatlar'),
-                  const SizedBox(height: 8),
-                  _SettingsCard(
-                    items: [
-                      _SettingsItem(
-                        icon: Iconsax.user_octagon,
-                        iconColor: AppColors.terracotta,
-                        title: 'Xaridor rejimi',
-                        titleColor: AppColors.terracotta,
-                        onTap: () => switchAppMode(context, AppMode.customer),
-                      ),
-                      _SettingsItem(
-                        icon: Iconsax.logout,
-                        iconColor: _logoutRed,
-                        title: 'Chiqish',
-                        titleColor: _logoutRed,
-                        showTrailing: false,
-                        onTap: () => performLogout(context),
-                      ),
-                    ],
-                  ),
-                ],
               ),
             ),
           ],
@@ -133,12 +169,26 @@ class SellerProfileScreen extends StatelessWidget {
   static void _push(BuildContext context, Widget screen) {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
   }
+
+  static String _planSubtitle(SellerProfileState state) {
+    if (state.isInitialLoading) return 'Yuklanmoqda…';
+    return 'Joriy tarif: ${_planLabel(state.plan)}';
+  }
+
+  static String _planLabel(TariffPlan plan) {
+    return switch (plan) {
+      TariffPlan.free => 'Free',
+      TariffPlan.basic => 'Basic',
+      TariffPlan.pro => 'Pro',
+      TariffPlan.enterprise => 'Enterprise',
+    };
+  }
 }
 
 final Color _logoutRed = Colors.red.shade600;
 
 // =============================================================================
-// 1. Header — "Profil" title + borderless Iconsax bell with terracotta badge
+// 1. Header — "Profil" title
 // =============================================================================
 class _ProfileHeaderBar extends StatelessWidget {
   const _ProfileHeaderBar();
@@ -153,7 +203,8 @@ class _ProfileHeaderBar extends StatelessWidget {
           Expanded(
             child: Text(
               tr('profile.title'),
-              style: TextStyle(fontFamily: AppFonts.seller, 
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
                 color: _ink,
@@ -168,43 +219,28 @@ class _ProfileHeaderBar extends StatelessWidget {
   }
 }
 
-// Note: the seller profile header doesn't render a bell — notifications
-// are reached through the "Bildirishnomalar" settings item above, and the
-// dashboard tab has its own bell with badge wired to NotificationsCubit.
-// An older `_NotificationBell` class lived here; it was never instantiated
-// and used the legacy NotificationsRepository — removed when the inbox
-// moved to the root-scoped NotificationsCubit.
-
 // =============================================================================
-// 2. Identity card — large avatar, shop name, "Verified seller" pill
+// 2. Identity card — large avatar, shop name, status pill
 // =============================================================================
 class _ProfileIdentity extends StatelessWidget {
-  const _ProfileIdentity({required this.shopName});
+  const _ProfileIdentity({required this.state});
 
-  final String shopName;
+  final SellerProfileState state;
 
   @override
   Widget build(BuildContext context) {
+    if (state.isInitialLoading) {
+      return const _IdentitySkeleton();
+    }
     return Column(
       children: [
-        Container(
-          width: 80,
-          height: 80,
-          decoration: const BoxDecoration(
-            color: _avatarBg,
-            shape: BoxShape.circle,
-          ),
-          alignment: Alignment.center,
-          child: const Icon(
-            Iconsax.shop,
-            size: 36,
-            color: AppColors.terracotta,
-          ),
-        ),
+        _Avatar(logoUrl: state.logoUrl),
         const SizedBox(height: 14),
         Text(
-          shopName,
-          style: TextStyle(fontFamily: AppFonts.seller, 
+          state.displayShopName,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: AppFonts.seller,
             fontSize: 20,
             fontWeight: FontWeight.w700,
             color: _ink,
@@ -213,40 +249,169 @@ class _ProfileIdentity extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        const _VerifiedBadge(),
+        _StatusBadge(status: state.verificationStatus),
       ],
     );
   }
 }
 
-class _VerifiedBadge extends StatelessWidget {
-  const _VerifiedBadge();
+class _Avatar extends StatelessWidget {
+  const _Avatar({required this.logoUrl});
+
+  final String? logoUrl;
 
   @override
   Widget build(BuildContext context) {
+    final url = logoUrl;
+    return Container(
+      width: 80,
+      height: 80,
+      decoration: const BoxDecoration(
+        color: _avatarBg,
+        shape: BoxShape.circle,
+      ),
+      clipBehavior: Clip.antiAlias,
+      alignment: Alignment.center,
+      child: (url == null || url.isEmpty)
+          ? const Icon(
+              Iconsax.shop,
+              size: 36,
+              color: AppColors.terracotta,
+            )
+          : Image.network(
+              url,
+              fit: BoxFit.cover,
+              width: 80,
+              height: 80,
+              errorBuilder: (_, _, _) => const Icon(
+                Iconsax.shop,
+                size: 36,
+                color: AppColors.terracotta,
+              ),
+              loadingBuilder: (context, child, progress) {
+                if (progress == null) return child;
+                return const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.terracotta,
+                  ),
+                );
+              },
+            ),
+    );
+  }
+}
+
+class _IdentitySkeleton extends StatelessWidget {
+  const _IdentitySkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer.fromColors(
+      baseColor: const Color(0xFFE6E6E6),
+      highlightColor: const Color(0xFFF5F5F5),
+      child: Column(
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: const BoxDecoration(
+              color: _avatarBg,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Container(
+            width: 160,
+            height: 20,
+            decoration: BoxDecoration(
+              color: _avatarBg,
+              borderRadius: BorderRadius.circular(6),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            width: 140,
+            height: 22,
+            decoration: BoxDecoration(
+              color: _avatarBg,
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusBadge extends StatelessWidget {
+  const _StatusBadge({required this.status});
+
+  final VerificationStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, bg, fg, icon) = _styleFor(status);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: _verifiedBg,
+        color: bg,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Iconsax.tick_circle, size: 13, color: _verifiedFg),
+          Icon(icon, size: 13, color: fg),
           const SizedBox(width: 5),
           Text(
-            'Tasdiqlangan sotuvchi',
-            style: TextStyle(fontFamily: AppFonts.seller, 
+            label,
+            style: TextStyle(
+              fontFamily: AppFonts.seller,
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: _verifiedFg,
+              color: fg,
               height: 1.0,
             ),
           ),
         ],
       ),
     );
+  }
+
+  /// Picks the badge palette + label for the four meaningful statuses. The
+  /// `none` bucket also covers an authenticated user whose `sellers` row is
+  /// missing — pre-onboarding state.
+  static (String, Color, Color, IconData) _styleFor(VerificationStatus s) {
+    return switch (s) {
+      VerificationStatus.approved => (
+          'Tasdiqlangan sotuvchi',
+          _verifiedBg,
+          _verifiedFg,
+          Iconsax.tick_circle,
+        ),
+      VerificationStatus.pending ||
+      VerificationStatus.inReview =>
+        (
+          'Tasdiqlash kutilmoqda',
+          _pendingBg,
+          _pendingFg,
+          Iconsax.clock,
+        ),
+      VerificationStatus.rejected => (
+          'Tasdiqlash rad etilgan',
+          _rejectedBg,
+          _rejectedFg,
+          Iconsax.close_circle,
+        ),
+      VerificationStatus.none => (
+          'Tasdiqlanmagan',
+          _neutralBadgeBg,
+          _neutralBadgeFg,
+          Iconsax.info_circle,
+        ),
+    };
   }
 }
 
@@ -264,7 +429,8 @@ class _SectionLabel extends StatelessWidget {
       padding: const EdgeInsets.only(left: 4),
       child: Text(
         text,
-        style: TextStyle(fontFamily: AppFonts.seller, 
+        style: TextStyle(
+          fontFamily: AppFonts.seller,
           fontSize: 12,
           fontWeight: FontWeight.w700,
           color: _grey,
@@ -360,7 +526,8 @@ class _SettingsItem extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: TextStyle(fontFamily: AppFonts.seller, 
+                      style: TextStyle(
+                        fontFamily: AppFonts.seller,
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                         color: titleColor ?? _ink,
@@ -372,7 +539,8 @@ class _SettingsItem extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         subtitle!,
-                        style: TextStyle(fontFamily: AppFonts.seller, 
+                        style: TextStyle(
+                          fontFamily: AppFonts.seller,
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                           color: _grey,

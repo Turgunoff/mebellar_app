@@ -2,8 +2,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:woody_app/seller/features/settings/bloc/services_bloc.dart';
 import 'package:woody_app/seller/features/settings/bloc/shop_settings_bloc.dart';
-import 'package:woody_app/shared/mock/mock_seller_services_repository.dart';
-import 'package:woody_app/shared/mock/mock_shop_settings_repository.dart';
+import '../../../../fixtures/mocks/mock/mock_seller_services_repository.dart';
+import '../../../../fixtures/mocks/mock/mock_shop_settings_repository.dart';
 import 'package:woody_app/shared/models/shop_service.dart';
 import 'package:woody_app/shared/models/shop_settings.dart';
 

@@ -1,5 +1,5 @@
-import '../models/category.dart';
-import '../repositories/category_repository.dart';
+import 'package:woody_app/shared/models/category.dart';
+import 'package:woody_app/shared/repositories/category_repository.dart';
 import 'mock_data.dart';
 
 class MockCategoryRepository implements CategoryRepository {

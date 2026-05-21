@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_fonts.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
+import 'package:shimmer/shimmer.dart';
 
+import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_fonts.dart';
+import '../../../../shared/models/review.dart';
+import '../cubit/reviews_cubit.dart';
 
 // =============================================================================
 // Local design tokens — Plus Jakarta Sans is applied per-`Text` so the surface
@@ -19,143 +24,93 @@ const _replyBg = Color(0xFFF5F5F5);
 const _amber = Color(0xFFF5A623);
 const _terracottaTint = Color(0x14C27A5F);
 
-// =============================================================================
-// 1. Filter model
-// =============================================================================
-enum _ReviewFilter { all, pending, fiveStar, critical }
-
-extension _ReviewFilterX on _ReviewFilter {
-  String get label {
-    switch (this) {
-      case _ReviewFilter.all:
-        return 'Barchasi';
-      case _ReviewFilter.pending:
-        return 'Javob kutilmoqda';
-      case _ReviewFilter.fiveStar:
-        return '5 Yulduz';
-      case _ReviewFilter.critical:
-        return '1-2 Yulduz';
-    }
-  }
-}
-
-// =============================================================================
-// 2. Mock review entity
-// =============================================================================
-class _Review {
-  const _Review({
-    required this.id,
-    required this.productName,
-    required this.productImage,
-    required this.customerName,
-    required this.rating,
-    required this.text,
-    required this.timeAgo,
-    this.sellerReply,
-  });
-
-  final String id;
-  final String productName;
-  final String productImage;
-  final String customerName;
-  final int rating;
-  final String text;
-  final String timeAgo;
-  final String? sellerReply;
-
-  bool get hasReply => sellerReply != null && sellerReply!.isNotEmpty;
-}
-
-const _mockReviews = <_Review>[
-  _Review(
-    id: 'r1',
-    productName: 'Klassik kuxnya jihozlari',
-    productImage:
-        'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=200',
-    customerName: 'Aziza Karimova',
-    rating: 5,
-    text:
-        "Juda ajoyib mebel ekan, yetkazib berish ham tez bo'ldi. Hammaga tavsiya qilaman!",
-    timeAgo: '2 soat oldin',
-  ),
-  _Review(
-    id: 'r2',
-    productName: 'Zamonaviy divan "Loft"',
-    productImage:
-        'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=200',
-    customerName: 'Sardor Aliyev',
-    rating: 4,
-    text:
-        "Sifati yaxshi, lekin yig'ish bo'yicha ko'rsatma biroz noaniq edi. Umuman olganda mamnunman.",
-    timeAgo: '5 soat oldin',
-    sellerReply:
-        "Sardor aka, fikr-mulohazangiz uchun rahmat! Ko'rsatmani yaxshilash ustida ishlayapmiz.",
-  ),
-  _Review(
-    id: 'r3',
-    productName: 'Yotoq xonasi to\'plami',
-    productImage:
-        'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=200',
-    customerName: 'Malika Tursunova',
-    rating: 2,
-    text:
-        "Yetkazib berish kechikdi va karobka ozgina shikastlangan edi. Mahsulotning o'zi yaxshi, lekin xizmat darajasini ko'tarish kerak.",
-    timeAgo: '1 kun oldin',
-  ),
-  _Review(
-    id: 'r4',
-    productName: 'Yog\'och ish stoli',
-    productImage:
-        'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?w=200',
-    customerName: 'Bekzod Rahmonov',
-    rating: 5,
-    text:
-        "Aynan o'zim qidirgan stol! Materiali tabiiy, yig'ish oson. Rahmat!",
-    timeAgo: '3 kun oldin',
-    sellerReply: 'Bekzod aka, xaridingiz uchun rahmat! Sog\'-omon foydalaning.',
-  ),
-  _Review(
-    id: 'r5',
-    productName: 'Ofis kresllosi Pro',
-    productImage:
-        'https://images.unsplash.com/photo-1592078615290-033ee584e267?w=200',
-    customerName: 'Nilufar Yusupova',
-    rating: 1,
-    text:
-        "Rasmda ko'rsatilgani bilan farqi katta. Qaytarish jarayoni ham juda murakkab.",
-    timeAgo: '4 kun oldin',
-  ),
-];
-
-// =============================================================================
-// 3. Screen
-// =============================================================================
-class ReviewsScreen extends StatefulWidget {
+class ReviewsScreen extends StatelessWidget {
   const ReviewsScreen({super.key});
 
   @override
-  State<ReviewsScreen> createState() => _ReviewsScreenState();
+  Widget build(BuildContext context) {
+    if (!sl.isRegistered<ReviewsCubit>()) {
+      return Scaffold(
+        backgroundColor: AppColors.lightBackground,
+        appBar: const _ReviewsAppBar(),
+        body: const _NoBackendState(),
+      );
+    }
+    return BlocProvider<ReviewsCubit>(
+      create: (_) => sl<ReviewsCubit>()..load(),
+      child: const _ReviewsView(),
+    );
+  }
 }
 
-class _ReviewsScreenState extends State<ReviewsScreen> {
-  _ReviewFilter _filter = _ReviewFilter.all;
+class _ReviewsView extends StatelessWidget {
+  const _ReviewsView();
 
-  List<_Review> get _filtered {
-    switch (_filter) {
-      case _ReviewFilter.all:
-        return _mockReviews;
-      case _ReviewFilter.pending:
-        return _mockReviews.where((r) => !r.hasReply).toList();
-      case _ReviewFilter.fiveStar:
-        return _mockReviews.where((r) => r.rating == 5).toList();
-      case _ReviewFilter.critical:
-        return _mockReviews.where((r) => r.rating <= 2).toList();
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.lightBackground,
+      appBar: const _ReviewsAppBar(),
+      body: BlocBuilder<ReviewsCubit, ReviewsState>(
+        builder: (context, state) {
+          return Column(
+            children: [
+              _FilterTabs(
+                current: state.filter,
+                pendingCount: state.pendingCount,
+                onChanged: (f) => context.read<ReviewsCubit>().setFilter(f),
+              ),
+              Expanded(child: _Body(state: state)),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _Body extends StatelessWidget {
+  const _Body({required this.state});
+
+  final ReviewsState state;
+
+  @override
+  Widget build(BuildContext context) {
+    if (state.isLoading && state.reviews.isEmpty) {
+      return const _ReviewsSkeleton();
     }
+    if (state.error != null && state.reviews.isEmpty) {
+      return _ErrorState(
+        message: state.error!,
+        onRetry: () => context.read<ReviewsCubit>().load(),
+      );
+    }
+    final visible = state.visible;
+    if (visible.isEmpty) {
+      return _EmptyState(
+        filter: state.filter,
+        hasAnyReview: state.reviews.isNotEmpty,
+      );
+    }
+    return RefreshIndicator(
+      color: AppColors.terracotta,
+      onRefresh: () => context.read<ReviewsCubit>().load(),
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+        physics: const BouncingScrollPhysics(
+          parent: AlwaysScrollableScrollPhysics(),
+        ),
+        itemCount: visible.length,
+        separatorBuilder: (_, _) => const SizedBox(height: 12),
+        itemBuilder: (_, i) => _ReviewCard(
+          review: visible[i],
+          onReply: () => _openReplySheet(context, visible[i]),
+        ),
+      ),
+    );
   }
 
-  int get _pendingCount => _mockReviews.where((r) => !r.hasReply).length;
-
-  void _openReplySheet(_Review review) {
+  void _openReplySheet(BuildContext context, Review review) {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.white,
@@ -163,47 +118,16 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (_) => _ReplySheet(review: review),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final reviews = _filtered;
-    return Scaffold(
-      backgroundColor: AppColors.lightBackground,
-      appBar: const _ReviewsAppBar(),
-      body: Column(
-        children: [
-          _FilterTabs(
-            current: _filter,
-            pendingCount: _pendingCount,
-            onChanged: (f) => setState(() => _filter = f),
-          ),
-          Expanded(
-            child: reviews.isEmpty
-                ? const _EmptyState()
-                : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-                    physics: const BouncingScrollPhysics(
-                      parent: AlwaysScrollableScrollPhysics(),
-                    ),
-                    itemCount: reviews.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 12),
-                    itemBuilder: (_, i) => _ReviewCard(
-                      review: reviews[i],
-                      onReply: () => _openReplySheet(reviews[i]),
-                    ),
-                  ),
-          ),
-        ],
+      builder: (_) => BlocProvider<ReviewsCubit>.value(
+        value: context.read<ReviewsCubit>(),
+        child: _ReplySheet(review: review),
       ),
     );
   }
 }
 
 // =============================================================================
-// 4. App bar — clean white, bold title
+// App bar — clean white, bold title
 // =============================================================================
 class _ReviewsAppBar extends StatelessWidget implements PreferredSizeWidget {
   const _ReviewsAppBar();
@@ -225,7 +149,8 @@ class _ReviewsAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       title: Text(
         'Mijozlar sharhlari',
-        style: TextStyle(fontFamily: AppFonts.seller, 
+        style: TextStyle(
+          fontFamily: AppFonts.seller,
           fontSize: 18,
           fontWeight: FontWeight.w700,
           color: _ink,
@@ -237,7 +162,7 @@ class _ReviewsAppBar extends StatelessWidget implements PreferredSizeWidget {
 }
 
 // =============================================================================
-// 5. Filter tabs — horizontally scrollable choice chips
+// Filter tabs — horizontally scrollable choice chips
 // =============================================================================
 class _FilterTabs extends StatelessWidget {
   const _FilterTabs({
@@ -246,9 +171,9 @@ class _FilterTabs extends StatelessWidget {
     required this.onChanged,
   });
 
-  final _ReviewFilter current;
+  final ReviewFilter current;
   final int pendingCount;
-  final ValueChanged<_ReviewFilter> onChanged;
+  final ValueChanged<ReviewFilter> onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -260,11 +185,11 @@ class _FilterTabs extends StatelessWidget {
         physics: const BouncingScrollPhysics(),
         child: Row(
           children: [
-            for (final f in _ReviewFilter.values) ...[
+            for (final f in ReviewFilter.values) ...[
               _FilterChip(
                 label: f.label,
                 selected: current == f,
-                badgeCount: f == _ReviewFilter.pending ? pendingCount : null,
+                badgeCount: f == ReviewFilter.pending ? pendingCount : null,
                 onTap: () => onChanged(f),
               ),
               const SizedBox(width: 8),
@@ -307,7 +232,8 @@ class _FilterChip extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: TextStyle(fontFamily: AppFonts.seller, 
+                style: TextStyle(
+                  fontFamily: AppFonts.seller,
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: fg,
@@ -330,7 +256,8 @@ class _FilterChip extends StatelessWidget {
                   alignment: Alignment.center,
                   child: Text(
                     '$badgeCount',
-                    style: TextStyle(fontFamily: AppFonts.seller, 
+                    style: TextStyle(
+                      fontFamily: AppFonts.seller,
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
@@ -348,12 +275,12 @@ class _FilterChip extends StatelessWidget {
 }
 
 // =============================================================================
-// 6. Review card — thumbnail + product, divider, content, reply slot
+// Review card — thumbnail + product, divider, content, reply slot
 // =============================================================================
 class _ReviewCard extends StatelessWidget {
   const _ReviewCard({required this.review, required this.onReply});
 
-  final _Review review;
+  final Review review;
   final VoidCallback onReply;
 
   @override
@@ -379,17 +306,20 @@ class _ReviewCard extends StatelessWidget {
           const Divider(height: 1, thickness: 1, color: _divider),
           const SizedBox(height: 12),
           _CustomerLine(review: review),
-          const SizedBox(height: 8),
-          Text(
-            review.text,
-            style: TextStyle(fontFamily: AppFonts.seller, 
-              fontSize: 13.5,
-              fontWeight: FontWeight.w500,
-              color: const Color(0xFF3A3A3A),
-              height: 1.5,
-              letterSpacing: -0.1,
+          if (review.comment.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              review.comment,
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
+                fontSize: 13.5,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFF3A3A3A),
+                height: 1.5,
+                letterSpacing: -0.1,
+              ),
             ),
-          ),
+          ],
           const SizedBox(height: 12),
           if (review.hasReply)
             _SellerReplyBlock(reply: review.sellerReply!)
@@ -404,7 +334,7 @@ class _ReviewCard extends StatelessWidget {
 class _CardHeader extends StatelessWidget {
   const _CardHeader({required this.review});
 
-  final _Review review;
+  final Review review;
 
   @override
   Widget build(BuildContext context) {
@@ -413,19 +343,15 @@ class _CardHeader extends StatelessWidget {
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(10),
-          child: Image.network(
-            review.productImage,
-            width: 40,
-            height: 40,
-            fit: BoxFit.cover,
-            errorBuilder: (_, _, _) => Container(
-              width: 40,
-              height: 40,
-              color: _chipIdle,
-              alignment: Alignment.center,
-              child: const Icon(Iconsax.box, size: 18, color: _greyMid),
-            ),
-          ),
+          child: review.productImage.isEmpty
+              ? _productImageFallback()
+              : Image.network(
+                  review.productImage,
+                  width: 40,
+                  height: 40,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => _productImageFallback(),
+                ),
         ),
         const SizedBox(width: 10),
         Expanded(
@@ -433,7 +359,8 @@ class _CardHeader extends StatelessWidget {
             review.productName,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontFamily: AppFonts.seller, 
+            style: TextStyle(
+              fontFamily: AppFonts.seller,
               fontSize: 13,
               fontWeight: FontWeight.w600,
               color: _ink,
@@ -444,8 +371,9 @@ class _CardHeader extends StatelessWidget {
         ),
         const SizedBox(width: 10),
         Text(
-          review.timeAgo,
-          style: TextStyle(fontFamily: AppFonts.seller, 
+          _formatTimeAgo(review.createdAt),
+          style: TextStyle(
+            fontFamily: AppFonts.seller,
             fontSize: 11,
             fontWeight: FontWeight.w500,
             color: _grey,
@@ -455,12 +383,22 @@ class _CardHeader extends StatelessWidget {
       ],
     );
   }
+
+  Widget _productImageFallback() {
+    return Container(
+      width: 40,
+      height: 40,
+      color: _chipIdle,
+      alignment: Alignment.center,
+      child: const Icon(Iconsax.box, size: 18, color: _greyMid),
+    );
+  }
 }
 
 class _CustomerLine extends StatelessWidget {
   const _CustomerLine({required this.review});
 
-  final _Review review;
+  final Review review;
 
   @override
   Widget build(BuildContext context) {
@@ -469,7 +407,8 @@ class _CustomerLine extends StatelessWidget {
         Expanded(
           child: Text(
             review.customerName,
-            style: TextStyle(fontFamily: AppFonts.seller, 
+            style: TextStyle(
+              fontFamily: AppFonts.seller,
               fontSize: 14,
               fontWeight: FontWeight.w700,
               color: _ink,
@@ -508,7 +447,7 @@ class _StarRow extends StatelessWidget {
 }
 
 // =============================================================================
-// 7. Reply button — terracotta outlined
+// Reply button — terracotta outlined
 // =============================================================================
 class _ReplyButton extends StatelessWidget {
   const _ReplyButton({required this.onTap});
@@ -524,7 +463,8 @@ class _ReplyButton extends StatelessWidget {
         icon: const Icon(Iconsax.edit, size: 16, color: AppColors.terracotta),
         label: Text(
           'Javob yozish',
-          style: TextStyle(fontFamily: AppFonts.seller, 
+          style: TextStyle(
+            fontFamily: AppFonts.seller,
             fontSize: 13.5,
             fontWeight: FontWeight.w700,
             color: AppColors.terracotta,
@@ -545,7 +485,7 @@ class _ReplyButton extends StatelessWidget {
 }
 
 // =============================================================================
-// 8. Seller reply block — soft grey, nested feel
+// Seller reply block — soft grey, nested feel
 // =============================================================================
 class _SellerReplyBlock extends StatelessWidget {
   const _SellerReplyBlock({required this.reply});
@@ -585,7 +525,8 @@ class _SellerReplyBlock extends StatelessWidget {
               children: [
                 Text(
                   'Sizning javobingiz',
-                  style: TextStyle(fontFamily: AppFonts.seller, 
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                     color: AppColors.terracotta,
@@ -596,7 +537,8 @@ class _SellerReplyBlock extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   reply,
-                  style: TextStyle(fontFamily: AppFonts.seller, 
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                     color: _ink,
@@ -613,12 +555,12 @@ class _SellerReplyBlock extends StatelessWidget {
 }
 
 // =============================================================================
-// 9. Reply bottom sheet (mock — hook up to a bloc later)
+// Reply bottom sheet — wired to ReviewsCubit.postReply
 // =============================================================================
 class _ReplySheet extends StatefulWidget {
   const _ReplySheet({required this.review});
 
-  final _Review review;
+  final Review review;
 
   @override
   State<_ReplySheet> createState() => _ReplySheetState();
@@ -633,108 +575,169 @@ class _ReplySheetState extends State<_ReplySheet> {
     super.dispose();
   }
 
+  Future<void> _submit() async {
+    final cubit = context.read<ReviewsCubit>();
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    final text = _controller.text.trim();
+    if (text.isEmpty) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text("Javob matni bo'sh bo'lmasligi kerak")),
+      );
+      return;
+    }
+    final ok = await cubit.postReply(
+      reviewId: widget.review.id,
+      reply: text,
+    );
+    if (!mounted) return;
+    if (ok) {
+      navigator.pop();
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Javob yuborildi')),
+      );
+    } else {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            cubit.state.error ?? 'Javob yuborilmadi',
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final viewInsets = MediaQuery.of(context).viewInsets.bottom;
-    return Padding(
-      padding: EdgeInsets.fromLTRB(20, 16, 20, 20 + viewInsets),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: const Color(0xFFE3E3E3),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Javob yozish',
-            style: TextStyle(fontFamily: AppFonts.seller, 
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: _ink,
-              letterSpacing: -0.2,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '${widget.review.customerName} • ${widget.review.productName}',
-            style: TextStyle(fontFamily: AppFonts.seller, 
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: _grey,
-              height: 1.3,
-            ),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _controller,
-            maxLines: 5,
-            style: TextStyle(fontFamily: AppFonts.seller, 
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: _ink,
-              height: 1.45,
-            ),
-            decoration: InputDecoration(
-              hintText: 'Mijozga samimiy javob yozing...',
-              hintStyle: TextStyle(fontFamily: AppFonts.seller, 
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: _greyMid,
-              ),
-              filled: true,
-              fillColor: const Color(0xFFF7F7F7),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              contentPadding: const EdgeInsets.all(14),
-            ),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: () => Navigator.of(context).pop(),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.terracotta,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+    return BlocBuilder<ReviewsCubit, ReviewsState>(
+      builder: (context, state) {
+        final sending = state.replyingId == widget.review.id;
+        return Padding(
+          padding: EdgeInsets.fromLTRB(20, 16, 20, 20 + viewInsets),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE3E3E3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
-              child: Text(
-                'Yuborish',
-                style: TextStyle(fontFamily: AppFonts.seller, 
-                  fontSize: 15,
+              const SizedBox(height: 16),
+              Text(
+                'Javob yozish',
+                style: TextStyle(
+                  fontFamily: AppFonts.seller,
+                  fontSize: 18,
                   fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                  letterSpacing: -0.1,
+                  color: _ink,
+                  letterSpacing: -0.2,
                 ),
               ),
-            ),
+              const SizedBox(height: 4),
+              Text(
+                '${widget.review.customerName} • ${widget.review.productName}',
+                style: TextStyle(
+                  fontFamily: AppFonts.seller,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: _grey,
+                  height: 1.3,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _controller,
+                maxLines: 5,
+                enabled: !sending,
+                style: TextStyle(
+                  fontFamily: AppFonts.seller,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: _ink,
+                  height: 1.45,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'Mijozga samimiy javob yozing...',
+                  hintStyle: TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: _greyMid,
+                  ),
+                  filled: true,
+                  fillColor: const Color(0xFFF7F7F7),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.all(14),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: sending ? null : _submit,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.terracotta,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: sending
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(
+                          'Yuborish',
+                          style: TextStyle(
+                            fontFamily: AppFonts.seller,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            letterSpacing: -0.1,
+                          ),
+                        ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
 
 // =============================================================================
-// 10. Empty state
+// Empty / loading / error states
 // =============================================================================
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  const _EmptyState({required this.filter, required this.hasAnyReview});
+
+  final ReviewFilter filter;
+  final bool hasAnyReview;
 
   @override
   Widget build(BuildContext context) {
+    final title = hasAnyReview
+        ? 'Tanlangan filtr bo\'yicha topilmadi'
+        : 'Hali sharh yo\'q';
+    final subtitle = hasAnyReview
+        ? "Boshqa filtr tanlang yoki keyinroq qayting."
+        : "Buyurtma yetkazib berilgandan keyin mijozlar sharh qoldira oladi.";
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -757,8 +760,10 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Sharhlar topilmadi',
-              style: TextStyle(fontFamily: AppFonts.seller, 
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
                 color: _ink,
@@ -767,9 +772,10 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'Tanlangan filtr bo\'yicha sharhlar yo\'q.',
+              subtitle,
               textAlign: TextAlign.center,
-              style: TextStyle(fontFamily: AppFonts.seller, 
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
                 color: _grey,
@@ -781,4 +787,140 @@ class _EmptyState extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ErrorState extends StatelessWidget {
+  const _ErrorState({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Iconsax.warning_2, size: 40, color: AppColors.terracotta),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: _ink,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: onRetry,
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.terracotta,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: Text(
+                "Qayta urinish",
+                style: TextStyle(
+                  fontFamily: AppFonts.seller,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NoBackendState extends StatelessWidget {
+  const _NoBackendState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Iconsax.info_circle, size: 40, color: _greyMid),
+            const SizedBox(height: 16),
+            Text(
+              'Sharhlar mavjud emas',
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: _ink,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              "Bu qurilmada Supabase ulanmagan.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: _grey,
+                height: 1.4,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ReviewsSkeleton extends StatelessWidget {
+  const _ReviewsSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer.fromColors(
+      baseColor: const Color(0xFFE6E6E6),
+      highlightColor: const Color(0xFFF5F5F5),
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: 4,
+        separatorBuilder: (_, _) => const SizedBox(height: 12),
+        itemBuilder: (_, _) => Container(
+          height: 140,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// Helpers
+// =============================================================================
+
+/// Renders the relative time the review was posted, e.g. "2 soat oldin".
+String _formatTimeAgo(DateTime when) {
+  final diff = DateTime.now().difference(when);
+  if (diff.inMinutes < 1) return 'Hozir';
+  if (diff.inMinutes < 60) return '${diff.inMinutes} daqiqa oldin';
+  if (diff.inHours < 24) return '${diff.inHours} soat oldin';
+  if (diff.inDays < 7) return '${diff.inDays} kun oldin';
+  if (diff.inDays < 30) return '${(diff.inDays / 7).floor()} hafta oldin';
+  if (diff.inDays < 365) return '${(diff.inDays / 30).floor()} oy oldin';
+  return '${(diff.inDays / 365).floor()} yil oldin';
 }

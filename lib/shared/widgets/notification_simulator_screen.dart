@@ -6,7 +6,6 @@ import '../../core/connectivity/connectivity_service.dart';
 import '../../core/deep_links/deep_link_service.dart';
 import '../../core/di/service_locator.dart';
 import '../../core/notifications/notification_handler.dart';
-import '../mock/mock_notifications_data.dart';
 import '../models/app_notification.dart';
 import '../repositories/notifications_repository.dart';
 
@@ -68,48 +67,48 @@ class NotificationSimulatorScreen extends StatelessWidget {
         body: tr('notifications.scenario.same_foreground_hint'),
         action: _SimAction.tapForeground,
         notification: current == AppMode.customer
-            ? MockNotificationsData.orderDeliveredTemplate()
-            : MockNotificationsData.newOrderTemplate(),
+            ? _orderDeliveredTemplate()
+            : _newOrderTemplate(),
       ),
       _Scenario(
         title: tr('notifications.scenario.cross_foreground'),
         body: tr('notifications.scenario.cross_foreground_hint'),
         action: _SimAction.tapForeground,
         notification: current == AppMode.customer
-            ? MockNotificationsData.newOrderTemplate()
-            : MockNotificationsData.orderDeliveredTemplate(),
+            ? _newOrderTemplate()
+            : _orderDeliveredTemplate(),
       ),
       _Scenario(
         title: tr('notifications.scenario.same_background'),
         body: tr('notifications.scenario.same_background_hint'),
         action: _SimAction.stashOnly,
         notification: current == AppMode.customer
-            ? MockNotificationsData.orderDeliveredTemplate()
-            : MockNotificationsData.newOrderTemplate(),
+            ? _orderDeliveredTemplate()
+            : _newOrderTemplate(),
       ),
       _Scenario(
         title: tr('notifications.scenario.cross_background'),
         body: tr('notifications.scenario.cross_background_hint'),
         action: _SimAction.stashOnly,
         notification: current == AppMode.customer
-            ? MockNotificationsData.newOrderTemplate()
-            : MockNotificationsData.orderDeliveredTemplate(),
+            ? _newOrderTemplate()
+            : _orderDeliveredTemplate(),
       ),
       _Scenario(
         title: tr('notifications.scenario.same_cold'),
         body: tr('notifications.scenario.same_cold_hint'),
         action: _SimAction.coldStart,
         notification: current == AppMode.customer
-            ? MockNotificationsData.orderDeliveredTemplate()
-            : MockNotificationsData.newOrderTemplate(),
+            ? _orderDeliveredTemplate()
+            : _newOrderTemplate(),
       ),
       _Scenario(
         title: tr('notifications.scenario.cross_cold'),
         body: tr('notifications.scenario.cross_cold_hint'),
         action: _SimAction.coldStart,
         notification: current == AppMode.customer
-            ? MockNotificationsData.newOrderTemplate()
-            : MockNotificationsData.orderDeliveredTemplate(),
+            ? _newOrderTemplate()
+            : _orderDeliveredTemplate(),
       ),
     ];
   }
@@ -337,3 +336,25 @@ class _DeepLinkTesterCardState extends State<_DeepLinkTesterCard> {
     );
   }
 }
+
+// File-local notification templates used by the cross-mode scenario tiles.
+// Previously sourced from the shared mock fixtures; inlined here so the dev
+// simulator stays self-contained and the fixtures package can live under
+// `test/`.
+AppNotification _newOrderTemplate() => AppNotification(
+      id: 'notif-${DateTime.now().millisecondsSinceEpoch}',
+      kind: NotificationKind.orderPlaced,
+      title: 'Yangi buyurtma',
+      body: 'Sizning do\'koningizga yangi buyurtma keldi',
+      route: '/orders/ord-1001',
+      createdAt: DateTime.now(),
+    );
+
+AppNotification _orderDeliveredTemplate() => AppNotification(
+      id: 'notif-${DateTime.now().millisecondsSinceEpoch}',
+      kind: NotificationKind.orderUpdated,
+      title: 'Buyurtma yetkazildi',
+      body: 'M-2026-002 raqamli buyurtma manzilingizga yetkazib berildi',
+      route: '/orders/ord-1002',
+      createdAt: DateTime.now(),
+    );

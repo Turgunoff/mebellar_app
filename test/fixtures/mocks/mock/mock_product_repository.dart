@@ -1,6 +1,6 @@
-import '../models/paginated.dart';
-import '../models/product.dart';
-import '../repositories/product_repository.dart';
+import 'package:woody_app/shared/models/paginated.dart';
+import 'package:woody_app/shared/models/product.dart';
+import 'package:woody_app/shared/repositories/product_repository.dart';
 import 'mock_data.dart';
 
 class MockProductRepository implements ProductRepository {
