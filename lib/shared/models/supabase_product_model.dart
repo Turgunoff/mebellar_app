@@ -6,6 +6,7 @@ class SupabaseProductModel extends Equatable {
     required this.categoryId,
     this.subcategoryId,
     this.shopId,
+    this.shopName,
     required this.name,
     this.description,
     required this.price,
@@ -19,6 +20,7 @@ class SupabaseProductModel extends Equatable {
   final String categoryId;
   final String? subcategoryId;
   final String? shopId;
+  final String? shopName;
   final String name;
   final String? description;
   final double price;
@@ -31,11 +33,13 @@ class SupabaseProductModel extends Equatable {
   bool get inStock => stock > 0;
 
   factory SupabaseProductModel.fromJson(Map<String, dynamic> json) {
+    final shopEmbed = json['shops'] as Map<String, dynamic>?;
     return SupabaseProductModel(
       id: json['id'] as String,
       categoryId: json['category_id'] as String,
       subcategoryId: json['subcategory_id'] as String?,
       shopId: json['shop_id'] as String?,
+      shopName: shopEmbed?['name'] as String?,
       name: json['name'] as String,
       description: json['description'] as String?,
       price: (json['price'] as num).toDouble(),

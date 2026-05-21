@@ -26,6 +26,8 @@ class SupabaseProductRepository implements SupabaseProductDataSource {
 
   final SupabaseClient _supabase;
 
+  static const _select = '*, shops(name)';
+
   @override
   Future<List<SupabaseProductModel>> listByCategory({
     required String categoryId,
@@ -33,7 +35,7 @@ class SupabaseProductRepository implements SupabaseProductDataSource {
   }) async {
     var query = _supabase
         .from('products')
-        .select()
+        .select(_select)
         .eq('category_id', categoryId);
 
     if (subcategoryId != null) {
@@ -52,7 +54,7 @@ class SupabaseProductRepository implements SupabaseProductDataSource {
   }) async {
     final data = await _supabase
         .from('products')
-        .select()
+        .select(_select)
         .eq('subcategory_id', subcategoryId)
         .order('created_at', ascending: false);
     return data.map(SupabaseProductModel.fromJson).toList(growable: false);
@@ -62,7 +64,7 @@ class SupabaseProductRepository implements SupabaseProductDataSource {
   Future<SupabaseProductModel> getById(String id) async {
     final data = await _supabase
         .from('products')
-        .select()
+        .select(_select)
         .eq('id', id)
         .single();
     return SupabaseProductModel.fromJson(data);
@@ -72,7 +74,7 @@ class SupabaseProductRepository implements SupabaseProductDataSource {
   Future<List<SupabaseProductModel>> listAll({int limit = 10}) async {
     final data = await _supabase
         .from('products')
-        .select()
+        .select(_select)
         .order('created_at', ascending: false)
         .limit(limit);
     return (data as List)
@@ -96,7 +98,7 @@ class SupabaseProductRepository implements SupabaseProductDataSource {
     final pattern = '%$escaped%';
     final data = await _supabase
         .from('products')
-        .select()
+        .select(_select)
         .or('name.ilike.$pattern,description.ilike.$pattern')
         .order('created_at', ascending: false)
         .limit(limit);

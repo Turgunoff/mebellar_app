@@ -6,7 +6,6 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/models/order.dart';
-import '../../../../shared/repositories/seller_order_repository.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../bloc/seller_orders_bloc.dart';
 import '../widgets/order_format.dart';
@@ -37,9 +36,11 @@ class SellerOrdersScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<SellerOrdersBloc>(
-      create: (_) => SellerOrdersBloc(sl<SellerOrderRepository>())
-        ..add(const SellerOrdersRequested()),
+    // The bloc is a seller-scope singleton provided by SellerRouterShell so
+    // the bottom-nav badge stays live across tab switches. BlocProvider.value
+    // makes it reachable by child widgets without taking ownership.
+    return BlocProvider<SellerOrdersBloc>.value(
+      value: sl<SellerOrdersBloc>(),
       child: const _SellerOrdersView(),
     );
   }

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
+import '../core/di/service_locator.dart';
 import '../core/i18n/i18n.dart';
 import '../core/logging/console_nav_observer.dart';
 import '../core/logging/talker.dart';
@@ -10,6 +12,7 @@ import '../shared/models/seller_product.dart';
 import 'features/analytics/screens/analytics_screen.dart';
 import 'features/dashboard/dashboard_screen.dart';
 import 'features/notifications/screens/notifications_screen.dart';
+import 'features/orders/bloc/seller_orders_bloc.dart';
 import 'features/orders/screens/order_details_screen.dart';
 import 'features/orders/screens/seller_orders_screen.dart';
 import 'features/products/screens/product_form_screen.dart';
@@ -134,6 +137,7 @@ GoRouter buildSellerRouter() {
                     parentNavigatorKey: sellerRootNavigatorKey,
                     builder: (context, state) => OrderDetailsScreen(
                       orderId: state.pathParameters['id']!,
+                      ordersBloc: sl<SellerOrdersBloc>(),
                     ),
                   ),
                 ],
@@ -204,6 +208,9 @@ GoRouter buildSellerRouter() {
 }
 
 /// Bottom-nav shell hosting the five [StatefulShellRoute] branches.
+///
+/// Provides [SellerOrdersBloc] at the shell level so both the badge and all
+/// child screens share the same singleton instance.
 class SellerRouterShell extends StatelessWidget {
   const SellerRouterShell({super.key, required this.shell});
 
@@ -211,33 +218,38 @@ class SellerRouterShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      // Every seller tab renders its own in-body header, so the shell paints
-      // no AppBar — this keeps the surface free of M3's teal-seeded tint.
-      body: shell,
-      bottomNavigationBar: SellerBottomNav(
-        currentIndex: shell.currentIndex,
-        // Re-tapping the active tab resets it to the branch's initial route.
-        onChanged: (i) => shell.goBranch(
-          i,
-          initialLocation: i == shell.currentIndex,
+    return BlocProvider<SellerOrdersBloc>.value(
+      value: sl<SellerOrdersBloc>(),
+      child: BlocBuilder<SellerOrdersBloc, SellerOrdersState>(
+        buildWhen: (prev, curr) => prev.badgeCount != curr.badgeCount,
+        builder: (context, ordersState) => Scaffold(
+          body: shell,
+          bottomNavigationBar: SellerBottomNav(
+            currentIndex: shell.currentIndex,
+            onChanged: (i) => shell.goBranch(
+              i,
+              initialLocation: i == shell.currentIndex,
+            ),
+            items: [
+              SellerNavItem(
+                icon: Iconsax.element_3,
+                label: tr('seller.tab_dashboard'),
+              ),
+              SellerNavItem(
+                  icon: Iconsax.box, label: tr('seller.tab_products')),
+              SellerNavItem(
+                icon: Iconsax.shopping_bag,
+                label: tr('seller.tab_orders'),
+                badge: ordersState.badgeCount,
+              ),
+              SellerNavItem(
+                icon: Iconsax.chart_2,
+                label: tr('seller.tab_analytics'),
+              ),
+              SellerNavItem(icon: Iconsax.user, label: tr('profile.title')),
+            ],
+          ),
         ),
-        items: [
-          SellerNavItem(
-            icon: Iconsax.element_3,
-            label: tr('seller.tab_dashboard'),
-          ),
-          SellerNavItem(icon: Iconsax.box, label: tr('seller.tab_products')),
-          SellerNavItem(
-            icon: Iconsax.shopping_bag,
-            label: tr('seller.tab_orders'),
-          ),
-          SellerNavItem(
-            icon: Iconsax.chart_2,
-            label: tr('seller.tab_analytics'),
-          ),
-          SellerNavItem(icon: Iconsax.user, label: tr('profile.title')),
-        ],
       ),
     );
   }

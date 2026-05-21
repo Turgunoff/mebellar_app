@@ -106,6 +106,23 @@ class OrderStatusEvent extends Equatable {
   List<Object?> get props => [status, timestamp];
 }
 
+enum FeeAdjustmentStatus {
+  pendingCustomer('pending_customer'),
+  approved('approved'),
+  rejected('rejected');
+
+  const FeeAdjustmentStatus(this.code);
+  final String code;
+
+  static FeeAdjustmentStatus? fromCode(String? code) {
+    if (code == null) return null;
+    for (final v in FeeAdjustmentStatus.values) {
+      if (v.code == code) return v;
+    }
+    return null;
+  }
+}
+
 class Order extends Equatable {
   const Order({
     required this.id,
@@ -124,6 +141,9 @@ class Order extends Equatable {
     required this.timeline,
     this.cancelReason,
     this.expectedDeliveryAt,
+    this.proposedDeliveryFee,
+    this.feeAdjustmentNote,
+    this.feeAdjustmentStatus,
   });
 
   final String id;
@@ -142,6 +162,9 @@ class Order extends Equatable {
   final List<OrderStatusEvent> timeline;
   final String? cancelReason;
   final DateTime? expectedDeliveryAt;
+  final num? proposedDeliveryFee;
+  final String? feeAdjustmentNote;
+  final FeeAdjustmentStatus? feeAdjustmentStatus;
 
   /// Maps a `public.orders` row. Sub-aggregates that live in other tables
   /// ([items], [timeline]) or are not part of the seller order schema
@@ -178,6 +201,10 @@ class Order extends Equatable {
       cancelReason: (json['cancellation_reason'] ?? json['cancel_reason'])
           as String?,
       expectedDeliveryAt: _parseDateOrNull(json['expected_delivery_at']),
+      proposedDeliveryFee: json['proposed_delivery_fee'] as num?,
+      feeAdjustmentNote: json['fee_adjustment_note'] as String?,
+      feeAdjustmentStatus:
+          FeeAdjustmentStatus.fromCode(json['fee_adjustment_status'] as String?),
     );
   }
 
@@ -203,6 +230,11 @@ class Order extends Equatable {
     OrderStatus? status,
     String? cancelReason,
     List<OrderStatusEvent>? timeline,
+    num? grandTotal,
+    num? proposedDeliveryFee,
+    String? feeAdjustmentNote,
+    FeeAdjustmentStatus? feeAdjustmentStatus,
+    bool clearFeeAdjustment = false,
   }) {
     return Order(
       id: id,
@@ -216,16 +248,23 @@ class Order extends Equatable {
       itemsTotal: itemsTotal,
       deliveryFee: deliveryFee,
       servicesFee: servicesFee,
-      grandTotal: grandTotal,
+      grandTotal: grandTotal ?? this.grandTotal,
       createdAt: createdAt,
       timeline: timeline ?? this.timeline,
       cancelReason: cancelReason ?? this.cancelReason,
       expectedDeliveryAt: expectedDeliveryAt,
+      proposedDeliveryFee:
+          clearFeeAdjustment ? null : (proposedDeliveryFee ?? this.proposedDeliveryFee),
+      feeAdjustmentNote:
+          clearFeeAdjustment ? null : (feeAdjustmentNote ?? this.feeAdjustmentNote),
+      feeAdjustmentStatus:
+          clearFeeAdjustment ? null : (feeAdjustmentStatus ?? this.feeAdjustmentStatus),
     );
   }
 
   @override
-  List<Object?> get props => [id, status, timeline.length];
+  List<Object?> get props =>
+      [id, status, timeline.length, proposedDeliveryFee, feeAdjustmentStatus];
 }
 
 // Placeholders for the sub-aggregates a seller `orders` row doesn't carry.

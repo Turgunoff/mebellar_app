@@ -69,6 +69,20 @@ class _NotificationsViewState extends State<_NotificationsView> {
       return;
     }
 
+    // Order detail routes need the orders list in the back stack so the user
+    // can press back and land on the list (Shell → Orders → Order Detail).
+    // We capture the router before calling go() because go() unmounts this
+    // widget — context.mounted will be false in the post-frame callback.
+    if (route.startsWith('/orders/')) {
+      final router = GoRouter.of(context);
+      router.go('/');
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        router.push('/orders');
+        router.push(route);
+      });
+      return;
+    }
+
     context.push(route);
   }
 
@@ -117,6 +131,18 @@ class _NotificationsViewState extends State<_NotificationsView> {
             ? '/seller/products/$productId'
             : '/seller/products',
       NotificationKind.sellerLowStock => '/seller/products',
+
+      // ---- Fee adjustment ------------------------------------------------
+      // Customer receives 'proposed' → navigates to /orders/{id} to approve.
+      // Seller receives 'response' → navigates to /seller/orders/{id}.
+      NotificationKind.feeAdjustmentProposed =>
+        orderId != null && orderId.isNotEmpty
+            ? '/orders/$orderId'
+            : '/orders',
+      NotificationKind.feeAdjustmentResponse =>
+        orderId != null && orderId.isNotEmpty
+            ? '/seller/orders/$orderId'
+            : '/seller/orders',
 
       // ---- Global broadcasts ---------------------------------------------
       // Marketing/system kinds always target customer mode (see
@@ -253,7 +279,9 @@ class _NotificationTile extends StatelessWidget {
 
   bool _hasViewCta(NotificationKind kind) {
     return kind == NotificationKind.sellerApproved ||
-        kind == NotificationKind.sellerRejected;
+        kind == NotificationKind.sellerRejected ||
+        kind == NotificationKind.feeAdjustmentProposed ||
+        kind == NotificationKind.feeAdjustmentResponse;
   }
 
   @override

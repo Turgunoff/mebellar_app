@@ -35,6 +35,10 @@ enum NotificationKind {
   sellerProductRejected('seller_product_rejected'),
   sellerLowStock('seller_low_stock'),
 
+  // ---- Fee adjustment (bi-directional) ----------------------------------
+  feeAdjustmentProposed('fee_adjustment_proposed'),
+  feeAdjustmentResponse('fee_adjustment_response'),
+
   // ---- Fallback ----------------------------------------------------------
   general('general');
 
@@ -73,6 +77,8 @@ enum NotificationKind {
       NotificationKind.sellerProductRejected => Iconsax.box_remove,
       NotificationKind.sellerLowStock => Iconsax.warning_2,
       NotificationKind.systemAlert => Iconsax.danger,
+      NotificationKind.feeAdjustmentProposed => Iconsax.truck_fast,
+      NotificationKind.feeAdjustmentResponse => Iconsax.tick_circle,
       NotificationKind.general => Iconsax.notification,
     };
   }
@@ -100,6 +106,8 @@ enum NotificationKind {
       NotificationKind.sellerProductRejected => const Color(0xFFE05A4A),
       NotificationKind.sellerLowStock => const Color(0xFFE5A23B), // honey
       NotificationKind.systemAlert => const Color(0xFFE05A4A), // alert red
+      NotificationKind.feeAdjustmentProposed => const Color(0xFFE5A23B), // honey-amber
+      NotificationKind.feeAdjustmentResponse => const Color(0xFF2F9E6E), // emerald
       NotificationKind.general => const Color(0xFF8A8A8A), // neutral grey
     };
   }
@@ -133,7 +141,8 @@ extension NotificationKindRouting on NotificationKind {
       NotificationKind.sellerOrderCancelled ||
       NotificationKind.sellerProductApproved ||
       NotificationKind.sellerProductRejected ||
-      NotificationKind.sellerLowStock => AppMode.seller,
+      NotificationKind.sellerLowStock ||
+      NotificationKind.feeAdjustmentResponse => AppMode.seller,
 
       // Global / marketing broadcasts — listed explicitly so a future
       // refactor can't silently demote them to "default = customer". Their

@@ -90,6 +90,14 @@ class MockOrderRepository implements OrderRepository {
   }
 
   @override
+  Future<Order> approveFeeAdjustment(String id) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<Order> rejectFeeAdjustment(String id) async =>
+      throw UnimplementedError();
+
+  @override
   Future<Order> cancel(String id, {required String reason}) async {
     await Future<void>.delayed(_delay);
     final idx = _orders.indexWhere((o) => o.id == id);

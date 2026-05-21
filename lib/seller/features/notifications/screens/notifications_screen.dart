@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -72,12 +73,7 @@ class _NotificationsViewState extends State<_NotificationsView> {
       return;
     }
 
-    // Same-mode push for seller routes (e.g. seller_new_order →
-    // /seller/orders/:id). The seller MaterialApp doesn't ship a
-    // GoRouter yet — `pushNamed` is a no-op when the route isn't mapped
-    // in `onGenerateRoute`. The cubit's `markRead` still fires, so the
-    // badge stays correct even if navigation can't complete.
-    Navigator.of(context).pushNamed(route);
+    context.push(route);
   }
 
   /// Mirrors the customer-side `determineRouteFor` (kept in sync by hand —
@@ -124,6 +120,16 @@ class _NotificationsViewState extends State<_NotificationsView> {
       NotificationKind.promo => _payloadDeepLink(n, const ['promo_id', 'campaign_id'], '/promo/') ?? '/promo',
       NotificationKind.news => _payloadDeepLink(n, const ['news_id', 'article_id'], '/news/') ?? '/news',
       NotificationKind.systemAlert => '/system-alert',
+
+      // ---- Fee adjustment ------------------------------------------------
+      NotificationKind.feeAdjustmentProposed =>
+        orderId != null && orderId.isNotEmpty
+            ? '/orders/$orderId'
+            : '/orders',
+      NotificationKind.feeAdjustmentResponse =>
+        orderId != null && orderId.isNotEmpty
+            ? '/seller/orders/$orderId'
+            : '/seller/orders',
 
       NotificationKind.review ||
       NotificationKind.general => null,

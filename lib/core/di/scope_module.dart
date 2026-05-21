@@ -10,10 +10,12 @@ import '../../customer/features/orders/cubit/profile_orders_cubit.dart';
 import '../../customer/features/profile/cubit/profile_cubit.dart';
 import '../../customer/services/order_tracking_service.dart';
 import '../../seller/features/dashboard/bloc/seller_dashboard_cubit.dart';
+import '../../seller/features/orders/bloc/seller_orders_bloc.dart';
 import '../../seller/features/profile/cubit/seller_profile_cubit.dart';
 import '../../seller/features/profile/data/seller_identity_cache.dart';
 import '../../seller/features/reviews/cubit/reviews_cubit.dart';
 import '../../seller/services/new_orders_listener.dart';
+import '../../shared/repositories/seller_order_repository.dart';
 import '../../shared/repositories/banner_repository.dart';
 import '../../shared/repositories/cart_repository.dart';
 import '../../shared/repositories/favorites_repository.dart';
@@ -70,6 +72,14 @@ void registerCustomerScope(GetIt sl) {
 
 /// Seller mode-scope: blocs and services torn down on a switch to customer.
 void registerSellerScope(GetIt sl) {
+  // Root-scoped orders bloc so the bottom-nav badge stays alive regardless of
+  // which tab is active. Fires SellerOrdersRequested on creation; disposed
+  // automatically when the seller scope is popped on mode switch.
+  sl.registerLazySingleton<SellerOrdersBloc>(
+    () => SellerOrdersBloc(sl<SellerOrderRepository>())
+      ..add(const SellerOrdersRequested()),
+    dispose: (bloc) => bloc.close(),
+  );
   sl.registerLazySingleton<NewOrdersListener>(
     () => NewOrdersListener(
       sl.isRegistered<SupabaseClient>() ? sl<SupabaseClient>() : null,

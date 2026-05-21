@@ -55,7 +55,8 @@ class ProfileOrdersCubit extends Cubit<ProfileOrdersState> {
       final rows = await _supabase
           .from('orders')
           .select(
-            'id, total_amount, status, delivery_address, created_at, cancellation_reason',
+            'id, total_amount, status, delivery_address, created_at, '
+            'cancellation_reason, fee_adjustment_status, proposed_delivery_fee',
           )
           .eq('user_id', userId)
           .order('created_at', ascending: false);

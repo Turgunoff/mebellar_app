@@ -85,6 +85,14 @@ class MockSellerOrderRepository implements SellerOrderRepository {
       );
 
   @override
+  Future<Result<Order>> proposeDeliveryFee(
+    String id, {
+    required num fee,
+    String? note,
+  }) async =>
+      const Err(ServerFailure(message: 'proposeDeliveryFee not supported in mock'));
+
+  @override
   Future<Result<Order>> cancel(String id, {required String reason}) async {
     await Future<void>.delayed(_delay);
     final idx = _orders.indexWhere((o) => o.id == id);

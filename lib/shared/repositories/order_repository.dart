@@ -32,6 +32,14 @@ abstract class OrderRepository {
   Future<Order> create(CreateOrderInput input);
   Future<Order> cancel(String id, {required String reason});
 
+  /// Customer accepts the seller's proposed delivery fee.
+  /// Updates `total_amount`, clears the proposal columns.
+  Future<Order> approveFeeAdjustment(String id);
+
+  /// Customer rejects the seller's proposed delivery fee.
+  /// Sets `fee_adjustment_status = 'rejected'`.
+  Future<Order> rejectFeeAdjustment(String id);
+
   /// Stream that yields the latest version of [orderId] when the backend
   /// reports a status change. The mock variant simulates progression every
   /// few seconds; real impl will subscribe to a Supabase realtime channel.
@@ -61,6 +69,16 @@ class RemoteOrderRepository implements OrderRepository {
   @override
   Future<Order> cancel(String id, {required String reason}) async {
     throw UnimplementedError('Remote order cancel — Sprint 5 backend');
+  }
+
+  @override
+  Future<Order> approveFeeAdjustment(String id) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Order> rejectFeeAdjustment(String id) async {
+    throw UnimplementedError();
   }
 
   @override

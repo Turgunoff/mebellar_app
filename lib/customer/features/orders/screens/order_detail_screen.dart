@@ -2,9 +2,8 @@
 import 'package:woody_app/core/i18n/i18n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
-
 import '../../../../core/di/service_locator.dart';
+import '../../../../shared/models/order.dart' show FeeAdjustmentStatus;
 import '../../../../shared/repositories/order_repository.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/error_state.dart';
@@ -248,6 +247,16 @@ class _Body extends StatelessWidget {
               ),
             ),
           ),
+          if (order.feeAdjustmentStatus ==
+                  FeeAdjustmentStatus.pendingCustomer &&
+              order.proposedDeliveryFee != null) ...[
+            const SizedBox(height: 16),
+            _FeeAdjustmentBanner(
+              state: state,
+              proposedFee: order.proposedDeliveryFee!,
+              note: order.feeAdjustmentNote,
+            ),
+          ],
           if (order.cancelReason != null) ...[
             const SizedBox(height: 16),
             Card(
@@ -262,27 +271,6 @@ class _Body extends StatelessWidget {
               ),
             ),
           ],
-          if (order.status.cancellable) ...[
-            const SizedBox(height: 16),
-            OutlinedButton.icon(
-              onPressed: () => _confirmCancel(context),
-              icon: Icon(Icons.cancel_outlined, color: scheme.error),
-              label: Text(
-                tr('orders.cancel'),
-                style: TextStyle(color: scheme.error),
-              ),
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: scheme.error),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-            ),
-          ],
-          const SizedBox(height: 16),
-          OutlinedButton.icon(
-            onPressed: () => context.go('/orders'),
-            icon: const Icon(Icons.list_alt),
-            label: Text(tr('orders.title')),
-          ),
         ],
       ),
     );
@@ -302,49 +290,154 @@ class _Body extends StatelessWidget {
     );
   }
 
-  void _confirmCancel(BuildContext context) {
-    final reasonCtrl = TextEditingController();
-    final bloc = context.read<OrderDetailBloc>();
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(tr('orders.cancel_title')),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(tr('orders.cancel_subtitle')),
-            const SizedBox(height: 12),
-            TextField(
-              controller: reasonCtrl,
-              maxLines: 3,
-              decoration: InputDecoration(
-                hintText: tr('orders.cancel_reason_hint'),
-                border: const OutlineInputBorder(),
+}
+
+class _FeeAdjustmentBanner extends StatelessWidget {
+  const _FeeAdjustmentBanner({
+    required this.state,
+    required this.proposedFee,
+    this.note,
+  });
+
+  final OrderDetailState state;
+  final num proposedFee;
+  final String? note;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final priceFormat = NumberFormat('#,###');
+    final busy = state.status == OrderDetailStatus.mutating;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF8EE),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFFFD580), width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.local_shipping_outlined,
+                  size: 20, color: Color(0xFF8C5A12)),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Yetkazish narxi o\'zgardi',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF8C5A12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Sotuvchi yangi yetkazish narxini taklif qildi: '
+            '${priceFormat.format(proposedFee)} so\'m',
+            style: const TextStyle(
+              fontSize: 13,
+              color: Color(0xFF5C3A0A),
+              height: 1.4,
+            ),
+          ),
+          if (note?.isNotEmpty == true) ...[
+            const SizedBox(height: 4),
+            Text(
+              note!,
+              style: const TextStyle(
+                fontSize: 12,
+                color: Color(0xFF8C5A12),
+                height: 1.3,
               ),
             ),
           ],
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: busy
+                      ? null
+                      : () => context
+                          .read<OrderDetailBloc>()
+                          .add(const OrderFeeAdjustmentRejected()),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: scheme.error,
+                    side: BorderSide(color: scheme.error),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: const Text('Rad etish'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                flex: 2,
+                child: FilledButton(
+                  onPressed: busy
+                      ? null
+                      : () => _confirmFeeApproval(context),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF2A7D4F),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: busy
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Text('Tasdiqlash'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmFeeApproval(BuildContext context) {
+    final priceFormat = NumberFormat('#,###');
+    final order = context.read<OrderDetailBloc>().state.order;
+    if (order == null) return;
+    final newTotal = order.itemsTotal + proposedFee;
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Yangi narxni tasdiqlash'),
+        content: Text(
+          'Yetkazish narxi: ${priceFormat.format(proposedFee)} so\'m\n'
+          'Jami to\'lov: ${priceFormat.format(newTotal)} so\'m\n\n'
+          'Rozilik bildirasizmi?',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text(tr('common.cancel')),
+            child: const Text('Bekor'),
           ),
           FilledButton(
             onPressed: () {
-              final reason = reasonCtrl.text.trim().isEmpty
-                  ? tr('orders.cancel_reason_default')
-                  : reasonCtrl.text.trim();
-              bloc.add(OrderDetailCancelled(reason));
+              context
+                  .read<OrderDetailBloc>()
+                  .add(const OrderFeeAdjustmentApproved());
               Navigator.pop(ctx);
             },
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
-            ),
-            child: Text(tr('orders.cancel')),
+            child: const Text('Ha, tasdiqlayman'),
           ),
         ],
       ),
     );
   }
 }
-

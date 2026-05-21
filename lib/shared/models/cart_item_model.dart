@@ -20,6 +20,8 @@ class CartItemModel extends Equatable {
     required this.productImage,
     required this.productPrice,
     required this.quantity,
+    this.shopId,
+    this.shopName,
     this.createdAt,
   });
 
@@ -29,6 +31,8 @@ class CartItemModel extends Equatable {
   final String productImage;
   final double productPrice;
   final int quantity;
+  final String? shopId;
+  final String? shopName;
   final DateTime? createdAt;
 
   double get lineTotal => productPrice * quantity;
@@ -40,6 +44,8 @@ class CartItemModel extends Equatable {
     String? productImage,
     double? productPrice,
     int? quantity,
+    String? shopId,
+    String? shopName,
     DateTime? createdAt,
   }) {
     return CartItemModel(
@@ -49,6 +55,8 @@ class CartItemModel extends Equatable {
       productImage: productImage ?? this.productImage,
       productPrice: productPrice ?? this.productPrice,
       quantity: quantity ?? this.quantity,
+      shopId: shopId ?? this.shopId,
+      shopName: shopName ?? this.shopName,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -69,6 +77,8 @@ class CartItemModel extends Equatable {
           product.images.isNotEmpty ? product.images.first : '',
       productPrice: product.price,
       quantity: quantity,
+      shopId: product.shopId,
+      shopName: product.shopName,
     );
   }
 
@@ -94,6 +104,8 @@ class CartItemModel extends Equatable {
           (json['product_price'] as num?)?.toDouble() ??
           0,
       quantity: (json['quantity'] as num?)?.toInt() ?? 1,
+      shopId: snapshot['shop_id'] as String? ?? json['shop_id'] as String?,
+      shopName: snapshot['shop_name'] as String? ?? json['shop_name'] as String?,
       createdAt: json['created_at'] is String
           ? DateTime.tryParse(json['created_at'] as String)
           : null,
@@ -107,6 +119,8 @@ class CartItemModel extends Equatable {
         'name': productName,
         'image': productImage,
         'price': productPrice,
+        if (shopId != null) 'shop_id': shopId,
+        if (shopName != null) 'shop_name': shopName,
       };
 
   Map<String, dynamic> toHiveJson() => <String, dynamic>{
@@ -118,5 +132,5 @@ class CartItemModel extends Equatable {
       };
 
   @override
-  List<Object?> get props => [id, productId, quantity, productPrice];
+  List<Object?> get props => [id, productId, quantity, productPrice, shopId];
 }

@@ -70,17 +70,21 @@ class SellerBottomNav extends StatelessWidget {
 
 /// Single destination descriptor — one outline icon for inactive, an
 /// optional filled icon for the selected state, and the i18n-resolved label.
+/// Set [badge] to a positive integer to show a terracotta count bubble above
+/// the icon (capped at "99+" to keep the bubble compact).
 @immutable
 class SellerNavItem {
   const SellerNavItem({
     required this.icon,
     required this.label,
     IconData? activeIcon,
+    this.badge = 0,
   }) : activeIcon = activeIcon ?? icon;
 
   final IconData icon;
   final IconData activeIcon;
   final String label;
+  final int badge;
 }
 
 class _NavTile extends StatelessWidget {
@@ -106,10 +110,37 @@ class _NavTile extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              selected ? item.activeIcon : item.icon,
-              size: 22,
-              color: color,
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(
+                  selected ? item.activeIcon : item.icon,
+                  size: 22,
+                  color: color,
+                ),
+                if (item.badge > 0)
+                  Positioned(
+                    top: -5,
+                    right: -8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 4, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: AppColors.terracotta,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        item.badge > 99 ? '99+' : '${item.badge}',
+                        style: const TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          height: 1.1,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 4),
             Text(

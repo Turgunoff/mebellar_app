@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
@@ -34,6 +35,20 @@ class ItemsCard extends StatelessWidget {
   }
 }
 
+class _ImagePlaceholder extends StatelessWidget {
+  const _ImagePlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 56,
+      height: 56,
+      color: kImageBg,
+      child: const Icon(Iconsax.box_1, size: 22, color: kGreyMid),
+    );
+  }
+}
+
 class _ItemRow extends StatelessWidget {
   const _ItemRow({required this.item});
 
@@ -44,14 +59,18 @@ class _ItemRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: kImageBg,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Icon(Iconsax.box_1, size: 22, color: kGreyMid),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: item.thumbnail.isNotEmpty
+              ? CachedNetworkImage(
+                  imageUrl: item.thumbnail,
+                  width: 56,
+                  height: 56,
+                  fit: BoxFit.cover,
+                  placeholder: (_, _) => const _ImagePlaceholder(),
+                  errorWidget: (_, _, _) => const _ImagePlaceholder(),
+                )
+              : const _ImagePlaceholder(),
         ),
         const SizedBox(width: 12),
         Expanded(

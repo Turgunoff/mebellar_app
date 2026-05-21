@@ -25,10 +25,10 @@ void main() {
         cartRepo: cartRepo,
       );
 
-  test('grandTotal adds the flat delivery fee to the subtotal', () {
-    const state = CheckoutState(items: <CartItemModel>[]);
+  test('grandTotal equals subtotal — delivery is quoted by seller after placement', () {
+    const state = CheckoutState();
     expect(state.subtotal, 0);
-    expect(state.grandTotal, CheckoutState.deliveryFee);
+    expect(state.grandTotal, 0);
     expect(state.hasAddress, isFalse);
   });
 

@@ -44,6 +44,14 @@ class SellerOrderActionCancelled extends SellerOrderDetailEvent {
   List<Object?> get props => [reason];
 }
 
+class SellerOrderFeeAdjustmentProposed extends SellerOrderDetailEvent {
+  const SellerOrderFeeAdjustmentProposed({required this.fee, this.note});
+  final num fee;
+  final String? note;
+  @override
+  List<Object?> get props => [fee, note];
+}
+
 class _SellerOrderRealtimeUpdated extends SellerOrderDetailEvent {
   const _SellerOrderRealtimeUpdated(this.order);
   final Order order;
@@ -51,7 +59,7 @@ class _SellerOrderRealtimeUpdated extends SellerOrderDetailEvent {
   List<Object?> get props => [order];
 }
 
-enum SellerOrderDetailStatus { initial, loading, ready, mutating, failure }
+enum SellerOrderDetailStatus { initial, loading, ready, mutating, failure, proposingFee }
 
 class SellerOrderDetailState extends Equatable {
   const SellerOrderDetailState({
@@ -103,6 +111,7 @@ class SellerOrderDetailBloc
       await _runAction((id) => _repo.cancel(id, reason: event.reason)).call(
           event, emit);
     });
+    on<SellerOrderFeeAdjustmentProposed>(_onFeeAdjustmentProposed);
     on<_SellerOrderRealtimeUpdated>(
         (e, emit) => emit(state.copyWith(order: e.order)));
   }
@@ -132,6 +141,30 @@ class SellerOrderDetailBloc
         emit(state.copyWith(
             status: SellerOrderDetailStatus.failure,
             error: failure.message));
+    }
+  }
+
+  Future<void> _onFeeAdjustmentProposed(
+    SellerOrderFeeAdjustmentProposed event,
+    Emitter<SellerOrderDetailState> emit,
+  ) async {
+    final order = state.order;
+    if (order == null) return;
+    emit(state.copyWith(status: SellerOrderDetailStatus.proposingFee));
+    final result = await _repo.proposeDeliveryFee(
+      order.id,
+      fee: event.fee,
+      note: event.note,
+    );
+    switch (result) {
+      case Ok(:final value):
+        emit(state.copyWith(status: SellerOrderDetailStatus.ready, order: value));
+        onUpdated?.call(value);
+      case Err(:final failure):
+        emit(state.copyWith(
+          status: SellerOrderDetailStatus.ready,
+          error: failure.message,
+        ));
     }
   }
 

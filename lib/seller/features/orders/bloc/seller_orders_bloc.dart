@@ -80,7 +80,12 @@ class SellerOrdersState extends Equatable {
   List<Order> get visibleOrders =>
       orders.where((o) => tab.matches(o)).toList();
 
-  int get badgeCount => unreadNewIds.length;
+  /// Count of pending orders — drives the bottom-nav badge. Reflects both
+  /// orders loaded at startup and orders that arrive via realtime, so the
+  /// badge is always in sync with the actual list rather than only tracking
+  /// orders that arrived while the app was running.
+  int get badgeCount =>
+      orders.where((o) => o.status == OrderStatus.pending).length;
 
   SellerOrdersState copyWith({
     SellerOrdersStatus? status,

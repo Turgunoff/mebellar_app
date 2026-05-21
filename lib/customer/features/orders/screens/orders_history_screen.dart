@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:intl/intl.dart';
 
@@ -138,6 +139,9 @@ class _OrderCard extends StatelessWidget {
     final address = order['delivery_address'] as String? ?? '';
     final canCancel = _cancellableStatuses.contains(status);
     final statusInfo = _statusInfo(status);
+    final feePending =
+        order['fee_adjustment_status'] == 'pending_customer' &&
+        order['proposed_delivery_fee'] != null;
 
     return Container(
       decoration: BoxDecoration(
@@ -150,7 +154,7 @@ class _OrderCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         child: InkWell(
           borderRadius: BorderRadius.circular(18),
-          onTap: () {},
+          onTap: () => context.push('/orders/$id'),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(

@@ -96,6 +96,14 @@ class FakeSellerOrderRepository implements SellerOrderRepository {
       _transition(id, OrderStatus.delivered, label: 'delivered');
 
   @override
+  Future<Result<Order>> proposeDeliveryFee(
+    String id, {
+    required num fee,
+    String? note,
+  }) async =>
+      const Err(ServerFailure(message: 'proposeDeliveryFee not stubbed'));
+
+  @override
   Future<Result<Order>> cancel(String id, {required String reason}) async {
     cancelCalls += 1;
     transitionLog.add('cancel:$id:$reason');

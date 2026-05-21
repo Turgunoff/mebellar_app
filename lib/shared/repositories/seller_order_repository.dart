@@ -33,6 +33,14 @@ abstract class SellerOrderRepository {
   Future<Result<Order>> markDelivered(String id);
   Future<Result<Order>> cancel(String id, {required String reason});
 
+  /// Seller proposes a new delivery fee. Sets `fee_adjustment_status =
+  /// 'pending_customer'` and sends the customer a push notification.
+  Future<Result<Order>> proposeDeliveryFee(
+    String id, {
+    required num fee,
+    String? note,
+  });
+
   Stream<Order> watch(String orderId);
 
   /// Releases realtime channels / stream controllers. Wired into the DI
@@ -81,6 +89,14 @@ class RemoteSellerOrderRepository implements SellerOrderRepository {
 
   @override
   Future<Result<Order>> cancel(String id, {required String reason}) async =>
+      const Err(_unavailable);
+
+  @override
+  Future<Result<Order>> proposeDeliveryFee(
+    String id, {
+    required num fee,
+    String? note,
+  }) async =>
       const Err(_unavailable);
 
   @override

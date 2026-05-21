@@ -21,18 +21,27 @@ void main() {
 
   group('ServicesRequested', () {
     blocTest<ServicesBloc, ServicesState>(
-      'Ok result emits [loading, ready] with the config list',
+      'Ok result emits [loading, ready] with the config list padded to 6 entries',
       build: () {
         when(repo.list).thenAnswer((_) async => Ok([_config()]));
         return ServicesBloc(repo);
       },
       act: (bloc) => bloc.add(const ServicesRequested()),
+      // The bloc pads the DB result with default-disabled configs for every
+      // service the seller has never touched, so the UI always renders one
+      // tile per known service. A repo that returns a single row therefore
+      // surfaces as a six-entry list: the row itself + 5 defaults.
       expect: () => [
         isA<ServicesState>()
             .having((s) => s.status, 'status', ServicesStatus.loading),
         isA<ServicesState>()
             .having((s) => s.status, 'status', ServicesStatus.ready)
-            .having((s) => s.configs.length, 'configs', 1),
+            .having((s) => s.configs.length, 'configs', 6)
+            .having(
+              (s) => s.configFor(ShopService.freeDelivery)?.enabled,
+              'free_delivery preserved from repo',
+              isFalse,
+            ),
       ],
     );
 

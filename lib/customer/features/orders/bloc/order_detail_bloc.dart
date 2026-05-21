@@ -26,6 +26,14 @@ class OrderDetailCancelled extends OrderDetailEvent {
   List<Object?> get props => [reason];
 }
 
+class OrderFeeAdjustmentApproved extends OrderDetailEvent {
+  const OrderFeeAdjustmentApproved();
+}
+
+class OrderFeeAdjustmentRejected extends OrderDetailEvent {
+  const OrderFeeAdjustmentRejected();
+}
+
 class _OrderRealtimeUpdated extends OrderDetailEvent {
   const _OrderRealtimeUpdated(this.order);
   final Order order;
@@ -71,6 +79,8 @@ class OrderDetailBloc extends Bloc<OrderDetailEvent, OrderDetailState> {
   OrderDetailBloc(this._repo) : super(const OrderDetailState()) {
     on<OrderDetailRequested>(_onRequested);
     on<OrderDetailCancelled>(_onCancelled);
+    on<OrderFeeAdjustmentApproved>(_onFeeApproved);
+    on<OrderFeeAdjustmentRejected>(_onFeeRejected);
     on<_OrderRealtimeUpdated>(
         (event, emit) => emit(state.copyWith(order: event.order)));
   }
@@ -112,6 +122,36 @@ class OrderDetailBloc extends Bloc<OrderDetailEvent, OrderDetailState> {
     } catch (e) {
       emit(state.copyWith(
           status: OrderDetailStatus.ready, error: e.toString()));
+    }
+  }
+
+  Future<void> _onFeeApproved(
+    OrderFeeAdjustmentApproved event,
+    Emitter<OrderDetailState> emit,
+  ) async {
+    final order = state.order;
+    if (order == null) return;
+    emit(state.copyWith(status: OrderDetailStatus.mutating));
+    try {
+      final updated = await _repo.approveFeeAdjustment(order.id);
+      emit(state.copyWith(status: OrderDetailStatus.ready, order: updated));
+    } catch (e) {
+      emit(state.copyWith(status: OrderDetailStatus.ready, error: e.toString()));
+    }
+  }
+
+  Future<void> _onFeeRejected(
+    OrderFeeAdjustmentRejected event,
+    Emitter<OrderDetailState> emit,
+  ) async {
+    final order = state.order;
+    if (order == null) return;
+    emit(state.copyWith(status: OrderDetailStatus.mutating));
+    try {
+      final updated = await _repo.rejectFeeAdjustment(order.id);
+      emit(state.copyWith(status: OrderDetailStatus.ready, order: updated));
+    } catch (e) {
+      emit(state.copyWith(status: OrderDetailStatus.ready, error: e.toString()));
     }
   }
 

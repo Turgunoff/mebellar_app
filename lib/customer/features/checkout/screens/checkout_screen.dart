@@ -42,9 +42,8 @@ class _CheckoutView extends StatelessWidget {
       listenWhen: (a, b) => a.status != b.status,
       listener: (ctx, state) {
         if (state.status == CheckoutStatus.success) {
-          // Refresh the global orders state so Profile badges update instantly.
           sl<ProfileOrdersCubit>().fetch();
-          _showSuccessDialog(ctx);
+          _showSuccessDialog(ctx, state.placedOrderIds.length);
         }
         if (state.status == CheckoutStatus.failure) {
           ScaffoldMessenger.of(ctx).showSnackBar(
@@ -87,7 +86,7 @@ class _CheckoutView extends StatelessWidget {
                         const SizedBox(height: 16),
                         _PaymentCard(state: state, pt: pt),
                         const SizedBox(height: 16),
-                        _SummaryCard(state: state, pt: pt),
+                        _OrderGroupsCard(state: state, pt: pt),
                       ]),
                     ),
                   ),
@@ -106,12 +105,13 @@ class _CheckoutView extends StatelessWidget {
     );
   }
 
-  void _showSuccessDialog(BuildContext context) {
+  void _showSuccessDialog(BuildContext context, int orderCount) {
     showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) {
         final pt = PremiumTokens.of(ctx);
+        final multiOrder = orderCount > 1;
         return AlertDialog(
           backgroundColor: pt.surface,
           shape:
@@ -136,13 +136,17 @@ class _CheckoutView extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               Text(
-                'Buyurtmangiz qabul qilindi!',
+                multiOrder
+                    ? '$orderCount ta buyurtma qabul qilindi!'
+                    : 'Buyurtmangiz qabul qilindi!',
                 textAlign: TextAlign.center,
                 style: PremiumTokens.display(size: 20, letterSpacing: -0.3),
               ),
               const SizedBox(height: 10),
               Text(
-                'Buyurtmangiz muvaffaqiyatli joylashtirildi. Tez orada siz bilan bog\'lanamiz.',
+                multiOrder
+                    ? 'Har bir do\'kondan alohida buyurtma joylashtirildi. Sotuvchilar tez orada siz bilan bog\'lanadi.'
+                    : 'Buyurtmangiz muvaffaqiyatli joylashtirildi. Tez orada siz bilan bog\'lanamiz.',
                 textAlign: TextAlign.center,
                 style: PremiumTokens.body(
                   size: 14,
@@ -157,7 +161,7 @@ class _CheckoutView extends StatelessWidget {
                 child: FilledButton(
                   onPressed: () {
                     Navigator.pop(ctx);
-                    if (context.mounted) context.go('/');
+                    if (context.mounted) context.go('/orders');
                   },
                   style: FilledButton.styleFrom(
                     backgroundColor: PremiumTokens.accent,
@@ -166,12 +170,27 @@ class _CheckoutView extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    'Asosiy sahifaga qaytish',
+                    'Buyurtmalarimni ko\'rish',
                     style: PremiumTokens.body(
                       size: 15,
                       weight: FontWeight.w700,
                       color: Colors.white,
                     ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  if (context.mounted) context.go('/');
+                },
+                child: Text(
+                  'Asosiy sahifaga qaytish',
+                  style: PremiumTokens.body(
+                    size: 14,
+                    weight: FontWeight.w600,
+                    color: pt.grey,
                   ),
                 ),
               ),
@@ -279,8 +298,10 @@ class _DeliveryCard extends StatelessWidget {
                               const SizedBox(height: 2),
                               Text(
                                 'Yetkazib berish manzilini tanlang',
-                                style:
-                                    PremiumTokens.body(size: 12, color: pt.greyLight),
+                                style: PremiumTokens.body(
+                                  size: 12,
+                                  color: pt.greyLight,
+                                ),
                               ),
                             ],
                           ),
@@ -322,7 +343,6 @@ class _DeliveryCard extends StatelessWidget {
       ),
     );
   }
-
 }
 
 // ── Section 2: Payment ───────────────────────────────────────────────────────
@@ -359,7 +379,7 @@ class _PaymentCard extends StatelessWidget {
           _PaymentTile(
             icon: Iconsax.card,
             title: 'Karta',
-            subtitle: 'Tez orada mavjud bo\'ladi',
+            subtitle: "Tez orada mavjud bo'ladi",
             selected: state.payment == CheckoutPayment.card,
             onTap: null,
             pt: pt,
@@ -447,8 +467,7 @@ class _PaymentTile extends StatelessWidget {
                   shape: BoxShape.circle,
                   color: selected ? PremiumTokens.accent : Colors.transparent,
                   border: Border.all(
-                    color:
-                        selected ? PremiumTokens.accent : pt.greyLight,
+                    color: selected ? PremiumTokens.accent : pt.greyLight,
                     width: 2,
                   ),
                 ),
@@ -463,15 +482,18 @@ class _PaymentTile extends StatelessWidget {
   }
 }
 
-// ── Section 3: Summary ───────────────────────────────────────────────────────
+// ── Section 3: Order groups + summary ────────────────────────────────────────
 
-class _SummaryCard extends StatelessWidget {
-  const _SummaryCard({required this.state, required this.pt});
+class _OrderGroupsCard extends StatelessWidget {
+  const _OrderGroupsCard({required this.state, required this.pt});
   final CheckoutState state;
   final PremiumTokens pt;
 
   @override
   Widget build(BuildContext context) {
+    final groups = state.groups;
+    final multiShop = groups.length > 1;
+
     return _SectionCard(
       pt: pt,
       child: Column(
@@ -479,20 +501,120 @@ class _SummaryCard extends StatelessWidget {
         children: [
           _SectionHeader(
             icon: Iconsax.receipt,
-            label: 'Buyurtma jami',
+            label: multiShop
+                ? '${groups.length} ta buyurtma'
+                : 'Buyurtma jami',
             pt: pt,
           ),
+          if (multiShop) ...[
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: PremiumTokens.accent.withValues(alpha: 0.07),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(Iconsax.info_circle,
+                      size: 13, color: PremiumTokens.accent),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Har bir do\'kondan alohida buyurtma joylashtiriladi',
+                      style: PremiumTokens.body(
+                        size: 12,
+                        color: PremiumTokens.accent,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
+          for (var i = 0; i < groups.length; i++) ...[
+            if (multiShop) ...[
+              Row(
+                children: [
+                  Container(
+                    width: 22,
+                    height: 22,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: PremiumTokens.accent,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      '${i + 1}',
+                      style: PremiumTokens.body(
+                        size: 12,
+                        weight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      groups[i].shopName.isNotEmpty
+                          ? groups[i].shopName
+                          : 'Buyurtma ${i + 1}',
+                      style: PremiumTokens.body(
+                        size: 13,
+                        weight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '${_fmt(groups[i].subtotal)} UZS',
+                    style: PremiumTokens.body(
+                      size: 13,
+                      weight: FontWeight.w700,
+                      color: PremiumTokens.accent,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+            ],
+            for (final item in groups[i].items) ...[
+              _ItemRow(item: item, pt: pt),
+              const SizedBox(height: 6),
+            ],
+            if (multiShop && i < groups.length - 1) ...[
+              const SizedBox(height: 8),
+              Divider(color: pt.divider, height: 1),
+              const SizedBox(height: 12),
+            ],
+          ],
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            child: Divider(color: pt.divider, height: 1),
+          ),
           _SummaryRow(
             label: 'Mahsulotlar',
             value: '${_fmt(state.subtotal)} UZS',
             pt: pt,
           ),
           const SizedBox(height: 10),
-          _SummaryRow(
-            label: 'Yetkazib berish',
-            value: '${_fmt(CheckoutState.deliveryFee)} UZS',
-            pt: pt,
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Yetkazib berish',
+                  style: PremiumTokens.body(size: 14, color: pt.grey),
+                ),
+              ),
+              Text(
+                'Sotuvchi belgilaydi',
+                style: PremiumTokens.body(
+                  size: 13,
+                  weight: FontWeight.w500,
+                  color: const Color(0xFFE5A23B),
+                ),
+              ),
+            ],
           ),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 14),
@@ -506,6 +628,33 @@ class _SummaryCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ItemRow extends StatelessWidget {
+  const _ItemRow({required this.item, required this.pt});
+  final CartItemModel item;
+  final PremiumTokens pt;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const SizedBox(width: 4),
+        Expanded(
+          child: Text(
+            '${item.productName} × ${item.quantity}',
+            style: PremiumTokens.body(size: 13, color: pt.grey),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        Text(
+          '${_fmt(item.lineTotal)} UZS',
+          style: PremiumTokens.body(size: 13, color: pt.dark),
+        ),
+      ],
     );
   }
 }
@@ -598,8 +747,7 @@ class _ConfirmBar extends StatelessWidget {
                   height: 22,
                   child: CircularProgressIndicator(
                     strokeWidth: 2.5,
-                    valueColor:
-                        AlwaysStoppedAnimation<Color>(Colors.white),
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                   ),
                 )
               : Row(
@@ -703,11 +851,12 @@ class _SectionHeader extends StatelessWidget {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+/// Formats a number with space thousands separator (Uzbek convention).
 String _fmt(num value) {
   final s = value.toStringAsFixed(0);
   final buf = StringBuffer();
   for (var i = 0; i < s.length; i++) {
-    if (i != 0 && (s.length - i) % 3 == 0) buf.write(',');
+    if (i != 0 && (s.length - i) % 3 == 0) buf.write(' ');
     buf.write(s[i]);
   }
   return buf.toString();

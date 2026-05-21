@@ -80,10 +80,14 @@ class OrderItem {
     required this.qty,
     required this.unitPriceLabel,
     required this.subtotalLabel,
+    this.thumbnail = '',
   });
 
   final String name;
   final int qty;
   final String unitPriceLabel;
   final String subtotalLabel;
+
+  /// First product image URL. Empty string means show the placeholder icon.
+  final String thumbnail;
 }

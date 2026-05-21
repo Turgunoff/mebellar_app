@@ -132,6 +132,30 @@ class SupabaseOrderRepository implements OrderRepository {
     return getById(id);
   }
 
+  @override
+  Future<Order> approveFeeAdjustment(String id) async {
+    // Re-fetch to get the proposed_delivery_fee before we commit it.
+    final current = await getById(id);
+    final proposed = current.proposedDeliveryFee;
+    if (proposed == null) return current;
+    final newTotal = current.itemsTotal + proposed;
+    await _supabase.from('orders').update({
+      'total_amount': newTotal,
+      'fee_adjustment_status': 'approved',
+      'proposed_delivery_fee': null,
+      'fee_adjustment_note': null,
+    }).eq('id', id);
+    return getById(id);
+  }
+
+  @override
+  Future<Order> rejectFeeAdjustment(String id) async {
+    await _supabase.from('orders').update({
+      'fee_adjustment_status': 'rejected',
+    }).eq('id', id);
+    return getById(id);
+  }
+
   /// Streams order updates via Supabase Realtime. On each row change the full
   /// order (with items) is re-fetched so the UI always gets a complete object.
   @override
@@ -191,6 +215,10 @@ class SupabaseOrderRepository implements OrderRepository {
       createdAt: createdAt,
       timeline: _syntheticTimeline(status, createdAt),
       cancelReason: row['cancellation_reason'] as String?,
+      proposedDeliveryFee: row['proposed_delivery_fee'] as num?,
+      feeAdjustmentNote: row['fee_adjustment_note'] as String?,
+      feeAdjustmentStatus: FeeAdjustmentStatus.fromCode(
+          row['fee_adjustment_status'] as String?),
     );
   }
 

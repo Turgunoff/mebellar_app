@@ -6,8 +6,11 @@ import '../../core/error/failure.dart';
 import '../../core/logging/talker.dart';
 import '../../core/realtime/realtime_service.dart';
 import '../../core/result/result.dart';
+import '../models/address.dart';
+import '../models/multilingual_text.dart';
 import '../models/order.dart';
 import '../models/order_status.dart';
+import '../models/region.dart';
 import 'seller_order_repository.dart';
 
 /// Live Supabase implementation of [SellerOrderRepository] (ROADMAP B.1).
@@ -106,8 +109,9 @@ class SupabaseSellerOrderRepository implements SellerOrderRepository {
   Future<Result<Order>> getById(String id) =>
       runCatching(() => _fetchOrder(id));
 
-  /// Shared loader — the order row plus its `order_items`. Throws a [Failure]
-  /// (caught by [runCatching]) when the row is missing.
+  /// Shared loader — the order row plus its `order_items` and the buyer's
+  /// contact info (name + phone from `profiles`). Throws a [Failure] (caught
+  /// by [runCatching]) when the row is missing.
   Future<Order> _fetchOrder(String id) async {
     final row =
         await _client.from(_ordersTable).select().eq('id', id).maybeSingle();
@@ -115,7 +119,43 @@ class SupabaseSellerOrderRepository implements SellerOrderRepository {
       throw const ServerFailure(message: 'Buyurtma topilmadi');
     }
     final itemsByOrder = await _fetchItemsByOrderId([id]);
-    return Order.fromJson(row, items: itemsByOrder[id] ?? const []);
+    final address = await _fetchBuyerContact(
+      row['user_id'] as String?,
+      row['delivery_address'] as String?,
+    );
+    return Order.fromJson(
+      row,
+      items: itemsByOrder[id] ?? const [],
+      address: address,
+    );
+  }
+
+  /// Fetches buyer name + phone from `profiles` for the seller's contact card.
+  /// Returns `null` on failure so the detail screen degrades gracefully.
+  Future<Address?> _fetchBuyerContact(
+    String? userId,
+    String? deliveryAddressText,
+  ) async {
+    if (userId == null) return null;
+    try {
+      final profile = await _client
+          .from('profiles')
+          .select('full_name, phone')
+          .eq('id', userId)
+          .maybeSingle();
+      if (profile == null) return null;
+      return Address(
+        id: userId,
+        label: '',
+        recipientName: profile['full_name'] as String? ?? '',
+        phone: profile['phone'] as String? ?? '',
+        region: const Region(id: '_', code: '_', name: MultilingualText()),
+        city: const Region(id: '_', code: '_', name: MultilingualText()),
+        streetLine: deliveryAddressText ?? '',
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   /// One-shot fetch of every visible line item across [orderIds], joined
@@ -181,6 +221,26 @@ class SupabaseSellerOrderRepository implements SellerOrderRepository {
   @override
   Future<Result<Order>> cancel(String id, {required String reason}) =>
       _transition(id, OrderStatus.cancelled, cancelReason: reason);
+
+  @override
+  Future<Result<Order>> proposeDeliveryFee(
+    String id, {
+    required num fee,
+    String? note,
+  }) =>
+      runCatching(() async {
+        final rows = await _client.from(_ordersTable).update({
+          'proposed_delivery_fee': fee,
+          'fee_adjustment_note': note,
+          'fee_adjustment_status': 'pending_customer',
+        }).eq('id', id).select();
+        if (rows.isEmpty) {
+          throw const ServerFailure(
+            message: "Yetkazish narxini o'zgartirib bo'lmadi",
+          );
+        }
+        return _fetchOrder(id);
+      });
 
   /// Applies a status update and returns the refreshed order. Row-level
   /// access is scoped by the seller RLS policies on `orders`; the value
