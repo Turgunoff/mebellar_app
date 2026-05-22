@@ -22,6 +22,7 @@ class CartItemModel extends Equatable {
     required this.quantity,
     this.shopId,
     this.shopName,
+    this.selectedColor,
     this.createdAt,
   });
 
@@ -33,6 +34,13 @@ class CartItemModel extends Equatable {
   final int quantity;
   final String? shopId;
   final String? shopName;
+
+  /// Canonical colour slug the customer picked on the product page, or null
+  /// when the product has no colour palette. Carried through checkout into
+  /// `order_items.color_slug`. Persisted inside the `product_snapshot` JSONB
+  /// so neither the Hive box nor `cart_items` needs a dedicated column.
+  final String? selectedColor;
+
   final DateTime? createdAt;
 
   double get lineTotal => productPrice * quantity;
@@ -46,6 +54,7 @@ class CartItemModel extends Equatable {
     int? quantity,
     String? shopId,
     String? shopName,
+    String? selectedColor,
     DateTime? createdAt,
   }) {
     return CartItemModel(
@@ -57,6 +66,7 @@ class CartItemModel extends Equatable {
       quantity: quantity ?? this.quantity,
       shopId: shopId ?? this.shopId,
       shopName: shopName ?? this.shopName,
+      selectedColor: selectedColor ?? this.selectedColor,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -68,17 +78,19 @@ class CartItemModel extends Equatable {
     SupabaseProductModel product, {
     int quantity = 1,
     String? id,
+    String? selectedColor,
   }) {
     return CartItemModel(
       id: id ?? product.id,
       productId: product.id,
       productName: product.name,
-      productImage:
-          product.images.isNotEmpty ? product.images.first : '',
-      productPrice: product.price,
+      productImage: product.images.isNotEmpty ? product.images.first : '',
+      // Charge the discounted price when the product is on sale.
+      productPrice: product.effectivePrice,
       quantity: quantity,
       shopId: product.shopId,
       shopName: product.shopName,
+      selectedColor: selectedColor,
     );
   }
 
@@ -91,21 +103,24 @@ class CartItemModel extends Equatable {
         : const <String, dynamic>{};
     return CartItemModel(
       id: json['id']?.toString() ?? json['product_id']?.toString() ?? '',
-      productId: json['product_id'] as String? ??
-          snapshot['id'] as String? ??
-          '',
-      productName: snapshot['name'] as String? ??
-          json['product_name'] as String? ??
-          '',
-      productImage: snapshot['image'] as String? ??
+      productId:
+          json['product_id'] as String? ?? snapshot['id'] as String? ?? '',
+      productName:
+          snapshot['name'] as String? ?? json['product_name'] as String? ?? '',
+      productImage:
+          snapshot['image'] as String? ??
           json['product_image'] as String? ??
           '',
-      productPrice: (snapshot['price'] as num?)?.toDouble() ??
+      productPrice:
+          (snapshot['price'] as num?)?.toDouble() ??
           (json['product_price'] as num?)?.toDouble() ??
           0,
       quantity: (json['quantity'] as num?)?.toInt() ?? 1,
       shopId: snapshot['shop_id'] as String? ?? json['shop_id'] as String?,
-      shopName: snapshot['shop_name'] as String? ?? json['shop_name'] as String?,
+      shopName:
+          snapshot['shop_name'] as String? ?? json['shop_name'] as String?,
+      selectedColor:
+          snapshot['color'] as String? ?? json['selected_color'] as String?,
       createdAt: json['created_at'] is String
           ? DateTime.tryParse(json['created_at'] as String)
           : null,
@@ -115,22 +130,30 @@ class CartItemModel extends Equatable {
   /// Hive-friendly JSON. The same structure is used as the `product_snapshot`
   /// JSONB column in Supabase so Hive→Supabase sync is a straight upsert.
   Map<String, dynamic> toSnapshotJson() => <String, dynamic>{
-        'id': productId,
-        'name': productName,
-        'image': productImage,
-        'price': productPrice,
-        if (shopId != null) 'shop_id': shopId,
-        if (shopName != null) 'shop_name': shopName,
-      };
+    'id': productId,
+    'name': productName,
+    'image': productImage,
+    'price': productPrice,
+    if (shopId != null) 'shop_id': shopId,
+    if (shopName != null) 'shop_name': shopName,
+    if (selectedColor != null) 'color': selectedColor,
+  };
 
   Map<String, dynamic> toHiveJson() => <String, dynamic>{
-        'id': id,
-        'product_id': productId,
-        'quantity': quantity,
-        'product_snapshot': toSnapshotJson(),
-        'created_at': (createdAt ?? DateTime.now()).toIso8601String(),
-      };
+    'id': id,
+    'product_id': productId,
+    'quantity': quantity,
+    'product_snapshot': toSnapshotJson(),
+    'created_at': (createdAt ?? DateTime.now()).toIso8601String(),
+  };
 
   @override
-  List<Object?> get props => [id, productId, quantity, productPrice, shopId];
+  List<Object?> get props => [
+    id,
+    productId,
+    quantity,
+    productPrice,
+    shopId,
+    selectedColor,
+  ];
 }

@@ -87,6 +87,10 @@ class SellerOrdersState extends Equatable {
   int get badgeCount =>
       orders.where((o) => o.status == OrderStatus.pending).length;
 
+  /// Number of orders that fall under [tab] — drives the tab-bar count
+  /// badges. Only the New and Active tabs surface this in the UI.
+  int countFor(SellerOrdersTab tab) => orders.where(tab.matches).length;
+
   SellerOrdersState copyWith({
     SellerOrdersStatus? status,
     List<Order>? orders,

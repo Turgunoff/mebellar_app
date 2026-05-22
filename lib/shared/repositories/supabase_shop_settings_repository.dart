@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/error/failure.dart';
+import '../../core/logging/talker.dart';
 import '../../core/result/result.dart';
 import '../models/shop_settings.dart';
 import 'shop_settings_repository.dart';
@@ -99,15 +100,49 @@ class SupabaseShopSettingsRepository implements ShopSettingsRepository {
   }) =>
       runCatching(() async {
         final shopId = await _requireShopId();
+        final ext = fileExtension.toLowerCase();
         final path =
-            '$shopId/$kind-${DateTime.now().millisecondsSinceEpoch}.$fileExtension';
-        await _client.storage.from(_assetBucket).upload(
-              path,
-              file,
-              fileOptions: const FileOptions(upsert: true),
-            );
-        return _client.storage.from(_assetBucket).getPublicUrl(path);
+            '$shopId/$kind-${DateTime.now().millisecondsSinceEpoch}.$ext';
+        final bytes = await file.readAsBytes();
+        talker.info(
+          '[shop-settings] uploadAsset start kind=$kind '
+          'bucket=$_assetBucket path=$path bytes=${bytes.length}',
+        );
+        try {
+          // `uploadBinary` with an explicit content type — the same call the
+          // working product-image upload uses. `upload(File)` was failing
+          // here with a storage HTTP 400.
+          await _client.storage.from(_assetBucket).uploadBinary(
+                path,
+                bytes,
+                fileOptions: FileOptions(
+                  contentType: _contentTypeFor(ext),
+                  upsert: true,
+                ),
+              );
+        } on StorageException catch (e, st) {
+          talker.handle(
+            e,
+            st,
+            '[shop-settings] uploadAsset storage error kind=$kind '
+            'statusCode=${e.statusCode} error=${e.error} message=${e.message}',
+          );
+          rethrow;
+        } catch (e, st) {
+          talker.handle(e, st, '[shop-settings] uploadAsset failed kind=$kind');
+          rethrow;
+        }
+        final url = _client.storage.from(_assetBucket).getPublicUrl(path);
+        talker.info('[shop-settings] uploadAsset ok kind=$kind url=$url');
+        return url;
       });
+
+  /// Maps a lower-cased image extension to the MIME type Storage expects.
+  String _contentTypeFor(String ext) => switch (ext) {
+        'png' => 'image/png',
+        'webp' => 'image/webp',
+        _ => 'image/jpeg',
+      };
 
   Future<String> _requireShopId() async {
     final userId = _client.auth.currentUser?.id;

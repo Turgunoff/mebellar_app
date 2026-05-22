@@ -1,0 +1,8 @@
+upabase Studio'da bitta SQL:
+
+
+update public.app_settings set value = 'true', updated_at = now()
+where key = 'tariff_enabled';
+
+Ilova keyingi ishga tushganda tarif hamma joyda qaytadi. Yangi build shart emas.
+

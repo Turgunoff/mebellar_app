@@ -11,6 +11,7 @@ import '../../../../core/i18n/i18n.dart';
 import '../../../../shared/models/cart_item_model.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/premium_empty_state.dart';
+import '../../../../shared/widgets/product_color_chip.dart';
 import '../../../customer_app.dart';
 import '../../../widgets/glass_bottom_nav.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
@@ -85,8 +86,7 @@ class CartScreen extends StatelessWidget {
                         alignment: Alignment.bottomLeft,
                         padding: const EdgeInsets.only(left: 20, bottom: 52),
                         child: Text(
-                          tr('cart.units_count',
-                              args: ['${state.totalUnits}']),
+                          tr('cart.units_count', args: ['${state.totalUnits}']),
                           style: PremiumTokens.body(size: 13, color: pt.grey),
                         ),
                       ),
@@ -95,37 +95,32 @@ class CartScreen extends StatelessWidget {
                   SliverPadding(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 160),
                     sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, i) {
-                          final item = state.items[i];
-                          return Padding(
-                            padding: EdgeInsets.only(
-                              bottom: i < state.items.length - 1 ? 12 : 0,
+                      delegate: SliverChildBuilderDelegate((context, i) {
+                        final item = state.items[i];
+                        return Padding(
+                          padding: EdgeInsets.only(
+                            bottom: i < state.items.length - 1 ? 12 : 0,
+                          ),
+                          child: _CartItemRow(
+                            item: item,
+                            onIncrement: () => context.read<CartBloc>().add(
+                              UpdateQuantity(
+                                productId: item.productId,
+                                newQuantity: item.quantity + 1,
+                              ),
                             ),
-                            child: _CartItemRow(
-                              item: item,
-                              onIncrement: () =>
-                                  context.read<CartBloc>().add(
-                                        UpdateQuantity(
-                                          productId: item.productId,
-                                          newQuantity: item.quantity + 1,
-                                        ),
-                                      ),
-                              onDecrement: () =>
-                                  context.read<CartBloc>().add(
-                                        UpdateQuantity(
-                                          productId: item.productId,
-                                          newQuantity: item.quantity - 1,
-                                        ),
-                                      ),
-                              onRemove: () => context.read<CartBloc>().add(
-                                    RemoveFromCart(item.productId),
-                                  ),
+                            onDecrement: () => context.read<CartBloc>().add(
+                              UpdateQuantity(
+                                productId: item.productId,
+                                newQuantity: item.quantity - 1,
+                              ),
                             ),
-                          );
-                        },
-                        childCount: state.items.length,
-                      ),
+                            onRemove: () => context.read<CartBloc>().add(
+                              RemoveFromCart(item.productId),
+                            ),
+                          ),
+                        );
+                      }, childCount: state.items.length),
                     ),
                   ),
                 ],
@@ -199,10 +194,8 @@ class _CartItemRow extends StatelessWidget {
                       memCacheWidth: 250,
                       fit: BoxFit.cover,
                       placeholder: (_, _) => ColoredBox(color: pt.imageBg),
-                      errorWidget: (_, _, _) => Icon(
-                        Iconsax.gallery_slash,
-                        color: pt.greyLight,
-                      ),
+                      errorWidget: (_, _, _) =>
+                          Icon(Iconsax.gallery_slash, color: pt.greyLight),
                     ),
             ),
           ),
@@ -231,15 +224,23 @@ class _CartItemRow extends StatelessWidget {
                       radius: 18,
                       child: Padding(
                         padding: const EdgeInsets.all(6),
-                        child: Icon(
-                          Iconsax.trash,
-                          size: 18,
-                          color: pt.grey,
-                        ),
+                        child: Icon(Iconsax.trash, size: 18, color: pt.grey),
                       ),
                     ),
                   ],
                 ),
+                if (item.selectedColor != null) ...[
+                  const SizedBox(height: 5),
+                  ProductColorChip(
+                    slug: item.selectedColor,
+                    swatchSize: 13,
+                    labelStyle: PremiumTokens.body(
+                      size: 12,
+                      weight: FontWeight.w500,
+                      color: pt.grey,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 6),
                 Text(
                   '${_formatPrice(item.productPrice)} UZS',
@@ -310,10 +311,7 @@ class _QuantityStepper extends StatelessWidget {
             child: Text(
               '$value',
               textAlign: TextAlign.center,
-              style: PremiumTokens.body(
-                size: 13,
-                weight: FontWeight.w600,
-              ),
+              style: PremiumTokens.body(size: 13, weight: FontWeight.w600),
             ),
           ),
           _StepperButton(icon: Iconsax.add, onTap: onIncrement),
@@ -338,11 +336,7 @@ class _StepperButton extends StatelessWidget {
       radius: 18,
       child: Padding(
         padding: const EdgeInsets.all(8),
-        child: Icon(
-          icon,
-          size: 14,
-          color: disabled ? pt.greyLight : pt.dark,
-        ),
+        child: Icon(icon, size: 14, color: disabled ? pt.greyLight : pt.dark),
       ),
     );
   }
@@ -351,10 +345,7 @@ class _StepperButton extends StatelessWidget {
 // ── Sticky checkout ────────────────────────────────────────────────────────
 
 class _StickyCheckout extends StatelessWidget {
-  const _StickyCheckout({
-    required this.totalPrice,
-    required this.onCheckout,
-  });
+  const _StickyCheckout({required this.totalPrice, required this.onCheckout});
 
   final double totalPrice;
   final VoidCallback onCheckout;

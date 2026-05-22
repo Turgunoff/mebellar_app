@@ -39,7 +39,8 @@ class HomeScreen extends StatelessWidget {
         child: BlocBuilder<HomeBloc, HomeState>(
           buildWhen: (a, b) => a.status != b.status,
           builder: (context, state) {
-            final showError = state.status == HomeStatus.failure &&
+            final showError =
+                state.status == HomeStatus.failure &&
                 state.banners.isEmpty &&
                 state.recommended.isEmpty;
 
@@ -56,9 +57,9 @@ class HomeScreen extends StatelessWidget {
                   ),
                   SliverFillRemaining(
                     child: _HomeErrorState(
-                      onRetry: () => context
-                          .read<HomeBloc>()
-                          .add(const HomeRequested(refresh: true)),
+                      onRetry: () => context.read<HomeBloc>().add(
+                        const HomeRequested(refresh: true),
+                      ),
                     ),
                   ),
                 ],
@@ -224,10 +225,7 @@ class _HomeAppBar extends StatelessWidget {
       flexibleSpace: FlexibleSpaceBar(
         centerTitle: false,
         expandedTitleScale: 1.6,
-        titlePadding: const EdgeInsetsDirectional.only(
-          start: 20,
-          bottom: 14,
-        ),
+        titlePadding: const EdgeInsetsDirectional.only(start: 20, bottom: 14),
         title: Text(
           tr('home.discover_title'),
           style: PremiumTokens.display(size: 20, letterSpacing: -0.4),
@@ -408,10 +406,7 @@ class _SectionHeader extends StatelessWidget {
               onTap: onAction,
               behavior: HitTestBehavior.opaque,
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 4,
-                  vertical: 6,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
                 child: Text(
                   actionLabel!,
                   style: PremiumTokens.body(
@@ -436,10 +431,10 @@ class _CategoriesRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<CategoriesBloc, CategoriesState>(
-      buildWhen: (a, b) =>
-          a.status != b.status || a.categories != b.categories,
+      buildWhen: (a, b) => a.status != b.status || a.categories != b.categories,
       builder: (context, state) {
-        final isLoading = state.status == CategoriesStatus.loading ||
+        final isLoading =
+            state.status == CategoriesStatus.loading ||
             state.status == CategoriesStatus.initial;
         if (isLoading) return const _CategoriesRowSkeleton();
         if (state.categories.isEmpty) {
@@ -590,7 +585,8 @@ class _RecommendedGrid extends StatelessWidget {
     id: m.id,
     slug: m.id,
     name: MultilingualText(uz: m.name, ru: m.name, en: m.name),
-    price: m.price,
+    price: m.effectivePrice,
+    oldPrice: m.hasDiscount ? m.price : null,
     images: m.images,
     primaryImage: m.thumbnail,
     attributes: m.attributes,
@@ -603,12 +599,11 @@ class _RecommendedGrid extends StatelessWidget {
       buildWhen: (a, b) =>
           a.status != b.status || a.recommended != b.recommended,
       builder: (context, state) {
-        final isLoading = state.status == HomeStatus.loading ||
+        final isLoading =
+            state.status == HomeStatus.loading ||
             state.status == HomeStatus.initial;
         if (isLoading) {
-          return const SliverToBoxAdapter(
-            child: _RecommendedGridSkeleton(),
-          );
+          return const SliverToBoxAdapter(child: _RecommendedGridSkeleton());
         }
         if (state.recommended.isEmpty) {
           return const SliverToBoxAdapter(child: _RecommendedEmpty());
@@ -628,14 +623,15 @@ class _RecommendedGrid extends StatelessWidget {
                   imageUrl: p.thumbnail ?? '',
                   name: p.name,
                   shop: p.description ?? '',
-                  price: _formatPrice(p.price),
+                  price: _formatPrice(p.effectivePrice),
+                  discountPercent: p.discountPercent,
                   isFavorite: isFav,
                   customImageHeight: i.isEven ? 180.0 : 240.0,
                   onTap: () =>
                       context.push('/product-detail/${p.id}', extra: p),
-                  onFavoriteToggle: () => context
-                      .read<FavoritesBloc>()
-                      .add(FavoriteToggled(_toProduct(p))),
+                  onFavoriteToggle: () => context.read<FavoritesBloc>().add(
+                    FavoriteToggled(_toProduct(p)),
+                  ),
                 ),
               );
             },
@@ -697,10 +693,7 @@ class _RecommendedEmpty extends StatelessWidget {
             Expanded(
               child: Text(
                 tr('home.recommended_empty'),
-                style: PremiumTokens.body(
-                  size: 13,
-                  color: pt.grey,
-                ),
+                style: PremiumTokens.body(size: 13, color: pt.grey),
               ),
             ),
           ],

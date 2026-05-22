@@ -13,9 +13,8 @@ class BecomeSellerBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 22, 20, 22),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -24,94 +23,79 @@ class BecomeSellerBanner extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: PremiumTokens.accentDeep.withValues(alpha: 0.25),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
             spreadRadius: -6,
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.18),
-                  shape: BoxShape.circle,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(18),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  alignment: Alignment.center,
+                  child: const Icon(Iconsax.shop, size: 24, color: Colors.white),
                 ),
-                alignment: Alignment.center,
-                child: const Icon(Iconsax.shop, size: 18, color: Colors.white),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'Sotuvchi bo\'lish',
-                style: PremiumTokens.body(
-                  size: 12,
-                  weight: FontWeight.w600,
-                  color: Colors.white.withValues(alpha: 0.85),
-                  letterSpacing: 1.4,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            "Woody'da o'z biznesingizni boshlang",
-            style: PremiumTokens.display(
-              size: 22,
-              color: Colors.white,
-              letterSpacing: -0.3,
-              height: 1.25,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            "Mahsulotlaringizni minglab xaridorlarga "
-            "yetkazing va sotuvni bugundan boshlang.",
-            style: PremiumTokens.body(
-              size: 13,
-              color: Colors.white.withValues(alpha: 0.85),
-              height: 1.45,
-            ),
-          ),
-          const SizedBox(height: 18),
-          SizedBox(
-            height: 44,
-            child: Material(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              child: InkWell(
-                onTap: onTap,
-                borderRadius: BorderRadius.circular(14),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 18),
-                  child: Row(
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        "Sotuvchi bo'lish",
+                        "Sotuvchi bo'ling",
                         style: PremiumTokens.body(
-                          size: 14,
-                          weight: FontWeight.w600,
-                          color: PremiumTokens.accentDeep,
+                          size: 15.5,
+                          weight: FontWeight.w700,
+                          color: Colors.white,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      const Icon(
-                        Iconsax.arrow_right_1,
-                        size: 16,
-                        color: PremiumTokens.accentDeep,
+                      const SizedBox(height: 3),
+                      Text(
+                        "Woody'da o'z biznesingizni boshlang",
+                        style: PremiumTokens.body(
+                          size: 12.5,
+                          color: Colors.white.withValues(alpha: 0.85),
+                          height: 1.3,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
                 ),
-              ),
+                const SizedBox(width: 10),
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    Iconsax.arrow_right_1,
+                    size: 16,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }

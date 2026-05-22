@@ -18,15 +18,14 @@ import 'cart_repository.dart';
 /// first to decide between insert and increment).
 class SupabaseCartRepository implements CartRepository {
   SupabaseCartRepository({required SupabaseClient supabase})
-      : _supabase = supabase;
+    : _supabase = supabase;
 
   final SupabaseClient _supabase;
 
   List<CartItemModel> _items = const [];
   Cart _legacyCart = const Cart();
 
-  final _itemsController =
-      StreamController<List<CartItemModel>>.broadcast();
+  final _itemsController = StreamController<List<CartItemModel>>.broadcast();
   final _cartController = StreamController<Cart>.broadcast();
 
   String get _userId => _supabase.auth.currentUser!.id;
@@ -93,6 +92,7 @@ class SupabaseCartRepository implements CartRepository {
   Future<void> addProduct(
     SupabaseProductModel product, {
     int quantity = 1,
+    String? selectedColor,
   }) async {
     final qty = quantity.clamp(1, 99);
     // Read the existing row first so we can sum quantities deterministically.
@@ -108,19 +108,24 @@ class SupabaseCartRepository implements CartRepository {
         'user_id': _userId,
         'product_id': product.id,
         'quantity': qty,
-        'product_snapshot':
-            CartItemModel.fromProduct(product, quantity: qty).toSnapshotJson(),
+        'product_snapshot': CartItemModel.fromProduct(
+          product,
+          quantity: qty,
+          selectedColor: selectedColor,
+        ).toSnapshotJson(),
       });
     } else {
-      final newQty =
-          ((existing['quantity'] as num?)?.toInt() ?? 0) + qty;
+      final newQty = ((existing['quantity'] as num?)?.toInt() ?? 0) + qty;
       await _supabase
           .from('cart_items')
           .update({
             'quantity': newQty.clamp(1, 99),
-            'product_snapshot':
-                CartItemModel.fromProduct(product, quantity: newQty)
-                    .toSnapshotJson(),
+            // Rewrite the snapshot so the latest colour pick wins.
+            'product_snapshot': CartItemModel.fromProduct(
+              product,
+              quantity: newQty,
+              selectedColor: selectedColor,
+            ).toSnapshotJson(),
           })
           .eq('id', existing['id'] as Object);
     }
@@ -129,10 +134,7 @@ class SupabaseCartRepository implements CartRepository {
   }
 
   @override
-  Future<void> updateProductQuantity(
-    String productId,
-    int newQuantity,
-  ) async {
+  Future<void> updateProductQuantity(String productId, int newQuantity) async {
     if (newQuantity <= 0) {
       await removeProduct(productId);
       return;
@@ -177,7 +179,8 @@ class SupabaseCartRepository implements CartRepository {
     // compat.
     await updateProductQuantity(
       productId,
-      ((_items.firstWhere(
+      ((_items
+                  .firstWhere(
                     (it) => it.productId == productId,
                     orElse: () => CartItemModel(
                       id: productId,
@@ -187,7 +190,8 @@ class SupabaseCartRepository implements CartRepository {
                       productPrice: 0,
                       quantity: 0,
                     ),
-                  ).quantity) +
+                  )
+                  .quantity) +
               quantity)
           .clamp(1, 99),
     );
@@ -238,10 +242,7 @@ class SupabaseCartRepository implements CartRepository {
       _setItems(const []);
       return _legacyCart;
     }
-    await _supabase
-        .from('cart_items')
-        .delete()
-        .eq('user_id', _userId);
+    await _supabase.from('cart_items').delete().eq('user_id', _userId);
     _setItems(const []);
     return _legacyCart;
   }

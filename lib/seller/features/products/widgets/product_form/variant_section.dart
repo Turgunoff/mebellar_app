@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../../core/theme/app_fonts.dart';
-import '../../bloc/add_product_cubit.dart';
+import '../../../../../shared/constants/product_colors.dart';
 import 'form_kit.dart';
 
 /// Variant-level data section. Today the only per-product variant axis is
@@ -63,10 +63,10 @@ class VariantSection extends StatelessWidget {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  for (final c in kAddProductColorOptions)
+                  for (final c in kProductColors)
                     _ColorChip(
                       label: c.label,
-                      swatch: Color(c.swatch),
+                      swatch: c.swatch,
                       selected: selectedColors.contains(c.slug),
                       onTap: () => onColorToggle(c.slug),
                     ),

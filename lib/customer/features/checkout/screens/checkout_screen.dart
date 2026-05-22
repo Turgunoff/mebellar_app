@@ -10,6 +10,7 @@ import '../../../../core/di/service_locator.dart';
 import '../../orders/cubit/profile_orders_cubit.dart';
 import '../../../../shared/models/cart_item_model.dart';
 import '../../../../shared/repositories/cart_repository.dart';
+import '../../../../shared/widgets/product_color_chip.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../cubit/checkout_cubit.dart';
 import 'map_address_picker_screen.dart';
@@ -114,10 +115,13 @@ class _CheckoutView extends StatelessWidget {
         final multiOrder = orderCount > 1;
         return AlertDialog(
           backgroundColor: pt.surface,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 28,
+            vertical: 32,
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -218,11 +222,13 @@ class _DeliveryCard extends StatelessWidget {
       child: InkWell(
         onTap: () async {
           final address = await Navigator.of(context, rootNavigator: true)
-              .push<String>(MaterialPageRoute(
-            builder: (_) => MapAddressPickerScreen(
-              initialAddress: state.deliveryAddress,
-            ),
-          ));
+              .push<String>(
+                MaterialPageRoute(
+                  builder: (_) => MapAddressPickerScreen(
+                    initialAddress: state.deliveryAddress,
+                  ),
+                ),
+              );
           if (address != null && context.mounted) {
             context.read<CheckoutCubit>().updateAddress(address);
           }
@@ -244,11 +250,7 @@ class _DeliveryCard extends StatelessWidget {
                       pt: pt,
                     ),
                   ),
-                  Icon(
-                    Iconsax.arrow_right_3,
-                    size: 16,
-                    color: pt.greyLight,
-                  ),
+                  Icon(Iconsax.arrow_right_3, size: 16, color: pt.greyLight),
                 ],
               ),
               const SizedBox(height: 14),
@@ -359,20 +361,16 @@ class _PaymentCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionHeader(
-            icon: Iconsax.card,
-            label: "To'lov usuli",
-            pt: pt,
-          ),
+          _SectionHeader(icon: Iconsax.card, label: "To'lov usuli", pt: pt),
           const SizedBox(height: 8),
           _PaymentTile(
             icon: Iconsax.money,
             title: 'Naqd pul',
             subtitle: "Yetkazib berishda to'lash",
             selected: state.payment == CheckoutPayment.cash,
-            onTap: () => context
-                .read<CheckoutCubit>()
-                .selectPayment(CheckoutPayment.cash),
+            onTap: () => context.read<CheckoutCubit>().selectPayment(
+              CheckoutPayment.cash,
+            ),
             pt: pt,
           ),
           const SizedBox(height: 8),
@@ -501,9 +499,7 @@ class _OrderGroupsCard extends StatelessWidget {
         children: [
           _SectionHeader(
             icon: Iconsax.receipt,
-            label: multiShop
-                ? '${groups.length} ta buyurtma'
-                : 'Buyurtma jami',
+            label: multiShop ? '${groups.length} ta buyurtma' : 'Buyurtma jami',
             pt: pt,
           ),
           if (multiShop) ...[
@@ -516,8 +512,11 @@ class _OrderGroupsCard extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Icon(Iconsax.info_circle,
-                      size: 13, color: PremiumTokens.accent),
+                  Icon(
+                    Iconsax.info_circle,
+                    size: 13,
+                    color: PremiumTokens.accent,
+                  ),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
@@ -640,14 +639,28 @@ class _ItemRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(width: 4),
         Expanded(
-          child: Text(
-            '${item.productName} × ${item.quantity}',
-            style: PremiumTokens.body(size: 13, color: pt.grey),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${item.productName} × ${item.quantity}',
+                style: PremiumTokens.body(size: 13, color: pt.grey),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              if (item.selectedColor != null) ...[
+                const SizedBox(height: 3),
+                ProductColorChip(
+                  slug: item.selectedColor,
+                  swatchSize: 11,
+                  labelStyle: PremiumTokens.body(size: 11, color: pt.greyLight),
+                ),
+              ],
+            ],
           ),
         ),
         Text(
@@ -735,8 +748,9 @@ class _ConfirmBar extends StatelessWidget {
           onPressed: isBusy ? null : () => _onConfirm(context),
           style: FilledButton.styleFrom(
             backgroundColor: PremiumTokens.accent,
-            disabledBackgroundColor:
-                PremiumTokens.accent.withValues(alpha: 0.6),
+            disabledBackgroundColor: PremiumTokens.accent.withValues(
+              alpha: 0.6,
+            ),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),

@@ -14,6 +14,7 @@ class PremiumProductCard extends StatelessWidget {
     required this.name,
     required this.shop,
     required this.price,
+    this.discountPercent = 0,
     this.isFavorite = false,
     this.onTap,
     this.onFavoriteToggle,
@@ -23,7 +24,15 @@ class PremiumProductCard extends StatelessWidget {
   final String imageUrl;
   final String name;
   final String shop;
+
+  /// Effective (already discounted) price string shown prominently. The
+  /// struck-through original is intentionally not shown on the narrow card —
+  /// the corner `-X%` badge conveys the discount; the detail page shows both.
   final String price;
+
+  /// Whole-percent discount for the corner badge; 0 hides the badge.
+  final int discountPercent;
+
   final bool isFavorite;
   final VoidCallback? onTap;
   final VoidCallback? onFavoriteToggle;
@@ -53,8 +62,7 @@ class PremiumProductCard extends StatelessWidget {
             highlightColor: const Color(0xFFFAFAFA),
             child: Container(color: Colors.white),
           ),
-          errorWidget: (_, _, _) =>
-              const ImageErrorPlaceholder(iconSize: 32),
+          errorWidget: (_, _, _) => const ImageErrorPlaceholder(iconSize: 32),
         ),
         Positioned(
           top: 12,
@@ -64,6 +72,12 @@ class PremiumProductCard extends StatelessWidget {
             onTap: onFavoriteToggle,
           ),
         ),
+        if (discountPercent > 0)
+          Positioned(
+            top: 12,
+            left: 12,
+            child: _DiscountBadge(percent: discountPercent),
+          ),
       ],
     );
 
@@ -142,10 +156,7 @@ class PremiumProductCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(
-          flex: 65,
-          child: imageStack,
-        ),
+        Expanded(flex: 65, child: imageStack),
         Expanded(
           flex: 35,
           child: Padding(
@@ -193,6 +204,40 @@ class PremiumProductCard extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Solid corner badge showing the discount percentage over the image.
+class _DiscountBadge extends StatelessWidget {
+  const _DiscountBadge({required this.percent});
+
+  final int percent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFC0392B),
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Text(
+        '-$percent%',
+        style: PremiumTokens.body(
+          size: 11,
+          weight: FontWeight.w800,
+          color: Colors.white,
+          letterSpacing: -0.2,
+        ),
+      ),
     );
   }
 }

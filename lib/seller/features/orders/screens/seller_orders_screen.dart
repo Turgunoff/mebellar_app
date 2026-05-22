@@ -195,40 +195,108 @@ class _OrdersTabBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: AppColors.lightBackground,
-      child: TabBar(
-        controller: controller,
-        isScrollable: true,
-        tabAlignment: TabAlignment.start,
-        indicatorColor: AppColors.terracotta,
-        indicatorWeight: 2.5,
-        indicatorSize: TabBarIndicatorSize.label,
-        labelColor: AppColors.terracotta,
-        unselectedLabelColor: _grey,
-        labelStyle: TextStyle(
-          fontFamily: AppFonts.seller,
-          fontSize: 14,
-          fontWeight: FontWeight.w700,
-          letterSpacing: -0.1,
+      // Only the New + Active tabs carry a count badge, so rebuild the bar
+      // only when one of those two counts changes — Done/Cancelled are static.
+      child: BlocBuilder<SellerOrdersBloc, SellerOrdersState>(
+        buildWhen: (prev, curr) =>
+            prev.countFor(SellerOrdersTab.newTab) !=
+                curr.countFor(SellerOrdersTab.newTab) ||
+            prev.countFor(SellerOrdersTab.active) !=
+                curr.countFor(SellerOrdersTab.active),
+        builder: (context, state) => TabBar(
+          controller: controller,
+          isScrollable: true,
+          tabAlignment: TabAlignment.start,
+          indicatorColor: AppColors.terracotta,
+          indicatorWeight: 2.5,
+          indicatorSize: TabBarIndicatorSize.label,
+          labelColor: AppColors.terracotta,
+          unselectedLabelColor: _grey,
+          labelStyle: TextStyle(
+            fontFamily: AppFonts.seller,
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.1,
+          ),
+          unselectedLabelStyle: TextStyle(
+            fontFamily: AppFonts.seller,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            letterSpacing: -0.1,
+          ),
+          dividerColor: _divider,
+          dividerHeight: 1,
+          overlayColor: WidgetStateProperty.all(Colors.transparent),
+          splashFactory: NoSplash.splashFactory,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          labelPadding: const EdgeInsets.symmetric(horizontal: 12),
+          tabs: [
+            Tab(
+              child: _TabLabel(
+                text: 'Yangi',
+                count: state.countFor(SellerOrdersTab.newTab),
+                accent: true,
+              ),
+            ),
+            Tab(
+              child: _TabLabel(
+                text: 'Faol',
+                count: state.countFor(SellerOrdersTab.active),
+              ),
+            ),
+            const Tab(text: 'Yetkazilgan'),
+            const Tab(text: 'Bekor qilingan'),
+          ],
         ),
-        unselectedLabelStyle: TextStyle(
-          fontFamily: AppFonts.seller,
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-          letterSpacing: -0.1,
-        ),
-        dividerColor: _divider,
-        dividerHeight: 1,
-        overlayColor: WidgetStateProperty.all(Colors.transparent),
-        splashFactory: NoSplash.splashFactory,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        labelPadding: const EdgeInsets.symmetric(horizontal: 12),
-        tabs: const [
-          Tab(text: 'Yangi'),
-          Tab(text: 'Faol'),
-          Tab(text: 'Yetkazilgan'),
-          Tab(text: 'Bekor qilingan'),
-        ],
       ),
+    );
+  }
+}
+
+/// Tab label with an optional trailing count bubble. The bubble is hidden
+/// when [count] is zero so empty tabs read clean.
+class _TabLabel extends StatelessWidget {
+  const _TabLabel({
+    required this.text,
+    required this.count,
+    this.accent = false,
+  });
+
+  final String text;
+  final int count;
+
+  /// Terracotta bubble (New tab) vs neutral grey bubble (Active tab).
+  final bool accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(text),
+        if (count > 0) ...[
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            constraints: const BoxConstraints(minWidth: 18),
+            decoration: BoxDecoration(
+              color: accent ? AppColors.terracotta : const Color(0xFFEFEFEF),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              count > 99 ? '99+' : '$count',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: accent ? Colors.white : _grey,
+                height: 1.0,
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

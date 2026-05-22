@@ -8,6 +8,7 @@ import '../../shared/repositories/address_repository.dart';
 import '../../shared/repositories/banner_repository.dart';
 import '../../shared/repositories/cart_repository.dart';
 import '../../shared/repositories/category_repository.dart';
+import '../../shared/repositories/customer_reviews_repository.dart';
 import '../../shared/repositories/favorites_repository.dart';
 import '../../shared/repositories/hive_cart_repository.dart';
 import '../../shared/repositories/hive_favorites_repository.dart';
@@ -22,6 +23,7 @@ import '../../shared/repositories/shop_repository.dart';
 import '../../shared/repositories/supabase_banner_repository.dart';
 import '../../shared/repositories/supabase_cart_repository.dart';
 import '../../shared/repositories/supabase_category_repository.dart';
+import '../../shared/repositories/supabase_customer_reviews_repository.dart';
 import '../../shared/repositories/supabase_favorites_repository.dart';
 import '../../shared/repositories/supabase_notifications_repository.dart';
 import '../../shared/repositories/supabase_order_repository.dart';
@@ -55,6 +57,12 @@ void registerCatalogModule(GetIt sl) {
     );
     sl.registerLazySingleton<NotificationDataSource>(
       () => SupabaseNotificationsRepository(supabase: sl<SupabaseClient>()),
+    );
+
+    // Customer-side product reviews (write on delivered orders, read on the
+    // product page). Supabase-only — there is no offline review flow.
+    sl.registerLazySingleton<CustomerReviewsRepository>(
+      () => SupabaseCustomerReviewsRepository(supabase: sl<SupabaseClient>()),
     );
 
     // NewsDataSource — public broadcast feed; only when Supabase is live.

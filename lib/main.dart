@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -6,11 +8,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_phoenix/flutter_phoenix.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'config/app_config.dart';
 import 'config/app_mode.dart';
+import 'config/remote_config.dart';
 import 'core/auth/app_mode_cubit.dart';
 import 'core/auth/auth_cubit.dart';
 import 'core/di/service_locator.dart';
@@ -120,6 +124,13 @@ Future<void> _bootstrapAndRun() async {
   // Boot the locale controller from the Hive `settings` box so the
   // `MaterialApp` rebuilds when the user switches language.
   final settingsBox = sl<Box>(instanceName: HiveBoxes.settings);
+
+  // Hydrate runtime feature flags. The cached value paints instantly; the
+  // network refresh updates it for screens shown after the splash and for the
+  // next launch. Not awaited — boot must never block on the network.
+  RemoteConfig.instance.hydrateFromCache(settingsBox);
+  unawaited(RemoteConfig.instance.refresh(sl<SupabaseClient>(), settingsBox));
+
   final localeController = AppLocaleController.fromBox(settingsBox);
   // Seed the singleton so any `tr(...)` invoked before the first
   // `Localizations.load` (e.g. boot logging) resolves correctly.

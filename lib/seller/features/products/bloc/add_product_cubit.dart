@@ -5,6 +5,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/logging/talker.dart';
+import '../../../../shared/constants/product_colors.dart';
 import '../../../../shared/models/attribute_definition.dart';
 import '../../../../shared/models/category_model.dart';
 import '../../../../shared/models/tariff.dart';
@@ -84,7 +85,8 @@ class AddProductState extends Equatable {
   int get maxImages => context?.maxImages ?? 0;
 
   bool get canPickMoreImages {
-    if (status != AddProductStatus.ready && status != AddProductStatus.failure) {
+    if (status != AddProductStatus.ready &&
+        status != AddProductStatus.failure) {
       return false;
     }
     if (maxImages < 0) return true;
@@ -108,7 +110,8 @@ class AddProductState extends Equatable {
   /// Form-level validity. Driven by the same rules that gate the bottom CTA.
   bool get canSubmit {
     if (context == null) return false;
-    if (status != AddProductStatus.ready && status != AddProductStatus.failure) {
+    if (status != AddProductStatus.ready &&
+        status != AddProductStatus.failure) {
       return false;
     }
     if (imageFiles.isEmpty) return false;
@@ -156,8 +159,9 @@ class AddProductState extends Equatable {
       name: name ?? this.name,
       description: description ?? this.description,
       categoryId: clearCategory ? null : (categoryId ?? this.categoryId),
-      subcategoryId:
-          clearSubcategory ? null : (subcategoryId ?? this.subcategoryId),
+      subcategoryId: clearSubcategory
+          ? null
+          : (subcategoryId ?? this.subcategoryId),
       attributeSchema: attributeSchema ?? this.attributeSchema,
       attributes: attributes ?? this.attributes,
       isLoadingSchema: isLoadingSchema ?? this.isLoadingSchema,
@@ -177,38 +181,38 @@ class AddProductState extends Equatable {
 
   @override
   List<Object?> get props => [
-        status,
-        context?.shopId,
-        context?.activeProductsCount,
-        sku,
-        name,
-        description,
-        categoryId,
-        subcategoryId,
-        attributeSchema,
-        attributes,
-        isLoadingSchema,
-        colorSlugs,
-        price,
-        discountPercent,
-        productionTimeDays,
-        hasDelivery,
-        deliveryPrice,
-        hasInstallation,
-        installationPrice,
-        warrantyMonths,
-        imageFiles.length,
-        error,
-      ];
+    status,
+    context?.shopId,
+    context?.activeProductsCount,
+    sku,
+    name,
+    description,
+    categoryId,
+    subcategoryId,
+    attributeSchema,
+    attributes,
+    isLoadingSchema,
+    colorSlugs,
+    price,
+    discountPercent,
+    productionTimeDays,
+    hasDelivery,
+    deliveryPrice,
+    hasInstallation,
+    installationPrice,
+    warrantyMonths,
+    imageFiles.length,
+    error,
+  ];
 }
 
 class AddProductCubit extends Cubit<AddProductState> {
   AddProductCubit({
     required AddProductRepository repository,
     required AttributesRepository attributesRepository,
-  })  : _repository = repository,
-        _attributesRepository = attributesRepository,
-        super(AddProductState(sku: _generateSku()));
+  }) : _repository = repository,
+       _attributesRepository = attributesRepository,
+       super(AddProductState(sku: _generateSku()));
 
   final AddProductRepository _repository;
   final AttributesRepository _attributesRepository;
@@ -227,31 +231,27 @@ class AddProductCubit extends Cubit<AddProductState> {
   }
 
   Future<void> loadContext() async {
-    emit(state.copyWith(
-      status: AddProductStatus.loadingContext,
-      clearError: true,
-    ));
+    emit(
+      state.copyWith(status: AddProductStatus.loadingContext, clearError: true),
+    );
     try {
       final ctx = await _repository.loadShopContext();
       if (!ctx.canAddMoreProducts) {
-        emit(state.copyWith(
-          status: AddProductStatus.tariffBlocked,
-          context: ctx,
-        ));
+        emit(
+          state.copyWith(status: AddProductStatus.tariffBlocked, context: ctx),
+        );
         return;
       }
       emit(state.copyWith(status: AddProductStatus.ready, context: ctx));
     } catch (e) {
-      emit(state.copyWith(
-        status: AddProductStatus.failure,
-        error: e.toString(),
-      ));
+      emit(
+        state.copyWith(status: AddProductStatus.failure, error: e.toString()),
+      );
     }
   }
 
   void setName(String value) => emit(state.copyWith(name: value));
-  void setDescription(String value) =>
-      emit(state.copyWith(description: value));
+  void setDescription(String value) => emit(state.copyWith(description: value));
   void setProductionDays(String value) =>
       emit(state.copyWith(productionTimeDays: value));
 
@@ -261,24 +261,28 @@ class AddProductCubit extends Cubit<AddProductState> {
   void selectCategory(String? id) {
     if (id == null) {
       talker.info('[add-product-cubit] selectCategory cleared');
-      emit(state.copyWith(
-        clearCategory: true,
-        clearSubcategory: true,
-        attributeSchema: const [],
-        attributes: const {},
-      ));
+      emit(
+        state.copyWith(
+          clearCategory: true,
+          clearSubcategory: true,
+          attributeSchema: const [],
+          attributes: const {},
+        ),
+      );
       return;
     }
     if (state.categoryId == id) return;
     talker.info(
       '[add-product-cubit] selectCategory id=$id (was ${state.categoryId})',
     );
-    emit(state.copyWith(
-      categoryId: id,
-      clearSubcategory: true,
-      attributeSchema: const [],
-      attributes: const {},
-    ));
+    emit(
+      state.copyWith(
+        categoryId: id,
+        clearSubcategory: true,
+        attributeSchema: const [],
+        attributes: const {},
+      ),
+    );
     _reloadSchema();
   }
 
@@ -290,12 +294,17 @@ class AddProductCubit extends Cubit<AddProductState> {
     talker.info(
       '[add-product-cubit] selectSubcategory id=$id (was ${state.subcategoryId})',
     );
-    final pruned = _pruneSubcategoryAttributes(state.attributes, state.attributeSchema);
-    emit(state.copyWith(
-      subcategoryId: id,
-      clearSubcategory: id == null,
-      attributes: pruned,
-    ));
+    final pruned = _pruneSubcategoryAttributes(
+      state.attributes,
+      state.attributeSchema,
+    );
+    emit(
+      state.copyWith(
+        subcategoryId: id,
+        clearSubcategory: id == null,
+        attributes: pruned,
+      ),
+    );
     _reloadSchema();
   }
 
@@ -325,16 +334,10 @@ class AddProductCubit extends Cubit<AddProductState> {
         subcategoryId: state.subcategoryId,
       );
       if (token != _schemaRequestId) return; // stale response
-      emit(state.copyWith(
-        attributeSchema: schema,
-        isLoadingSchema: false,
-      ));
+      emit(state.copyWith(attributeSchema: schema, isLoadingSchema: false));
     } catch (e) {
       if (token != _schemaRequestId) return;
-      emit(state.copyWith(
-        isLoadingSchema: false,
-        error: e.toString(),
-      ));
+      emit(state.copyWith(isLoadingSchema: false, error: e.toString()));
     }
   }
 
@@ -364,24 +367,28 @@ class AddProductCubit extends Cubit<AddProductState> {
       emit(state.copyWith(discountPercent: value.clamp(0, 100)));
 
   void setHasDelivery(bool value) {
-    emit(state.copyWith(
-      hasDelivery: value,
-      // Reset price when delivery is turned off so we never persist a stale
-      // non-zero value behind the disabled toggle.
-      deliveryPrice: value ? state.deliveryPrice : 0,
-    ));
+    emit(
+      state.copyWith(
+        hasDelivery: value,
+        // Reset price when delivery is turned off so we never persist a stale
+        // non-zero value behind the disabled toggle.
+        deliveryPrice: value ? state.deliveryPrice : 0,
+      ),
+    );
   }
 
   void setDeliveryPrice(num value) =>
       emit(state.copyWith(deliveryPrice: value));
 
   void setHasInstallation(bool value) {
-    emit(state.copyWith(
-      hasInstallation: value,
-      // Same defensive reset as delivery — toggle off, price goes to zero so
-      // the disabled state never carries a stale value.
-      installationPrice: value ? state.installationPrice : 0,
-    ));
+    emit(
+      state.copyWith(
+        hasInstallation: value,
+        // Same defensive reset as delivery — toggle off, price goes to zero so
+        // the disabled state never carries a stale value.
+        installationPrice: value ? state.installationPrice : 0,
+      ),
+    );
   }
 
   void setInstallationPrice(num value) =>
@@ -406,7 +413,9 @@ class AddProductCubit extends Cubit<AddProductState> {
     } else {
       final remaining = state.maxImages - state.imageFiles.length;
       if (remaining <= 0) return 0;
-      accepted = files.length <= remaining ? files : files.sublist(0, remaining);
+      accepted = files.length <= remaining
+          ? files
+          : files.sublist(0, remaining);
     }
     emit(state.copyWith(imageFiles: [...state.imageFiles, ...accepted]));
     return accepted.length;
@@ -466,8 +475,7 @@ class AddProductCubit extends Cubit<AddProductState> {
           sku: state.sku,
           colorSlugs: state.colorSlugs.toList(),
           colorNames: [
-            for (final slug in state.colorSlugs)
-              _colorNameFor(slug) ?? slug,
+            for (final slug in state.colorSlugs) _colorNameFor(slug) ?? slug,
           ],
           attributes: Map<String, dynamic>.from(state.attributes),
           productionTimeDays: state.productionTimeDays.trim().isEmpty
@@ -485,12 +493,14 @@ class AddProductCubit extends Cubit<AddProductState> {
       talker.info('[add-product-cubit] submit ok sku=${state.sku}');
       return true;
     } catch (e, st) {
-      talker.handle(e, st,
-          '[add-product-cubit] submit failed sku=${state.sku}');
-      emit(state.copyWith(
-        status: AddProductStatus.failure,
-        error: e.toString(),
-      ));
+      talker.handle(
+        e,
+        st,
+        '[add-product-cubit] submit failed sku=${state.sku}',
+      );
+      emit(
+        state.copyWith(status: AddProductStatus.failure, error: e.toString()),
+      );
       return false;
     }
   }
@@ -500,16 +510,7 @@ class AddProductCubit extends Cubit<AddProductState> {
   /// localised display name at save time.
   String? _colorNameFor(String? slug) {
     if (slug == null) return null;
-    return kAddProductColorOptions
-        .firstWhere(
-          (c) => c.slug == slug,
-          orElse: () => const AddProductColorOption(
-            slug: '',
-            label: '',
-            swatch: 0xFF000000,
-          ),
-        )
-        .label;
+    return productColorBySlug(slug)?.label ?? '';
   }
 
   CategoryModel? findCategory(String? id) {
@@ -524,29 +525,3 @@ class AddProductCubit extends Cubit<AddProductState> {
 
   TariffSnapshot? get tariffSnapshot => state.context?.tariffSnapshot;
 }
-
-/// Compact value the UI iterates over to render the horizontal color row.
-/// Slugs survive locale changes; the human label is persisted to the
-/// variant row when the user saves.
-class AddProductColorOption {
-  const AddProductColorOption({
-    required this.slug,
-    required this.label,
-    required this.swatch,
-  });
-
-  final String slug;
-  final String label;
-  final int swatch;
-}
-
-const kAddProductColorOptions = <AddProductColorOption>[
-  AddProductColorOption(slug: 'white', label: 'Oq', swatch: 0xFFFFFFFF),
-  AddProductColorOption(slug: 'black', label: 'Qora', swatch: 0xFF1D1D1D),
-  AddProductColorOption(slug: 'grey', label: 'Kulrang', swatch: 0xFF9CA3AF),
-  AddProductColorOption(slug: 'brown', label: 'Jigarrang', swatch: 0xFF8B5E3C),
-  AddProductColorOption(slug: 'beige', label: 'Bej', swatch: 0xFFE9DCC4),
-  AddProductColorOption(slug: 'green', label: 'Yashil', swatch: 0xFF4F7A52),
-  AddProductColorOption(slug: 'blue', label: "Ko'k", swatch: 0xFF3B6CB5),
-  AddProductColorOption(slug: 'yellow', label: 'Sariq', swatch: 0xFFE6C25C),
-];

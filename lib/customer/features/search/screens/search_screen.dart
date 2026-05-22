@@ -61,7 +61,11 @@ class _SearchViewState extends State<_SearchView> {
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: pt.dark),
+          icon: Icon(
+            Icons.arrow_back_ios_new_rounded,
+            size: 20,
+            color: pt.dark,
+          ),
           onPressed: () => context.pop(),
         ),
         titleSpacing: 0,
@@ -89,8 +93,7 @@ class _SearchViewState extends State<_SearchView> {
                     border: InputBorder.none,
                     isCollapsed: true,
                     hintText: tr('search.hint'),
-                    hintStyle:
-                        PremiumTokens.body(size: 14, color: pt.grey),
+                    hintStyle: PremiumTokens.body(size: 14, color: pt.grey),
                   ),
                   onChanged: (v) {
                     context.read<SearchBloc>().add(SearchQueryChanged(v));
@@ -106,9 +109,9 @@ class _SearchViewState extends State<_SearchView> {
                   icon: Icon(Iconsax.close_circle, color: pt.grey, size: 18),
                   onPressed: () {
                     _ctrl.clear();
-                    context
-                        .read<SearchBloc>()
-                        .add(const SearchQueryChanged(''));
+                    context.read<SearchBloc>().add(
+                      const SearchQueryChanged(''),
+                    );
                     setState(() {});
                   },
                 ),
@@ -137,25 +140,26 @@ class _SearchViewState extends State<_SearchView> {
             SearchStatus.loading => const _SearchSkeleton(),
             SearchStatus.failure => ErrorState(
               message: state.error,
-              onRetry: () => context
-                  .read<SearchBloc>()
-                  .add(SearchQueryChanged(state.query)),
+              onRetry: () => context.read<SearchBloc>().add(
+                SearchQueryChanged(state.query),
+              ),
             ),
-            SearchStatus.ready => state.results.isEmpty
-                ? EmptyState(
-                    icon: Iconsax.search_status,
-                    title: tr('search.no_results'),
-                    message: tr('search.no_results_hint'),
-                  )
-                : _ResultsGrid(
-                    results: state.results,
-                    onItemTap: (p) {
-                      context
-                          .read<SearchBloc>()
-                          .add(SearchSubmitted(state.query));
-                      context.push('/product-detail/${p.id}', extra: p);
-                    },
-                  ),
+            SearchStatus.ready =>
+              state.results.isEmpty
+                  ? EmptyState(
+                      icon: Iconsax.search_status,
+                      title: tr('search.no_results'),
+                      message: tr('search.no_results_hint'),
+                    )
+                  : _ResultsGrid(
+                      results: state.results,
+                      onItemTap: (p) {
+                        context.read<SearchBloc>().add(
+                          SearchSubmitted(state.query),
+                        );
+                        context.push('/product-detail/${p.id}', extra: p);
+                      },
+                    ),
           };
         },
       ),
@@ -178,7 +182,8 @@ class _ResultsGrid extends StatelessWidget {
     id: m.id,
     slug: m.id,
     name: MultilingualText(uz: m.name, ru: m.name, en: m.name),
-    price: m.price,
+    price: m.effectivePrice,
+    oldPrice: m.hasDiscount ? m.price : null,
     images: m.images,
     primaryImage: m.thumbnail,
     attributes: m.attributes,
@@ -205,12 +210,13 @@ class _ResultsGrid extends StatelessWidget {
             imageUrl: p.thumbnail ?? '',
             name: p.name,
             shop: p.description ?? '',
-            price: _formatPrice(p.price),
+            price: _formatPrice(p.effectivePrice),
+            discountPercent: p.discountPercent,
             isFavorite: isFav,
             onTap: () => onItemTap(p),
-            onFavoriteToggle: () => context
-                .read<FavoritesBloc>()
-                .add(FavoriteToggled(_toProduct(p))),
+            onFavoriteToggle: () => context.read<FavoritesBloc>().add(
+              FavoriteToggled(_toProduct(p)),
+            ),
           ),
         );
       },

@@ -46,8 +46,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     return ColoredBox(
       color: pt.background,
       child: BlocBuilder<FavoritesBloc, FavoritesState>(
-        buildWhen: (a, b) =>
-            a.status != b.status || a.products != b.products,
+        buildWhen: (a, b) => a.status != b.status || a.products != b.products,
         builder: (context, state) {
           if (state.status == FavoritesStatus.loading ||
               state.status == FavoritesStatus.initial) {
@@ -93,20 +92,14 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   ),
                   title: Text(
                     'Sevimlilar',
-                    style: PremiumTokens.display(
-                      size: 20,
-                      letterSpacing: -0.4,
-                    ),
+                    style: PremiumTokens.display(size: 20, letterSpacing: -0.4),
                   ),
                   background: Container(
                     alignment: Alignment.bottomLeft,
                     padding: const EdgeInsets.only(left: 20, bottom: 52),
                     child: Text(
                       '${state.products.length} saqlangan mahsulot',
-                      style: PremiumTokens.body(
-                        size: 13,
-                        color: pt.grey,
-                      ),
+                      style: PremiumTokens.body(size: 13, color: pt.grey),
                     ),
                   ),
                 ),
@@ -114,20 +107,16 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               SliverPadding(
                 padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPad),
                 sliver: SliverGrid(
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
                     mainAxisSpacing: 14,
                     crossAxisSpacing: 14,
                     childAspectRatio: 0.65,
                   ),
-                  delegate: SliverChildBuilderDelegate(
-                    (context, i) {
-                      final product = state.products[i];
-                      return _FavoriteProductTile(product: product);
-                    },
-                    childCount: state.products.length,
-                  ),
+                  delegate: SliverChildBuilderDelegate((context, i) {
+                    final product = state.products[i];
+                    return _FavoriteProductTile(product: product);
+                  }, childCount: state.products.length),
                 ),
               ),
             ],
@@ -147,11 +136,20 @@ class _FavoriteProductTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final lang = context.locale.languageCode;
     final shopName = product.shop?.name.get(lang) ?? '';
+    // `Product.oldPrice` carries the original price when the snapshot was
+    // taken for a discounted product (see the SupabaseProductModel→Product
+    // conversions); `isOnSale` is true exactly when a real discount applies.
+    final onSale = product.isOnSale;
+    final percent = onSale
+        ? (((product.oldPrice! - product.price) / product.oldPrice!) * 100)
+              .round()
+        : 0;
     return PremiumProductCard(
       imageUrl: product.heroImage,
       name: product.name.get(lang),
       shop: shopName,
       price: '${_formatPrice(product.price)} so\'m',
+      discountPercent: percent,
       isFavorite: true,
       onTap: () => context.push('/products/${product.slug}'),
       onFavoriteToggle: () =>

@@ -30,11 +30,7 @@ import '../widgets/order_format.dart';
 /// shipped → delivered`, plus cancel) is driven from the sticky
 /// [OrderActionBar]; each button dispatches the matching bloc event.
 class OrderDetailsScreen extends StatelessWidget {
-  const OrderDetailsScreen({
-    super.key,
-    required this.orderId,
-    this.ordersBloc,
-  });
+  const OrderDetailsScreen({super.key, required this.orderId, this.ordersBloc});
 
   final String orderId;
 
@@ -115,8 +111,8 @@ class _OrderDetailView extends StatelessWidget {
     );
     if (result == null || !context.mounted) return;
     context.read<SellerOrderDetailBloc>().add(
-          SellerOrderFeeAdjustmentProposed(fee: result.fee, note: result.note),
-        );
+      SellerOrderFeeAdjustmentProposed(fee: result.fee, note: result.note),
+    );
   }
 
   Future<void> _promptCancel(BuildContext context) async {
@@ -127,9 +123,11 @@ class _OrderDetailView extends StatelessWidget {
     );
     if (reason == null) return; // Dialog dismissed.
     final trimmed = reason.trim();
-    bloc.add(SellerOrderActionCancelled(
-      trimmed.isEmpty ? 'Sotuvchi tomonidan bekor qilindi' : trimmed,
-    ));
+    bloc.add(
+      SellerOrderActionCancelled(
+        trimmed.isEmpty ? 'Sotuvchi tomonidan bekor qilindi' : trimmed,
+      ),
+    );
   }
 
   @override
@@ -166,9 +164,11 @@ class _OrderDetailView extends StatelessWidget {
               ? null
               : OrderActionBar(
                   status: order.status,
-                  busy: state.status == SellerOrderDetailStatus.mutating ||
+                  busy:
+                      state.status == SellerOrderDetailStatus.mutating ||
                       state.status == SellerOrderDetailStatus.proposingFee,
-                  feePendingCustomer: order.feeAdjustmentStatus ==
+                  feePendingCustomer:
+                      order.feeAdjustmentStatus ==
                       FeeAdjustmentStatus.pendingCustomer,
                   onTransition: (target) =>
                       _dispatchTransition(context, target),
@@ -188,21 +188,21 @@ class _OrderDetailView extends StatelessWidget {
       if (state.status == SellerOrderDetailStatus.failure) {
         return _DetailError(
           message: state.error ?? 'Buyurtma topilmadi',
-          onRetry: () => context
-              .read<SellerOrderDetailBloc>()
-              .add(SellerOrderDetailRequested(orderId)),
+          onRetry: () => context.read<SellerOrderDetailBloc>().add(
+            SellerOrderDetailRequested(orderId),
+          ),
         );
       }
       return const Center(child: BrandLoadingIndicator());
     }
 
     final colors = sellerOrderStatusColors(order.status);
-    final subtotal =
-        order.items.fold<num>(0, (sum, it) => sum + it.lineTotal);
-    final delivery =
-        order.grandTotal > subtotal ? order.grandTotal - subtotal : 0;
-    final feePending = order.feeAdjustmentStatus ==
-        FeeAdjustmentStatus.pendingCustomer;
+    final subtotal = order.items.fold<num>(0, (sum, it) => sum + it.lineTotal);
+    final delivery = order.grandTotal > subtotal
+        ? order.grandTotal - subtotal
+        : 0;
+    final feePending =
+        order.feeAdjustmentStatus == FeeAdjustmentStatus.pendingCustomer;
     final canProposeNewFee = !order.status.isTerminal && !feePending;
 
     return SafeArea(
@@ -254,13 +254,13 @@ class _OrderDetailView extends StatelessWidget {
   }
 
   static int _timelineStep(OrderStatus status) => switch (status) {
-        OrderStatus.pending => 0,
-        OrderStatus.confirmed => 1,
-        OrderStatus.preparing => 2,
-        OrderStatus.shipped => 3,
-        OrderStatus.delivered => 4,
-        OrderStatus.cancelled => 0,
-      };
+    OrderStatus.pending => 0,
+    OrderStatus.confirmed => 1,
+    OrderStatus.preparing => 2,
+    OrderStatus.shipped => 3,
+    OrderStatus.delivered => 4,
+    OrderStatus.cancelled => 0,
+  };
 
   static String _paymentLabel(model.OrderPaymentMethod method) =>
       switch (method) {
@@ -282,6 +282,7 @@ class _OrderDetailView extends StatelessWidget {
           unitPriceLabel: formatOrderAmount(it.unitPrice),
           subtotalLabel: formatOrderAmount(it.lineTotal),
           thumbnail: it.thumbnail,
+          colorSlug: it.colorSlug,
         ),
     ];
   }
@@ -348,8 +349,11 @@ class _CustomerContactSheet extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  const Icon(Iconsax.warning_2,
-                      size: 18, color: Color(0xFF8C5A12)),
+                  const Icon(
+                    Iconsax.warning_2,
+                    size: 18,
+                    color: Color(0xFF8C5A12),
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -399,12 +403,14 @@ class _CustomerContactSheet extends StatelessWidget {
                       const SizedBox(height: 10),
                     if (phone.isNotEmpty)
                       GestureDetector(
-                        onTap: () =>
-                            launchUrl(Uri.parse('tel:$phone')),
+                        onTap: () => launchUrl(Uri.parse('tel:$phone')),
                         child: Row(
                           children: [
-                            const Icon(Iconsax.call,
-                                size: 16, color: AppColors.sellerPrimary),
+                            const Icon(
+                              Iconsax.call,
+                              size: 16,
+                              color: AppColors.sellerPrimary,
+                            ),
                             const SizedBox(width: 8),
                             Text(
                               phone,
@@ -543,10 +549,7 @@ class _CancelReasonDialogState extends State<_CancelReasonDialog> {
         ),
         decoration: InputDecoration(
           hintText: 'Bekor qilish sababi',
-          hintStyle: const TextStyle(
-            fontFamily: AppFonts.seller,
-            color: kGrey,
-          ),
+          hintStyle: const TextStyle(fontFamily: AppFonts.seller, color: kGrey),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: kOutline),
@@ -633,7 +636,8 @@ class _ProposeFeeDialogState extends State<_ProposeFeeDialog> {
   void initState() {
     super.initState();
     _feeController.addListener(
-        () => setState(() => _valid = _parsedFee() != null));
+      () => setState(() => _valid = _parsedFee() != null),
+    );
   }
 
   @override
@@ -669,10 +673,17 @@ class _ProposeFeeDialogState extends State<_ProposeFeeDialog> {
             autofocus: true,
             keyboardType: TextInputType.number,
             inputFormatters: [_SpaceThousandsFormatter()],
-            style: const TextStyle(fontFamily: AppFonts.seller, fontSize: 15, color: kInk),
+            style: const TextStyle(
+              fontFamily: AppFonts.seller,
+              fontSize: 15,
+              color: kInk,
+            ),
             decoration: InputDecoration(
               hintText: 'Yangi yetkazish narxi (UZS)',
-              hintStyle: const TextStyle(fontFamily: AppFonts.seller, color: kGrey),
+              hintStyle: const TextStyle(
+                fontFamily: AppFonts.seller,
+                color: kGrey,
+              ),
               suffixText: 'UZS',
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -689,10 +700,18 @@ class _ProposeFeeDialogState extends State<_ProposeFeeDialog> {
             controller: _noteController,
             minLines: 1,
             maxLines: 3,
-            style: const TextStyle(fontFamily: AppFonts.seller, fontSize: 13, color: kInk),
+            style: const TextStyle(
+              fontFamily: AppFonts.seller,
+              fontSize: 13,
+              color: kInk,
+            ),
             decoration: InputDecoration(
               hintText: 'Izoh (ixtiyoriy) — masalan: uzoq manzil',
-              hintStyle: const TextStyle(fontFamily: AppFonts.seller, color: kGrey, fontSize: 12),
+              hintStyle: const TextStyle(
+                fontFamily: AppFonts.seller,
+                color: kGrey,
+                fontSize: 12,
+              ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: const BorderSide(color: kOutline),
@@ -708,27 +727,40 @@ class _ProposeFeeDialogState extends State<_ProposeFeeDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Yopish',
-              style: TextStyle(fontFamily: AppFonts.seller, color: kGrey, fontWeight: FontWeight.w600)),
+          child: const Text(
+            'Yopish',
+            style: TextStyle(
+              fontFamily: AppFonts.seller,
+              color: kGrey,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
         FilledButton(
           onPressed: _valid
               ? () => Navigator.of(context).pop(
-                    _FeeProposal(
-                      fee: _parsedFee()!,
-                      note: _noteController.text.trim().isEmpty
-                          ? null
-                          : _noteController.text.trim(),
-                    ),
-                  )
+                  _FeeProposal(
+                    fee: _parsedFee()!,
+                    note: _noteController.text.trim().isEmpty
+                        ? null
+                        : _noteController.text.trim(),
+                  ),
+                )
               : null,
           style: FilledButton.styleFrom(
             backgroundColor: AppColors.terracotta,
             foregroundColor: Colors.white,
-            disabledBackgroundColor: AppColors.terracotta.withValues(alpha: 0.4),
+            disabledBackgroundColor: AppColors.terracotta.withValues(
+              alpha: 0.4,
+            ),
           ),
-          child: const Text('Yuborish',
-              style: TextStyle(fontFamily: AppFonts.seller, fontWeight: FontWeight.w700)),
+          child: const Text(
+            'Yuborish',
+            style: TextStyle(
+              fontFamily: AppFonts.seller,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ),
       ],
     );

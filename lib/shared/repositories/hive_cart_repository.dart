@@ -29,8 +29,7 @@ class HiveCartRepository implements CartRepository {
 
   static const String _storeKey = 'guest_cart';
 
-  final _itemsController =
-      StreamController<List<CartItemModel>>.broadcast();
+  final _itemsController = StreamController<List<CartItemModel>>.broadcast();
   final _cartController = StreamController<Cart>.broadcast();
 
   Cart _legacyCart = const Cart();
@@ -122,6 +121,7 @@ class HiveCartRepository implements CartRepository {
   Future<void> addProduct(
     SupabaseProductModel product, {
     int quantity = 1,
+    String? selectedColor,
   }) async {
     final store = _readStore();
     final existingJson = store[product.id];
@@ -134,18 +134,26 @@ class HiveCartRepository implements CartRepository {
         );
         final next = existing.copyWith(
           quantity: (existing.quantity + qtyClamped).clamp(1, 99),
+          selectedColor: selectedColor,
         );
         store[product.id] = jsonEncode(next.toHiveJson());
       } catch (e, st) {
         talker.handle(e, st, 'HiveCart.addProduct: re-seeding corrupt row');
         store[product.id] = jsonEncode(
-          CartItemModel.fromProduct(product, quantity: qtyClamped)
-              .toHiveJson(),
+          CartItemModel.fromProduct(
+            product,
+            quantity: qtyClamped,
+            selectedColor: selectedColor,
+          ).toHiveJson(),
         );
       }
     } else {
       store[product.id] = jsonEncode(
-        CartItemModel.fromProduct(product, quantity: qtyClamped).toHiveJson(),
+        CartItemModel.fromProduct(
+          product,
+          quantity: qtyClamped,
+          selectedColor: selectedColor,
+        ).toHiveJson(),
       );
     }
 
@@ -153,10 +161,7 @@ class HiveCartRepository implements CartRepository {
   }
 
   @override
-  Future<void> updateProductQuantity(
-    String productId,
-    int newQuantity,
-  ) async {
+  Future<void> updateProductQuantity(String productId, int newQuantity) async {
     final store = _readStore();
     final json = store[productId];
     if (json == null) return;

@@ -4,9 +4,9 @@ import 'package:woody_app/core/i18n/i18n.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/logging/talker.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/constants/product_colors.dart';
 import '../../../../shared/models/attribute_definition.dart';
 import '../../../../shared/models/seller_product.dart';
-import '../bloc/add_product_cubit.dart';
 import '../data/attributes_repository.dart';
 import '../widgets/product_preview/attributes_card.dart';
 import '../widgets/product_preview/bottom_action_bar.dart';
@@ -89,16 +89,18 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
     final categoryId = widget.product.categorySlug;
     if (categoryId.isEmpty) return;
     try {
-      final schema =
-          await sl<AttributesRepository>().loadForCategory(
+      final schema = await sl<AttributesRepository>().loadForCategory(
         categoryId: categoryId,
         subcategoryId: widget.product.subcategoryId,
       );
       if (!mounted) return;
       setState(() => _schema = schema);
     } catch (e, st) {
-      talker.handle(e, st,
-          '[seller-product-detail] schema load failed productId=${widget.product.id}');
+      talker.handle(
+        e,
+        st,
+        '[seller-product-detail] schema load failed productId=${widget.product.id}',
+      );
     }
   }
 
@@ -111,11 +113,13 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
     ];
     final description = product.description.uz?.trim() ?? '';
     final attributeRows = _attributeRows(product);
-    final hasDimensions = product.widthCm != null ||
+    final hasDimensions =
+        product.widthCm != null ||
         product.heightCm != null ||
         product.lengthCm != null ||
         product.weightKg != null;
-    final showLogistics = (product.productionTimeDays?.isNotEmpty ?? false) ||
+    final showLogistics =
+        (product.productionTimeDays?.isNotEmpty ?? false) ||
         product.hasDelivery ||
         product.hasInstallation ||
         product.warrantyMonths > 0;
@@ -157,7 +161,8 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
                     const SizedBox(height: 14),
                     DescriptionCard(text: description),
                   ],
-                  if (attributeRows.isNotEmpty || product.colors.isNotEmpty) ...[
+                  if (attributeRows.isNotEmpty ||
+                      product.colors.isNotEmpty) ...[
                     const SizedBox(height: 14),
                     AttributesCard(
                       rows: attributeRows,
@@ -233,16 +238,13 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
   /// Unknown slugs are skipped so we never paint a fallback "?" swatch.
   List<AttributeColorChip> _colorChipsFor(List<String> slugs) {
     if (slugs.isEmpty) return const [];
-    final palette = {
-      for (final option in kAddProductColorOptions)
-        option.slug: option,
-    };
+    final palette = {for (final option in kProductColors) option.slug: option};
     return [
       for (final slug in slugs)
         if (palette[slug] != null)
           AttributeColorChip(
             label: palette[slug]!.label,
-            swatch: Color(palette[slug]!.swatch),
+            swatch: palette[slug]!.swatch,
           ),
     ];
   }
@@ -288,4 +290,3 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
   String _formatDateTime(DateTime dt) =>
       DateFormat('dd MMM yyyy, HH:mm', 'uz').format(dt);
 }
-

@@ -4,6 +4,7 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../config/app_mode.dart';
+import '../../../config/remote_config.dart';
 import '../../../core/di/service_locator.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../customer/features/notifications/cubit/notifications_cubit.dart';
@@ -287,7 +288,8 @@ class _KpiGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final exceeded = data.productLimitExceeded;
+    final tariffEnabled = RemoteConfig.instance.tariffEnabled;
+    final exceeded = tariffEnabled && data.productLimitExceeded;
     return GridView.count(
       crossAxisCount: 2,
       crossAxisSpacing: 12,
@@ -317,8 +319,11 @@ class _KpiGrid extends StatelessWidget {
         SellerKpiCard(
           icon: Iconsax.box,
           title: 'Mahsulotlar',
-          value: '${data.productsCount} / ${data.productLimit}',
-          subtitle: 'Standard tarif',
+          // With tariff off there's no quota — show a plain product count.
+          value: tariffEnabled
+              ? '${data.productsCount} / ${data.productLimit}'
+              : '${data.productsCount}',
+          subtitle: tariffEnabled ? 'Standard tarif' : null,
           indicator: exceeded ? KpiIndicator.terracotta('Limit oshdi') : null,
         ),
       ],

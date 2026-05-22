@@ -37,10 +37,12 @@ class _ShopSettingsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<ShopSettingsBloc, ShopSettingsState>(
+      // Fire on a save success, and on any newly-set error — including an
+      // asset-upload error, which leaves `status` unchanged (so a plain
+      // status-diff check would silently swallow it).
       listenWhen: (a, b) =>
-          a.status != b.status &&
-          (b.status == ShopSettingsStatus.saved ||
-              b.status == ShopSettingsStatus.failure),
+          (a.status != b.status && b.status == ShopSettingsStatus.saved) ||
+          (b.error != null && b.error != a.error),
       listener: (context, state) {
         if (state.status == ShopSettingsStatus.saved) {
           ScaffoldMessenger.of(context).showSnackBar(

@@ -91,7 +91,9 @@
       "mcp__dart__set_widget_selection_mode",
       "mcp__dart__get_selected_widget",
       "mcp__dart__add_roots",
-      "mcp__dart__remove_roots"
+      "mcp__dart__remove_roots",
+      "Bash(supabase migration *)",
+      "mcp__supabase__get_publishable_keys"
     ],
     "deny": [
       "Bash(git push --force *)",

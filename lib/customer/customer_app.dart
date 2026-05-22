@@ -98,8 +98,10 @@ class _CustomerAppState extends State<CustomerApp> {
     if (target.mode == AppMode.customer) {
       _router.go(target.route);
     } else if (sl.isRegistered<NotificationHandler>()) {
-      sl<NotificationHandler>()
-          .savePendingRoute(target.route, target.mode.name);
+      sl<NotificationHandler>().savePendingRoute(
+        target.route,
+        target.mode.name,
+      );
     }
   }
 
@@ -167,8 +169,8 @@ class CustomerShellScope extends InheritedWidget {
   final void Function(int index) goToTab;
 
   static CustomerShellScope of(BuildContext context) {
-    final scope =
-        context.dependOnInheritedWidgetOfExactType<CustomerShellScope>();
+    final scope = context
+        .dependOnInheritedWidgetOfExactType<CustomerShellScope>();
     assert(scope != null, 'CustomerShellScope ancestor missing');
     return scope!;
   }
@@ -192,6 +194,11 @@ class CustomerHomeShell extends StatefulWidget {
 class _CustomerHomeShellState extends State<CustomerHomeShell> {
   int _index = 0;
 
+  /// Timestamp of the last back press while the Home tab was active. Drives
+  /// the double-back-to-exit gesture; reset whenever the tab changes so the
+  /// two presses must be consecutive on Home.
+  DateTime? _lastBackPress;
+
   /// Mounts after splash + tutorial gate. Wait one second so the home feed
   /// renders first, then surface the OS notification permission prompt —
   /// asking earlier (splash / onboarding) lowers opt-in rates significantly.
@@ -210,7 +217,34 @@ class _CustomerHomeShellState extends State<CustomerHomeShell> {
 
   void _goToTab(int i) {
     if (i == _index) return;
+    _lastBackPress = null;
     setState(() => _index = i);
+  }
+
+  /// System-back handler for the tab shell (Android). A non-Home tab returns
+  /// to Home; on Home, the first press shows a hint and the second within
+  /// 2 seconds exits the app — the conventional Android bottom-nav pattern.
+  void _handleSystemBack() {
+    if (_index != 0) {
+      _goToTab(0);
+      return;
+    }
+    final now = DateTime.now();
+    final last = _lastBackPress;
+    if (last != null && now.difference(last) < const Duration(seconds: 2)) {
+      SystemNavigator.pop();
+      return;
+    }
+    _lastBackPress = now;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text('Ilovadan chiqish uchun yana bir marta orqaga bosing'),
+          duration: Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
   }
 
   String _titleForTab(int i) {
@@ -243,71 +277,76 @@ class _CustomerHomeShellState extends State<CustomerHomeShell> {
     ];
     return CustomerShellScope(
       goToTab: _goToTab,
-      child: Scaffold(
-      extendBody: true,
-      // Every premium tab renders its own header — suppress the shell AppBar
-      // to avoid double titles.
-      appBar: (_index == 0 ||
-              _index == 1 ||
-              _index == 2 ||
-              _index == 3 ||
-              _index == 4)
-          ? null
-          : AppBar(
-              title: Text(_titleForTab(_index)),
-              actions: const [
-                _NotificationsAppBarAction(),
-              ],
-            ),
-      // The connectivity banner is mounted globally by NetworkOverlayWrapper
-      // in MaterialApp.builder, so it survives route changes and we don't
-      // need a per-shell Column wrapper here.
-      body: IndexedStack(
-        index: _index,
-        children: tabs,
+      child: PopScope(
+        // The shell is the root route — never let the framework pop it
+        // straight to an app exit; `_handleSystemBack` decides what happens.
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
+          _handleSystemBack();
+        },
+        child: Scaffold(
+          extendBody: true,
+          // Every premium tab renders its own header — suppress the shell AppBar
+          // to avoid double titles.
+          appBar:
+              (_index == 0 ||
+                  _index == 1 ||
+                  _index == 2 ||
+                  _index == 3 ||
+                  _index == 4)
+              ? null
+              : AppBar(
+                  title: Text(_titleForTab(_index)),
+                  actions: const [_NotificationsAppBarAction()],
+                ),
+          // The connectivity banner is mounted globally by NetworkOverlayWrapper
+          // in MaterialApp.builder, so it survives route changes and we don't
+          // need a per-shell Column wrapper here.
+          body: IndexedStack(index: _index, children: tabs),
+          bottomNavigationBar: GlassBottomNav(
+            currentIndex: _index,
+            onTap: _goToTab,
+            items: [
+              GlassNavItem(
+                label: tr('home.title'),
+                iconBuilder: (_, active) =>
+                    _NavIcon(icon: Iconsax.home_2, isActive: active),
+              ),
+              GlassNavItem(
+                label: tr('home.categories'),
+                iconBuilder: (_, active) =>
+                    _NavIcon(icon: Iconsax.element_3, isActive: active),
+              ),
+              GlassNavItem(
+                label: tr('cart.title'),
+                iconBuilder: (_, active) => BlocBuilder<CartBloc, CartState>(
+                  buildWhen: (a, b) => a.totalUnits != b.totalUnits,
+                  builder: (context, state) {
+                    final units = state.totalUnits;
+                    final icon = _NavIcon(
+                      icon: Iconsax.shopping_bag,
+                      isActive: active,
+                    );
+                    if (units == 0) return icon;
+                    return Badge.count(count: units, child: icon);
+                  },
+                ),
+              ),
+              GlassNavItem(
+                label: 'Sevimlilar',
+                iconBuilder: (_, active) =>
+                    _NavIcon(icon: Iconsax.heart, isActive: active),
+              ),
+              GlassNavItem(
+                label: tr('profile.title'),
+                iconBuilder: (_, active) =>
+                    _NavIcon(icon: Iconsax.profile_circle, isActive: active),
+              ),
+            ],
+          ),
+        ),
       ),
-      bottomNavigationBar: GlassBottomNav(
-        currentIndex: _index,
-        onTap: _goToTab,
-        items: [
-          GlassNavItem(
-            label: tr('home.title'),
-            iconBuilder: (_, active) =>
-                _NavIcon(icon: Iconsax.home_2, isActive: active),
-          ),
-          GlassNavItem(
-            label: tr('home.categories'),
-            iconBuilder: (_, active) =>
-                _NavIcon(icon: Iconsax.element_3, isActive: active),
-          ),
-          GlassNavItem(
-            label: tr('cart.title'),
-            iconBuilder: (_, active) => BlocBuilder<CartBloc, CartState>(
-              buildWhen: (a, b) => a.totalUnits != b.totalUnits,
-              builder: (context, state) {
-                final units = state.totalUnits;
-                final icon = _NavIcon(
-                  icon: Iconsax.shopping_bag,
-                  isActive: active,
-                );
-                if (units == 0) return icon;
-                return Badge.count(count: units, child: icon);
-              },
-            ),
-          ),
-          GlassNavItem(
-            label: 'Sevimlilar',
-            iconBuilder: (_, active) =>
-                _NavIcon(icon: Iconsax.heart, isActive: active),
-          ),
-          GlassNavItem(
-            label: tr('profile.title'),
-            iconBuilder: (_, active) =>
-                _NavIcon(icon: Iconsax.profile_circle, isActive: active),
-          ),
-        ],
-      ),
-    ),
     );
   }
 }
@@ -348,10 +387,12 @@ class _NotificationsAppBarAction extends StatelessWidget {
       );
     }
     return StreamBuilder<int>(
-      stream: sl<NotificationsRepository>()
-          .watchUnread(mode: AppMode.customer.name),
-      initialData: sl<NotificationsRepository>()
-          .unreadCount(mode: AppMode.customer.name),
+      stream: sl<NotificationsRepository>().watchUnread(
+        mode: AppMode.customer.name,
+      ),
+      initialData: sl<NotificationsRepository>().unreadCount(
+        mode: AppMode.customer.name,
+      ),
       builder: (context, snap) {
         final count = snap.data ?? 0;
         return IconButton(
@@ -368,4 +409,3 @@ class _NotificationsAppBarAction extends StatelessWidget {
     );
   }
 }
-

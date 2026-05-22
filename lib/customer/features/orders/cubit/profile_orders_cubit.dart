@@ -14,15 +14,20 @@ class ProfileOrdersState extends Equatable {
   final bool isLoading;
 
   // Derived counts — always reflect latest state without extra fields.
+  // Status codes mirror `OrderStatus` in shared/models/order_status.dart:
+  // pending · confirmed · preparing · shipped · delivered · cancelled.
   int get pendingCount =>
       orders.where((o) => o['status'] == 'pending').length;
+
+  /// Orders the seller has accepted and is preparing — surfaced under the
+  /// "Tayyorlanmoqda" tile.
   int get processingCount => orders
-      .where((o) =>
-          o['status'] == 'processing' || o['status'] == 'tayyorlanmoqda')
+      .where((o) => o['status'] == 'confirmed' || o['status'] == 'preparing')
       .length;
-  int get deliveringCount => orders
-      .where((o) => o['status'] == 'delivering' || o['status'] == 'yolda')
-      .length;
+
+  /// Orders out for delivery — the "Yo'lda" tile.
+  int get deliveringCount =>
+      orders.where((o) => o['status'] == 'shipped').length;
 
   bool get hasActivity =>
       pendingCount > 0 || processingCount > 0 || deliveringCount > 0;
@@ -56,7 +61,11 @@ class ProfileOrdersCubit extends Cubit<ProfileOrdersState> {
           .from('orders')
           .select(
             'id, total_amount, status, delivery_address, created_at, '
-            'cancellation_reason, fee_adjustment_status, proposed_delivery_fee',
+            'cancellation_reason, fee_adjustment_status, proposed_delivery_fee, '
+            // Embedded line items drive the order-card thumbnails + count;
+            // the nested `reviews` tells the card whether a delivered order
+            // still has products awaiting a rating.
+            'order_items(quantity, products(name, images), reviews(id))',
           )
           .eq('user_id', userId)
           .order('created_at', ascending: false);

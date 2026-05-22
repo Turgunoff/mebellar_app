@@ -29,8 +29,8 @@ class SupabaseSellerOrderRepository implements SellerOrderRepository {
   SupabaseSellerOrderRepository({
     required SupabaseClient supabase,
     required RealtimeService realtime,
-  })  : _client = supabase,
-        _realtime = realtime {
+  }) : _client = supabase,
+       _realtime = realtime {
     // ROADMAP B.7 realtime audit — this repo is root-scoped, so the orders
     // channel must NOT simply live until app exit: bind it to listener
     // presence. The channel opens when the orders bloc starts listening and
@@ -64,9 +64,9 @@ class SupabaseSellerOrderRepository implements SellerOrderRepository {
   /// replication isn't 100% guaranteed across all releases.
   late final StreamController<Order> _orderUpdates =
       StreamController<Order>.broadcast(
-    onListen: () => unawaited(_ensureUpdatesSubscription()),
-    onCancel: () => unawaited(_teardownUpdatesSubscription()),
-  );
+        onListen: () => unawaited(_ensureUpdatesSubscription()),
+        onCancel: () => unawaited(_teardownUpdatesSubscription()),
+      );
 
   // Embedded select used by both list() and _fetchOrder so the line-items
   // come back with the product name + first image already joined — sellers'
@@ -74,36 +74,36 @@ class SupabaseSellerOrderRepository implements SellerOrderRepository {
   // labels. `inner` keeps order_items whose product was filtered out by
   // RLS off the result altogether.
   static const String _itemEmbed =
-      'id, order_id, product_id, quantity, price, '
+      'id, order_id, product_id, quantity, price, color_slug, '
       'products!inner(id, name, images)';
 
   @override
   Future<Result<List<Order>>> list() => runCatching(() async {
-        final shopId = await _requireShopId();
-        final orderIds = await _orderIdsForShop(shopId);
-        if (orderIds.isEmpty) return <Order>[];
-        final rows = await _client
-            .from(_ordersTable)
-            .select()
-            .inFilter('id', orderIds)
-            .order('created_at', ascending: false);
-        if (rows.isEmpty) return <Order>[];
-        // Fetch the joined item rows in one round-trip and bucket them by
-        // order_id so each `Order.fromJson` lands with its enriched lines.
-        // Per the RLS policy, sellers only see line items whose product is
-        // theirs — line counts in this map are scoped to the seller.
-        final itemsByOrder = await _fetchItemsByOrderId(rows
-            .map((r) => r['id'] as String)
-            .toList(growable: false));
-        return rows
-            .map(
-              (row) => Order.fromJson(
-                row,
-                items: itemsByOrder[row['id'] as String] ?? const [],
-              ),
-            )
-            .toList(growable: false);
-      });
+    final shopId = await _requireShopId();
+    final orderIds = await _orderIdsForShop(shopId);
+    if (orderIds.isEmpty) return <Order>[];
+    final rows = await _client
+        .from(_ordersTable)
+        .select()
+        .inFilter('id', orderIds)
+        .order('created_at', ascending: false);
+    if (rows.isEmpty) return <Order>[];
+    // Fetch the joined item rows in one round-trip and bucket them by
+    // order_id so each `Order.fromJson` lands with its enriched lines.
+    // Per the RLS policy, sellers only see line items whose product is
+    // theirs — line counts in this map are scoped to the seller.
+    final itemsByOrder = await _fetchItemsByOrderId(
+      rows.map((r) => r['id'] as String).toList(growable: false),
+    );
+    return rows
+        .map(
+          (row) => Order.fromJson(
+            row,
+            items: itemsByOrder[row['id'] as String] ?? const [],
+          ),
+        )
+        .toList(growable: false);
+  });
 
   @override
   Future<Result<Order>> getById(String id) =>
@@ -113,8 +113,11 @@ class SupabaseSellerOrderRepository implements SellerOrderRepository {
   /// contact info (name + phone from `profiles`). Throws a [Failure] (caught
   /// by [runCatching]) when the row is missing.
   Future<Order> _fetchOrder(String id) async {
-    final row =
-        await _client.from(_ordersTable).select().eq('id', id).maybeSingle();
+    final row = await _client
+        .from(_ordersTable)
+        .select()
+        .eq('id', id)
+        .maybeSingle();
     if (row == null) {
       throw const ServerFailure(message: 'Buyurtma topilmadi');
     }
@@ -227,20 +230,23 @@ class SupabaseSellerOrderRepository implements SellerOrderRepository {
     String id, {
     required num fee,
     String? note,
-  }) =>
-      runCatching(() async {
-        final rows = await _client.from(_ordersTable).update({
+  }) => runCatching(() async {
+    final rows = await _client
+        .from(_ordersTable)
+        .update({
           'proposed_delivery_fee': fee,
           'fee_adjustment_note': note,
           'fee_adjustment_status': 'pending_customer',
-        }).eq('id', id).select();
-        if (rows.isEmpty) {
-          throw const ServerFailure(
-            message: "Yetkazish narxini o'zgartirib bo'lmadi",
-          );
-        }
-        return _fetchOrder(id);
-      });
+        })
+        .eq('id', id)
+        .select();
+    if (rows.isEmpty) {
+      throw const ServerFailure(
+        message: "Yetkazish narxini o'zgartirib bo'lmadi",
+      );
+    }
+    return _fetchOrder(id);
+  });
 
   /// Applies a status update and returns the refreshed order. Row-level
   /// access is scoped by the seller RLS policies on `orders`; the value
@@ -249,26 +255,25 @@ class SupabaseSellerOrderRepository implements SellerOrderRepository {
     String id,
     OrderStatus next, {
     String? cancelReason,
-  }) =>
-      runCatching(() async {
-        final payload = <String, dynamic>{
-          'status': next.code,
-          // Live column is `cancellation_reason`; the null-aware entry is
-          // omitted entirely for non-cancel transitions.
-          'cancellation_reason': ?cancelReason,
-        };
-        final rows = await _client
-            .from(_ordersTable)
-            .update(payload)
-            .eq('id', id)
-            .select();
-        if (rows.isEmpty) {
-          throw const ServerFailure(
-            message: "Buyurtma holatini o'zgartirib bo'lmadi",
-          );
-        }
-        return _fetchOrder(id);
-      });
+  }) => runCatching(() async {
+    final payload = <String, dynamic>{
+      'status': next.code,
+      // Live column is `cancellation_reason`; the null-aware entry is
+      // omitted entirely for non-cancel transitions.
+      'cancellation_reason': ?cancelReason,
+    };
+    final rows = await _client
+        .from(_ordersTable)
+        .update(payload)
+        .eq('id', id)
+        .select();
+    if (rows.isEmpty) {
+      throw const ServerFailure(
+        message: "Buyurtma holatini o'zgartirib bo'lmadi",
+      );
+    }
+    return _fetchOrder(id);
+  });
 
   // The channel is opened/closed by the controller's onListen/onCancel hooks
   // (see the constructor) — listening starts it, the last cancel tears it
@@ -310,11 +315,7 @@ class SupabaseSellerOrderRepository implements SellerOrderRepository {
         onUpdate: (_, row) => unawaited(_handleOrderUpdate(row, shopId)),
       );
     } catch (e, st) {
-      talker.handle(
-        e,
-        st,
-        'SupabaseSellerOrderRepository.subscribeUpdates',
-      );
+      talker.handle(e, st, 'SupabaseSellerOrderRepository.subscribeUpdates');
     } finally {
       _updatesSubscribing = false;
     }
@@ -332,11 +333,7 @@ class SupabaseSellerOrderRepository implements SellerOrderRepository {
       final order = await _fetchOrder(id);
       if (!_orderUpdates.isClosed) _orderUpdates.add(order);
     } catch (e, st) {
-      talker.handle(
-        e,
-        st,
-        'SupabaseSellerOrderRepository._handleOrderUpdate',
-      );
+      talker.handle(e, st, 'SupabaseSellerOrderRepository._handleOrderUpdate');
     }
   }
 
@@ -443,10 +440,13 @@ class SupabaseSellerOrderRepository implements SellerOrderRepository {
     String shopId, {
     int limit = 500,
   }) async {
-    final productRows =
-        await _client.from('products').select('id').eq('shop_id', shopId);
-    final productIds =
-        productRows.map<String>((r) => r['id'] as String).toList();
+    final productRows = await _client
+        .from('products')
+        .select('id')
+        .eq('shop_id', shopId);
+    final productIds = productRows
+        .map<String>((r) => r['id'] as String)
+        .toList();
     if (productIds.isEmpty) return const [];
     final itemRows = await _client
         .from(_itemsTable)
@@ -464,8 +464,10 @@ class SupabaseSellerOrderRepository implements SellerOrderRepository {
         .from(_itemsTable)
         .select('product_id')
         .eq('order_id', orderId);
-    final productIds =
-        itemRows.map((r) => r['product_id']).whereType<String>().toList();
+    final productIds = itemRows
+        .map((r) => r['product_id'])
+        .whereType<String>()
+        .toList();
     if (productIds.isEmpty) return false;
     final ownRows = await _client
         .from('products')

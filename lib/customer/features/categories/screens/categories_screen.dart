@@ -78,9 +78,9 @@ class CategoriesScreen extends StatelessWidget {
                     SizedBox(
                       height: MediaQuery.of(context).size.height * 0.55,
                       child: _CategoriesErrorState(
-                        onRetry: () => context
-                            .read<CategoriesBloc>()
-                            .add(const CategoriesRequested()),
+                        onRetry: () => context.read<CategoriesBloc>().add(
+                          const CategoriesRequested(),
+                        ),
                       ),
                     ),
                   ],
@@ -90,7 +90,8 @@ class CategoriesScreen extends StatelessWidget {
 
             // Shimmer only while we're actively loading; once the bloc
             // emits failure (or ready) we never re-enter shimmer state.
-            final isLoading = state.status == CategoriesStatus.loading ||
+            final isLoading =
+                state.status == CategoriesStatus.loading ||
                 state.status == CategoriesStatus.initial;
             final items = state.categories;
 
@@ -108,7 +109,7 @@ class CategoriesScreen extends StatelessWidget {
                   parent: BouncingScrollPhysics(),
                 ),
                 itemCount: isLoading ? 5 : items.length + 1,
-                separatorBuilder: (_, _) => const SizedBox(height: 20),
+                separatorBuilder: (_, _) => const SizedBox(height: 14),
                 itemBuilder: (context, i) {
                   if (i == 0) return const _CategoriesAppBar();
                   if (isLoading) return const _SkeletonCard();
@@ -143,7 +144,7 @@ class _CategoriesAppBar extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Discover',
+                  'Kashf eting',
                   style: PremiumTokens.body(
                     size: 12,
                     weight: FontWeight.w600,
@@ -153,7 +154,7 @@ class _CategoriesAppBar extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Categories',
+                  'Kategoriyalar',
                   style: PremiumTokens.display(size: 32, letterSpacing: -0.6),
                 ),
               ],
@@ -177,7 +178,7 @@ class _SearchIconButton extends StatelessWidget {
       shape: const CircleBorder(),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () {},
+        onTap: () => context.push('/search'),
         child: SizedBox(
           width: 44,
           height: 44,
@@ -198,8 +199,7 @@ class _EditorialCategoryCard extends StatefulWidget {
   final CategoryModel category;
 
   @override
-  State<_EditorialCategoryCard> createState() =>
-      _EditorialCategoryCardState();
+  State<_EditorialCategoryCard> createState() => _EditorialCategoryCardState();
 }
 
 class _EditorialCategoryCardState extends State<_EditorialCategoryCard> {
@@ -214,9 +214,6 @@ class _EditorialCategoryCardState extends State<_EditorialCategoryCard> {
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
     final cat = widget.category;
-    final itemLabel = cat.subcategoryCount > 0
-        ? '${cat.subcategoryCount} subcategories'
-        : '0 items';
 
     return GestureDetector(
       onTapDown: (_) => _setPressed(true),
@@ -232,7 +229,7 @@ class _EditorialCategoryCardState extends State<_EditorialCategoryCard> {
         duration: const Duration(milliseconds: 180),
         curve: Curves.easeOut,
         child: SizedBox(
-          height: 170,
+          height: 140,
           child: DecoratedBox(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
@@ -264,18 +261,21 @@ class _EditorialCategoryCardState extends State<_EditorialCategoryCard> {
                   // Gradient scrim
                   const _CardGradientScrim(),
 
-                  // Item count pill
-                  Positioned(
-                    top: 16,
-                    right: 16,
-                    child: _GlassItemPill(label: itemLabel),
-                  ),
+                  // Subcategory count pill — hidden when there are none.
+                  if (cat.subcategoryCount > 0)
+                    Positioned(
+                      top: 14,
+                      right: 14,
+                      child: _GlassItemPill(
+                        label: '${cat.subcategoryCount} ta bo\'lim',
+                      ),
+                    ),
 
                   // Title + arrow
                   Positioned(
-                    left: 22,
-                    right: 22,
-                    bottom: 22,
+                    left: 20,
+                    right: 20,
+                    bottom: 18,
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
@@ -290,8 +290,7 @@ class _EditorialCategoryCardState extends State<_EditorialCategoryCard> {
                                   style: PremiumTokens.body(
                                     size: 10,
                                     weight: FontWeight.w600,
-                                    color:
-                                        Colors.white.withValues(alpha: 0.85),
+                                    color: Colors.white.withValues(alpha: 0.85),
                                     letterSpacing: 2,
                                   ),
                                 ),
@@ -302,7 +301,7 @@ class _EditorialCategoryCardState extends State<_EditorialCategoryCard> {
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                                 style: PremiumTokens.display(
-                                  size: 24,
+                                  size: 22,
                                   color: Colors.white,
                                   letterSpacing: -0.4,
                                   height: 1.1,
@@ -356,7 +355,7 @@ class _SkeletonCard extends StatelessWidget {
       baseColor: pt.imageBg,
       highlightColor: pt.surface,
       child: Container(
-        height: 170,
+        height: 140,
         decoration: BoxDecoration(
           color: pt.imageBg,
           borderRadius: BorderRadius.circular(20),

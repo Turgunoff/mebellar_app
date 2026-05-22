@@ -81,6 +81,7 @@ class OrderItem {
     required this.unitPriceLabel,
     required this.subtotalLabel,
     this.thumbnail = '',
+    this.colorSlug = '',
   });
 
   final String name;
@@ -90,4 +91,8 @@ class OrderItem {
 
   /// First product image URL. Empty string means show the placeholder icon.
   final String thumbnail;
+
+  /// Canonical colour slug the customer ordered, or empty when the product
+  /// has no colour palette.
+  final String colorSlug;
 }

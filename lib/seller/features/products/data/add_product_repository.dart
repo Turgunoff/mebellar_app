@@ -5,6 +5,7 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/logging/talker.dart';
+import '../../../../config/remote_config.dart';
 import '../../../../shared/models/category_model.dart';
 import '../../../../shared/models/tariff.dart';
 
@@ -29,10 +30,15 @@ class AddProductShopContext {
   final int activeProductsCount;
   final List<CategoryModel> categories;
 
-  bool get canAddMoreProducts => plan.canAddMoreProducts(activeProductsCount);
+  /// Honours the tariff master switch: when tariff mode is off the gate is
+  /// open regardless of the plan's product quota.
+  bool get canAddMoreProducts =>
+      !RemoteConfig.instance.tariffEnabled ||
+      plan.canAddMoreProducts(activeProductsCount);
 
-  /// `-1` means unlimited.
-  int get maxImages => plan.maxImagesPerProduct;
+  /// `-1` means unlimited — which is always the case while tariff mode is off.
+  int get maxImages =>
+      RemoteConfig.instance.tariffEnabled ? plan.maxImagesPerProduct : -1;
 
   TariffSnapshot get tariffSnapshot => TariffSnapshot(
         plan: plan.asEnum,

@@ -17,11 +17,16 @@ class Review extends Equatable {
     required this.rating,
     required this.comment,
     required this.createdAt,
+    this.orderItemId,
     this.sellerReply,
     this.sellerRepliedAt,
   });
 
   final String id;
+
+  /// The reviewed `order_items` row. Present on customer-side rows (used to
+  /// match a review back to its order line); the seller listing omits it.
+  final String? orderItemId;
   final String productId;
   final String productName;
   final String productImage;
@@ -34,11 +39,11 @@ class Review extends Equatable {
 
   bool get hasReply => sellerReply != null && sellerReply!.isNotEmpty;
 
-  /// Parses a row returned by the seller-side SELECT. The query is expected
-  /// to embed the product (`products(name, primary_image, images)`) and the
-  /// customer profile (`profiles(full_name)`) — fields the seller renders
-  /// in the review card.
-  factory Review.fromSellerRow(Map<String, dynamic> row) {
+  /// Parses a `public.reviews` row. Embedded `products(name, images)` and
+  /// `profiles(full_name)` are optional — when absent (e.g. a customer-side
+  /// order-state query that needs only rating/comment) the display fields
+  /// degrade to neutral defaults.
+  factory Review.fromRow(Map<String, dynamic> row) {
     final product = row['products'];
     final productMap = product is Map<String, dynamic> ? product : const <String, dynamic>{};
     final profile = row['profiles'];
@@ -46,6 +51,7 @@ class Review extends Equatable {
 
     return Review(
       id: row['id'] as String,
+      orderItemId: row['order_item_id'] as String?,
       productId: row['product_id'] as String,
       productName: _multilingual(productMap['name']) ??
           (productMap['name'] as String? ?? "Mahsulot"),
@@ -69,6 +75,7 @@ class Review extends Equatable {
   }) {
     return Review(
       id: id,
+      orderItemId: orderItemId,
       productId: productId,
       productName: productName,
       productImage: productImage,
@@ -84,6 +91,7 @@ class Review extends Equatable {
   @override
   List<Object?> get props => [
         id,
+        orderItemId,
         productId,
         productName,
         productImage,

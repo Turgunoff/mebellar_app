@@ -18,15 +18,34 @@ abstract class SupabaseProductDataSource {
 
   /// Case-insensitive `ilike` over name + description. Returns newest-first.
   Future<List<SupabaseProductModel>> search(String query, {int limit = 30});
+
+  /// Rule-based "similar products" for the detail-page carousel. Ranking
+  /// (shared subcategory, stock, material, price proximity) is done
+  /// server-side by the `get_similar_products` Postgres function.
+  Future<List<SupabaseProductModel>> listSimilar(
+    String productId, {
+    int limit = 10,
+  });
 }
 
 class SupabaseProductRepository implements SupabaseProductDataSource {
   SupabaseProductRepository({required SupabaseClient supabase})
-      : _supabase = supabase;
+    : _supabase = supabase;
 
   final SupabaseClient _supabase;
 
-  static const _select = '*, shops(name)';
+  // `product_variants` carries the per-product discount (`discount_price`);
+  // embedding it lets the customer surface show the same discount the seller
+  // sees. RLS exposes variants for every visible product.
+  static const _select =
+      '*, shops(name), product_variants(price, discount_price)';
+
+  /// Customer catalogue only ever shows `approved` products. Anything in
+  /// `draft` / `pending_review` / `rejected` / `archived` is seller-internal
+  /// (see `SellerProductStatus`). Every query below filters on this so a
+  /// product stays hidden from buyers until moderation approves it; the
+  /// `products` SELECT RLS enforces the same rule server-side.
+  static const _approvedStatus = 'approved';
 
   @override
   Future<List<SupabaseProductModel>> listByCategory({
@@ -36,6 +55,7 @@ class SupabaseProductRepository implements SupabaseProductDataSource {
     var query = _supabase
         .from('products')
         .select(_select)
+        .eq('status', _approvedStatus)
         .eq('category_id', categoryId);
 
     if (subcategoryId != null) {
@@ -43,9 +63,7 @@ class SupabaseProductRepository implements SupabaseProductDataSource {
     }
 
     final data = await query.order('created_at', ascending: false);
-    return data
-        .map(SupabaseProductModel.fromJson)
-        .toList(growable: false);
+    return data.map(SupabaseProductModel.fromJson).toList(growable: false);
   }
 
   @override
@@ -55,6 +73,7 @@ class SupabaseProductRepository implements SupabaseProductDataSource {
     final data = await _supabase
         .from('products')
         .select(_select)
+        .eq('status', _approvedStatus)
         .eq('subcategory_id', subcategoryId)
         .order('created_at', ascending: false);
     return data.map(SupabaseProductModel.fromJson).toList(growable: false);
@@ -66,6 +85,7 @@ class SupabaseProductRepository implements SupabaseProductDataSource {
         .from('products')
         .select(_select)
         .eq('id', id)
+        .eq('status', _approvedStatus)
         .single();
     return SupabaseProductModel.fromJson(data);
   }
@@ -75,6 +95,7 @@ class SupabaseProductRepository implements SupabaseProductDataSource {
     final data = await _supabase
         .from('products')
         .select(_select)
+        .eq('status', _approvedStatus)
         .order('created_at', ascending: false)
         .limit(limit);
     return (data as List)
@@ -99,9 +120,32 @@ class SupabaseProductRepository implements SupabaseProductDataSource {
     final data = await _supabase
         .from('products')
         .select(_select)
+        .eq('status', _approvedStatus)
         .or('name.ilike.$pattern,description.ilike.$pattern')
         .order('created_at', ascending: false)
         .limit(limit);
+    return (data as List)
+        .whereType<Map<String, dynamic>>()
+        .map(SupabaseProductModel.fromJson)
+        .toList(growable: false);
+  }
+
+  @override
+  Future<List<SupabaseProductModel>> listSimilar(
+    String productId, {
+    int limit = 10,
+  }) async {
+    // `get_similar_products` returns `setof products`, so `.select(_select)`
+    // both reshapes the rows and embeds `shops(name)` — same as the table
+    // queries above. Server-side ORDER BY is preserved by PostgREST. The
+    // function itself filters to `approved` products, so the carousel never
+    // surfaces seller-internal rows and its LIMIT counts approved rows only.
+    final data = await _supabase
+        .rpc(
+          'get_similar_products',
+          params: {'p_product_id': productId, 'p_limit': limit},
+        )
+        .select(_select);
     return (data as List)
         .whereType<Map<String, dynamic>>()
         .map(SupabaseProductModel.fromJson)
@@ -204,9 +248,11 @@ class MockSupabaseProductDataSource implements SupabaseProductDataSource {
   }) async {
     await Future<void>.delayed(_delay);
     return _all
-        .where((p) =>
-            p.categoryId == categoryId &&
-            (subcategoryId == null || p.subcategoryId == subcategoryId))
+        .where(
+          (p) =>
+              p.categoryId == categoryId &&
+              (subcategoryId == null || p.subcategoryId == subcategoryId),
+        )
         .toList(growable: false);
   }
 
@@ -253,5 +299,32 @@ class MockSupabaseProductDataSource implements SupabaseProductDataSource {
         )
         .take(limit)
         .toList(growable: false);
+  }
+
+  @override
+  Future<List<SupabaseProductModel>> listSimilar(
+    String productId, {
+    int limit = 10,
+  }) async {
+    await Future<void>.delayed(_delay);
+    SupabaseProductModel? ref;
+    for (final p in _all) {
+      if (p.id == productId) {
+        ref = p;
+        break;
+      }
+    }
+    if (ref == null) return const [];
+    final refPrice = ref.price;
+    final candidates =
+        _all
+            .where((p) => p.id != productId && p.categoryId == ref!.categoryId)
+            .toList()
+          ..sort(
+            (a, b) => (a.price - refPrice).abs().compareTo(
+              (b.price - refPrice).abs(),
+            ),
+          );
+    return candidates.take(limit).toList(growable: false);
   }
 }

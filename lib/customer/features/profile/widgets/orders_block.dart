@@ -6,7 +6,9 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../../orders/cubit/profile_orders_cubit.dart';
 
-/// Orders quick-access block — four status tiles plus a "see all" link.
+/// Orders entry point on the profile screen — a single tappable card that
+/// opens the full orders screen. The per-status breakdown lives there (behind
+/// filter tabs), so this block only surfaces a one-line activity summary.
 class OrdersBlock extends StatelessWidget {
   const OrdersBlock({super.key});
 
@@ -14,187 +16,87 @@ class OrdersBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
     return BlocBuilder<ProfileOrdersCubit, ProfileOrdersState>(
-      builder: (context, ordersState) {
+      builder: (context, state) {
+        final activeCount = state.pendingCount +
+            state.processingCount +
+            state.deliveringCount;
+        final total = state.orders.length;
+
+        final (String subtitle, bool highlight) = switch (activeCount) {
+          > 0 => ('$activeCount ta faol buyurtma', true),
+          _ when total > 0 => ('Jami $total ta buyurtma', false),
+          _ => ("Hali buyurtma yo'q", false),
+        };
+
         return Container(
           decoration: BoxDecoration(
             color: pt.surface,
             borderRadius: BorderRadius.circular(20),
             boxShadow: PremiumTokens.softShadow,
           ),
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(18, 16, 12, 8),
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: () => context.push('/orders'),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
-                    Expanded(
-                      child: Text(
-                        'Buyurtmalarim',
-                        style: PremiumTokens.body(
-                          size: 16,
-                          weight: FontWeight.w600,
-                        ),
+                    Container(
+                      width: 46,
+                      height: 46,
+                      decoration: BoxDecoration(
+                        color: PremiumTokens.accent.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(13),
+                      ),
+                      child: const Icon(
+                        Iconsax.bag_2,
+                        size: 22,
+                        color: PremiumTokens.accent,
                       ),
                     ),
-                    TextButton(
-                      onPressed: () => context.push('/orders'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: PremiumTokens.accent,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Barchasi',
+                            'Buyurtmalarim',
                             style: PremiumTokens.body(
-                              size: 13,
+                              size: 15,
                               weight: FontWeight.w600,
-                              color: PremiumTokens.accent,
                             ),
                           ),
-                          const SizedBox(width: 2),
-                          const Icon(
-                            Iconsax.arrow_right_3,
-                            size: 14,
-                            color: PremiumTokens.accent,
+                          const SizedBox(height: 2),
+                          Text(
+                            subtitle,
+                            style: PremiumTokens.body(
+                              size: 12.5,
+                              weight: highlight
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                              color: highlight
+                                  ? PremiumTokens.accent
+                                  : pt.grey,
+                            ),
                           ),
                         ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(8, 4, 8, 18),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _OrderStatusTile(
-                        icon: Iconsax.clock,
-                        label: 'Kutilmoqda',
-                        count: ordersState.pendingCount,
-                        onTap: () => context.push('/orders'),
-                      ),
-                    ),
-                    Expanded(
-                      child: _OrderStatusTile(
-                        icon: Iconsax.box_1,
-                        label: 'Tayyorlanmoqda',
-                        count: ordersState.processingCount,
-                        onTap: () => context.push('/orders'),
-                      ),
-                    ),
-                    Expanded(
-                      child: _OrderStatusTile(
-                        icon: Iconsax.box_time,
-                        label: "Yo'lda",
-                        count: ordersState.deliveringCount,
-                        onTap: () => context.push('/orders'),
-                      ),
-                    ),
-                    Expanded(
-                      child: _OrderStatusTile(
-                        icon: Iconsax.tick_circle,
-                        label: 'Yetkazilgan',
-                        count: 0,
-                        showCount: false,
-                        onTap: () => context.push('/orders'),
-                      ),
+                    Icon(
+                      Iconsax.arrow_right_3,
+                      size: 18,
+                      color: pt.greyLight,
                     ),
                   ],
                 ),
               ),
-            ],
+            ),
           ),
         );
       },
-    );
-  }
-}
-
-class _OrderStatusTile extends StatelessWidget {
-  const _OrderStatusTile({
-    required this.icon,
-    required this.label,
-    required this.count,
-    required this.onTap,
-    this.showCount = true,
-  });
-
-  final IconData icon;
-  final String label;
-  final int count;
-  final VoidCallback onTap;
-  final bool showCount;
-
-  @override
-  Widget build(BuildContext context) {
-    final pt = PremiumTokens.of(context);
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Column(
-          children: [
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: pt.imageBg,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(icon, size: 22, color: pt.dark),
-                ),
-                if (showCount && count > 0)
-                  Positioned(
-                    top: -2,
-                    right: -2,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 5,
-                        vertical: 1,
-                      ),
-                      constraints: const BoxConstraints(minWidth: 18),
-                      decoration: BoxDecoration(
-                        color: PremiumTokens.accent,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: pt.surface, width: 2),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        count > 9 ? '9+' : '$count',
-                        style: PremiumTokens.body(
-                          size: 10,
-                          weight: FontWeight.w700,
-                          color: Colors.white,
-                          height: 1.1,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: PremiumTokens.body(size: 11, color: pt.grey),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

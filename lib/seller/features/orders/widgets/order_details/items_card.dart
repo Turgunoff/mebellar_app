@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../../../core/theme/app_fonts.dart';
+import '../../../../../shared/widgets/product_color_chip.dart';
 import 'order_details_kit.dart';
 
 /// Order line-items list. The title's count reads "(N ta mahsulot)" where N
@@ -101,6 +102,20 @@ class _ItemRow extends StatelessWidget {
                   height: 1.2,
                 ),
               ),
+              if (item.colorSlug.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                ProductColorChip(
+                  slug: item.colorSlug,
+                  swatchSize: 13,
+                  labelStyle: const TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: kGrey,
+                    height: 1.0,
+                  ),
+                ),
+              ],
             ],
           ),
         ),

@@ -27,8 +27,8 @@ class SupabaseSellerReviewsRepository implements SellerReviewsRepository {
   /// no separate `primary_image` column, so we let the model pick the first
   /// element of `images`.
   static const String _selectColumns =
-      'id, product_id, customer_id, rating, comment, created_at, '
-      'seller_reply, seller_replied_at, '
+      'id, order_item_id, product_id, customer_id, rating, comment, '
+      'created_at, seller_reply, seller_replied_at, '
       'products!reviews_product_id_fkey(name, images), '
       'profiles!reviews_customer_id_fkey(full_name)';
 
@@ -42,7 +42,7 @@ class SupabaseSellerReviewsRepository implements SellerReviewsRepository {
             .eq('shop_id', shopId)
             .order('created_at', ascending: false);
         return rows
-            .map<Review>((row) => Review.fromSellerRow(row))
+            .map<Review>((row) => Review.fromRow(row))
             .toList(growable: false);
       });
 
@@ -65,7 +65,7 @@ class SupabaseSellerReviewsRepository implements SellerReviewsRepository {
             .eq('id', reviewId)
             .select(_selectColumns)
             .single();
-        return Review.fromSellerRow(row);
+        return Review.fromRow(row);
       });
 
   String _requireUserId() {

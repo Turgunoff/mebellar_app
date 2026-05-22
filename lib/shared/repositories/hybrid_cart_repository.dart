@@ -27,9 +27,9 @@ class HybridCartRepository implements CartRepository {
     required HiveCartRepository hive,
     required SupabaseCartRepository remote,
     required sb.SupabaseClient supabase,
-  })  : _hive = hive,
-        _remote = remote,
-        _supabase = supabase {
+  }) : _hive = hive,
+       _remote = remote,
+       _supabase = supabase {
     _init();
   }
 
@@ -37,8 +37,7 @@ class HybridCartRepository implements CartRepository {
   final SupabaseCartRepository _remote;
   final sb.SupabaseClient _supabase;
 
-  final _itemsController =
-      StreamController<List<CartItemModel>>.broadcast();
+  final _itemsController = StreamController<List<CartItemModel>>.broadcast();
   final _cartController = StreamController<Cart>.broadcast();
 
   StreamSubscription<List<CartItemModel>>? _itemsDelegateSub;
@@ -120,10 +119,9 @@ class HybridCartRepository implements CartRepository {
     }
 
     if (rows.isNotEmpty) {
-      await _supabase.from('cart_items').upsert(
-            rows,
-            onConflict: 'user_id,product_id',
-          );
+      await _supabase
+          .from('cart_items')
+          .upsert(rows, onConflict: 'user_id,product_id');
     }
 
     await _hive.clearLocal();
@@ -153,15 +151,17 @@ class HybridCartRepository implements CartRepository {
   Future<void> addProduct(
     SupabaseProductModel product, {
     int quantity = 1,
+    String? selectedColor,
   }) {
-    return _delegate.addProduct(product, quantity: quantity);
+    return _delegate.addProduct(
+      product,
+      quantity: quantity,
+      selectedColor: selectedColor,
+    );
   }
 
   @override
-  Future<void> updateProductQuantity(
-    String productId,
-    int newQuantity,
-  ) {
+  Future<void> updateProductQuantity(String productId, int newQuantity) {
     return _delegate.updateProductQuantity(productId, newQuantity);
   }
 

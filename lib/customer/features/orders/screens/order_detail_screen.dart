@@ -1,12 +1,19 @@
-﻿import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/di/service_locator.dart';
-import '../../../../shared/models/order.dart' show FeeAdjustmentStatus;
+import '../../../../shared/models/order.dart'
+    show FeeAdjustmentStatus, Order, OrderItem;
+import '../../../../shared/models/order_status.dart';
+import '../../../../shared/models/review.dart';
+import '../../../../shared/repositories/customer_reviews_repository.dart';
 import '../../../../shared/repositories/order_repository.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/error_state.dart';
+import '../../../../shared/widgets/product_color_chip.dart';
+import '../../../../shared/widgets/star_rating.dart';
+import '../../reviews/widgets/review_composer_sheet.dart';
 import '../bloc/order_detail_bloc.dart';
 import '../widgets/order_status_badge.dart';
 import '../widgets/order_status_timeline.dart';
@@ -19,8 +26,8 @@ class OrderDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => OrderDetailBloc(sl<OrderRepository>())
-        ..add(OrderDetailRequested(id)),
+      create: (_) =>
+          OrderDetailBloc(sl<OrderRepository>())..add(OrderDetailRequested(id)),
       child: const _OrderDetailView(),
     );
   }
@@ -46,8 +53,7 @@ class _OrderDetailView extends StatelessWidget {
             body: const Center(child: BrandLoadingIndicator()),
           );
         }
-        if (state.status == OrderDetailStatus.failure ||
-            state.order == null) {
+        if (state.status == OrderDetailStatus.failure || state.order == null) {
           return Scaffold(
             appBar: AppBar(),
             body: ErrorState(message: state.error),
@@ -105,10 +111,15 @@ class _Body extends StatelessWidget {
               const Spacer(),
               if (order.expectedDeliveryAt != null)
                 Text(
-                  tr('orders.expected', args: [
-                    DateFormat('dd MMM', lang)
-                        .format(order.expectedDeliveryAt!.toLocal())
-                  ]),
+                  tr(
+                    'orders.expected',
+                    args: [
+                      DateFormat(
+                        'dd MMM',
+                        lang,
+                      ).format(order.expectedDeliveryAt!.toLocal()),
+                    ],
+                  ),
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
             ],
@@ -125,8 +136,10 @@ class _Body extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           // Items
-          Text(tr('orders.items'),
-              style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            tr('orders.items'),
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
           const SizedBox(height: 8),
           Card(
             shape: RoundedRectangleBorder(
@@ -138,8 +151,11 @@ class _Body extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.storefront_outlined,
-                          size: 18, color: scheme.primary),
+                      Icon(
+                        Icons.storefront_outlined,
+                        size: 18,
+                        color: scheme.primary,
+                      ),
                       const SizedBox(width: 6),
                       Text(
                         order.shop.name.get(lang),
@@ -180,16 +196,24 @@ class _Body extends StatelessWidget {
                                 ),
                                 Text(
                                   '${item.quantity} Г— ${priceFormat.format(item.unitPrice)}',
-                                  style:
-                                      Theme.of(context).textTheme.bodySmall,
+                                  style: Theme.of(context).textTheme.bodySmall,
                                 ),
+                                if (item.colorSlug.isNotEmpty) ...[
+                                  const SizedBox(height: 3),
+                                  ProductColorChip(
+                                    slug: item.colorSlug,
+                                    swatchSize: 12,
+                                    labelStyle: Theme.of(
+                                      context,
+                                    ).textTheme.bodySmall,
+                                  ),
+                                ],
                               ],
                             ),
                           ),
                           Text(
                             '${priceFormat.format(item.lineTotal)} so\'m',
-                            style:
-                                Theme.of(context).textTheme.bodyMedium,
+                            style: Theme.of(context).textTheme.bodyMedium,
                           ),
                         ],
                       ),
@@ -200,8 +224,10 @@ class _Body extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           // Address
-          Text(tr('checkout.delivery_address'),
-              style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            tr('checkout.delivery_address'),
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
           const SizedBox(height: 8),
           Card(
             shape: RoundedRectangleBorder(
@@ -231,11 +257,17 @@ class _Body extends StatelessWidget {
               padding: const EdgeInsets.all(12),
               child: Column(
                 children: [
-                  _row(context, tr('checkout.items_total'),
-                      '${priceFormat.format(order.itemsTotal)} so\'m'),
+                  _row(
+                    context,
+                    tr('checkout.items_total'),
+                    '${priceFormat.format(order.itemsTotal)} so\'m',
+                  ),
                   const SizedBox(height: 6),
-                  _row(context, tr('checkout.delivery_fee'),
-                      '${priceFormat.format(order.deliveryFee)} so\'m'),
+                  _row(
+                    context,
+                    tr('checkout.delivery_fee'),
+                    '${priceFormat.format(order.deliveryFee)} so\'m',
+                  ),
                   const Divider(),
                   _row(
                     context,
@@ -262,25 +294,41 @@ class _Body extends StatelessWidget {
             Card(
               color: scheme.errorContainer,
               child: ListTile(
-                leading: Icon(Icons.cancel_outlined,
-                    color: scheme.onErrorContainer),
-                title: Text(tr('orders.cancel_reason'),
-                    style: TextStyle(color: scheme.onErrorContainer)),
-                subtitle: Text(order.cancelReason!,
-                    style: TextStyle(color: scheme.onErrorContainer)),
+                leading: Icon(
+                  Icons.cancel_outlined,
+                  color: scheme.onErrorContainer,
+                ),
+                title: Text(
+                  tr('orders.cancel_reason'),
+                  style: TextStyle(color: scheme.onErrorContainer),
+                ),
+                subtitle: Text(
+                  order.cancelReason!,
+                  style: TextStyle(color: scheme.onErrorContainer),
+                ),
               ),
             ),
+          ],
+          // Reviews — kept at the bottom, after the order summary; shown
+          // only once the order is delivered.
+          if (order.status == OrderStatus.delivered) ...[
+            const SizedBox(height: 16),
+            _DeliveredReviewsCard(order: order),
           ],
         ],
       ),
     );
   }
 
-  Widget _row(BuildContext context, String label, String value,
-      {bool isBold = false}) {
+  Widget _row(
+    BuildContext context,
+    String label,
+    String value, {
+    bool isBold = false,
+  }) {
     final style = Theme.of(context).textTheme.bodyLarge?.copyWith(
-          fontWeight: isBold ? FontWeight.w800 : FontWeight.w500,
-        );
+      fontWeight: isBold ? FontWeight.w800 : FontWeight.w500,
+    );
     return Row(
       children: [
         Text(label, style: style),
@@ -289,7 +337,6 @@ class _Body extends StatelessWidget {
       ],
     );
   }
-
 }
 
 class _FeeAdjustmentBanner extends StatelessWidget {
@@ -321,8 +368,11 @@ class _FeeAdjustmentBanner extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.local_shipping_outlined,
-                  size: 20, color: Color(0xFF8C5A12)),
+              const Icon(
+                Icons.local_shipping_outlined,
+                size: 20,
+                color: Color(0xFF8C5A12),
+              ),
               const SizedBox(width: 8),
               const Expanded(
                 child: Text(
@@ -364,15 +414,16 @@ class _FeeAdjustmentBanner extends StatelessWidget {
                 child: OutlinedButton(
                   onPressed: busy
                       ? null
-                      : () => context
-                          .read<OrderDetailBloc>()
-                          .add(const OrderFeeAdjustmentRejected()),
+                      : () => context.read<OrderDetailBloc>().add(
+                          const OrderFeeAdjustmentRejected(),
+                        ),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: scheme.error,
                     side: BorderSide(color: scheme.error),
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                   child: const Text('Rad etish'),
                 ),
@@ -381,22 +432,23 @@ class _FeeAdjustmentBanner extends StatelessWidget {
               Expanded(
                 flex: 2,
                 child: FilledButton(
-                  onPressed: busy
-                      ? null
-                      : () => _confirmFeeApproval(context),
+                  onPressed: busy ? null : () => _confirmFeeApproval(context),
                   style: FilledButton.styleFrom(
                     backgroundColor: const Color(0xFF2A7D4F),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                   child: busy
                       ? const SizedBox(
                           width: 16,
                           height: 16,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white),
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
                       : const Text('Tasdiqlash'),
                 ),
@@ -429,14 +481,255 @@ class _FeeAdjustmentBanner extends StatelessWidget {
           ),
           FilledButton(
             onPressed: () {
-              context
-                  .read<OrderDetailBloc>()
-                  .add(const OrderFeeAdjustmentApproved());
+              context.read<OrderDetailBloc>().add(
+                const OrderFeeAdjustmentApproved(),
+              );
               Navigator.pop(ctx);
             },
             child: const Text('Ha, tasdiqlayman'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Delivered-order reviews — rate each purchased product
+// ───────────────────────────────────────────────────────────────────────────
+
+class _DeliveredReviewsCard extends StatefulWidget {
+  const _DeliveredReviewsCard({required this.order});
+
+  final Order order;
+
+  @override
+  State<_DeliveredReviewsCard> createState() => _DeliveredReviewsCardState();
+}
+
+class _DeliveredReviewsCardState extends State<_DeliveredReviewsCard> {
+  Map<String, Review> _reviews = const {};
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final result = await sl<CustomerReviewsRepository>().reviewsForOrder(
+      widget.order.id,
+    );
+    if (!mounted) return;
+    result.fold(
+      ok: (map) => setState(() {
+        _reviews = map;
+        _loading = false;
+      }),
+      err: (_) => setState(() => _loading = false),
+    );
+  }
+
+  Future<void> _openComposer(OrderItem item) async {
+    final review = await showReviewComposer(
+      context,
+      orderItemId: item.id!,
+      orderId: widget.order.id,
+      productId: item.productId,
+      productName: item.productName.get(context.locale.languageCode),
+      thumbnail: item.thumbnail,
+      existing: _reviews[item.id],
+    );
+    final itemId = review?.orderItemId;
+    if (itemId != null && mounted) {
+      setState(() => _reviews = {..._reviews, itemId: review!});
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final items = widget.order.items.where((it) => it.id != null).toList();
+    if (items.isEmpty) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 6),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.star_rounded,
+                  size: 22,
+                  color: Color(0xFFF5A623),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Mahsulotlarni baholang',
+                  style: theme.textTheme.titleMedium,
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Fikringiz boshqa xaridorlarga tanlovda yordam beradi.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.outline,
+              ),
+            ),
+            const SizedBox(height: 6),
+            for (final item in items) _itemRow(item, theme),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _itemRow(OrderItem item, ThemeData theme) {
+    final review = _reviews[item.id];
+    final fallback = theme.colorScheme.surfaceContainerHighest;
+    final comment = review?.comment.trim() ?? '';
+    return InkWell(
+      onTap: _loading ? null : () => _openComposer(item),
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: item.thumbnail.isEmpty
+                        ? ColoredBox(color: fallback)
+                        : CachedNetworkImage(
+                            imageUrl: item.thumbnail,
+                            fit: BoxFit.cover,
+                            memCacheWidth: 144,
+                            placeholder: (_, _) => ColoredBox(color: fallback),
+                            errorWidget: (_, _, _) =>
+                                ColoredBox(color: fallback),
+                          ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.productName.get(context.locale.languageCode),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      if (review != null)
+                        StarRating(rating: review.rating.toDouble(), size: 15)
+                      else
+                        Text(
+                          'Hali baholanmagan',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.outline,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                if (_loading)
+                  const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: BrandLoadingIndicator(radius: 8),
+                  )
+                else if (review != null)
+                  Text(
+                    'Tahrirlash',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: theme.colorScheme.primary,
+                    ),
+                  )
+                else
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 7,
+                    ),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      'Baholash',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.onPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            // Customer's own comment.
+            if (comment.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(left: 60, top: 8),
+                child: Text(
+                  comment,
+                  style: theme.textTheme.bodySmall?.copyWith(height: 1.4),
+                ),
+              ),
+            // Seller's reply, when the shop has answered.
+            if (review?.hasReply ?? false)
+              Padding(
+                padding: const EdgeInsets.only(left: 60, top: 8),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: fallback,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.storefront_outlined,
+                            size: 13,
+                            color: theme.colorScheme.outline,
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            'Sotuvchi javobi',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        review!.sellerReply!.trim(),
+                        style: theme.textTheme.bodySmall?.copyWith(height: 1.4),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

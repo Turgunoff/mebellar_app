@@ -24,11 +24,16 @@ class LoadCart extends CartEvent {
 }
 
 class AddToCart extends CartEvent {
-  const AddToCart(this.product, {this.quantity = 1});
+  const AddToCart(this.product, {this.quantity = 1, this.selectedColor});
   final SupabaseProductModel product;
   final int quantity;
+
+  /// Canonical colour slug chosen on the product page. Null when the product
+  /// has no colour palette; mandatory (non-null) when it does.
+  final String? selectedColor;
+
   @override
-  List<Object?> get props => [product.id, quantity];
+  List<Object?> get props => [product.id, quantity, selectedColor];
 }
 
 class UpdateQuantity extends CartEvent {
@@ -76,8 +81,7 @@ class CartState extends Equatable {
   bool get isNotEmpty => items.isNotEmpty;
 
   /// Total quantity across all rows. Used by the bottom-nav badge.
-  int get totalUnits =>
-      items.fold<int>(0, (sum, it) => sum + it.quantity);
+  int get totalUnits => items.fold<int>(0, (sum, it) => sum + it.quantity);
 
   /// Sum of `price * quantity` over every cart line.
   double get totalPrice =>
@@ -115,11 +119,13 @@ class CartBloc extends Bloc<CartEvent, CartState> {
     on<RemoveFromCart>(_onRemove);
     on<ClearCart>(_onClear);
     on<_CartItemsChanged>(
-      (e, emit) => emit(state.copyWith(
-        status: CartStatus.ready,
-        items: e.items,
-        clearError: true,
-      )),
+      (e, emit) => emit(
+        state.copyWith(
+          status: CartStatus.ready,
+          items: e.items,
+          clearError: true,
+        ),
+      ),
     );
 
     _sub = _repo.watchItems().listen((items) {
@@ -136,10 +142,7 @@ class CartBloc extends Bloc<CartEvent, CartState> {
       final items = await _repo.fetchItems();
       emit(state.copyWith(status: CartStatus.ready, items: items));
     } catch (e) {
-      emit(state.copyWith(
-        status: CartStatus.failure,
-        error: e.toString(),
-      ));
+      emit(state.copyWith(status: CartStatus.failure, error: e.toString()));
     }
   }
 
@@ -148,43 +151,54 @@ class CartBloc extends Bloc<CartEvent, CartState> {
     final qtyClamped = event.quantity.clamp(1, 99);
 
     // Optimistic merge: bump quantity if the product is already in the
-    // cart, otherwise insert a new snapshot row.
-    final existingIdx =
-        previous.indexWhere((it) => it.productId == event.product.id);
+    // cart, otherwise insert a new snapshot row. A product occupies one line
+    // regardless of colour — re-adding with a different colour updates the
+    // line's colour to the latest pick (one product = one colour per order).
+    final existingIdx = previous.indexWhere(
+      (it) => it.productId == event.product.id,
+    );
     final List<CartItemModel> optimistic;
     if (existingIdx >= 0) {
       optimistic = List<CartItemModel>.of(previous);
       final existing = optimistic[existingIdx];
       optimistic[existingIdx] = existing.copyWith(
         quantity: (existing.quantity + qtyClamped).clamp(1, 99),
+        selectedColor: event.selectedColor,
       );
     } else {
       optimistic = [
         ...previous,
-        CartItemModel.fromProduct(event.product, quantity: qtyClamped),
+        CartItemModel.fromProduct(
+          event.product,
+          quantity: qtyClamped,
+          selectedColor: event.selectedColor,
+        ),
       ];
     }
 
     emit(state.copyWith(status: CartStatus.mutating, items: optimistic));
     try {
-      await _repo.addProduct(event.product, quantity: qtyClamped);
+      await _repo.addProduct(
+        event.product,
+        quantity: qtyClamped,
+        selectedColor: event.selectedColor,
+      );
       // The repository emits the canonical state via watchItems(); we still
       // surface a "ready" status here so listeners not subscribed to
       // intermediate mutating frames see a clean transition.
       emit(state.copyWith(status: CartStatus.ready));
     } catch (e) {
-      emit(state.copyWith(
-        status: CartStatus.ready,
-        items: previous,
-        error: e.toString(),
-      ));
+      emit(
+        state.copyWith(
+          status: CartStatus.ready,
+          items: previous,
+          error: e.toString(),
+        ),
+      );
     }
   }
 
-  Future<void> _onUpdate(
-    UpdateQuantity event,
-    Emitter<CartState> emit,
-  ) async {
+  Future<void> _onUpdate(UpdateQuantity event, Emitter<CartState> emit) async {
     final previous = state.items;
 
     if (event.newQuantity <= 0) {
@@ -206,32 +220,34 @@ class CartBloc extends Bloc<CartEvent, CartState> {
       await _repo.updateProductQuantity(event.productId, clamped);
       emit(state.copyWith(status: CartStatus.ready));
     } catch (e) {
-      emit(state.copyWith(
-        status: CartStatus.ready,
-        items: previous,
-        error: e.toString(),
-      ));
+      emit(
+        state.copyWith(
+          status: CartStatus.ready,
+          items: previous,
+          error: e.toString(),
+        ),
+      );
     }
   }
 
-  Future<void> _onRemove(
-    RemoveFromCart event,
-    Emitter<CartState> emit,
-  ) async {
+  Future<void> _onRemove(RemoveFromCart event, Emitter<CartState> emit) async {
     final previous = state.items;
-    final optimistic =
-        previous.where((it) => it.productId != event.productId).toList();
+    final optimistic = previous
+        .where((it) => it.productId != event.productId)
+        .toList();
 
     emit(state.copyWith(status: CartStatus.mutating, items: optimistic));
     try {
       await _repo.removeProduct(event.productId);
       emit(state.copyWith(status: CartStatus.ready));
     } catch (e) {
-      emit(state.copyWith(
-        status: CartStatus.ready,
-        items: previous,
-        error: e.toString(),
-      ));
+      emit(
+        state.copyWith(
+          status: CartStatus.ready,
+          items: previous,
+          error: e.toString(),
+        ),
+      );
     }
   }
 
@@ -242,11 +258,13 @@ class CartBloc extends Bloc<CartEvent, CartState> {
       await _repo.clear();
       emit(state.copyWith(status: CartStatus.ready));
     } catch (e) {
-      emit(state.copyWith(
-        status: CartStatus.ready,
-        items: previous,
-        error: e.toString(),
-      ));
+      emit(
+        state.copyWith(
+          status: CartStatus.ready,
+          items: previous,
+          error: e.toString(),
+        ),
+      );
     }
   }
 

@@ -44,6 +44,7 @@ abstract class CartRepository {
   Future<void> addProduct(
     SupabaseProductModel product, {
     int quantity = 1,
+    String? selectedColor,
   }) async {
     await addItem(product.id, quantity: quantity);
   }
@@ -132,7 +133,9 @@ class RemoteCartRepository implements CartRepository {
   Future<void> addProduct(
     SupabaseProductModel product, {
     int quantity = 1,
+    String? selectedColor,
   }) async {
+    // The legacy remote backend has no per-line colour; ignore the slug.
     await addItem(product.id, quantity: quantity);
   }
 

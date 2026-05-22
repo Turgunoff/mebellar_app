@@ -5,6 +5,7 @@ import 'package:shimmer/shimmer.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
 
 import '../../../config/app_mode.dart';
+import '../../../config/remote_config.dart';
 import '../../../core/di/service_locator.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_fonts.dart';
@@ -102,13 +103,17 @@ class _SellerProfileView extends StatelessWidget {
                               subtitle: 'Mijozlar fikri va javoblar',
                               onTap: () => _push(context, const ReviewsScreen()),
                             ),
-                            _SettingsItem(
-                              icon: Iconsax.crown_1,
-                              iconColor: _gold,
-                              title: 'Tarif',
-                              subtitle: _planSubtitle(state),
-                              onTap: () => _push(context, const TariffScreen()),
-                            ),
+                            // Tariff is hidden while the tariff system is
+                            // switched off (RemoteConfig.tariffEnabled).
+                            if (RemoteConfig.instance.tariffEnabled)
+                              _SettingsItem(
+                                icon: Iconsax.crown_1,
+                                iconColor: _gold,
+                                title: 'Tarif',
+                                subtitle: _planSubtitle(state),
+                                onTap: () =>
+                                    _push(context, const TariffScreen()),
+                              ),
                           ],
                         ),
                         const SizedBox(height: 20),

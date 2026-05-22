@@ -39,13 +39,15 @@ class ProductListScreen extends StatelessWidget {
           if (state.status == ProductListStatus.failure) {
             return _ErrorView(
               message: state.error ?? '',
-              onRetry: () => context
-                  .read<ProductListCubit>()
-                  .load(categoryId: categoryId, subcategoryId: subcategoryId),
+              onRetry: () => context.read<ProductListCubit>().load(
+                categoryId: categoryId,
+                subcategoryId: subcategoryId,
+              ),
             );
           }
 
-          final isLoading = state.status == ProductListStatus.initial ||
+          final isLoading =
+              state.status == ProductListStatus.initial ||
               state.status == ProductListStatus.loading;
 
           return CustomScrollView(
@@ -62,8 +64,8 @@ class ProductListScreen extends StatelessWidget {
                 sliver: isLoading
                     ? const _SkeletonGrid()
                     : state.products.isEmpty
-                        ? const _EmptySliver()
-                        : _ProductGrid(products: state.products),
+                    ? const _EmptySliver()
+                    : _ProductGrid(products: state.products),
               ),
             ],
           );
@@ -187,6 +189,30 @@ class _ProductCard extends StatelessWidget {
                       right: 8,
                       child: _FavHeart(product: product),
                     ),
+                    if (product.hasDiscount)
+                      Positioned(
+                        top: 8,
+                        left: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFC0392B),
+                            borderRadius: BorderRadius.circular(7),
+                          ),
+                          child: Text(
+                            '-${product.discountPercent}%',
+                            style: PremiumTokens.body(
+                              size: 10.5,
+                              weight: FontWeight.w800,
+                              color: Colors.white,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -207,7 +233,7 @@ class _ProductCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      _formatPrice(product.price),
+                      _formatPrice(product.effectivePrice),
                       style: PremiumTokens.body(
                         size: 14,
                         weight: FontWeight.w700,
@@ -241,8 +267,8 @@ class _FavHeart extends StatelessWidget {
       builder: (context, isFav) {
         return GestureDetector(
           onTap: () => context.read<FavoritesBloc>().add(
-                FavoriteToggled(_toProduct(product)),
-              ),
+            FavoriteToggled(_toProduct(product)),
+          ),
           child: ClipOval(
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
@@ -271,14 +297,15 @@ class _FavHeart extends StatelessWidget {
 }
 
 Product _toProduct(SupabaseProductModel m) => Product(
-      id: m.id,
-      slug: m.id,
-      name: MultilingualText(uz: m.name, ru: m.name, en: m.name),
-      price: m.price,
-      images: m.images,
-      attributes: m.attributes,
-      stock: m.stock,
-    );
+  id: m.id,
+  slug: m.id,
+  name: MultilingualText(uz: m.name, ru: m.name, en: m.name),
+  price: m.effectivePrice,
+  oldPrice: m.hasDiscount ? m.price : null,
+  images: m.images,
+  attributes: m.attributes,
+  stock: m.stock,
+);
 
 // ---------------------------------------------------------------------------
 // Skeleton + empty + error

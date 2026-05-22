@@ -23,8 +23,7 @@ class ShopOrderGroup extends Equatable {
   final String shopName;
   final List<CartItemModel> items;
 
-  double get subtotal =>
-      items.fold(0.0, (s, it) => s + it.lineTotal);
+  double get subtotal => items.fold(0.0, (s, it) => s + it.lineTotal);
 
   @override
   List<Object?> get props => [shopId, items];
@@ -51,15 +50,13 @@ class CheckoutState extends Equatable {
 
   bool get hasAddress => deliveryAddress.trim().isNotEmpty;
 
-  double get subtotal =>
-      groups.fold(0.0, (s, g) => s + g.subtotal);
+  double get subtotal => groups.fold(0.0, (s, g) => s + g.subtotal);
 
   /// Delivery fee is determined by each seller after placement — no upfront
   /// charge. Grand total at this stage equals items subtotal only.
   double get grandTotal => subtotal;
 
-  List<CartItemModel> get allItems =>
-      [for (final g in groups) ...g.items];
+  List<CartItemModel> get allItems => [for (final g in groups) ...g.items];
 
   CheckoutState copyWith({
     CheckoutStatus? status,
@@ -69,19 +66,24 @@ class CheckoutState extends Equatable {
     List<String>? placedOrderIds,
     String? error,
     bool clearError = false,
-  }) =>
-      CheckoutState(
-        status: status ?? this.status,
-        groups: groups ?? this.groups,
-        payment: payment ?? this.payment,
-        deliveryAddress: deliveryAddress ?? this.deliveryAddress,
-        placedOrderIds: placedOrderIds ?? this.placedOrderIds,
-        error: clearError ? null : (error ?? this.error),
-      );
+  }) => CheckoutState(
+    status: status ?? this.status,
+    groups: groups ?? this.groups,
+    payment: payment ?? this.payment,
+    deliveryAddress: deliveryAddress ?? this.deliveryAddress,
+    placedOrderIds: placedOrderIds ?? this.placedOrderIds,
+    error: clearError ? null : (error ?? this.error),
+  );
 
   @override
-  List<Object?> get props =>
-      [status, groups, payment, deliveryAddress, placedOrderIds, error];
+  List<Object?> get props => [
+    status,
+    groups,
+    payment,
+    deliveryAddress,
+    placedOrderIds,
+    error,
+  ];
 }
 
 class CheckoutCubit extends Cubit<CheckoutState> {
@@ -89,9 +91,9 @@ class CheckoutCubit extends Cubit<CheckoutState> {
     required List<CartItemModel> items,
     required SupabaseClient supabase,
     required CartRepository cartRepo,
-  })  : _supabase = supabase,
-        _cartRepo = cartRepo,
-        super(CheckoutState(groups: _groupByShop(items)));
+  }) : _supabase = supabase,
+       _cartRepo = cartRepo,
+       super(CheckoutState(groups: _groupByShop(items)));
 
   final SupabaseClient _supabase;
   final CartRepository _cartRepo;
@@ -123,14 +125,20 @@ class CheckoutCubit extends Cubit<CheckoutState> {
 
         final orderId = row['id'] as String;
 
-        await _supabase.from('order_items').insert(
+        await _supabase
+            .from('order_items')
+            .insert(
               group.items
-                  .map((it) => {
-                        'order_id': orderId,
-                        'product_id': it.productId,
-                        'quantity': it.quantity,
-                        'price': it.productPrice,
-                      })
+                  .map(
+                    (it) => {
+                      'order_id': orderId,
+                      'product_id': it.productId,
+                      'quantity': it.quantity,
+                      'price': it.productPrice,
+                      // Null for products without a colour palette.
+                      'color_slug': it.selectedColor,
+                    },
+                  )
                   .toList(),
             );
 
@@ -138,15 +146,14 @@ class CheckoutCubit extends Cubit<CheckoutState> {
       }
 
       await _cartRepo.clear();
-      emit(state.copyWith(
-        status: CheckoutStatus.success,
-        placedOrderIds: placedIds,
-      ));
+      emit(
+        state.copyWith(
+          status: CheckoutStatus.success,
+          placedOrderIds: placedIds,
+        ),
+      );
     } catch (e) {
-      emit(state.copyWith(
-        status: CheckoutStatus.failure,
-        error: e.toString(),
-      ));
+      emit(state.copyWith(status: CheckoutStatus.failure, error: e.toString()));
     }
   }
 
@@ -158,9 +165,11 @@ class CheckoutCubit extends Cubit<CheckoutState> {
       final key = item.shopId ?? '';
       map.putIfAbsent(key, () => []).add(item);
     }
-    return map.entries.map((e) {
-      final name = e.value.first.shopName ?? '';
-      return ShopOrderGroup(shopId: e.key, shopName: name, items: e.value);
-    }).toList(growable: false);
+    return map.entries
+        .map((e) {
+          final name = e.value.first.shopName ?? '';
+          return ShopOrderGroup(shopId: e.key, shopName: name, items: e.value);
+        })
+        .toList(growable: false);
   }
 }

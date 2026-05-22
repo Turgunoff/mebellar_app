@@ -15,15 +15,25 @@ class OrderItem extends Equatable {
     required this.thumbnail,
     required this.unitPrice,
     required this.quantity,
+    this.id,
+    this.colorSlug = '',
     this.selectedServices = const [],
   });
 
+  /// The `order_items` row id. Needed to anchor a product review to its
+  /// purchased line; `null` when the row wasn't fetched with its id.
+  final String? id;
   final String productId;
   final String productSlug;
   final MultilingualText productName;
   final String thumbnail;
   final num unitPrice;
   final int quantity;
+
+  /// Canonical colour slug the customer chose for this line, or empty when
+  /// the product has no colour palette. Mirrors `order_items.color_slug`.
+  final String colorSlug;
+
   final List<ShopService> selectedServices;
 
   num get lineTotal => unitPrice * quantity;
@@ -35,6 +45,7 @@ class OrderItem extends Equatable {
   /// via a `products` join).
   factory OrderItem.fromJson(Map<String, dynamic> json) {
     return OrderItem(
+      id: json['id'] as String?,
       productId: json['product_id'] as String? ?? '',
       productSlug: json['product_slug'] as String? ?? '',
       productName: MultilingualText(uz: json['product_name'] as String? ?? ''),
@@ -43,21 +54,29 @@ class OrderItem extends Equatable {
       // fallback for any caller still passing the older key.
       unitPrice: (json['price'] as num?) ?? (json['unit_price'] as num?) ?? 0,
       quantity: (json['quantity'] as num?)?.toInt() ?? 0,
+      colorSlug: json['color_slug'] as String? ?? '',
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'product_id': productId,
-        'product_slug': productSlug,
-        'product_name': productName.uz,
-        'thumbnail': thumbnail,
-        'unit_price': unitPrice,
-        'quantity': quantity,
-      };
+    'product_id': productId,
+    'product_slug': productSlug,
+    'product_name': productName.uz,
+    'thumbnail': thumbnail,
+    'unit_price': unitPrice,
+    'quantity': quantity,
+    'color_slug': colorSlug,
+  };
 
   @override
-  List<Object?> get props =>
-      [productId, unitPrice, quantity, selectedServices.length];
+  List<Object?> get props => [
+    id,
+    productId,
+    unitPrice,
+    quantity,
+    colorSlug,
+    selectedServices.length,
+  ];
 }
 
 enum OrderPaymentMethod {
@@ -185,46 +204,51 @@ class Order extends Equatable {
       shop: shop ?? _placeholderShop,
       items: items,
       address: address ?? _placeholderAddress,
-      deliveryMethod:
-          OrderDeliveryMethod.fromCode(json['delivery_method'] as String? ?? ''),
-      paymentMethod: OrderPaymentMethod.fromCode(json['payment_method'] as String?),
+      deliveryMethod: OrderDeliveryMethod.fromCode(
+        json['delivery_method'] as String? ?? '',
+      ),
+      paymentMethod: OrderPaymentMethod.fromCode(
+        json['payment_method'] as String?,
+      ),
       status: OrderStatus.fromCode(json['status'] as String?),
       itemsTotal: (json['items_total'] as num?) ?? 0,
       deliveryFee: (json['delivery_fee'] as num?) ?? 0,
       servicesFee: (json['services_fee'] as num?) ?? 0,
       grandTotal: (json['total_amount'] as num?) ?? 0,
-      createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ??
+      createdAt:
+          DateTime.tryParse(json['created_at'] as String? ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0),
       timeline: timeline,
       // Live `orders` column is `cancellation_reason`; `cancel_reason` kept as
       // a fallback so an older payload still resolves.
-      cancelReason: (json['cancellation_reason'] ?? json['cancel_reason'])
-          as String?,
+      cancelReason:
+          (json['cancellation_reason'] ?? json['cancel_reason']) as String?,
       expectedDeliveryAt: _parseDateOrNull(json['expected_delivery_at']),
       proposedDeliveryFee: json['proposed_delivery_fee'] as num?,
       feeAdjustmentNote: json['fee_adjustment_note'] as String?,
-      feeAdjustmentStatus:
-          FeeAdjustmentStatus.fromCode(json['fee_adjustment_status'] as String?),
+      feeAdjustmentStatus: FeeAdjustmentStatus.fromCode(
+        json['fee_adjustment_status'] as String?,
+      ),
     );
   }
 
   /// Serialises the scalar `orders`-table columns. Sub-aggregates are written
   /// to their own tables, so they are intentionally omitted here.
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'order_number': orderNumber,
-        'status': status.code,
-        'items_total': itemsTotal,
-        'delivery_fee': deliveryFee,
-        'services_fee': servicesFee,
-        'total_amount': grandTotal,
-        'delivery_method': deliveryMethod.code,
-        'payment_method': paymentMethod.code,
-        'created_at': createdAt.toIso8601String(),
-        if (cancelReason != null) 'cancellation_reason': cancelReason,
-        if (expectedDeliveryAt != null)
-          'expected_delivery_at': expectedDeliveryAt!.toIso8601String(),
-      };
+    'id': id,
+    'order_number': orderNumber,
+    'status': status.code,
+    'items_total': itemsTotal,
+    'delivery_fee': deliveryFee,
+    'services_fee': servicesFee,
+    'total_amount': grandTotal,
+    'delivery_method': deliveryMethod.code,
+    'payment_method': paymentMethod.code,
+    'created_at': createdAt.toIso8601String(),
+    if (cancelReason != null) 'cancellation_reason': cancelReason,
+    if (expectedDeliveryAt != null)
+      'expected_delivery_at': expectedDeliveryAt!.toIso8601String(),
+  };
 
   Order copyWith({
     OrderStatus? status,
@@ -253,18 +277,26 @@ class Order extends Equatable {
       timeline: timeline ?? this.timeline,
       cancelReason: cancelReason ?? this.cancelReason,
       expectedDeliveryAt: expectedDeliveryAt,
-      proposedDeliveryFee:
-          clearFeeAdjustment ? null : (proposedDeliveryFee ?? this.proposedDeliveryFee),
-      feeAdjustmentNote:
-          clearFeeAdjustment ? null : (feeAdjustmentNote ?? this.feeAdjustmentNote),
-      feeAdjustmentStatus:
-          clearFeeAdjustment ? null : (feeAdjustmentStatus ?? this.feeAdjustmentStatus),
+      proposedDeliveryFee: clearFeeAdjustment
+          ? null
+          : (proposedDeliveryFee ?? this.proposedDeliveryFee),
+      feeAdjustmentNote: clearFeeAdjustment
+          ? null
+          : (feeAdjustmentNote ?? this.feeAdjustmentNote),
+      feeAdjustmentStatus: clearFeeAdjustment
+          ? null
+          : (feeAdjustmentStatus ?? this.feeAdjustmentStatus),
     );
   }
 
   @override
-  List<Object?> get props =>
-      [id, status, timeline.length, proposedDeliveryFee, feeAdjustmentStatus];
+  List<Object?> get props => [
+    id,
+    status,
+    timeline.length,
+    proposedDeliveryFee,
+    feeAdjustmentStatus,
+  ];
 }
 
 // Placeholders for the sub-aggregates a seller `orders` row doesn't carry.

@@ -27,7 +27,8 @@ class SupabaseOrderRepository implements OrderRepository {
   final SupabaseClient _supabase;
 
   static const _select =
-      '*, order_items(id, product_id, quantity, price, products(id, name, images, shop_id))';
+      '*, order_items(id, product_id, quantity, price, color_slug, '
+      'products(id, name, images, shop_id))';
 
   String? get _userId => _supabase.auth.currentUser?.id;
 
@@ -60,8 +61,10 @@ class SupabaseOrderRepository implements OrderRepository {
     final userId = _userId;
     if (userId == null) throw StateError('Not authenticated');
 
-    final itemsTotal = input.items
-        .fold<num>(0, (s, it) => s + it.product.price * it.quantity);
+    final itemsTotal = input.items.fold<num>(
+      0,
+      (s, it) => s + it.product.price * it.quantity,
+    );
     final deliveryFee = _deliveryFee(input.deliveryMethod);
     final grandTotal = itemsTotal + deliveryFee;
 
@@ -90,14 +93,16 @@ class SupabaseOrderRepository implements OrderRepository {
     ]);
 
     final orderItems = input.items
-        .map((it) => OrderItem(
-              productId: it.product.id,
-              productSlug: it.product.slug,
-              productName: it.product.name,
-              thumbnail: it.product.heroImage,
-              unitPrice: it.product.price,
-              quantity: it.quantity,
-            ))
+        .map(
+          (it) => OrderItem(
+            productId: it.product.id,
+            productSlug: it.product.slug,
+            productName: it.product.name,
+            thumbnail: it.product.heroImage,
+            unitPrice: it.product.price,
+            quantity: it.quantity,
+          ),
+        )
         .toList();
 
     return Order(
@@ -125,10 +130,13 @@ class SupabaseOrderRepository implements OrderRepository {
 
   @override
   Future<Order> cancel(String id, {required String reason}) async {
-    await _supabase.from('orders').update({
-      'status': OrderStatus.cancelled.code,
-      'cancellation_reason': reason,
-    }).eq('id', id);
+    await _supabase
+        .from('orders')
+        .update({
+          'status': OrderStatus.cancelled.code,
+          'cancellation_reason': reason,
+        })
+        .eq('id', id);
     return getById(id);
   }
 
@@ -139,20 +147,24 @@ class SupabaseOrderRepository implements OrderRepository {
     final proposed = current.proposedDeliveryFee;
     if (proposed == null) return current;
     final newTotal = current.itemsTotal + proposed;
-    await _supabase.from('orders').update({
-      'total_amount': newTotal,
-      'fee_adjustment_status': 'approved',
-      'proposed_delivery_fee': null,
-      'fee_adjustment_note': null,
-    }).eq('id', id);
+    await _supabase
+        .from('orders')
+        .update({
+          'total_amount': newTotal,
+          'fee_adjustment_status': 'approved',
+          'proposed_delivery_fee': null,
+          'fee_adjustment_note': null,
+        })
+        .eq('id', id);
     return getById(id);
   }
 
   @override
   Future<Order> rejectFeeAdjustment(String id) async {
-    await _supabase.from('orders').update({
-      'fee_adjustment_status': 'rejected',
-    }).eq('id', id);
+    await _supabase
+        .from('orders')
+        .update({'fee_adjustment_status': 'rejected'})
+        .eq('id', id);
     return getById(id);
   }
 
@@ -180,8 +192,7 @@ class SupabaseOrderRepository implements OrderRepository {
 
     final itemsTotal = items.fold<num>(0, (s, it) => s + it.lineTotal);
     // Delivery fee is whatever is left above the items total.
-    final deliveryFee =
-        totalAmount > itemsTotal ? totalAmount - itemsTotal : 0;
+    final deliveryFee = totalAmount > itemsTotal ? totalAmount - itemsTotal : 0;
 
     // Best-effort: pick shop_id from the first order item's product.
     Shop shop = _unknownShop;
@@ -218,7 +229,8 @@ class SupabaseOrderRepository implements OrderRepository {
       proposedDeliveryFee: row['proposed_delivery_fee'] as num?,
       feeAdjustmentNote: row['fee_adjustment_note'] as String?,
       feeAdjustmentStatus: FeeAdjustmentStatus.fromCode(
-          row['fee_adjustment_status'] as String?),
+        row['fee_adjustment_status'] as String?,
+      ),
     );
   }
 
@@ -234,12 +246,14 @@ class SupabaseOrderRepository implements OrderRepository {
     final thumbnail = images.isNotEmpty ? images.first as String : '';
 
     return OrderItem(
+      id: row['id'] as String?,
       productId: row['product_id'] as String,
       productSlug: row['product_id'] as String,
       productName: MultilingualText(uz: name, ru: name, en: name),
       thumbnail: thumbnail,
       unitPrice: (row['price'] as num?) ?? 0,
       quantity: (row['quantity'] as int?) ?? 1,
+      colorSlug: row['color_slug'] as String? ?? '',
     );
   }
 
@@ -249,20 +263,20 @@ class SupabaseOrderRepository implements OrderRepository {
       'WD-${id.substring(0, 8).toUpperCase()}';
 
   static num _deliveryFee(OrderDeliveryMethod method) => switch (method) {
-        OrderDeliveryMethod.pickup => 0,
-        OrderDeliveryMethod.expressDelivery => 80000,
-        OrderDeliveryMethod.delivery => 50000,
-      };
+    OrderDeliveryMethod.pickup => 0,
+    OrderDeliveryMethod.expressDelivery => 80000,
+    OrderDeliveryMethod.delivery => 50000,
+  };
 
   static Address _addressFromText(String? text, String orderId) => Address(
-        id: 'addr-${orderId.substring(0, 8)}',
-        label: 'Yetkazish manzili',
-        recipientName: '',
-        phone: '',
-        region: _blankRegion,
-        city: _blankRegion,
-        streetLine: text ?? '',
-      );
+    id: 'addr-${orderId.substring(0, 8)}',
+    label: 'Yetkazish manzili',
+    recipientName: '',
+    phone: '',
+    region: _blankRegion,
+    city: _blankRegion,
+    streetLine: text ?? '',
+  );
 
   /// Reconstructs a plausible status timeline from a single terminal status.
   /// Timestamps are synthetic (evenly spaced from createdAt) because the DB
@@ -302,11 +316,7 @@ class SupabaseOrderRepository implements OrderRepository {
   }
 }
 
-const _blankRegion = Region(
-  id: '_',
-  code: '_',
-  name: MultilingualText(),
-);
+const _blankRegion = Region(id: '_', code: '_', name: MultilingualText());
 
 const _unknownShop = Shop(
   id: '_',
