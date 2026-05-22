@@ -1,0 +1,7 @@
+  4. Release build (AAB — Play Store uchun)
+
+  flutter build appbundle --release --obfuscate --split-debug-info=build/symbols
+  Natija: build/app/outputs/bundle/release/app-release.aab
+  
+  --obfuscate --split-debug-info — kodni himoyalaydi (tavsiya). Oddiyroq variant: shunchaki flutter build appbundle 
+  --release.
