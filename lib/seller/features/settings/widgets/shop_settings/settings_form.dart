@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../../../core/logging/talker.dart';
 import '../../../../../shared/models/shop_settings.dart';
 import '../../../../../shared/models/working_hours.dart';
 import '../../../../../shared/utils/image_upload.dart';
@@ -74,10 +75,19 @@ class _SettingsFormState extends State<SettingsForm> {
   Future<void> _pickAsset(String kind) async {
     final messenger = ScaffoldMessenger.of(context);
     try {
+      talker.info('[shop-settings] pick asset kind=$kind');
       final picked = await ImageUploadHelper().pick(
         source: ImageSource.gallery,
       );
-      if (picked == null || !mounted) return;
+      if (picked == null) {
+        talker.info('[shop-settings] pick cancelled kind=$kind');
+        return;
+      }
+      if (!mounted) return;
+      talker.info(
+        '[shop-settings] picked kind=$kind ext=${picked.extension} '
+        'bytes=${picked.bytes}',
+      );
       context.read<ShopSettingsBloc>().add(
             ShopSettingsAssetUploaded(
               kind: kind,
@@ -85,9 +95,11 @@ class _SettingsFormState extends State<SettingsForm> {
               fileExtension: picked.extension,
             ),
           );
-    } on ImagePickError catch (e) {
+    } on ImagePickError catch (e, st) {
+      talker.handle(e, st, '[shop-settings] image pick error kind=$kind');
       messenger.showSnackBar(SnackBar(content: Text(e.message)));
-    } catch (e) {
+    } catch (e, st) {
+      talker.handle(e, st, '[shop-settings] pick asset failed kind=$kind');
       messenger.showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
