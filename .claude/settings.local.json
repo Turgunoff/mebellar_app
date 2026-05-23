@@ -93,7 +93,8 @@
       "mcp__dart__add_roots",
       "mcp__dart__remove_roots",
       "Bash(supabase migration *)",
-      "mcp__supabase__get_publishable_keys"
+      "mcp__supabase__get_publishable_keys",
+      "Bash(chmod +x /Volumes/Storage/Projects/mebellar_app/tools/build_release.sh)"
     ],
     "deny": [
       "Bash(git push --force *)",
