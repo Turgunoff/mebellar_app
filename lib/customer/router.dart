@@ -1,3 +1,4 @@
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -43,7 +44,12 @@ GoRouter buildCustomerRouter() {
   return GoRouter(
     initialLocation: '/',
     navigatorKey: customerNavigatorKey,
-    observers: [TalkerRouteObserver(talker), ConsoleNavObserver()],
+    observers: [
+      TalkerRouteObserver(talker),
+      ConsoleNavObserver(),
+      // Auto screen_view + Crashlytics breadcrumbs on every route push.
+      FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
+    ],
     // First-launch onboarding gate. Runs on every navigation: if the user
     // hasn't completed the tutorial, route them to `/tutorial` regardless of
     // the intended destination. This replaces an earlier imperative push that

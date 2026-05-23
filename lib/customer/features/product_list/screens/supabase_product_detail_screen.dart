@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:shimmer/shimmer.dart';
 
+import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../core/result/result.dart';
@@ -100,6 +101,13 @@ class _SupabaseProductDetailScreenState
     super.initState();
     _scrollController.addListener(_handleScroll);
     unawaited(_loadSchema());
+    // Analytics: a single view_item per detail open. Fired here (not in
+    // the build) so a rebuild from a stock refresh doesn't double-count.
+    unawaited(sl<AnalyticsService>().productViewed(
+      productId: widget.product.id,
+      categoryId: widget.product.categoryId,
+      price: widget.product.effectivePrice,
+    ));
   }
 
   @override

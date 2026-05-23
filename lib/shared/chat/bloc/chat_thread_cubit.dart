@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../core/analytics/analytics_service.dart';
 import '../../models/chat.dart';
 import '../../models/chat_message.dart';
 import '../../repositories/chat_repository.dart';
@@ -60,10 +61,13 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
     required ChatRepository repo,
     required this.chatId,
     required this.viewer,
+    AnalyticsService? analytics,
   })  : _repo = repo,
+        _analytics = analytics,
         super(const ChatThreadState());
 
   final ChatRepository _repo;
+  final AnalyticsService? _analytics;
   final String chatId;
 
   /// Which side of the conversation the local user is on. Stamped on
@@ -87,6 +91,10 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
       // need to block on it and we don't want a slow RPC to delay the
       // thread becoming interactive.
       unawaited(markAsRead());
+      unawaited(_analytics?.chatOpened(
+        chatId: chatId,
+        viewerRole: viewer.value,
+      ));
     } catch (e) {
       emit(state.copyWith(
         status: ChatThreadStatus.failure,
@@ -129,6 +137,11 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
       } else {
         emit(state.copyWith(sending: false));
       }
+      unawaited(_analytics?.chatMessageSent(
+        chatId: chatId,
+        viewerRole: viewer.value,
+        hasImage: false,
+      ));
     } catch (e) {
       emit(state.copyWith(sending: false, error: e.toString()));
     }
@@ -157,6 +170,11 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
       } else {
         emit(state.copyWith(sending: false));
       }
+      unawaited(_analytics?.chatMessageSent(
+        chatId: chatId,
+        viewerRole: viewer.value,
+        hasImage: true,
+      ));
     } catch (e) {
       emit(state.copyWith(sending: false, error: e.toString()));
     }

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/auth/auth_cubit.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../orders/cubit/profile_orders_cubit.dart';
@@ -27,6 +28,7 @@ class CheckoutScreen extends StatelessWidget {
         items: items,
         supabase: sl<SupabaseClient>(),
         cartRepo: sl<CartRepository>(),
+        analytics: sl<AnalyticsService>(),
       ),
       child: const _CheckoutView(),
     );

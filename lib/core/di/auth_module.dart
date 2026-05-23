@@ -4,6 +4,7 @@ import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../analytics/analytics_service.dart';
 import '../auth/auth_cubit.dart';
 import '../auth/auth_repository.dart';
 import '../notifications/notification_handler.dart';
@@ -38,7 +39,12 @@ void registerAuthModule(GetIt sl) {
 
   // Single global auth listener — survives customer<->seller mode switches.
   sl.registerSingleton<AuthCubit>(
-    AuthCubit(sl.isRegistered<SupabaseClient>() ? sl<SupabaseClient>() : null),
+    AuthCubit(
+      sl.isRegistered<SupabaseClient>() ? sl<SupabaseClient>() : null,
+      analytics: sl.isRegistered<AnalyticsService>()
+          ? sl<AnalyticsService>()
+          : null,
+    ),
     dispose: (c) => c.close(),
   );
 }

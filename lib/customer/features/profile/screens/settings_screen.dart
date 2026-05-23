@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../core/analytics/analytics_service.dart';
+import '../../../../core/di/service_locator.dart';
+import '../../../../core/storage/hive_boxes.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -13,6 +17,33 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _pushNotifications = true;
   bool _orderUpdates = true;
+  // Persisted across launches via Hive (settings box). Hydrate once at
+  // open and write through on every toggle.
+  bool _analyticsEnabled = true;
+
+  static const _analyticsBoxKey = 'analytics_collection_enabled';
+
+  @override
+  void initState() {
+    super.initState();
+    _hydrate();
+  }
+
+  Future<void> _hydrate() async {
+    final box = sl<Box>(instanceName: HiveBoxes.settings);
+    final stored = box.get(_analyticsBoxKey);
+    if (stored is bool && stored != _analyticsEnabled && mounted) {
+      setState(() => _analyticsEnabled = stored);
+      await sl<AnalyticsService>().setAnalyticsEnabled(stored);
+    }
+  }
+
+  Future<void> _setAnalyticsEnabled(bool value) async {
+    setState(() => _analyticsEnabled = value);
+    final box = sl<Box>(instanceName: HiveBoxes.settings);
+    await box.put(_analyticsBoxKey, value);
+    await sl<AnalyticsService>().setAnalyticsEnabled(value);
+  }
 
   void _showComingSoon(BuildContext context, String feature) {
     final pt = PremiumTokens.of(context);
@@ -184,6 +215,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ],
           ),
+          const SizedBox(height: 24),
+          const _SectionLabel('Maxfiylik'),
+          const SizedBox(height: 8),
+          _Card(
+            children: [
+              _SwitchRow(
+                icon: Iconsax.chart_2,
+                title: "Foydalanish statistikasi",
+                subtitle:
+                    "Anonim event'lar ilovani yaxshilashga yordam beradi",
+                value: _analyticsEnabled,
+                onChanged: _setAnalyticsEnabled,
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -323,10 +369,12 @@ class _SwitchRow extends StatelessWidget {
     required this.title,
     required this.value,
     required this.onChanged,
+    this.subtitle,
   });
 
   final IconData icon;
   final String title;
+  final String? subtitle;
   final bool value;
   final ValueChanged<bool> onChanged;
 
@@ -349,9 +397,24 @@ class _SwitchRow extends StatelessWidget {
           ),
           const SizedBox(width: 14),
           Expanded(
-            child: Text(
-              title,
-              style: PremiumTokens.body(size: 14, weight: FontWeight.w500),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: PremiumTokens.body(size: 14, weight: FontWeight.w500),
+                ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle!,
+                    style: PremiumTokens.body(
+                      size: 12,
+                      color: pt.grey,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
           Switch.adaptive(

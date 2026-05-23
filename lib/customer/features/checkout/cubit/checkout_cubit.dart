@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/analytics/analytics_service.dart';
 import '../../../../shared/models/cart_item_model.dart';
 import '../../../../shared/repositories/cart_repository.dart';
 
@@ -91,18 +94,36 @@ class CheckoutCubit extends Cubit<CheckoutState> {
     required List<CartItemModel> items,
     required SupabaseClient supabase,
     required CartRepository cartRepo,
+    AnalyticsService? analytics,
   }) : _supabase = supabase,
        _cartRepo = cartRepo,
-       super(CheckoutState(groups: _groupByShop(items)));
+       _analytics = analytics,
+       super(CheckoutState(groups: _groupByShop(items))) {
+    // Funnel start — one event per checkout session, regardless of how
+    // many shops the cart spans. Per-shop conversion is logged in submit.
+    final total = state.groups.fold<double>(
+      0,
+      (sum, g) => sum + g.subtotal.toDouble(),
+    );
+    unawaited(_analytics?.beginCheckout(value: total, itemsCount: items.length));
+  }
 
   final SupabaseClient _supabase;
   final CartRepository _cartRepo;
+  final AnalyticsService? _analytics;
 
-  void selectPayment(CheckoutPayment payment) =>
-      emit(state.copyWith(payment: payment));
+  void selectPayment(CheckoutPayment payment) {
+    emit(state.copyWith(payment: payment));
+    unawaited(_analytics?.paymentInfoAdded(paymentType: payment.name));
+  }
 
-  void updateAddress(String address) =>
-      emit(state.copyWith(deliveryAddress: address.trim()));
+  void updateAddress(String address) {
+    final trimmed = address.trim();
+    emit(state.copyWith(deliveryAddress: trimmed));
+    if (trimmed.isNotEmpty) {
+      unawaited(_analytics?.shippingInfoAdded());
+    }
+  }
 
   Future<void> submit(String userId) async {
     if (state.status == CheckoutStatus.submitting) return;
@@ -143,6 +164,15 @@ class CheckoutCubit extends Cubit<CheckoutState> {
             );
 
         placedIds.add(orderId);
+
+        // Per-shop purchase event — Firebase counts each as one conversion
+        // so a 2-shop cart shows up as 2 rows in the dashboard, matching
+        // how the shops are billed and fulfilled separately.
+        unawaited(_analytics?.purchased(
+          transactionId: orderId,
+          value: group.subtotal.toDouble(),
+          itemsCount: group.items.length,
+        ));
       }
 
       await _cartRepo.clear();

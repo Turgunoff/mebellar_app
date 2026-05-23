@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../auth/auth_bottom_sheet.dart';
+import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../customer/features/home/widgets/premium/premium_tokens.dart';
 import '../../../../shared/repositories/seller_onboarding_repository.dart';
@@ -24,9 +25,10 @@ class OnboardingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) =>
-          OnboardingBloc(sl<SellerOnboardingRepository>())
-            ..add(const OnboardingStarted()),
+      create: (_) => OnboardingBloc(
+        sl<SellerOnboardingRepository>(),
+        analytics: sl<AnalyticsService>(),
+      )..add(const OnboardingStarted()),
       child: const _OnboardingView(),
     );
   }

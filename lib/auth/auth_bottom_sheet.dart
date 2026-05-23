@@ -99,9 +99,9 @@ class _AuthBottomSheetState extends State<_AuthBottomSheet> {
       child: Padding(
         padding: EdgeInsets.only(bottom: keyboard),
         child: Container(
-          decoration: const BoxDecoration(
-            color: kSurface,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            color: AuthTokens.of(context).surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           clipBehavior: Clip.antiAlias,
           child: SafeArea(
@@ -180,6 +180,7 @@ class _AuthBottomSheetState extends State<_AuthBottomSheet> {
           remainingLabel: _controller.remainingLabel,
           canResend: _controller.canResend,
           onResend: () => _controller.sendOtp(isResend: true),
+          errorMessage: _controller.errorMessage,
         );
       case AuthStep.profile:
         return ProfileStep(

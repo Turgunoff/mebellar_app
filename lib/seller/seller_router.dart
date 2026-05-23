@@ -1,3 +1,4 @@
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -47,7 +48,11 @@ GoRouter buildSellerRouter() {
   return GoRouter(
     navigatorKey: sellerRootNavigatorKey,
     initialLocation: '/seller/dashboard',
-    observers: [TalkerRouteObserver(talker), ConsoleNavObserver()],
+    observers: [
+      TalkerRouteObserver(talker),
+      ConsoleNavObserver(),
+      FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
+    ],
     errorBuilder: (context, state) =>
         _SellerRouteError(location: state.uri.toString()),
     routes: [

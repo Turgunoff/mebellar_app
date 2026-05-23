@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/analytics/analytics_service.dart';
 import '../../../../shared/models/business_type.dart';
 import '../../../../shared/models/onboarding_draft.dart';
 import '../../../../shared/models/region.dart';
@@ -262,7 +263,9 @@ class OnboardingState extends Equatable {
 }
 
 class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
-  OnboardingBloc(this._repo) : super(const OnboardingState()) {
+  OnboardingBloc(this._repo, {AnalyticsService? analytics})
+      : _analytics = analytics,
+        super(const OnboardingState()) {
     on<OnboardingStarted>(_onStarted);
     on<OnboardingNextStep>(_onNext);
     on<OnboardingGoToStep>(_onGoToStep);
@@ -277,7 +280,9 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
   }
 
   final SellerOnboardingRepository _repo;
+  final AnalyticsService? _analytics;
   Timer? _saveDebounce;
+  bool _trackedStart = false;
 
   Future<void> _onStarted(
     OnboardingStarted event,
@@ -301,6 +306,12 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
     final resumeStep = OnboardingStep
         .values[draft.lastStep.clamp(0, OnboardingStep.values.length - 1)];
     emit(state.copyWith(draft: draft, step: resumeStep));
+    // Funnel start — fire once per OnboardingBloc instance so resuming
+    // a draft after an app reopen doesn't double-count the start.
+    if (!_trackedStart) {
+      _trackedStart = true;
+      unawaited(_analytics?.sellerOnboardingStarted());
+    }
   }
 
   void _onNext(OnboardingNextStep event, Emitter<OnboardingState> emit) {
@@ -430,6 +441,7 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
           step: OnboardingStep.done,
         ),
       );
+      unawaited(_analytics?.sellerOnboardingCompleted());
     } catch (e) {
       emit(
         state.copyWith(status: OnboardingStatus.failure, error: e.toString()),

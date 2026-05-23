@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/result/result.dart';
 import '../../../../shared/models/order.dart';
 import '../../../../shared/models/order_status.dart';
@@ -97,8 +98,9 @@ class SellerOrderDetailState extends Equatable {
 
 class SellerOrderDetailBloc
     extends Bloc<SellerOrderDetailEvent, SellerOrderDetailState> {
-  SellerOrderDetailBloc(this._repo, {this.onUpdated})
-      : super(const SellerOrderDetailState()) {
+  SellerOrderDetailBloc(this._repo, {this.onUpdated, AnalyticsService? analytics})
+      : _analytics = analytics,
+        super(const SellerOrderDetailState()) {
     on<SellerOrderDetailRequested>(_onRequested);
     on<SellerOrderActionConfirmed>(_runAction((id) => _repo.confirm(id)));
     on<SellerOrderActionMarkPreparing>(
@@ -117,6 +119,7 @@ class SellerOrderDetailBloc
   }
 
   final SellerOrderRepository _repo;
+  final AnalyticsService? _analytics;
 
   /// Optional callback so the parent orders list BLoC can mirror updates.
   final void Function(Order order)? onUpdated;
@@ -174,6 +177,7 @@ class SellerOrderDetailBloc
     return (event, emit) async {
       final order = state.order;
       if (order == null) return;
+      final fromStatus = order.status.code;
       emit(state.copyWith(status: SellerOrderDetailStatus.mutating));
       final result = await op(order.id);
       switch (result) {
@@ -181,6 +185,13 @@ class SellerOrderDetailBloc
           emit(state.copyWith(
               status: SellerOrderDetailStatus.ready, order: value));
           onUpdated?.call(value);
+          if (value.status.code != fromStatus) {
+            unawaited(_analytics?.sellerOrderStatusChanged(
+              orderId: order.id,
+              fromStatus: fromStatus,
+              toStatus: value.status.code,
+            ));
+          }
         case Err(:final failure):
           emit(state.copyWith(
             status: SellerOrderDetailStatus.ready,

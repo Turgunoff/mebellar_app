@@ -3,6 +3,7 @@ import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../analytics/analytics_service.dart';
 import '../auth/app_mode_cubit.dart';
 import '../connectivity/connectivity_service.dart';
 import '../connectivity/network_cubit.dart';
@@ -50,8 +51,14 @@ Future<void> registerCoreModule(GetIt sl) async {
 
   // Reactive view over the persisted app mode. Root-scoped so it survives
   // mode switches — the mode-switch listener emits new state on it.
+  // Analytics is wired via a lookup closure because it's registered by a
+  // later module — the cubit captures the closure now, resolves it lazily
+  // when a mode change actually happens.
   sl.registerSingleton<AppModeCubit>(
-    AppModeCubit(boxes.settings),
+    AppModeCubit(
+      boxes.settings,
+      analyticsLookup: () => sl<AnalyticsService>(),
+    ),
     dispose: (c) => c.close(),
   );
 

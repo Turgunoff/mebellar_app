@@ -12,7 +12,7 @@ class AuthGrabber extends StatelessWidget {
       width: 40,
       height: 4,
       decoration: BoxDecoration(
-        color: kBorder,
+        color: AuthTokens.of(context).border,
         borderRadius: BorderRadius.circular(2),
       ),
     );
@@ -30,6 +30,7 @@ class AuthSheetHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AuthTokens.of(context);
     return SizedBox(
       height: 32,
       child: Stack(
@@ -56,7 +57,7 @@ class AuthSheetHeader extends StatelessWidget {
                   width: active ? 18 : 6,
                   height: 6,
                   decoration: BoxDecoration(
-                    color: active ? kTerracotta : kBorder,
+                    color: active ? kTerracotta : t.border,
                     borderRadius: BorderRadius.circular(3),
                   ),
                 );
@@ -77,8 +78,9 @@ class _IconBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AuthTokens.of(context);
     return Material(
-      color: kFieldFill,
+      color: t.fieldFill,
       shape: const CircleBorder(),
       child: InkWell(
         customBorder: const CircleBorder(),
@@ -86,7 +88,7 @@ class _IconBtn extends StatelessWidget {
         child: SizedBox(
           width: 32,
           height: 32,
-          child: Icon(icon, size: 18, color: kTextPrimary),
+          child: Icon(icon, size: 18, color: t.textPrimary),
         ),
       ),
     );

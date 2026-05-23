@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/logging/talker.dart';
 import '../../../../shared/constants/product_colors.dart';
 import '../../../../shared/models/attribute_definition.dart';
@@ -210,12 +212,15 @@ class AddProductCubit extends Cubit<AddProductState> {
   AddProductCubit({
     required AddProductRepository repository,
     required AttributesRepository attributesRepository,
+    AnalyticsService? analytics,
   }) : _repository = repository,
        _attributesRepository = attributesRepository,
+       _analytics = analytics,
        super(AddProductState(sku: _generateSku()));
 
   final AddProductRepository _repository;
   final AttributesRepository _attributesRepository;
+  final AnalyticsService? _analytics;
 
   /// Increments on every category/subcategory change. Stale responses from
   /// the attributes repository are discarded by comparing against the
@@ -462,7 +467,7 @@ class AddProductCubit extends Cubit<AddProductState> {
     );
     emit(state.copyWith(status: AddProductStatus.saving, clearError: true));
     try {
-      await _repository.createProduct(
+      final result = await _repository.createProduct(
         AddProductInput(
           sellerId: ctx.sellerId,
           shopId: ctx.shopId,
@@ -491,6 +496,7 @@ class AddProductCubit extends Cubit<AddProductState> {
       );
       emit(state.copyWith(status: AddProductStatus.success));
       talker.info('[add-product-cubit] submit ok sku=${state.sku}');
+      unawaited(_analytics?.productCreated(productId: result.productId));
       return true;
     } catch (e, st) {
       talker.handle(

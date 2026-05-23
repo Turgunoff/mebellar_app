@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../core/analytics/analytics_service.dart';
 import '../../../core/di/service_locator.dart';
 import '../../../core/i18n/i18n.dart';
 import '../../../customer/features/home/widgets/premium/premium_tokens.dart';
@@ -153,6 +154,7 @@ class _ChatThreadView extends StatelessWidget {
         repo: sl<ChatRepository>(),
         chatId: chat.id,
         viewer: viewer,
+        analytics: sl<AnalyticsService>(),
       )..load(),
       child: _ChatThreadBody(
         chat: chat,

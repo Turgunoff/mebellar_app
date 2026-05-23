@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/analytics/analytics_service.dart';
 import '../../../../shared/models/seller_product.dart';
 import '../../../../shared/repositories/seller_product_repository.dart';
 
@@ -90,7 +91,9 @@ class SellerProductsState extends Equatable {
 
 class SellerProductsBloc
     extends Bloc<SellerProductsEvent, SellerProductsState> {
-  SellerProductsBloc(this._repo) : super(const SellerProductsState()) {
+  SellerProductsBloc(this._repo, {AnalyticsService? analytics})
+      : _analytics = analytics,
+        super(const SellerProductsState()) {
     on<SellerProductsRequested>(_onRequested);
     on<SellerProductsFilterChanged>(
         (e, emit) => emit(state.copyWith(filter: e.filter)));
@@ -114,6 +117,7 @@ class SellerProductsBloc
   }
 
   final SellerProductRepository _repo;
+  final AnalyticsService? _analytics;
   StreamSubscription<List<SellerProduct>>? _sub;
 
   Future<void> _onRequested(
@@ -142,6 +146,9 @@ class SellerProductsBloc
       await _repo.archive(event.id);
       // _SellerProductsRefreshed via stream will update the list.
       emit(state.copyWith(status: SellerProductsStatus.ready));
+      // Archive is our soft-delete — track it as productDeleted so the
+      // analytics funnel sees a single "removed from catalog" signal.
+      unawaited(_analytics?.productDeleted(productId: event.id));
     } catch (e) {
       emit(state.copyWith(
           status: SellerProductsStatus.ready, error: e.toString()));
@@ -156,6 +163,9 @@ class SellerProductsBloc
     try {
       await _repo.submitForReview(event.id);
       emit(state.copyWith(status: SellerProductsStatus.ready));
+      // "Submit for review" is the closest signal we have to a product
+      // update on this surface — fire it so the dashboard sees the edit.
+      unawaited(_analytics?.productUpdated(productId: event.id));
     } catch (e) {
       emit(state.copyWith(
           status: SellerProductsStatus.ready, error: e.toString()));

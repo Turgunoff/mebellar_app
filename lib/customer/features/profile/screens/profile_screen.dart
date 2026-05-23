@@ -1,3 +1,4 @@
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -94,7 +95,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
       label: 'Ilova haqida',
       onTap: () => _push(context, const AboutScreen()),
     ),
+    // TEMPORARY: lets us activate Crashlytics in the Firebase console on
+    // the first install. Remove once a real crash has landed in the
+    // dashboard. Tap = non-fatal sample; long-press = forced fatal crash.
+    MenuEntry(
+      icon: Iconsax.warning_2,
+      label: 'Crashlytics testi',
+      onTap: () => _runCrashlyticsTest(context, fatal: false),
+      onLongPress: () => _runCrashlyticsTest(context, fatal: true),
+    ),
   ];
+
+  Future<void> _runCrashlyticsTest(
+    BuildContext context, {
+    required bool fatal,
+  }) async {
+    if (fatal) {
+      // Block briefly so the SnackBar paints before the engine tears down.
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Crashlytics: fatal crash yuborilmoqda…'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 800));
+      // Engine-level crash — most realistic test of the pipeline.
+      FirebaseCrashlytics.instance.crash();
+    } else {
+      // Non-fatal: activates the Firebase dashboard without killing the app.
+      await FirebaseCrashlytics.instance.recordError(
+        Exception('Crashlytics non-fatal test (profile button)'),
+        StackTrace.current,
+        reason: 'manual test from profile menu',
+        fatal: false,
+      );
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Crashlytics: non-fatal yuborildi. 5-10 daqiqada Firebase\'da '
+            "ko'rinadi. Long-press = fatal crash.",
+          ),
+          duration: Duration(seconds: 4),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

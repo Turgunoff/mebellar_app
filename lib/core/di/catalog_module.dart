@@ -4,6 +4,9 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../customer/features/notifications/cubit/notifications_cubit.dart';
+import '../analytics/analytics_service.dart';
+import '../analytics/firebase_analytics_service.dart';
+import '../analytics/noop_analytics_service.dart';
 import '../../shared/repositories/address_repository.dart';
 import '../../shared/repositories/banner_repository.dart';
 import '../../shared/repositories/cart_repository.dart';
@@ -81,6 +84,19 @@ void registerCatalogModule(GetIt sl) {
       ),
     );
   }
+
+  // Analytics — Firebase-backed when the SDK initialised cleanly at boot,
+  // a no-op otherwise so call sites never need to null-check. Lives in the
+  // root scope: events from customer/seller modes both fan into one sink.
+  sl.registerLazySingleton<AnalyticsService>(
+    () {
+      try {
+        return FirebaseAnalyticsService();
+      } catch (_) {
+        return const NoopAnalyticsService();
+      }
+    },
+  );
 
   // NotificationsCubit lives in the ROOT scope so a single instance feeds
   // both the customer inbox + bell badge AND the seller inbox + bell badge,

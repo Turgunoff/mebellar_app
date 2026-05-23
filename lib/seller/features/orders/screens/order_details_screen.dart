@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
@@ -44,6 +45,7 @@ class OrderDetailsScreen extends StatelessWidget {
       create: (_) => SellerOrderDetailBloc(
         sl<SellerOrderRepository>(),
         onUpdated: ordersBloc?.pushOrderUpdate,
+        analytics: sl<AnalyticsService>(),
       )..add(SellerOrderDetailRequested(orderId)),
       child: _OrderDetailView(orderId: orderId),
     );

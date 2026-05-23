@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/analytics/analytics_service.dart';
 import '../../../../shared/models/cart_item_model.dart';
 import '../../../../shared/models/supabase_product_model.dart';
 import '../../../../shared/repositories/cart_repository.dart';
@@ -112,7 +113,9 @@ class CartState extends Equatable {
 /// emitted immediately, then the repository is called and the resulting
 /// snapshot replaces the optimistic state. On failure we roll back.
 class CartBloc extends Bloc<CartEvent, CartState> {
-  CartBloc(this._repo) : super(const CartState()) {
+  CartBloc(this._repo, {AnalyticsService? analytics})
+      : _analytics = analytics,
+        super(const CartState()) {
     on<LoadCart>(_onLoad);
     on<AddToCart>(_onAdd);
     on<UpdateQuantity>(_onUpdate);
@@ -134,6 +137,7 @@ class CartBloc extends Bloc<CartEvent, CartState> {
   }
 
   final CartRepository _repo;
+  final AnalyticsService? _analytics;
   StreamSubscription<List<CartItemModel>>? _sub;
 
   Future<void> _onLoad(LoadCart event, Emitter<CartState> emit) async {
@@ -187,6 +191,11 @@ class CartBloc extends Bloc<CartEvent, CartState> {
       // surface a "ready" status here so listeners not subscribed to
       // intermediate mutating frames see a clean transition.
       emit(state.copyWith(status: CartStatus.ready));
+      unawaited(_analytics?.addedToCart(
+        productId: event.product.id,
+        price: event.product.effectivePrice,
+        quantity: qtyClamped,
+      ));
     } catch (e) {
       emit(
         state.copyWith(
@@ -240,6 +249,7 @@ class CartBloc extends Bloc<CartEvent, CartState> {
     try {
       await _repo.removeProduct(event.productId);
       emit(state.copyWith(status: CartStatus.ready));
+      unawaited(_analytics?.removedFromCart(productId: event.productId));
     } catch (e) {
       emit(
         state.copyWith(

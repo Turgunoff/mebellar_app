@@ -24,11 +24,11 @@ class ProfileStep extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Tanishing, siz kimsiz?', style: authTitleStyle()),
+        Text('Tanishing, siz kimsiz?', style: authTitleStyle(context)),
         const SizedBox(height: 8),
         Text(
           'Tizimda sizga murojaat qilishimiz uchun.',
-          style: authSubtitleStyle(),
+          style: authSubtitleStyle(context),
         ),
         const SizedBox(height: 24),
         const AuthLabel('Ism va familiya'),
@@ -67,27 +67,28 @@ class _PhoneField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AuthTokens.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: kFieldFill,
+        color: t.fieldFill,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: kBorder),
+        border: Border.all(color: t.border),
       ),
       child: Row(
         children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 0, 12, 0),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 12, 0),
             child: Text(
               '+998',
               style: TextStyle(
                 fontFamily: AppFonts.seller,
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: kTextPrimary,
+                color: t.textPrimary,
               ),
             ),
           ),
-          Container(width: 1, height: 24, color: kBorder),
+          Container(width: 1, height: 24, color: t.border),
           const SizedBox(width: 8),
           Expanded(
             child: TextField(
@@ -101,22 +102,22 @@ class _PhoneField extends StatelessWidget {
                 LengthLimitingTextInputFormatter(9),
                 UzPhoneFormatter(),
               ],
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: AppFonts.seller,
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
-                color: kTextPrimary,
+                color: t.textPrimary,
               ),
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 isDense: true,
-                contentPadding: EdgeInsets.symmetric(vertical: 16),
+                contentPadding: const EdgeInsets.symmetric(vertical: 16),
                 border: InputBorder.none,
                 hintText: '90 123 45 67',
                 hintStyle: TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 15,
                   fontWeight: FontWeight.w400,
-                  color: kTextSecondary,
+                  color: t.textSecondary,
                 ),
               ),
             ),

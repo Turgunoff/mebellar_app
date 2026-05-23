@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../config/app_mode.dart';
+import '../analytics/analytics_service.dart';
 
 /// Reactive holder for the active [AppMode]. Persists to the `settings` Hive
 /// box so the choice survives cold starts.
@@ -13,9 +16,16 @@ import '../../config/app_mode.dart';
 /// can write `context.read<AppModeCubit>().switchMode(...)` from anywhere
 /// without threading a Navigator context through their callbacks.
 class AppModeCubit extends Cubit<AppMode> {
-  AppModeCubit(this._settings) : super(_resolveBoot(_settings));
+  AppModeCubit(this._settings, {AnalyticsService Function()? analyticsLookup})
+      : _analyticsLookup = analyticsLookup,
+        super(_resolveBoot(_settings));
 
   final Box _settings;
+  // Lazy lookup — AnalyticsService is registered AFTER this cubit in
+  // the bootstrap order, so we can't capture an instance at construction
+  // time. Reading via a closure defers resolution to the moment we
+  // actually need to fire an event.
+  final AnalyticsService Function()? _analyticsLookup;
 
   /// Hive key that mirrors the persisted mode. Kept as `app_mode` rather than
   /// `active_app_mode` to stay compatible with rows already written by older
@@ -51,6 +61,16 @@ class AppModeCubit extends Cubit<AppMode> {
     if (state == mode) return;
     await _settings.put(modeKey, mode.name);
     emit(mode);
+    // Funnel signal — track only the customer→seller flip; entering
+    // customer mode is the implicit default and would be noise.
+    if (mode == AppMode.seller) {
+      try {
+        unawaited(_analyticsLookup?.call().sellerModeEntered());
+      } catch (_) {
+        // Analytics resolution can fail in tests / no-Firebase builds —
+        // silently swallow; mode switch must still go through.
+      }
+    }
   }
 
   /// Re-reads Hive (running the same boot-time guard as the constructor) and

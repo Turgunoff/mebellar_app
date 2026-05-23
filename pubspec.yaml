@@ -48,6 +48,10 @@ dependencies:
   # existing Firebase setup (Messaging, Auth). Talker errors are
   # forwarded to it via CrashlyticsTalkerObserver.
   firebase_crashlytics: ^4.1.5
+  # Product analytics — funnel + retention + conversion. Free, unlimited.
+  # Crashlytics consumes Analytics breadcrumbs ("user did X, Y, Z before
+  # the crash") which is the killer feature of pairing the two.
+  firebase_analytics: ^11.3.5
   # Required to display a notification banner when an FCM push arrives
   # while the app is in the foreground — Android only auto-shows pushes
   # in the system tray when the app is backgrounded or killed.

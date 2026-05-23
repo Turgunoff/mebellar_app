@@ -20,11 +20,11 @@ class EmailStep extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Tizimga kirish', style: authTitleStyle()),
+        Text('Tizimga kirish', style: authTitleStyle(context)),
         const SizedBox(height: 8),
         Text(
           'Email manzilingizni kiriting. Tasdiqlash kodini yuboramiz.',
-          style: authSubtitleStyle(),
+          style: authSubtitleStyle(context),
         ),
         const SizedBox(height: 24),
         const AuthLabel('Email'),

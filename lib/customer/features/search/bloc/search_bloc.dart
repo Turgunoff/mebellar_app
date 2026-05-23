@@ -5,6 +5,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
+import '../../../../core/analytics/analytics_service.dart';
 import '../../../../shared/models/supabase_product_model.dart';
 import '../../../../shared/repositories/supabase_product_data_source.dart';
 
@@ -93,14 +94,18 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
   SearchBloc({
     required SupabaseProductDataSource source,
     required Box cacheBox,
+    AnalyticsService? analytics,
   })  : _source = source,
         _cache = cacheBox,
+        _analytics = analytics,
         super(SearchState(recent: _readRecent(cacheBox))) {
     on<SearchQueryChanged>(_onQueryChanged, transformer: _debounce());
     on<SearchFilterChanged>(_onFilterChanged, transformer: _debounce());
     on<SearchSubmitted>(_onSubmitted);
     on<SearchHistoryCleared>(_onHistoryCleared);
   }
+
+  final AnalyticsService? _analytics;
 
   static const _recentKey = 'search_recent';
   static const _maxRecent = 10;
@@ -179,6 +184,22 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
       // drop the result if so to avoid a flicker of stale data.
       if (state.query != query || state.filter != filter) return;
       emit(state.copyWith(status: SearchStatus.ready, results: results));
+
+      // Fire analytics on the *successful, settled* search — we never
+      // double-count when the user mid-types another character, because
+      // restartable() cancels the older event handler before this point.
+      if (query.isNotEmpty) {
+        unawaited(_analytics?.searchPerformed(
+          query: query,
+          resultsCount: results.length,
+          appliedFiltersCount: filter.activeCount,
+        ));
+      } else if (filter.isNotEmpty || !filter.isDefault) {
+        unawaited(_analytics?.filterApplied(
+          activeFacetCount: filter.activeCount,
+          sort: filter.sort.name,
+        ));
+      }
     } catch (e) {
       if (state.query != query || state.filter != filter) return;
       emit(state.copyWith(status: SearchStatus.failure, error: e.toString()));

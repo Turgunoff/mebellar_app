@@ -5,6 +5,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:shimmer/shimmer.dart';
 
+import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../core/storage/hive_boxes.dart';
@@ -33,6 +34,7 @@ class SearchScreen extends StatelessWidget {
       create: (_) => SearchBloc(
         source: sl<SupabaseProductDataSource>(),
         cacheBox: sl<Box>(instanceName: HiveBoxes.cache),
+        analytics: sl<AnalyticsService>(),
       ),
       child: const _SearchView(),
     );

@@ -2,6 +2,7 @@ import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../analytics/analytics_service.dart';
 import '../../customer/features/cart/bloc/cart_bloc.dart';
 import '../../customer/features/categories/bloc/categories_bloc.dart';
 import '../../customer/features/favorites/bloc/favorites_bloc.dart';
@@ -43,7 +44,10 @@ void registerCustomerScope(GetIt sl) {
     dispose: (svc) => svc.dispose(),
   );
   sl.registerLazySingleton<CartBloc>(
-    () => CartBloc(sl<CartRepository>())..add(const LoadCart()),
+    () => CartBloc(
+      sl<CartRepository>(),
+      analytics: sl<AnalyticsService>(),
+    )..add(const LoadCart()),
     dispose: (bloc) => bloc.close(),
   );
   sl.registerLazySingleton<FavoritesBloc>(

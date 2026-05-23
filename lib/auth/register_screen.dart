@@ -1,8 +1,11 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'dart:async';
+
+import 'package:flutter/material.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
 import 'package:woody_app/core/logging/talker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../core/analytics/analytics_service.dart';
 import '../core/auth/auth_repository.dart';
 import '../core/di/service_locator.dart';
 import '../main.dart' show AppLocaleScope;
@@ -48,6 +51,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
         fullName: _fullName.text.trim(),
         preferredLanguage: context.locale.languageCode,
       );
+      // Fire the analytics event *after* the repository call succeeds so a
+      // failed signup doesn't pollute the funnel. Fire-and-forget — we
+      // don't want network latency holding up the verify-email push.
+      unawaited(sl<AnalyticsService>().signedUp(method: 'email'));
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(

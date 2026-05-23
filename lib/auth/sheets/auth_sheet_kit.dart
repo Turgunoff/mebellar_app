@@ -1,34 +1,67 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_fonts.dart';
 
-// Local design tokens for the auth bottom sheet.
-const Color kTerracotta = Color(0xFFC27A5F);
-const Color kTerracottaDeep = Color(0xFFB85C38);
-const Color kSurface = Color(0xFFFFFFFF);
-const Color kFieldFill = Color(0xFFFAFAFA);
-const Color kTextPrimary = Color(0xFF1D1D1D);
-const Color kTextSecondary = Color(0xFF757575);
-const Color kBorder = Color(0xFFEAEAEA);
-const Color kDanger = Color(0xFFEF4444);
+// ── Brand constants (mode-independent) ───────────────────────────────────
+// Terracotta and its pressed shade are the same in light and dark — they're
+// the app's identity colour, not a surface tint.
+
+const Color kTerracotta = AppColors.terracotta;
+const Color kTerracottaDeep = AppColors.terracottaDeep;
+const Color kDanger = AppColors.danger;
+
+// ── Adaptive token bag ───────────────────────────────────────────────────
+// Anything that is "ink on paper" — surfaces, borders, body text — has
+// to flip under dark mode or the sheet looks like a white rectangle
+// pasted on a black backdrop. Read via `AuthTokens.of(context)`.
+
+class AuthTokens {
+  AuthTokens._(this._isDark);
+
+  factory AuthTokens.of(BuildContext context) =>
+      AuthTokens._(Theme.of(context).brightness == Brightness.dark);
+
+  final bool _isDark;
+
+  /// Background of the bottom-sheet card.
+  Color get surface =>
+      _isDark ? AppColors.darkSurface : AppColors.lightSurface;
+
+  /// Background of input fields and pin cells when empty/idle.
+  Color get fieldFill =>
+      _isDark ? AppColors.darkImageBg : const Color(0xFFFAFAFA);
+
+  /// Body / headline ink — never pure black so contrast feels softer.
+  Color get textPrimary =>
+      _isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+
+  /// Captions, helper text, countdown labels.
+  Color get textSecondary =>
+      _isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+
+  /// 1-px hairlines on inputs and dividers.
+  Color get border =>
+      _isDark ? AppColors.darkDivider : const Color(0xFFEAEAEA);
+}
 
 /// The three stops of the passwordless email-OTP flow.
 enum AuthStep { email, otp, profile }
 
-TextStyle authTitleStyle() => const TextStyle(
+TextStyle authTitleStyle(BuildContext context) => TextStyle(
       fontFamily: AppFonts.seller,
       fontSize: 22,
       fontWeight: FontWeight.w700,
-      color: kTextPrimary,
+      color: AuthTokens.of(context).textPrimary,
       letterSpacing: -0.3,
       height: 1.2,
     );
 
-TextStyle authSubtitleStyle() => const TextStyle(
+TextStyle authSubtitleStyle(BuildContext context) => TextStyle(
       fontFamily: AppFonts.seller,
       fontSize: 14,
       fontWeight: FontWeight.w400,
-      color: kTextSecondary,
+      color: AuthTokens.of(context).textSecondary,
       height: 1.45,
     );
 
@@ -40,13 +73,14 @@ class AuthLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AuthTokens.of(context);
     return Text(
       text,
-      style: const TextStyle(
+      style: TextStyle(
         fontFamily: AppFonts.seller,
         fontSize: 13,
         fontWeight: FontWeight.w600,
-        color: kTextPrimary,
+        color: t.textPrimary,
         letterSpacing: 0.1,
       ),
     );
@@ -80,6 +114,7 @@ class AuthOutlinedField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AuthTokens.of(context);
     OutlineInputBorder border(Color c, double w) => OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(color: c, width: w),
@@ -93,29 +128,29 @@ class AuthOutlinedField extends StatelessWidget {
       textCapitalization: textCapitalization,
       autofillHints: autofillHints,
       onSubmitted: onSubmitted,
-      style: const TextStyle(
+      style: TextStyle(
         fontFamily: AppFonts.seller,
         fontSize: 15,
         fontWeight: FontWeight.w500,
-        color: kTextPrimary,
+        color: t.textPrimary,
       ),
       decoration: InputDecoration(
         filled: true,
-        fillColor: kFieldFill,
+        fillColor: t.fieldFill,
         isDense: true,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         hintText: hintText,
-        hintStyle: const TextStyle(
+        hintStyle: TextStyle(
           fontFamily: AppFonts.seller,
           fontSize: 15,
           fontWeight: FontWeight.w400,
-          color: kTextSecondary,
+          color: t.textSecondary,
         ),
-        border: border(kBorder, 1),
-        enabledBorder: border(kBorder, 1),
+        border: border(t.border, 1),
+        enabledBorder: border(t.border, 1),
         focusedBorder: border(kTerracotta, 1.6),
-        disabledBorder: border(kBorder, 1),
+        disabledBorder: border(t.border, 1),
       ),
     );
   }

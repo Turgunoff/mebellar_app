@@ -4,11 +4,17 @@ import '../../home/widgets/premium/premium_tokens.dart';
 
 /// One row in the [MenuListCard].
 class MenuEntry {
-  const MenuEntry({required this.icon, required this.label, this.onTap});
+  const MenuEntry({
+    required this.icon,
+    required this.label,
+    this.onTap,
+    this.onLongPress,
+  });
 
   final IconData icon;
   final String label;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 }
 
 /// Card grouping the settings / help / about navigation rows.
@@ -56,6 +62,7 @@ class _MenuRow extends StatelessWidget {
       borderRadius: radius,
       child: InkWell(
         onTap: entry.onTap,
+        onLongPress: entry.onLongPress,
         borderRadius: radius,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
