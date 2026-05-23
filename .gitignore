@@ -60,3 +60,9 @@ app.*.map.json
 # /env/prod.json
 # /env/*.json
 # !env/example.json
+
+# Claude Code — per-user settings stay local; shared settings.json
+# (with hook wiring) is committed for the team. Skill installs are
+# managed by the user's CLI, not the repo.
+.claude/settings.local.json
+.claude/skills/
