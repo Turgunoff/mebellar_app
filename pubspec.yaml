@@ -1,7 +1,7 @@
 name: woody_app
 description: "Woody — Mebel do'koni"
 publish_to: "none"
-version: 1.0.2+3
+version: 1.0.3+4
 
 environment:
   sdk: ^3.11.5
@@ -42,6 +42,12 @@ dependencies:
   # out personal pings.
   firebase_core: ^3.6.0
   firebase_messaging: ^15.1.3
+  # Crash + non-fatal error reporting. Firebase Crashlytics replaces the
+  # previous Sentry integration — it's free (unlimited events), ships ANR
+  # detection on Android, and lives in the same dashboard as the
+  # existing Firebase setup (Messaging, Auth). Talker errors are
+  # forwarded to it via CrashlyticsTalkerObserver.
+  firebase_crashlytics: ^4.1.5
   # Required to display a notification banner when an FCM push arrives
   # while the app is in the foreground — Android only auto-shows pushes
   # in the system tray when the app is backgrounded or killed.
@@ -100,11 +106,6 @@ dependencies:
 
   # Logging
   talker_flutter: ^5.1.16
-
-  # Crash reporting — Sentry. The DSN is injected via env (SENTRY_DSN); an
-  # empty DSN leaves the SDK initialised-but-disabled. Talker errors are
-  # forwarded to Sentry through SentryTalkerObserver (see lib/core/logging/).
-  sentry_flutter: ^9.0.0
 
   # Connectivity — connectivity_plus detects link changes (wifi / cellular /
   # none), internet_connection_checker_plus verifies actual reachability so

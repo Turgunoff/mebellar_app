@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
-import 'sentry_talker_observer.dart';
+import 'crashlytics_talker_observer.dart';
 
 /// App-wide [Talker] instance. Pair with [TalkerRouteObserver] in
 /// `MaterialApp.navigatorObservers` (or `GoRouter.observers`) so every
@@ -14,10 +14,10 @@ final Talker talker = TalkerFlutter.init(
   settings: TalkerSettings(
     useConsoleLogs: false,
   ),
-  // Forwards every handled error/exception to Sentry. Safe to leave wired
-  // even with an empty SENTRY_DSN — Sentry is then disabled and the
-  // observer's `captureException` calls become no-ops.
-  observer: SentryTalkerObserver(),
+  // Forwards every handled error/exception to Firebase Crashlytics as a
+  // non-fatal entry. Safe to leave wired in every build — the observer
+  // no-ops when Firebase isn't initialised (early-boot failures, tests).
+  observer: CrashlyticsTalkerObserver(),
 );
 
 /// Navigator keys exposed at module scope so the debug Talker overlay can

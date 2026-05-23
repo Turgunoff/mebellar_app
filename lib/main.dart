@@ -1,13 +1,14 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_phoenix/flutter_phoenix.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -31,42 +32,83 @@ import 'firebase_options.dart';
 import 'seller/seller_app.dart';
 
 Future<void> main() async {
-  // Sentry's binding (a WidgetsFlutterBinding subclass) must be the one that
-  // gets instantiated first, otherwise FramesTrackingIntegration disables
-  // itself ("incompatible binding"). It powers Sentry's UI frame-drop / jank
-  // tracking, so install it here in place of the plain binding.
-  SentryWidgetsFlutterBinding.ensureInitialized();
+  // `runZonedGuarded` wraps the entire boot+runtime so any async error that
+  // escapes Flutter's own handlers (e.g. a timer callback) is still routed
+  // to Crashlytics. The synchronous body inside is what mounts the app.
+  runZonedGuarded<void>(() async {
+    WidgetsFlutterBinding.ensureInitialized();
 
-  // Fail fast: a build launched with no env file has empty Supabase / Yandex
-  // credentials — abort here, loudly, rather than silently running blank.
-  AppConfig.assertConfigured();
+    // Fail fast: a build launched with no env file has empty Supabase /
+    // Yandex credentials — abort here, loudly, rather than silently
+    // running blank.
+    AppConfig.assertConfigured();
 
-  // ROADMAP B.8 — debug-only guard: throws the instant the ru/en bundles
-  // drift below the uz baseline, so a missing translation is caught at boot
-  // instead of shipping a raw `key.path` to users. No-op in release builds.
-  assertTranslationsComplete();
+    // ROADMAP B.8 — debug-only guard: throws the instant the ru/en bundles
+    // drift below the uz baseline, so a missing translation is caught at
+    // boot instead of shipping a raw `key.path` to users. No-op in release.
+    assertTranslationsComplete();
 
-  // Sentry wraps the whole app in an error-capturing zone. An empty
-  // SENTRY_DSN leaves the SDK initialised-but-disabled; Talker errors are
-  // additionally forwarded to Sentry via SentryTalkerObserver.
-  await SentryFlutter.init(
-    (options) {
-      options.dsn = AppConfig.sentryDsn;
-      options.environment = AppConfig.environment;
-      options.tracesSampleRate = AppConfig.isProd ? 0.2 : 1.0;
-      // Sentry's own diagnostic logging follows the build mode, not the
-      // environment: a debug build (even on the prod env) prints transport
-      // logs to the console so issues are visible locally; release builds
-      // stay quiet.
-      options.debug = kDebugMode;
-    },
-    appRunner: _bootstrapAndRun,
-  );
+    // Boot Firebase before wiring Crashlytics — the handler installation
+    // below needs `FirebaseCrashlytics.instance` to be live.
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    } catch (e, st) {
+      // No crash reporter yet — log only. The app continues; FCM and
+      // Crashlytics will be no-ops for this run.
+      talker.handle(e, st, 'Firebase init failed — crash reporting disabled');
+    }
+
+    if (Firebase.apps.isNotEmpty) {
+      final crashlytics = FirebaseCrashlytics.instance;
+      // Skip collection in debug so local crashes don't pollute the prod
+      // dashboard. Release builds always report.
+      await crashlytics.setCrashlyticsCollectionEnabled(!kDebugMode);
+
+      // Flutter framework errors (build/layout/paint exceptions).
+      FlutterError.onError = (details) {
+        // Forward to the default handler too so the IDE still prints the
+        // red error overlay in debug.
+        FlutterError.presentError(details);
+        crashlytics.recordFlutterFatalError(details);
+      };
+
+      // Async errors that bubble out of any handler chain (futures,
+      // streams) end up here. Returning true tells the platform we've
+      // handled it — without this the engine logs to stderr too.
+      PlatformDispatcher.instance.onError = (error, stack) {
+        crashlytics.recordError(error, stack, fatal: true);
+        return true;
+      };
+
+      // Tag every report with the environment so prod / dev crashes are
+      // easy to separate in the dashboard.
+      unawaited(
+        crashlytics.setCustomKey('environment', AppConfig.environment),
+      );
+    }
+
+    // Register the FCM background handler now that Firebase is up — it
+    // must be registered before the first await on FirebaseMessaging.
+    if (Firebase.apps.isNotEmpty) {
+      FirebaseMessaging.onBackgroundMessage(
+        firebaseMessagingBackgroundHandler,
+      );
+    }
+
+    await _bootstrapAndRun();
+  }, (error, stack) {
+    // Last-resort sink for anything that escaped both Flutter handlers.
+    if (Firebase.apps.isNotEmpty) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+    }
+    talker.handle(error, stack, 'Uncaught zone error');
+  });
 }
 
-/// Boots every subsystem and mounts the widget tree. Runs inside the Sentry
-/// zone (via `SentryFlutter.init`'s `appRunner`) so uncaught errors during
-/// startup are still captured.
+/// Boots every subsystem and mounts the widget tree. Firebase + Crashlytics
+/// are already initialised by [main]; this function is purely app-level boot.
 Future<void> _bootstrapAndRun() async {
   // Force the system bars back on at every boot. The Flutter engine remembers
   // the last `setEnabledSystemUIMode` call across hot restart and full
@@ -96,18 +138,8 @@ Future<void> _bootstrapAndRun() async {
   );
   talker.info('App boot started');
 
-  // Boot Firebase before the DI scope so PushService can be registered with
-  // a live FirebaseMessaging.instance. The background handler must be
-  // registered *before* the first await on FCM, hence its placement here.
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-  } catch (e, st) {
-    talker.handle(e, st, 'Firebase init failed — push disabled this run');
-  }
-
+  // Firebase + Crashlytics + FCM background handler were already wired by
+  // `main`; this function just boots the rest of the app.
   await initRootScope();
 
   final initialMode = getInitialMode();

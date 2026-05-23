@@ -24,6 +24,10 @@ plugins {
     // Reads `google-services.json` and bakes the Firebase config into the
     // app at build time. Required for FCM message delivery to work.
     id("com.google.gms.google-services") version "4.4.2" apply false
+    // Firebase Crashlytics Gradle plugin — uploads native (NDK) symbol
+    // files automatically and tags each release build with a unique
+    // mapping so deobfuscated stack traces land in the dashboard.
+    id("com.google.firebase.crashlytics") version "3.0.3" apply false
 }
 
 include(":app")

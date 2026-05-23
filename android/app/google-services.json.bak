@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "436481572226",
+    "project_id": "woody-b3c1a",
+    "storage_bucket": "woody-b3c1a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:436481572226:android:1f01a319bd46ee525da39b",
+        "android_client_info": {
+          "package_name": "com.mebellar.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCbJk1avp9YgEtXK0MKoJsSvL37JNX84QU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

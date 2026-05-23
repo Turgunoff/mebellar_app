@@ -94,7 +94,11 @@
       "mcp__dart__remove_roots",
       "Bash(supabase migration *)",
       "mcp__supabase__get_publishable_keys",
-      "Bash(chmod +x /Volumes/Storage/Projects/mebellar_app/tools/build_release.sh)"
+      "Bash(chmod +x /Volumes/Storage/Projects/mebellar_app/tools/build_release.sh)",
+      "mcp__plugin_firebase_firebase__firebase_list_projects",
+      "Bash(firebase logout *)",
+      "Bash(firebase projects:list)",
+      "mcp__plugin_firebase_firebase__firebase_create_android_sha"
     ],
     "deny": [
       "Bash(git push --force *)",

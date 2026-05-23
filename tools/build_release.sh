@@ -33,4 +33,8 @@ flutter build appbundle --release \
 echo
 echo "✓ Build complete:"
 echo "  AAB:     build/app/outputs/bundle/release/app-release.aab"
-echo "  Symbols: build/symbols/   (upload to Sentry / Play Console)"
+echo "  Symbols: build/symbols/"
+echo
+echo "  Crashlytics auto-receives native (NDK) symbols via the Gradle"
+echo "  plugin. For obfuscated Dart stack traces, decode locally with:"
+echo "    flutter symbolize -i <crash.txt> -d build/symbols/app.android-arm64.symbols"

@@ -1,9 +1,9 @@
 /// App-wide configuration loaded via `--dart-define-from-file=env/<env>.json`.
 ///
-/// Secrets — the Supabase URL/anon key, the Yandex Geocoder key, the Sentry
-/// DSN — have **no compiled-in defaults**. A build with no env file leaves
-/// them empty and [assertConfigured] aborts boot. This is what keeps real
-/// credentials out of the source tree and the decompiled APK (ROADMAP A.1/A.4).
+/// Secrets — the Supabase URL/anon key, the Yandex Geocoder key — have
+/// **no compiled-in defaults**. A build with no env file leaves them empty
+/// and [assertConfigured] aborts boot. This is what keeps real credentials
+/// out of the source tree and the decompiled APK (ROADMAP A.1/A.4).
 class AppConfig {
   const AppConfig._();
 
@@ -16,10 +16,6 @@ class AppConfig {
 
   static const String yandexGeocoderApiKey =
       String.fromEnvironment('YANDEX_GEOCODER_API_KEY');
-
-  /// Crash-reporting DSN. Empty ⇒ Sentry initialises in a disabled state and
-  /// every `captureException` becomes a no-op (see `main.dart`).
-  static const String sentryDsn = String.fromEnvironment('SENTRY_DSN');
 
   /// Deployment environment tag. Non-secret: a missing value safely resolves
   /// to the non-production `dev` profile, so `isProd` can never be true by
