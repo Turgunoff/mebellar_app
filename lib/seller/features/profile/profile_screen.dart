@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
@@ -12,7 +13,6 @@ import '../../../core/theme/app_fonts.dart';
 import '../../../shared/models/tariff.dart';
 import '../../../shared/models/verification_status.dart';
 import '../../../shared/widgets/brand_refresh_indicator.dart';
-import '../notifications/screens/notifications_screen.dart';
 import '../reviews/screens/reviews_screen.dart';
 import '../settings/screens/services_screen.dart';
 import '../settings/screens/settings_screen.dart';
@@ -122,11 +122,15 @@ class _SellerProfileView extends StatelessWidget {
                         _SettingsCard(
                           items: [
                             _SettingsItem(
-                              icon: Iconsax.notification,
-                              title: 'Bildirishnomalar',
-                              onTap: () => _push(
-                                  context, const NotificationsScreen()),
+                              icon: Iconsax.message,
+                              title: 'Suhbatlar',
+                              subtitle: 'Mijozlar bilan yozishuvlar',
+                              onTap: () =>
+                                  context.push('/seller/chats'),
                             ),
+                            // Bildirishnomalar entry removed — the dashboard
+                            // bell icon is the canonical entry point, so this
+                            // row was redundant.
                             _SettingsItem(
                               icon: Iconsax.setting_2,
                               title: 'Sozlamalar',

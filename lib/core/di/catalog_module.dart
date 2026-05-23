@@ -8,6 +8,7 @@ import '../../shared/repositories/address_repository.dart';
 import '../../shared/repositories/banner_repository.dart';
 import '../../shared/repositories/cart_repository.dart';
 import '../../shared/repositories/category_repository.dart';
+import '../../shared/repositories/chat_repository.dart';
 import '../../shared/repositories/customer_reviews_repository.dart';
 import '../../shared/repositories/favorites_repository.dart';
 import '../../shared/repositories/hive_cart_repository.dart';
@@ -54,6 +55,13 @@ void registerCatalogModule(GetIt sl) {
     );
     sl.registerLazySingleton<SupabaseProductDataSource>(
       () => SupabaseProductRepository(supabase: sl<SupabaseClient>()),
+    );
+
+    // Order-scoped chats — Supabase-only because chat hinges on RLS
+    // (only the customer + shop owner can read a row) and there is no
+    // offline write path. A mock falls in only for the no-Supabase build.
+    sl.registerLazySingleton<ChatRepository>(
+      () => SupabaseChatRepository(supabase: sl<SupabaseClient>()),
     );
     sl.registerLazySingleton<NotificationDataSource>(
       () => SupabaseNotificationsRepository(supabase: sl<SupabaseClient>()),

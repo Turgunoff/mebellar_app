@@ -174,15 +174,26 @@ class _SearchIconButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
     return Material(
-      color: pt.imageBg,
+      color: pt.surface,
       shape: const CircleBorder(),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => context.push('/search'),
-        child: SizedBox(
-          width: 44,
-          height: 44,
-          child: Icon(Iconsax.search_normal_1, size: 20, color: pt.dark),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: pt.surface,
+            shape: BoxShape.circle,
+            boxShadow: PremiumTokens.softShadow,
+          ),
+          child: SizedBox(
+            width: 44,
+            height: 44,
+            child: Icon(
+              Iconsax.search_normal_1,
+              size: 19,
+              color: PremiumTokens.accent,
+            ),
+          ),
         ),
       ),
     );

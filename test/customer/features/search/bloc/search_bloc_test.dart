@@ -27,6 +27,12 @@ void main() {
   late _MockProductSource source;
   late _MockBox box;
 
+  setUpAll(() {
+    // Required by mocktail for matching `filter: any(named: 'filter')` against
+    // the non-nullable ProductSearchFilter parameter.
+    registerFallbackValue(const ProductSearchFilter());
+  });
+
   setUp(() {
     source = _MockProductSource();
     box = _MockBox();
@@ -41,8 +47,10 @@ void main() {
   blocTest<SearchBloc, SearchState>(
     'SearchQueryChanged debounces then emits [loading, ready]',
     build: () {
-      when(() => source.search(any()))
-          .thenAnswer((_) async => [_sp('a'), _sp('b')]);
+      when(() => source.search(
+            any(),
+            filter: any(named: 'filter'),
+          )).thenAnswer((_) async => [_sp('a'), _sp('b')]);
       return build();
     },
     act: (bloc) => bloc.add(const SearchQueryChanged('stol')),
@@ -60,7 +68,10 @@ void main() {
   blocTest<SearchBloc, SearchState>(
     'SearchQueryChanged emits [loading, failure] when the search throws',
     build: () {
-      when(() => source.search(any())).thenThrow(Exception('search down'));
+      when(() => source.search(
+            any(),
+            filter: any(named: 'filter'),
+          )).thenThrow(Exception('search down'));
       return build();
     },
     act: (bloc) => bloc.add(const SearchQueryChanged('stol')),
@@ -71,6 +82,75 @@ void main() {
       isA<SearchState>()
           .having((s) => s.status, 'status', SearchStatus.failure)
           .having((s) => s.error, 'error', isNotNull),
+    ],
+  );
+
+  blocTest<SearchBloc, SearchState>(
+    'SearchFilterChanged with non-empty filter triggers a search even when the '
+    'query is empty',
+    build: () {
+      when(() => source.search(
+            any(),
+            filter: any(named: 'filter'),
+          )).thenAnswer((_) async => [_sp('c')]);
+      return build();
+    },
+    act: (bloc) => bloc.add(
+      const SearchFilterChanged(
+        ProductSearchFilter(discountedOnly: true),
+      ),
+    ),
+    wait: _afterDebounce,
+    expect: () => [
+      isA<SearchState>()
+          .having((s) => s.status, 'status', SearchStatus.loading)
+          .having((s) => s.filter.discountedOnly, 'filter.discountedOnly', true),
+      isA<SearchState>()
+          .having((s) => s.status, 'status', SearchStatus.ready)
+          .having((s) => s.results.length, 'results', 1),
+    ],
+  );
+
+  blocTest<SearchBloc, SearchState>(
+    'A non-default sort with no other input still triggers a search',
+    build: () {
+      when(() => source.search(
+            any(),
+            filter: any(named: 'filter'),
+          )).thenAnswer((_) async => [_sp('d')]);
+      return build();
+    },
+    act: (bloc) => bloc.add(
+      const SearchFilterChanged(
+        ProductSearchFilter(sort: ProductSearchSort.priceAsc),
+      ),
+    ),
+    wait: _afterDebounce,
+    expect: () => [
+      isA<SearchState>()
+          .having((s) => s.status, 'status', SearchStatus.loading)
+          .having((s) => s.filter.sort, 'filter.sort', ProductSearchSort.priceAsc),
+      isA<SearchState>()
+          .having((s) => s.status, 'status', SearchStatus.ready)
+          .having((s) => s.results.length, 'results', 1),
+    ],
+  );
+
+  blocTest<SearchBloc, SearchState>(
+    'SearchFilterChanged back to empty filter (and no query) returns to idle',
+    build: build,
+    seed: () => const SearchState(
+      status: SearchStatus.ready,
+      filter: ProductSearchFilter(discountedOnly: true),
+      results: [],
+    ),
+    act: (bloc) =>
+        bloc.add(const SearchFilterChanged(ProductSearchFilter())),
+    wait: _afterDebounce,
+    expect: () => [
+      isA<SearchState>()
+          .having((s) => s.status, 'status', SearchStatus.idle)
+          .having((s) => s.filter.isEmpty, 'filter.isEmpty', true),
     ],
   );
 

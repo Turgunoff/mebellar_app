@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../../../core/theme/app_fonts.dart';
@@ -7,9 +8,18 @@ import 'order_details_kit.dart';
 
 /// White-surface app bar with a bold Jakarta title and a hairline divider.
 class OrderAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const OrderAppBar({super.key, required this.orderId});
+  const OrderAppBar({
+    super.key,
+    required this.orderId,
+    this.orderUuid,
+  });
 
   final String orderId;
+
+  /// When set, the trailing chat button is rendered and routes to the
+  /// seller's view of the chat for this order. Null for synthetic /
+  /// not-yet-loaded states.
+  final String? orderUuid;
 
   @override
   Size get preferredSize => const Size.fromHeight(56);
@@ -40,6 +50,15 @@ class OrderAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
       ),
       centerTitle: false,
+      actions: [
+        if (orderUuid != null)
+          IconButton(
+            tooltip: 'Mijoz bilan suhbat',
+            icon: const Icon(Iconsax.message, color: kInk, size: 22),
+            onPressed: () =>
+                context.push('/seller/orders/$orderUuid/chat'),
+          ),
+      ],
       bottom: const PreferredSize(
         preferredSize: Size.fromHeight(1),
         child: Divider(height: 1, thickness: 1, color: kDivider),

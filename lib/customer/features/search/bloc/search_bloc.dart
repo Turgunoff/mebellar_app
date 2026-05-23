@@ -28,6 +28,16 @@ class SearchSubmitted extends SearchEvent {
   List<Object?> get props => [query];
 }
 
+/// User changed the filter sheet — apply it and re-run the search. Goes
+/// through the same debounce as text input so a rapid sequence of toggles
+/// (common when wiping out a panel of filters) only fires one request.
+class SearchFilterChanged extends SearchEvent {
+  const SearchFilterChanged(this.filter);
+  final ProductSearchFilter filter;
+  @override
+  List<Object?> get props => [filter];
+}
+
 class SearchHistoryCleared extends SearchEvent {
   const SearchHistoryCleared();
 }
@@ -38,6 +48,7 @@ class SearchState extends Equatable {
   const SearchState({
     this.status = SearchStatus.idle,
     this.query = '',
+    this.filter = const ProductSearchFilter(),
     this.results = const [],
     this.recent = const [],
     this.error,
@@ -45,13 +56,20 @@ class SearchState extends Equatable {
 
   final SearchStatus status;
   final String query;
+  final ProductSearchFilter filter;
   final List<SupabaseProductModel> results;
   final List<String> recent;
   final String? error;
 
+  /// True when the user has either typed something or expressed any filter
+  /// intent (a facet OR a non-default sort). Drives the screen's choice
+  /// between the "browse" idle state and the results grid.
+  bool get hasInput => query.isNotEmpty || !filter.isDefault;
+
   SearchState copyWith({
     SearchStatus? status,
     String? query,
+    ProductSearchFilter? filter,
     List<SupabaseProductModel>? results,
     List<String>? recent,
     String? error,
@@ -60,6 +78,7 @@ class SearchState extends Equatable {
     return SearchState(
       status: status ?? this.status,
       query: query ?? this.query,
+      filter: filter ?? this.filter,
       results: results ?? this.results,
       recent: recent ?? this.recent,
       error: clearError ? null : (error ?? this.error),
@@ -67,17 +86,18 @@ class SearchState extends Equatable {
   }
 
   @override
-  List<Object?> get props => [status, query, results, recent, error];
+  List<Object?> get props => [status, query, filter, results, recent, error];
 }
 
 class SearchBloc extends Bloc<SearchEvent, SearchState> {
   SearchBloc({
     required SupabaseProductDataSource source,
     required Box cacheBox,
-  }) : _source = source,
-       _cache = cacheBox,
-       super(SearchState(recent: _readRecent(cacheBox))) {
+  })  : _source = source,
+        _cache = cacheBox,
+        super(SearchState(recent: _readRecent(cacheBox))) {
     on<SearchQueryChanged>(_onQueryChanged, transformer: _debounce());
+    on<SearchFilterChanged>(_onFilterChanged, transformer: _debounce());
     on<SearchSubmitted>(_onSubmitted);
     on<SearchHistoryCleared>(_onHistoryCleared);
   }
@@ -98,10 +118,10 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
   }
 
   /// ROADMAP B.7 — debounce + `restartable`. The debounce drops keystrokes
-  /// that arrive within `_debounceDuration` of each other so we don't fire a
-  /// Supabase request per keystroke; `restartable` then cancels any still
-  /// in-flight search when a newer query settles, so a slow request can't
-  /// land stale results over a fresher query.
+  /// (and rapid filter toggles) that arrive within `_debounceDuration` of
+  /// each other so we don't fire a Supabase request per change; `restartable`
+  /// cancels any still-in-flight search when a newer one settles, so a slow
+  /// request can't land stale results over fresher input.
   EventTransformer<E> _debounce<E>() {
     return (events, mapper) {
       final debounced =
@@ -114,12 +134,31 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
     SearchQueryChanged event,
     Emitter<SearchState> emit,
   ) async {
-    final q = event.query.trim();
-    if (q.isEmpty) {
+    await _runSearch(event.query.trim(), state.filter, emit);
+  }
+
+  Future<void> _onFilterChanged(
+    SearchFilterChanged event,
+    Emitter<SearchState> emit,
+  ) async {
+    await _runSearch(state.query, event.filter, emit);
+  }
+
+  Future<void> _runSearch(
+    String query,
+    ProductSearchFilter filter,
+    Emitter<SearchState> emit,
+  ) async {
+    // No query and a default (untouched) filter => nothing to search; reset
+    // to idle so the screen shows the "browse" placeholder rather than a
+    // stale results list. A non-default sort alone is intent enough to
+    // proceed — the data source orders the whole catalogue accordingly.
+    if (query.isEmpty && filter.isDefault) {
       emit(
         state.copyWith(
           status: SearchStatus.idle,
-          query: '',
+          query: query,
+          filter: filter,
           results: const [],
           clearError: true,
         ),
@@ -129,18 +168,19 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
     emit(
       state.copyWith(
         status: SearchStatus.loading,
-        query: q,
+        query: query,
+        filter: filter,
         clearError: true,
       ),
     );
     try {
-      final results = await _source.search(q);
-      // A faster keystroke may have superseded this query — drop the result
-      // if so to avoid a flicker of stale data.
-      if (state.query != q) return;
+      final results = await _source.search(query, filter: filter);
+      // A newer keystroke or filter toggle may have superseded this request —
+      // drop the result if so to avoid a flicker of stale data.
+      if (state.query != query || state.filter != filter) return;
       emit(state.copyWith(status: SearchStatus.ready, results: results));
     } catch (e) {
-      if (state.query != q) return;
+      if (state.query != query || state.filter != filter) return;
       emit(state.copyWith(status: SearchStatus.failure, error: e.toString()));
     }
   }

@@ -16,6 +16,9 @@ import 'features/orders/bloc/seller_orders_bloc.dart';
 import 'features/orders/screens/order_details_screen.dart';
 import 'features/orders/screens/seller_orders_screen.dart';
 import 'features/products/screens/product_form_screen.dart';
+import '../shared/chat/screens/chat_thread_screen.dart';
+import '../shared/chat/screens/chats_list_screen.dart';
+import '../shared/models/chat.dart';
 import 'features/products/screens/seller_product_detail_screen.dart';
 import 'features/products/screens/seller_products_screen.dart';
 import 'features/profile/profile_screen.dart';
@@ -202,6 +205,32 @@ GoRouter buildSellerRouter() {
       GoRoute(
         path: '/seller/notifications',
         builder: (_, _) => const NotificationsScreen(),
+      ),
+      GoRoute(
+        path: '/seller/chats',
+        builder: (_, _) => ChatsListScreen(
+          viewer: ChatSenderRole.seller,
+          threadRouteBuilder: (c) => '/seller/chats/${c.id}',
+        ),
+      ),
+      GoRoute(
+        path: '/seller/chats/:chatId',
+        builder: (context, state) => ChatThreadScreen(
+          viewer: ChatSenderRole.seller,
+          chatId: state.pathParameters['chatId']!,
+          onOpenOrder: (orderId) =>
+              context.push('/seller/orders/$orderId'),
+        ),
+      ),
+      // Seller's order detail jumps here — chat row must already exist
+      // (customer creates it on first send), so this calls `getChat`
+      // by order indirectly through the bootstrap.
+      GoRoute(
+        path: '/seller/orders/:orderId/chat',
+        builder: (context, state) => ChatThreadScreen(
+          viewer: ChatSenderRole.seller,
+          orderId: state.pathParameters['orderId']!,
+        ),
       ),
     ],
   );

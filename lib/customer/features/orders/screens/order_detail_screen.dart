@@ -2,6 +2,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:iconsax_flutter/iconsax_flutter.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../shared/models/order.dart'
     show FeeAdjustmentStatus, Order, OrderItem;
@@ -79,6 +81,11 @@ class _Body extends StatelessWidget {
       appBar: AppBar(
         title: Text(order.orderNumber),
         actions: [
+          IconButton(
+            tooltip: tr('chat.open_for_order'),
+            icon: const Icon(Iconsax.message),
+            onPressed: () => context.push('/orders/${order.id}/chat'),
+          ),
           if (state.realtimeConnected)
             Padding(
               padding: const EdgeInsets.only(right: 12),

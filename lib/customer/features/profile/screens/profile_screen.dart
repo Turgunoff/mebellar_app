@@ -6,6 +6,7 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import '../../../../config/app_mode.dart';
 import '../../../../core/auth/app_mode_cubit.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/i18n/i18n.dart';
 import '../../../widgets/glass_bottom_nav.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../../orders/cubit/profile_orders_cubit.dart';
@@ -73,6 +74,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   List<MenuEntry> _buildMenuItems(BuildContext context) => [
+    MenuEntry(
+      icon: Iconsax.message,
+      label: tr('chat.title'),
+      onTap: () => context.push('/chats'),
+    ),
     MenuEntry(
       icon: Iconsax.setting_2,
       label: 'Sozlamalar',

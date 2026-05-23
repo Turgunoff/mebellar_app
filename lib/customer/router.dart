@@ -6,6 +6,10 @@ import 'package:talker_flutter/talker_flutter.dart';
 import '../config/app_mode.dart';
 import '../core/di/service_locator.dart';
 import '../shared/models/supabase_product_model.dart';
+import '../shared/chat/screens/chat_thread_screen.dart';
+import '../shared/chat/screens/chats_list_screen.dart';
+import '../shared/models/chat.dart';
+import '../shared/repositories/supabase_category_repository.dart';
 import '../shared/repositories/supabase_product_data_source.dart';
 import '../core/logging/console_nav_observer.dart';
 import '../core/logging/talker.dart';
@@ -82,8 +86,10 @@ GoRouter buildCustomerRouter() {
           final categoryName =
               state.uri.queryParameters['categoryName'] ?? 'Products';
           return BlocProvider(
-            create: (_) => ProductListCubit(sl<SupabaseProductDataSource>())
-              ..load(categoryId: categoryId, subcategoryId: subcategoryId),
+            create: (_) => ProductListCubit(
+              sl<SupabaseProductDataSource>(),
+              sl<CategoryDataSource>(),
+            )..load(categoryId: categoryId, subcategoryId: subcategoryId),
             child: ProductListScreen(
               categoryId: categoryId,
               subcategoryId: subcategoryId,
@@ -103,6 +109,33 @@ GoRouter buildCustomerRouter() {
       GoRoute(
         path: '/search',
         builder: (context, state) => const SearchScreen(),
+      ),
+      GoRoute(
+        path: '/chats',
+        builder: (context, state) => ChatsListScreen(
+          viewer: ChatSenderRole.customer,
+          threadRouteBuilder: (c) => '/chats/${c.id}',
+        ),
+      ),
+      // Open by chat id — used from the chat list.
+      GoRoute(
+        path: '/chats/:chatId',
+        builder: (context, state) => ChatThreadScreen(
+          viewer: ChatSenderRole.customer,
+          chatId: state.pathParameters['chatId']!,
+          onOpenOrder: (orderId) =>
+              context.push('/orders/$orderId'),
+        ),
+      ),
+      // Open by order id — lazily creates the chat row if needed. Used
+      // from the order detail screen so the customer can DM the seller
+      // without first hopping through the chat list.
+      GoRoute(
+        path: '/orders/:orderId/chat',
+        builder: (context, state) => ChatThreadScreen(
+          viewer: ChatSenderRole.customer,
+          orderId: state.pathParameters['orderId']!,
+        ),
       ),
       GoRoute(
         path: '/products/:slug',

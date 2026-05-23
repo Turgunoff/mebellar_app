@@ -5,9 +5,11 @@ import 'package:woody_app/shared/repositories/seller_analytics_repository.dart';
 
 /// Test double for [SellerAnalyticsRepository] with deterministic snapshots.
 ///
-/// Per-range overrides + a "next call fails" knob cover every cubit branch
-/// (initial load, success → success refetch, range change, failure, racy
-/// out-of-order responses).
+/// Per-filter overrides + a "next call fails" knob cover every cubit branch
+/// (initial load, success → success refetch, filter change, failure, racy
+/// out-of-order responses). Custom filters fall back to the preset-keyed
+/// snapshot for their underlying range so tests don't have to enumerate
+/// every custom window.
 class FakeSellerAnalyticsRepository implements SellerAnalyticsRepository {
   FakeSellerAnalyticsRepository({Map<AnalyticsRange, AnalyticsSnapshot>? seed})
       : _byRange = {...?seed};
@@ -16,8 +18,8 @@ class FakeSellerAnalyticsRepository implements SellerAnalyticsRepository {
   Failure? _nextFailure;
   Future<void> Function()? _onSnapshotCalled;
 
-  /// Last range the cubit asked for — useful for verifying call sequencing.
-  AnalyticsRange? lastRequested;
+  /// Last filter the cubit asked for — useful for verifying call sequencing.
+  AnalyticsFilter? lastRequested;
 
   int snapshotCalls = 0;
 
@@ -39,11 +41,11 @@ class FakeSellerAnalyticsRepository implements SellerAnalyticsRepository {
 
   @override
   Future<Result<AnalyticsSnapshot>> snapshot(
-    AnalyticsRange range, {
+    AnalyticsFilter filter, {
     DateTime? now,
   }) async {
     snapshotCalls += 1;
-    lastRequested = range;
+    lastRequested = filter;
     final hook = _onSnapshotCalled;
     if (hook != null) await hook();
     final failure = _nextFailure;
@@ -51,7 +53,7 @@ class FakeSellerAnalyticsRepository implements SellerAnalyticsRepository {
       _nextFailure = null;
       return Err(failure);
     }
-    final snap = _byRange[range] ?? AnalyticsSnapshot.empty(range);
+    final snap = _byRange[filter.range] ?? AnalyticsSnapshot.empty(filter);
     return Ok(snap);
   }
 }

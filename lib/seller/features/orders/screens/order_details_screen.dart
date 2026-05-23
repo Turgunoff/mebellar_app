@@ -158,7 +158,10 @@ class _OrderDetailView extends StatelessWidget {
         final order = state.order;
         return Scaffold(
           backgroundColor: AppColors.lightBackground,
-          appBar: OrderAppBar(orderId: order?.orderNumber ?? 'tafsilotlari'),
+          appBar: OrderAppBar(
+            orderId: order?.orderNumber ?? 'tafsilotlari',
+            orderUuid: order?.id,
+          ),
           body: _buildBody(context, state, order),
           bottomNavigationBar: order == null
               ? null

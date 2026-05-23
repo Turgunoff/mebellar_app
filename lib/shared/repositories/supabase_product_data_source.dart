@@ -2,10 +2,134 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/supabase_product_model.dart';
 
+/// Ordering options accepted by [SupabaseProductDataSource.search]. The search
+/// feature renders one of these by default and lets the user pick a different
+/// one from the filter sheet. New sort options should land here (and in the
+/// implementation `_applySort`) rather than as ad-hoc orderings on the call
+/// site so every search path stays consistent.
+enum ProductSearchSort {
+  /// Default — newest products first.
+  newest,
+  /// Cheapest first using `effective_price` so discounts are honoured.
+  priceAsc,
+  /// Most expensive first.
+  priceDesc,
+}
+
+/// All non-text criteria that narrow a product search. Empty collections and
+/// `null` numerics mean "no constraint" — the search SQL only adds a `WHERE`
+/// for the dimensions the user actually touched, so a freshly opened sheet
+/// behaves identically to no filter at all.
+class ProductSearchFilter {
+  const ProductSearchFilter({
+    this.categoryIds = const {},
+    this.colors = const {},
+    this.minPrice,
+    this.maxPrice,
+    this.inStockOnly = false,
+    this.discountedOnly = false,
+    this.deliveryOnly = false,
+    this.sort = ProductSearchSort.newest,
+  });
+
+  final Set<String> categoryIds;
+  final Set<String> colors;
+  final int? minPrice;
+  final int? maxPrice;
+  final bool inStockOnly;
+  final bool discountedOnly;
+  final bool deliveryOnly;
+  final ProductSearchSort sort;
+
+  /// Number of distinct filter facets currently active. Used to render the
+  /// badge on the search bar's filter button and the "apply" CTA count.
+  /// Sort is excluded — a sort is always implicitly present, so counting it
+  /// would make the badge non-zero for an otherwise untouched filter.
+  int get activeCount {
+    var n = 0;
+    if (categoryIds.isNotEmpty) n++;
+    if (colors.isNotEmpty) n++;
+    if (minPrice != null || maxPrice != null) n++;
+    if (inStockOnly) n++;
+    if (discountedOnly) n++;
+    if (deliveryOnly) n++;
+    return n;
+  }
+
+  bool get isEmpty => activeCount == 0;
+  bool get isNotEmpty => !isEmpty;
+
+  /// True when the filter is in its default state: no facets active AND the
+  /// sort is the implicit "newest" default. A non-default sort alone counts
+  /// as user intent — we'll search the whole catalogue ordered by it so the
+  /// "price low → high" choice in an otherwise-empty sheet returns results
+  /// instead of silently doing nothing.
+  bool get isDefault =>
+      activeCount == 0 && sort == ProductSearchSort.newest;
+
+  ProductSearchFilter copyWith({
+    Set<String>? categoryIds,
+    Set<String>? colors,
+    int? minPrice,
+    int? maxPrice,
+    bool? inStockOnly,
+    bool? discountedOnly,
+    bool? deliveryOnly,
+    ProductSearchSort? sort,
+    bool clearMinPrice = false,
+    bool clearMaxPrice = false,
+  }) {
+    return ProductSearchFilter(
+      categoryIds: categoryIds ?? this.categoryIds,
+      colors: colors ?? this.colors,
+      minPrice: clearMinPrice ? null : (minPrice ?? this.minPrice),
+      maxPrice: clearMaxPrice ? null : (maxPrice ?? this.maxPrice),
+      inStockOnly: inStockOnly ?? this.inStockOnly,
+      discountedOnly: discountedOnly ?? this.discountedOnly,
+      deliveryOnly: deliveryOnly ?? this.deliveryOnly,
+      sort: sort ?? this.sort,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ProductSearchFilter &&
+          _setEq(categoryIds, other.categoryIds) &&
+          _setEq(colors, other.colors) &&
+          minPrice == other.minPrice &&
+          maxPrice == other.maxPrice &&
+          inStockOnly == other.inStockOnly &&
+          discountedOnly == other.discountedOnly &&
+          deliveryOnly == other.deliveryOnly &&
+          sort == other.sort;
+
+  @override
+  int get hashCode => Object.hash(
+        Object.hashAllUnordered(categoryIds),
+        Object.hashAllUnordered(colors),
+        minPrice,
+        maxPrice,
+        inStockOnly,
+        discountedOnly,
+        deliveryOnly,
+        sort,
+      );
+
+  static bool _setEq(Set<String> a, Set<String> b) {
+    if (a.length != b.length) return false;
+    for (final v in a) {
+      if (!b.contains(v)) return false;
+    }
+    return true;
+  }
+}
+
 abstract class SupabaseProductDataSource {
   Future<List<SupabaseProductModel>> listByCategory({
     required String categoryId,
     String? subcategoryId,
+    ProductSearchFilter filter,
   });
   Future<List<SupabaseProductModel>> listBySubcategory({
     required String subcategoryId,
@@ -16,8 +140,14 @@ abstract class SupabaseProductDataSource {
   /// "Recommended for you" rail until we have a real recs engine.
   Future<List<SupabaseProductModel>> listAll({int limit = 10});
 
-  /// Case-insensitive `ilike` over name + description. Returns newest-first.
-  Future<List<SupabaseProductModel>> search(String query, {int limit = 30});
+  /// Case-insensitive `ilike` over name + description, narrowed by [filter].
+  /// An empty [query] is allowed when [filter] is non-empty, so the user can
+  /// browse the catalogue by filter alone (e.g. "show me discounted sofas").
+  Future<List<SupabaseProductModel>> search(
+    String query, {
+    ProductSearchFilter filter,
+    int limit = 30,
+  });
 
   /// Rule-based "similar products" for the detail-page carousel. Ranking
   /// (shared subcategory, stock, material, price proximity) is done
@@ -51,6 +181,7 @@ class SupabaseProductRepository implements SupabaseProductDataSource {
   Future<List<SupabaseProductModel>> listByCategory({
     required String categoryId,
     String? subcategoryId,
+    ProductSearchFilter filter = const ProductSearchFilter(),
   }) async {
     var query = _supabase
         .from('products')
@@ -61,9 +192,12 @@ class SupabaseProductRepository implements SupabaseProductDataSource {
     if (subcategoryId != null) {
       query = query.eq('subcategory_id', subcategoryId);
     }
+    // `filter.categoryIds` is ignored here on purpose — the explicit
+    // `categoryId` argument already pins the category and would conflict.
+    query = _applyFacetFilters(query, filter);
 
-    final data = await query.order('created_at', ascending: false);
-    return data.map(SupabaseProductModel.fromJson).toList(growable: false);
+    final data = await _applySort(query, filter.sort);
+    return _decodeAndPostFilter(data, filter);
   }
 
   @override
@@ -107,27 +241,113 @@ class SupabaseProductRepository implements SupabaseProductDataSource {
   @override
   Future<List<SupabaseProductModel>> search(
     String query, {
+    ProductSearchFilter filter = const ProductSearchFilter(),
     int limit = 30,
   }) async {
     final term = query.trim();
-    if (term.isEmpty) return const [];
-    // Escape the % and _ wildcards so user input can't broaden the match.
-    final escaped = term
-        .replaceAll(r'\', r'\\')
-        .replaceAll('%', r'\%')
-        .replaceAll('_', r'\_');
-    final pattern = '%$escaped%';
-    final data = await _supabase
+    // Allow filter-only and sort-only browsing: an empty query is fine as
+    // long as the user has expressed *some* intent — either a facet filter
+    // or a non-default sort (e.g. "show me the cheapest items"). Truly
+    // empty input would dump the entire catalogue in default order, which
+    // is what the home rails already do — guard against that.
+    if (term.isEmpty && filter.isDefault) return const [];
+
+    var query0 = _supabase
         .from('products')
         .select(_select)
-        .eq('status', _approvedStatus)
-        .or('name.ilike.$pattern,description.ilike.$pattern')
-        .order('created_at', ascending: false)
-        .limit(limit);
-    return (data as List)
+        .eq('status', _approvedStatus);
+
+    if (term.isNotEmpty) {
+      // Escape the % and _ wildcards so user input can't broaden the match.
+      final escaped = term
+          .replaceAll(r'\', r'\\')
+          .replaceAll('%', r'\%')
+          .replaceAll('_', r'\_');
+      final pattern = '%$escaped%';
+      query0 = query0.or('name.ilike.$pattern,description.ilike.$pattern');
+    }
+
+    if (filter.categoryIds.isNotEmpty) {
+      query0 = query0.inFilter('category_id', filter.categoryIds.toList());
+    }
+    query0 = _applyFacetFilters(query0, filter);
+
+    // `discountedOnly` lives on the variant row, not the product, so it
+    // can't be expressed as a column filter — we drop non-discounted rows
+    // in Dart after the round-trip. Doubling the SQL `LIMIT` when that
+    // filter is on keeps the post-filter result size reasonable for the
+    // common case where roughly half of products have a discount.
+    final fetchLimit = filter.discountedOnly ? limit * 2 : limit;
+
+    final data = await _applySort(query0, filter.sort).limit(fetchLimit);
+    return _decodeAndPostFilter(data, filter, capAt: limit);
+  }
+
+  /// Apply every non-text, non-category filter facet to [query]. Shared by
+  /// `search` and `listByCategory` so a new facet (e.g. "free shipping")
+  /// only needs to be wired up once for both code paths.
+  PostgrestFilterBuilder<PostgrestList> _applyFacetFilters(
+    PostgrestFilterBuilder<PostgrestList> query,
+    ProductSearchFilter filter,
+  ) {
+    if (filter.colors.isNotEmpty) {
+      // `colors` on products is `text[]`; `overlaps` matches when any of
+      // the requested slugs appears on the product — the OR-across-colors
+      // a shopper expects when ticking multiple swatches.
+      query = query.overlaps('colors', filter.colors.toList());
+    }
+    if (filter.minPrice != null) {
+      query = query.gte('price', filter.minPrice!);
+    }
+    if (filter.maxPrice != null) {
+      query = query.lte('price', filter.maxPrice!);
+    }
+    if (filter.inStockOnly) {
+      query = query.gt('stock', 0);
+    }
+    if (filter.deliveryOnly) {
+      query = query.eq('has_delivery', true);
+    }
+    return query;
+  }
+
+  /// Convert a PostgREST payload into models and apply post-fetch filters
+  /// that can't be expressed in SQL (today: `discountedOnly`, which lives
+  /// on the variant row). [capAt] hard-caps the returned list — pass it
+  /// from `search` to keep the page size bounded after the post-filter,
+  /// omit for category browsing where the category arg already bounds it.
+  List<SupabaseProductModel> _decodeAndPostFilter(
+    List<dynamic> data,
+    ProductSearchFilter filter, {
+    int? capAt,
+  }) {
+    var results = data
         .whereType<Map<String, dynamic>>()
         .map(SupabaseProductModel.fromJson)
-        .toList(growable: false);
+        .toList();
+    if (filter.discountedOnly) {
+      results = results.where((p) => p.hasDiscount).toList();
+    }
+    if (capAt != null && results.length > capAt) {
+      results = results.sublist(0, capAt);
+    }
+    return List.unmodifiable(results);
+  }
+
+  /// Apply the user-chosen ordering. Kept separate so the same builder can be
+  /// reused if we add more sort modes — every new mode lands here AND in
+  /// [ProductSearchSort]. Falls through to created_at when an unknown value
+  /// somehow reaches the data layer (defensive — the enum prevents this at
+  /// the call site).
+  PostgrestTransformBuilder<PostgrestList> _applySort(
+    PostgrestFilterBuilder<PostgrestList> query,
+    ProductSearchSort sort,
+  ) {
+    return switch (sort) {
+      ProductSearchSort.newest => query.order('created_at', ascending: false),
+      ProductSearchSort.priceAsc => query.order('price', ascending: true),
+      ProductSearchSort.priceDesc => query.order('price', ascending: false),
+    };
   }
 
   @override
@@ -245,15 +465,39 @@ class MockSupabaseProductDataSource implements SupabaseProductDataSource {
   Future<List<SupabaseProductModel>> listByCategory({
     required String categoryId,
     String? subcategoryId,
+    ProductSearchFilter filter = const ProductSearchFilter(),
   }) async {
     await Future<void>.delayed(_delay);
-    return _all
-        .where(
-          (p) =>
-              p.categoryId == categoryId &&
-              (subcategoryId == null || p.subcategoryId == subcategoryId),
-        )
-        .toList(growable: false);
+    var results = _all.where((p) {
+      if (p.categoryId != categoryId) return false;
+      if (subcategoryId != null && p.subcategoryId != subcategoryId) {
+        return false;
+      }
+      if (filter.colors.isNotEmpty &&
+          !p.colors.any(filter.colors.contains)) {
+        return false;
+      }
+      if (filter.minPrice != null && p.effectivePrice < filter.minPrice!) {
+        return false;
+      }
+      if (filter.maxPrice != null && p.effectivePrice > filter.maxPrice!) {
+        return false;
+      }
+      if (filter.inStockOnly && !p.inStock) return false;
+      if (filter.discountedOnly && !p.hasDiscount) return false;
+      if (filter.deliveryOnly && !p.hasDelivery) return false;
+      return true;
+    }).toList();
+
+    switch (filter.sort) {
+      case ProductSearchSort.newest:
+        results.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      case ProductSearchSort.priceAsc:
+        results.sort((a, b) => a.effectivePrice.compareTo(b.effectivePrice));
+      case ProductSearchSort.priceDesc:
+        results.sort((a, b) => b.effectivePrice.compareTo(a.effectivePrice));
+    }
+    return List.unmodifiable(results);
   }
 
   @override
@@ -286,19 +530,48 @@ class MockSupabaseProductDataSource implements SupabaseProductDataSource {
   @override
   Future<List<SupabaseProductModel>> search(
     String query, {
+    ProductSearchFilter filter = const ProductSearchFilter(),
     int limit = 30,
   }) async {
     final term = query.trim().toLowerCase();
-    if (term.isEmpty) return const [];
+    if (term.isEmpty && filter.isEmpty) return const [];
     await Future<void>.delayed(_delay);
-    return _all
-        .where(
-          (p) =>
-              p.name.toLowerCase().contains(term) ||
-              (p.description ?? '').toLowerCase().contains(term),
-        )
-        .take(limit)
-        .toList(growable: false);
+    var results = _all.where((p) {
+      if (term.isNotEmpty) {
+        final hit = p.name.toLowerCase().contains(term) ||
+            (p.description ?? '').toLowerCase().contains(term);
+        if (!hit) return false;
+      }
+      if (filter.categoryIds.isNotEmpty &&
+          !filter.categoryIds.contains(p.categoryId)) {
+        return false;
+      }
+      if (filter.colors.isNotEmpty &&
+          !p.colors.any(filter.colors.contains)) {
+        return false;
+      }
+      if (filter.minPrice != null && p.effectivePrice < filter.minPrice!) {
+        return false;
+      }
+      if (filter.maxPrice != null && p.effectivePrice > filter.maxPrice!) {
+        return false;
+      }
+      if (filter.inStockOnly && !p.inStock) return false;
+      if (filter.discountedOnly && !p.hasDiscount) return false;
+      if (filter.deliveryOnly && !p.hasDelivery) return false;
+      return true;
+    }).toList();
+
+    switch (filter.sort) {
+      case ProductSearchSort.newest:
+        results.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      case ProductSearchSort.priceAsc:
+        results.sort((a, b) => a.effectivePrice.compareTo(b.effectivePrice));
+      case ProductSearchSort.priceDesc:
+        results.sort((a, b) => b.effectivePrice.compareTo(a.effectivePrice));
+    }
+
+    return results.take(limit).toList(growable: false);
   }
 
   @override

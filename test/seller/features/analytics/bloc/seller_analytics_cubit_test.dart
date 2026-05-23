@@ -15,7 +15,7 @@ void main() {
     int units = 7,
   }) {
     return AnalyticsSnapshot(
-      range: range,
+      filter: AnalyticsFilter(range: range),
       totalRevenue: revenue,
       previousRevenue: previous,
       ordersCount: orders,
@@ -24,6 +24,9 @@ void main() {
       series: const [],
       topProducts: const [],
       categoryBreakdown: const [],
+      orders: OrdersBreakdown.empty(),
+      reviews: ReviewsBreakdown.empty(),
+      customers: CustomersBreakdown.empty(),
     );
   }
 
@@ -92,7 +95,7 @@ void main() {
         await cubit.changeRange(AnalyticsRange.d7);
       },
       verify: (cubit) {
-        expect(cubit.state.range, AnalyticsRange.d7);
+        expect(cubit.state.filter.range, AnalyticsRange.d7);
         expect(cubit.state.status, SellerAnalyticsStatus.ready);
         expect(cubit.state.snapshot?.totalRevenue, 25);
       },
@@ -165,10 +168,45 @@ void main() {
         await loadFuture;
       },
       verify: (cubit) {
-        expect(cubit.state.range, AnalyticsRange.d7);
+        expect(cubit.state.filter.range, AnalyticsRange.d7);
         // d7 is the active range, so its snapshot must be the visible one
         // regardless of the order in which the futures settled.
         expect(cubit.state.snapshot?.totalRevenue, 99);
+      },
+    );
+
+    blocTest<SellerAnalyticsCubit, SellerAnalyticsState>(
+      'changeTab is a pure view-only update — no repository call',
+      build: () {
+        repo.setSnapshot(
+          AnalyticsRange.d30,
+          snapshotWith(range: AnalyticsRange.d30),
+        );
+        return SellerAnalyticsCubit(repo);
+      },
+      act: (cubit) async {
+        await cubit.load();
+        final before = repo.snapshotCalls;
+        cubit.changeTab(AnalyticsTab.reviews);
+        expect(repo.snapshotCalls, before);
+      },
+      verify: (cubit) => expect(cubit.state.tab, AnalyticsTab.reviews),
+    );
+
+    blocTest<SellerAnalyticsCubit, SellerAnalyticsState>(
+      'applyCustomRange: swaps the filter and refetches',
+      build: () => SellerAnalyticsCubit(repo),
+      act: (cubit) async {
+        await cubit.load();
+        await cubit.applyCustomRange(
+          start: DateTime(2026, 4, 1),
+          end: DateTime(2026, 4, 30),
+        );
+      },
+      verify: (cubit) {
+        expect(cubit.state.filter.range, AnalyticsRange.custom);
+        expect(cubit.state.filter.customStart, DateTime(2026, 4, 1));
+        expect(cubit.state.filter.customEnd, DateTime(2026, 4, 30));
       },
     );
 
@@ -183,21 +221,16 @@ void main() {
     );
   });
 
-  group('AnalyticsRange windows', () {
+  group('AnalyticsFilter windows', () {
     final now = DateTime.utc(2026, 5, 20, 14, 35);
 
-    test('d7 currentWindow spans 7 days ending at the next UTC midnight', () {
-      final w = AnalyticsRange.d7.currentWindow(now);
+    test('d7 windowFor spans 7 days ending at the next UTC midnight', () {
+      const filter = AnalyticsFilter(range: AnalyticsRange.d7);
+      final w = filter.windowFor(now);
       expect(w.endExclusive, DateTime.utc(2026, 5, 21));
       expect(w.start, DateTime.utc(2026, 5, 14));
-      expect(
-        w.contains(DateTime.utc(2026, 5, 15, 10)),
-        isTrue,
-      );
-      expect(
-        w.contains(DateTime.utc(2026, 5, 14)),
-        isTrue,
-      );
+      expect(w.contains(DateTime.utc(2026, 5, 15, 10)), isTrue);
+      expect(w.contains(DateTime.utc(2026, 5, 14)), isTrue);
       expect(
         w.contains(DateTime.utc(2026, 5, 21)),
         isFalse,
@@ -205,25 +238,37 @@ void main() {
       );
     });
 
-    test('previousWindow is the immediately preceding span', () {
-      final cur = AnalyticsRange.d30.currentWindow(now);
-      final prev = AnalyticsRange.d30.previousWindow(now);
+    test('previousWindowFor is the immediately preceding span', () {
+      const filter = AnalyticsFilter(range: AnalyticsRange.d30);
+      final cur = filter.windowFor(now);
+      final prev = filter.previousWindowFor(now);
       expect(prev.endExclusive, cur.start);
       expect(prev.start, cur.start.subtract(const Duration(days: 30)));
     });
 
     test('m12 is monthly and 365 days wide', () {
-      final r = AnalyticsRange.m12;
+      const r = AnalyticsRange.m12;
       expect(r.isMonthly, isTrue);
       expect(r.buckets, 12);
       expect(r.days, 365);
+    });
+
+    test('custom range respects user-picked bounds', () {
+      final filter = AnalyticsFilter(
+        range: AnalyticsRange.custom,
+        customStart: DateTime(2026, 4, 1),
+        customEnd: DateTime(2026, 4, 30),
+      );
+      final w = filter.windowFor(now);
+      expect(w.start, DateTime.utc(2026, 4, 1));
+      expect(w.endExclusive, DateTime.utc(2026, 5, 1));
     });
   });
 
   group('AnalyticsSnapshot', () {
     test('deltaPercent is null when previous revenue is zero', () {
       final s = AnalyticsSnapshot(
-        range: AnalyticsRange.d7,
+        filter: const AnalyticsFilter(range: AnalyticsRange.d7),
         totalRevenue: 100,
         previousRevenue: 0,
         ordersCount: 1,
@@ -232,13 +277,16 @@ void main() {
         series: const [],
         topProducts: const [],
         categoryBreakdown: const [],
+        orders: OrdersBreakdown.empty(),
+        reviews: ReviewsBreakdown.empty(),
+        customers: CustomersBreakdown.empty(),
       );
       expect(s.deltaPercent, isNull);
     });
 
     test('deltaPercent computes the relative change', () {
       final s = AnalyticsSnapshot(
-        range: AnalyticsRange.d7,
+        filter: const AnalyticsFilter(range: AnalyticsRange.d7),
         totalRevenue: 120,
         previousRevenue: 100,
         ordersCount: 1,
@@ -247,12 +295,20 @@ void main() {
         series: const [],
         topProducts: const [],
         categoryBreakdown: const [],
+        orders: OrdersBreakdown.empty(),
+        reviews: ReviewsBreakdown.empty(),
+        customers: CustomersBreakdown.empty(),
       );
       expect(s.deltaPercent, 20);
     });
 
     test('isEmpty is true for the explicit empty factory', () {
-      expect(AnalyticsSnapshot.empty(AnalyticsRange.d30).isEmpty, isTrue);
+      expect(
+        AnalyticsSnapshot.empty(
+          const AnalyticsFilter(range: AnalyticsRange.d30),
+        ).isEmpty,
+        isTrue,
+      );
     });
   });
 }

@@ -8,6 +8,7 @@ import 'auth_translations.dart';
 import 'beta_translations.dart';
 import 'cart_translations.dart';
 import 'catalog_translations.dart';
+import 'chat_translations.dart';
 import 'checkout_translations.dart';
 import 'common_translations.dart';
 import 'home_translations.dart';
@@ -35,6 +36,7 @@ const Map<String, dynamic> uzTranslations = {
   'product': productUz,
   'shop': shopUz,
   'cart': cartUz,
+  'chat': chatUz,
   'favorites': favoritesUz,
   'attributes': attributesUz,
   'address': addressUz,
@@ -76,6 +78,7 @@ const Map<String, dynamic> ruTranslations = {
   'product': productRu,
   'shop': shopRu,
   'cart': cartRu,
+  'chat': chatRu,
   'favorites': favoritesRu,
   'attributes': attributesRu,
   'address': addressRu,
@@ -117,6 +120,7 @@ const Map<String, dynamic> enTranslations = {
   'product': productEn,
   'shop': shopEn,
   'cart': cartEn,
+  'chat': chatEn,
   'favorites': favoritesEn,
   'attributes': attributesEn,
   'address': addressEn,

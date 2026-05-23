@@ -8,12 +8,16 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../../core/i18n/i18n.dart';
+import '../../../../shared/models/category_model.dart';
 import '../../../../shared/models/multilingual_text.dart';
 import '../../../../shared/models/product.dart';
 import '../../../../shared/models/supabase_product_model.dart';
 import '../../../features/favorites/bloc/favorites_bloc.dart';
+import '../../../widgets/filter/active_filters_bar.dart';
+import '../../../widgets/filter/filter_button.dart';
 import '../../../widgets/glass_bottom_nav.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
+import '../../search/widgets/search_filter_sheet.dart';
 import '../cubit/product_list_cubit.dart';
 
 class ProductListScreen extends StatelessWidget {
@@ -27,6 +31,36 @@ class ProductListScreen extends StatelessWidget {
   final String categoryId;
   final String? subcategoryId;
   final String categoryName;
+
+  Future<void> _openFilter(
+    BuildContext context,
+    ProductListState state,
+  ) async {
+    final cubit = context.read<ProductListCubit>();
+    final next = await showSearchFilterSheet(
+      context,
+      initial: state.filter,
+      currentResultCount: state.products.length,
+      // Already scoped to one category — the multi-category picker would
+      // either be a no-op (when the chosen category matches) or contradict
+      // the current scope. Hiding it keeps the sheet focused.
+      showCategories: false,
+      availability: _availabilityFor(state),
+    );
+    if (next != null) await cubit.applyFilter(next);
+  }
+
+  /// Distil the currently visible products into "which facets are worth
+  /// showing in the filter sheet". The user shouldn't be offered a colour
+  /// or option that would guarantee zero results.
+  FilterAvailability _availabilityFor(ProductListState state) {
+    final products = state.products;
+    return FilterAvailability(
+      colorSlugs: products.expand((p) => p.colors).toSet(),
+      hasDiscounted: products.any((p) => p.hasDiscount),
+      hasDelivery: products.any((p) => p.hasDelivery),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +87,28 @@ class ProductListScreen extends StatelessWidget {
           return CustomScrollView(
             physics: const BouncingScrollPhysics(),
             slivers: [
-              _AppBar(title: categoryName),
+              _AppBar(
+                title: categoryName,
+                filterCount: state.filter.activeCount,
+                onFilterTap: () => _openFilter(context, state),
+              ),
+              if (state.subcategories.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: _SubcategoryChipsBar(
+                    subcategories: state.subcategories,
+                    selectedId: state.selectedSubcategoryId,
+                    onSelect: (id) =>
+                        context.read<ProductListCubit>().selectSubcategory(id),
+                  ),
+                ),
+              if (state.filter.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: ActiveFiltersBar(
+                    filter: state.filter,
+                    onChanged: (next) =>
+                        context.read<ProductListCubit>().applyFilter(next),
+                  ),
+                ),
               SliverPadding(
                 padding: EdgeInsets.fromLTRB(
                   16,
@@ -80,9 +135,15 @@ class ProductListScreen extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _AppBar extends StatelessWidget {
-  const _AppBar({required this.title});
+  const _AppBar({
+    required this.title,
+    required this.filterCount,
+    required this.onFilterTap,
+  });
 
   final String title;
+  final int filterCount;
+  final VoidCallback onFilterTap;
 
   @override
   Widget build(BuildContext context) {
@@ -101,6 +162,165 @@ class _AppBar extends StatelessWidget {
       title: Text(
         title,
         style: PremiumTokens.display(size: 22, letterSpacing: -0.4),
+      ),
+      actions: [
+        FilterButton(count: filterCount, onTap: onFilterTap),
+        const SizedBox(width: 8),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Subcategory chips
+// ---------------------------------------------------------------------------
+
+class _SubcategoryChipsBar extends StatefulWidget {
+  const _SubcategoryChipsBar({
+    required this.subcategories,
+    required this.selectedId,
+    required this.onSelect,
+  });
+
+  final List<SubcategoryModel> subcategories;
+
+  /// `null` means the "All" pseudo-chip is active.
+  final String? selectedId;
+  final ValueChanged<String?> onSelect;
+
+  @override
+  State<_SubcategoryChipsBar> createState() => _SubcategoryChipsBarState();
+}
+
+class _SubcategoryChipsBarState extends State<_SubcategoryChipsBar> {
+  final _scroll = ScrollController();
+  // Build a stable key per chip up front so [didUpdateWidget] can ask each
+  // chip for its current geometry via [RenderBox] and we can scroll the
+  // active one into view after the bloc swaps the selection.
+  late List<GlobalKey> _keys;
+
+  @override
+  void initState() {
+    super.initState();
+    _keys = List.generate(widget.subcategories.length + 1, (_) => GlobalKey());
+  }
+
+  @override
+  void didUpdateWidget(covariant _SubcategoryChipsBar old) {
+    super.didUpdateWidget(old);
+    if (widget.subcategories.length != old.subcategories.length) {
+      _keys =
+          List.generate(widget.subcategories.length + 1, (_) => GlobalKey());
+    }
+    if (widget.selectedId != old.selectedId) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToSelected());
+    }
+  }
+
+  void _scrollToSelected() {
+    if (!_scroll.hasClients) return;
+    final selectedIndex = widget.selectedId == null
+        ? 0
+        : widget.subcategories.indexWhere((s) => s.id == widget.selectedId) + 1;
+    if (selectedIndex < 0 || selectedIndex >= _keys.length) return;
+    final ctx = _keys[selectedIndex].currentContext;
+    if (ctx == null) return;
+    Scrollable.ensureVisible(
+      ctx,
+      alignment: 0.2,
+      duration: const Duration(milliseconds: 240),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = widget.selectedId;
+    return SizedBox(
+      height: 44,
+      child: ListView.separated(
+        controller: _scroll,
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+        itemCount: widget.subcategories.length + 1,
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        itemBuilder: (context, i) {
+          if (i == 0) {
+            return _SubcategoryChip(
+              key: _keys[0],
+              label: tr('common.all'),
+              selected: selected == null,
+              onTap: () => widget.onSelect(null),
+            );
+          }
+          final sub = widget.subcategories[i - 1];
+          return _SubcategoryChip(
+            key: _keys[i],
+            label: sub.name,
+            selected: selected == sub.id,
+            onTap: () => widget.onSelect(sub.id),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _SubcategoryChip extends StatelessWidget {
+  const _SubcategoryChip({
+    super.key,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(22),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: selected ? PremiumTokens.accent : pt.surface,
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: PremiumTokens.accent.withValues(alpha: 0.30),
+                      blurRadius: 14,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : PremiumTokens.softShadow,
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: PremiumTokens.body(
+                size: 13,
+                weight: FontWeight.w700,
+                color: selected ? Colors.white : pt.dark,
+                letterSpacing: 0.1,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
