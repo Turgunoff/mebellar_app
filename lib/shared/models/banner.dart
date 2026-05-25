@@ -53,6 +53,15 @@ class HomeBanner extends Equatable {
     );
   }
 
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'image_url': imageUrl,
+    'title': title?.toJson(),
+    'subtitle': subtitle?.toJson(),
+    'link_type': linkType,
+    'link_target': linkTarget,
+  };
+
   @override
   List<Object?> get props => [id, imageUrl];
 }

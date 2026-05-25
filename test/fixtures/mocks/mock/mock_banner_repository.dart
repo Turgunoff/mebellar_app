@@ -10,4 +10,7 @@ class MockBannerRepository implements BannerRepository {
     await Future<void>.delayed(_delay);
     return MockData.banners;
   }
+
+  @override
+  List<HomeBanner>? peek() => null;
 }

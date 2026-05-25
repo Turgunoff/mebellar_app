@@ -8,7 +8,6 @@ import 'package:shimmer/shimmer.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../shared/models/banner.dart';
-import '../../../../shared/models/category_model.dart';
 import '../../../../shared/models/multilingual_text.dart';
 import '../../../../shared/models/product.dart';
 import '../../../../shared/models/supabase_product_model.dart';
@@ -425,8 +424,20 @@ class _SectionHeader extends StatelessWidget {
 
 // ─────────────────────────── Categories ───────────────────────────
 
-class _CategoriesRow extends StatelessWidget {
+class _CategoriesRow extends StatefulWidget {
   const _CategoriesRow();
+
+  @override
+  State<_CategoriesRow> createState() => _CategoriesRowState();
+}
+
+class _CategoriesRowState extends State<_CategoriesRow> {
+  // Index into the row of pills, including the leading synthetic "All" chip
+  // at position 0. Defaults to "All" so the first paint signals "no filter,
+  // showing everything" — matches what the home shelf actually displays.
+  // Lives in widget state only; resets on cold restart / mode swap, which is
+  // fine for a navigational hint.
+  int _selectedIndex = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -440,15 +451,45 @@ class _CategoriesRow extends StatelessWidget {
         if (state.categories.isEmpty) {
           return const SizedBox.shrink();
         }
+        // Top-N cap keeps the home shelf scannable; the section header's
+        // "Barchasi" link is the escape hatch into the full categories grid.
+        final visibleCount = state.categories.length.clamp(0, 4);
         return SizedBox(
-          height: 116,
+          height: 48,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            itemCount: state.categories.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 12),
-            itemBuilder: (_, i) =>
-                _PremiumCategoryItem(category: state.categories[i]),
+            // +1 for the leading "All" chip at index 0.
+            itemCount: visibleCount + 1,
+            separatorBuilder: (_, _) => const SizedBox(width: 10),
+            itemBuilder: (_, i) {
+              if (i == 0) {
+                return _CategoryPill(
+                  label: tr('home.see_all'),
+                  isSelected: _selectedIndex == 0,
+                  onTap: () => setState(() => _selectedIndex = 0),
+                );
+              }
+              final cat = state.categories[i - 1];
+              return _CategoryPill(
+                label: cat.name,
+                isSelected: _selectedIndex == i,
+                onTap: () async {
+                  setState(() => _selectedIndex = i);
+                  // `push` returns when the pushed route is popped. Reset to
+                  // "Barchasi" so the chip row reflects the home shelf's
+                  // actual state (unfiltered) when the user comes back.
+                  await context.push<void>(
+                    '/product-list'
+                    '?categoryId=${Uri.encodeComponent(cat.id)}'
+                    '&categoryName=${Uri.encodeComponent(cat.name)}',
+                  );
+                  if (mounted) {
+                    setState(() => _selectedIndex = 0);
+                  }
+                },
+              );
+            },
           ),
         );
       },
@@ -456,86 +497,61 @@ class _CategoriesRow extends StatelessWidget {
   }
 }
 
-class _PremiumCategoryItem extends StatelessWidget {
-  const _PremiumCategoryItem({required this.category});
+class _CategoryPill extends StatelessWidget {
+  const _CategoryPill({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
 
-  final CategoryModel category;
+  final String label;
 
-  static IconData _iconFor(String name) {
-    final lower = name.toLowerCase();
-    if (lower.contains('sofa') || lower.contains('armchair')) {
-      return Iconsax.home_2;
-    }
-    if (lower.contains('table') || lower.contains('desk')) {
-      return Iconsax.coffee;
-    }
-    if (lower.contains('bed') || lower.contains('bedroom')) {
-      return Iconsax.moon;
-    }
-    if (lower.contains('chair') || lower.contains('seat')) {
-      return Iconsax.user_octagon;
-    }
-    if (lower.contains('light') || lower.contains('lamp')) {
-      return Iconsax.lamp_charge;
-    }
-    if (lower.contains('storage') || lower.contains('wardrobe')) {
-      return Iconsax.box;
-    }
-    if (lower.contains('decor') || lower.contains('accent')) {
-      return Iconsax.magic_star;
-    }
-    if (lower.contains('outdoor') || lower.contains('garden')) {
-      return Iconsax.tree;
-    }
-    return Iconsax.shop;
-  }
+  /// When true, renders the filled accent variant (white text on terracotta
+  /// fill, no border). Otherwise: surface fill, dark text, hairline border.
+  final bool isSelected;
+
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => context.push(
-        '/product-list'
-        '?categoryId=${Uri.encodeComponent(category.id)}'
-        '&categoryName=${Uri.encodeComponent(category.name)}',
-      ),
-      child: Container(
-        width: 84,
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-        decoration: BoxDecoration(
-          color: pt.surface,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: PremiumTokens.softShadow,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: PremiumTokens.accent.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(
-                _iconFor(category.name),
-                color: PremiumTokens.accent,
-                size: 24,
+    final bgColor = isSelected ? PremiumTokens.accent : pt.surface;
+    final textColor = isSelected ? Colors.white : pt.dark;
+    final borderColor = isSelected
+        ? Colors.transparent
+        : pt.dark.withValues(alpha: 0.08);
+
+    return Center(
+      child: Material(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(999),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          splashColor: isSelected
+              ? Colors.white.withValues(alpha: 0.15)
+              : PremiumTokens.accent.withValues(alpha: 0.10),
+          highlightColor: isSelected
+              ? Colors.white.withValues(alpha: 0.06)
+              : PremiumTokens.accent.withValues(alpha: 0.04),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: borderColor, width: 1),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              child: Text(
+                label,
+                style: PremiumTokens.body(
+                  size: 13,
+                  weight: FontWeight.w600,
+                  color: textColor,
+                  letterSpacing: -0.1,
+                ),
               ),
             ),
-            const SizedBox(height: 12),
-            Text(
-              category.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: PremiumTokens.body(
-                size: 12,
-                weight: FontWeight.w600,
-                color: pt.dark,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -545,24 +561,31 @@ class _PremiumCategoryItem extends StatelessWidget {
 class _CategoriesRowSkeleton extends StatelessWidget {
   const _CategoriesRowSkeleton();
 
+  // Varied widths so the loading state hints at a row of pills with
+  // different label lengths. Count matches the top-4 cap in `_CategoriesRow`.
+  static const _pillWidths = <double>[140, 192, 156, 170];
+
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
     return SizedBox(
-      height: 116,
+      height: 48,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 20),
-        itemCount: 6,
-        separatorBuilder: (_, _) => const SizedBox(width: 12),
-        itemBuilder: (_, _) => Shimmer.fromColors(
-          baseColor: pt.imageBg,
-          highlightColor: pt.surface,
-          child: Container(
-            width: 84,
-            decoration: BoxDecoration(
-              color: pt.imageBg,
-              borderRadius: BorderRadius.circular(24),
+        itemCount: _pillWidths.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 10),
+        itemBuilder: (_, i) => Center(
+          child: Shimmer.fromColors(
+            baseColor: pt.imageBg,
+            highlightColor: pt.surface,
+            child: Container(
+              width: _pillWidths[i],
+              height: 40,
+              decoration: BoxDecoration(
+                color: pt.imageBg,
+                borderRadius: BorderRadius.circular(999),
+              ),
             ),
           ),
         ),

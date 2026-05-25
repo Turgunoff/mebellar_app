@@ -4,10 +4,15 @@ import '../models/banner.dart';
 
 abstract class BannerRepository {
   Future<List<HomeBanner>> list();
+
+  /// Synchronous read of any cached snapshot. Returns `null` on a cache miss
+  /// or for non-caching implementations. Blocs use this to hydrate state on
+  /// cold start before the network call lands.
+  List<HomeBanner>? peek() => null;
 }
 
-class RemoteBannerRepository implements BannerRepository {
-  RemoteBannerRepository(this._dio);
+class RemoteBannerRepository extends BannerRepository {
+  RemoteBannerRepository(Dio dio) : _dio = dio;
 
   final Dio _dio;
 

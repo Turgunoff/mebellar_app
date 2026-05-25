@@ -103,11 +103,13 @@ class _SupabaseProductDetailScreenState
     unawaited(_loadSchema());
     // Analytics: a single view_item per detail open. Fired here (not in
     // the build) so a rebuild from a stock refresh doesn't double-count.
-    unawaited(sl<AnalyticsService>().productViewed(
-      productId: widget.product.id,
-      categoryId: widget.product.categoryId,
-      price: widget.product.effectivePrice,
-    ));
+    unawaited(
+      sl<AnalyticsService>().productViewed(
+        productId: widget.product.id,
+        categoryId: widget.product.categoryId,
+        price: widget.product.effectivePrice,
+      ),
+    );
   }
 
   @override
@@ -880,20 +882,26 @@ class _SimilarSection extends StatefulWidget {
 
 class _SimilarSectionState extends State<_SimilarSection> {
   late final Future<List<SupabaseProductModel>> _future;
+  // Synchronous cache peek so a re-visit paints the carousel at 0 ms;
+  // `_future` still runs to refresh stock/price for the rail.
+  late final List<SupabaseProductModel>? _cached;
 
   @override
   void initState() {
     super.initState();
+    final source = sl<SupabaseProductDataSource>();
+    _cached = source.peekSimilar(widget.productId);
     // Server-ranked recommendations — see `get_similar_products`.
-    _future = sl<SupabaseProductDataSource>().listSimilar(widget.productId);
+    _future = source.listSimilar(widget.productId);
   }
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<SupabaseProductModel>>(
       future: _future,
+      initialData: _cached,
       builder: (context, snap) {
-        if (snap.connectionState != ConnectionState.done) {
+        if (snap.connectionState != ConnectionState.done && snap.data == null) {
           return Padding(
             padding: const EdgeInsets.only(top: 28),
             child: Column(

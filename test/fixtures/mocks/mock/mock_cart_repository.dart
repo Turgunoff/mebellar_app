@@ -115,6 +115,7 @@ class MockCartRepository implements CartRepository {
   Future<void> addProduct(
     SupabaseProductModel product, {
     int quantity = 1,
+    String? selectedColor,
   }) async {
     await addItem(product.id, quantity: quantity);
   }

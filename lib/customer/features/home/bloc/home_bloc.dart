@@ -100,7 +100,23 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     HomeRequested event,
     Emitter<HomeState> emit,
   ) async {
-    if (!event.refresh) {
+    // Cache-first paint: if both rails have a fresh cached snapshot, emit
+    // `ready` *before* the network call so the user never sees a spinner on
+    // cold start. We still fetch in the background to refresh the cache;
+    // any deltas land as a second `ready` emit a few hundred ms later.
+    final cachedBanners = _bannerRepo.peek();
+    final cachedRecommended = _productSource.peekRecommended();
+    final hasCache = cachedBanners != null && cachedRecommended != null;
+    if (hasCache && !event.refresh) {
+      emit(
+        state.copyWith(
+          status: HomeStatus.ready,
+          banners: cachedBanners,
+          recommended: cachedRecommended,
+          clearError: true,
+        ),
+      );
+    } else if (!event.refresh) {
       emit(state.copyWith(status: HomeStatus.loading, clearError: true));
     }
 
@@ -119,7 +135,14 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         ),
       );
     } catch (e) {
-      emit(state.copyWith(status: HomeStatus.failure, error: e.toString()));
+      // Keep showing the cached rails on a network error — surface the error
+      // only when we have nothing to display, otherwise the user sees a
+      // populated screen with a transient banner instead of a blank failure.
+      if (hasCache) {
+        emit(state.copyWith(error: e.toString()));
+      } else {
+        emit(state.copyWith(status: HomeStatus.failure, error: e.toString()));
+      }
     }
   }
 

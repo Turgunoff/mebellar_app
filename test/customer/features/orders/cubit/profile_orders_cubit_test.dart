@@ -13,15 +13,15 @@ void main() {
     final state = ProfileOrdersState(
       orders: [
         {'status': 'pending'},
-        {'status': 'processing'},
-        {'status': 'tayyorlanmoqda'},
-        {'status': 'yolda'},
+        {'status': 'confirmed'},
+        {'status': 'preparing'},
+        {'status': 'shipped'},
         {'status': 'delivered'},
       ],
     );
     expect(state.pendingCount, 1);
-    expect(state.processingCount, 2); // 'processing' + 'tayyorlanmoqda'
-    expect(state.deliveringCount, 1); // 'yolda'
+    expect(state.processingCount, 2); // 'confirmed' + 'preparing'
+    expect(state.deliveringCount, 1); // 'shipped'
     expect(state.hasActivity, isTrue);
   });
 

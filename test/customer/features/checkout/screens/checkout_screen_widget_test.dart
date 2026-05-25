@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:woody_app/core/analytics/analytics_service.dart';
+import 'package:woody_app/core/analytics/noop_analytics_service.dart';
 import 'package:woody_app/core/di/service_locator.dart';
 import 'package:woody_app/customer/features/checkout/screens/checkout_screen.dart';
 import 'package:woody_app/shared/models/cart_item_model.dart';
@@ -19,6 +21,7 @@ void main() {
   setUp(() {
     sl.registerSingleton<SupabaseClient>(_MockSupabase());
     sl.registerSingleton<CartRepository>(_MockCartRepo());
+    sl.registerSingleton<AnalyticsService>(const NoopAnalyticsService());
   });
 
   tearDown(() => sl.reset());

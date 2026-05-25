@@ -10,8 +10,10 @@ import '../models/supabase_product_model.dart';
 enum ProductSearchSort {
   /// Default — newest products first.
   newest,
+
   /// Cheapest first using `effective_price` so discounts are honoured.
   priceAsc,
+
   /// Most expensive first.
   priceDesc,
 }
@@ -64,8 +66,7 @@ class ProductSearchFilter {
   /// as user intent — we'll search the whole catalogue ordered by it so the
   /// "price low → high" choice in an otherwise-empty sheet returns results
   /// instead of silently doing nothing.
-  bool get isDefault =>
-      activeCount == 0 && sort == ProductSearchSort.newest;
+  bool get isDefault => activeCount == 0 && sort == ProductSearchSort.newest;
 
   ProductSearchFilter copyWith({
     Set<String>? categoryIds,
@@ -106,15 +107,15 @@ class ProductSearchFilter {
 
   @override
   int get hashCode => Object.hash(
-        Object.hashAllUnordered(categoryIds),
-        Object.hashAllUnordered(colors),
-        minPrice,
-        maxPrice,
-        inStockOnly,
-        discountedOnly,
-        deliveryOnly,
-        sort,
-      );
+    Object.hashAllUnordered(categoryIds),
+    Object.hashAllUnordered(colors),
+    minPrice,
+    maxPrice,
+    inStockOnly,
+    discountedOnly,
+    deliveryOnly,
+    sort,
+  );
 
   static bool _setEq(Set<String> a, Set<String> b) {
     if (a.length != b.length) return false;
@@ -156,9 +157,32 @@ abstract class SupabaseProductDataSource {
     String productId, {
     int limit = 10,
   });
+
+  /// Synchronous read of the cached recommended-products rail (same shape
+  /// `listAll(limit: 10)` returns). Returns `null` on cache miss or for
+  /// non-caching implementations. The home bloc uses this to paint the rail
+  /// at 0 ms on cold start before the Supabase RTT lands.
+  List<SupabaseProductModel>? peekRecommended() => null;
+
+  /// Synchronous read of a previously-fetched single product. Returns null
+  /// on cache miss. The product-detail bloc uses this to render the page
+  /// instantly on a re-visit (favourites → detail, cart → detail, deep-link
+  /// to a product the user has seen before).
+  SupabaseProductModel? peekById(String id) => null;
+
+  /// Synchronous read of a previously-fetched default-filtered category
+  /// listing. Only returns a hit when no facets / sort / subcategory are
+  /// applied — filtered listings are not cached because the parameter
+  /// space is too large to be worth the Hive churn.
+  List<SupabaseProductModel>? peekByCategory(String categoryId) => null;
+
+  /// Synchronous read of a previously-fetched "similar products" carousel.
+  /// Returns null on cache miss.
+  List<SupabaseProductModel>? peekSimilar(String productId, {int limit = 10}) =>
+      null;
 }
 
-class SupabaseProductRepository implements SupabaseProductDataSource {
+class SupabaseProductRepository extends SupabaseProductDataSource {
   SupabaseProductRepository({required SupabaseClient supabase})
     : _supabase = supabase;
 
@@ -373,7 +397,7 @@ class SupabaseProductRepository implements SupabaseProductDataSource {
   }
 }
 
-class MockSupabaseProductDataSource implements SupabaseProductDataSource {
+class MockSupabaseProductDataSource extends SupabaseProductDataSource {
   static const _delay = Duration(milliseconds: 400);
 
   static final List<SupabaseProductModel> _all = [
@@ -473,8 +497,7 @@ class MockSupabaseProductDataSource implements SupabaseProductDataSource {
       if (subcategoryId != null && p.subcategoryId != subcategoryId) {
         return false;
       }
-      if (filter.colors.isNotEmpty &&
-          !p.colors.any(filter.colors.contains)) {
+      if (filter.colors.isNotEmpty && !p.colors.any(filter.colors.contains)) {
         return false;
       }
       if (filter.minPrice != null && p.effectivePrice < filter.minPrice!) {
@@ -538,7 +561,8 @@ class MockSupabaseProductDataSource implements SupabaseProductDataSource {
     await Future<void>.delayed(_delay);
     var results = _all.where((p) {
       if (term.isNotEmpty) {
-        final hit = p.name.toLowerCase().contains(term) ||
+        final hit =
+            p.name.toLowerCase().contains(term) ||
             (p.description ?? '').toLowerCase().contains(term);
         if (!hit) return false;
       }
@@ -546,8 +570,7 @@ class MockSupabaseProductDataSource implements SupabaseProductDataSource {
           !filter.categoryIds.contains(p.categoryId)) {
         return false;
       }
-      if (filter.colors.isNotEmpty &&
-          !p.colors.any(filter.colors.contains)) {
+      if (filter.colors.isNotEmpty && !p.colors.any(filter.colors.contains)) {
         return false;
       }
       if (filter.minPrice != null && p.effectivePrice < filter.minPrice!) {

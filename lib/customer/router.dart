@@ -32,7 +32,8 @@ import 'features/orders/screens/order_detail_screen.dart';
 import 'features/orders/screens/orders_history_screen.dart';
 import 'features/product_detail/screens/product_detail_screen.dart';
 import 'features/profile/addresses/screens/addresses_screen.dart';
-import 'features/notifications/screens/notifications_screen.dart' as customer_notifications;
+import 'features/notifications/screens/notifications_screen.dart'
+    as customer_notifications;
 import 'features/search/screens/search_screen.dart';
 import 'features/tutorial/tutorial_screen.dart';
 import '../seller/features/onboarding/screens/onboarding_screen.dart';
@@ -69,9 +70,8 @@ GoRouter buildCustomerRouter() {
       ),
       GoRoute(
         path: '/tutorial',
-        builder: (context, state) => CustomerTutorialScreen(
-          onDone: () => context.go('/'),
-        ),
+        builder: (context, state) =>
+            CustomerTutorialScreen(onDone: () => context.go('/')),
       ),
       GoRoute(
         path: '/categories',
@@ -108,7 +108,9 @@ GoRouter buildCustomerRouter() {
         path: '/product-detail/:id',
         builder: (context, state) {
           final product = state.extra as SupabaseProductModel?;
-          if (product != null) return SupabaseProductDetailScreen(product: product);
+          if (product != null) {
+            return SupabaseProductDetailScreen(product: product);
+          }
           return _ProductDetailLoader(id: state.pathParameters['id']!);
         },
       ),
@@ -129,8 +131,7 @@ GoRouter buildCustomerRouter() {
         builder: (context, state) => ChatThreadScreen(
           viewer: ChatSenderRole.customer,
           chatId: state.pathParameters['chatId']!,
-          onOpenOrder: (orderId) =>
-              context.push('/orders/$orderId'),
+          onOpenOrder: (orderId) => context.push('/orders/$orderId'),
         ),
       ),
       // Open by order id — lazily creates the chat row if needed. Used
@@ -148,10 +149,7 @@ GoRouter buildCustomerRouter() {
         builder: (context, state) =>
             ProductDetailScreen(slug: state.pathParameters['slug']!),
       ),
-      GoRoute(
-        path: '/cart',
-        builder: (context, state) => const CartScreen(),
-      ),
+      GoRoute(path: '/cart', builder: (context, state) => const CartScreen()),
       GoRoute(
         path: '/favorites',
         builder: (context, state) => const FavoritesScreen(),
@@ -226,9 +224,8 @@ GoRouter buildCustomerRouter() {
       ),
       GoRoute(
         path: '/system-alert',
-        builder: (context, state) => const BroadcastPlaceholderScreen(
-          kind: BroadcastKind.systemAlert,
-        ),
+        builder: (context, state) =>
+            const BroadcastPlaceholderScreen(kind: BroadcastKind.systemAlert),
       ),
       GoRoute(
         path: '/customer/notifications',
@@ -251,8 +248,17 @@ class _ProductDetailLoader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final source = sl<SupabaseProductDataSource>();
+    // Peek the cache synchronously so a previously-viewed product paints
+    // instantly on a re-visit (favourites → detail, cart → detail, deep-link
+    // back into a recently-seen item). The network fetch still runs to
+    // refresh stock/price/discount; `FutureBuilder.initialData` plus the
+    // resolved future means the screen never flashes a spinner when the
+    // cache hits.
+    final cached = source.peekById(id);
     return FutureBuilder<SupabaseProductModel>(
-      future: sl<SupabaseProductDataSource>().getById(id),
+      future: source.getById(id),
+      initialData: cached,
       builder: (context, snap) {
         if (snap.hasData) {
           return SupabaseProductDetailScreen(product: snap.data!);
@@ -263,11 +269,8 @@ class _ProductDetailLoader extends StatelessWidget {
             body: Center(child: Text(snap.error.toString())),
           );
         }
-        return const Scaffold(
-          body: Center(child: BrandLoadingIndicator()),
-        );
+        return const Scaffold(body: Center(child: BrandLoadingIndicator()));
       },
     );
   }
 }
-

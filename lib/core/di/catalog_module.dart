@@ -9,6 +9,9 @@ import '../analytics/firebase_analytics_service.dart';
 import '../analytics/noop_analytics_service.dart';
 import '../../shared/repositories/address_repository.dart';
 import '../../shared/repositories/banner_repository.dart';
+import '../../shared/repositories/cached_banner_repository.dart';
+import '../../shared/repositories/cached_category_repository.dart';
+import '../../shared/repositories/cached_product_data_source.dart';
 import '../../shared/repositories/cart_repository.dart';
 import '../../shared/repositories/category_repository.dart';
 import '../../shared/repositories/chat_repository.dart';
@@ -32,6 +35,7 @@ import '../../shared/repositories/supabase_favorites_repository.dart';
 import '../../shared/repositories/supabase_notifications_repository.dart';
 import '../../shared/repositories/supabase_order_repository.dart';
 import '../../shared/repositories/supabase_product_data_source.dart';
+import '../storage/cache_store.dart';
 import '../storage/hive_boxes.dart';
 import 'repository_resolver.dart';
 
@@ -53,11 +57,23 @@ void registerCatalogModule(GetIt sl) {
   // never boots without `SUPABASE_URL` (see `AppConfig.assertConfigured`),
   // so a fallback would only mask a misconfigured build.
   if (sl.isRegistered<SupabaseClient>()) {
+    // Categories + recommended products + banners are wrapped in cache-aside
+    // decorators so the home shell hydrates from Hive at 0 ms on every cold
+    // start (see CachedCategoryRepository / CachedProductDataSource /
+    // CachedBannerRepository for TTLs and the rationale per call). The
+    // underlying Supabase repos still run — the decorator just adds a
+    // write-through layer + a synchronous peek() entry point for the blocs.
     sl.registerLazySingleton<CategoryDataSource>(
-      () => SupabaseCategoryRepository(supabase: sl<SupabaseClient>()),
+      () => CachedCategoryRepository(
+        inner: SupabaseCategoryRepository(supabase: sl<SupabaseClient>()),
+        cache: sl<CacheStore>(),
+      ),
     );
     sl.registerLazySingleton<SupabaseProductDataSource>(
-      () => SupabaseProductRepository(supabase: sl<SupabaseClient>()),
+      () => CachedProductDataSource(
+        inner: SupabaseProductRepository(supabase: sl<SupabaseClient>()),
+        cache: sl<CacheStore>(),
+      ),
     );
 
     // Order-scoped chats — Supabase-only because chat hinges on RLS
@@ -88,15 +104,13 @@ void registerCatalogModule(GetIt sl) {
   // Analytics — Firebase-backed when the SDK initialised cleanly at boot,
   // a no-op otherwise so call sites never need to null-check. Lives in the
   // root scope: events from customer/seller modes both fan into one sink.
-  sl.registerLazySingleton<AnalyticsService>(
-    () {
-      try {
-        return FirebaseAnalyticsService();
-      } catch (_) {
-        return const NoopAnalyticsService();
-      }
-    },
-  );
+  sl.registerLazySingleton<AnalyticsService>(() {
+    try {
+      return FirebaseAnalyticsService();
+    } catch (_) {
+      return const NoopAnalyticsService();
+    }
+  });
 
   // NotificationsCubit lives in the ROOT scope so a single instance feeds
   // both the customer inbox + bell badge AND the seller inbox + bell badge,
@@ -104,8 +118,7 @@ void registerCatalogModule(GetIt sl) {
   sl.registerLazySingleton<NotificationsCubit>(
     () => NotificationsCubit(
       sl<NotificationDataSource>(),
-      supabase:
-          sl.isRegistered<SupabaseClient>() ? sl<SupabaseClient>() : null,
+      supabase: sl.isRegistered<SupabaseClient>() ? sl<SupabaseClient>() : null,
       newsRepo: sl.isRegistered<NewsDataSource>() ? sl<NewsDataSource>() : null,
     )..load(),
     dispose: (c) => c.close(),
@@ -128,9 +141,13 @@ void registerCatalogModule(GetIt sl) {
     ),
   );
   sl.registerLazySingleton<BannerRepository>(
-    () => resolver.resolve<BannerRepository>(
-      supabase: () => SupabaseBannerRepository(supabase: sl<SupabaseClient>()),
-      remote: () => RemoteBannerRepository(sl<Dio>()),
+    () => CachedBannerRepository(
+      inner: resolver.resolve<BannerRepository>(
+        supabase: () =>
+            SupabaseBannerRepository(supabase: sl<SupabaseClient>()),
+        remote: () => RemoteBannerRepository(sl<Dio>()),
+      ),
+      cache: sl<CacheStore>(),
     ),
   );
   sl.registerLazySingleton<CartRepository>(
@@ -146,8 +163,9 @@ void registerCatalogModule(GetIt sl) {
   sl.registerLazySingleton<FavoritesRepository>(
     () => resolver.resolve<FavoritesRepository>(
       supabase: () => HybridFavoritesRepository(
-        hive:
-            HiveFavoritesRepository(sl<Box>(instanceName: HiveBoxes.favorites)),
+        hive: HiveFavoritesRepository(
+          sl<Box>(instanceName: HiveBoxes.favorites),
+        ),
         remote: SupabaseFavoritesRepository(supabase: sl<SupabaseClient>()),
         supabase: sl<SupabaseClient>(),
       ),

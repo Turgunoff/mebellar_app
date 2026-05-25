@@ -4,13 +4,19 @@ import '../models/category_model.dart';
 
 abstract class CategoryDataSource {
   Future<List<CategoryModel>> list();
+
+  /// Synchronous read of any cached snapshot. Returns `null` when no cache
+  /// exists or the implementation is non-caching (mock / legacy REST). Blocs
+  /// use this to hydrate state on cold start before the network call lands,
+  /// avoiding a loading spinner when fresh-enough data is already on disk.
+  List<CategoryModel>? peek() => null;
 }
 
 /// Fetches categories with their nested subcategories from Supabase.
 /// Ordered by `sort_order` ascending.
-class SupabaseCategoryRepository implements CategoryDataSource {
+class SupabaseCategoryRepository extends CategoryDataSource {
   SupabaseCategoryRepository({required SupabaseClient supabase})
-      : _supabase = supabase;
+    : _supabase = supabase;
 
   final SupabaseClient _supabase;
 
@@ -30,7 +36,7 @@ class SupabaseCategoryRepository implements CategoryDataSource {
 
 /// In-memory fallback used when Supabase is unavailable (e.g. offline or
 /// test environment). Mirrors the Unsplash images from the categories table.
-class MockCategoryDataSource implements CategoryDataSource {
+class MockCategoryDataSource extends CategoryDataSource {
   static const _delay = Duration(milliseconds: 350);
 
   @override
@@ -45,8 +51,16 @@ class MockCategoryDataSource implements CategoryDataSource {
             'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=1400&q=80',
         sortOrder: 1,
         subcategories: [
-          SubcategoryModel(id: 's1', categoryId: 'mock-1', name: 'Corner Sofas'),
-          SubcategoryModel(id: 's2', categoryId: 'mock-1', name: '3-Seater Sofas'),
+          SubcategoryModel(
+            id: 's1',
+            categoryId: 'mock-1',
+            name: 'Corner Sofas',
+          ),
+          SubcategoryModel(
+            id: 's2',
+            categoryId: 'mock-1',
+            name: '3-Seater Sofas',
+          ),
           SubcategoryModel(id: 's3', categoryId: 'mock-1', name: 'Armchairs'),
           SubcategoryModel(id: 's4', categoryId: 'mock-1', name: 'Sofa Beds'),
         ],
@@ -59,8 +73,16 @@ class MockCategoryDataSource implements CategoryDataSource {
             'https://images.unsplash.com/photo-1449247709967-d4461a6a6103?w=1400&q=80',
         sortOrder: 2,
         subcategories: [
-          SubcategoryModel(id: 's5', categoryId: 'mock-2', name: 'Dining Tables'),
-          SubcategoryModel(id: 's6', categoryId: 'mock-2', name: 'Coffee Tables'),
+          SubcategoryModel(
+            id: 's5',
+            categoryId: 'mock-2',
+            name: 'Dining Tables',
+          ),
+          SubcategoryModel(
+            id: 's6',
+            categoryId: 'mock-2',
+            name: 'Coffee Tables',
+          ),
           SubcategoryModel(id: 's7', categoryId: 'mock-2', name: 'Study Desks'),
         ],
       ),

@@ -80,12 +80,9 @@ class SellerOrdersState extends Equatable {
   List<Order> get visibleOrders =>
       orders.where((o) => tab.matches(o)).toList();
 
-  /// Count of pending orders — drives the bottom-nav badge. Reflects both
-  /// orders loaded at startup and orders that arrive via realtime, so the
-  /// badge is always in sync with the actual list rather than only tracking
-  /// orders that arrived while the app was running.
-  int get badgeCount =>
-      orders.where((o) => o.status == OrderStatus.pending).length;
+  /// Count of pending orders that arrived since the user last opened the
+  /// "New" tab — drives the badge count on the bottom-nav and tab.
+  int get badgeCount => unreadNewIds.length;
 
   /// Number of orders that fall under [tab] — drives the tab-bar count
   /// badges. Only the New and Active tabs surface this in the UI.

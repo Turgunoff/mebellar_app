@@ -19,6 +19,12 @@ class SubcategoryModel extends Equatable {
     );
   }
 
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'category_id': categoryId,
+    'name': name,
+  };
+
   @override
   List<Object?> get props => [id, categoryId, name];
 }
@@ -52,12 +58,21 @@ class CategoryModel extends Equatable {
       sortOrder: json['sort_order'] as int? ?? 0,
       subcategories: subs is List
           ? subs
-              .whereType<Map<String, dynamic>>()
-              .map(SubcategoryModel.fromJson)
-              .toList(growable: false)
+                .whereType<Map<String, dynamic>>()
+                .map(SubcategoryModel.fromJson)
+                .toList(growable: false)
           : const [],
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'subtitle': subtitle,
+    'image_url': imageUrl,
+    'sort_order': sortOrder,
+    'subcategories': subcategories.map((s) => s.toJson()).toList(),
+  };
 
   @override
   List<Object?> get props => [id, name, sortOrder, subcategories.length];

@@ -108,6 +108,35 @@ class SupabaseProductModel extends Equatable {
     );
   }
 
+  /// Serialises to a Supabase-shaped Map so `fromJson` can round-trip the
+  /// model from cache. `shops`/`product_variants` are re-emitted in the same
+  /// embed shape PostgREST produces, so the parser stays one code path.
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'category_id': categoryId,
+    'subcategory_id': subcategoryId,
+    'shop_id': shopId,
+    if (shopName != null) 'shops': {'name': shopName},
+    'name': name,
+    'description': description,
+    'price': price,
+    'images': images,
+    'attributes': attributes,
+    'stock': stock,
+    'created_at': createdAt.toIso8601String(),
+    'colors': colors,
+    'has_delivery': hasDelivery,
+    'delivery_price': deliveryPrice,
+    'has_installation': hasInstallation,
+    'installation_price': installationPrice,
+    'warranty_months': warrantyMonths,
+    'production_time_days': productionTimeDays,
+    if (discountPrice != null)
+      'product_variants': [
+        {'price': price, 'discount_price': discountPrice},
+      ],
+  };
+
   @override
   List<Object?> get props => [id, categoryId, name, price, stock];
 }

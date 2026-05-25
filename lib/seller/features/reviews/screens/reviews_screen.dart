@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
@@ -345,12 +346,13 @@ class _CardHeader extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           child: review.productImage.isEmpty
               ? _productImageFallback()
-              : Image.network(
-                  review.productImage,
+              : CachedNetworkImage(
+                  imageUrl: review.productImage,
                   width: 40,
                   height: 40,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => _productImageFallback(),
+                  memCacheWidth: 120,
+                  errorWidget: (_, _, _) => _productImageFallback(),
                 ),
         ),
         const SizedBox(width: 10),
@@ -586,23 +588,14 @@ class _ReplySheetState extends State<_ReplySheet> {
       );
       return;
     }
-    final ok = await cubit.postReply(
-      reviewId: widget.review.id,
-      reply: text,
-    );
+    final ok = await cubit.postReply(reviewId: widget.review.id, reply: text);
     if (!mounted) return;
     if (ok) {
       navigator.pop();
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Javob yuborildi')),
-      );
+      messenger.showSnackBar(const SnackBar(content: Text('Javob yuborildi')));
     } else {
       messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            cubit.state.error ?? 'Javob yuborilmadi',
-          ),
-        ),
+        SnackBar(content: Text(cubit.state.error ?? 'Javob yuborilmadi')),
       );
     }
   }
@@ -752,11 +745,7 @@ class _EmptyState extends StatelessWidget {
                 shape: BoxShape.circle,
               ),
               alignment: Alignment.center,
-              child: const Icon(
-                Iconsax.messages_2,
-                size: 32,
-                color: _greyMid,
-              ),
+              child: const Icon(Iconsax.messages_2, size: 32, color: _greyMid),
             ),
             const SizedBox(height: 16),
             Text(
@@ -803,7 +792,11 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Iconsax.warning_2, size: 40, color: AppColors.terracotta),
+            const Icon(
+              Iconsax.warning_2,
+              size: 40,
+              color: AppColors.terracotta,
+            ),
             const SizedBox(height: 16),
             Text(
               message,
@@ -821,7 +814,10 @@ class _ErrorState extends StatelessWidget {
               onPressed: onRetry,
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.terracotta,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),

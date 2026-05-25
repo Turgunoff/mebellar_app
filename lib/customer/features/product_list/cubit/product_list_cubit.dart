@@ -60,18 +60,18 @@ class ProductListState extends Equatable {
 
   @override
   List<Object?> get props => [
-        status,
-        products,
-        subcategories,
-        selectedSubcategoryId,
-        filter,
-        error,
-      ];
+    status,
+    products,
+    subcategories,
+    selectedSubcategoryId,
+    filter,
+    error,
+  ];
 }
 
 class ProductListCubit extends Cubit<ProductListState> {
   ProductListCubit(this._productSource, this._categorySource)
-      : super(const ProductListState());
+    : super(const ProductListState());
 
   final SupabaseProductDataSource _productSource;
   final CategoryDataSource _categorySource;
@@ -82,19 +82,47 @@ class ProductListCubit extends Cubit<ProductListState> {
   /// current category's subcategories) and the product list in parallel so
   /// the chip bar and grid arrive together — avoiding a flash of "no chips"
   /// followed by chips popping in once the grid is already rendered.
-  Future<void> load({
-    required String categoryId,
-    String? subcategoryId,
-  }) async {
+  Future<void> load({required String categoryId, String? subcategoryId}) async {
     _categoryId = categoryId;
-    emit(
-      state.copyWith(
-        status: ProductListStatus.loading,
-        selectedSubcategoryId: subcategoryId,
-        clearSelectedSubcategory: subcategoryId == null,
-        clearError: true,
-      ),
-    );
+
+    // Cache-first paint: when the user taps "all" of a category from the
+    // home grid (no subcategory, default filter) we hit the cached listing
+    // and emit `loaded` synchronously. Subcategories piggyback on the
+    // categories cache. Filtered/subcategory entries skip this — the cache
+    // only stores the default view.
+    final canPeek = subcategoryId == null && state.filter.isDefault;
+    final cachedProducts = canPeek
+        ? _productSource.peekByCategory(categoryId)
+        : null;
+    final cachedCategories = _categorySource.peek();
+    final cachedSubs = cachedCategories
+        ?.where((c) => c.id == categoryId)
+        .cast<CategoryModel?>()
+        .firstWhere((_) => true, orElse: () => null)
+        ?.subcategories;
+    final hasCache = cachedProducts != null && cachedSubs != null;
+    if (hasCache) {
+      emit(
+        state.copyWith(
+          status: ProductListStatus.loaded,
+          products: cachedProducts,
+          subcategories: cachedSubs,
+          selectedSubcategoryId: subcategoryId,
+          clearSelectedSubcategory: subcategoryId == null,
+          clearError: true,
+        ),
+      );
+    } else {
+      emit(
+        state.copyWith(
+          status: ProductListStatus.loading,
+          selectedSubcategoryId: subcategoryId,
+          clearSelectedSubcategory: subcategoryId == null,
+          clearError: true,
+        ),
+      );
+    }
+
     try {
       final results = await Future.wait([
         _productSource.listByCategory(
@@ -121,12 +149,18 @@ class ProductListCubit extends Cubit<ProductListState> {
         ),
       );
     } catch (e) {
-      emit(
-        state.copyWith(
-          status: ProductListStatus.failure,
-          error: e.toString(),
-        ),
-      );
+      // Keep the cached page visible on a refresh failure — surface a hard
+      // failure state only when we had nothing to paint to begin with.
+      if (hasCache) {
+        emit(state.copyWith(error: e.toString()));
+      } else {
+        emit(
+          state.copyWith(
+            status: ProductListStatus.failure,
+            error: e.toString(),
+          ),
+        );
+      }
     }
   }
 
@@ -190,10 +224,7 @@ class ProductListCubit extends Cubit<ProductListState> {
         return;
       }
       emit(
-        state.copyWith(
-          status: ProductListStatus.failure,
-          error: e.toString(),
-        ),
+        state.copyWith(status: ProductListStatus.failure, error: e.toString()),
       );
     }
   }

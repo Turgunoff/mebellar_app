@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -67,8 +68,7 @@ class _SellerProfileView extends StatelessWidget {
             Expanded(
               child: BrandRefreshIndicator(
                 color: AppColors.sellerPrimary,
-                onRefresh: () =>
-                    context.read<SellerProfileCubit>().load(),
+                onRefresh: () => context.read<SellerProfileCubit>().load(),
                 child: BlocBuilder<SellerProfileCubit, SellerProfileState>(
                   builder: (context, state) {
                     return ListView(
@@ -101,7 +101,8 @@ class _SellerProfileView extends StatelessWidget {
                               icon: Iconsax.messages_2,
                               title: 'Sharhlar va Baholar',
                               subtitle: 'Mijozlar fikri va javoblar',
-                              onTap: () => _push(context, const ReviewsScreen()),
+                              onTap: () =>
+                                  _push(context, const ReviewsScreen()),
                             ),
                             // Tariff is hidden while the tariff system is
                             // switched off (RemoteConfig.tariffEnabled).
@@ -125,8 +126,7 @@ class _SellerProfileView extends StatelessWidget {
                               icon: Iconsax.message,
                               title: 'Suhbatlar',
                               subtitle: 'Mijozlar bilan yozishuvlar',
-                              onTap: () =>
-                                  context.push('/seller/chats'),
+                              onTap: () => context.push('/seller/chats'),
                             ),
                             // Bildirishnomalar entry removed — the dashboard
                             // bell icon is the canonical entry point, so this
@@ -275,39 +275,30 @@ class _Avatar extends StatelessWidget {
     return Container(
       width: 80,
       height: 80,
-      decoration: const BoxDecoration(
-        color: _avatarBg,
-        shape: BoxShape.circle,
-      ),
+      decoration: const BoxDecoration(color: _avatarBg, shape: BoxShape.circle),
       clipBehavior: Clip.antiAlias,
       alignment: Alignment.center,
       child: (url == null || url.isEmpty)
-          ? const Icon(
-              Iconsax.shop,
-              size: 36,
-              color: AppColors.terracotta,
-            )
-          : Image.network(
-              url,
+          ? const Icon(Iconsax.shop, size: 36, color: AppColors.terracotta)
+          : CachedNetworkImage(
+              imageUrl: url,
               fit: BoxFit.cover,
               width: 80,
               height: 80,
-              errorBuilder: (_, _, _) => const Icon(
+              memCacheWidth: 240,
+              errorWidget: (_, _, _) => const Icon(
                 Iconsax.shop,
                 size: 36,
                 color: AppColors.terracotta,
               ),
-              loadingBuilder: (context, child, progress) {
-                if (progress == null) return child;
-                return const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: AppColors.terracotta,
-                  ),
-                );
-              },
+              placeholder: (_, _) => const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.terracotta,
+                ),
+              ),
             ),
     );
   }
@@ -395,31 +386,29 @@ class _StatusBadge extends StatelessWidget {
   static (String, Color, Color, IconData) _styleFor(VerificationStatus s) {
     return switch (s) {
       VerificationStatus.approved => (
-          'Tasdiqlangan sotuvchi',
-          _verifiedBg,
-          _verifiedFg,
-          Iconsax.tick_circle,
-        ),
-      VerificationStatus.pending ||
-      VerificationStatus.inReview =>
-        (
-          'Tasdiqlash kutilmoqda',
-          _pendingBg,
-          _pendingFg,
-          Iconsax.clock,
-        ),
+        'Tasdiqlangan sotuvchi',
+        _verifiedBg,
+        _verifiedFg,
+        Iconsax.tick_circle,
+      ),
+      VerificationStatus.pending || VerificationStatus.inReview => (
+        'Tasdiqlash kutilmoqda',
+        _pendingBg,
+        _pendingFg,
+        Iconsax.clock,
+      ),
       VerificationStatus.rejected => (
-          'Tasdiqlash rad etilgan',
-          _rejectedBg,
-          _rejectedFg,
-          Iconsax.close_circle,
-        ),
+        'Tasdiqlash rad etilgan',
+        _rejectedBg,
+        _rejectedFg,
+        Iconsax.close_circle,
+      ),
       VerificationStatus.none => (
-          'Tasdiqlanmagan',
-          _neutralBadgeBg,
-          _neutralBadgeFg,
-          Iconsax.info_circle,
-        ),
+        'Tasdiqlanmagan',
+        _neutralBadgeBg,
+        _neutralBadgeFg,
+        Iconsax.info_circle,
+      ),
     };
   }
 }

@@ -49,8 +49,8 @@ class CategoriesState extends Equatable {
 
 class CategoriesBloc extends Bloc<CategoriesEvent, CategoriesState> {
   CategoriesBloc(this._source, {NetworkCubit? networkCubit})
-      : _networkCubit = networkCubit,
-        super(const CategoriesState()) {
+    : _networkCubit = networkCubit,
+      super(const CategoriesState()) {
     on<CategoriesRequested>(_onRequested);
 
     // Auto-retry on reconnect. Mirrors the HomeBloc pattern so the offline
@@ -67,7 +67,7 @@ class CategoriesBloc extends Bloc<CategoriesEvent, CategoriesState> {
         if (wasOffline && next == NetworkStatus.online) {
           final needsRefresh =
               state.status == CategoriesStatus.failure ||
-                  state.categories.isEmpty;
+              state.categories.isEmpty;
           if (needsRefresh) {
             add(const CategoriesRequested());
           }
@@ -85,18 +85,43 @@ class CategoriesBloc extends Bloc<CategoriesEvent, CategoriesState> {
     CategoriesRequested event,
     Emitter<CategoriesState> emit,
   ) async {
-    emit(state.copyWith(status: CategoriesStatus.loading, clearError: true));
+    // Cache-first paint: categories are static reference data with a 24h
+    // TTL, so on a warm boot we render the grid at 0 ms and refresh
+    // silently in the background. The loading spinner only shows on a true
+    // cold start (no cache, never fetched).
+    final cached = _source.peek();
+    final hasCache = cached != null && cached.isNotEmpty;
+    if (hasCache) {
+      emit(
+        state.copyWith(
+          status: CategoriesStatus.ready,
+          categories: cached,
+          clearError: true,
+        ),
+      );
+    } else {
+      emit(state.copyWith(status: CategoriesStatus.loading, clearError: true));
+    }
+
     try {
       final categories = await _source.list();
-      emit(state.copyWith(
-        status: CategoriesStatus.ready,
-        categories: categories,
-      ));
+      emit(
+        state.copyWith(
+          status: CategoriesStatus.ready,
+          categories: categories,
+          clearError: true,
+        ),
+      );
     } catch (e) {
-      emit(state.copyWith(
-        status: CategoriesStatus.failure,
-        error: e.toString(),
-      ));
+      // Keep the cached grid on the screen when the refresh fails; only
+      // surface a hard failure when we have nothing at all to show.
+      if (hasCache) {
+        emit(state.copyWith(error: e.toString()));
+      } else {
+        emit(
+          state.copyWith(status: CategoriesStatus.failure, error: e.toString()),
+        );
+      }
     }
   }
 

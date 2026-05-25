@@ -3,9 +3,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/banner.dart';
 import 'banner_repository.dart';
 
-class SupabaseBannerRepository implements BannerRepository {
+class SupabaseBannerRepository extends BannerRepository {
   SupabaseBannerRepository({required SupabaseClient supabase})
-      : _supabase = supabase;
+    : _supabase = supabase;
 
   final SupabaseClient _supabase;
 
