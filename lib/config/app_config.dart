@@ -45,11 +45,13 @@ class AppConfig {
   static bool get hasWoodyApi => woodyApiUrl.isNotEmpty;
 
   /// Required keys that have no safe fallback. Missing any of these is a build
-  /// misconfiguration, not a recoverable runtime state.
+  /// misconfiguration, not a recoverable runtime state. Supabase keys are now
+  /// optional — they're only used by feature surfaces that haven't completed
+  /// the Phase 8 cleanup yet (seller products CRUD, analytics, reviews,
+  /// services, shop settings, tariff). Builds without Supabase keys boot
+  /// successfully; those specific surfaces fall back to read-only / disabled.
   static List<String> get missingRequiredKeys => [
         if (woodyApiUrl.isEmpty) 'WOODY_API_URL',
-        if (supabaseUrl.isEmpty) 'SUPABASE_URL',
-        if (supabaseAnonKey.isEmpty) 'SUPABASE_ANON_KEY',
         if (yandexGeocoderApiKey.isEmpty) 'YANDEX_GEOCODER_API_KEY',
       ];
 

@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../analytics/analytics_service.dart';
 import '../network/jwt_utils.dart';
 import '../network/token_store.dart';
+import '../realtime/woody_realtime_service.dart';
 
 sealed class AppAuthState extends Equatable {
   const AppAuthState();
@@ -37,12 +38,19 @@ class AuthCubit extends Cubit<AppAuthState> {
   AuthCubit({
     required this.tokens,
     this.analytics,
+    this.realtime,
   }) : super(const AppAuthUnauthenticated()) {
     _init();
   }
 
   final TokenStore tokens;
   final AnalyticsService? analytics;
+
+  /// When provided, the cubit drives the WS lifecycle: opens on sign-in,
+  /// closes on sign-out. Optional so unit tests don't need to wire a
+  /// realtime stub.
+  final WoodyRealtimeService? realtime;
+
   StreamSubscription<TokenPair?>? _sub;
 
   Future<void> _init() async {
@@ -59,6 +67,7 @@ class AuthCubit extends Cubit<AppAuthState> {
       emit(const AppAuthUnauthenticated());
       analytics?.setUserId(null);
       if (emitLogin) analytics?.loggedOut();
+      unawaited(realtime?.stop());
       return;
     }
     final userId = jwtClaim(pair.accessToken, 'sub');
@@ -71,6 +80,7 @@ class AuthCubit extends Cubit<AppAuthState> {
     emit(AppAuthAuthenticated(userId));
     analytics?.setUserId(userId);
     if (emitLogin) analytics?.loggedIn(method: 'phone_otp');
+    unawaited(realtime?.start());
   }
 
   @override

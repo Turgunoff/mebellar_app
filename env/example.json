@@ -1,8 +1,10 @@
 {
   "APP_ENV": "dev",
   "WOODY_API_URL": "https://api.woody.uz",
+  "YANDEX_GEOCODER_API_KEY": "",
+
+  "_supabase_legacy_note": "Supabase keys below are optional. They power a few seller-side surfaces (products CRUD, analytics, reviews, services, shop settings, tariff) that still run on Supabase pending the Phase 8 backend migration. Leave them empty for a Woody-only build.",
   "API_BASE_URL": "",
   "SUPABASE_URL": "",
-  "SUPABASE_ANON_KEY": "",
-  "YANDEX_GEOCODER_API_KEY": ""
+  "SUPABASE_ANON_KEY": ""
 }

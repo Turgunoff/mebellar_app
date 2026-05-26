@@ -14,6 +14,8 @@ import '../network/token_store.dart';
 import '../network/woody_api_client.dart';
 import '../platform/location_facade.dart';
 import '../realtime/realtime_service.dart';
+import '../realtime/woody_realtime_service.dart';
+import '../storage/r2_upload_client.dart';
 import '../storage/app_settings.dart';
 import '../storage/cache_store.dart';
 import '../storage/hive_boxes.dart';
@@ -79,6 +81,13 @@ Future<void> registerCoreModule(GetIt sl) async {
     dispose: (c) => c.dispose(),
   );
 
+  // R2 presigned-PUT upload client. Single instance shared by every
+  // feature that needs to push bytes (product images, chat attachments,
+  // KYC docs, tariff receipts).
+  sl.registerLazySingleton<R2UploadClient>(
+    () => R2UploadClient(api: sl<WoodyApiClient>()),
+  );
+
   // Location facade — wraps geolocator's static API behind an injectable
   // seam (ROADMAP B.5). Tests substitute a fake via `sl.allowReassignment`.
   sl.registerSingleton<LocationFacade>(const GeolocatorLocationFacade());
@@ -123,5 +132,13 @@ Future<void> registerCoreModule(GetIt sl) async {
   sl.registerSingleton<RealtimeService>(
     RealtimeService(supabase),
     dispose: (s) => s.disposeAll(),
+  );
+
+  // Woody WebSocket realtime (Phase 6). Lazy — only opens when the auth
+  // layer calls `start()` post sign-in. Singleton so feature subscribers
+  // share the same connection.
+  sl.registerSingleton<WoodyRealtimeService>(
+    WoodyRealtimeService(tokens: sl<TokenStore>()),
+    dispose: (s) => s.dispose(),
   );
 }

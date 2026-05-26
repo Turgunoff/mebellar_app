@@ -25,6 +25,9 @@ import '../../shared/repositories/supabase_seller_verification_repository.dart';
 import '../../shared/repositories/supabase_shop_settings_repository.dart';
 import '../../shared/repositories/supabase_tariff_repository.dart';
 import '../../shared/repositories/tariff_repository.dart';
+import '../../shared/repositories/woody_seller_repositories.dart';
+import '../../config/app_config.dart';
+import '../network/woody_api_client.dart';
 import '../realtime/realtime_service.dart';
 import '../storage/hive_boxes.dart';
 import 'repository_resolver.dart';
@@ -38,19 +41,25 @@ void registerSellerModule(GetIt sl) {
     hasSupabase: sl.isRegistered<SupabaseClient>(),
   );
   final draftBox = sl<Box>(instanceName: HiveBoxes.onboardingDraft);
+  final useWoody = AppConfig.hasWoodyApi;
 
   sl.registerLazySingleton<SellerOnboardingRepository>(
-    () => resolver.resolve<SellerOnboardingRepository>(
-      supabase: () => SupabaseSellerOnboardingRepository(
-        supabase: sl<SupabaseClient>(),
-        draftBox: draftBox,
-      ),
-      remote: () => RemoteSellerOnboardingRepository(
-        dio: sl<Dio>(),
-        draftBox: draftBox,
-        findRegionById: (id) => null,
-      ),
-    ),
+    () => useWoody
+        ? WoodySellerOnboardingRepository(
+            api: sl<WoodyApiClient>(),
+            draftBox: draftBox,
+          )
+        : resolver.resolve<SellerOnboardingRepository>(
+            supabase: () => SupabaseSellerOnboardingRepository(
+              supabase: sl<SupabaseClient>(),
+              draftBox: draftBox,
+            ),
+            remote: () => RemoteSellerOnboardingRepository(
+              dio: sl<Dio>(),
+              draftBox: draftBox,
+              findRegionById: (id) => null,
+            ),
+          ),
   );
 
   sl.registerLazySingleton<SellerVerificationRepository>(
@@ -92,9 +101,11 @@ void registerSellerModule(GetIt sl) {
   }
 
   // Dashboard reads live shop/product/order data so the empty-state
-  // experience is exercised by default. Requires Supabase at root scope.
+  // experience is exercised by default. Prefer Woody REST when configured.
   sl.registerLazySingleton<SellerDashboardRepository>(
-    () => SupabaseSellerDashboardRepository(sl<SupabaseClient>()),
+    () => useWoody
+        ? WoodySellerDashboardRepository(api: sl<WoodyApiClient>())
+        : SupabaseSellerDashboardRepository(sl<SupabaseClient>()),
   );
 
   // Analytics reads live data — the empty-revenue state is the source of

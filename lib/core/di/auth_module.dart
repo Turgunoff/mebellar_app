@@ -2,11 +2,13 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
+import '../../config/app_config.dart';
 import '../analytics/analytics_service.dart';
 import '../auth/auth_cubit.dart';
 import '../auth/auth_repository.dart';
 import '../network/token_store.dart';
 import '../network/woody_api_client.dart';
+import '../realtime/woody_realtime_service.dart';
 import '../notifications/notification_handler.dart';
 import '../notifications/push_service.dart';
 import '../platform/messaging_facade.dart';
@@ -34,10 +36,11 @@ void registerAuthModule(GetIt sl) {
       messaging: FirebaseMessagingFacade(),
       localNotifications: FlutterLocalNotificationsPlugin(),
       notificationHandler: sl<NotificationHandler>(),
-      // PushService used to take a SupabaseClient — wired in Phase 3b to a
-      // REST endpoint for device-token registration. Passing null until then
-      // keeps the file compiling without changing PushService's signature.
+      // Woody REST takes precedence over Supabase for device-token
+      // registration. `supabase` stays as the fallback for builds without
+      // a configured Woody backend (dev / integration tests).
       supabase: null,
+      woodyApi: AppConfig.hasWoodyApi ? sl<WoodyApiClient>() : null,
     ),
   );
 
@@ -47,6 +50,9 @@ void registerAuthModule(GetIt sl) {
       tokens: sl<TokenStore>(),
       analytics:
           sl.isRegistered<AnalyticsService>() ? sl<AnalyticsService>() : null,
+      realtime: sl.isRegistered<WoodyRealtimeService>()
+          ? sl<WoodyRealtimeService>()
+          : null,
     ),
     dispose: (c) => c.close(),
   );

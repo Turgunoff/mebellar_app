@@ -32,6 +32,8 @@ dependencies:
   # Networking
   dio: ^5.7.0
   http: ^1.2.2
+  # WebSocket client for the Woody realtime fan-out (`wss://api.woody.uz/api/v1/realtime/ws`).
+  web_socket_channel: ^3.0.1
 
   # Backend
   supabase_flutter: ^2.8.0

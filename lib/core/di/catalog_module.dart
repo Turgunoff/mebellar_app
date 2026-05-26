@@ -3,6 +3,7 @@ import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../config/app_config.dart';
 import '../../customer/features/notifications/cubit/notifications_cubit.dart';
 import '../analytics/analytics_service.dart';
 import '../analytics/firebase_analytics_service.dart';
@@ -35,6 +36,12 @@ import '../../shared/repositories/supabase_favorites_repository.dart';
 import '../../shared/repositories/supabase_notifications_repository.dart';
 import '../../shared/repositories/supabase_order_repository.dart';
 import '../../shared/repositories/supabase_product_data_source.dart';
+import '../../shared/repositories/woody_banner_repository.dart';
+import '../../shared/repositories/woody_category_repository.dart';
+import '../../shared/repositories/woody_chat_repositories.dart';
+import '../../shared/repositories/woody_customer_repositories.dart';
+import '../../shared/repositories/woody_product_repository.dart';
+import '../network/woody_api_client.dart';
 import '../storage/cache_store.dart';
 import '../storage/hive_boxes.dart';
 import 'repository_resolver.dart';
@@ -52,44 +59,70 @@ void registerCatalogModule(GetIt sl) {
     hasSupabase: sl.isRegistered<SupabaseClient>(),
   );
 
+  // Prefer the woody_backend REST surface when configured; fall back to
+  // Supabase repositories during the migration window. The Woody-backed
+  // repos return the same PostgREST-shaped payloads, so the cache-aside
+  // decorators below see no change in payload shape either.
+  final useWoody = AppConfig.hasWoodyApi;
+
+  CategoryDataSource buildCategoryDs() => useWoody
+      ? WoodyCategoryRepository(api: sl<WoodyApiClient>())
+      : SupabaseCategoryRepository(supabase: sl<SupabaseClient>());
+
+  SupabaseProductDataSource buildProductDs() => useWoody
+      ? WoodyProductRepository(api: sl<WoodyApiClient>())
+      : SupabaseProductRepository(supabase: sl<SupabaseClient>());
+
   // --- data sources (Supabase-only — no offline fallback) ------------------
   // The customer-facing catalog data sources are Supabase-only: production
   // never boots without `SUPABASE_URL` (see `AppConfig.assertConfigured`),
   // so a fallback would only mask a misconfigured build.
-  if (sl.isRegistered<SupabaseClient>()) {
+  if (sl.isRegistered<SupabaseClient>() || useWoody) {
     // Categories + recommended products + banners are wrapped in cache-aside
     // decorators so the home shell hydrates from Hive at 0 ms on every cold
     // start (see CachedCategoryRepository / CachedProductDataSource /
     // CachedBannerRepository for TTLs and the rationale per call). The
-    // underlying Supabase repos still run — the decorator just adds a
-    // write-through layer + a synchronous peek() entry point for the blocs.
+    // underlying Woody (or Supabase) repos still run — the decorator just
+    // adds a write-through layer + a synchronous peek() entry point.
     sl.registerLazySingleton<CategoryDataSource>(
       () => CachedCategoryRepository(
-        inner: SupabaseCategoryRepository(supabase: sl<SupabaseClient>()),
+        inner: buildCategoryDs(),
         cache: sl<CacheStore>(),
       ),
     );
     sl.registerLazySingleton<SupabaseProductDataSource>(
       () => CachedProductDataSource(
-        inner: SupabaseProductRepository(supabase: sl<SupabaseClient>()),
+        inner: buildProductDs(),
         cache: sl<CacheStore>(),
       ),
     );
 
-    // Order-scoped chats — Supabase-only because chat hinges on RLS
-    // (only the customer + shop owner can read a row) and there is no
-    // offline write path. A mock falls in only for the no-Supabase build.
-    sl.registerLazySingleton<ChatRepository>(
-      () => SupabaseChatRepository(supabase: sl<SupabaseClient>()),
-    );
-    sl.registerLazySingleton<NotificationDataSource>(
-      () => SupabaseNotificationsRepository(supabase: sl<SupabaseClient>()),
-    );
+    // Order-scoped chats — Woody REST when configured; Supabase fallback
+    // for builds without a Woody backend (dev / tests).
+    if (useWoody) {
+      sl.registerLazySingleton<ChatRepository>(
+        () => WoodyChatRepository(api: sl<WoodyApiClient>()),
+      );
+    } else if (sl.isRegistered<SupabaseClient>()) {
+      sl.registerLazySingleton<ChatRepository>(
+        () => SupabaseChatRepository(supabase: sl<SupabaseClient>()),
+      );
+    }
+    // Notifications data source (`NotificationDataSource`) drives the
+    // home inbox cubit and still reads from Supabase — Phase 8 wraps it
+    // around the Woody endpoint once the cubit is rewired. The simpler
+    // `NotificationsRepository` (below) is already on Woody.
+    if (sl.isRegistered<SupabaseClient>()) {
+      sl.registerLazySingleton<NotificationDataSource>(
+        () => SupabaseNotificationsRepository(supabase: sl<SupabaseClient>()),
+      );
+    }
 
-    // Customer-side product reviews (write on delivered orders, read on the
-    // product page). Supabase-only — there is no offline review flow.
+    // Customer-side product reviews — prefer Woody when configured.
     sl.registerLazySingleton<CustomerReviewsRepository>(
-      () => SupabaseCustomerReviewsRepository(supabase: sl<SupabaseClient>()),
+      () => useWoody
+          ? WoodyCustomerReviewsRepository(api: sl<WoodyApiClient>())
+          : SupabaseCustomerReviewsRepository(supabase: sl<SupabaseClient>()),
     );
 
     // NewsDataSource — public broadcast feed; only when Supabase is live.
@@ -142,35 +175,49 @@ void registerCatalogModule(GetIt sl) {
   );
   sl.registerLazySingleton<BannerRepository>(
     () => CachedBannerRepository(
-      inner: resolver.resolve<BannerRepository>(
-        supabase: () =>
-            SupabaseBannerRepository(supabase: sl<SupabaseClient>()),
-        remote: () => RemoteBannerRepository(sl<Dio>()),
-      ),
+      inner: useWoody
+          ? WoodyBannerRepository(api: sl<WoodyApiClient>())
+          : resolver.resolve<BannerRepository>(
+              supabase: () =>
+                  SupabaseBannerRepository(supabase: sl<SupabaseClient>()),
+              remote: () => RemoteBannerRepository(sl<Dio>()),
+            ),
       cache: sl<CacheStore>(),
     ),
   );
+  // Woody mode talks to the backend directly — the offline-merge layer that
+  // `HybridCartRepository` provides was tightly coupled to Supabase's auth
+  // stream. `WoodyCartRepository` handles a signed-out caller gracefully
+  // (returns an empty cart on 401), so the hybrid wrapper is unnecessary
+  // here. Re-introducing Hive-backed offline guest carts on the Woody path
+  // is a Phase 8 follow-up.
   sl.registerLazySingleton<CartRepository>(
-    () => resolver.resolve<CartRepository>(
-      supabase: () => HybridCartRepository(
-        hive: HiveCartRepository(sl<Box>(instanceName: HiveBoxes.cart)),
-        remote: SupabaseCartRepository(supabase: sl<SupabaseClient>()),
-        supabase: sl<SupabaseClient>(),
-      ),
-      remote: () => RemoteCartRepository(sl<Dio>()),
-    ),
+    () => useWoody
+        ? WoodyCartRepository(api: sl<WoodyApiClient>())
+        : resolver.resolve<CartRepository>(
+            supabase: () => HybridCartRepository(
+              hive: HiveCartRepository(sl<Box>(instanceName: HiveBoxes.cart)),
+              remote: SupabaseCartRepository(supabase: sl<SupabaseClient>()),
+              supabase: sl<SupabaseClient>(),
+            ),
+            remote: () => RemoteCartRepository(sl<Dio>()),
+          ),
   );
   sl.registerLazySingleton<FavoritesRepository>(
-    () => resolver.resolve<FavoritesRepository>(
-      supabase: () => HybridFavoritesRepository(
-        hive: HiveFavoritesRepository(
-          sl<Box>(instanceName: HiveBoxes.favorites),
-        ),
-        remote: SupabaseFavoritesRepository(supabase: sl<SupabaseClient>()),
-        supabase: sl<SupabaseClient>(),
-      ),
-      remote: () => RemoteFavoritesRepository(sl<Dio>()),
-    ),
+    () => useWoody
+        ? WoodyFavoritesRepository(api: sl<WoodyApiClient>())
+        : resolver.resolve<FavoritesRepository>(
+            supabase: () => HybridFavoritesRepository(
+              hive: HiveFavoritesRepository(
+                sl<Box>(instanceName: HiveBoxes.favorites),
+              ),
+              remote: SupabaseFavoritesRepository(
+                supabase: sl<SupabaseClient>(),
+              ),
+              supabase: sl<SupabaseClient>(),
+            ),
+            remote: () => RemoteFavoritesRepository(sl<Dio>()),
+          ),
   );
   sl.registerLazySingleton<RegionRepository>(
     () => resolver.resolve<RegionRepository>(
@@ -183,13 +230,17 @@ void registerCatalogModule(GetIt sl) {
     ),
   );
   sl.registerLazySingleton<OrderRepository>(
-    () => resolver.hasSupabase
-        ? SupabaseOrderRepository(sl<SupabaseClient>())
-        : RemoteOrderRepository(sl<Dio>()),
+    () => useWoody
+        ? WoodyOrderRepository(sl<WoodyApiClient>())
+        : (resolver.hasSupabase
+            ? SupabaseOrderRepository(sl<SupabaseClient>())
+            : RemoteOrderRepository(sl<Dio>())),
   );
   sl.registerLazySingleton<NotificationsRepository>(
-    () => resolver.resolve<NotificationsRepository>(
-      remote: () => RemoteNotificationsRepository(sl<Dio>()),
-    ),
+    () => useWoody
+        ? WoodyNotificationsRepository(api: sl<WoodyApiClient>())
+        : resolver.resolve<NotificationsRepository>(
+            remote: () => RemoteNotificationsRepository(sl<Dio>()),
+          ),
   );
 }

@@ -10,6 +10,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../config/app_mode.dart';
 import '../../shared/models/notification_model.dart';
 import '../logging/talker.dart';
+import '../network/api_error.dart';
+import '../network/woody_api_client.dart';
 import '../platform/messaging_facade.dart';
 import 'notification_handler.dart';
 
@@ -43,15 +45,23 @@ class PushService {
     required FlutterLocalNotificationsPlugin localNotifications,
     required NotificationHandler notificationHandler,
     required SupabaseClient? supabase,
+    WoodyApiClient? woodyApi,
   })  : _messaging = messaging,
         _localNotifications = localNotifications,
         _notificationHandler = notificationHandler,
-        _supabase = supabase;
+        _supabase = supabase,
+        _woodyApi = woodyApi;
 
   final MessagingFacade _messaging;
   final FlutterLocalNotificationsPlugin _localNotifications;
   final NotificationHandler _notificationHandler;
   final SupabaseClient? _supabase;
+
+  /// When set, device-token registration calls the Woody REST endpoint
+  /// (`POST /push/device-tokens`) instead of upserting into Supabase's
+  /// `device_tokens` table. The two paths are mutually exclusive — wire
+  /// exactly one in DI.
+  final WoodyApiClient? _woodyApi;
 
   bool _bootstrapped = false;
   bool _permissionRequested = false;
@@ -84,6 +94,13 @@ class PushService {
     // it does, re-save the new token under the currently logged-in user so
     // the server-side sender keeps reaching this device.
     _tokenRefreshSub = _messaging.onTokenRefresh.listen((token) async {
+      // With Woody auth the JWT already carries the user id — the upsert
+      // call doesn't need to read it from a SupabaseClient. When neither
+      // backend is configured, skip silently.
+      if (_woodyApi != null) {
+        await _upsertToken(token: token, userId: '');
+        return;
+      }
       final userId = _supabase?.auth.currentUser?.id;
       if (userId == null) return;
       await _upsertToken(token: token, userId: userId);
@@ -193,7 +210,7 @@ class PushService {
   /// Cross-account on the same device works because `token` is the PK,
   /// so the upsert overwrites the prior `user_id`.
   Future<void> syncTokenForUser(String userId) async {
-    if (_supabase == null) return;
+    if (_supabase == null && _woodyApi == null) return;
     try {
       final token = await _messaging.getToken();
       if (token == null) {
@@ -214,14 +231,23 @@ class PushService {
   /// delete and the row is orphaned (eventually GC'd via the cascade when
   /// the user account is deleted, but stale until then).
   Future<void> removeCurrentToken() async {
-    if (_supabase == null) return;
+    if (_supabase == null && _woodyApi == null) return;
     try {
       final token = await _messaging.getToken();
       if (token == null) return;
-      await _supabase
-          .from('device_tokens')
-          .delete()
-          .eq('token', token);
+      if (_woodyApi != null) {
+        try {
+          await _woodyApi.delete<dynamic>('/push/device-tokens/$token');
+        } on ApiError catch (e) {
+          if (e.isUnauthorized) return;
+          rethrow;
+        }
+      } else {
+        await _supabase!
+            .from('device_tokens')
+            .delete()
+            .eq('token', token);
+      }
       talker.info('FCM token removed from device_tokens');
       debugPrint('[FCM] token removed from device_tokens');
     } catch (e, st) {
@@ -233,16 +259,36 @@ class PushService {
     required String token,
     required String userId,
   }) async {
-    if (_supabase == null) return;
     final platform = _platformLabel();
+    if (_woodyApi != null) {
+      try {
+        await _woodyApi.post<dynamic>(
+          '/push/device-tokens',
+          body: {'token': token, 'platform': platform},
+        );
+        talker.info('FCM token saved via Woody REST (platform=$platform)');
+        debugPrint('[FCM] token saved via Woody REST (platform=$platform)');
+      } on ApiError catch (e) {
+        if (e.isUnauthorized) {
+          // Not signed in — defer registration until syncTokenForUser is
+          // called after the next sign-in completes.
+          return;
+        }
+        rethrow;
+      }
+      return;
+    }
+    if (_supabase == null) return;
     await _supabase.from('device_tokens').upsert({
       'token': token,
       'user_id': userId,
       'platform': platform,
       'updated_at': DateTime.now().toUtc().toIso8601String(),
     }, onConflict: 'token');
-    talker.info('FCM token saved (platform=$platform)');
-    debugPrint('[FCM] token saved to device_tokens (platform=$platform, user=$userId)');
+    talker.info('FCM token saved to Supabase (platform=$platform)');
+    debugPrint(
+      '[FCM] token saved to Supabase (platform=$platform, user=$userId)',
+    );
   }
 
   String _platformLabel() {
