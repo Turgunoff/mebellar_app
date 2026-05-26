@@ -6,27 +6,34 @@ import 'package:flutter/services.dart';
 import '../../core/theme/app_fonts.dart';
 import 'auth_sheet_kit.dart';
 
-/// Step 2 — enter the 6-digit OTP, with a resend countdown.
+/// Step 2 — enter the SMS OTP, with a resend countdown.
 class OtpStep extends StatelessWidget {
   const OtpStep({
     super.key,
-    required this.email,
+    required this.destination,
     required this.controller,
     required this.busy,
     required this.onSubmit,
     required this.remainingLabel,
     required this.canResend,
     required this.onResend,
+    this.length = 5,
     this.errorMessage,
   });
 
-  final String email;
+  /// Where the code was sent — shown in the "code sent to ..." subtitle.
+  /// Typically a formatted phone number; could be an email in legacy flows.
+  final String destination;
   final TextEditingController controller;
   final bool busy;
   final VoidCallback onSubmit;
   final String remainingLabel;
   final bool canResend;
   final VoidCallback onResend;
+
+  /// Digit count of the OTP. Backend currently issues 5-digit codes
+  /// (`OTP_LENGTH=5`, bound to the Eskiz template).
+  final int length;
 
   /// Server-side or validation error (e.g. "wrong code"). Drives the
   /// shake animation + the inline error message under the pin row.
@@ -44,20 +51,21 @@ class OtpStep extends StatelessWidget {
           text: TextSpan(
             style: authSubtitleStyle(context),
             children: [
-              const TextSpan(text: '6 xonali kod '),
+              TextSpan(text: '$length xonali kod '),
               TextSpan(
-                text: email,
+                text: destination,
                 style: authSubtitleStyle(context).copyWith(
                   color: t.textPrimary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              const TextSpan(text: ' manziliga yuborildi.'),
+              const TextSpan(text: ' raqamiga yuborildi.'),
             ],
           ),
         ),
         const SizedBox(height: 28),
         _PinField(
+          length: length,
           controller: controller,
           enabled: !busy,
           onCompleted: onSubmit,
@@ -88,14 +96,14 @@ class OtpStep extends StatelessWidget {
 
 class _PinField extends StatefulWidget {
   const _PinField({
+    required this.length,
     required this.controller,
     required this.enabled,
     required this.onCompleted,
     required this.hasError,
   });
 
-  static const int length = 6;
-
+  final int length;
   final TextEditingController controller;
   final bool enabled;
   final VoidCallback onCompleted;
@@ -154,7 +162,7 @@ class _PinFieldState extends State<_PinField>
 
   void _handle() {
     setState(() {});
-    if (widget.controller.text.length == _PinField.length) {
+    if (widget.controller.text.length == widget.length) {
       // Slight delay so the last digit visually lands before submit.
       Future<void>.delayed(const Duration(milliseconds: 120), () {
         if (mounted) widget.onCompleted();
@@ -205,7 +213,7 @@ class _PinFieldState extends State<_PinField>
                 keyboardType: TextInputType.number,
                 textInputAction: TextInputAction.done,
                 autofillHints: const [AutofillHints.oneTimeCode],
-                maxLength: _PinField.length,
+                maxLength: widget.length,
                 showCursor: false,
                 cursorWidth: 0,
                 style: const TextStyle(color: Colors.transparent, height: 0.01),
@@ -227,11 +235,11 @@ class _PinFieldState extends State<_PinField>
                   // breathes nicely on every screen — no fixed width.
                   const gap = 10.0;
                   final cellW = (constraints.maxWidth -
-                          gap * (_PinField.length - 1)) /
-                      _PinField.length;
+                          gap * (widget.length - 1)) /
+                      widget.length;
                   return Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: List.generate(_PinField.length, (i) {
+                    children: List.generate(widget.length, (i) {
                       final filled = i < value.length;
                       final isCursor = i == value.length && _focus.hasFocus;
                       final ch = filled ? value[i] : '';

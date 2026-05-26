@@ -4,6 +4,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/auth/auth_repository.dart';
 import '../../../../core/auth/sign_out.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/logging/talker.dart';
@@ -105,7 +106,9 @@ Future<void> showSignOutDialog(BuildContext context) async {
     ),
   );
   if (confirmed == true && context.mounted) {
-    await signOutWithPushCleanup(Supabase.instance.client);
+    if (sl.isRegistered<AuthRepository>()) {
+      await signOutWithPushCleanup(sl<AuthRepository>());
+    }
   }
 }
 

@@ -1,43 +1,38 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
 
-/// Maps an error thrown by a Supabase auth call to a localized, user-facing
-/// message.
+import '../core/network/api_error.dart';
+
+/// Maps a Woody-backend [ApiError] code to a localized, user-facing message.
 ///
-/// Known stable [AuthException] codes get a translated string; an
-/// unrecognised [AuthException] falls back to its own (English) message; a
-/// non-auth error — almost always a dropped connection — maps to the generic
+/// Codes mirror `app/api/v1/auth.py::_translate` in woody_backend — keep this
+/// switch in sync when adding new ones. Unknown codes fall back to a generic
 /// network-error string. Logging the raw error is the caller's job (via
 /// `talker.handle`); this helper only decides what the user sees.
-String authErrorMessage(Object error) {
-  if (error is AuthException) {
-    switch (error.code) {
-      case 'invalid_credentials':
-      case 'invalid_grant':
-        return tr('auth.invalid_credentials');
-      case 'email_not_confirmed':
-        return tr('auth.email_not_confirmed');
-      case 'over_email_send_rate_limit':
-      case 'over_request_rate_limit':
-      case 'over_sms_send_rate_limit':
-        return tr('auth.too_many_requests');
-      case 'user_already_exists':
-      case 'email_exists':
-        return tr('auth.email_in_use');
-      case 'weak_password':
-        return tr('auth.weak_password');
-    }
-    // A connection dropped mid-request surfaces as a retryable fetch
-    // exception with no stable `code` — treat it as a network error.
-    if (error is AuthRetryableFetchException) return tr('error.network');
-    return error.message;
+String authErrorMessageFromApi(ApiError error) {
+  switch (error.code) {
+    case 'invalid_phone':
+      return "Telefon raqam noto'g'ri formatda";
+    case 'rate_limited':
+      final retry = error.retryAfterSeconds;
+      if (retry != null) {
+        return "Juda ko'p urinish. $retry soniyadan keyin qayta urining";
+      }
+      return tr('auth.too_many_requests');
+    case 'invalid_code':
+      return "Kod noto'g'ri";
+    case 'otp_expired':
+      return "Kodning muddati o'tgan. Qayta yuborishni so'rang";
+    case 'otp_attempts_exhausted':
+      return "Juda ko'p noto'g'ri urinish. Kodni qayta yuborishni so'rang";
+    case 'invalid_refresh_token':
+      return tr('auth.invalid_credentials');
+    case 'not_authenticated':
+      return tr('auth.invalid_credentials');
+    case 'validation_error':
+      return "Ma'lumotlar noto'g'ri kiritilgan";
+    case 'network_error':
+      return tr('error.network');
   }
-  // Non-AuthException ⇒ almost always a transport/socket failure.
-  return tr('error.network');
+  if (error.status >= 500) return tr('error.network');
+  return error.message ?? tr('error.network');
 }
-
-/// True when [error] means the account exists but its email is unconfirmed.
-/// The login screen routes these users to the resend screen instead of
-/// showing a dead-end snackbar.
-bool isEmailNotConfirmed(Object error) =>
-    error is AuthException && error.code == 'email_not_confirmed';

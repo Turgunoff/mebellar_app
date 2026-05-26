@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/auth/app_mode_cubit.dart';
+import '../../../../core/auth/auth_repository.dart';
 import '../../../../core/auth/sign_out.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/logging/talker.dart';
@@ -127,7 +128,9 @@ class ProfileCubit extends Cubit<ProfileState> {
         talker.warning(
           'Ghost session: profile row missing for ${user.id}. Forcing sign-out.',
         );
-        await signOutWithPushCleanup(_supabase);
+        if (sl.isRegistered<AuthRepository>()) {
+          await signOutWithPushCleanup(sl<AuthRepository>());
+        }
       }
       emit(ProfileState(email: user.email ?? ''));
     } catch (e, st) {

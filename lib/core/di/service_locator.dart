@@ -3,10 +3,9 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_phoenix/flutter_phoenix.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-
 import '../../config/app_mode.dart';
 import '../auth/app_mode_cubit.dart';
+import '../auth/auth_repository.dart';
 import '../auth/sign_out.dart';
 import '../logging/talker.dart';
 import '../storage/hive_boxes.dart';
@@ -81,10 +80,11 @@ Future<void> switchAppMode(BuildContext context, AppMode newMode) async {
 ///     scope-scoped bloc/repo is rebuilt against the fresh (anonymous)
 ///     auth state.
 Future<void> performLogout(BuildContext context) async {
-  // Token cleanup runs as part of `signOutWithPushCleanup`. The
-  // AuthRepository wrapper is bypassed here so we don't double-call signOut.
-  if (sl.isRegistered<SupabaseClient>()) {
-    await signOutWithPushCleanup(sl<SupabaseClient>());
+  // Token cleanup runs as part of `signOutWithPushCleanup` (FCM token first
+  // so the DELETE goes out while we're still authenticated, then the
+  // access/refresh pair is wiped from TokenStore).
+  if (sl.isRegistered<AuthRepository>()) {
+    await signOutWithPushCleanup(sl<AuthRepository>());
   }
 
   // Every user-specific Hive box is wiped. Each `clear()` is independent —

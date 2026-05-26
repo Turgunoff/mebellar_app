@@ -4,29 +4,48 @@ import 'verification_status.dart';
 class Me {
   const Me({
     required this.id,
-    required this.email,
-    this.fullName,
     this.phone,
+    this.fullName,
     this.preferredLanguage = 'uz',
+    this.avatarUrl,
+    this.isSellerPending = false,
+    this.role,
     this.sellerProfile,
   });
 
   final String id;
-  final String email;
-  final String? fullName;
   final String? phone;
+  final String? fullName;
   final String preferredLanguage;
+  final String? avatarUrl;
+  final bool isSellerPending;
+
+  /// Backend-resolved role (`super_admin`, `manager`, or null for plain users).
+  /// Recomputed server-side per request — never trust the JWT claim alone.
+  final String? role;
+
+  /// Seller surface — populated by a separate endpoint once approved. Until
+  /// Phase 4 wires `/seller/me`, this stays null on every `/me` response.
   final SellerProfile? sellerProfile;
 
   bool get hasSellerProfile => sellerProfile != null;
+  bool get hasProfile => fullName != null && fullName!.isNotEmpty;
 
-  Me copyWith({SellerProfile? sellerProfile}) {
+  Me copyWith({
+    String? fullName,
+    String? preferredLanguage,
+    String? avatarUrl,
+    bool? isSellerPending,
+    SellerProfile? sellerProfile,
+  }) {
     return Me(
       id: id,
-      email: email,
-      fullName: fullName,
       phone: phone,
-      preferredLanguage: preferredLanguage,
+      fullName: fullName ?? this.fullName,
+      preferredLanguage: preferredLanguage ?? this.preferredLanguage,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      isSellerPending: isSellerPending ?? this.isSellerPending,
+      role: role,
       sellerProfile: sellerProfile ?? this.sellerProfile,
     );
   }
@@ -34,10 +53,12 @@ class Me {
   factory Me.fromJson(Map<String, dynamic> json) {
     return Me(
       id: json['id'] as String,
-      email: json['email'] as String? ?? '',
-      fullName: json['full_name'] as String?,
       phone: json['phone'] as String?,
+      fullName: json['full_name'] as String?,
       preferredLanguage: json['preferred_language'] as String? ?? 'uz',
+      avatarUrl: json['avatar_url'] as String?,
+      isSellerPending: json['is_seller_pending'] as bool? ?? false,
+      role: json['role'] as String?,
       sellerProfile: json['seller_profile'] is Map<String, dynamic>
           ? SellerProfile.fromJson(json['seller_profile'] as Map<String, dynamic>)
           : null,

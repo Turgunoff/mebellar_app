@@ -5,8 +5,8 @@ import 'auth_sheet_controller.dart';
 import 'sheets/auth_error_banner.dart';
 import 'sheets/auth_sheet_header.dart';
 import 'sheets/auth_sheet_kit.dart';
-import 'sheets/email_step.dart';
 import 'sheets/otp_step.dart';
+import 'sheets/phone_step.dart';
 import 'sheets/profile_step.dart';
 
 /// Opens the passwordless email-OTP authentication flow as a bottom sheet.
@@ -165,15 +165,15 @@ class _AuthBottomSheetState extends State<_AuthBottomSheet> {
 
   Widget _buildBody() {
     switch (_controller.step) {
-      case AuthStep.email:
-        return EmailStep(
-          controller: _controller.emailCtrl,
+      case AuthStep.phone:
+        return PhoneStep(
+          controller: _controller.phoneCtrl,
           busy: _controller.isLoading,
           onSubmit: () => _controller.sendOtp(),
         );
       case AuthStep.otp:
         return OtpStep(
-          email: _controller.emailCtrl.text.trim(),
+          destination: _controller.currentPhoneDisplay,
           controller: _controller.otpCtrl,
           busy: _controller.isLoading,
           onSubmit: _controller.verifyOtp,
@@ -185,7 +185,6 @@ class _AuthBottomSheetState extends State<_AuthBottomSheet> {
       case AuthStep.profile:
         return ProfileStep(
           nameController: _controller.nameCtrl,
-          phoneController: _controller.phoneCtrl,
           busy: _controller.isLoading,
           onSubmit: _controller.saveProfile,
         );

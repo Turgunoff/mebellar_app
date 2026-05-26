@@ -1,33 +1,37 @@
 import 'dart:async';
 
 import 'package:flutter/widgets.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../core/auth/auth_repository.dart';
 import '../core/di/service_locator.dart';
 import '../core/logging/talker.dart';
+import '../core/network/api_error.dart';
 import '../customer/features/profile/cubit/profile_cubit.dart';
+import 'auth_error_messages.dart';
 import 'sheets/auth_sheet_kit.dart';
 
-const int _resendSeconds = 120;
-
-/// Lightweight orchestrator for the passwordless email-OTP sheet.
+/// Lightweight orchestrator for the phone-OTP sheet.
 ///
-/// Owns the wizard step, the four text controllers, the loading/error state
-/// and the resend timer, plus the three Supabase actions. The widget stays a
-/// thin [ListenableBuilder] shell — it wires [onCompleted] (→ pop the sheet)
-/// and [onMessage] (→ show a SnackBar) since those need a `BuildContext`.
+/// Owns the wizard step, three text controllers, the loading/error state and
+/// the resend timer, plus the three Woody-backend actions (request OTP,
+/// verify OTP, save profile). The widget stays a thin [ListenableBuilder]
+/// shell — it wires [onCompleted] (→ pop the sheet) and [onMessage]
+/// (→ show a SnackBar) since those need a `BuildContext`.
 class AuthSheetController extends ChangeNotifier {
-  final TextEditingController emailCtrl = TextEditingController();
+  final TextEditingController phoneCtrl = TextEditingController();
   final TextEditingController otpCtrl = TextEditingController();
   final TextEditingController nameCtrl = TextEditingController();
-  final TextEditingController phoneCtrl = TextEditingController();
 
-  AuthStep _step = AuthStep.email;
+  AuthStep _step = AuthStep.phone;
   bool _isLoading = false;
   String? _errorMessage;
   int _secondsRemaining = 0;
   Timer? _resendTimer;
   bool _disposed = false;
+
+  /// Last cooldown the server returned. We pass this to the resend timer
+  /// instead of a hardcoded 120s so the UI matches the backend's policy.
+  int _lastCooldown = 60;
 
   AuthStep get step => _step;
   bool get isLoading => _isLoading;
@@ -35,10 +39,7 @@ class AuthSheetController extends ChangeNotifier {
   int get secondsRemaining => _secondsRemaining;
   bool get canResend => _secondsRemaining == 0 && !_isLoading;
 
-  /// Fired when authentication (and any new-user profile capture) completes.
   VoidCallback? onCompleted;
-
-  /// Fired to surface a transient message as a SnackBar.
   void Function(String message, {required bool isError})? onMessage;
 
   String get remainingLabel {
@@ -47,47 +48,63 @@ class AuthSheetController extends ChangeNotifier {
     return '$m:$s';
   }
 
-  SupabaseClient? get _supabase =>
-      sl.isRegistered<SupabaseClient>() ? sl<SupabaseClient>() : null;
+  /// E.164-formatted phone number derived from [phoneCtrl] — `+998` + the
+  /// digits-only national number.
+  String get currentPhone {
+    final digits = phoneCtrl.text.replaceAll(RegExp(r'\D'), '');
+    return '+998$digits';
+  }
+
+  /// Human-readable destination string used inside the OTP step header
+  /// (e.g. "+998 90 123 45 67").
+  String get currentPhoneDisplay {
+    final digits = phoneCtrl.text.replaceAll(RegExp(r'\D'), '');
+    if (digits.length != 9) return currentPhone;
+    return '+998 ${digits.substring(0, 2)} '
+        '${digits.substring(2, 5)} ${digits.substring(5, 7)} ${digits.substring(7, 9)}';
+  }
+
+  AuthRepository? get _repo =>
+      sl.isRegistered<AuthRepository>() ? sl<AuthRepository>() : null;
 
   // ---- Step actions ------------------------------------------------------
 
   Future<void> sendOtp({bool isResend = false}) async {
     talker.info('Button pressed: Kodni olish (isResend=$isResend)');
-    if (_isLoading) {
-      talker.warning('sendOtp ignored: already loading');
+    if (_isLoading) return;
+    final digits = phoneCtrl.text.replaceAll(RegExp(r'\D'), '');
+    if (digits.length != 9) {
+      _setError("Telefon raqamni to'liq kiriting");
       return;
     }
-    final email = emailCtrl.text.trim();
-    if (!_isValidEmail(email)) {
-      _setError("To'g'ri email manzilini kiriting");
-      return;
-    }
-    final client = _supabase;
-    if (client == null) {
-      _setError("Server sozlanmagan. Iltimos, ilovani qayta ishga tushiring");
-      talker.warning('signInWithOtp aborted: SupabaseClient not registered');
+    final repo = _repo;
+    if (repo == null) {
+      _setError("Server sozlanmagan. Ilovani qayta ishga tushiring");
       return;
     }
     _isLoading = true;
     _errorMessage = null;
     _notify();
-    talker.info('Sending OTP request to: $email');
+    final phone = currentPhone;
+    talker.info('Requesting OTP for: $phone');
     try {
-      // emailRedirectTo intentionally omitted — without it Supabase sends a
-      // 6-digit OTP rather than a magic-link URL, matching this UI.
-      await client.auth.signInWithOtp(email: email);
-      talker.info('✓ OTP sent successfully to $email');
+      final cooldown = await repo.requestOtp(phone);
+      _lastCooldown = cooldown > 0 ? cooldown : 60;
+      talker.info('✓ OTP requested ok (cooldown=$cooldown s)');
       otpCtrl.clear();
       _startResendTimer();
       _step = AuthStep.otp;
       _notify();
       if (isResend) _showInfo('Kod qaytadan yuborildi');
-    } on AuthException catch (e, st) {
-      talker.handle(e, st, 'Failed to send OTP (AuthException)');
-      _setError(e.message);
+    } on ApiError catch (e, st) {
+      talker.handle(e, st, 'Failed to request OTP');
+      _setError(authErrorMessageFromApi(e));
+      if (e.isRateLimited && e.retryAfterSeconds != null) {
+        _secondsRemaining = e.retryAfterSeconds!;
+        _startResendCountdown();
+      }
     } catch (e, st) {
-      talker.handle(e, st, 'Failed to send OTP');
+      talker.handle(e, st, 'Failed to request OTP');
       _setError("Kodni yuborib bo'lmadi. Internet aloqasini tekshiring");
     } finally {
       _isLoading = false;
@@ -97,45 +114,45 @@ class AuthSheetController extends ChangeNotifier {
 
   Future<void> verifyOtp() async {
     talker.info('Button pressed: Tasdiqlash');
-    if (_isLoading) {
-      talker.warning('verifyOtp ignored: already loading');
+    if (_isLoading) return;
+    final code = otpCtrl.text.trim();
+    if (code.length < 4) {
+      _setError("To'liq kodni kiriting");
       return;
     }
-    final email = emailCtrl.text.trim();
-    final token = otpCtrl.text.trim();
-    if (token.length != 6) {
-      _setError('6 xonali kodni kiriting');
-      return;
-    }
-    final client = _supabase;
-    if (client == null) {
+    final repo = _repo;
+    if (repo == null) {
       _setError('Server sozlanmagan');
       return;
     }
     _isLoading = true;
     _errorMessage = null;
     _notify();
-    talker.info('Verifying OTP for: $email');
+    final phone = currentPhone;
+    talker.info('Verifying OTP for: $phone');
     try {
-      final response = await client.auth.verifyOTP(
-        type: OtpType.email,
-        email: email,
-        token: token,
-      );
-      final fullName =
-          (response.user?.userMetadata?['full_name'] as String?)?.trim();
-      talker.info('✓ OTP verified for $email (returning user: '
-          '${fullName != null && fullName.isNotEmpty})');
+      await repo.verifyOtp(phone, code);
       _resendTimer?.cancel();
-      if (fullName != null && fullName.isNotEmpty) {
-        onCompleted?.call();
-      } else {
+      // After token write, check whether the user has a profile already.
+      // No name → step 3; otherwise complete and pop.
+      try {
+        final me = await repo.fetchMe();
+        if (me.hasProfile) {
+          onCompleted?.call();
+        } else {
+          _step = AuthStep.profile;
+          _notify();
+        }
+      } on ApiError catch (e, st) {
+        // Profile lookup failure shouldn't block sign-in — fall through to
+        // the profile step so the user can fill it in.
+        talker.handle(e, st, 'verifyOtp: /me failed; defaulting to profile step');
         _step = AuthStep.profile;
         _notify();
       }
-    } on AuthException catch (e, st) {
-      talker.handle(e, st, 'Failed to verify OTP (AuthException)');
-      _setError(e.message);
+    } on ApiError catch (e, st) {
+      talker.handle(e, st, 'Failed to verify OTP');
+      _setError(authErrorMessageFromApi(e));
     } catch (e, st) {
       talker.handle(e, st, 'Failed to verify OTP');
       _setError("Kod noto'g'ri yoki muddati o'tgan");
@@ -147,57 +164,34 @@ class AuthSheetController extends ChangeNotifier {
 
   Future<void> saveProfile() async {
     talker.info('Button pressed: Saqlash va kirish');
-    if (_isLoading) {
-      talker.warning('saveProfile ignored: already loading');
-      return;
-    }
+    if (_isLoading) return;
     final name = nameCtrl.text.trim();
-    final digits = phoneCtrl.text.replaceAll(RegExp(r'\D'), '');
     if (name.length < 2) {
       _setError("Ism va familiyangizni to'liq kiriting");
       return;
     }
-    if (digits.length != 9) {
-      _setError("Telefon raqamni to'liq kiriting");
-      return;
-    }
-    final phone = '+998$digits';
-    final client = _supabase;
-    if (client == null) {
+    final repo = _repo;
+    if (repo == null) {
       _setError('Server sozlanmagan');
       return;
     }
     _isLoading = true;
     _errorMessage = null;
     _notify();
-    talker.info('Saving profile metadata for new user');
     try {
-      await client.auth.updateUser(
-        UserAttributes(data: {'full_name': name, 'phone': phone}),
-      );
-      final userId = client.auth.currentUser?.id;
-      if (userId != null) {
-        await client.from('profiles').upsert({
-          'id': userId,
-          'full_name': name,
-          'phone': phone,
-        });
-      }
-      talker.info('✓ Profile metadata and public.profiles updated');
-      // Push the new profile into the global cubit BEFORE completing so that
-      // ProfileScreen rebuilds with the correct data the instant the sheet
-      // closes — no separate fetch needed, and no race with userUpdated.
+      final me = await repo.updateProfile(fullName: name);
+      talker.info('✓ Profile updated');
       if (sl.isRegistered<ProfileCubit>()) {
         sl<ProfileCubit>().applySignup(
-          name: name,
-          phone: phone,
-          email: client.auth.currentUser?.email ?? '',
+          name: me.fullName ?? name,
+          phone: me.phone ?? currentPhone,
+          email: '',
         );
       }
       onCompleted?.call();
-    } on AuthException catch (e, st) {
-      talker.handle(e, st, 'Failed to save profile (AuthException)');
-      _setError(e.message);
+    } on ApiError catch (e, st) {
+      talker.handle(e, st, 'Failed to save profile');
+      _setError(authErrorMessageFromApi(e));
     } catch (e, st) {
       talker.handle(e, st, 'Failed to save profile');
       _setError("Saqlab bo'lmadi");
@@ -207,20 +201,17 @@ class AuthSheetController extends ChangeNotifier {
     }
   }
 
-  /// Back-navigation from the OTP step to the email step. Step 3 has no back —
-  /// by then the user is already authenticated.
   void goBack() {
     if (_isLoading) return;
     if (_step == AuthStep.otp) {
       _resendTimer?.cancel();
-      _step = AuthStep.email;
+      _step = AuthStep.phone;
       _secondsRemaining = 0;
       _errorMessage = null;
       _notify();
     }
   }
 
-  /// Stops the resend countdown — call before the widget pops the sheet.
   void cancelResendTimer() => _resendTimer?.cancel();
 
   void clearError() {
@@ -232,8 +223,12 @@ class AuthSheetController extends ChangeNotifier {
   // ---- Helpers -----------------------------------------------------------
 
   void _startResendTimer() {
+    _secondsRemaining = _lastCooldown;
+    _startResendCountdown();
+  }
+
+  void _startResendCountdown() {
     _resendTimer?.cancel();
-    _secondsRemaining = _resendSeconds;
     _notify();
     _resendTimer = Timer.periodic(const Duration(seconds: 1), (t) {
       if (_disposed) {
@@ -250,12 +245,6 @@ class AuthSheetController extends ChangeNotifier {
     });
   }
 
-  bool _isValidEmail(String value) {
-    if (value.isEmpty) return false;
-    return RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(value);
-  }
-
-  /// Surfaces an error inline (banner state) and via [onMessage] (SnackBar).
   void _setError(String msg) {
     _errorMessage = msg;
     _notify();
@@ -272,10 +261,9 @@ class AuthSheetController extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     _resendTimer?.cancel();
-    emailCtrl.dispose();
+    phoneCtrl.dispose();
     otpCtrl.dispose();
     nameCtrl.dispose();
-    phoneCtrl.dispose();
     super.dispose();
   }
 }

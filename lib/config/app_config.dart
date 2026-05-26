@@ -9,6 +9,10 @@ class AppConfig {
 
   static const String apiBaseUrl = String.fromEnvironment('API_BASE_URL');
 
+  /// Base URL for the woody_backend FastAPI service at `api.woody.uz`.
+  /// Routes mount under `/api/v1` — `WoodyApiClient` adds the prefix.
+  static const String woodyApiUrl = String.fromEnvironment('WOODY_API_URL');
+
   static const String supabaseUrl = String.fromEnvironment('SUPABASE_URL');
 
   static const String supabaseAnonKey =
@@ -38,9 +42,12 @@ class AppConfig {
   static bool get hasSupabase =>
       supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;
 
+  static bool get hasWoodyApi => woodyApiUrl.isNotEmpty;
+
   /// Required keys that have no safe fallback. Missing any of these is a build
   /// misconfiguration, not a recoverable runtime state.
   static List<String> get missingRequiredKeys => [
+        if (woodyApiUrl.isEmpty) 'WOODY_API_URL',
         if (supabaseUrl.isEmpty) 'SUPABASE_URL',
         if (supabaseAnonKey.isEmpty) 'SUPABASE_ANON_KEY',
         if (yandexGeocoderApiKey.isEmpty) 'YANDEX_GEOCODER_API_KEY',

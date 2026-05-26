@@ -45,8 +45,10 @@ class AuthTokens {
       _isDark ? AppColors.darkDivider : const Color(0xFFEAEAEA);
 }
 
-/// The three stops of the passwordless email-OTP flow.
-enum AuthStep { email, otp, profile }
+/// The three stops of the passwordless phone-OTP flow.
+/// `phone` keeps the previous index slot so the 3-dot step indicator on
+/// `AuthSheetHeader` reads identically across the migration.
+enum AuthStep { phone, otp, profile }
 
 TextStyle authTitleStyle(BuildContext context) => TextStyle(
       fontFamily: AppFonts.seller,

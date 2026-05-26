@@ -10,6 +10,8 @@ import '../connectivity/network_cubit.dart';
 import '../deep_links/deep_link_service.dart';
 import '../network/api_client.dart';
 import '../network/supabase_client.dart';
+import '../network/token_store.dart';
+import '../network/woody_api_client.dart';
 import '../platform/location_facade.dart';
 import '../realtime/realtime_service.dart';
 import '../storage/app_settings.dart';
@@ -63,6 +65,19 @@ Future<void> registerCoreModule(GetIt sl) async {
   );
 
   sl.registerSingleton<SecureStorage>(SecureStorage());
+
+  // Woody backend (api.woody.uz) plumbing. TokenStore holds the
+  // access/refresh pair in flutter_secure_storage; WoodyApiClient wraps a
+  // dedicated Dio with a 401-triggered refresh interceptor. Both are
+  // root-scoped so they survive customer<->seller mode swaps.
+  sl.registerSingleton<TokenStore>(
+    TokenStore(),
+    dispose: (s) => s.dispose(),
+  );
+  sl.registerSingleton<WoodyApiClient>(
+    WoodyApiClient(tokens: sl<TokenStore>()),
+    dispose: (c) => c.dispose(),
+  );
 
   // Location facade — wraps geolocator's static API behind an injectable
   // seam (ROADMAP B.5). Tests substitute a fake via `sl.allowReassignment`.

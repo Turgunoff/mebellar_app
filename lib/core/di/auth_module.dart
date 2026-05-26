@@ -1,26 +1,27 @@
-import 'package:dio/dio.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../analytics/analytics_service.dart';
 import '../auth/auth_cubit.dart';
 import '../auth/auth_repository.dart';
+import '../network/token_store.dart';
+import '../network/woody_api_client.dart';
 import '../notifications/notification_handler.dart';
 import '../notifications/push_service.dart';
 import '../platform/messaging_facade.dart';
 import '../storage/hive_boxes.dart';
 
-/// Root-scope authentication + push wiring. Depends on `SupabaseClient` /
-/// `Dio` / the `pending_route` box registered by [registerCoreModule].
+/// Root-scope authentication + push wiring. Depends on `WoodyApiClient` /
+/// `TokenStore` / the `pending_route` box registered by [registerCoreModule].
 void registerAuthModule(GetIt sl) {
-  if (sl.isRegistered<SupabaseClient>()) {
-    sl.registerLazySingleton<AuthRepository>(
-      () => AuthRepository(sl<SupabaseClient>(), sl<Dio>()),
-      dispose: (repo) => repo.dispose(),
-    );
-  }
+  sl.registerLazySingleton<AuthRepository>(
+    () => AuthRepository(
+      api: sl<WoodyApiClient>(),
+      tokens: sl<TokenStore>(),
+    ),
+    dispose: (repo) => repo.dispose(),
+  );
 
   sl.registerLazySingleton<NotificationHandler>(
     () => NotificationHandler(sl<Box>(instanceName: HiveBoxes.pendingRoute)),
@@ -33,17 +34,19 @@ void registerAuthModule(GetIt sl) {
       messaging: FirebaseMessagingFacade(),
       localNotifications: FlutterLocalNotificationsPlugin(),
       notificationHandler: sl<NotificationHandler>(),
-      supabase: sl.isRegistered<SupabaseClient>() ? sl<SupabaseClient>() : null,
+      // PushService used to take a SupabaseClient — wired in Phase 3b to a
+      // REST endpoint for device-token registration. Passing null until then
+      // keeps the file compiling without changing PushService's signature.
+      supabase: null,
     ),
   );
 
   // Single global auth listener — survives customer<->seller mode switches.
   sl.registerSingleton<AuthCubit>(
     AuthCubit(
-      sl.isRegistered<SupabaseClient>() ? sl<SupabaseClient>() : null,
-      analytics: sl.isRegistered<AnalyticsService>()
-          ? sl<AnalyticsService>()
-          : null,
+      tokens: sl<TokenStore>(),
+      analytics:
+          sl.isRegistered<AnalyticsService>() ? sl<AnalyticsService>() : null,
     ),
     dispose: (c) => c.close(),
   );
