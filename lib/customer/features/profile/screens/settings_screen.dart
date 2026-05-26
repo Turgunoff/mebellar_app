@@ -6,6 +6,7 @@ import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/storage/hive_boxes.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
+import 'about_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -100,11 +101,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Text(
               "Ushbu funksiya keyingi versiyada qo'shiladi.\nBiz bilan qoling!",
               textAlign: TextAlign.center,
-              style: PremiumTokens.body(
-                size: 14,
-                color: pt.grey,
-                height: 1.55,
-              ),
+              style: PremiumTokens.body(size: 14, color: pt.grey, height: 1.55),
             ),
             const SizedBox(height: 28),
             SizedBox(
@@ -134,6 +131,174 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  void _showAnalyticsInfo(BuildContext context) {
+    final pt = PremiumTokens.of(context);
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.45),
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: pt.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        padding: EdgeInsets.fromLTRB(
+          24,
+          0,
+          24,
+          MediaQuery.paddingOf(ctx).bottom + 24,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 24),
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: pt.divider,
+                  borderRadius: BorderRadius.circular(99),
+                ),
+              ),
+            ),
+            Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: PremiumTokens.accent.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    Iconsax.chart_2,
+                    size: 22,
+                    color: PremiumTokens.accent,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Foydalanish statistikasi',
+                    style: PremiumTokens.display(size: 18, letterSpacing: -0.2),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            Text(
+              "Ilova qaysi qismlari faol ishlatilayotganini tushunish va xatolarni tezroq topish uchun anonim statistik signallar yig'amiz.",
+              style: PremiumTokens.body(size: 14, color: pt.grey, height: 1.55),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              "Nimalar yig'iladi",
+              style: PremiumTokens.body(size: 13, weight: FontWeight.w600),
+            ),
+            const SizedBox(height: 10),
+            _InfoBullet(text: "Qaysi mahsulot va kategoriyalar ko'rilgani"),
+            _InfoBullet(text: 'Savatga qo\'shish va xarid voronkasi'),
+            _InfoBullet(text: "Qidiruv so'rovlari va natijalar soni"),
+            _InfoBullet(text: 'Chat va sotuvchi onboardingi bosqichlari'),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: PremiumTokens.accent.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Iconsax.shield_tick,
+                    size: 18,
+                    color: PremiumTokens.accent,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      "Ism, telefon, email yoki to'lov ma'lumotlari yig'ilmaydi. Eventlar Firebase Analytics'ga shifrlangan kanal orqali yuboriladi.",
+                      style: PremiumTokens.body(
+                        size: 12.5,
+                        color: pt.dark,
+                        height: 1.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 22),
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 50,
+                    child: OutlinedButton(
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const StaticContentScreen(
+                              title: 'Maxfiylik siyosati',
+                              type: StaticContentType.privacy,
+                            ),
+                          ),
+                        );
+                      },
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: pt.divider),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: Text(
+                        'Maxfiylik siyosati',
+                        style: PremiumTokens.body(
+                          size: 13.5,
+                          weight: FontWeight.w600,
+                          color: pt.dark,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: SizedBox(
+                    height: 50,
+                    child: FilledButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: PremiumTokens.accent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: Text(
+                        'Tushunarli',
+                        style: PremiumTokens.body(
+                          size: 14,
+                          weight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   PreferredSizeWidget _buildAppBar() {
     final pt = PremiumTokens.of(context);
     return AppBar(
@@ -142,11 +307,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       surfaceTintColor: Colors.transparent,
       leading: IconButton(
         onPressed: () => Navigator.of(context).pop(),
-        icon: Icon(
-          Icons.arrow_back_ios_new_rounded,
-          size: 18,
-          color: pt.dark,
-        ),
+        icon: Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: pt.dark),
       ),
       title: Text(
         'Sozlamalar',
@@ -223,10 +384,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _SwitchRow(
                 icon: Iconsax.chart_2,
                 title: "Foydalanish statistikasi",
-                subtitle:
-                    "Anonim event'lar ilovani yaxshilashga yordam beradi",
+                subtitle: "Anonim event'lar ilovani yaxshilashga yordam beradi",
                 value: _analyticsEnabled,
                 onChanged: _setAnalyticsEnabled,
+                onInfoTap: () => _showAnalyticsInfo(context),
               ),
             ],
           ),
@@ -370,6 +531,7 @@ class _SwitchRow extends StatelessWidget {
     required this.value,
     required this.onChanged,
     this.subtitle,
+    this.onInfoTap,
   });
 
   final IconData icon;
@@ -377,6 +539,7 @@ class _SwitchRow extends StatelessWidget {
   final String? subtitle;
   final bool value;
   final ValueChanged<bool> onChanged;
+  final VoidCallback? onInfoTap;
 
   @override
   Widget build(BuildContext context) {
@@ -400,18 +563,36 @@ class _SwitchRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: PremiumTokens.body(size: 14, weight: FontWeight.w500),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        title,
+                        style: PremiumTokens.body(
+                          size: 14,
+                          weight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    if (onInfoTap != null) ...[
+                      const SizedBox(width: 6),
+                      InkResponse(
+                        onTap: onInfoTap,
+                        radius: 14,
+                        child: Icon(
+                          Iconsax.info_circle,
+                          size: 16,
+                          color: pt.greyLight,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 if (subtitle != null) ...[
                   const SizedBox(height: 2),
                   Text(
                     subtitle!,
-                    style: PremiumTokens.body(
-                      size: 12,
-                      color: pt.grey,
-                    ),
+                    style: PremiumTokens.body(size: 12, color: pt.grey),
                   ),
                 ],
               ],
@@ -447,6 +628,47 @@ class _ComingSoonBadge extends StatelessWidget {
           weight: FontWeight.w600,
           color: PremiumTokens.accent,
         ),
+      ),
+    );
+  }
+}
+
+class _InfoBullet extends StatelessWidget {
+  const _InfoBullet({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 7),
+            child: Container(
+              width: 4,
+              height: 4,
+              decoration: BoxDecoration(
+                color: PremiumTokens.accent,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: PremiumTokens.body(
+                size: 13.5,
+                color: pt.dark,
+                height: 1.5,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

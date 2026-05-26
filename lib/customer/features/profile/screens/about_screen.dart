@@ -56,10 +56,7 @@ class AboutScreen extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   'Versiya $_version',
-                  style: PremiumTokens.body(
-                    size: 13,
-                    color: pt.grey,
-                  ),
+                  style: PremiumTokens.body(size: 13, color: pt.grey),
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -91,9 +88,9 @@ class AboutScreen extends StatelessWidget {
                   title: 'Foydalanish shartlari',
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute<void>(
-                      builder: (_) => const _StaticContentScreen(
+                      builder: (_) => const StaticContentScreen(
                         title: 'Foydalanish shartlari',
-                        type: _StaticContentType.terms,
+                        type: StaticContentType.terms,
                       ),
                     ),
                   ),
@@ -107,9 +104,9 @@ class AboutScreen extends StatelessWidget {
                   title: 'Maxfiylik siyosati',
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute<void>(
-                      builder: (_) => const _StaticContentScreen(
+                      builder: (_) => const StaticContentScreen(
                         title: 'Maxfiylik siyosati',
-                        type: _StaticContentType.privacy,
+                        type: StaticContentType.privacy,
                       ),
                     ),
                   ),
@@ -122,10 +119,7 @@ class AboutScreen extends StatelessWidget {
           Center(
             child: Text(
               '© 2026 Woody',
-              style: PremiumTokens.body(
-                size: 12,
-                color: pt.greyLight,
-              ),
+              style: PremiumTokens.body(size: 12, color: pt.greyLight),
             ),
           ),
         ],
@@ -141,11 +135,7 @@ class AboutScreen extends StatelessWidget {
       surfaceTintColor: Colors.transparent,
       leading: IconButton(
         onPressed: () => Navigator.of(context).pop(),
-        icon: Icon(
-          Icons.arrow_back_ios_new_rounded,
-          size: 18,
-          color: pt.dark,
-        ),
+        icon: Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: pt.dark),
       ),
       title: Text(
         'Ilova haqida',
@@ -202,10 +192,7 @@ class _LinkRow extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: PremiumTokens.body(
-                    size: 14,
-                    weight: FontWeight.w500,
-                  ),
+                  style: PremiumTokens.body(size: 14, weight: FontWeight.w500),
                 ),
               ),
               Icon(
@@ -225,13 +212,17 @@ class _LinkRow extends StatelessWidget {
 // Static content screen (Terms / Privacy)
 // ---------------------------------------------------------------------------
 
-enum _StaticContentType { terms, privacy }
+enum StaticContentType { terms, privacy }
 
-class _StaticContentScreen extends StatelessWidget {
-  const _StaticContentScreen({required this.title, required this.type});
+class StaticContentScreen extends StatelessWidget {
+  const StaticContentScreen({
+    super.key,
+    required this.title,
+    required this.type,
+  });
 
   final String title;
-  final _StaticContentType type;
+  final StaticContentType type;
 
   @override
   Widget build(BuildContext context) {
@@ -244,7 +235,11 @@ class _StaticContentScreen extends StatelessWidget {
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
           onPressed: () => Navigator.of(context).pop(),
-          icon: Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: pt.dark),
+          icon: Icon(
+            Icons.arrow_back_ios_new_rounded,
+            size: 18,
+            color: pt.dark,
+          ),
         ),
         title: Text(
           title,
@@ -261,9 +256,7 @@ class _StaticContentScreen extends StatelessWidget {
         physics: const BouncingScrollPhysics(),
         children: [
           Text(
-            type == _StaticContentType.terms
-                ? _kTermsText
-                : _kPrivacyText,
+            type == StaticContentType.terms ? _kTermsText : _kPrivacyText,
             style: PremiumTokens.body(size: 14, color: pt.grey, height: 1.7),
           ),
         ],
