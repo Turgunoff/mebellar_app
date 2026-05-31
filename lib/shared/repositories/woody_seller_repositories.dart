@@ -1,11 +1,15 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:hive_flutter/hive_flutter.dart';
 
+import '../../core/auth/auth_repository.dart';
 import '../../core/error/failure.dart';
 import '../../core/network/woody_api_client.dart';
 import '../../core/result/result.dart';
+import '../../core/storage/r2_upload_client.dart';
 import '../models/address.dart';
+import '../models/analytics.dart';
 import '../models/dashboard_snapshot.dart';
 import '../models/multilingual_text.dart';
 import '../models/onboarding_draft.dart';
@@ -14,11 +18,16 @@ import '../models/order_status.dart';
 import '../models/region.dart';
 import '../models/review.dart';
 import '../models/shop.dart';
+import '../models/shop_settings.dart';
 import '../models/tariff.dart';
+import '../models/verification_document.dart';
 import '../models/verification_status.dart';
+import 'seller_analytics_repository.dart';
 import 'seller_dashboard_repository.dart';
 import 'seller_onboarding_repository.dart';
 import 'seller_reviews_repository.dart';
+import 'seller_verification_repository.dart';
+import 'shop_settings_repository.dart';
 
 /// REST-backed seller repositories that target the `/seller/*` endpoints on
 /// api.woody.uz.
@@ -260,4 +269,282 @@ class WoodySellerReviewsRepository implements SellerReviewsRepository {
       sellerRepliedAt: repliedAt != null ? DateTime.parse(repliedAt) : null,
     );
   }
+}
+
+/// REST-backed seller KYC. Documents upload to the private `verification-docs`
+/// R2 bucket (presigned PUT), then their path is registered via `POST
+/// /seller/verification/documents`. The authoritative status is read from
+/// `GET /seller/me`. The backend has no per-doc GET/DELETE yet, so the document
+/// set is tracked in-memory for the current session.
+class WoodySellerVerificationRepository
+    implements SellerVerificationRepository {
+  WoodySellerVerificationRepository({
+    required WoodyApiClient api,
+    required AuthRepository auth,
+    required R2UploadClient uploads,
+  }) : _api = api,
+       _auth = auth,
+       _uploads = uploads {
+    unawaited(_loadStatus());
+  }
+
+  final WoodyApiClient _api;
+  final AuthRepository _auth;
+  final R2UploadClient _uploads;
+
+  List<VerificationDocument> _cache = const [];
+  final _docsController =
+      StreamController<List<VerificationDocument>>.broadcast();
+  final _statusController = StreamController<VerificationStatus>.broadcast();
+
+  @override
+  List<VerificationDocument> get documents => _cache;
+
+  @override
+  Stream<List<VerificationDocument>> watchDocuments() => _docsController.stream;
+
+  @override
+  Stream<VerificationStatus> watchStatus() => _statusController.stream;
+
+  @override
+  Future<Result<VerificationDocument>> uploadDocument({
+    required VerificationDocumentType type,
+    required File file,
+    required String fileExtension,
+  }) => runCatching(() async {
+    final userId = _auth.currentUserId;
+    if (userId == null) {
+      throw const AuthFailure(message: 'Tizimga kirish talab qilinadi');
+    }
+    // Scope the key under the seller's id, matching the bucket's
+    // per-user storage policy.
+    final path = '$userId/${type.code}.$fileExtension';
+    final bytes = await file.readAsBytes();
+    await _uploads.upload(
+      bucket: R2Bucket.verificationDocs,
+      path: path,
+      bytes: bytes,
+      contentType: _contentType(fileExtension),
+    );
+    await _api.post<dynamic>(
+      '/seller/verification/documents',
+      body: {'document_type': type.code, 'storage_path': path},
+    );
+    final doc = VerificationDocument(
+      type: type,
+      localPath: file.path,
+      remoteUrl: path,
+    );
+    _upsertCacheDoc(doc);
+    return doc;
+  });
+
+  @override
+  Future<Result<void>> removeDocument(VerificationDocumentType type) =>
+      runCatching(() async {
+        // No per-document delete endpoint yet — drop it from the local set so
+        // the UI updates. Re-uploading the same type overwrites server-side.
+        _cache = [
+          for (final d in _cache)
+            if (d.type != type) d,
+        ];
+        _emitDocs();
+      });
+
+  @override
+  Future<Result<VerificationStatus>> submit() => runCatching(() async {
+    // Documents are recorded as they upload; submitting just reflects the
+    // pending state locally. /seller/me stays the source of truth.
+    if (!_statusController.isClosed) {
+      _statusController.add(VerificationStatus.pending);
+    }
+    return VerificationStatus.pending;
+  });
+
+  Future<void> _loadStatus() async {
+    try {
+      final body = await _api.get<Map<String, dynamic>>('/seller/me');
+      if (!_statusController.isClosed) {
+        _statusController.add(
+          VerificationStatus.fromCode(body['verification_status'] as String?),
+        );
+      }
+    } catch (_) {
+      // No seller profile yet (pre-onboarding) — leave the stream idle.
+    }
+  }
+
+  void _upsertCacheDoc(VerificationDocument doc) {
+    _cache = [
+      for (final d in _cache)
+        if (d.type != doc.type) d,
+      doc,
+    ];
+    _emitDocs();
+  }
+
+  void _emitDocs() {
+    if (!_docsController.isClosed) _docsController.add(_cache);
+  }
+
+  String _contentType(String ext) {
+    switch (ext.toLowerCase()) {
+      case 'png':
+        return 'image/png';
+      case 'pdf':
+        return 'application/pdf';
+      default:
+        return 'image/jpeg';
+    }
+  }
+}
+
+/// REST-backed shop settings — shop columns via `GET/PATCH /seller/shop`,
+/// contact channels read from `GET /seller/me`. Logo/cover assets upload to the
+/// public `shop-assets` R2 bucket. Editing seller contact channels isn't wired
+/// to a settings endpoint yet (they're captured during onboarding).
+class WoodyShopSettingsRepository implements ShopSettingsRepository {
+  WoodyShopSettingsRepository({
+    required WoodyApiClient api,
+    required R2UploadClient uploads,
+  }) : _api = api,
+       _uploads = uploads;
+
+  final WoodyApiClient _api;
+  final R2UploadClient _uploads;
+
+  @override
+  Stream<ShopSettings> watch() => const Stream.empty();
+
+  @override
+  Future<Result<ShopSettings>> get() => runCatching(() async {
+    final shop = await _api.get<Map<String, dynamic>>('/seller/shop');
+    return ShopSettings.fromRow(
+      shopRow: shop,
+      sellerRow: await _contactSlice(),
+    );
+  });
+
+  @override
+  Future<Result<ShopSettings>> save(ShopSettings settings) =>
+      runCatching(() async {
+        // PATCH accepts shop columns only (ShopUpdateBody); contact channels
+        // live on the seller row and aren't editable through this endpoint yet.
+        final shop = await _api.patch<Map<String, dynamic>>(
+          '/seller/shop',
+          body: settings.toShopJson(),
+        );
+        return ShopSettings.fromRow(
+          shopRow: shop,
+          sellerRow: await _contactSlice(),
+        );
+      });
+
+  @override
+  Future<Result<String>> uploadAsset({
+    required String kind,
+    required File file,
+    required String fileExtension,
+  }) => runCatching(() async {
+    final shop = await _api.get<Map<String, dynamic>>('/seller/shop');
+    final shopId = shop['id'] as String?;
+    if (shopId == null) {
+      throw const ServerFailure(message: "Do'kon topilmadi");
+    }
+    final ext = fileExtension.toLowerCase();
+    final path = '$shopId/$kind-${DateTime.now().millisecondsSinceEpoch}.$ext';
+    final result = await _uploads.upload(
+      bucket: R2Bucket.shopAssets,
+      path: path,
+      bytes: await file.readAsBytes(),
+      contentType: _shopAssetContentType(ext),
+    );
+    final url = result.publicUrl;
+    if (url == null || url.isEmpty) {
+      throw const ServerFailure(message: 'Rasm manzili olinmadi');
+    }
+    return url;
+  });
+
+  Future<Map<String, dynamic>> _contactSlice() async {
+    final me = await _api.get<Map<String, dynamic>>('/seller/me');
+    return {
+      'contact_phone': me['contact_phone'],
+      'contact_email': me['contact_email'],
+      'telegram_username': me['telegram_username'],
+    };
+  }
+
+  String _shopAssetContentType(String ext) => switch (ext) {
+    'png' => 'image/png',
+    'webp' => 'image/webp',
+    _ => 'image/jpeg',
+  };
+}
+
+/// REST-backed seller analytics — `GET /seller/analytics?granularity&days`.
+/// The backend returns a single revenue/orders time series (no per-product,
+/// per-category, customer or review breakdowns yet), so this maps the series +
+/// derived totals and leaves the richer breakdowns empty. Enriching the
+/// backend response is a follow-up; the screen degrades to the trend + totals.
+class WoodySellerAnalyticsRepository implements SellerAnalyticsRepository {
+  WoodySellerAnalyticsRepository({required WoodyApiClient api}) : _api = api;
+
+  final WoodyApiClient _api;
+
+  @override
+  Future<Result<AnalyticsSnapshot>> snapshot(
+    AnalyticsFilter filter, {
+    DateTime? now,
+  }) => runCatching(() async {
+    final clock = now ?? DateTime.now();
+    final days = filter.range.days ?? 30;
+    final granularity = filter.granularityFor(clock) == BucketGranularity.month
+        ? 'month'
+        : 'day';
+    final body = await _api.get<Map<String, dynamic>>(
+      '/seller/analytics',
+      query: {'granularity': granularity, 'days': days},
+    );
+    final points = (body['points'] as List?) ?? const [];
+    if (points.isEmpty) return AnalyticsSnapshot.empty(filter);
+
+    final revenueSeries = <RevenuePoint>[];
+    final ordersSeries = <OrdersPoint>[];
+    num totalRevenue = 0;
+    var ordersCount = 0;
+    for (final raw in points) {
+      if (raw is! Map<String, dynamic>) continue;
+      final bucket = DateTime.parse(raw['bucket'] as String).toUtc();
+      final revenue = (raw['revenue'] as num?) ?? 0;
+      final orders = ((raw['orders'] as num?) ?? 0).toInt();
+      revenueSeries.add(RevenuePoint(bucketStart: bucket, revenue: revenue));
+      ordersSeries.add(OrdersPoint(bucketStart: bucket, count: orders));
+      totalRevenue += revenue;
+      ordersCount += orders;
+    }
+
+    return AnalyticsSnapshot(
+      filter: filter,
+      totalRevenue: totalRevenue,
+      previousRevenue: 0,
+      ordersCount: ordersCount,
+      unitsSold: 0,
+      avgOrderValue: ordersCount == 0 ? 0 : totalRevenue / ordersCount,
+      series: revenueSeries,
+      topProducts: const [],
+      categoryBreakdown: const [],
+      orders: OrdersBreakdown(
+        total: ordersCount,
+        previousTotal: 0,
+        byStatus: const [],
+        series: ordersSeries,
+        deliveredCount: 0,
+        cancelledCount: 0,
+        activeCount: ordersCount,
+      ),
+      reviews: ReviewsBreakdown.empty(),
+      customers: CustomersBreakdown.empty(),
+    );
+  });
 }

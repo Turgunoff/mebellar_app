@@ -19,9 +19,9 @@ abstract class ShopSettingsRepository {
   });
 }
 
-/// Legacy Dio stub — superseded by `SupabaseShopSettingsRepository`. Kept so
-/// the `RepositoryResolver` remote branch still resolves on non-Supabase
-/// builds; every call returns an [Err].
+/// Legacy Dio stub — unused now that shop settings are Woody-backed
+/// (`WoodyShopSettingsRepository`). Retained only so the `RepositoryResolver`
+/// remote branch type-checks; every call returns an [Err].
 class RemoteShopSettingsRepository implements ShopSettingsRepository {
   RemoteShopSettingsRepository(this._dio);
 
@@ -47,6 +47,5 @@ class RemoteShopSettingsRepository implements ShopSettingsRepository {
     required String kind,
     required File file,
     required String fileExtension,
-  }) async =>
-      const Err(_unavailable);
+  }) async => const Err(_unavailable);
 }

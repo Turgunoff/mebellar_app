@@ -30,9 +30,9 @@ abstract class SellerVerificationRepository {
   Stream<VerificationStatus> watchStatus();
 }
 
-/// Legacy Dio stub — superseded by `SupabaseSellerVerificationRepository`.
-/// Kept so the `RepositoryResolver` remote branch still resolves on
-/// non-Supabase builds; every call returns an [Err].
+/// Legacy Dio stub — unused now that verification is Woody-backed
+/// (`WoodySellerVerificationRepository`). Retained only so the
+/// `RepositoryResolver` remote branch type-checks; every call returns an [Err].
 class RemoteSellerVerificationRepository
     implements SellerVerificationRepository {
   RemoteSellerVerificationRepository(this._dio);
@@ -55,16 +55,14 @@ class RemoteSellerVerificationRepository
     required VerificationDocumentType type,
     required File file,
     required String fileExtension,
-  }) async =>
-      const Err(_unavailable);
+  }) async => const Err(_unavailable);
 
   @override
   Future<Result<void>> removeDocument(VerificationDocumentType type) async =>
       const Err(_unavailable);
 
   @override
-  Future<Result<VerificationStatus>> submit() async =>
-      const Err(_unavailable);
+  Future<Result<VerificationStatus>> submit() async => const Err(_unavailable);
 
   @override
   Stream<VerificationStatus> watchStatus() => const Stream.empty();

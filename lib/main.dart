@@ -9,11 +9,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_phoenix/flutter_phoenix.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'config/app_config.dart';
+import 'core/network/woody_api_client.dart';
 import 'config/app_mode.dart';
 import 'config/remote_config.dart';
 import 'core/auth/app_mode_cubit.dart';
@@ -35,76 +35,79 @@ Future<void> main() async {
   // `runZonedGuarded` wraps the entire boot+runtime so any async error that
   // escapes Flutter's own handlers (e.g. a timer callback) is still routed
   // to Crashlytics. The synchronous body inside is what mounts the app.
-  runZonedGuarded<void>(() async {
-    WidgetsFlutterBinding.ensureInitialized();
+  runZonedGuarded<void>(
+    () async {
+      WidgetsFlutterBinding.ensureInitialized();
 
-    // Fail fast: a build launched with no env file has empty Supabase /
-    // Yandex credentials — abort here, loudly, rather than silently
-    // running blank.
-    AppConfig.assertConfigured();
+      // Fail fast: a build launched with no env file has empty Supabase /
+      // Yandex credentials — abort here, loudly, rather than silently
+      // running blank.
+      AppConfig.assertConfigured();
 
-    // ROADMAP B.8 — debug-only guard: throws the instant the ru/en bundles
-    // drift below the uz baseline, so a missing translation is caught at
-    // boot instead of shipping a raw `key.path` to users. No-op in release.
-    assertTranslationsComplete();
+      // ROADMAP B.8 — debug-only guard: throws the instant the ru/en bundles
+      // drift below the uz baseline, so a missing translation is caught at
+      // boot instead of shipping a raw `key.path` to users. No-op in release.
+      assertTranslationsComplete();
 
-    // Boot Firebase before wiring Crashlytics — the handler installation
-    // below needs `FirebaseCrashlytics.instance` to be live.
-    try {
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
-    } catch (e, st) {
-      // No crash reporter yet — log only. The app continues; FCM and
-      // Crashlytics will be no-ops for this run.
-      talker.handle(e, st, 'Firebase init failed — crash reporting disabled');
-    }
+      // Boot Firebase before wiring Crashlytics — the handler installation
+      // below needs `FirebaseCrashlytics.instance` to be live.
+      try {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+      } catch (e, st) {
+        // No crash reporter yet — log only. The app continues; FCM and
+        // Crashlytics will be no-ops for this run.
+        talker.handle(e, st, 'Firebase init failed — crash reporting disabled');
+      }
 
-    if (Firebase.apps.isNotEmpty) {
-      final crashlytics = FirebaseCrashlytics.instance;
-      // Skip collection in debug so local crashes don't pollute the prod
-      // dashboard. Release builds always report.
-      await crashlytics.setCrashlyticsCollectionEnabled(!kDebugMode);
+      if (Firebase.apps.isNotEmpty) {
+        final crashlytics = FirebaseCrashlytics.instance;
+        // Skip collection in debug so local crashes don't pollute the prod
+        // dashboard. Release builds always report.
+        await crashlytics.setCrashlyticsCollectionEnabled(!kDebugMode);
 
-      // Flutter framework errors (build/layout/paint exceptions).
-      FlutterError.onError = (details) {
-        // Forward to the default handler too so the IDE still prints the
-        // red error overlay in debug.
-        FlutterError.presentError(details);
-        crashlytics.recordFlutterFatalError(details);
-      };
+        // Flutter framework errors (build/layout/paint exceptions).
+        FlutterError.onError = (details) {
+          // Forward to the default handler too so the IDE still prints the
+          // red error overlay in debug.
+          FlutterError.presentError(details);
+          crashlytics.recordFlutterFatalError(details);
+        };
 
-      // Async errors that bubble out of any handler chain (futures,
-      // streams) end up here. Returning true tells the platform we've
-      // handled it — without this the engine logs to stderr too.
-      PlatformDispatcher.instance.onError = (error, stack) {
-        crashlytics.recordError(error, stack, fatal: true);
-        return true;
-      };
+        // Async errors that bubble out of any handler chain (futures,
+        // streams) end up here. Returning true tells the platform we've
+        // handled it — without this the engine logs to stderr too.
+        PlatformDispatcher.instance.onError = (error, stack) {
+          crashlytics.recordError(error, stack, fatal: true);
+          return true;
+        };
 
-      // Tag every report with the environment so prod / dev crashes are
-      // easy to separate in the dashboard.
-      unawaited(
-        crashlytics.setCustomKey('environment', AppConfig.environment),
-      );
-    }
+        // Tag every report with the environment so prod / dev crashes are
+        // easy to separate in the dashboard.
+        unawaited(
+          crashlytics.setCustomKey('environment', AppConfig.environment),
+        );
+      }
 
-    // Register the FCM background handler now that Firebase is up — it
-    // must be registered before the first await on FirebaseMessaging.
-    if (Firebase.apps.isNotEmpty) {
-      FirebaseMessaging.onBackgroundMessage(
-        firebaseMessagingBackgroundHandler,
-      );
-    }
+      // Register the FCM background handler now that Firebase is up — it
+      // must be registered before the first await on FirebaseMessaging.
+      if (Firebase.apps.isNotEmpty) {
+        FirebaseMessaging.onBackgroundMessage(
+          firebaseMessagingBackgroundHandler,
+        );
+      }
 
-    await _bootstrapAndRun();
-  }, (error, stack) {
-    // Last-resort sink for anything that escaped both Flutter handlers.
-    if (Firebase.apps.isNotEmpty) {
-      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-    }
-    talker.handle(error, stack, 'Uncaught zone error');
-  });
+      await _bootstrapAndRun();
+    },
+    (error, stack) {
+      // Last-resort sink for anything that escaped both Flutter handlers.
+      if (Firebase.apps.isNotEmpty) {
+        FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      }
+      talker.handle(error, stack, 'Uncaught zone error');
+    },
+  );
 }
 
 /// Boots every subsystem and mounts the widget tree. Firebase + Crashlytics
@@ -161,7 +164,7 @@ Future<void> _bootstrapAndRun() async {
   // network refresh updates it for screens shown after the splash and for the
   // next launch. Not awaited — boot must never block on the network.
   RemoteConfig.instance.hydrateFromCache(settingsBox);
-  unawaited(RemoteConfig.instance.refresh(sl<SupabaseClient>(), settingsBox));
+  unawaited(RemoteConfig.instance.refresh(sl<WoodyApiClient>(), settingsBox));
 
   final localeController = AppLocaleController.fromBox(settingsBox);
   // Seed the singleton so any `tr(...)` invoked before the first
@@ -361,10 +364,7 @@ class _LocaleScopeState extends State<_LocaleScope> {
 
   @override
   Widget build(BuildContext context) {
-    return AppLocaleScope(
-      controller: widget.controller,
-      child: widget.child,
-    );
+    return AppLocaleScope(controller: widget.controller, child: widget.child);
   }
 }
 
@@ -378,8 +378,7 @@ class AppLocaleScope extends InheritedNotifier<AppLocaleController> {
   }) : super(notifier: controller);
 
   static AppLocaleController of(BuildContext context) {
-    final scope =
-        context.dependOnInheritedWidgetOfExactType<AppLocaleScope>();
+    final scope = context.dependOnInheritedWidgetOfExactType<AppLocaleScope>();
     assert(scope != null, 'AppLocaleScope ancestor missing');
     return scope!.notifier!;
   }

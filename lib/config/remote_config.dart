@@ -1,9 +1,11 @@
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/logging/talker.dart';
+import '../core/network/api_error.dart';
+import '../core/network/woody_api_client.dart';
 
-/// Runtime feature flags sourced from the Supabase `app_settings` table.
+/// Runtime feature flags sourced from the woody_backend `app_settings` table
+/// via the public `GET /catalog/settings/{key}` endpoint.
 ///
 /// Unlike [AppConfig] (compile-time env), these can be flipped server-side
 /// without shipping a new build. The value is hydrated synchronously from the
@@ -33,24 +35,38 @@ class RemoteConfig {
     if (cached is bool) tariffEnabled = cached;
   }
 
-  /// Re-fetches flags from `app_settings`. Best-effort: on any failure the
-  /// cached/default value is kept, so boot is never blocked on the network.
-  Future<void> refresh(SupabaseClient supabase, Box box) async {
+  /// Re-fetches the flag from `GET /catalog/settings/tariff_enabled`.
+  /// Best-effort: on any failure the cached/default value is kept, so boot is
+  /// never blocked on the network. A 404 means the flag isn't configured
+  /// server-side, which we treat as *disabled* (tariff stays off rather than
+  /// gating sellers behind a paywall).
+  Future<void> refresh(WoodyApiClient api, Box box) async {
     try {
-      final row = await supabase
-          .from('app_settings')
-          .select('value')
-          .eq('key', 'tariff_enabled')
-          .maybeSingle()
+      final body = await api
+          .get<Map<String, dynamic>>('/catalog/settings/tariff_enabled')
           .timeout(const Duration(seconds: 6));
-      // `value` is jsonb — supabase-flutter decodes a jsonb boolean to a Dart
-      // bool, but tolerate a stringified 'true' too.
-      final value = row?['value'];
+      // `value` is the jsonb column — a boolean, but tolerate 'true' too.
+      final value = body['value'];
       tariffEnabled = value == true || value == 'true';
       await box.put(_tariffHiveKey, tariffEnabled);
       talker.info('[remote-config] tariff_enabled=$tariffEnabled');
+    } on ApiError catch (e, st) {
+      if (e.isNotFound) {
+        tariffEnabled = false;
+        await box.put(_tariffHiveKey, false);
+        return;
+      }
+      talker.handle(
+        e,
+        st,
+        '[remote-config] refresh failed — kept cached value',
+      );
     } catch (e, st) {
-      talker.handle(e, st, '[remote-config] refresh failed — kept cached value');
+      talker.handle(
+        e,
+        st,
+        '[remote-config] refresh failed — kept cached value',
+      );
     }
   }
 }

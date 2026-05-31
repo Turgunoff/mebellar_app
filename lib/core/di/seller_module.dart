@@ -14,21 +14,19 @@ import '../../shared/repositories/seller_reviews_repository.dart';
 import '../../shared/repositories/seller_services_repository.dart';
 import '../../shared/repositories/seller_verification_repository.dart';
 import '../../shared/repositories/shop_settings_repository.dart';
-import '../../shared/repositories/supabase_seller_analytics_repository.dart';
 import '../../shared/repositories/supabase_seller_dashboard_repository.dart';
 import '../../shared/repositories/supabase_seller_onboarding_repository.dart';
-import '../../shared/repositories/supabase_seller_order_repository.dart';
-import '../../shared/repositories/supabase_seller_product_repository.dart';
 import '../../shared/repositories/supabase_seller_services_repository.dart';
-import '../../shared/repositories/supabase_seller_verification_repository.dart';
-import '../../shared/repositories/supabase_shop_settings_repository.dart';
 import '../../shared/repositories/supabase_tariff_repository.dart';
 import '../../shared/repositories/tariff_repository.dart';
+import '../../shared/repositories/woody_seller_order_repository.dart';
+import '../../shared/repositories/woody_seller_product_repository.dart';
 import '../../shared/repositories/woody_seller_repositories.dart';
 import '../../config/app_config.dart';
+import '../auth/auth_repository.dart';
 import '../network/woody_api_client.dart';
-import '../realtime/realtime_service.dart';
 import '../storage/hive_boxes.dart';
+import '../storage/r2_upload_client.dart';
 import 'repository_resolver.dart';
 
 /// Root-scope seller-side repositories. Every seller repo is wired against
@@ -62,10 +60,10 @@ void registerSellerModule(GetIt sl) {
   );
 
   sl.registerLazySingleton<SellerVerificationRepository>(
-    () => resolver.resolve<SellerVerificationRepository>(
-      supabase: () =>
-          SupabaseSellerVerificationRepository(supabase: sl<SupabaseClient>()),
-      remote: () => RemoteSellerVerificationRepository(sl<Dio>()),
+    () => WoodySellerVerificationRepository(
+      api: sl<WoodyApiClient>(),
+      auth: sl<AuthRepository>(),
+      uploads: sl<R2UploadClient>(),
     ),
   );
 
@@ -74,12 +72,9 @@ void registerSellerModule(GetIt sl) {
     () => WoodySellerReviewsRepository(api: sl<WoodyApiClient>()),
   );
 
+  // Products — Woody REST (`/seller/products`).
   sl.registerLazySingleton<SellerProductRepository>(
-    () => resolver.resolve<SellerProductRepository>(
-      supabase: () =>
-          SupabaseSellerProductRepository(supabase: sl<SupabaseClient>()),
-      remote: () => RemoteSellerProductRepository(sl<Dio>()),
-    ),
+    () => WoodySellerProductRepository(api: sl<WoodyApiClient>()),
   );
 
   // Add-product flow owns its own repository so the cubit stays free of the
@@ -105,24 +100,18 @@ void registerSellerModule(GetIt sl) {
   // Analytics reads live data — the empty-revenue state is the source of
   // truth for sellers without orders yet.
   sl.registerLazySingleton<SellerAnalyticsRepository>(
-    () => SupabaseSellerAnalyticsRepository(supabase: sl<SupabaseClient>()),
+    () => WoodySellerAnalyticsRepository(api: sl<WoodyApiClient>()),
   );
 
+  // Orders — Woody REST (`/seller/orders`).
   sl.registerLazySingleton<SellerOrderRepository>(
-    () => resolver.resolve<SellerOrderRepository>(
-      supabase: () => SupabaseSellerOrderRepository(
-        supabase: sl<SupabaseClient>(),
-        realtime: sl<RealtimeService>(),
-      ),
-      remote: () => RemoteSellerOrderRepository(sl<Dio>()),
-    ),
+    () => WoodySellerOrderRepository(api: sl<WoodyApiClient>()),
     dispose: (repo) => repo.dispose(),
   );
   sl.registerLazySingleton<ShopSettingsRepository>(
-    () => resolver.resolve<ShopSettingsRepository>(
-      supabase: () =>
-          SupabaseShopSettingsRepository(supabase: sl<SupabaseClient>()),
-      remote: () => RemoteShopSettingsRepository(sl<Dio>()),
+    () => WoodyShopSettingsRepository(
+      api: sl<WoodyApiClient>(),
+      uploads: sl<R2UploadClient>(),
     ),
   );
   sl.registerLazySingleton<SellerServicesRepository>(

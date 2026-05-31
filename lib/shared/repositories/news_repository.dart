@@ -1,6 +1,6 @@
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/network/woody_api_client.dart';
 import '../models/notification_model.dart';
 
 /// Source for the public broadcast feed. Reads from `public.news` (anyone
@@ -21,14 +21,12 @@ abstract class NewsDataSource {
   Future<void> markAllRead(Iterable<String> visibleIds);
 }
 
-class SupabaseNewsRepository implements NewsDataSource {
-  SupabaseNewsRepository({
-    required SupabaseClient supabase,
-    required Box readsBox,
-  })  : _supabase = supabase,
-        _readsBox = readsBox;
+class WoodyNewsRepository implements NewsDataSource {
+  WoodyNewsRepository({required WoodyApiClient api, required Box readsBox})
+    : _api = api,
+      _readsBox = readsBox;
 
-  final SupabaseClient _supabase;
+  final WoodyApiClient _api;
   final Box _readsBox;
 
   static const _readIdsKey = 'read_ids';
@@ -45,27 +43,26 @@ class SupabaseNewsRepository implements NewsDataSource {
 
   @override
   Future<List<NotificationModel>> list() async {
-    final data = await _supabase
-        .from('news')
-        .select('id, title, body, data, published_at')
-        .eq('is_active', true)
-        .order('published_at', ascending: false);
+    final rows = await _api.get<List<dynamic>>('/catalog/news');
     final readIds = _readIds();
-    return (data as List).whereType<Map<String, dynamic>>().map((row) {
-      final id = row['id'] as String;
-      return NotificationModel(
-        id: id,
-        // Synthetic user id distinguishes broadcast rows from personal ones
-        // in any consumer that inspects the field. The cubit doesn't care.
-        userId: 'broadcast',
-        title: (row['title'] as String?) ?? '',
-        body: (row['body'] as String?) ?? '',
-        kind: NotificationKind.news,
-        referenceId: null,
-        isRead: readIds.contains(id),
-        createdAt: DateTime.parse(row['published_at'] as String),
-      );
-    }).toList(growable: false);
+    return rows
+        .whereType<Map<String, dynamic>>()
+        .map((row) {
+          final id = row['id'] as String;
+          return NotificationModel(
+            id: id,
+            // Synthetic user id distinguishes broadcast rows from personal ones
+            // in any consumer that inspects the field. The cubit doesn't care.
+            userId: 'broadcast',
+            title: (row['title'] as String?) ?? '',
+            body: (row['body'] as String?) ?? '',
+            kind: NotificationKind.news,
+            referenceId: null,
+            isRead: readIds.contains(id),
+            createdAt: DateTime.parse(row['published_at'] as String),
+          );
+        })
+        .toList(growable: false);
   }
 
   @override

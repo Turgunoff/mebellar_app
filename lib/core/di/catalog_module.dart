@@ -127,8 +127,8 @@ void registerCatalogModule(GetIt sl) {
 
     // NewsDataSource — public broadcast feed; only when Supabase is live.
     sl.registerLazySingleton<NewsDataSource>(
-      () => SupabaseNewsRepository(
-        supabase: sl<SupabaseClient>(),
+      () => WoodyNewsRepository(
+        api: sl<WoodyApiClient>(),
         readsBox: sl<Box>(instanceName: HiveBoxes.newsReads),
       ),
     );
@@ -233,8 +233,8 @@ void registerCatalogModule(GetIt sl) {
     () => useWoody
         ? WoodyOrderRepository(sl<WoodyApiClient>())
         : (resolver.hasSupabase
-            ? SupabaseOrderRepository(sl<SupabaseClient>())
-            : RemoteOrderRepository(sl<Dio>())),
+              ? SupabaseOrderRepository(sl<SupabaseClient>())
+              : RemoteOrderRepository(sl<Dio>())),
   );
   sl.registerLazySingleton<NotificationsRepository>(
     () => useWoody
