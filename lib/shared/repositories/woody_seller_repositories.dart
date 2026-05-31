@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:hive_flutter/hive_flutter.dart';
 
+import '../../core/error/failure.dart';
 import '../../core/network/woody_api_client.dart';
+import '../../core/result/result.dart';
 import '../models/address.dart';
 import '../models/dashboard_snapshot.dart';
 import '../models/multilingual_text.dart';
@@ -10,11 +12,13 @@ import '../models/onboarding_draft.dart';
 import '../models/order.dart' as order_models;
 import '../models/order_status.dart';
 import '../models/region.dart';
+import '../models/review.dart';
 import '../models/shop.dart';
 import '../models/tariff.dart';
 import '../models/verification_status.dart';
 import 'seller_dashboard_repository.dart';
 import 'seller_onboarding_repository.dart';
+import 'seller_reviews_repository.dart';
 
 /// REST-backed seller repositories that target the `/seller/*` endpoints on
 /// api.woody.uz.
@@ -106,8 +110,8 @@ class WoodySellerOnboardingRepository implements SellerOnboardingRepository {
   WoodySellerOnboardingRepository({
     required WoodyApiClient api,
     required Box draftBox,
-  })  : _api = api,
-        _draftBox = draftBox;
+  }) : _api = api,
+       _draftBox = draftBox;
 
   static const _draftKey = 'current_draft';
   final WoodyApiClient _api;
@@ -161,7 +165,8 @@ class WoodySellerOnboardingRepository implements SellerOnboardingRepository {
   }) async {
     final shopName =
         draft.shopNameUz ?? draft.shopNameRu ?? draft.shopNameEn ?? '';
-    final shopDescription = draft.shopDescriptionUz ??
+    final shopDescription =
+        draft.shopDescriptionUz ??
         draft.shopDescriptionRu ??
         draft.shopDescriptionEn;
     final body = await _api.post<Map<String, dynamic>>(
@@ -175,8 +180,7 @@ class WoodySellerOnboardingRepository implements SellerOnboardingRepository {
           'telegram_username': draft.telegramUsername,
         'shop_name': shopName,
         if (shopDescription != null) 'shop_description': shopDescription,
-        if (draft.shopStreetLine != null)
-          'shop_address': draft.shopStreetLine,
+        if (draft.shopStreetLine != null) 'shop_address': draft.shopStreetLine,
         if (draft.shopLat != null) 'latitude': draft.shopLat,
         if (draft.shopLng != null) 'longitude': draft.shopLng,
       },
@@ -189,6 +193,71 @@ class WoodySellerOnboardingRepository implements SellerOnboardingRepository {
       verificationStatus: VerificationStatus.fromCode(
         body['verification_status'] as String?,
       ),
+    );
+  }
+}
+
+/// REST-backed seller reviews — `GET /seller/reviews` + `POST
+/// /seller/reviews/{id}/reply`. The backend returns flat rows (no PostgREST
+/// embeds), so we map them directly rather than via [Review.fromRow].
+class WoodySellerReviewsRepository implements SellerReviewsRepository {
+  WoodySellerReviewsRepository({required WoodyApiClient api}) : _api = api;
+
+  final WoodyApiClient _api;
+
+  @override
+  Future<Result<List<Review>>> fetchReviews() => runCatching(() async {
+    final rows = await _api.get<List<dynamic>>('/seller/reviews');
+    return rows
+        .whereType<Map<String, dynamic>>()
+        .map(_toReview)
+        .toList(growable: false);
+  });
+
+  @override
+  Future<Result<Review>> postReply({
+    required String reviewId,
+    required String reply,
+  }) => runCatching(() async {
+    final trimmed = reply.trim();
+    if (trimmed.isEmpty) {
+      throw const ServerFailure(
+        message: "Javob matni bo'sh bo'lishi mumkin emas",
+      );
+    }
+    await _api.post<dynamic>(
+      '/seller/reviews/$reviewId/reply',
+      body: {'reply': trimmed},
+    );
+    // The reply endpoint returns 204, so re-read the list and surface the
+    // updated row. A shop's review list is small, so this is cheap.
+    final rows = await _api.get<List<dynamic>>('/seller/reviews');
+    final updated = rows.whereType<Map<String, dynamic>>().firstWhere(
+      (r) => r['id'] == reviewId,
+      orElse: () => const <String, dynamic>{},
+    );
+    if (updated.isEmpty) {
+      throw const ServerFailure(message: 'Sharh topilmadi');
+    }
+    return _toReview(updated);
+  });
+
+  Review _toReview(Map<String, dynamic> r) {
+    final repliedAt = r['seller_replied_at'] as String?;
+    final customer = (r['customer_name'] as String?)?.trim();
+    return Review(
+      id: r['id'] as String,
+      productId: r['product_id'] as String,
+      productName: (r['product_name'] as String?) ?? '',
+      productImage: '',
+      customerName: (customer != null && customer.isNotEmpty)
+          ? customer
+          : 'Mijoz',
+      rating: (r['rating'] as num).toInt(),
+      comment: (r['comment'] as String?) ?? '',
+      createdAt: DateTime.parse(r['created_at'] as String),
+      sellerReply: r['seller_reply'] as String?,
+      sellerRepliedAt: repliedAt != null ? DateTime.parse(repliedAt) : null,
     );
   }
 }

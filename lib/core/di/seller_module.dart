@@ -19,7 +19,6 @@ import '../../shared/repositories/supabase_seller_dashboard_repository.dart';
 import '../../shared/repositories/supabase_seller_onboarding_repository.dart';
 import '../../shared/repositories/supabase_seller_order_repository.dart';
 import '../../shared/repositories/supabase_seller_product_repository.dart';
-import '../../shared/repositories/supabase_seller_reviews_repository.dart';
 import '../../shared/repositories/supabase_seller_services_repository.dart';
 import '../../shared/repositories/supabase_seller_verification_repository.dart';
 import '../../shared/repositories/supabase_shop_settings_repository.dart';
@@ -64,21 +63,16 @@ void registerSellerModule(GetIt sl) {
 
   sl.registerLazySingleton<SellerVerificationRepository>(
     () => resolver.resolve<SellerVerificationRepository>(
-      supabase: () => SupabaseSellerVerificationRepository(
-        supabase: sl<SupabaseClient>(),
-      ),
+      supabase: () =>
+          SupabaseSellerVerificationRepository(supabase: sl<SupabaseClient>()),
       remote: () => RemoteSellerVerificationRepository(sl<Dio>()),
     ),
   );
 
-  // Reviews — Supabase-only (no legacy Dio variant; the table is new).
-  // Registered only when a Supabase client is available; integration tests
-  // without one will not exercise the reviews surface.
-  if (sl.isRegistered<SupabaseClient>()) {
-    sl.registerLazySingleton<SellerReviewsRepository>(
-      () => SupabaseSellerReviewsRepository(supabase: sl<SupabaseClient>()),
-    );
-  }
+  // Reviews — Woody REST (`/seller/reviews`).
+  sl.registerLazySingleton<SellerReviewsRepository>(
+    () => WoodySellerReviewsRepository(api: sl<WoodyApiClient>()),
+  );
 
   sl.registerLazySingleton<SellerProductRepository>(
     () => resolver.resolve<SellerProductRepository>(
@@ -141,8 +135,7 @@ void registerSellerModule(GetIt sl) {
 
   sl.registerLazySingleton<TariffRepository>(
     () => resolver.resolve<TariffRepository>(
-      supabase: () =>
-          SupabaseTariffRepository(supabase: sl<SupabaseClient>()),
+      supabase: () => SupabaseTariffRepository(supabase: sl<SupabaseClient>()),
       remote: () => RemoteTariffRepository(sl<Dio>()),
     ),
   );
