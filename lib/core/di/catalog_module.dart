@@ -32,7 +32,9 @@ import '../../shared/repositories/woody_category_repository.dart';
 import '../../shared/repositories/woody_chat_repositories.dart';
 import '../../shared/repositories/woody_customer_repositories.dart';
 import '../../shared/repositories/woody_product_repository.dart';
+import '../auth/auth_repository.dart';
 import '../network/woody_api_client.dart';
+import '../realtime/woody_realtime_service.dart';
 import '../storage/cache_store.dart';
 import '../storage/hive_boxes.dart';
 import 'repository_resolver.dart';
@@ -126,7 +128,10 @@ void registerCatalogModule(GetIt sl) {
   sl.registerLazySingleton<NotificationsCubit>(
     () => NotificationsCubit(
       sl<NotificationDataSource>(),
-      supabase: sl.isRegistered<SupabaseClient>() ? sl<SupabaseClient>() : null,
+      realtime: sl.isRegistered<WoodyRealtimeService>()
+          ? sl<WoodyRealtimeService>()
+          : null,
+      auth: sl.isRegistered<AuthRepository>() ? sl<AuthRepository>() : null,
       newsRepo: sl.isRegistered<NewsDataSource>() ? sl<NewsDataSource>() : null,
     )..load(),
     dispose: (c) => c.close(),

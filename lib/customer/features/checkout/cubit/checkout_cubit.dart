@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/analytics/analytics_service.dart';
+import '../../../../core/network/woody_api_client.dart';
 import '../../../../shared/models/cart_item_model.dart';
 import '../../../../shared/repositories/cart_repository.dart';
 
@@ -92,10 +92,10 @@ class CheckoutState extends Equatable {
 class CheckoutCubit extends Cubit<CheckoutState> {
   CheckoutCubit({
     required List<CartItemModel> items,
-    required SupabaseClient supabase,
+    required WoodyApiClient api,
     required CartRepository cartRepo,
     AnalyticsService? analytics,
-  }) : _supabase = supabase,
+  }) : _api = api,
        _cartRepo = cartRepo,
        _analytics = analytics,
        super(CheckoutState(groups: _groupByShop(items))) {
@@ -108,7 +108,7 @@ class CheckoutCubit extends Cubit<CheckoutState> {
     unawaited(_analytics?.beginCheckout(value: total, itemsCount: items.length));
   }
 
-  final SupabaseClient _supabase;
+  final WoodyApiClient _api;
   final CartRepository _cartRepo;
   final AnalyticsService? _analytics;
 
@@ -133,36 +133,22 @@ class CheckoutCubit extends Cubit<CheckoutState> {
       final placedIds = <String>[];
 
       for (final group in state.groups) {
-        final row = await _supabase
-            .from('orders')
-            .insert({
-              'user_id': userId,
-              'total_amount': group.subtotal,
-              'status': 'pending',
-              'delivery_address': state.deliveryAddress,
-            })
-            .select('id')
-            .single();
+        // One order per shop group → POST /orders. The backend resolves the
+        // caller from the JWT and computes the authoritative total from product
+        // prices (so total_amount/price/status aren't client-supplied). Per-item
+        // colour isn't persisted on the Woody order yet — a known limitation.
+        final body = await _api.post<Map<String, dynamic>>(
+          '/orders',
+          body: {
+            'items': [
+              for (final it in group.items)
+                {'product_id': it.productId, 'quantity': it.quantity},
+            ],
+            'delivery_address': state.deliveryAddress,
+          },
+        );
 
-        final orderId = row['id'] as String;
-
-        await _supabase
-            .from('order_items')
-            .insert(
-              group.items
-                  .map(
-                    (it) => {
-                      'order_id': orderId,
-                      'product_id': it.productId,
-                      'quantity': it.quantity,
-                      'price': it.productPrice,
-                      // Null for products without a colour palette.
-                      'color_slug': it.selectedColor,
-                    },
-                  )
-                  .toList(),
-            );
-
+        final orderId = body['id'] as String;
         placedIds.add(orderId);
 
         // Per-shop purchase event — Firebase counts each as one conversion

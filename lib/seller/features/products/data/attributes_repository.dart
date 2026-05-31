@@ -1,6 +1,4 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
-
-import '../../../../core/logging/talker.dart';
+import '../../../../core/network/woody_api_client.dart';
 import '../../../../shared/models/attribute_definition.dart';
 import '../../../../shared/models/attribute_option.dart';
 
@@ -54,101 +52,43 @@ List<AttributeDefinition> mergeAttributeDefinitions({
   return List.unmodifiable(merged);
 }
 
-class SupabaseAttributesRepository implements AttributesRepository {
-  SupabaseAttributesRepository({required SupabaseClient supabase})
-      : _client = supabase;
+class WoodyAttributesRepository implements AttributesRepository {
+  WoodyAttributesRepository({required WoodyApiClient api}) : _api = api;
 
-  final SupabaseClient _client;
+  final WoodyApiClient _api;
 
   @override
   Future<List<AttributeDefinition>> loadForCategory({
     required String categoryId,
     String? subcategoryId,
   }) async {
-    talker.info(
-      '[attributes] loadForCategory start categoryId=$categoryId '
-      'subcategoryId=$subcategoryId',
+    // The backend returns the category + subcategory definitions already
+    // merged and sorted, with `options` nested under each definition. Options
+    // carry no `attribute_id` over the wire (they're nested), so we stamp the
+    // parent definition's id when building [AttributeOption].
+    final rows = await _api.get<List<dynamic>>(
+      '/seller/attributes',
+      query: {
+        'category_id': categoryId,
+        if (subcategoryId != null) 'subcategory_id': subcategoryId,
+      },
     );
-    try {
-      // Pull category-scoped and (when requested) subcategory-scoped rows in
-      // parallel. Options are fetched in a single second round-trip so the
-      // schema render is a 2-query operation regardless of attribute count.
-      final defsFuture = Future.wait<List<Map<String, dynamic>>>([
-        _fetchRows(
-            _client.from('attribute_definitions').select(
-                  'id, category_id, subcategory_id, key, label_uz, label_ru, '
-                  'data_type, unit, is_required, sort_order',
-                ),
-            'category_id',
-            categoryId),
-        if (subcategoryId != null)
-          _fetchRows(
-              _client.from('attribute_definitions').select(
-                    'id, category_id, subcategory_id, key, label_uz, label_ru, '
-                    'data_type, unit, is_required, sort_order',
-                  ),
-              'subcategory_id',
-              subcategoryId)
-        else
-          Future.value(const <Map<String, dynamic>>[]),
-      ]);
-      final defsResults = await defsFuture;
-      final allDefRows = [...defsResults[0], ...defsResults[1]];
-      if (allDefRows.isEmpty) {
-        talker.info(
-          '[attributes] loadForCategory ok categoryId=$categoryId merged=0',
-        );
-        return const [];
-      }
-
-      final defIds = [for (final r in allDefRows) r['id'] as String];
-      final optionRows = await _client
-          .from('attribute_options')
-          .select(
-              'id, attribute_id, value, label_uz, label_ru, sort_order')
-          .inFilter('attribute_id', defIds)
-          .order('sort_order', ascending: true);
-
-      final optionsByDef = <String, List<AttributeOption>>{};
-      for (final row
-          in (optionRows as List).whereType<Map<String, dynamic>>()) {
-        final opt = AttributeOption.fromJson(row);
-        optionsByDef.putIfAbsent(opt.attributeId, () => []).add(opt);
-      }
-
-      AttributeDefinition build(Map<String, dynamic> row) {
-        return AttributeDefinition.fromJson(
-          row,
-          options: optionsByDef[row['id'] as String] ?? const [],
-        );
-      }
-
-      final categoryDefs = [for (final r in defsResults[0]) build(r)];
-      final subcategoryDefs = [for (final r in defsResults[1]) build(r)];
-      final merged = mergeAttributeDefinitions(
-        categoryDefs: categoryDefs,
-        subcategoryDefs: subcategoryDefs,
-      );
-      talker.info(
-        '[attributes] loadForCategory ok categoryId=$categoryId '
-        'subcategoryId=$subcategoryId '
-        'category=${categoryDefs.length} subcategory=${subcategoryDefs.length} '
-        'merged=${merged.length}',
-      );
-      return merged;
-    } catch (e, st) {
-      talker.handle(e, st,
-          '[attributes] loadForCategory failed categoryId=$categoryId');
-      rethrow;
-    }
-  }
-
-  Future<List<Map<String, dynamic>>> _fetchRows(
-    PostgrestFilterBuilder<dynamic> base,
-    String column,
-    String value,
-  ) async {
-    final rows = await base.eq(column, value).order('sort_order', ascending: true);
-    return (rows as List).whereType<Map<String, dynamic>>().toList(growable: false);
+    return rows.whereType<Map<String, dynamic>>().map((def) {
+      final defId = def['id'] as String;
+      final optsRaw = def['options'];
+      final options = optsRaw is List
+          ? optsRaw.whereType<Map<String, dynamic>>().map((o) {
+              return AttributeOption(
+                id: o['id'] as String,
+                attributeId: defId,
+                value: o['value'] as String,
+                labelUz: o['label_uz'] as String? ?? '',
+                labelRu: o['label_ru'] as String? ?? '',
+                sortOrder: (o['sort_order'] as num?)?.toInt() ?? 0,
+              );
+            }).toList(growable: false)
+          : const <AttributeOption>[];
+      return AttributeDefinition.fromJson(def, options: options);
+    }).toList(growable: false);
   }
 }

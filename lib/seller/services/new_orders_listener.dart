@@ -1,38 +1,34 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:async';
+
+import '../../core/realtime/woody_realtime_service.dart';
 
 /// Seller-side realtime listener for incoming orders. Lives in the seller
-/// mode scope; unsubscribed automatically when popping the scope.
+/// mode scope; cancelled automatically when popping the scope.
 ///
-/// Sprint 8 wires this into `SellerOrdersBloc`. Sprint 2 keeps the stub so
-/// the dispose path is exercised.
+/// Subscribes to `new_order` events on the app-managed Woody WebSocket. The
+/// backend doesn't publish them yet, so this is inert until the realtime
+/// publisher lands; `SellerOrdersBloc` meanwhile refreshes via its repository.
 class NewOrdersListener {
-  NewOrdersListener(this._client);
+  NewOrdersListener(this._realtime);
 
-  final SupabaseClient? _client;
-  RealtimeChannel? _channel;
+  final WoodyRealtimeService? _realtime;
+  StreamSubscription<RealtimeEvent>? _sub;
   bool _disposed = false;
 
-  bool get isActive => _channel != null;
+  bool get isActive => _sub != null;
   bool get isDisposed => _disposed;
 
   void listen(String shopId) {
     if (_disposed) {
       throw StateError('NewOrdersListener used after dispose');
     }
-    final client = _client;
-    if (client == null) return;
-    _channel = client
-        .channel('public:orders:shop_id=eq.$shopId')
-        .subscribe();
+    _sub = _realtime?.eventsOfType('new_order').listen((_) {});
   }
 
   Future<void> dispose() async {
     if (_disposed) return;
     _disposed = true;
-    final ch = _channel;
-    _channel = null;
-    if (ch != null) {
-      await ch.unsubscribe();
-    }
+    await _sub?.cancel();
+    _sub = null;
   }
 }

@@ -2,10 +2,11 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_image_compress/flutter_image_compress.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../../../core/logging/talker.dart';
 import '../../../../config/remote_config.dart';
+import '../../../../core/auth/auth_repository.dart';
+import '../../../../core/network/woody_api_client.dart';
+import '../../../../core/storage/r2_upload_client.dart';
 import '../../../../shared/models/category_model.dart';
 import '../../../../shared/models/tariff.dart';
 
@@ -41,16 +42,15 @@ class AddProductShopContext {
       RemoteConfig.instance.tariffEnabled ? plan.maxImagesPerProduct : -1;
 
   TariffSnapshot get tariffSnapshot => TariffSnapshot(
-        plan: plan.asEnum,
-        activeProductsCount: activeProductsCount,
-      );
+    plan: plan.asEnum,
+    activeProductsCount: activeProductsCount,
+  );
 }
 
 /// Inputs the cubit hands to the repository when the user taps
-/// "Saqlash va e'lon qilish". Single-variant MVP: one product row + one
-/// variant row + N image rows are inserted atomically in [createProduct].
-/// Category-specific specs (dimensions, fabric, etc.) ride along inside the
-/// [attributes] JSONB payload; only logistics and variant data remain typed.
+/// "Saqlash va e'lon qilish". Category-specific specs (dimensions, fabric,
+/// etc.) ride along inside the [attributes] JSONB payload; only logistics and
+/// variant data remain typed.
 class AddProductInput {
   const AddProductInput({
     required this.sellerId,
@@ -85,8 +85,7 @@ class AddProductInput {
   final String sku;
 
   /// Canonical color slugs (e.g. `['white','black']`) — persisted on the
-  /// product row as `colors text[]`. The variant row keeps a single
-  /// `color_name` for back-compat (first selection in [colorNames]).
+  /// product row as `colors text[]`.
   final List<String> colorSlugs;
 
   /// Human-readable color labels in the order matching [colorSlugs].
@@ -108,237 +107,139 @@ class AddProductResult {
   final List<String> imageUrls;
 }
 
-/// Add-product data layer. Wraps Supabase Storage upload + the
-/// `products` / `product_variants` / `product_images` triple-insert so the
-/// cubit stays free of SDK details.
+/// Add-product data layer (Woody REST). Images upload to the public
+/// `product-images` R2 bucket; the product is created via `POST
+/// /seller/products` (which stores `images` + `attributes` inline — no
+/// separate variant/image-row inserts). Shop + plan context comes from
+/// `GET /seller/shop` + `GET /seller/tariff/current`; the category tree from
+/// the public `GET /catalog/categories`.
 class AddProductRepository {
-  AddProductRepository({required SupabaseClient supabase}) : _client = supabase;
+  AddProductRepository({
+    required WoodyApiClient api,
+    required AuthRepository auth,
+    required R2UploadClient uploads,
+  }) : _api = api,
+       _auth = auth,
+       _uploads = uploads;
 
-  final SupabaseClient _client;
+  final WoodyApiClient _api;
+  final AuthRepository _auth;
+  final R2UploadClient _uploads;
 
-  static const _bucket = 'product-images';
-
-  /// One-shot context load that the screen uses to gate access AND drive the
-  /// dynamic image cap. The query joins the shop row to its subscription plan
-  /// so the canonical `max_products` / `max_images_per_product` limits come
-  /// from the DB rather than the Dart enum defaults.
   Future<AddProductShopContext> loadShopContext() async {
-    final userId = _client.auth.currentUser?.id;
+    final userId = _auth.currentUserId;
     if (userId == null) {
-      talker.warning('[add-product] loadShopContext aborted — no auth.uid');
       throw StateError('Seller is not authenticated');
     }
-    talker.info('[add-product] loadShopContext start sellerId=$userId');
+    final results = await Future.wait<Object?>([
+      _api.get<Map<String, dynamic>>('/seller/shop'),
+      _api.get<Map<String, dynamic>>('/seller/tariff/current'),
+      _fetchCategories(),
+    ]);
+    final shop = results[0] as Map<String, dynamic>;
+    final snap = results[1] as Map<String, dynamic>;
+    final categories = results[2] as List<CategoryModel>;
 
-    try {
-      // Shop+plan and categories are independent — fetch in parallel so the
-      // form's `loadingContext` window is dominated by the slower of the two,
-      // not their sum.
-      final results = await Future.wait<Object?>([
-        _client
-            .from('shops')
-            .select('id, plan:subscription_plans(*)')
-            .eq('seller_id', userId)
-            .maybeSingle(),
-        _fetchCategories(),
-      ]);
-      final shopRow = results[0] as Map<String, dynamic>?;
-      final categories = results[1] as List<CategoryModel>;
+    final code = snap['plan_code'] as String? ?? TariffPlan.free.code;
+    final plan = SubscriptionPlan(
+      id: '',
+      code: code,
+      name: code,
+      priceMonthly: 0,
+      maxProducts:
+          (snap['max_products'] as num?)?.toInt() ??
+          TariffPlan.free.maxActiveProducts,
+      maxImagesPerProduct:
+          (snap['max_images_per_product'] as num?)?.toInt() ??
+          TariffPlan.free.maxImagesPerProduct,
+      commissionRate: (snap['commission_rate'] as num?) ?? 0,
+    );
 
-      if (shopRow == null) {
-        talker.warning(
-          '[add-product] loadShopContext: no shop row for sellerId=$userId',
-        );
-        throw StateError("Shop is not yet created for the current seller");
-      }
-
-      final planJson = shopRow['plan'];
-      final plan = planJson is Map<String, dynamic>
-          ? SubscriptionPlan.fromJson(planJson)
-          : _fallbackPlan;
-      final shopId = shopRow['id'] as String;
-      final productsCount = await _countActiveProducts(shopId);
-
-      talker.info(
-        '[add-product] loadShopContext ok shopId=$shopId '
-        'plan=${plan.code} categories=${categories.length} '
-        'activeProducts=$productsCount',
-      );
-
-      return AddProductShopContext(
-        shopId: shopId,
-        sellerId: userId,
-        plan: plan,
-        activeProductsCount: productsCount,
-        categories: categories,
-      );
-    } catch (e, st) {
-      talker.handle(e, st,
-          '[add-product] loadShopContext failed sellerId=$userId');
-      rethrow;
-    }
-  }
-
-  Future<int> _countActiveProducts(String shopId) async {
-    final rows = await _client
-        .from('products')
-        .select('id')
-        .eq('shop_id', shopId);
-    return rows.length;
+    return AddProductShopContext(
+      shopId: shop['id'] as String,
+      sellerId: userId,
+      plan: plan,
+      activeProductsCount:
+          (snap['active_products_count'] as num?)?.toInt() ?? 0,
+      categories: categories,
+    );
   }
 
   Future<List<CategoryModel>> _fetchCategories() async {
-    // Embedded `subcategories(...)` triggers PostgREST's FK join so the form
-    // can render the subcategory picker without a second round-trip.
-    final rows = await _client
-        .from('categories')
-        .select(
-          'id, name, name_uz, name_ru, subtitle, image_url, sort_order, '
-          'subcategories(id, category_id, name)',
-        )
-        .order('sort_order', ascending: true);
-    return (rows as List)
+    final rows = await _api.get<List<dynamic>>('/catalog/categories');
+    return rows
         .whereType<Map<String, dynamic>>()
         .map((r) {
           final subRaw = r['subcategories'];
           final subs = subRaw is List
               ? subRaw
-                  .whereType<Map<String, dynamic>>()
-                  .map(SubcategoryModel.fromJson)
-                  .toList(growable: false)
+                    .whereType<Map<String, dynamic>>()
+                    .map(SubcategoryModel.fromJson)
+                    .toList(growable: false)
               : const <SubcategoryModel>[];
           return CategoryModel(
             id: r['id'] as String,
             name: (r['name_uz'] as String?) ?? (r['name'] as String? ?? ''),
             subtitle: r['subtitle'] as String?,
             imageUrl: r['image_url'] as String?,
-            sortOrder: r['sort_order'] as int? ?? 0,
+            sortOrder: (r['sort_order'] as num?)?.toInt() ?? 0,
             subcategories: subs,
           );
         })
         .toList(growable: false);
   }
 
-  /// Persists the product. Order matters: storage uploads happen first so a
-  /// network failure aborts before any DB row exists. Once images are up, we
-  /// insert the product row, then the single variant, then one row per image.
+  /// Uploads images to R2 first (so a network failure aborts before the
+  /// product row exists), then creates the product via `POST /seller/products`.
   Future<AddProductResult> createProduct(AddProductInput input) async {
     if (input.imageFiles.isEmpty) {
-      talker.warning(
-        '[add-product] createProduct rejected — no images attached',
-      );
       throw StateError('At least one product image is required');
     }
-    talker.info(
-      '[add-product] createProduct start sku=${input.sku} '
-      'sellerId=${input.sellerId} shopId=${input.shopId} '
-      'category=${input.categoryId} sub=${input.subcategoryId} '
-      'images=${input.imageFiles.length} colors=${input.colorSlugs.length} '
-      'attributes=${input.attributes.keys.toList()}',
+    final imageUrls = await _uploadImages(
+      sellerId: input.sellerId,
+      files: input.imageFiles,
     );
 
-    try {
-      final uploaded = await _uploadImages(
-        sellerId: input.sellerId,
-        files: input.imageFiles,
-      );
+    final discountPrice = input.discountPercent > 0
+        ? (input.price * (100 - input.discountPercent) / 100).roundToDouble()
+        : null;
 
-      final productPayload = <String, dynamic>{
-        'shop_id': input.shopId,
-        'seller_id': input.sellerId,
+    final body = await _api.post<Map<String, dynamic>>(
+      '/seller/products',
+      body: {
         'category_id': input.categoryId,
         if (input.subcategoryId != null) 'subcategory_id': input.subcategoryId,
         'name': input.name,
-        'description': input.description.isEmpty ? null : input.description,
+        if (input.description.isNotEmpty) 'description': input.description,
         'price': input.price,
-        'images': uploaded.map((u) => u.publicUrl).toList(),
-        'attributes': input.attributes.isEmpty ? null : input.attributes,
+        if (discountPrice != null) 'discount_price': discountPrice,
+        'images': imageUrls,
+        if (input.attributes.isNotEmpty) 'attributes': input.attributes,
         'colors': input.colorSlugs,
-        'production_time_days': input.productionTimeDays,
         'has_delivery': input.hasDelivery,
         'delivery_price': input.hasDelivery ? input.deliveryPrice : 0,
         'has_installation': input.hasInstallation,
-        'installation_price':
-            input.hasInstallation ? input.installationPrice : 0,
+        'installation_price': input.hasInstallation
+            ? input.installationPrice
+            : 0,
         'warranty_months': input.warrantyMonths,
-        'status': 'pending_review',
-      };
+        if (input.productionTimeDays != null)
+          'production_time_days': input.productionTimeDays,
+      },
+    );
 
-      talker.debug(
-        '[add-product] inserting product row '
-        'name="${input.name}" price=${input.price}',
-      );
-      final productRow = await _client
-          .from('products')
-          .insert(productPayload)
-          .select('id')
-          .single();
-      final productId = productRow['id'] as String;
-      talker.info('[add-product] product row inserted id=$productId');
-
-      final discountPrice = input.discountPercent > 0
-          ? (input.price *
-                  (100 - input.discountPercent) /
-                  100)
-              .roundToDouble()
-          : null;
-
-      await _client.from('product_variants').insert({
-        'product_id': productId,
-        'sku': input.sku,
-        // Multi-color is stored on the product row; the variant keeps a single
-        // representative label for back-compat (first selected colour).
-        'color_name':
-            input.colorNames.isEmpty ? null : input.colorNames.first,
-        'price': input.price,
-        'discount_price': discountPrice,
-      });
-      talker.info(
-        '[add-product] variant inserted productId=$productId sku=${input.sku} '
-        'discountPrice=$discountPrice',
-      );
-
-      if (uploaded.isNotEmpty) {
-        final imageRows = <Map<String, dynamic>>[
-          for (var i = 0; i < uploaded.length; i++)
-            {
-              'product_id': productId,
-              'image_url': uploaded[i].publicUrl,
-              'is_main': i == 0,
-              'sort_order': i,
-            },
-        ];
-        await _client.from('product_images').insert(imageRows);
-        talker.info(
-          '[add-product] image rows inserted productId=$productId '
-          'count=${imageRows.length}',
-        );
-      }
-
-      talker.info('[add-product] createProduct ok productId=$productId');
-      return AddProductResult(
-        productId: productId,
-        imageUrls: uploaded.map((u) => u.publicUrl).toList(),
-      );
-    } catch (e, st) {
-      talker.handle(e, st,
-          '[add-product] createProduct failed sku=${input.sku}');
-      rethrow;
-    }
+    return AddProductResult(
+      productId: body['id'] as String,
+      imageUrls: imageUrls,
+    );
   }
 
-  Future<List<_UploadedImage>> _uploadImages({
+  Future<List<String>> _uploadImages({
     required String sellerId,
     required List<File> files,
   }) async {
-    final results = <_UploadedImage>[];
-    for (var i = 0; i < files.length; i++) {
-      final file = files[i];
-      final originalSize = await file.length();
-      talker.debug(
-        '[add-product] image ${i + 1}/${files.length} compressing '
-        'path=${file.path} originalBytes=$originalSize',
-      );
+    final urls = <String>[];
+    for (final file in files) {
       final compressed = await FlutterImageCompress.compressWithFile(
         file.absolute.path,
         format: CompressFormat.webp,
@@ -349,55 +250,20 @@ class AddProductRepository {
       );
       final bytes = compressed ?? await file.readAsBytes();
       final objectPath = '$sellerId/${_randomObjectName()}.webp';
-      try {
-        await _client.storage.from(_bucket).uploadBinary(
-              objectPath,
-              Uint8List.fromList(bytes),
-              fileOptions: const FileOptions(
-                upsert: false,
-                contentType: 'image/webp',
-                cacheControl: '3600',
-              ),
-            );
-      } catch (e, st) {
-        talker.handle(e, st,
-            '[add-product] image upload failed path=$objectPath');
-        rethrow;
-      }
-      final publicUrl =
-          _client.storage.from(_bucket).getPublicUrl(objectPath);
-      talker.info(
-        '[add-product] image ${i + 1}/${files.length} uploaded '
-        'path=$objectPath compressedBytes=${bytes.length}',
+      final result = await _uploads.upload(
+        bucket: R2Bucket.productImages,
+        path: objectPath,
+        bytes: Uint8List.fromList(bytes),
+        contentType: 'image/webp',
       );
-      results.add(_UploadedImage(path: objectPath, publicUrl: publicUrl));
+      urls.add(result.publicUrl ?? result.path);
     }
-    return results;
+    return urls;
   }
 
-  /// Pseudo-uuid that's safe inside a storage object name. Combines a
-  /// millisecond timestamp with a 6-char random suffix derived from the
-  /// SDK's auth UID + Object.hashCode — good enough for a low-volume
-  /// per-seller folder where collision risk is essentially zero.
   String _randomObjectName() {
     final ts = DateTime.now().microsecondsSinceEpoch.toRadixString(36);
     final rand = identityHashCode(Object()).toRadixString(36);
     return '${ts}_$rand';
   }
-
-  static final SubscriptionPlan _fallbackPlan = SubscriptionPlan(
-    id: '',
-    code: TariffPlan.free.code,
-    name: TariffPlan.free.code,
-    priceMonthly: TariffPlan.free.monthlyPriceUzs,
-    maxProducts: TariffPlan.free.maxActiveProducts,
-    maxImagesPerProduct: TariffPlan.free.maxImagesPerProduct,
-    commissionRate: TariffPlan.free.commissionRate,
-  );
-}
-
-class _UploadedImage {
-  const _UploadedImage({required this.path, required this.publicUrl});
-  final String path;
-  final String publicUrl;
 }

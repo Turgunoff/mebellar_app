@@ -3,11 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-
 import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/auth/auth_cubit.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/network/woody_api_client.dart';
 import '../../orders/cubit/profile_orders_cubit.dart';
 import '../../../../shared/models/cart_item_model.dart';
 import '../../../../shared/repositories/cart_repository.dart';
@@ -26,7 +25,7 @@ class CheckoutScreen extends StatelessWidget {
     return BlocProvider(
       create: (_) => CheckoutCubit(
         items: items,
-        supabase: sl<SupabaseClient>(),
+        api: sl<WoodyApiClient>(),
         cartRepo: sl<CartRepository>(),
         analytics: sl<AnalyticsService>(),
       ),

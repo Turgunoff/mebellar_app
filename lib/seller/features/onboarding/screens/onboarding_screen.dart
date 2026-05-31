@@ -1,10 +1,9 @@
 ﻿import 'package:woody_app/core/i18n/i18n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-
 import '../../../../auth/auth_bottom_sheet.dart';
 import '../../../../core/analytics/analytics_service.dart';
+import '../../../../core/auth/auth_repository.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../customer/features/home/widgets/premium/premium_tokens.dart';
 import '../../../../shared/repositories/seller_onboarding_repository.dart';
@@ -131,8 +130,8 @@ class _OnboardingViewState extends State<_OnboardingView> {
   }
 
   bool _isAuthenticated() {
-    if (!sl.isRegistered<SupabaseClient>()) return false;
-    return sl<SupabaseClient>().auth.currentUser != null;
+    return sl.isRegistered<AuthRepository>() &&
+        sl<AuthRepository>().isAuthenticated;
   }
 
   @override
