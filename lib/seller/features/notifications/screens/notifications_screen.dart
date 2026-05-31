@@ -83,7 +83,6 @@ class _NotificationsViewState extends State<_NotificationsView> {
     final ref = n.referenceId;
     final orderId = ref ?? (n.payload?['order_id'] as String?);
     final productId = ref ?? (n.payload?['product_id'] as String?);
-    final productSlug = n.payload?['product_slug'] as String?;
 
     return switch (n.kind) {
       // ---- Customer (cross-mode taps from seller) ------------------------
@@ -94,11 +93,9 @@ class _NotificationsViewState extends State<_NotificationsView> {
         orderId != null && orderId.isNotEmpty
             ? '/orders/$orderId'
             : '/orders',
-      NotificationKind.priceDrop => productSlug != null && productSlug.isNotEmpty
-          ? '/products/$productSlug'
-          : (productId != null && productId.isNotEmpty
-              ? '/product-detail/$productId'
-              : '/'),
+      NotificationKind.priceDrop => productId != null && productId.isNotEmpty
+          ? '/product-detail/$productId'
+          : '/',
       NotificationKind.supportReply => '/profile',
 
       // ---- Seller --------------------------------------------------------

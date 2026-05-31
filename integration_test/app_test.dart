@@ -5,11 +5,11 @@
 // `flutter test`; launch it explicitly on a device or emulator:
 //
 //   flutter test integration_test/app_test.dart \
-//     --dart-define-from-file=env/dev.json
+//     --dart-define-from-file=env/prod.json
 //
 // Preconditions:
-//   * `env/dev.json` points at a Supabase project that has catalog data and
-//     accepts the seeded test account below.
+//   * `env/prod.json` points at the woody_backend API (api.woody.uz) that has
+//     catalog data and accepts the seeded test account below.
 //   * The device has network access.
 //
 // The flow asserted here: launch -> browse -> open a product -> add to cart

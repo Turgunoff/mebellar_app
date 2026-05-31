@@ -5,8 +5,8 @@ import '../../../../fixtures/mocks/mock/mock_cart_repository.dart';
 import '../../../../fixtures/mocks/mock/mock_data.dart';
 import 'package:woody_app/shared/models/product_model.dart';
 
-/// Minimal smoke tests for the Sprint 12 cart bloc. Multi-shop grouping has
-/// moved to the legacy CheckoutBloc — the new bloc operates on snapshot
+/// Minimal smoke tests for the Sprint 12 cart bloc. Multi-shop grouping is
+/// handled at checkout, not here — the cart bloc operates on snapshot
 /// rows only, so we focus on the LoadCart/AddToCart/RemoveFromCart loop.
 void main() {
   group('CartBloc (mock repository)', () {

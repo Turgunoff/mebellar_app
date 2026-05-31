@@ -1,8 +1,4 @@
-import 'package:dio/dio.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-
 import '../models/onboarding_draft.dart';
-import '../models/region.dart';
 import '../models/verification_status.dart';
 
 /// Submission payload returned from `POST /seller/onboarding`. Mock variant
@@ -48,71 +44,4 @@ abstract class SellerOnboardingRepository {
     String? passportFrontPath,
     String? passportBackPath,
   });
-}
-
-/// Real backend stub. Sprint 6 will wire it once the endpoints are live.
-class RemoteSellerOnboardingRepository implements SellerOnboardingRepository {
-  RemoteSellerOnboardingRepository({
-    required Dio dio,
-    required Box draftBox,
-    required this.findRegionById,
-  }) : _dio = dio,
-       _draftBox = draftBox;
-
-  final Dio _dio;
-  final Box _draftBox;
-  final Region? Function(String id) findRegionById;
-
-  static const _draftKey = 'draft';
-
-  @override
-  OnboardingDraft loadDraft() {
-    final raw = _draftBox.get(_draftKey);
-    if (raw is Map) {
-      return OnboardingDraft.fromMap(
-        raw,
-        findRegion: (id) => id == null ? null : findRegionById(id),
-      );
-    }
-    return const OnboardingDraft();
-  }
-
-  @override
-  Future<void> saveDraft(OnboardingDraft draft) async {
-    await _draftBox.put(_draftKey, draft.toJson());
-  }
-
-  @override
-  Future<void> clearDraft() async {
-    await _draftBox.delete(_draftKey);
-  }
-
-  /// Stub class — Sprint 6 will replace it once the HTTP backend is live.
-  /// No remote draft hydration is possible without a finalised contract, so
-  /// callers should fall back to [loadDraft].
-  @override
-  Future<OnboardingDraft?> loadRemoteDraft() async => null;
-
-  @override
-  Future<OnboardingSubmissionResult> submit(
-    OnboardingDraft draft, {
-    String? passportFrontPath,
-    String? passportBackPath,
-  }) async {
-    final res = await _dio.post<Map<String, dynamic>>(
-      '/api/v1/seller/onboarding',
-      data: draft.toJson(),
-    );
-    final data = res.data?['data'];
-    if (data is! Map<String, dynamic>) {
-      throw StateError('Onboarding submit: unexpected response');
-    }
-    return OnboardingSubmissionResult(
-      sellerProfileId: data['seller_profile_id'] as String,
-      shopId: data['shop_id'] as String,
-      verificationStatus: VerificationStatus.fromCode(
-        data['verification_status'] as String?,
-      ),
-    );
-  }
 }

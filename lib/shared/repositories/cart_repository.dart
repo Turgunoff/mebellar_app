@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 
 import '../models/cart.dart';
 import '../models/cart_item.dart';
@@ -16,7 +15,7 @@ import '../models/product_model.dart';
 /// `updateProductQuantity`, `removeProduct`). The legacy [Cart]-shaped API
 /// stays for the existing checkout pipeline.
 abstract class CartRepository {
-  // ── Legacy [Cart] API — used by CheckoutBloc and the Sprint 4 mock flow.
+  // ── Legacy [Cart]-shaped API (kept for compatibility).
 
   Stream<Cart> watch();
   Cart get current;
@@ -53,98 +52,6 @@ abstract class CartRepository {
     await updateQuantity(productId, newQuantity);
   }
 
-  Future<void> removeProduct(String productId) async {
-    await removeItem(productId);
-  }
-}
-
-/// Real backend implementation. Sprint 4 keeps the mock variant the default;
-/// flip `AppConfig.useMocks` to false once the API endpoints land.
-class RemoteCartRepository implements CartRepository {
-  RemoteCartRepository(this._dio);
-
-  final Dio _dio;
-  Cart _cart = const Cart();
-
-  @override
-  Cart get current => _cart;
-
-  @override
-  Stream<Cart> watch() => Stream<Cart>.empty();
-
-  @override
-  Future<Cart> fetch() async {
-    final res = await _dio.get<Map<String, dynamic>>('/api/v1/cart');
-    final items = (res.data?['items'] as List? ?? [])
-        .whereType<Map<String, dynamic>>()
-        .map(CartItem.fromJson)
-        .toList();
-    _cart = Cart(items: items);
-    return _cart;
-  }
-
-  @override
-  Future<Cart> addItem(String productId, {int quantity = 1}) async {
-    await _dio.post<dynamic>(
-      '/api/v1/cart/items',
-      data: {'product_id': productId, 'quantity': quantity},
-    );
-    return fetch();
-  }
-
-  @override
-  Future<Cart> updateQuantity(String itemId, int quantity) async {
-    await _dio.patch<dynamic>(
-      '/api/v1/cart/items/$itemId',
-      data: {'quantity': quantity},
-    );
-    return fetch();
-  }
-
-  @override
-  Future<Cart> removeItem(String itemId) async {
-    await _dio.delete<dynamic>('/api/v1/cart/items/$itemId');
-    return fetch();
-  }
-
-  @override
-  Future<Cart> clear() async {
-    await _dio.delete<dynamic>('/api/v1/cart');
-    _cart = const Cart();
-    return _cart;
-  }
-
-  // Snapshot API stubs — the legacy remote backend doesn't expose a
-  // snapshot view. New CartBloc deployments use the Hybrid repository
-  // instead, so these only matter if useMocks=false AND the backend is unset
-  // (currently impossible in production).
-
-  @override
-  Stream<List<CartItemModel>> watchItems() =>
-      const Stream<List<CartItemModel>>.empty();
-
-  @override
-  List<CartItemModel> get currentItems => const [];
-
-  @override
-  Future<List<CartItemModel>> fetchItems() async => const [];
-
-  @override
-  Future<void> addProduct(
-    ProductModel product, {
-    int quantity = 1,
-    String? selectedColor,
-  }) async {
-    // The legacy remote backend has no per-line colour; ignore the slug.
-    await addItem(product.id, quantity: quantity);
-  }
-
-  @override
-  Future<void> updateProductQuantity(String productId, int newQuantity) async {
-    await updateQuantity(productId, newQuantity);
-  }
-
-  @override
   Future<void> removeProduct(String productId) async {
     await removeItem(productId);
   }

@@ -7,8 +7,6 @@
 class AppConfig {
   const AppConfig._();
 
-  static const String apiBaseUrl = String.fromEnvironment('API_BASE_URL');
-
   /// Base URL for the woody_backend FastAPI service at `api.woody.uz`.
   /// Routes mount under `/api/v1` — `WoodyApiClient` adds the prefix.
   static const String woodyApiUrl = String.fromEnvironment('WOODY_API_URL');

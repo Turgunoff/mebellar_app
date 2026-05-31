@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
@@ -7,22 +6,17 @@ import '../../customer/features/notifications/cubit/notifications_cubit.dart';
 import '../analytics/analytics_service.dart';
 import '../analytics/firebase_analytics_service.dart';
 import '../analytics/noop_analytics_service.dart';
-import '../../shared/repositories/address_repository.dart';
 import '../../shared/repositories/banner_repository.dart';
 import '../../shared/repositories/cached_banner_repository.dart';
 import '../../shared/repositories/cached_category_repository.dart';
 import '../../shared/repositories/cached_product_data_source.dart';
 import '../../shared/repositories/cart_repository.dart';
-import '../../shared/repositories/category_repository.dart';
 import '../../shared/repositories/chat_repository.dart';
 import '../../shared/repositories/customer_reviews_repository.dart';
 import '../../shared/repositories/favorites_repository.dart';
 import '../../shared/repositories/news_repository.dart';
 import '../../shared/repositories/notifications_repository.dart';
 import '../../shared/repositories/order_repository.dart';
-import '../../shared/repositories/product_repository.dart';
-import '../../shared/repositories/region_repository.dart';
-import '../../shared/repositories/shop_repository.dart';
 import '../../shared/repositories/category_data_source.dart';
 import '../../shared/repositories/notifications_data_source.dart';
 import '../../shared/repositories/product_data_source.dart';
@@ -39,10 +33,8 @@ import '../storage/hive_boxes.dart';
 
 /// Root-scope catalog + customer-shared repositories and data sources.
 ///
-/// Every read goes against the woody_backend REST surface (`api.woody.uz`).
-/// The legacy Dio/REST `Remote*` variants stay as the fallback for the
-/// catalog/region/address repositories that don't have a Woody implementation
-/// yet.
+/// Every read goes against the woody_backend REST surface (`api.woody.uz`)
+/// via `WoodyApiClient`. There is no other backend.
 void registerCatalogModule(GetIt sl) {
   final useWoody = AppConfig.hasWoodyApi;
 
@@ -125,16 +117,7 @@ void registerCatalogModule(GetIt sl) {
     dispose: (c) => c.close(),
   );
 
-  // --- catalog repositories (legacy Dio/REST — no Woody impl yet) ----------
-  sl.registerLazySingleton<ProductRepository>(
-    () => RemoteProductRepository(sl<Dio>()),
-  );
-  sl.registerLazySingleton<CategoryRepository>(
-    () => RemoteCategoryRepository(sl<Dio>()),
-  );
-  sl.registerLazySingleton<ShopRepository>(
-    () => RemoteShopRepository(sl<Dio>()),
-  );
+  // --- catalog repositories (Woody REST) -----------------------------------
   sl.registerLazySingleton<BannerRepository>(
     () => CachedBannerRepository(
       inner: WoodyBannerRepository(api: sl<WoodyApiClient>()),
@@ -149,12 +132,6 @@ void registerCatalogModule(GetIt sl) {
   );
   sl.registerLazySingleton<FavoritesRepository>(
     () => WoodyFavoritesRepository(api: sl<WoodyApiClient>()),
-  );
-  sl.registerLazySingleton<RegionRepository>(
-    () => RemoteRegionRepository(sl<Dio>()),
-  );
-  sl.registerLazySingleton<AddressRepository>(
-    () => RemoteAddressRepository(sl<Dio>()),
   );
   sl.registerLazySingleton<OrderRepository>(
     () => WoodyOrderRepository(sl<WoodyApiClient>()),

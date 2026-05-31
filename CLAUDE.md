@@ -34,10 +34,9 @@ lib/
 ├── customer/
 │   ├── customer_app.dart        MaterialApp.router for customer
 │   ├── router.dart              GoRouter (FirebaseAnalyticsObserver attached)
-│   └── features/                home, search, catalog, product_list,
-│                                product_detail, cart, checkout, orders,
-│                                favorites, profile, categories, chats,
-│                                notifications, reviews
+│   └── features/                home, search, product_list, cart,
+│                                checkout, orders, favorites, profile,
+│                                categories, chats, notifications, reviews
 ├── seller/
 │   ├── seller_app.dart          MaterialApp.router for seller
 │   ├── seller_router.dart       StatefulShellRoute, 5 tabs
@@ -104,8 +103,9 @@ ChatSenderRole.customer | .seller`.
 Bloc for events-driven flows (search, cart, orders), Cubit for
 single-input commands (profile, checkout, mode). Repositories are
 abstract interfaces with a Woody REST implementation (`Woody*Repository`,
-talking to `WoodyApiClient`) plus an in-memory mock used by tests. The
-catalog/region/address repos still ship a legacy Dio `Remote*` impl.
+talking to `WoodyApiClient`) plus an in-memory mock used by tests. Every
+repository runs against `WoodyApiClient` — there is no raw-`Dio`/`Remote*`
+layer left.
 
 ### Theme tokens — never hardcode colours
 

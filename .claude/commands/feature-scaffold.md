@@ -21,15 +21,16 @@ If not already supplied, ask me for:
    pagination, optimistic updates) or `cubit` (single command: form
    submit, fetch-and-render).
 4. **Repository?** — `yes` if the feature owns data the rest of the
-   app doesn't already expose (a new Supabase table, a new domain).
+   app doesn't already expose (a new backend domain/endpoint).
    `no` if it composes existing repos.
 5. **Route path** — what URL it should be reachable at (e.g.
    `/wishlist`). For seller, also ask whether it's a new bottom-tab
    (uses `StatefulShellRoute`, more involved — confirm before touching
    `seller_router.dart`) or a pushed screen.
 
-If a Supabase migration is needed, **stop and tell me to run
-`/new-migration` first** — schema must exist before the repo is
+If a new backend endpoint is needed, **stop and tell me** — the schema
+and REST surface live in the `woody_backend` repo (Alembic migrations +
+FastAPI routers) and must exist there before the Flutter repo is
 written.
 
 ## Step 2 — create the folder structure
@@ -77,22 +78,22 @@ Create two files in `lib/shared/repositories/`:
 
 1. `<name>_repository.dart` — `abstract class <Name>Repository` declaring
    the methods the bloc/cubit will call. Plain Dart types in / out,
-   no Supabase types in the signature.
-2. `supabase_<name>_repository.dart` — `class Supabase<Name>Repository
-   implements <Name>Repository` with `SupabaseClient _supabase` injected
-   via the constructor.
+   no transport types in the signature.
+2. `woody_<name>_repository.dart` — `class Woody<Name>Repository
+   implements <Name>Repository` with `WoodyApiClient _api` injected via
+   the constructor (calls the REST endpoints on api.woody.uz).
 
-If the feature is offline-capable (cart/favorites pattern), also create
-a `Hybrid<Name>Repository` that composes Hive + Supabase — but only if
-I explicitly ask. Most features don't need it.
+If the feature is offline-capable (cart/favorites pattern), also wrap it
+in a cache-aside decorator that composes Hive + the Woody repo (see
+`CachedCategoryRepository`) — but only if I explicitly ask. Most
+features don't need it.
 
 ## Step 5 — DI registration
 
 - **Repository** (if any) → `lib/core/di/catalog_module.dart`,
   inside `registerCatalogModule(sl)`. Use `sl.registerLazySingleton<
-  <Name>Repository>(() => Supabase<Name>Repository(supabase:
-  sl<SupabaseClient>()))`. Wrap in `if (sl.isRegistered<SupabaseClient>())`
-  if the repo is Supabase-only.
+  <Name>Repository>(() => Woody<Name>Repository(api:
+  sl<WoodyApiClient>()))`.
 - **Bloc/Cubit** → `lib/core/di/scope_module.dart`, inside
   `registerCustomerScope(sl)` OR `registerSellerScope(sl)` (NEVER
   both — modes are mutually exclusive). Default to:
@@ -174,7 +175,7 @@ Run `dart analyze lib/` and report:
     lib/<mode>/features/<name>/<bloc|cubit>/<name>_<...>.dart
     lib/<mode>/features/<name>/screens/<name>_screen.dart
     lib/shared/repositories/<name>_repository.dart           (if Step 4)
-    lib/shared/repositories/supabase_<name>_repository.dart  (if Step 4)
+    lib/shared/repositories/woody_<name>_repository.dart     (if Step 4)
     lib/core/i18n/translations/<name>_translations.dart
   files edited:
     lib/core/di/catalog_module.dart                          (if Step 4)

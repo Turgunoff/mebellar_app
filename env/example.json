@@ -1,6 +1,5 @@
 {
   "APP_ENV": "dev",
   "WOODY_API_URL": "https://api.woody.uz",
-  "YANDEX_GEOCODER_API_KEY": "",
-  "API_BASE_URL": ""
+  "YANDEX_GEOCODER_API_KEY": ""
 }

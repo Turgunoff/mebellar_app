@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
@@ -7,7 +6,6 @@ import '../auth/app_mode_cubit.dart';
 import '../connectivity/connectivity_service.dart';
 import '../connectivity/network_cubit.dart';
 import '../deep_links/deep_link_service.dart';
-import '../network/api_client.dart';
 import '../network/token_store.dart';
 import '../network/woody_api_client.dart';
 import '../platform/location_facade.dart';
@@ -105,11 +103,6 @@ Future<void> registerCoreModule(GetIt sl) async {
 
   sl.registerLazySingleton<CacheStore>(
     () => CacheStore(sl<Box>(instanceName: HiveBoxes.cache)),
-  );
-
-  sl.registerLazySingleton<Dio>(
-    buildDioClient,
-    dispose: (dio) => dio.close(force: true),
   );
 
   // Woody WebSocket realtime (Phase 6). Lazy — only opens when the auth

@@ -21,7 +21,6 @@ import '../shared/widgets/notifications_screen.dart';
 import 'customer_app.dart';
 import 'features/broadcasts/screens/broadcast_placeholder_screen.dart';
 import 'features/cart/screens/cart_screen.dart';
-import 'features/catalog/screens/catalog_screen.dart';
 import 'features/categories/screens/categories_screen.dart';
 import 'features/product_list/cubit/product_list_cubit.dart';
 import 'features/product_list/screens/product_list_screen.dart';
@@ -30,8 +29,6 @@ import 'features/checkout/screens/checkout_screen.dart';
 import 'features/favorites/screens/favorites_screen.dart';
 import 'features/orders/screens/order_detail_screen.dart';
 import 'features/orders/screens/orders_history_screen.dart';
-import 'features/product_detail/screens/product_detail_screen.dart';
-import 'features/profile/addresses/screens/addresses_screen.dart';
 import 'features/notifications/screens/notifications_screen.dart'
     as customer_notifications;
 import 'features/search/screens/search_screen.dart';
@@ -40,7 +37,8 @@ import '../seller/features/onboarding/screens/onboarding_screen.dart';
 
 /// Customer-side navigation. The shell hosts the bottom tabs; the rest are
 /// pushed on top via `context.push(...)`. Filters propagate via query params
-/// so deep links like `/catalog?category=sofas` reproduce the same state.
+/// so deep links like `/product-list?categoryId=sofas` reproduce the same
+/// state.
 GoRouter buildCustomerRouter() {
   return GoRouter(
     initialLocation: '/',
@@ -76,13 +74,6 @@ GoRouter buildCustomerRouter() {
       GoRoute(
         path: '/categories',
         builder: (context, state) => const CategoriesScreen(),
-      ),
-      GoRoute(
-        path: '/catalog',
-        builder: (context, state) => CatalogScreen(
-          categorySlug: state.uri.queryParameters['category'],
-          search: state.uri.queryParameters['search'],
-        ),
       ),
       GoRoute(
         path: '/product-list',
@@ -144,11 +135,6 @@ GoRouter buildCustomerRouter() {
           orderId: state.pathParameters['orderId']!,
         ),
       ),
-      GoRoute(
-        path: '/products/:slug',
-        builder: (context, state) =>
-            ProductDetailScreen(slug: state.pathParameters['slug']!),
-      ),
       GoRoute(path: '/cart', builder: (context, state) => const CartScreen()),
       GoRoute(
         path: '/favorites',
@@ -177,10 +163,6 @@ GoRouter buildCustomerRouter() {
         path: '/orders/:id',
         builder: (context, state) =>
             OrderDetailScreen(id: state.pathParameters['id']!),
-      ),
-      GoRoute(
-        path: '/profile/addresses',
-        builder: (context, state) => const AddressesScreen(),
       ),
       GoRoute(
         path: '/seller/onboarding',

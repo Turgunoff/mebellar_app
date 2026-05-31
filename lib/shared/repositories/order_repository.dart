@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 
 import '../models/address.dart';
 import '../models/cart_item.dart';
@@ -27,8 +26,9 @@ abstract class OrderRepository {
   Future<List<Order>> list();
   Future<Order> getById(String id);
 
-  /// Single-shop order. `CheckoutBloc` calls this once per shop group from
-  /// the cart so multi-shop carts result in N orders.
+  /// Single-shop order — one per shop group, so a multi-shop cart yields
+  /// N orders. (The live checkout posts to `/orders` directly via
+  /// `WoodyApiClient`; this typed path backs the repository contract.)
   Future<Order> create(CreateOrderInput input);
   Future<Order> cancel(String id, {required String reason});
 
@@ -44,46 +44,4 @@ abstract class OrderRepository {
   /// reports a status change. The mock variant simulates progression every
   /// few seconds; real impl will subscribe to a Woody realtime channel.
   Stream<Order> watch(String orderId);
-}
-
-class RemoteOrderRepository implements OrderRepository {
-  RemoteOrderRepository(this._dio);
-  // ignore: unused_field — Sprint 5 backend wires real endpoints in
-  final Dio _dio;
-
-  @override
-  Future<List<Order>> list() async {
-    throw UnimplementedError('Remote orders — Sprint 5 backend');
-  }
-
-  @override
-  Future<Order> getById(String id) async {
-    throw UnimplementedError('Remote order detail — Sprint 5 backend');
-  }
-
-  @override
-  Future<Order> create(CreateOrderInput input) async {
-    throw UnimplementedError('Remote order create — Sprint 5 backend');
-  }
-
-  @override
-  Future<Order> cancel(String id, {required String reason}) async {
-    throw UnimplementedError('Remote order cancel — Sprint 5 backend');
-  }
-
-  @override
-  Future<Order> approveFeeAdjustment(String id) async {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<Order> rejectFeeAdjustment(String id) async {
-    throw UnimplementedError();
-  }
-
-  @override
-  Stream<Order> watch(String orderId) async* {
-    // Backed by Woody realtime channel in production.
-    return;
-  }
 }

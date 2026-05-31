@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:dio/dio.dart';
 
 import '../models/paginated.dart';
 import '../models/seller_product.dart';
@@ -115,70 +114,4 @@ class SellerProductInput {
   final num? heightCm;
   final num? weightKg;
   final SellerProductStatus status;
-}
-
-class RemoteSellerProductRepository implements SellerProductRepository {
-  RemoteSellerProductRepository(this._dio);
-  // ignore: unused_field — Sprint 7 backend wires real endpoints.
-  final Dio _dio;
-
-  @override
-  Stream<List<SellerProduct>> watch() => const Stream.empty();
-
-  @override
-  Future<Paginated<SellerProduct>> list({
-    SellerProductFilter filter = const SellerProductFilter(),
-    int page = 1,
-    int perPage = 20,
-  }) =>
-      throw UnimplementedError('Remote seller products — Sprint 7 backend');
-
-  @override
-  Future<SellerProduct> getById(String id) =>
-      throw UnimplementedError('Remote seller products — Sprint 7 backend');
-
-  @override
-  Future<SellerProduct> create(SellerProductInput input) =>
-      throw UnimplementedError('Remote seller products — Sprint 7 backend');
-
-  @override
-  Future<SellerProduct> update(String id, SellerProductInput input) =>
-      throw UnimplementedError('Remote seller products — Sprint 7 backend');
-
-  @override
-  Future<SellerProduct> archive(String id) =>
-      throw UnimplementedError('Remote seller products — Sprint 7 backend');
-
-  @override
-  Future<SellerProduct> submitForReview(String id) =>
-      throw UnimplementedError('Remote seller products — Sprint 7 backend');
-
-  @override
-  Future<SellerProductImage> uploadImage({
-    required String productId,
-    required File file,
-    required String fileExtension,
-  }) =>
-      throw UnimplementedError('Remote seller products — Sprint 7 backend');
-
-  @override
-  Future<void> deleteImage({
-    required String productId,
-    required String imageId,
-  }) =>
-      throw UnimplementedError('Remote seller products — Sprint 7 backend');
-
-  @override
-  Future<SellerProduct> reorderImages({
-    required String productId,
-    required List<String> imageIdsInOrder,
-  }) =>
-      throw UnimplementedError('Remote seller products — Sprint 7 backend');
-
-  @override
-  Future<SellerProduct> setPrimaryImage({
-    required String productId,
-    required String imageId,
-  }) =>
-      throw UnimplementedError('Remote seller products — Sprint 7 backend');
 }
