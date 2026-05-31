@@ -14,11 +14,9 @@ import '../network/woody_api_client.dart';
 /// the store's stream so widgets/cubits can rebuild on sign-in/out without
 /// polling.
 class AuthRepository {
-  AuthRepository({
-    required WoodyApiClient api,
-    required TokenStore tokens,
-  })  : _api = api,
-        _tokens = tokens;
+  AuthRepository({required WoodyApiClient api, required TokenStore tokens})
+    : _api = api,
+      _tokens = tokens;
 
   final WoodyApiClient _api;
   final TokenStore _tokens;
@@ -32,6 +30,15 @@ class AuthRepository {
     final pair = _tokens.current;
     if (pair == null) return null;
     return jwtClaim(pair.accessToken, 'sub');
+  }
+
+  /// The phone the user signed in with, read straight from the access-token
+  /// `phone` claim. Lets the profile header paint the identity instantly,
+  /// before the `/me` round-trip resolves.
+  String? get currentUserPhone {
+    final pair = _tokens.current;
+    if (pair == null) return null;
+    return jwtClaim(pair.accessToken, 'phone');
   }
 
   /// Triggers SMS delivery. Returns the cooldown (in seconds) the server
@@ -89,19 +96,18 @@ class AuthRepository {
 
   Future<Me> updateProfile({
     String? fullName,
+    String? email,
     String? preferredLanguage,
     String? avatarUrl,
   }) async {
     final payload = <String, dynamic>{};
     if (fullName != null) payload['full_name'] = fullName;
+    if (email != null) payload['email'] = email;
     if (preferredLanguage != null) {
       payload['preferred_language'] = preferredLanguage;
     }
     if (avatarUrl != null) payload['avatar_url'] = avatarUrl;
-    final body = await _api.patch<Map<String, dynamic>>(
-      '/me',
-      body: payload,
-    );
+    final body = await _api.patch<Map<String, dynamic>>('/me', body: payload);
     return Me.fromJson(body);
   }
 
@@ -129,5 +135,4 @@ class AuthRepository {
       expiresAt: expiresAt,
     );
   }
-
 }

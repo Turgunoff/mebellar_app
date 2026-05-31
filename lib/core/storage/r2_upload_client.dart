@@ -13,7 +13,8 @@ enum R2Bucket {
   chatAttachments('chat-attachments'),
   sellerDocuments('seller-documents'),
   verificationDocs('verification-docs'),
-  paymentReceipts('payment-receipts');
+  paymentReceipts('payment-receipts'),
+  userAvatars('user-avatars');
 
   const R2Bucket(this.value);
   final String value;
@@ -22,10 +23,19 @@ enum R2Bucket {
 /// Result of a successful upload — the path that was stored. Callers
 /// persist this as the canonical reference (e.g. `products.images[]`,
 /// `chat_messages.attachment_url`, `subscription_receipts.payment_screenshot_path`).
+///
+/// [publicUrl] is set only for public buckets (e.g. `user-avatars`): it's the
+/// permanent, cacheable URL to persist + render directly. Null for private
+/// buckets, which must go through [R2UploadClient.downloadUrl].
 class R2UploadResult {
-  const R2UploadResult({required this.bucket, required this.path});
+  const R2UploadResult({
+    required this.bucket,
+    required this.path,
+    this.publicUrl,
+  });
   final R2Bucket bucket;
   final String path;
+  final String? publicUrl;
 }
 
 /// Two-step upload: request a presigned PUT URL from woody_backend, then PUT
@@ -38,8 +48,8 @@ class R2UploadResult {
 /// no leading `/`, no `..`).
 class R2UploadClient {
   R2UploadClient({required WoodyApiClient api, Dio? rawDio})
-      : _api = api,
-        _rawDio = rawDio ?? Dio();
+    : _api = api,
+      _rawDio = rawDio ?? Dio();
 
   final WoodyApiClient _api;
 
@@ -56,29 +66,43 @@ class R2UploadClient {
   }) async {
     final presigned = await _api.post<Map<String, dynamic>>(
       '/storage/upload-url',
-      body: {
-        'bucket': bucket.value,
-        'path': path,
-        'content_type': contentType,
-      },
+      body: {'bucket': bucket.value, 'path': path, 'content_type': contentType},
     );
     final url = presigned['url'];
     if (url is! String || url.isEmpty) {
       throw StateError('Empty presigned URL from /storage/upload-url');
     }
-    await _rawDio.put<dynamic>(
-      url,
-      data: Stream.fromIterable([bytes]),
-      options: Options(
-        headers: {
-          'Content-Type': contentType,
-          'Content-Length': bytes.length,
-        },
-        sendTimeout: const Duration(minutes: 2),
-        receiveTimeout: const Duration(seconds: 30),
-      ),
+    try {
+      await _rawDio.put<dynamic>(
+        url,
+        data: Stream.fromIterable([bytes]),
+        options: Options(
+          headers: {
+            'Content-Type': contentType,
+            'Content-Length': bytes.length,
+          },
+          sendTimeout: const Duration(minutes: 2),
+          receiveTimeout: const Duration(seconds: 30),
+        ),
+      );
+    } on DioException catch (e) {
+      // R2 returns an XML <Error><Code>…</Code></Error> body on a rejected
+      // PUT. Surface it — "403" alone can't distinguish a token-scope
+      // AccessDenied from a SignatureDoesNotMatch (e.g. a checksum/header
+      // mismatch), which need different fixes.
+      final status = e.response?.statusCode;
+      final body = e.response?.data?.toString() ?? e.message ?? '';
+      final snippet = body.length > 500 ? body.substring(0, 500) : body;
+      throw StateError(
+        'R2 PUT rejected (status=$status) for ${bucket.value}/$path: $snippet',
+      );
+    }
+    final publicUrl = presigned['public_url'];
+    return R2UploadResult(
+      bucket: bucket,
+      path: path,
+      publicUrl: publicUrl is String && publicUrl.isNotEmpty ? publicUrl : null,
     );
-    return R2UploadResult(bucket: bucket, path: path);
   }
 
   /// Request a short-lived GET URL for a stored object. Used by the chat

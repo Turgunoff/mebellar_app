@@ -6,6 +6,7 @@ class Me {
     required this.id,
     this.phone,
     this.fullName,
+    this.email,
     this.preferredLanguage = 'uz',
     this.avatarUrl,
     this.isSellerPending = false,
@@ -16,6 +17,7 @@ class Me {
   final String id;
   final String? phone;
   final String? fullName;
+  final String? email;
   final String preferredLanguage;
   final String? avatarUrl;
   final bool isSellerPending;
@@ -33,6 +35,7 @@ class Me {
 
   Me copyWith({
     String? fullName,
+    String? email,
     String? preferredLanguage,
     String? avatarUrl,
     bool? isSellerPending,
@@ -42,6 +45,7 @@ class Me {
       id: id,
       phone: phone,
       fullName: fullName ?? this.fullName,
+      email: email ?? this.email,
       preferredLanguage: preferredLanguage ?? this.preferredLanguage,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       isSellerPending: isSellerPending ?? this.isSellerPending,
@@ -55,6 +59,7 @@ class Me {
       id: json['id'] as String,
       phone: json['phone'] as String?,
       fullName: json['full_name'] as String?,
+      email: json['email'] as String?,
       preferredLanguage: json['preferred_language'] as String? ?? 'uz',
       avatarUrl: json['avatar_url'] as String?,
       isSellerPending: json['is_seller_pending'] as bool? ?? false,

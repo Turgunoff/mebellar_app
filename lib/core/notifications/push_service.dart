@@ -5,7 +5,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../config/app_mode.dart';
 import '../../shared/models/notification_model.dart';
@@ -32,8 +31,8 @@ const String _kNewsChannelId = 'news';
 /// function annotated with @pragma so it survives tree-shaking.
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // The app process is dead at this point, so there is no Supabase / Hive /
-  // talker available. The system tray will show the notification automatically
+  // The app process is dead at this point, so there is no Hive / talker
+  // available. The system tray will show the notification automatically
   // because the payload uses a `notification` block; we just need this handler
   // to exist so the plugin doesn't drop the message.
   await Firebase.initializeApp();
@@ -44,23 +43,19 @@ class PushService {
     required MessagingFacade messaging,
     required FlutterLocalNotificationsPlugin localNotifications,
     required NotificationHandler notificationHandler,
-    required SupabaseClient? supabase,
     WoodyApiClient? woodyApi,
-  })  : _messaging = messaging,
-        _localNotifications = localNotifications,
-        _notificationHandler = notificationHandler,
-        _supabase = supabase,
-        _woodyApi = woodyApi;
+  }) : _messaging = messaging,
+       _localNotifications = localNotifications,
+       _notificationHandler = notificationHandler,
+       _woodyApi = woodyApi;
 
   final MessagingFacade _messaging;
   final FlutterLocalNotificationsPlugin _localNotifications;
   final NotificationHandler _notificationHandler;
-  final SupabaseClient? _supabase;
 
-  /// When set, device-token registration calls the Woody REST endpoint
-  /// (`POST /push/device-tokens`) instead of upserting into Supabase's
-  /// `device_tokens` table. The two paths are mutually exclusive — wire
-  /// exactly one in DI.
+  /// Device-token registration calls the Woody REST endpoint
+  /// (`POST /push/device-tokens`). Null only in builds without a configured
+  /// Woody backend (unit tests), where token sync is skipped.
   final WoodyApiClient? _woodyApi;
 
   bool _bootstrapped = false;
@@ -94,16 +89,9 @@ class PushService {
     // it does, re-save the new token under the currently logged-in user so
     // the server-side sender keeps reaching this device.
     _tokenRefreshSub = _messaging.onTokenRefresh.listen((token) async {
-      // With Woody auth the JWT already carries the user id — the upsert
-      // call doesn't need to read it from a SupabaseClient. When neither
-      // backend is configured, skip silently.
-      if (_woodyApi != null) {
-        await _upsertToken(token: token, userId: '');
-        return;
-      }
-      final userId = _supabase?.auth.currentUser?.id;
-      if (userId == null) return;
-      await _upsertToken(token: token, userId: userId);
+      // The Woody JWT already carries the user id, so the upsert doesn't need
+      // it here. Skips silently when no backend is configured (_woodyApi null).
+      await _upsertToken(token: token, userId: '');
     });
   }
 
@@ -144,7 +132,8 @@ class PushService {
     );
     await _localNotifications
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.createNotificationChannel(channel);
   }
 
@@ -166,9 +155,7 @@ class PushService {
         badge: true,
         sound: true,
       );
-      talker.info(
-        'FCM permission: ${settings.authorizationStatus.name}',
-      );
+      talker.info('FCM permission: ${settings.authorizationStatus.name}');
       debugPrint('[FCM] permission: ${settings.authorizationStatus.name}');
       final granted =
           settings.authorizationStatus == AuthorizationStatus.authorized ||
@@ -210,7 +197,7 @@ class PushService {
   /// Cross-account on the same device works because `token` is the PK,
   /// so the upsert overwrites the prior `user_id`.
   Future<void> syncTokenForUser(String userId) async {
-    if (_supabase == null && _woodyApi == null) return;
+    if (_woodyApi == null) return;
     try {
       final token = await _messaging.getToken();
       if (token == null) {
@@ -226,27 +213,19 @@ class PushService {
     }
   }
 
-  /// Deletes this device's token from the DB. Must be invoked **before**
-  /// `supabase.auth.signOut()` — once the session is cleared, RLS denies the
-  /// delete and the row is orphaned (eventually GC'd via the cascade when
-  /// the user account is deleted, but stale until then).
+  /// Deletes this device's token server-side. Must be invoked **before**
+  /// sign-out clears the access token — once the JWT is gone the DELETE gets a
+  /// 401 and the row is orphaned (GC'd later via the account-delete cascade).
   Future<void> removeCurrentToken() async {
-    if (_supabase == null && _woodyApi == null) return;
+    if (_woodyApi == null) return;
     try {
       final token = await _messaging.getToken();
       if (token == null) return;
-      if (_woodyApi != null) {
-        try {
-          await _woodyApi.delete<dynamic>('/push/device-tokens/$token');
-        } on ApiError catch (e) {
-          if (e.isUnauthorized) return;
-          rethrow;
-        }
-      } else {
-        await _supabase!
-            .from('device_tokens')
-            .delete()
-            .eq('token', token);
+      try {
+        await _woodyApi.delete<dynamic>('/push/device-tokens/$token');
+      } on ApiError catch (e) {
+        if (e.isUnauthorized) return;
+        rethrow;
       }
       talker.info('FCM token removed from device_tokens');
       debugPrint('[FCM] token removed from device_tokens');
@@ -259,36 +238,23 @@ class PushService {
     required String token,
     required String userId,
   }) async {
+    if (_woodyApi == null) return;
     final platform = _platformLabel();
-    if (_woodyApi != null) {
-      try {
-        await _woodyApi.post<dynamic>(
-          '/push/device-tokens',
-          body: {'token': token, 'platform': platform},
-        );
-        talker.info('FCM token saved via Woody REST (platform=$platform)');
-        debugPrint('[FCM] token saved via Woody REST (platform=$platform)');
-      } on ApiError catch (e) {
-        if (e.isUnauthorized) {
-          // Not signed in — defer registration until syncTokenForUser is
-          // called after the next sign-in completes.
-          return;
-        }
-        rethrow;
+    try {
+      await _woodyApi.post<dynamic>(
+        '/push/device-tokens',
+        body: {'token': token, 'platform': platform},
+      );
+      talker.info('FCM token saved via Woody REST (platform=$platform)');
+      debugPrint('[FCM] token saved via Woody REST (platform=$platform)');
+    } on ApiError catch (e) {
+      if (e.isUnauthorized) {
+        // Not signed in — defer registration until syncTokenForUser is
+        // called after the next sign-in completes.
+        return;
       }
-      return;
+      rethrow;
     }
-    if (_supabase == null) return;
-    await _supabase.from('device_tokens').upsert({
-      'token': token,
-      'user_id': userId,
-      'platform': platform,
-      'updated_at': DateTime.now().toUtc().toIso8601String(),
-    }, onConflict: 'token');
-    talker.info('FCM token saved to Supabase (platform=$platform)');
-    debugPrint(
-      '[FCM] token saved to Supabase (platform=$platform, user=$userId)',
-    );
   }
 
   String _platformLabel() {
@@ -310,7 +276,9 @@ class PushService {
     final notification = message.notification;
     if (notification == null) return;
     talker.info('FCM foreground: ${notification.title}');
-    debugPrint('[FCM] foreground push received: "${notification.title}" — "${notification.body}"');
+    debugPrint(
+      '[FCM] foreground push received: "${notification.title}" — "${notification.body}"',
+    );
 
     // Android suppresses tray notifications when the app is in the
     // foreground — re-post via flutter_local_notifications so the user
@@ -321,10 +289,10 @@ class PushService {
       await _showLocalNotification(message);
     }
 
-    // Belt-and-suspenders inbox sync: Supabase Realtime should already
-    // have surfaced this row to the cubit, but if the realtime channel is
-    // momentarily down (network blip, paused tab) the foreground push is
-    // a second nudge to refresh. The notify call is fire-and-forget — any
+    // Belt-and-suspenders inbox sync: the Woody realtime socket should already
+    // have surfaced this row to the cubit, but if the socket is momentarily
+    // down (network blip, backgrounded) the foreground push is a second nudge
+    // to refresh. The notify call is fire-and-forget — any
     // failure is logged inside the cubit and doesn't block the local
     // notification display.
     _onForegroundPush?.call(message);
@@ -376,7 +344,7 @@ class PushService {
     final n = message.notification;
     return NotificationModel(
       id: message.messageId ?? DateTime.now().toIso8601String(),
-      userId: _supabase?.auth.currentUser?.id ?? 'guest',
+      userId: 'guest',
       title: n?.title ?? '',
       body: n?.body ?? '',
       kind: NotificationKind.fromString(message.data['kind'] as String?),

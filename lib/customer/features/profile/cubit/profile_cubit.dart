@@ -2,20 +2,21 @@ import 'dart:async';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/auth/app_mode_cubit.dart';
 import '../../../../core/auth/auth_repository.dart';
-import '../../../../core/auth/sign_out.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/logging/talker.dart';
+import '../../../../core/network/api_error.dart';
+import '../../../../shared/models/me.dart';
 import '../../../../shared/models/verification_status.dart';
 
 class ProfileState extends Equatable {
   const ProfileState({
-    this.email = '',
+    this.id = '',
     this.name,
     this.phone,
+    this.email,
     this.avatarUrl,
     this.isSellerPending = false,
     this.sellerVerificationStatus = VerificationStatus.none,
@@ -23,47 +24,72 @@ class ProfileState extends Equatable {
     this.isLoading = false,
   });
 
-  final String email;
+  /// Woody user id (JWT `sub`). Empty means signed out / not yet resolved.
+  final String id;
   final String? name;
   final String? phone;
+  final String? email;
   final String? avatarUrl;
 
-  /// Mirrors `profiles.is_seller_pending`. Kept for the green-path
-  /// "Ko'rib chiqilmoqda" banner. Stays `true` while the seller row is
-  /// pending/in_review/approved; only the rejected path needs the richer
-  /// status below.
+  /// Mirrors `/me.is_seller_pending`. Drives the "Ko'rib chiqilmoqda" banner.
   final bool isSellerPending;
 
-  /// Source-of-truth seller status from `sellers.verification_status`. Lets
-  /// the profile screen pick between the pending banner, the rejected banner,
-  /// and the "become a seller" CTA without re-querying.
+  /// Seller verification status from `/me.seller_profile`. Stays
+  /// [VerificationStatus.none] until the backend wires the seller surface onto
+  /// `/me` (Phase 4) — the approved/rejected banners light up automatically
+  /// once it does.
   final VerificationStatus sellerVerificationStatus;
 
-  /// Set by moderators on rejection. Surfaced inside the rejected banner so
-  /// the user knows what to fix before resubmitting.
+  /// Moderator-set rejection note, surfaced inside the rejected banner.
   final String? sellerRejectionReason;
 
   final bool isLoading;
 
+  bool get isSignedIn => id.isNotEmpty;
+
   bool get hasName => name != null && name!.isNotEmpty;
 
-  String get displayName =>
-      hasName ? name! : (email.isNotEmpty ? email : 'Ism kiritilmagan');
+  String get displayName => hasName ? name! : 'Ism kiritilmagan';
 
-  String? get secondaryLine {
-    if (!hasName) return null;
-    return (phone != null && phone!.isNotEmpty) ? phone : email;
-  }
+  String? get secondaryLine =>
+      (phone != null && phone!.isNotEmpty) ? phone : null;
 
   bool get isSellerRejected => sellerVerificationStatus.isRejected;
 
   bool get isSellerApproved => sellerVerificationStatus.isApproved;
 
+  ProfileState copyWith({
+    String? id,
+    String? name,
+    String? phone,
+    String? email,
+    String? avatarUrl,
+    bool? isSellerPending,
+    VerificationStatus? sellerVerificationStatus,
+    String? sellerRejectionReason,
+    bool? isLoading,
+  }) {
+    return ProfileState(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      phone: phone ?? this.phone,
+      email: email ?? this.email,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      isSellerPending: isSellerPending ?? this.isSellerPending,
+      sellerVerificationStatus:
+          sellerVerificationStatus ?? this.sellerVerificationStatus,
+      sellerRejectionReason:
+          sellerRejectionReason ?? this.sellerRejectionReason,
+      isLoading: isLoading ?? this.isLoading,
+    );
+  }
+
   @override
   List<Object?> get props => [
-    email,
+    id,
     name,
     phone,
+    email,
     avatarUrl,
     isSellerPending,
     sellerVerificationStatus,
@@ -72,110 +98,81 @@ class ProfileState extends Equatable {
   ];
 }
 
+/// Customer identity cubit, backed by the Woody `/me` endpoint.
+///
+/// Auth is phone-OTP based (the JWT carries `sub` + `phone`), so the header
+/// seeds those two from the token for an instant paint, then `/me` fills in the
+/// name, avatar and seller status. A `/me` failure is non-fatal — the seeded
+/// identity stays on screen rather than blanking the card.
 class ProfileCubit extends Cubit<ProfileState> {
-  ProfileCubit(this._supabase) : super(const ProfileState(isLoading: true));
+  ProfileCubit(this._auth) : super(const ProfileState(isLoading: true));
 
-  final SupabaseClient _supabase;
+  final AuthRepository _auth;
 
   Future<void> fetch() async {
-    final user = _supabase.auth.currentUser;
-    if (user == null) {
+    final id = _auth.currentUserId;
+    if (id == null) {
       emit(const ProfileState());
       return;
     }
-    emit(ProfileState(email: user.email ?? '', isLoading: true));
+    emit(ProfileState(id: id, phone: _auth.currentUserPhone, isLoading: true));
     try {
-      // Fetch profile + seller in parallel. The sellers row is the source of
-      // truth for verification_status / rejection_reason; profiles.is_seller_pending
-      // is a denormalised flag the customer UI uses for fast banner rendering.
-      final profileFuture = _supabase
-          .from('profiles')
-          .select('full_name, phone, avatar_url, is_seller_pending')
-          .eq('id', user.id)
-          .single();
-      // .maybeSingle() — onboarding may not have created a sellers row yet.
-      final sellerFuture = _supabase
-          .from('sellers')
-          .select('verification_status, rejection_reason')
-          .eq('id', user.id)
-          .maybeSingle();
-
-      final results = await Future.wait<dynamic>([profileFuture, sellerFuture]);
-      final data = results[0] as Map<String, dynamic>;
-      final seller = results[1] as Map<String, dynamic>?;
-
-      final next = ProfileState(
-        email: user.email ?? '',
-        name: data['full_name'] as String?,
-        phone: data['phone'] as String?,
-        avatarUrl: data['avatar_url'] as String?,
-        isSellerPending: (data['is_seller_pending'] as bool?) ?? false,
-        sellerVerificationStatus: VerificationStatus.fromCode(
-          seller?['verification_status'] as String?,
-        ),
-        sellerRejectionReason: seller?['rejection_reason'] as String?,
-      );
-      emit(next);
-      // Inform the global mode cubit so it can (a) refresh the cached
-      // approval flag used by the boot-time guard and (b) demote the user
-      // out of seller mode immediately if approval has been revoked
-      // between launches.
+      emit(_fromMe(await _auth.fetchMe()));
       if (sl.isRegistered<AppModeCubit>()) {
-        unawaited(sl<AppModeCubit>().recordSellerApproval(next.isSellerApproved));
-      }
-    } on PostgrestException catch (e) {
-      if (e.code == 'PGRST116') {
-        talker.warning(
-          'Ghost session: profile row missing for ${user.id}. Forcing sign-out.',
+        unawaited(
+          sl<AppModeCubit>().recordSellerApproval(state.isSellerApproved),
         );
-        if (sl.isRegistered<AuthRepository>()) {
-          await signOutWithPushCleanup(sl<AuthRepository>());
-        }
       }
-      emit(ProfileState(email: user.email ?? ''));
+    } on ApiError catch (e, st) {
+      talker.handle(e, st, 'ProfileCubit.fetch /me failed');
+      emit(state.copyWith(isLoading: false));
     } catch (e, st) {
-      // Profile fetch is best-effort — fall back to the auth email so the
-      // screen still renders, but record the failure for production triage.
-      talker.handle(e, st, 'ProfileCubit.load failed');
-      emit(ProfileState(email: user.email ?? ''));
+      talker.handle(e, st, 'ProfileCubit.fetch failed');
+      emit(state.copyWith(isLoading: false));
     }
   }
 
-  /// Called immediately after sign-up upsert completes, before Navigator.pop.
-  /// Eliminates the race condition where `userUpdated` fires before the
-  /// `profiles` row commits, causing a stale fetch.
-  void applySignup({
-    required String name,
-    required String phone,
-    required String email,
-  }) {
-    emit(ProfileState(
-      email: email,
-      name: name.isEmpty ? null : name,
-      phone: phone.isEmpty ? null : phone,
-    ));
+  /// Called immediately after sign-up so the header reflects the chosen name
+  /// without waiting for the next `/me` fetch.
+  void applySignup({required String name, required String phone}) {
+    emit(
+      ProfileState(
+        id: _auth.currentUserId ?? state.id,
+        name: name.isEmpty ? null : name,
+        phone: phone.isEmpty ? null : phone,
+      ),
+    );
   }
 
+  /// Persists the editable identity fields via PATCH `/me`. Phone is the auth
+  /// identity and is not mutable here. Pass [email]/[avatarUrl] only when
+  /// changed — null leaves the stored value untouched (empty email would be
+  /// rejected server-side, so callers normalise blanks to null).
   Future<void> updateProfile({
     required String name,
-    required String phone,
+    String? email,
+    String? avatarUrl,
   }) async {
-    final user = _supabase.auth.currentUser;
-    if (user == null) return;
-    final trimName = name.trim();
-    final trimPhone = phone.trim();
-    await _supabase.from('profiles').update({
-      'full_name': trimName,
-      'phone': trimPhone,
-    }).eq('id', user.id);
-    emit(ProfileState(
-      email: state.email,
-      name: trimName.isEmpty ? null : trimName,
-      phone: trimPhone.isEmpty ? null : trimPhone,
-      avatarUrl: state.avatarUrl,
-      isSellerPending: state.isSellerPending,
-      sellerVerificationStatus: state.sellerVerificationStatus,
-      sellerRejectionReason: state.sellerRejectionReason,
-    ));
+    final me = await _auth.updateProfile(
+      fullName: name.trim(),
+      email: email,
+      avatarUrl: avatarUrl,
+    );
+    emit(_fromMe(me));
+  }
+
+  ProfileState _fromMe(Me me) {
+    final seller = me.sellerProfile;
+    return ProfileState(
+      id: me.id,
+      name: me.fullName,
+      phone: me.phone ?? _auth.currentUserPhone,
+      email: me.email,
+      avatarUrl: me.avatarUrl,
+      isSellerPending: me.isSellerPending,
+      sellerVerificationStatus:
+          seller?.verificationStatus ?? VerificationStatus.none,
+      sellerRejectionReason: seller?.rejectionReason,
+    );
   }
 }

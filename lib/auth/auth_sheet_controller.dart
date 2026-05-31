@@ -146,7 +146,11 @@ class AuthSheetController extends ChangeNotifier {
       } on ApiError catch (e, st) {
         // Profile lookup failure shouldn't block sign-in — fall through to
         // the profile step so the user can fill it in.
-        talker.handle(e, st, 'verifyOtp: /me failed; defaulting to profile step');
+        talker.handle(
+          e,
+          st,
+          'verifyOtp: /me failed; defaulting to profile step',
+        );
         _step = AuthStep.profile;
         _notify();
       }
@@ -185,7 +189,6 @@ class AuthSheetController extends ChangeNotifier {
         sl<ProfileCubit>().applySignup(
           name: me.fullName ?? name,
           phone: me.phone ?? currentPhone,
-          email: '',
         );
       }
       onCompleted?.call();

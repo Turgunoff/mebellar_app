@@ -3,6 +3,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../analytics/analytics_service.dart';
+import '../auth/auth_repository.dart';
+import '../network/woody_api_client.dart';
 import '../../customer/features/cart/bloc/cart_bloc.dart';
 import '../../customer/features/categories/bloc/categories_bloc.dart';
 import '../../customer/features/favorites/bloc/favorites_bloc.dart';
@@ -44,15 +46,15 @@ void registerCustomerScope(GetIt sl) {
     dispose: (svc) => svc.dispose(),
   );
   sl.registerLazySingleton<CartBloc>(
-    () => CartBloc(
-      sl<CartRepository>(),
-      analytics: sl<AnalyticsService>(),
-    )..add(const LoadCart()),
+    () =>
+        CartBloc(sl<CartRepository>(), analytics: sl<AnalyticsService>())
+          ..add(const LoadCart()),
     dispose: (bloc) => bloc.close(),
   );
   sl.registerLazySingleton<FavoritesBloc>(
-    () => FavoritesBloc(sl<FavoritesRepository>())
-      ..add(const FavoritesRequested()),
+    () =>
+        FavoritesBloc(sl<FavoritesRepository>())
+          ..add(const FavoritesRequested()),
     dispose: (bloc) => bloc.close(),
   );
   sl.registerLazySingleton<CategoriesBloc>(
@@ -63,11 +65,11 @@ void registerCustomerScope(GetIt sl) {
     dispose: (bloc) => bloc.close(),
   );
   sl.registerLazySingleton<ProfileOrdersCubit>(
-    () => ProfileOrdersCubit(sl<SupabaseClient>()),
+    () => ProfileOrdersCubit(sl<WoodyApiClient>(), sl<AuthRepository>()),
     dispose: (c) => c.close(),
   );
   sl.registerLazySingleton<ProfileCubit>(
-    () => ProfileCubit(sl<SupabaseClient>()),
+    () => ProfileCubit(sl<AuthRepository>()),
     dispose: (c) => c.close(),
   );
   // NotificationsCubit is root-scoped (see registerCatalogModule) so seller
@@ -80,8 +82,9 @@ void registerSellerScope(GetIt sl) {
   // which tab is active. Fires SellerOrdersRequested on creation; disposed
   // automatically when the seller scope is popped on mode switch.
   sl.registerLazySingleton<SellerOrdersBloc>(
-    () => SellerOrdersBloc(sl<SellerOrderRepository>())
-      ..add(const SellerOrdersRequested()),
+    () =>
+        SellerOrdersBloc(sl<SellerOrderRepository>())
+          ..add(const SellerOrdersRequested()),
     dispose: (bloc) => bloc.close(),
   );
   sl.registerLazySingleton<NewOrdersListener>(
@@ -104,10 +107,7 @@ void registerSellerScope(GetIt sl) {
     ),
   );
   sl.registerFactory<SellerProfileCubit>(
-    () => SellerProfileCubit(
-      sl<SupabaseClient>(),
-      sl<SellerIdentityCache>(),
-    ),
+    () => SellerProfileCubit(sl<SupabaseClient>(), sl<SellerIdentityCache>()),
   );
   if (sl.isRegistered<SellerReviewsRepository>()) {
     sl.registerFactory<ReviewsCubit>(

@@ -1,14 +1,12 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/auth/auth_repository.dart';
 import '../../../../core/logging/talker.dart';
+import '../../../../core/network/woody_api_client.dart';
 
 class ProfileOrdersState extends Equatable {
-  const ProfileOrdersState({
-    this.orders = const [],
-    this.isLoading = false,
-  });
+  const ProfileOrdersState({this.orders = const [], this.isLoading = false});
 
   final List<Map<String, dynamic>> orders;
   final bool isLoading;
@@ -16,8 +14,7 @@ class ProfileOrdersState extends Equatable {
   // Derived counts — always reflect latest state without extra fields.
   // Status codes mirror `OrderStatus` in shared/models/order_status.dart:
   // pending · confirmed · preparing · shipped · delivered · cancelled.
-  int get pendingCount =>
-      orders.where((o) => o['status'] == 'pending').length;
+  int get pendingCount => orders.where((o) => o['status'] == 'pending').length;
 
   /// Orders the seller has accepted and is preparing — surfaced under the
   /// "Tayyorlanmoqda" tile.
@@ -35,60 +32,53 @@ class ProfileOrdersState extends Equatable {
   ProfileOrdersState copyWith({
     List<Map<String, dynamic>>? orders,
     bool? isLoading,
-  }) =>
-      ProfileOrdersState(
-        orders: orders ?? this.orders,
-        isLoading: isLoading ?? this.isLoading,
-      );
+  }) => ProfileOrdersState(
+    orders: orders ?? this.orders,
+    isLoading: isLoading ?? this.isLoading,
+  );
 
   @override
   List<Object?> get props => [orders, isLoading];
 }
 
 class ProfileOrdersCubit extends Cubit<ProfileOrdersState> {
-  ProfileOrdersCubit(this._supabase) : super(const ProfileOrdersState());
+  ProfileOrdersCubit(this._api, this._auth) : super(const ProfileOrdersState());
 
-  final SupabaseClient _supabase;
+  final WoodyApiClient _api;
+  final AuthRepository _auth;
 
   Future<void> fetch() async {
-    final userId = _supabase.auth.currentUser?.id;
-    if (userId == null) return;
+    if (!_auth.isAuthenticated) return;
 
     emit(state.copyWith(isLoading: true));
 
     try {
-      final rows = await _supabase
-          .from('orders')
-          .select(
-            'id, total_amount, status, delivery_address, created_at, '
-            'cancellation_reason, fee_adjustment_status, proposed_delivery_fee, '
-            // Embedded line items drive the order-card thumbnails + count;
-            // the nested `reviews` tells the card whether a delivered order
-            // still has products awaiting a rating.
-            'order_items(quantity, products(name, images), reviews(id))',
-          )
-          .eq('user_id', userId)
-          .order('created_at', ascending: false);
-
-      emit(ProfileOrdersState(
-        orders: List<Map<String, dynamic>>.from(rows),
-      ));
+      final body = await _api.get<Map<String, dynamic>>('/orders');
+      final rows = body['rows'];
+      emit(
+        ProfileOrdersState(
+          orders: rows is List
+              ? rows.whereType<Map<String, dynamic>>().map(_toCardMap).toList()
+              : const [],
+        ),
+      );
     } catch (e, st) {
       // Order-list fetch failed — clear the spinner so the UI isn't stuck,
-      // and log the cause so an RLS denial isn't mistaken for an empty list.
+      // and log the cause so an auth/transport failure isn't mistaken for an
+      // empty list.
       talker.handle(e, st, 'ProfileOrdersCubit.load failed');
       emit(state.copyWith(isLoading: false));
     }
   }
 
-  /// Updates Supabase, then patches the in-memory list so every listener
-  /// (OrdersHistoryScreen, ProfileScreen badges, delete-account guard)
-  /// immediately reflects the cancellation without a full re-fetch.
+  /// Cancels via the backend, then patches the in-memory list so every
+  /// listener (OrdersHistoryScreen, ProfileScreen badges, delete-account
+  /// guard) immediately reflects the cancellation without a full re-fetch.
   Future<void> cancelOrder(String orderId, String reason) async {
-    await _supabase.from('orders').update({
-      'status': 'cancelled',
-      'cancellation_reason': reason,
-    }).eq('id', orderId);
+    await _api.post<dynamic>(
+      '/orders/$orderId/cancel',
+      body: {'reason': reason},
+    );
 
     final updated = state.orders.map((o) {
       if (o['id'] == orderId) {
@@ -102,5 +92,40 @@ class ProfileOrdersCubit extends Cubit<ProfileOrdersState> {
     }).toList();
 
     emit(state.copyWith(orders: updated));
+  }
+
+  /// Maps a woody_backend `CustomerOrder` JSON row to the legacy
+  /// Supabase-shaped map the order-history UI consumes: `items`→`order_items`,
+  /// `product`→`products`. `reviews` is always null because the backend has no
+  /// per-item "already reviewed?" view yet — so a delivered order keeps
+  /// showing the review CTA, and a re-submit is rejected with 409.
+  Map<String, dynamic> _toCardMap(Map<String, dynamic> row) {
+    final items = (row['items'] as List?) ?? const [];
+    return {
+      'id': row['id'],
+      'status': row['status'],
+      'total_amount': row['total_amount'],
+      'created_at': row['created_at'],
+      'delivery_address': row['delivery_address'],
+      'cancellation_reason': row['cancellation_reason'],
+      'fee_adjustment_status': row['fee_adjustment_status'],
+      'proposed_delivery_fee': row['proposed_delivery_fee'],
+      'order_items': [
+        for (final raw in items)
+          if (raw is Map<String, dynamic>)
+            {
+              'quantity': raw['quantity'],
+              'reviews': null,
+              'products': {
+                'images': raw['product'] is Map<String, dynamic>
+                    ? (raw['product']['images'] ?? const [])
+                    : const [],
+                'name': raw['product'] is Map<String, dynamic>
+                    ? raw['product']['name']
+                    : null,
+              },
+            },
+      ],
+    };
   }
 }

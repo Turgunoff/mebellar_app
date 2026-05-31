@@ -8,18 +8,19 @@ import '../../../../config/app_mode.dart';
 import '../../../../core/auth/app_mode_cubit.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
+import '../../../../shared/widgets/fullscreen_image_viewer.dart';
 import '../../../widgets/glass_bottom_nav.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../../orders/cubit/profile_orders_cubit.dart';
 import '../cubit/profile_cubit.dart';
 import '../widgets/account_dialogs.dart';
 import '../widgets/danger_zone.dart';
-import '../widgets/edit_profile_sheet.dart';
 import '../widgets/orders_block.dart';
 import '../widgets/profile_menu_card.dart';
 import '../widgets/seller_banners.dart';
 import '../widgets/user_card.dart';
 import 'about_screen.dart';
+import 'edit_profile_screen.dart';
 import 'help_screen.dart';
 import 'settings_screen.dart';
 
@@ -44,17 +45,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
     sl<ProfileOrdersCubit>().fetch();
   }
 
-  void _showEditSheet(ProfileState profile) {
+  void _openAvatarViewer(ProfileState profile) {
+    final url = profile.avatarUrl;
+    if (url == null || url.isEmpty) {
+      // No photo yet — send the user to the editor to set one instead.
+      _openEditScreen(profile);
+      return;
+    }
+    openFullscreenImageViewer(
+      context,
+      images: [url],
+      initialIndex: 0,
+      heroTagPrefix: 'profile-avatar',
+    );
+  }
+
+  void _openEditScreen(ProfileState profile) {
     final cubit = context.read<ProfileCubit>();
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => BlocProvider.value(
-        value: cubit,
-        child: EditProfileSheet(
-          currentName: profile.name ?? '',
-          currentPhone: profile.phone ?? '',
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => BlocProvider.value(
+          value: cubit,
+          child: EditProfileScreen(profile: profile),
         ),
       ),
     );
@@ -170,10 +182,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           if (profileState.isLoading)
             const UserCardShimmer()
-          else if (profileState.email.isNotEmpty)
+          else if (profileState.isSignedIn)
             UserCard(
               profile: profileState,
-              onEdit: () => _showEditSheet(profileState),
+              onEdit: () => _openEditScreen(profileState),
+              onAvatarTap: () => _openAvatarViewer(profileState),
             ),
           const SizedBox(height: 24),
           const OrdersBlock(),

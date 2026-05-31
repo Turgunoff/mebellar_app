@@ -18,10 +18,7 @@ import '../storage/hive_boxes.dart';
 /// `TokenStore` / the `pending_route` box registered by [registerCoreModule].
 void registerAuthModule(GetIt sl) {
   sl.registerLazySingleton<AuthRepository>(
-    () => AuthRepository(
-      api: sl<WoodyApiClient>(),
-      tokens: sl<TokenStore>(),
-    ),
+    () => AuthRepository(api: sl<WoodyApiClient>(), tokens: sl<TokenStore>()),
     dispose: (repo) => repo.dispose(),
   );
 
@@ -36,10 +33,7 @@ void registerAuthModule(GetIt sl) {
       messaging: FirebaseMessagingFacade(),
       localNotifications: FlutterLocalNotificationsPlugin(),
       notificationHandler: sl<NotificationHandler>(),
-      // Woody REST takes precedence over Supabase for device-token
-      // registration. `supabase` stays as the fallback for builds without
-      // a configured Woody backend (dev / integration tests).
-      supabase: null,
+      // Device-token registration goes through the Woody REST endpoint.
       woodyApi: AppConfig.hasWoodyApi ? sl<WoodyApiClient>() : null,
     ),
   );
@@ -48,8 +42,9 @@ void registerAuthModule(GetIt sl) {
   sl.registerSingleton<AuthCubit>(
     AuthCubit(
       tokens: sl<TokenStore>(),
-      analytics:
-          sl.isRegistered<AnalyticsService>() ? sl<AnalyticsService>() : null,
+      analytics: sl.isRegistered<AnalyticsService>()
+          ? sl<AnalyticsService>()
+          : null,
       realtime: sl.isRegistered<WoodyRealtimeService>()
           ? sl<WoodyRealtimeService>()
           : null,

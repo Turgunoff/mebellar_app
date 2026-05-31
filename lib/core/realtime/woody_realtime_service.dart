@@ -108,11 +108,20 @@ class WoodyRealtimeService {
   }
 
   Uri _toWsUrl(String base, String token) {
-    final stripped = base.endsWith('/') ? base.substring(0, base.length - 1) : base;
-    final asWs = stripped
-        .replaceFirst(RegExp(r'^https://'), 'wss://')
-        .replaceFirst(RegExp(r'^http://'), 'ws://');
-    return Uri.parse('$asWs/api/v1/realtime/ws?token=$token');
+    final baseUri = Uri.parse(base);
+    final secure = baseUri.scheme == 'https' || baseUri.scheme == 'wss';
+    // Dart's Uri only knows default ports for http/https. A `wss` Uri with
+    // no explicit port reports port 0, and web_socket_channel then builds the
+    // upgrade request as `https://host:0/...`, which never connects. Pin the
+    // port so it always carries 443 (wss) / 80 (ws).
+    final port = baseUri.hasPort ? baseUri.port : (secure ? 443 : 80);
+    return Uri(
+      scheme: secure ? 'wss' : 'ws',
+      host: baseUri.host,
+      port: port,
+      path: '/api/v1/realtime/ws',
+      queryParameters: {'token': token},
+    );
   }
 
   void _onMessage(dynamic raw) {

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
-import 'fullscreen_image_viewer.dart';
+import '../../../../../shared/widgets/fullscreen_image_viewer.dart';
 import 'product_preview_kit.dart';
 
 /// Pinned, square-expanding image gallery app bar for the product preview.
@@ -73,10 +73,7 @@ class PreviewAppBar extends StatelessWidget {
         ),
       ],
       flexibleSpace: FlexibleSpaceBar(
-        background: _ImageGallery(
-          images: images,
-          heroTagPrefix: heroTagPrefix,
-        ),
+        background: _ImageGallery(images: images, heroTagPrefix: heroTagPrefix),
       ),
     );
   }
@@ -107,10 +104,7 @@ class _GlassIconButton extends StatelessWidget {
 }
 
 class _ImageGallery extends StatefulWidget {
-  const _ImageGallery({
-    required this.images,
-    required this.heroTagPrefix,
-  });
+  const _ImageGallery({required this.images, required this.heroTagPrefix});
 
   final List<String> images;
   final String heroTagPrefix;
@@ -182,8 +176,10 @@ class _ImageGalleryState extends State<_ImageGallery> {
             right: 0,
             child: Center(
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.black.withValues(alpha: 0.42),
                   borderRadius: BorderRadius.circular(999),
