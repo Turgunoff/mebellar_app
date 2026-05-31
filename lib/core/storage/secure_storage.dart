@@ -1,7 +1,7 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// Wrapper around `flutter_secure_storage` for tokens we cannot leave in Hive.
-/// Supabase SDK already persists its own session; this is for any extra data
+/// The auth token store persists the session; this is for any extra data
 /// we may need (e.g. stored refresh hints).
 class SecureStorage {
   SecureStorage([FlutterSecureStorage? storage])

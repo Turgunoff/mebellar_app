@@ -34,7 +34,7 @@ import 'shop_settings_repository.dart';
 ///
 /// Phase 4b ships a subset: dashboard + onboarding. The remaining seller
 /// surfaces (products CRUD, orders, analytics, reviews, services,
-/// shop settings, tariff) continue to use their Supabase implementations
+/// shop settings, tariff) are also Woody-backed
 /// until Phase 8 completes the migration. The DI module switches each
 /// surface independently via the `useWoody` flag.
 

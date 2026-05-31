@@ -1,6 +1,6 @@
-import '../models/supabase_product_model.dart';
+import '../models/product_model.dart';
 
-/// Ordering options accepted by [SupabaseProductDataSource.search]. The search
+/// Ordering options accepted by [ProductDataSource.search]. The search
 /// feature renders one of these by default and lets the user pick a different
 /// one from the filter sheet. New sort options should land here (and in the
 /// implementation `_applySort`) rather than as ad-hoc orderings on the call
@@ -124,25 +124,25 @@ class ProductSearchFilter {
   }
 }
 
-abstract class SupabaseProductDataSource {
-  Future<List<SupabaseProductModel>> listByCategory({
+abstract class ProductDataSource {
+  Future<List<ProductModel>> listByCategory({
     required String categoryId,
     String? subcategoryId,
     ProductSearchFilter filter,
   });
-  Future<List<SupabaseProductModel>> listBySubcategory({
+  Future<List<ProductModel>> listBySubcategory({
     required String subcategoryId,
   });
-  Future<SupabaseProductModel> getById(String id);
+  Future<ProductModel> getById(String id);
 
   /// Newest-first products across the catalog. Used by the Home screen's
   /// "Recommended for you" rail until we have a real recs engine.
-  Future<List<SupabaseProductModel>> listAll({int limit = 10});
+  Future<List<ProductModel>> listAll({int limit = 10});
 
   /// Case-insensitive `ilike` over name + description, narrowed by [filter].
   /// An empty [query] is allowed when [filter] is non-empty, so the user can
   /// browse the catalogue by filter alone (e.g. "show me discounted sofas").
-  Future<List<SupabaseProductModel>> search(
+  Future<List<ProductModel>> search(
     String query, {
     ProductSearchFilter filter,
     int limit = 30,
@@ -151,7 +151,7 @@ abstract class SupabaseProductDataSource {
   /// Rule-based "similar products" for the detail-page carousel. Ranking
   /// (shared subcategory, stock, material, price proximity) is done
   /// server-side by the `get_similar_products` Postgres function.
-  Future<List<SupabaseProductModel>> listSimilar(
+  Future<List<ProductModel>> listSimilar(
     String productId, {
     int limit = 10,
   });
@@ -159,32 +159,32 @@ abstract class SupabaseProductDataSource {
   /// Synchronous read of the cached recommended-products rail (same shape
   /// `listAll(limit: 10)` returns). Returns `null` on cache miss or for
   /// non-caching implementations. The home bloc uses this to paint the rail
-  /// at 0 ms on cold start before the Supabase RTT lands.
-  List<SupabaseProductModel>? peekRecommended() => null;
+  /// at 0 ms on cold start before the backend RTT lands.
+  List<ProductModel>? peekRecommended() => null;
 
   /// Synchronous read of a previously-fetched single product. Returns null
   /// on cache miss. The product-detail bloc uses this to render the page
   /// instantly on a re-visit (favourites → detail, cart → detail, deep-link
   /// to a product the user has seen before).
-  SupabaseProductModel? peekById(String id) => null;
+  ProductModel? peekById(String id) => null;
 
   /// Synchronous read of a previously-fetched default-filtered category
   /// listing. Only returns a hit when no facets / sort / subcategory are
   /// applied — filtered listings are not cached because the parameter
   /// space is too large to be worth the Hive churn.
-  List<SupabaseProductModel>? peekByCategory(String categoryId) => null;
+  List<ProductModel>? peekByCategory(String categoryId) => null;
 
   /// Synchronous read of a previously-fetched "similar products" carousel.
   /// Returns null on cache miss.
-  List<SupabaseProductModel>? peekSimilar(String productId, {int limit = 10}) =>
+  List<ProductModel>? peekSimilar(String productId, {int limit = 10}) =>
       null;
 }
 
-class MockSupabaseProductDataSource extends SupabaseProductDataSource {
+class MockProductDataSource extends ProductDataSource {
   static const _delay = Duration(milliseconds: 400);
 
-  static final List<SupabaseProductModel> _all = [
-    SupabaseProductModel(
+  static final List<ProductModel> _all = [
+    ProductModel(
       id: 'prod-1',
       categoryId: 'mock-1',
       name: 'Velvet Corner Sofa',
@@ -206,7 +206,7 @@ class MockSupabaseProductDataSource extends SupabaseProductDataSource {
       stock: 12,
       createdAt: DateTime(2026, 1, 1),
     ),
-    SupabaseProductModel(
+    ProductModel(
       id: 'prod-2',
       categoryId: 'mock-1',
       name: 'Modern 3-Seat Sofa',
@@ -226,7 +226,7 @@ class MockSupabaseProductDataSource extends SupabaseProductDataSource {
       stock: 8,
       createdAt: DateTime(2026, 1, 2),
     ),
-    SupabaseProductModel(
+    ProductModel(
       id: 'prod-3',
       categoryId: 'mock-2',
       name: 'Oak Extendable Dining Table',
@@ -246,7 +246,7 @@ class MockSupabaseProductDataSource extends SupabaseProductDataSource {
       stock: 7,
       createdAt: DateTime(2026, 1, 3),
     ),
-    SupabaseProductModel(
+    ProductModel(
       id: 'prod-4',
       categoryId: 'mock-3',
       name: 'Scandinavian Platform Bed',
@@ -269,7 +269,7 @@ class MockSupabaseProductDataSource extends SupabaseProductDataSource {
   ];
 
   @override
-  Future<List<SupabaseProductModel>> listByCategory({
+  Future<List<ProductModel>> listByCategory({
     required String categoryId,
     String? subcategoryId,
     ProductSearchFilter filter = const ProductSearchFilter(),
@@ -307,7 +307,7 @@ class MockSupabaseProductDataSource extends SupabaseProductDataSource {
   }
 
   @override
-  Future<List<SupabaseProductModel>> listBySubcategory({
+  Future<List<ProductModel>> listBySubcategory({
     required String subcategoryId,
   }) async {
     await Future<void>.delayed(_delay);
@@ -317,7 +317,7 @@ class MockSupabaseProductDataSource extends SupabaseProductDataSource {
   }
 
   @override
-  Future<SupabaseProductModel> getById(String id) async {
+  Future<ProductModel> getById(String id) async {
     await Future<void>.delayed(_delay);
     return _all.firstWhere(
       (p) => p.id == id,
@@ -326,7 +326,7 @@ class MockSupabaseProductDataSource extends SupabaseProductDataSource {
   }
 
   @override
-  Future<List<SupabaseProductModel>> listAll({int limit = 10}) async {
+  Future<List<ProductModel>> listAll({int limit = 10}) async {
     await Future<void>.delayed(_delay);
     final sorted = [..._all]
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -334,7 +334,7 @@ class MockSupabaseProductDataSource extends SupabaseProductDataSource {
   }
 
   @override
-  Future<List<SupabaseProductModel>> search(
+  Future<List<ProductModel>> search(
     String query, {
     ProductSearchFilter filter = const ProductSearchFilter(),
     int limit = 30,
@@ -381,12 +381,12 @@ class MockSupabaseProductDataSource extends SupabaseProductDataSource {
   }
 
   @override
-  Future<List<SupabaseProductModel>> listSimilar(
+  Future<List<ProductModel>> listSimilar(
     String productId, {
     int limit = 10,
   }) async {
     await Future<void>.delayed(_delay);
-    SupabaseProductModel? ref;
+    ProductModel? ref;
     for (final p in _all) {
       if (p.id == productId) {
         ref = p;

@@ -1,15 +1,15 @@
 # Mebellar — project brain
 
 Furniture marketplace for Uzbekistan. Flutter mobile app with two
-distinct modes (customer + seller) inside one binary, backed by
-Supabase. Package name `com.mebellar.app`, internal Dart package name
-`woody_app`.
+distinct modes (customer + seller) inside one binary, backed by a custom
+FastAPI backend (`woody_backend` at `api.woody.uz`). Package name
+`com.mebellar.app`, internal Dart package name `woody_app`.
 
 ## Tech stack
 
 - **Flutter** (Dart SDK `^3.11.5`) — single binary, customer + seller modes
-- **Supabase** — Postgres + Auth + Storage + Realtime; the only backend
-- **Firebase** — Messaging (FCM), Crashlytics, Analytics; **no Firebase Auth** (Supabase owns auth)
+- **woody_backend** — FastAPI + Postgres + R2 storage + WebSocket realtime at `api.woody.uz`; the only backend
+- **Firebase** — Messaging (FCM), Crashlytics, Analytics; **no Firebase Auth** (woody_backend owns auth)
 - **Hive** — local storage (settings, cart, favourites, news-reads cache)
 - **GetIt** — service locator for DI
 - **flutter_bloc** — Bloc + Cubit state management
@@ -29,7 +29,7 @@ lib/
 │   ├── i18n/                    AppTranslations (Dart bundles, no .arb)
 │   ├── logging/                 Talker + CrashlyticsTalkerObserver
 │   ├── notifications/           PushService (FCM bootstrap)
-│   ├── realtime/                Supabase Realtime channel helper
+│   ├── realtime/                WoodyRealtimeService (WebSocket) helper
 │   └── theme/                   AppColors, AppFonts, customer/seller themes
 ├── customer/
 │   ├── customer_app.dart        MaterialApp.router for customer
@@ -50,7 +50,7 @@ lib/
     │   ├── screens/             ChatsListScreen, ChatThreadScreen
     │   └── widgets/             MessageBubble, ChatComposer, etc.
     ├── models/                  Product, Order, Chat, Category, etc.
-    ├── repositories/            Supabase + remote-REST fallback pairs
+    ├── repositories/            Woody REST repos (+ mock pairs for tests)
     └── widgets/                 cross-mode UI primitives
 ```
 
@@ -84,7 +84,7 @@ dart analyze lib/
 ```
 
 Env keys live in `env/prod.json` (gitignored) — copy from `env/example.json`.
-Required: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `YANDEX_GEOCODER_API_KEY`.
+Required: `WOODY_API_URL`, `YANDEX_GEOCODER_API_KEY`.
 The Sentry DSN was removed when Crashlytics replaced Sentry — do not re-add it.
 
 ## Architecture conventions
@@ -103,8 +103,9 @@ ChatSenderRole.customer | .seller`.
 
 Bloc for events-driven flows (search, cart, orders), Cubit for
 single-input commands (profile, checkout, mode). Repositories are
-abstract interfaces with Supabase + sometimes mock/REST implementations
-(`RepositoryResolver` picks at startup based on `AppConfig.hasSupabase`).
+abstract interfaces with a Woody REST implementation (`Woody*Repository`,
+talking to `WoodyApiClient`) plus an in-memory mock used by tests. The
+catalog/region/address repos still ship a legacy Dio `Remote*` impl.
 
 ### Theme tokens — never hardcode colours
 
@@ -153,35 +154,23 @@ Collection is enabled only when `!kDebugMode` — debug crashes don't
 pollute prod dashboards. The `environment` custom key tags every
 report with `prod` / `dev`.
 
-### Supabase RLS gotchas
+### Backend (woody_backend)
 
-These are gotchas you will hit if you don't read them:
+The only backend is **woody_backend** — a FastAPI service at `api.woody.uz`
+(routes mount under `/api/v1`; `WoodyApiClient` adds the prefix). It owns
+auth, the catalog, orders, per-order chat, the seller surfaces, and
+presigned R2 uploads. The Flutter side speaks only REST + the Woody
+WebSocket realtime feed (`wss://api.woody.uz/api/v1/realtime/ws`) — there is
+no direct DB access, no RLS, and no Supabase anywhere in this repo.
 
-1. **`orders.user_id`, NOT `orders.customer_id`** — the legacy column
-   name. `chats.customer_id` IS named correctly (separate table).
-2. **`shops.name` collision in storage policies**: inside `EXISTS
-   (SELECT 1 FROM shops s WHERE ...)`, an unqualified `name` rebinds to
-   `s.name` (shop display name), not `objects.name` (file path). Always
-   lift the path-segment extraction OUT of the inner subquery — see
-   migration `20260523015757_fix_shop_assets_rls_final.sql` for the
-   pattern.
-3. **PostgREST embed ambiguity** — when a column has two FKs (e.g.
-   `chats.customer_id` is FK'd to both `auth.users` and `profiles`),
-   use the constraint name as the embed hint:
-   `customer:profiles!chats_customer_id_profiles_fkey(id, full_name)`.
-4. **`storage.objects` direct DELETE is blocked** by `protect_delete`
-   trigger. Bypass for one-off cleanups:
-   `SET LOCAL storage.allow_delete_query = 'true';` inside a tx.
-5. After any RLS or policy change: `NOTIFY pgrst, 'reload schema';` so
-   PostgREST picks it up without a server bounce.
-
-### Migrations
-
-Live at `supabase/migrations/<yyyymmddHHMMSS>_<name>.sql`. Applied via
-the Supabase MCP `apply_migration` (preferred — atomic + logged) or
-via `supabase db push`. **Always** save the SQL locally as a migration
-file too — applying via MCP doesn't persist to the repo, and
-`supabase db reset` would silently lose the schema change.
+- **Schema lives elsewhere** — DB schema + migrations are Alembic, in the
+  `woody_backend` repo, not here. This repo never writes SQL.
+- **Uploads** — every byte push (product images, chat attachments, KYC docs,
+  tariff receipts) goes through `R2UploadClient` → `POST /storage/upload-url`
+  (presigned PUT) with the right `R2Bucket`.
+- **Realtime degrades gracefully** — order/notification updates fall back to
+  refresh-on-open + FCM foreground push until the backend publishes the
+  matching realtime events.
 
 ### Chat (per-order)
 
@@ -189,9 +178,9 @@ One row in `chats` per `order_id` (UNIQUE constraint). Customer
 lazy-creates the row on first message; seller can never spawn a chat.
 Chat stays OPEN forever, even after order delivered/cancelled — the
 `ChatStatusBanner` reflects current order status with copy + a "Leave
-a review" CTA on delivered orders (customer side only). Realtime:
-inserts on `chat_messages` are subscribed via Supabase Realtime; the
-list view auto-refreshes on any `chats` row change.
+a review" CTA on delivered orders (customer side only). Realtime: new
+messages arrive over the Woody WebSocket feed; the list view refreshes on
+reconnect / re-open.
 
 ### Filter & search
 
@@ -239,8 +228,8 @@ to a bloc, update the matching test or it will fail.
   unusable. Use `./tools/build_release.sh` instead.
 - Don't reintroduce Sentry — Crashlytics replaced it and the two
   conflict on `FlutterError.onError`
-- Don't filter shops table inside storage RLS via unqualified `name`
-- Don't pass `customer_id` to `orders` table — column is `user_id`
+- Don't reintroduce Supabase — it was fully removed; the only backend is
+  woody_backend (REST + R2 + WebSocket). No `supabase_flutter` dependency.
 - Don't commit `env/prod.json`, `key.properties`, `*.jks`,
   `build/symbols/`, `google-services.json` if it contains secrets
 
@@ -248,6 +237,10 @@ to a bloc, update the matching test or it will fail.
 
 This brain captures the state after a multi-session redesign:
 
+- **Full Supabase → woody_backend migration** — `supabase_flutter` dropped
+  entirely; every repository, auth, realtime, storage and the seller
+  add-product / tariff / services / attributes flows now run against the
+  Woody REST API + R2 + WebSocket. `grep -i supabase lib/` is zero.
 - Search + per-category filter sheet — `ProductSearchFilter`, adaptive
   facet visibility, search UI redesigned with active-filter pills
 - Subcategory chip bar in product list with realtime-safe race protection

@@ -1,15 +1,15 @@
 import '../../core/network/woody_api_client.dart';
-import '../models/supabase_product_model.dart';
-import 'supabase_product_data_source.dart';
+import '../models/product_model.dart';
+import 'product_data_source.dart';
 
-/// Drop-in replacement for `SupabaseProductRepository` that calls the
+/// Calls the
 /// `/catalog/products*` REST endpoints on api.woody.uz.
 ///
 /// The backend deliberately mirrors the PostgREST embed shape Flutter parses
 /// today (`shops: {name}`, `product_variants: [{price, discount_price}]`)
-/// so `SupabaseProductModel.fromJson` works unchanged — only the transport
+/// so `ProductModel.fromJson` works unchanged — only the transport
 /// flips.
-class WoodyProductRepository extends SupabaseProductDataSource {
+class WoodyProductRepository extends ProductDataSource {
   WoodyProductRepository({required WoodyApiClient api}) : _api = api;
 
   final WoodyApiClient _api;
@@ -17,7 +17,7 @@ class WoodyProductRepository extends SupabaseProductDataSource {
   static const _basePath = '/catalog/products';
 
   @override
-  Future<List<SupabaseProductModel>> listByCategory({
+  Future<List<ProductModel>> listByCategory({
     required String categoryId,
     String? subcategoryId,
     ProductSearchFilter filter = const ProductSearchFilter(),
@@ -35,7 +35,7 @@ class WoodyProductRepository extends SupabaseProductDataSource {
   }
 
   @override
-  Future<List<SupabaseProductModel>> listBySubcategory({
+  Future<List<ProductModel>> listBySubcategory({
     required String subcategoryId,
   }) async {
     return _listRequest({
@@ -46,18 +46,18 @@ class WoodyProductRepository extends SupabaseProductDataSource {
   }
 
   @override
-  Future<SupabaseProductModel> getById(String id) async {
+  Future<ProductModel> getById(String id) async {
     final body = await _api.get<Map<String, dynamic>>('$_basePath/$id');
-    return SupabaseProductModel.fromJson(body);
+    return ProductModel.fromJson(body);
   }
 
   @override
-  Future<List<SupabaseProductModel>> listAll({int limit = 10}) {
+  Future<List<ProductModel>> listAll({int limit = 10}) {
     return _listRequest({'sort': 'newest', 'limit': limit});
   }
 
   @override
-  Future<List<SupabaseProductModel>> search(
+  Future<List<ProductModel>> search(
     String query, {
     ProductSearchFilter filter = const ProductSearchFilter(),
     int limit = 30,
@@ -80,7 +80,7 @@ class WoodyProductRepository extends SupabaseProductDataSource {
   }
 
   @override
-  Future<List<SupabaseProductModel>> listSimilar(
+  Future<List<ProductModel>> listSimilar(
     String productId, {
     int limit = 10,
   }) async {
@@ -90,11 +90,11 @@ class WoodyProductRepository extends SupabaseProductDataSource {
     );
     return body
         .whereType<Map<String, dynamic>>()
-        .map(SupabaseProductModel.fromJson)
+        .map(ProductModel.fromJson)
         .toList(growable: false);
   }
 
-  Future<List<SupabaseProductModel>> _listRequest(
+  Future<List<ProductModel>> _listRequest(
     Map<String, dynamic> query,
   ) async {
     final body = await _api.get<Map<String, dynamic>>(
@@ -108,7 +108,7 @@ class WoodyProductRepository extends SupabaseProductDataSource {
     if (rows is! List) return const [];
     return rows
         .whereType<Map<String, dynamic>>()
-        .map(SupabaseProductModel.fromJson)
+        .map(ProductModel.fromJson)
         .toList(growable: false);
   }
 
@@ -134,8 +134,8 @@ class WoodyProductRepository extends SupabaseProductDataSource {
 
   /// `discountedOnly` lives on a variant row; the API can't filter on it
   /// without re-shaping the embed, so we drop non-discounted rows here.
-  List<SupabaseProductModel> _postFilter(
-    List<SupabaseProductModel> rows,
+  List<ProductModel> _postFilter(
+    List<ProductModel> rows,
     ProductSearchFilter filter,
   ) {
     if (!filter.discountedOnly) return rows;

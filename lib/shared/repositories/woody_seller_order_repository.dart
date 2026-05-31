@@ -20,10 +20,10 @@ import 'seller_order_repository.dart';
 ///   SellerOrderList  rows[] · total
 /// ```
 /// The backend already scopes every order to the caller's shop (the router
-/// resolves the shop via `_require_shop`), so unlike the Supabase repo this
+/// resolves the shop via `_require_shop`), so unlike the legacy repo this
 /// implementation does no client-side ownership filtering.
 ///
-/// Degradations vs. the Supabase implementation (see backendGaps):
+/// Degradations vs. the live implementation (see backendGaps):
 ///  - [proposeDeliveryFee] has no endpoint — returns [getById] unchanged.
 ///  - [newOrders]/[orderUpdates] have no realtime feed yet — empty streams.
 ///  - [watch] one-shot re-reads via [getById] (no live updates).

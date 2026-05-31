@@ -6,8 +6,8 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../shared/constants/product_colors.dart';
 import '../../../../shared/models/category_model.dart';
-import '../../../../shared/repositories/supabase_category_repository.dart';
-import '../../../../shared/repositories/supabase_product_data_source.dart';
+import '../../../../shared/repositories/category_data_source.dart';
+import '../../../../shared/repositories/product_data_source.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 
 /// Shows the search filter sheet. Resolves to the new [ProductSearchFilter]

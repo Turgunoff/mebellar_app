@@ -6,9 +6,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/connectivity/network_cubit.dart';
 import '../../../../shared/models/banner.dart';
-import '../../../../shared/models/supabase_product_model.dart';
+import '../../../../shared/models/product_model.dart';
 import '../../../../shared/repositories/banner_repository.dart';
-import '../../../../shared/repositories/supabase_product_data_source.dart';
+import '../../../../shared/repositories/product_data_source.dart';
 
 sealed class HomeEvent extends Equatable {
   const HomeEvent();
@@ -35,13 +35,13 @@ class HomeState extends Equatable {
 
   final HomeStatus status;
   final List<HomeBanner> banners;
-  final List<SupabaseProductModel> recommended;
+  final List<ProductModel> recommended;
   final String? error;
 
   HomeState copyWith({
     HomeStatus? status,
     List<HomeBanner>? banners,
-    List<SupabaseProductModel>? recommended,
+    List<ProductModel>? recommended,
     String? error,
     bool clearError = false,
   }) {
@@ -60,7 +60,7 @@ class HomeState extends Equatable {
 class HomeBloc extends Bloc<HomeEvent, HomeState> {
   HomeBloc({
     required BannerRepository bannerRepo,
-    required SupabaseProductDataSource productSource,
+    required ProductDataSource productSource,
     NetworkCubit? networkCubit,
   }) : _bannerRepo = bannerRepo,
        _productSource = productSource,
@@ -91,7 +91,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   }
 
   final BannerRepository _bannerRepo;
-  final SupabaseProductDataSource _productSource;
+  final ProductDataSource _productSource;
   final NetworkCubit? _networkCubit;
   StreamSubscription<NetworkStatus>? _netSub;
   NetworkStatus _lastNetwork = NetworkStatus.initial;
@@ -130,7 +130,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         state.copyWith(
           status: HomeStatus.ready,
           banners: results[0] as List<HomeBanner>,
-          recommended: results[1] as List<SupabaseProductModel>,
+          recommended: results[1] as List<ProductModel>,
           clearError: true,
         ),
       );

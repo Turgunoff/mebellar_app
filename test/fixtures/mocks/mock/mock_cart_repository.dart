@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:woody_app/shared/models/cart.dart';
 import 'package:woody_app/shared/models/cart_item.dart';
 import 'package:woody_app/shared/models/cart_item_model.dart';
-import 'package:woody_app/shared/models/supabase_product_model.dart';
+import 'package:woody_app/shared/models/product_model.dart';
 import 'package:woody_app/shared/repositories/cart_repository.dart';
 import 'mock_data.dart';
 
@@ -96,7 +96,7 @@ class MockCartRepository implements CartRepository {
   // ── Snapshot API — legacy mock proxies to the rich [Cart] state. The
   // Sprint 12 hybrid repository is what actually surfaces real snapshot
   // rows; Mock keeps these around so it still satisfies the interface
-  // when AppConfig.useMocks=true and Supabase is unavailable.
+  // when AppConfig.useMocks=true and the backend is unavailable.
 
   @override
   Stream<List<CartItemModel>> watchItems() =>
@@ -113,7 +113,7 @@ class MockCartRepository implements CartRepository {
 
   @override
   Future<void> addProduct(
-    SupabaseProductModel product, {
+    ProductModel product, {
     int quantity = 1,
     String? selectedColor,
   }) async {

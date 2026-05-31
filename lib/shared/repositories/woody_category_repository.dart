@@ -1,8 +1,8 @@
 import '../../core/network/woody_api_client.dart';
 import '../models/category_model.dart';
-import 'supabase_category_repository.dart' show CategoryDataSource;
+import 'category_data_source.dart' show CategoryDataSource;
 
-/// Replaces `SupabaseCategoryRepository`. Calls `/catalog/categories` which
+/// Calls `/catalog/categories` which
 /// returns the same flat-row + embedded `subcategories` shape PostgREST
 /// produced — `CategoryModel.fromJson` parses both transports unchanged.
 class WoodyCategoryRepository extends CategoryDataSource {

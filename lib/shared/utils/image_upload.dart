@@ -17,7 +17,7 @@ class ImagePickConfig {
 }
 
 /// Result of [PickedImage] — exposes the local file plus a friendly extension
-/// so the upload service can pass it onward to Supabase Storage.
+/// so the upload service can pass it onward to R2 storage.
 class PickedImage {
   const PickedImage({
     required this.file,

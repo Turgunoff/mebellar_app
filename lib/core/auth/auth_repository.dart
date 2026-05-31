@@ -8,7 +8,7 @@ import '../network/woody_api_client.dart';
 
 /// HTTP-backed auth surface for `api.woody.uz`.
 ///
-/// Replaces the Supabase-Auth-backed shim. The four primitives mirror the
+/// Replaces the legacy auth-backed shim. The four primitives mirror the
 /// backend's `/auth/*` routes: request → verify (mints tokens) → refresh →
 /// logout. Tokens are written to [TokenStore]; [authStateChanges] reflects
 /// the store's stream so widgets/cubits can rebuild on sign-in/out without

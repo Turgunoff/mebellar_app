@@ -1,7 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../config/app_config.dart';
 import '../../customer/features/notifications/cubit/notifications_cubit.dart';
@@ -24,9 +23,9 @@ import '../../shared/repositories/order_repository.dart';
 import '../../shared/repositories/product_repository.dart';
 import '../../shared/repositories/region_repository.dart';
 import '../../shared/repositories/shop_repository.dart';
-import '../../shared/repositories/supabase_category_repository.dart';
-import '../../shared/repositories/supabase_notifications_repository.dart';
-import '../../shared/repositories/supabase_product_data_source.dart';
+import '../../shared/repositories/category_data_source.dart';
+import '../../shared/repositories/notifications_data_source.dart';
+import '../../shared/repositories/product_data_source.dart';
 import '../../shared/repositories/woody_banner_repository.dart';
 import '../../shared/repositories/woody_category_repository.dart';
 import '../../shared/repositories/woody_chat_repositories.dart';
@@ -37,43 +36,32 @@ import '../network/woody_api_client.dart';
 import '../realtime/woody_realtime_service.dart';
 import '../storage/cache_store.dart';
 import '../storage/hive_boxes.dart';
-import 'repository_resolver.dart';
 
 /// Root-scope catalog + customer-shared repositories and data sources.
 ///
-/// Every read goes against Supabase when a client was produced at boot
-/// (`AppConfig.assertConfigured` makes that the only legal production
-/// state). The legacy Dio/REST `Remote*` variants stay as the fallback for
-/// builds without a Supabase client — a state that should never reach
-/// production but is exercised by integration tests that construct a Dio
-/// without a backing project.
+/// Every read goes against the woody_backend REST surface (`api.woody.uz`).
+/// The legacy Dio/REST `Remote*` variants stay as the fallback for the
+/// catalog/region/address repositories that don't have a Woody implementation
+/// yet.
 void registerCatalogModule(GetIt sl) {
-  final resolver = RepositoryResolver.fromEnvironment(
-    hasSupabase: sl.isRegistered<SupabaseClient>(),
-  );
-
-  // Prefer the woody_backend REST surface when configured; fall back to
-  // Supabase repositories during the migration window. The Woody-backed
-  // repos return the same PostgREST-shaped payloads, so the cache-aside
-  // decorators below see no change in payload shape either.
   final useWoody = AppConfig.hasWoodyApi;
 
   CategoryDataSource buildCategoryDs() =>
       WoodyCategoryRepository(api: sl<WoodyApiClient>());
 
-  SupabaseProductDataSource buildProductDs() =>
+  ProductDataSource buildProductDs() =>
       WoodyProductRepository(api: sl<WoodyApiClient>());
 
-  // --- data sources (Supabase-only — no offline fallback) ------------------
-  // The customer-facing catalog data sources are Supabase-only: production
-  // never boots without `SUPABASE_URL` (see `AppConfig.assertConfigured`),
+  // --- data sources (Woody REST — no offline fallback) ---------------------
+  // The customer-facing catalog data sources are Woody-only: production never
+  // boots without the Woody API base URL (see `AppConfig.assertConfigured`),
   // so a fallback would only mask a misconfigured build.
-  if (sl.isRegistered<SupabaseClient>() || useWoody) {
+  if (useWoody) {
     // Categories + recommended products + banners are wrapped in cache-aside
     // decorators so the home shell hydrates from Hive at 0 ms on every cold
     // start (see CachedCategoryRepository / CachedProductDataSource /
     // CachedBannerRepository for TTLs and the rationale per call). The
-    // underlying Woody (or Supabase) repos still run — the decorator just
+    // underlying Woody repos still run — the decorator just
     // adds a write-through layer + a synchronous peek() entry point.
     sl.registerLazySingleton<CategoryDataSource>(
       () => CachedCategoryRepository(
@@ -81,7 +69,7 @@ void registerCatalogModule(GetIt sl) {
         cache: sl<CacheStore>(),
       ),
     );
-    sl.registerLazySingleton<SupabaseProductDataSource>(
+    sl.registerLazySingleton<ProductDataSource>(
       () => CachedProductDataSource(
         inner: buildProductDs(),
         cache: sl<CacheStore>(),
@@ -102,7 +90,7 @@ void registerCatalogModule(GetIt sl) {
       () => WoodyCustomerReviewsRepository(api: sl<WoodyApiClient>()),
     );
 
-    // NewsDataSource — public broadcast feed; only when Supabase is live.
+    // NewsDataSource — public broadcast feed; only when the Woody API is live.
     sl.registerLazySingleton<NewsDataSource>(
       () => WoodyNewsRepository(
         api: sl<WoodyApiClient>(),
@@ -137,21 +125,15 @@ void registerCatalogModule(GetIt sl) {
     dispose: (c) => c.close(),
   );
 
-  // --- catalog repositories (Supabase or legacy REST) ----------------------
+  // --- catalog repositories (legacy Dio/REST — no Woody impl yet) ----------
   sl.registerLazySingleton<ProductRepository>(
-    () => resolver.resolve<ProductRepository>(
-      remote: () => RemoteProductRepository(sl<Dio>()),
-    ),
+    () => RemoteProductRepository(sl<Dio>()),
   );
   sl.registerLazySingleton<CategoryRepository>(
-    () => resolver.resolve<CategoryRepository>(
-      remote: () => RemoteCategoryRepository(sl<Dio>()),
-    ),
+    () => RemoteCategoryRepository(sl<Dio>()),
   );
   sl.registerLazySingleton<ShopRepository>(
-    () => resolver.resolve<ShopRepository>(
-      remote: () => RemoteShopRepository(sl<Dio>()),
-    ),
+    () => RemoteShopRepository(sl<Dio>()),
   );
   sl.registerLazySingleton<BannerRepository>(
     () => CachedBannerRepository(
@@ -169,14 +151,10 @@ void registerCatalogModule(GetIt sl) {
     () => WoodyFavoritesRepository(api: sl<WoodyApiClient>()),
   );
   sl.registerLazySingleton<RegionRepository>(
-    () => resolver.resolve<RegionRepository>(
-      remote: () => RemoteRegionRepository(sl<Dio>()),
-    ),
+    () => RemoteRegionRepository(sl<Dio>()),
   );
   sl.registerLazySingleton<AddressRepository>(
-    () => resolver.resolve<AddressRepository>(
-      remote: () => RemoteAddressRepository(sl<Dio>()),
-    ),
+    () => RemoteAddressRepository(sl<Dio>()),
   );
   sl.registerLazySingleton<OrderRepository>(
     () => WoodyOrderRepository(sl<WoodyApiClient>()),

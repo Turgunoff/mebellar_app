@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:woody_app/customer/features/categories/bloc/categories_bloc.dart';
 import 'package:woody_app/shared/models/category_model.dart';
-import 'package:woody_app/shared/repositories/supabase_category_repository.dart';
+import 'package:woody_app/shared/repositories/category_data_source.dart';
 
 class _MockCategorySource extends Mock implements CategoryDataSource {}
 

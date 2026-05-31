@@ -5,7 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/analytics/analytics_service.dart';
 import '../../../../shared/models/cart_item_model.dart';
-import '../../../../shared/models/supabase_product_model.dart';
+import '../../../../shared/models/product_model.dart';
 import '../../../../shared/repositories/cart_repository.dart';
 
 // ── Events ─────────────────────────────────────────────────────────────────
@@ -25,7 +25,7 @@ class LoadCart extends CartEvent {
 
 class AddToCart extends CartEvent {
   const AddToCart(this.product, {this.quantity = 1, this.selectedColor});
-  final SupabaseProductModel product;
+  final ProductModel product;
   final int quantity;
 
   /// Canonical colour slug chosen on the product page. Null when the product

@@ -3,14 +3,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:woody_app/customer/features/search/bloc/search_bloc.dart';
-import 'package:woody_app/shared/models/supabase_product_model.dart';
-import 'package:woody_app/shared/repositories/supabase_product_data_source.dart';
+import 'package:woody_app/shared/models/product_model.dart';
+import 'package:woody_app/shared/repositories/product_data_source.dart';
 
-class _MockProductSource extends Mock implements SupabaseProductDataSource {}
+class _MockProductSource extends Mock implements ProductDataSource {}
 
 class _MockBox extends Mock implements Box {}
 
-SupabaseProductModel _sp(String id) => SupabaseProductModel(
+ProductModel _sp(String id) => ProductModel(
       id: id,
       categoryId: 'cat-1',
       name: 'Product $id',

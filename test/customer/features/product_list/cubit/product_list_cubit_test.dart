@@ -3,15 +3,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:woody_app/customer/features/product_list/cubit/product_list_cubit.dart';
 import 'package:woody_app/shared/models/category_model.dart';
-import 'package:woody_app/shared/models/supabase_product_model.dart';
-import 'package:woody_app/shared/repositories/supabase_category_repository.dart';
-import 'package:woody_app/shared/repositories/supabase_product_data_source.dart';
+import 'package:woody_app/shared/models/product_model.dart';
+import 'package:woody_app/shared/repositories/category_data_source.dart';
+import 'package:woody_app/shared/repositories/product_data_source.dart';
 
-class _MockProductSource extends Mock implements SupabaseProductDataSource {}
+class _MockProductSource extends Mock implements ProductDataSource {}
 
 class _MockCategorySource extends Mock implements CategoryDataSource {}
 
-SupabaseProductModel _sp(String id) => SupabaseProductModel(
+ProductModel _sp(String id) => ProductModel(
       id: id,
       categoryId: 'cat-1',
       name: 'Product $id',

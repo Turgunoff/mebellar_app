@@ -41,7 +41,7 @@ class ChatsListState extends Equatable {
   List<Object?> get props => [status, chats, error];
 }
 
-/// Live list of the current user's chats. Subscribes to Supabase Realtime
+/// Live list of the current user's chats. Subscribes to Woody Realtime
 /// so unread counters and `last_message_at` updates land without polling.
 class ChatsListCubit extends Cubit<ChatsListState> {
   ChatsListCubit(this._repo) : super(const ChatsListState()) {

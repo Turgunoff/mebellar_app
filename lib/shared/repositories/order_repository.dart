@@ -42,7 +42,7 @@ abstract class OrderRepository {
 
   /// Stream that yields the latest version of [orderId] when the backend
   /// reports a status change. The mock variant simulates progression every
-  /// few seconds; real impl will subscribe to a Supabase realtime channel.
+  /// few seconds; real impl will subscribe to a Woody realtime channel.
   Stream<Order> watch(String orderId);
 }
 
@@ -83,7 +83,7 @@ class RemoteOrderRepository implements OrderRepository {
 
   @override
   Stream<Order> watch(String orderId) async* {
-    // Backed by Supabase realtime channel in production.
+    // Backed by Woody realtime channel in production.
     return;
   }
 }

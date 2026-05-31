@@ -1,7 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../analytics/analytics_service.dart';
 import '../auth/app_mode_cubit.dart';
@@ -9,11 +8,9 @@ import '../connectivity/connectivity_service.dart';
 import '../connectivity/network_cubit.dart';
 import '../deep_links/deep_link_service.dart';
 import '../network/api_client.dart';
-import '../network/supabase_client.dart';
 import '../network/token_store.dart';
 import '../network/woody_api_client.dart';
 import '../platform/location_facade.dart';
-import '../realtime/realtime_service.dart';
 import '../realtime/woody_realtime_service.dart';
 import '../storage/r2_upload_client.dart';
 import '../storage/app_settings.dart';
@@ -22,11 +19,11 @@ import '../storage/hive_boxes.dart';
 import '../storage/secure_storage.dart';
 import '../theme/theme_cubit.dart';
 
-/// Root-scope bootstrap: Hive boxes, the Supabase client, Dio, and the
+/// Root-scope bootstrap: Hive boxes, the Woody API client, Dio, and the
 /// cross-cutting services that survive every customer<->seller mode switch.
 ///
 /// Must run before [registerAuthModule] / [registerCatalogModule] /
-/// [registerSellerModule] — they all read `SupabaseClient` / `Dio` / boxes
+/// [registerSellerModule] — they all read `WoodyApiClient` / `Dio` / boxes
 /// registered here.
 Future<void> registerCoreModule(GetIt sl) async {
   final boxes = await openCoreBoxes();
@@ -59,10 +56,7 @@ Future<void> registerCoreModule(GetIt sl) async {
   // later module — the cubit captures the closure now, resolves it lazily
   // when a mode change actually happens.
   sl.registerSingleton<AppModeCubit>(
-    AppModeCubit(
-      boxes.settings,
-      analyticsLookup: () => sl<AnalyticsService>(),
-    ),
+    AppModeCubit(boxes.settings, analyticsLookup: () => sl<AnalyticsService>()),
     dispose: (c) => c.close(),
   );
 
@@ -72,10 +66,7 @@ Future<void> registerCoreModule(GetIt sl) async {
   // access/refresh pair in flutter_secure_storage; WoodyApiClient wraps a
   // dedicated Dio with a 401-triggered refresh interceptor. Both are
   // root-scoped so they survive customer<->seller mode swaps.
-  sl.registerSingleton<TokenStore>(
-    TokenStore(),
-    dispose: (s) => s.dispose(),
-  );
+  sl.registerSingleton<TokenStore>(TokenStore(), dispose: (s) => s.dispose());
   sl.registerSingleton<WoodyApiClient>(
     WoodyApiClient(tokens: sl<TokenStore>()),
     dispose: (c) => c.dispose(),
@@ -116,22 +107,9 @@ Future<void> registerCoreModule(GetIt sl) async {
     () => CacheStore(sl<Box>(instanceName: HiveBoxes.cache)),
   );
 
-  final supabase = await initSupabase();
-  if (supabase != null) {
-    sl.registerSingleton<SupabaseClient>(supabase);
-  }
-
   sl.registerLazySingleton<Dio>(
     buildDioClient,
     dispose: (dio) => dio.close(force: true),
-  );
-
-  // ROADMAP B.6 — standardised realtime channel lifecycle. Holds the
-  // (nullable) client so offline builds get an inert, leak-free instance;
-  // `disposeAll` is wired straight into the scope dispose callback.
-  sl.registerSingleton<RealtimeService>(
-    RealtimeService(supabase),
-    dispose: (s) => s.disposeAll(),
   );
 
   // Woody WebSocket realtime (Phase 6). Lazy — only opens when the auth

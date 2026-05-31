@@ -95,7 +95,7 @@ class ProfileOrdersCubit extends Cubit<ProfileOrdersState> {
   }
 
   /// Maps a woody_backend `CustomerOrder` JSON row to the legacy
-  /// Supabase-shaped map the order-history UI consumes: `items`→`order_items`,
+  /// PostgREST-shaped map the order-history UI consumes: `items`→`order_items`,
   /// `product`→`products`. `reviews` is always null because the backend has no
   /// per-item "already reviewed?" view yet — so a delivered order keeps
   /// showing the review CTA, and a re-submit is rejected with 409.

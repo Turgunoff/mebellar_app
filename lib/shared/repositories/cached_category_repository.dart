@@ -1,7 +1,7 @@
 import '../../core/logging/talker.dart';
 import '../../core/storage/cache_store.dart';
 import '../models/category_model.dart';
-import 'supabase_category_repository.dart';
+import 'category_data_source.dart';
 
 /// Cache-aside decorator over a [CategoryDataSource].
 ///

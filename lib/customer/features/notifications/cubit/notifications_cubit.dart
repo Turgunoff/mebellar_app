@@ -7,7 +7,7 @@ import '../../../../core/network/token_store.dart';
 import '../../../../core/realtime/woody_realtime_service.dart';
 import '../../../../shared/models/notification_model.dart';
 import '../../../../shared/repositories/news_repository.dart';
-import '../../../../shared/repositories/supabase_notifications_repository.dart';
+import '../../../../shared/repositories/notifications_data_source.dart';
 
 enum NotificationsStatus { initial, loading, ready, failure }
 

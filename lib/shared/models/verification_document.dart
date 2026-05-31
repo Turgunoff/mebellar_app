@@ -61,7 +61,7 @@ class VerificationDocument extends Equatable {
   /// while upload is in progress.
   final String? localPath;
 
-  /// Remote URL after successful upload to Supabase Storage. Required for
+  /// Remote URL after successful upload to R2 storage. Required for
   /// the submit step.
   final String? remoteUrl;
 

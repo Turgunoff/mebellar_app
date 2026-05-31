@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/auth/auth_repository.dart';
 import '../../../../core/auth/sign_out.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/logging/talker.dart';
+import '../../../../core/network/woody_api_client.dart';
 import '../../../../core/storage/hive_boxes.dart';
 import '../../../../core/storage/secure_storage.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
@@ -113,10 +113,12 @@ Future<void> showSignOutDialog(BuildContext context) async {
 }
 
 /// Account-deletion flow: blocks when active orders exist, otherwise shows a
-/// type-to-confirm dialog and hard-deletes the account.
+/// type-to-confirm dialog and soft-deletes the account via `DELETE /me`.
 Future<void> confirmAccountDeletion(BuildContext context) async {
-  final user = Supabase.instance.client.auth.currentUser;
-  if (user == null) return;
+  if (!sl.isRegistered<AuthRepository>() ||
+      !sl<AuthRepository>().isAuthenticated) {
+    return;
+  }
 
   final s = context.read<ProfileOrdersCubit>().state;
   final activeCount = s.pendingCount + s.processingCount + s.deliveringCount;
@@ -139,8 +141,7 @@ Future<void> confirmAccountDeletion(BuildContext context) async {
       builder: (ctx, setStateDialog) => Dialog(
         backgroundColor: pt.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        insetPadding:
-            const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(28),
           child: Column(
@@ -170,8 +171,11 @@ Future<void> confirmAccountDeletion(BuildContext context) async {
               Text(
                 "Bu amalni bekor qilib bo'lmaydi. Barcha "
                 "ma'lumotlaringiz o'chiriladi.",
-                style:
-                    PremiumTokens.body(size: 13, color: pt.grey, height: 1.45),
+                style: PremiumTokens.body(
+                  size: 13,
+                  color: pt.grey,
+                  height: 1.45,
+                ),
               ),
               const SizedBox(height: 20),
               Text(
@@ -246,15 +250,16 @@ Future<void> confirmAccountDeletion(BuildContext context) async {
                             ? () async {
                                 setStateDialog(() => isLoading = true);
                                 try {
-                                  await Supabase.instance.client.rpc(
-                                    'delete_user_account',
+                                  await sl<WoodyApiClient>().delete<void>(
+                                    '/me',
                                   );
                                   await _clearLocalAfterDelete();
                                   rootNav.pop();
-                                  await Supabase.instance.client.auth
-                                      .signOut();
+                                  await signOutWithPushCleanup(
+                                    sl<AuthRepository>(),
+                                  );
                                   talker.info(
-                                    'Account hard-deleted successfully',
+                                    'Account soft-deleted successfully',
                                   );
                                 } catch (e, st) {
                                   talker.error(
@@ -271,9 +276,7 @@ Future<void> confirmAccountDeletion(BuildContext context) async {
                                           color: Colors.white,
                                         ),
                                       ),
-                                      backgroundColor: const Color(
-                                        0xFFE05A4A,
-                                      ),
+                                      backgroundColor: const Color(0xFFE05A4A),
                                       duration: const Duration(seconds: 4),
                                     ),
                                   );

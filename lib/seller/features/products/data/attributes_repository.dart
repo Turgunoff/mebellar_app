@@ -16,8 +16,8 @@ abstract class AttributesRepository {
   });
 }
 
-/// Pure-Dart merger used by [SupabaseAttributesRepository] and by tests. Kept
-/// as a free function so it can be exercised without a Supabase mock.
+/// Pure-Dart merger used by [WoodyAttributesRepository] and by tests. Kept
+/// as a free function so it can be exercised without a backend mock.
 ///
 /// Merge rules:
 ///   * Category-scoped definitions come first; subcategory-scoped follow.

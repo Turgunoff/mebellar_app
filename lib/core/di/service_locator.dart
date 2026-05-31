@@ -28,7 +28,7 @@ bool _rootInitialised = false;
 
 /// Boots the singletons that survive every mode switch. Each module is
 /// additive and ordered: [registerCoreModule] must run first because the
-/// others read the `SupabaseClient` / `Dio` / Hive boxes it registers.
+/// others read the `WoodyApiClient` / `Dio` / Hive boxes it registers.
 Future<void> initRootScope() async {
   if (_rootInitialised) return;
 
@@ -67,7 +67,7 @@ Future<void> switchAppMode(BuildContext context, AppMode newMode) async {
 /// the active mode scope, and reboot the widget tree.
 ///
 /// "Complete" cleanup — nothing the previous user touched survives:
-///   * Supabase session + FCM token (`signOutWithPushCleanup`).
+///   * Woody session + FCM token (`signOutWithPushCleanup`).
 ///   * Per-user Hive boxes (`cache`, `cart`, `favorites`, `onboardingDraft`,
 ///     `newsReads`, `pendingRoute`) are fully wiped. The `settings` box
 ///     keeps device-wide prefs (theme, language) but drops the two keys

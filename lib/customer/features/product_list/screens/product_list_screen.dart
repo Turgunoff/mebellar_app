@@ -11,7 +11,7 @@ import '../../../../core/i18n/i18n.dart';
 import '../../../../shared/models/category_model.dart';
 import '../../../../shared/models/multilingual_text.dart';
 import '../../../../shared/models/product.dart';
-import '../../../../shared/models/supabase_product_model.dart';
+import '../../../../shared/models/product_model.dart';
 import '../../../features/favorites/bloc/favorites_bloc.dart';
 import '../../../widgets/filter/active_filters_bar.dart';
 import '../../../widgets/filter/filter_button.dart';
@@ -333,7 +333,7 @@ class _SubcategoryChip extends StatelessWidget {
 class _ProductGrid extends StatelessWidget {
   const _ProductGrid({required this.products});
 
-  final List<SupabaseProductModel> products;
+  final List<ProductModel> products;
 
   @override
   Widget build(BuildContext context) {
@@ -353,7 +353,7 @@ class _ProductGrid extends StatelessWidget {
 class _ProductCard extends StatelessWidget {
   const _ProductCard({required this.product});
 
-  final SupabaseProductModel product;
+  final ProductModel product;
 
   static String _formatPrice(double price) {
     final formatted = NumberFormat('#,##0', 'en_US').format(price);
@@ -478,7 +478,7 @@ class _ProductCard extends StatelessWidget {
 class _FavHeart extends StatelessWidget {
   const _FavHeart({required this.product});
 
-  final SupabaseProductModel product;
+  final ProductModel product;
 
   @override
   Widget build(BuildContext context) {
@@ -516,7 +516,7 @@ class _FavHeart extends StatelessWidget {
   }
 }
 
-Product _toProduct(SupabaseProductModel m) => Product(
+Product _toProduct(ProductModel m) => Product(
   id: m.id,
   slug: m.id,
   name: MultilingualText(uz: m.name, ru: m.name, en: m.name),

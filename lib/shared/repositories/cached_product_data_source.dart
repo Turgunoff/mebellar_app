@@ -1,9 +1,9 @@
 import '../../core/logging/talker.dart';
 import '../../core/storage/cache_store.dart';
-import '../models/supabase_product_model.dart';
-import 'supabase_product_data_source.dart';
+import '../models/product_model.dart';
+import 'product_data_source.dart';
 
-/// Cache-aside decorator over a [SupabaseProductDataSource].
+/// Cache-aside decorator over a [ProductDataSource].
 ///
 /// Caches a deliberately narrow set of the read methods — only the calls
 /// where the cache key space is bounded and re-visit probability is high:
@@ -27,17 +27,17 @@ import 'supabase_product_data_source.dart';
 ///
 /// All TTLs are conservative: products are mutable (price, stock, discount,
 /// images), so we cap staleness to a few hours. Sellers see their own
-/// edits immediately because the seller surfaces hit Supabase directly via
+/// edits immediately because the seller surfaces hit the backend directly via
 /// the seller-side product repos — this decorator only wraps the customer
 /// catalogue data source.
-class CachedProductDataSource extends SupabaseProductDataSource {
+class CachedProductDataSource extends ProductDataSource {
   CachedProductDataSource({
-    required SupabaseProductDataSource inner,
+    required ProductDataSource inner,
     required CacheStore cache,
   }) : _inner = inner,
        _cache = cache;
 
-  final SupabaseProductDataSource _inner;
+  final ProductDataSource _inner;
   final CacheStore _cache;
 
   // Key prefixes — namespaced so a future `invalidate('products:')` call
@@ -55,52 +55,52 @@ class CachedProductDataSource extends SupabaseProductDataSource {
   // multi-product page goes stale faster than a single product detail.
   static const Duration _ttlByCategory = Duration(hours: 1);
 
-  SupabaseProductModel? _decodeOne(dynamic decoded) {
+  ProductModel? _decodeOne(dynamic decoded) {
     if (decoded is! Map) return null;
-    return SupabaseProductModel.fromJson(Map<String, dynamic>.from(decoded));
+    return ProductModel.fromJson(Map<String, dynamic>.from(decoded));
   }
 
-  List<SupabaseProductModel> _decodeList(dynamic decoded) {
+  List<ProductModel> _decodeList(dynamic decoded) {
     if (decoded is! List) return const [];
     return decoded
         .whereType<Map>()
-        .map((m) => SupabaseProductModel.fromJson(Map<String, dynamic>.from(m)))
+        .map((m) => ProductModel.fromJson(Map<String, dynamic>.from(m)))
         .toList(growable: false);
   }
 
   @override
-  List<SupabaseProductModel>? peekRecommended() {
+  List<ProductModel>? peekRecommended() {
     // The bloc only ever requests the default limit (10), so we don't bother
     // varying the key by limit — saves duplicating identical pages.
-    return _cache.getJson<List<SupabaseProductModel>>(
+    return _cache.getJson<List<ProductModel>>(
       '${_kRecommended}10',
       _decodeList,
     );
   }
 
   @override
-  SupabaseProductModel? peekById(String id) {
-    return _cache.getJson<SupabaseProductModel?>('$_kById$id', _decodeOne);
+  ProductModel? peekById(String id) {
+    return _cache.getJson<ProductModel?>('$_kById$id', _decodeOne);
   }
 
   @override
-  List<SupabaseProductModel>? peekByCategory(String categoryId) {
-    return _cache.getJson<List<SupabaseProductModel>>(
+  List<ProductModel>? peekByCategory(String categoryId) {
+    return _cache.getJson<List<ProductModel>>(
       '$_kByCategory$categoryId',
       _decodeList,
     );
   }
 
   @override
-  List<SupabaseProductModel>? peekSimilar(String productId, {int limit = 10}) {
-    return _cache.getJson<List<SupabaseProductModel>>(
+  List<ProductModel>? peekSimilar(String productId, {int limit = 10}) {
+    return _cache.getJson<List<ProductModel>>(
       '$_kSimilar$productId:$limit',
       _decodeList,
     );
   }
 
   @override
-  Future<List<SupabaseProductModel>> listAll({int limit = 10}) async {
+  Future<List<ProductModel>> listAll({int limit = 10}) async {
     final key = '$_kRecommended$limit';
     try {
       final fresh = await _inner.listAll(limit: limit);
@@ -111,7 +111,7 @@ class CachedProductDataSource extends SupabaseProductDataSource {
       );
       return fresh;
     } catch (e, st) {
-      final cached = _cache.getJson<List<SupabaseProductModel>>(
+      final cached = _cache.getJson<List<ProductModel>>(
         key,
         _decodeList,
       );
@@ -129,14 +129,14 @@ class CachedProductDataSource extends SupabaseProductDataSource {
   }
 
   @override
-  Future<SupabaseProductModel> getById(String id) async {
+  Future<ProductModel> getById(String id) async {
     final key = '$_kById$id';
     try {
       final fresh = await _inner.getById(id);
       _cache.putJson(key, fresh.toJson(), ttl: _ttlById);
       return fresh;
     } catch (e, st) {
-      final cached = _cache.getJson<SupabaseProductModel?>(key, _decodeOne);
+      final cached = _cache.getJson<ProductModel?>(key, _decodeOne);
       if (cached != null) {
         talker.handle(
           e,
@@ -151,7 +151,7 @@ class CachedProductDataSource extends SupabaseProductDataSource {
   }
 
   @override
-  Future<List<SupabaseProductModel>> listSimilar(
+  Future<List<ProductModel>> listSimilar(
     String productId, {
     int limit = 10,
   }) async {
@@ -165,7 +165,7 @@ class CachedProductDataSource extends SupabaseProductDataSource {
       );
       return fresh;
     } catch (e, st) {
-      final cached = _cache.getJson<List<SupabaseProductModel>>(
+      final cached = _cache.getJson<List<ProductModel>>(
         key,
         _decodeList,
       );
@@ -183,7 +183,7 @@ class CachedProductDataSource extends SupabaseProductDataSource {
   }
 
   @override
-  Future<List<SupabaseProductModel>> listByCategory({
+  Future<List<ProductModel>> listByCategory({
     required String categoryId,
     String? subcategoryId,
     ProductSearchFilter filter = const ProductSearchFilter(),
@@ -215,7 +215,7 @@ class CachedProductDataSource extends SupabaseProductDataSource {
       );
       return fresh;
     } catch (e, st) {
-      final cached = _cache.getJson<List<SupabaseProductModel>>(
+      final cached = _cache.getJson<List<ProductModel>>(
         key,
         _decodeList,
       );
@@ -233,12 +233,12 @@ class CachedProductDataSource extends SupabaseProductDataSource {
   }
 
   @override
-  Future<List<SupabaseProductModel>> listBySubcategory({
+  Future<List<ProductModel>> listBySubcategory({
     required String subcategoryId,
   }) => _inner.listBySubcategory(subcategoryId: subcategoryId);
 
   @override
-  Future<List<SupabaseProductModel>> search(
+  Future<List<ProductModel>> search(
     String query, {
     ProductSearchFilter filter = const ProductSearchFilter(),
     int limit = 30,

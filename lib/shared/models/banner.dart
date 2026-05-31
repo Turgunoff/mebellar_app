@@ -32,11 +32,11 @@ class HomeBanner extends Equatable {
     );
   }
 
-  /// Maps a flat Supabase row (plain text columns) to [HomeBanner].
+  /// Maps a flat backend row (plain text columns) to [HomeBanner].
   /// Both [title] and [subtitle] are stored as single-language strings
   /// in the DB; they are broadcast to all locales so the app renders them
   /// regardless of the user's chosen language.
-  factory HomeBanner.fromSupabaseJson(Map<String, dynamic> json) {
+  factory HomeBanner.fromFlatJson(Map<String, dynamic> json) {
     final title = json['title'] as String?;
     final subtitle = json['subtitle'] as String?;
     return HomeBanner(

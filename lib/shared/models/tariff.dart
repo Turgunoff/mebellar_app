@@ -149,7 +149,7 @@ class SubscriptionPlan extends Equatable {
     );
   }
 
-  /// JSONB columns arrive as `List<dynamic>` from supabase-flutter (already
+  /// JSONB columns arrive as `List<dynamic>` from the backend (already
   /// decoded). Be defensive against null and non-string entries.
   static List<String> _stringList(Object? raw) {
     if (raw is List) {

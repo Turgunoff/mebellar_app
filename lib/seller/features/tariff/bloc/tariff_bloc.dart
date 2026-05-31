@@ -57,7 +57,7 @@ class TariffState extends Equatable {
   final List<TariffSubscription> history;
 
   /// Server-driven plan catalog. Iterated by the tariff screen so prices,
-  /// limits, features and the recommended ribbon all come from Supabase.
+  /// limits, features and the recommended ribbon all come from the backend.
   final List<SubscriptionPlan> plans;
 
   final BillingPeriod period;

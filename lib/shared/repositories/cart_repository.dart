@@ -3,13 +3,13 @@ import 'package:dio/dio.dart';
 import '../models/cart.dart';
 import '../models/cart_item.dart';
 import '../models/cart_item_model.dart';
-import '../models/supabase_product_model.dart';
+import '../models/product_model.dart';
 
 /// Cart storage contract.
 ///
 /// Two complementary APIs live here so the Sprint 4 checkout flow (which
 /// works on the rich [Cart]/[CartItem] graph including shop info) and the
-/// Sprint-12 Hive+Supabase hybrid cart (which works on flat
+/// Sprint-12 Hive+backend hybrid cart (which works on flat
 /// [CartItemModel] snapshots) share one repository slot.
 ///
 /// New code should prefer the snapshot API (`watchItems`, `addProduct`,
@@ -27,11 +27,11 @@ abstract class CartRepository {
   Future<Cart> removeItem(String itemId);
   Future<Cart> clear();
 
-  // ── Snapshot API — used by the new CartBloc / hybrid (Hive + Supabase).
+  // ── Snapshot API — used by the new CartBloc / hybrid (Hive + backend).
   //
   // Default implementations route to the legacy API so older repositories
   // (Mock, Remote) keep working without forced overrides. The new
-  // Hive/Supabase/Hybrid repositories override these to operate on the
+  // Hive/backend/Hybrid repositories override these to operate on the
   // snapshot rows directly.
 
   Stream<List<CartItemModel>> watchItems() =>
@@ -42,7 +42,7 @@ abstract class CartRepository {
   Future<List<CartItemModel>> fetchItems() async => const [];
 
   Future<void> addProduct(
-    SupabaseProductModel product, {
+    ProductModel product, {
     int quantity = 1,
     String? selectedColor,
   }) async {
@@ -116,7 +116,7 @@ class RemoteCartRepository implements CartRepository {
 
   // Snapshot API stubs — the legacy remote backend doesn't expose a
   // snapshot view. New CartBloc deployments use the Hybrid repository
-  // instead, so these only matter if useMocks=false AND Supabase is unset
+  // instead, so these only matter if useMocks=false AND the backend is unset
   // (currently impossible in production).
 
   @override
@@ -131,7 +131,7 @@ class RemoteCartRepository implements CartRepository {
 
   @override
   Future<void> addProduct(
-    SupabaseProductModel product, {
+    ProductModel product, {
     int quantity = 1,
     String? selectedColor,
   }) async {

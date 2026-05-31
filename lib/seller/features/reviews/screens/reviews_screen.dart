@@ -863,7 +863,7 @@ class _NoBackendState extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              "Bu qurilmada Supabase ulanmagan.",
+              "Bu qurilmada server aloqasi yo'q.",
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: AppFonts.seller,

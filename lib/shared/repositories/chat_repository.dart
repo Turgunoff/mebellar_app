@@ -6,7 +6,7 @@ import '../models/chat.dart';
 import '../models/chat_message.dart';
 
 /// Repository abstraction so screens and blocs can be exercised against a
-/// mock without depending on a live Supabase. Two-sided: the same calls
+/// mock without depending on a live backend. Two-sided: the same calls
 /// serve customer and seller surfaces; the active role is supplied where
 /// the wire format actually needs it (e.g. `sender_role` on insert).
 abstract class ChatRepository {
@@ -55,7 +55,7 @@ abstract class ChatRepository {
   Future<void> markAsRead(String chatId);
 
   /// Live stream of *new* messages on the thread. Emits when another
-  /// row lands in `chat_messages` for [chatId] via Supabase Realtime.
+  /// row lands in `chat_messages` for [chatId] via Woody Realtime.
   Stream<ChatMessage> messagesStream(String chatId);
 
   /// Live stream of the current user's chats — emits the full list
@@ -64,8 +64,8 @@ abstract class ChatRepository {
   Stream<List<Chat>> myChatsStream();
 }
 
-/// In-memory fallback used by integration tests and the no-Supabase
-/// developer build. Models exactly what the Supabase implementation
+/// In-memory fallback used by integration tests and the offline
+/// developer build. Models exactly what the live implementation
 /// does so blocs/UI work the same against either.
 class MockChatRepository implements ChatRepository {
   MockChatRepository();

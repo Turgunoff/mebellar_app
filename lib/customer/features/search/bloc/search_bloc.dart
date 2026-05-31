@@ -6,8 +6,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../../../core/analytics/analytics_service.dart';
-import '../../../../shared/models/supabase_product_model.dart';
-import '../../../../shared/repositories/supabase_product_data_source.dart';
+import '../../../../shared/models/product_model.dart';
+import '../../../../shared/repositories/product_data_source.dart';
 
 sealed class SearchEvent extends Equatable {
   const SearchEvent();
@@ -58,7 +58,7 @@ class SearchState extends Equatable {
   final SearchStatus status;
   final String query;
   final ProductSearchFilter filter;
-  final List<SupabaseProductModel> results;
+  final List<ProductModel> results;
   final List<String> recent;
   final String? error;
 
@@ -71,7 +71,7 @@ class SearchState extends Equatable {
     SearchStatus? status,
     String? query,
     ProductSearchFilter? filter,
-    List<SupabaseProductModel>? results,
+    List<ProductModel>? results,
     List<String>? recent,
     String? error,
     bool clearError = false,
@@ -92,7 +92,7 @@ class SearchState extends Equatable {
 
 class SearchBloc extends Bloc<SearchEvent, SearchState> {
   SearchBloc({
-    required SupabaseProductDataSource source,
+    required ProductDataSource source,
     required Box cacheBox,
     AnalyticsService? analytics,
   })  : _source = source,
@@ -111,7 +111,7 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
   static const _maxRecent = 10;
   static const _debounceDuration = Duration(milliseconds: 300);
 
-  final SupabaseProductDataSource _source;
+  final ProductDataSource _source;
   final Box _cache;
 
   static List<String> _readRecent(Box box) {
@@ -124,7 +124,7 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
 
   /// ROADMAP B.7 — debounce + `restartable`. The debounce drops keystrokes
   /// (and rapid filter toggles) that arrive within `_debounceDuration` of
-  /// each other so we don't fire a Supabase request per change; `restartable`
+  /// each other so we don't fire a backend request per change; `restartable`
   /// cancels any still-in-flight search when a newer one settles, so a slow
   /// request can't land stale results over fresher input.
   EventTransformer<E> _debounce<E>() {

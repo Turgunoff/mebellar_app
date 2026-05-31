@@ -10,7 +10,7 @@ import '../../../../core/i18n/i18n.dart';
 import '../../../../shared/models/banner.dart';
 import '../../../../shared/models/multilingual_text.dart';
 import '../../../../shared/models/product.dart';
-import '../../../../shared/models/supabase_product_model.dart';
+import '../../../../shared/models/product_model.dart';
 import '../../../customer_app.dart';
 import '../../../widgets/glass_bottom_nav.dart';
 import '../../categories/bloc/categories_bloc.dart';
@@ -604,7 +604,7 @@ class _RecommendedGrid extends StatelessWidget {
     return '$formatted UZS';
   }
 
-  static Product _toProduct(SupabaseProductModel m) => Product(
+  static Product _toProduct(ProductModel m) => Product(
     id: m.id,
     slug: m.id,
     name: MultilingualText(uz: m.name, ru: m.name, en: m.name),

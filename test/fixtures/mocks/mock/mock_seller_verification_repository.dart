@@ -24,7 +24,7 @@ class MockSellerVerificationRepository
   Stream<List<VerificationDocument>> watchDocuments() =>
       MockSellerState.instance.documentsStream;
 
-  /// Pretend to upload to Supabase Storage. We persist the local file path
+  /// Pretend to upload to R2 storage. We persist the local file path
   /// as the synthetic `remoteUrl` so the verification screen can preview the
   /// image without ever touching the network.
   @override

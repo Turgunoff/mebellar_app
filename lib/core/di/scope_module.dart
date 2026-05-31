@@ -1,10 +1,10 @@
 import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../analytics/analytics_service.dart';
 import '../auth/auth_repository.dart';
 import '../network/woody_api_client.dart';
+import '../realtime/woody_realtime_service.dart';
 import '../../customer/features/cart/bloc/cart_bloc.dart';
 import '../../customer/features/categories/bloc/categories_bloc.dart';
 import '../../customer/features/favorites/bloc/favorites_bloc.dart';
@@ -24,8 +24,8 @@ import '../../shared/repositories/cart_repository.dart';
 import '../../shared/repositories/favorites_repository.dart';
 import '../../shared/repositories/seller_dashboard_repository.dart';
 import '../../shared/repositories/seller_reviews_repository.dart';
-import '../../shared/repositories/supabase_category_repository.dart';
-import '../../shared/repositories/supabase_product_data_source.dart';
+import '../../shared/repositories/category_data_source.dart';
+import '../../shared/repositories/product_data_source.dart';
 import '../connectivity/network_cubit.dart';
 import '../storage/hive_boxes.dart';
 
@@ -34,14 +34,16 @@ void registerCustomerScope(GetIt sl) {
   sl.registerLazySingleton<HomeBloc>(
     () => HomeBloc(
       bannerRepo: sl<BannerRepository>(),
-      productSource: sl<SupabaseProductDataSource>(),
+      productSource: sl<ProductDataSource>(),
       networkCubit: sl<NetworkCubit>(),
     )..add(const HomeRequested()),
     dispose: (bloc) => bloc.close(),
   );
   sl.registerLazySingleton<OrderTrackingService>(
     () => OrderTrackingService(
-      sl.isRegistered<SupabaseClient>() ? sl<SupabaseClient>() : null,
+      sl.isRegistered<WoodyRealtimeService>()
+          ? sl<WoodyRealtimeService>()
+          : null,
     ),
     dispose: (svc) => svc.dispose(),
   );
@@ -89,7 +91,9 @@ void registerSellerScope(GetIt sl) {
   );
   sl.registerLazySingleton<NewOrdersListener>(
     () => NewOrdersListener(
-      sl.isRegistered<SupabaseClient>() ? sl<SupabaseClient>() : null,
+      sl.isRegistered<WoodyRealtimeService>()
+          ? sl<WoodyRealtimeService>()
+          : null,
     ),
     dispose: (svc) => svc.dispose(),
   );
@@ -107,7 +111,11 @@ void registerSellerScope(GetIt sl) {
     ),
   );
   sl.registerFactory<SellerProfileCubit>(
-    () => SellerProfileCubit(sl<SupabaseClient>(), sl<SellerIdentityCache>()),
+    () => SellerProfileCubit(
+      sl<WoodyApiClient>(),
+      sl<AuthRepository>(),
+      sl<SellerIdentityCache>(),
+    ),
   );
   if (sl.isRegistered<SellerReviewsRepository>()) {
     sl.registerFactory<ReviewsCubit>(

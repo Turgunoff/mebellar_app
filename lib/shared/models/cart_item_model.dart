@@ -1,9 +1,9 @@
 import 'package:equatable/equatable.dart';
 
-import 'supabase_product_model.dart';
+import 'product_model.dart';
 
 /// Storage-shape model for cart rows. Mirrors the `public.cart_items` table
-/// in Supabase 1:1 — the JSON it serialises to is also the JSON the Hive box
+/// in the backend 1:1 — the JSON it serialises to is also the JSON the Hive box
 /// holds for guest users, so the same encode/decode path serves both
 /// authenticated and guest sessions.
 ///
@@ -71,11 +71,11 @@ class CartItemModel extends Equatable {
     );
   }
 
-  /// Build a snapshot from a [SupabaseProductModel]. The local id is the
+  /// Build a snapshot from a [ProductModel]. The local id is the
   /// product id — Hive-only sessions don't need server-issued uuids and
   /// authenticated rows replace it with the server uuid on first load.
   factory CartItemModel.fromProduct(
-    SupabaseProductModel product, {
+    ProductModel product, {
     int quantity = 1,
     String? id,
     String? selectedColor,
@@ -94,7 +94,7 @@ class CartItemModel extends Equatable {
     );
   }
 
-  /// Decode a Supabase row. Both the `cart_items` row layout and the
+  /// Decode a backend row. Both the `cart_items` row layout and the
   /// `product_snapshot` JSONB are accepted here so a single helper covers
   /// remote rows and Hive payloads.
   factory CartItemModel.fromJson(Map<String, dynamic> json) {
@@ -128,7 +128,7 @@ class CartItemModel extends Equatable {
   }
 
   /// Hive-friendly JSON. The same structure is used as the `product_snapshot`
-  /// JSONB column in Supabase so Hive→Supabase sync is a straight upsert.
+  /// JSONB column in the backend so Hive→backend sync is a straight upsert.
   Map<String, dynamic> toSnapshotJson() => <String, dynamic>{
     'id': productId,
     'name': productName,

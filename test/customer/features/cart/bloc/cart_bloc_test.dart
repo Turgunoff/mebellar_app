@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:woody_app/customer/features/cart/bloc/cart_bloc.dart';
 import '../../../../fixtures/mocks/mock/mock_cart_repository.dart';
 import '../../../../fixtures/mocks/mock/mock_data.dart';
-import 'package:woody_app/shared/models/supabase_product_model.dart';
+import 'package:woody_app/shared/models/product_model.dart';
 
 /// Minimal smoke tests for the Sprint 12 cart bloc. Multi-shop grouping has
 /// moved to the legacy CheckoutBloc — the new bloc operates on snapshot
@@ -11,7 +11,7 @@ import 'package:woody_app/shared/models/supabase_product_model.dart';
 void main() {
   group('CartBloc (mock repository)', () {
     final firstProduct = MockData.products.first;
-    final firstSnapshot = SupabaseProductModel(
+    final firstSnapshot = ProductModel(
       id: firstProduct.id,
       categoryId: firstProduct.categorySlug ?? '',
       name: firstProduct.name.get('uz'),

@@ -12,9 +12,9 @@ import '../../../../core/storage/hive_boxes.dart';
 import '../../../../shared/models/category_model.dart';
 import '../../../../shared/models/multilingual_text.dart';
 import '../../../../shared/models/product.dart';
-import '../../../../shared/models/supabase_product_model.dart';
-import '../../../../shared/repositories/supabase_category_repository.dart';
-import '../../../../shared/repositories/supabase_product_data_source.dart';
+import '../../../../shared/models/product_model.dart';
+import '../../../../shared/repositories/category_data_source.dart';
+import '../../../../shared/repositories/product_data_source.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/error_state.dart';
 import '../../../widgets/filter/active_filters_bar.dart';
@@ -32,7 +32,7 @@ class SearchScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => SearchBloc(
-        source: sl<SupabaseProductDataSource>(),
+        source: sl<ProductDataSource>(),
         cacheBox: sl<Box>(instanceName: HiveBoxes.cache),
         analytics: sl<AnalyticsService>(),
       ),
@@ -413,7 +413,7 @@ class _Body extends StatelessWidget {
   final SearchState state;
   final ValueChanged<String> onRecentTap;
   final VoidCallback onClearRecent;
-  final ValueChanged<SupabaseProductModel> onProductTap;
+  final ValueChanged<ProductModel> onProductTap;
   final VoidCallback onRetry;
   final VoidCallback onOpenFilter;
 
@@ -860,15 +860,15 @@ class _NoResultsView extends StatelessWidget {
 class _ResultsGrid extends StatelessWidget {
   const _ResultsGrid({required this.results, required this.onItemTap});
 
-  final List<SupabaseProductModel> results;
-  final ValueChanged<SupabaseProductModel> onItemTap;
+  final List<ProductModel> results;
+  final ValueChanged<ProductModel> onItemTap;
 
   static String _formatPrice(double price) {
     final formatted = NumberFormat('#,##0', 'en_US').format(price);
     return '$formatted UZS';
   }
 
-  static Product _toProduct(SupabaseProductModel m) => Product(
+  static Product _toProduct(ProductModel m) => Product(
         id: m.id,
         slug: m.id,
         name: MultilingualText(uz: m.name, ru: m.name, en: m.name),

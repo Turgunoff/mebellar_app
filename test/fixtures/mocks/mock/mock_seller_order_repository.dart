@@ -30,7 +30,7 @@ class MockSellerOrderRepository implements SellerOrderRepository {
   final _newOrders = StreamController<Order>.broadcast();
   // Mock has no real realtime UPDATE channel — transitions are emitted
   // here so the orders list bloc behaves the same against the mock as it
-  // does against Supabase (the live impl emits on every server UPDATE).
+  // does against the backend (the live impl emits on every server UPDATE).
   final _orderUpdates = StreamController<Order>.broadcast();
   Timer? _timer;
   int _idCounter = 1100;

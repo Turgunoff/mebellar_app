@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import '../../core/error/failure.dart';
 import '../../core/result/result.dart';
 import '../models/verification_document.dart';
 import '../models/verification_status.dart';
@@ -28,42 +27,4 @@ abstract class SellerVerificationRepository {
   Future<Result<VerificationStatus>> submit();
 
   Stream<VerificationStatus> watchStatus();
-}
-
-/// Legacy Dio stub — unused now that verification is Woody-backed
-/// (`WoodySellerVerificationRepository`). Retained only so the
-/// `RepositoryResolver` remote branch type-checks; every call returns an [Err].
-class RemoteSellerVerificationRepository
-    implements SellerVerificationRepository {
-  RemoteSellerVerificationRepository(this._dio);
-
-  // ignore: unused_field — superseded by the Supabase implementation.
-  final Object? _dio;
-
-  static const Failure _unavailable = UnknownFailure(
-    message: 'Remote verification — use the Supabase repository',
-  );
-
-  @override
-  List<VerificationDocument> get documents => const [];
-
-  @override
-  Stream<List<VerificationDocument>> watchDocuments() => const Stream.empty();
-
-  @override
-  Future<Result<VerificationDocument>> uploadDocument({
-    required VerificationDocumentType type,
-    required File file,
-    required String fileExtension,
-  }) async => const Err(_unavailable);
-
-  @override
-  Future<Result<void>> removeDocument(VerificationDocumentType type) async =>
-      const Err(_unavailable);
-
-  @override
-  Future<Result<VerificationStatus>> submit() async => const Err(_unavailable);
-
-  @override
-  Stream<VerificationStatus> watchStatus() => const Stream.empty();
 }

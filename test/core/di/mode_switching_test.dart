@@ -22,7 +22,7 @@ void main() {
     final sl = GetIt.instance;
     await sl.reset();
 
-    // Mimic initRootScope without going through Supabase (no creds in tests).
+    // Mimic initRootScope without going through the backend (no creds in tests).
     final settings = await Hive.openBox(HiveBoxes.settings);
     final cache = await Hive.openBox(HiveBoxes.cache);
     final pendingRoute = await Hive.openBox(HiveBoxes.pendingRoute);

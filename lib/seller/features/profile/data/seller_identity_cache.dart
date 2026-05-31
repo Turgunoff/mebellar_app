@@ -72,7 +72,7 @@ class SellerIdentitySnapshot {
 /// Hive-backed cache for [SellerIdentitySnapshot]. Both the profile screen
 /// and the dashboard greeting hydrate from this on cold start, then refresh
 /// in the background — the user sees their shop name/avatar at 0 ms instead
-/// of waiting for Supabase RTTs.
+/// of waiting for backend RTTs.
 ///
 /// Writes are partial-friendly: a caller that only knows the greeting
 /// fields (dashboard) merges into the existing snapshot rather than wiping

@@ -137,7 +137,7 @@ class _FavoriteProductTile extends StatelessWidget {
     final lang = context.locale.languageCode;
     final shopName = product.shop?.name.get(lang) ?? '';
     // `Product.oldPrice` carries the original price when the snapshot was
-    // taken for a discounted product (see the SupabaseProductModel→Product
+    // taken for a discounted product (see the ProductModel→Product
     // conversions); `isOnSale` is true exactly when a real discount applies.
     final onSale = product.isOnSale;
     final percent = onSale

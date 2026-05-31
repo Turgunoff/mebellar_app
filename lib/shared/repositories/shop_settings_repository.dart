@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import '../../core/error/failure.dart';
 import '../../core/result/result.dart';
 import '../models/shop_settings.dart';
 
@@ -17,35 +16,4 @@ abstract class ShopSettingsRepository {
     required File file,
     required String fileExtension,
   });
-}
-
-/// Legacy Dio stub — unused now that shop settings are Woody-backed
-/// (`WoodyShopSettingsRepository`). Retained only so the `RepositoryResolver`
-/// remote branch type-checks; every call returns an [Err].
-class RemoteShopSettingsRepository implements ShopSettingsRepository {
-  RemoteShopSettingsRepository(this._dio);
-
-  // ignore: unused_field — superseded by the Supabase implementation.
-  final Object? _dio;
-
-  static const Failure _unavailable = UnknownFailure(
-    message: 'Remote shop settings — use the Supabase repository',
-  );
-
-  @override
-  Stream<ShopSettings> watch() => const Stream.empty();
-
-  @override
-  Future<Result<ShopSettings>> get() async => const Err(_unavailable);
-
-  @override
-  Future<Result<ShopSettings>> save(ShopSettings settings) async =>
-      const Err(_unavailable);
-
-  @override
-  Future<Result<String>> uploadAsset({
-    required String kind,
-    required File file,
-    required String fileExtension,
-  }) async => const Err(_unavailable);
 }

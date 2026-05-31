@@ -5,7 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/connectivity/network_cubit.dart';
 import '../../../../shared/models/category_model.dart';
-import '../../../../shared/repositories/supabase_category_repository.dart';
+import '../../../../shared/repositories/category_data_source.dart';
 
 sealed class CategoriesEvent extends Equatable {
   const CategoriesEvent();

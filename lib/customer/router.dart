@@ -6,12 +6,12 @@ import 'package:talker_flutter/talker_flutter.dart';
 
 import '../config/app_mode.dart';
 import '../core/di/service_locator.dart';
-import '../shared/models/supabase_product_model.dart';
+import '../shared/models/product_model.dart';
 import '../shared/chat/screens/chat_thread_screen.dart';
 import '../shared/chat/screens/chats_list_screen.dart';
 import '../shared/models/chat.dart';
-import '../shared/repositories/supabase_category_repository.dart';
-import '../shared/repositories/supabase_product_data_source.dart';
+import '../shared/repositories/category_data_source.dart';
+import '../shared/repositories/product_data_source.dart';
 import '../core/logging/console_nav_observer.dart';
 import '../core/logging/talker.dart';
 import '../shared/models/cart_item_model.dart';
@@ -25,7 +25,7 @@ import 'features/catalog/screens/catalog_screen.dart';
 import 'features/categories/screens/categories_screen.dart';
 import 'features/product_list/cubit/product_list_cubit.dart';
 import 'features/product_list/screens/product_list_screen.dart';
-import 'features/product_list/screens/supabase_product_detail_screen.dart';
+import 'features/product_list/screens/catalog_product_detail_screen.dart';
 import 'features/checkout/screens/checkout_screen.dart';
 import 'features/favorites/screens/favorites_screen.dart';
 import 'features/orders/screens/order_detail_screen.dart';
@@ -93,7 +93,7 @@ GoRouter buildCustomerRouter() {
               state.uri.queryParameters['categoryName'] ?? 'Products';
           return BlocProvider(
             create: (_) => ProductListCubit(
-              sl<SupabaseProductDataSource>(),
+              sl<ProductDataSource>(),
               sl<CategoryDataSource>(),
             )..load(categoryId: categoryId, subcategoryId: subcategoryId),
             child: ProductListScreen(
@@ -107,9 +107,9 @@ GoRouter buildCustomerRouter() {
       GoRoute(
         path: '/product-detail/:id',
         builder: (context, state) {
-          final product = state.extra as SupabaseProductModel?;
+          final product = state.extra as ProductModel?;
           if (product != null) {
-            return SupabaseProductDetailScreen(product: product);
+            return CatalogProductDetailScreen(product: product);
           }
           return _ProductDetailLoader(id: state.pathParameters['id']!);
         },
@@ -248,7 +248,7 @@ class _ProductDetailLoader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final source = sl<SupabaseProductDataSource>();
+    final source = sl<ProductDataSource>();
     // Peek the cache synchronously so a previously-viewed product paints
     // instantly on a re-visit (favourites → detail, cart → detail, deep-link
     // back into a recently-seen item). The network fetch still runs to
@@ -256,12 +256,12 @@ class _ProductDetailLoader extends StatelessWidget {
     // resolved future means the screen never flashes a spinner when the
     // cache hits.
     final cached = source.peekById(id);
-    return FutureBuilder<SupabaseProductModel>(
+    return FutureBuilder<ProductModel>(
       future: source.getById(id),
       initialData: cached,
       builder: (context, snap) {
         if (snap.hasData) {
-          return SupabaseProductDetailScreen(product: snap.data!);
+          return CatalogProductDetailScreen(product: snap.data!);
         }
         if (snap.hasError) {
           return Scaffold(

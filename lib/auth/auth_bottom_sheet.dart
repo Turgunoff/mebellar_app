@@ -13,7 +13,7 @@ import 'sheets/profile_step.dart';
 ///
 /// Resolves to `true` when the user completed sign-in (and any first-time
 /// profile capture for new users); `false` if the sheet was dismissed before
-/// authentication finished. Supabase's auth state stream is the source of
+/// authentication finished. The Woody auth state stream is the source of
 /// truth for session — callers typically just rebuild on the stream and use
 /// the boolean only to decide post-success navigation.
 ///

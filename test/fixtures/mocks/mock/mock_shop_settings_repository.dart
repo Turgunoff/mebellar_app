@@ -41,7 +41,7 @@ class MockShopSettingsRepository implements ShopSettingsRepository {
     required String fileExtension,
   }) async {
     await Future<void>.delayed(_uploadDelay);
-    // Pretend the asset is hosted on Supabase Storage.
+    // Pretend the asset is hosted on R2 storage.
     return Ok(
       'shops/${_current.id}/$kind-'
       '${clock.now().millisecondsSinceEpoch}.$fileExtension',

@@ -9,7 +9,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../../shared/models/product.dart';
-import '../../../../shared/models/supabase_product_model.dart';
+import '../../../../shared/models/product_model.dart';
 import '../../../../shared/repositories/product_repository.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/error_state.dart';
@@ -170,7 +170,7 @@ class _DetailBody extends StatelessWidget {
 
   void _addToCart(BuildContext context, {bool buyNow = false}) {
     context.read<CartBloc>().add(
-          AddToCart(_toSupabaseModel(product), quantity: quantity),
+          AddToCart(_toProductModel(product), quantity: quantity),
         );
     final messenger = ScaffoldMessenger.of(context);
     messenger.hideCurrentSnackBar();
@@ -439,11 +439,11 @@ class _DetailBody extends StatelessWidget {
 }
 
 /// Bridge the legacy [Product] graph (multilingual, with shop) into the
-/// snapshot-friendly [SupabaseProductModel] used by the new cart pipeline.
+/// snapshot-friendly [ProductModel] used by the new cart pipeline.
 /// Multilingual fields collapse to the Uzbek string since the snapshot is
 /// only used for cart-row display.
-SupabaseProductModel _toSupabaseModel(Product p) {
-  return SupabaseProductModel(
+ProductModel _toProductModel(Product p) {
+  return ProductModel(
     id: p.id,
     categoryId: p.categorySlug ?? '',
     shopId: p.shop?.id,

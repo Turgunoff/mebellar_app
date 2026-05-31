@@ -35,9 +35,6 @@ dependencies:
   # WebSocket client for the Woody realtime fan-out (`wss://api.woody.uz/api/v1/realtime/ws`).
   web_socket_channel: ^3.0.1
 
-  # Backend
-  supabase_flutter: ^2.8.0
-
   # Push notifications — FCM topic-based broadcasts + per-token personal
   # pushes. The device subscribes to the `news` topic on launch and saves
   # its FCM token to `device_tokens` after sign-in so the backend can fan

@@ -39,7 +39,7 @@ Future<void> main() async {
     () async {
       WidgetsFlutterBinding.ensureInitialized();
 
-      // Fail fast: a build launched with no env file has empty Supabase /
+      // Fail fast: a build launched with no env file has empty Woody /
       // Yandex credentials — abort here, loudly, rather than silently
       // running blank.
       AppConfig.assertConfigured();
@@ -206,7 +206,7 @@ void _wirePushToInboxRefresh() {
 ///   * a successful sign-in (or a restored session at cold start) saves the
 ///     current FCM token under the user's id, and
 ///   * a sign-out tear-down is handled separately by `performLogout`, which
-///     calls `removeCurrentToken()` *before* clearing the Supabase session
+///     calls `removeCurrentToken()` *before* clearing the Woody session
 ///     (RLS would deny the delete after sign-out).
 ///
 /// Listener fires once per state change after registration; we also push

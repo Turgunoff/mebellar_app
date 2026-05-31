@@ -2,9 +2,9 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../shared/models/category_model.dart';
-import '../../../../shared/models/supabase_product_model.dart';
-import '../../../../shared/repositories/supabase_category_repository.dart';
-import '../../../../shared/repositories/supabase_product_data_source.dart';
+import '../../../../shared/models/product_model.dart';
+import '../../../../shared/repositories/category_data_source.dart';
+import '../../../../shared/repositories/product_data_source.dart';
 
 enum ProductListStatus { initial, loading, loaded, failure }
 
@@ -19,7 +19,7 @@ class ProductListState extends Equatable {
   });
 
   final ProductListStatus status;
-  final List<SupabaseProductModel> products;
+  final List<ProductModel> products;
 
   /// Sibling subcategories under the current category. Empty when the
   /// category has none — the screen hides its chip bar in that case.
@@ -38,7 +38,7 @@ class ProductListState extends Equatable {
 
   ProductListState copyWith({
     ProductListStatus? status,
-    List<SupabaseProductModel>? products,
+    List<ProductModel>? products,
     List<SubcategoryModel>? subcategories,
     String? selectedSubcategoryId,
     ProductSearchFilter? filter,
@@ -73,7 +73,7 @@ class ProductListCubit extends Cubit<ProductListState> {
   ProductListCubit(this._productSource, this._categorySource)
     : super(const ProductListState());
 
-  final SupabaseProductDataSource _productSource;
+  final ProductDataSource _productSource;
   final CategoryDataSource _categorySource;
 
   String _categoryId = '';
@@ -132,7 +132,7 @@ class ProductListCubit extends Cubit<ProductListState> {
         ),
         _categorySource.list(),
       ]);
-      final products = results[0] as List<SupabaseProductModel>;
+      final products = results[0] as List<ProductModel>;
       final categories = results[1] as List<CategoryModel>;
       // Locate the current category's subcategories without throwing when
       // it isn't found — defensive against a stale categoryId from a deep

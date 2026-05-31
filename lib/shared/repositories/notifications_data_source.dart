@@ -73,7 +73,7 @@ class WoodyNotificationDataSource implements NotificationDataSource {
   }
 }
 
-/// Fallback when there's no Supabase session (guest browsing) or in tests.
+/// Fallback when there's no Woody session (guest browsing) or in tests.
 /// Returns a small canned inbox so the UI still renders something readable
 /// instead of an awkward empty state.
 class MockNotificationDataSource implements NotificationDataSource {

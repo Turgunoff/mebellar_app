@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:woody_app/customer/features/notifications/cubit/notifications_cubit.dart';
 import 'package:woody_app/shared/models/notification_model.dart';
-import 'package:woody_app/shared/repositories/supabase_notifications_repository.dart';
+import 'package:woody_app/shared/repositories/notifications_data_source.dart';
 
 class _MockNotificationsRepo extends Mock implements NotificationDataSource {}
 

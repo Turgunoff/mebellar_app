@@ -24,13 +24,13 @@ import 'package:woody_app/shared/repositories/tariff_repository.dart';
 /// Each `*Contract(label, build)` function is a behaviour suite that *every*
 /// implementation of the interface must satisfy. It is parameterised over a
 /// `build` factory so the same assertions run against the mock today and
-/// against `Supabase*Repository(fakeClient)` once a fake-Supabase harness
+/// against a real `…Repository(fakeClient)` once a fake-backend harness
 /// exists — that is what prevents "mock drift" (BUGS_AND_ISSUES.md §5.3).
 ///
-/// Only the mock implementations are wired in `main()`: the Supabase ones
+/// Only the mock implementations are wired in `main()`: the live ones
 /// need a live/fake Postgres backend, which is out of scope for a pure unit
 /// test. The contract functions are written backend-agnostic so adding
-/// `…Contract('supabase', () => SupabaseXRepository(fakeClient))` is a
+/// `…Contract('live', () => SomeRepository(fakeClient))` is a
 /// one-liner when that harness lands.
 ///
 /// All five repositories return `Result<T, Failure>`; the suites assert on

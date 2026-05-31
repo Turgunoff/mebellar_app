@@ -35,7 +35,7 @@ enum AddProductStatus {
 }
 
 /// Form state for the "Add Product" screen. Holds plain values — the
-/// repository / Supabase row shape lives in [AddProductRepository].
+/// repository / backend row shape lives in [AddProductRepository].
 class AddProductState extends Equatable {
   const AddProductState({
     this.status = AddProductStatus.loadingContext,

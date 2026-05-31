@@ -1,44 +1,56 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:woody_app/core/network/woody_api_client.dart';
 import 'package:woody_app/customer/features/checkout/cubit/checkout_cubit.dart';
 import 'package:woody_app/shared/models/cart_item_model.dart';
 import 'package:woody_app/shared/repositories/cart_repository.dart';
 
-class _MockSupabase extends Mock implements SupabaseClient {}
+class _MockWoodyApi extends Mock implements WoodyApiClient {}
 
 class _MockCartRepo extends Mock implements CartRepository {}
 
 void main() {
-  late _MockSupabase supabase;
+  late _MockWoodyApi api;
   late _MockCartRepo cartRepo;
 
   setUp(() {
-    supabase = _MockSupabase();
+    api = _MockWoodyApi();
     cartRepo = _MockCartRepo();
   });
 
-  CheckoutCubit build() => CheckoutCubit(
-        items: const <CartItemModel>[],
-        supabase: supabase,
-        cartRepo: cartRepo,
-      );
+  CheckoutCubit build({List<CartItemModel> items = const <CartItemModel>[]}) =>
+      CheckoutCubit(items: items, api: api, cartRepo: cartRepo);
 
-  test('grandTotal equals subtotal — delivery is quoted by seller after placement', () {
-    const state = CheckoutState();
-    expect(state.subtotal, 0);
-    expect(state.grandTotal, 0);
-    expect(state.hasAddress, isFalse);
-  });
+  const item = CartItemModel(
+    id: 'c1',
+    productId: 'p1',
+    productName: 'Premium Divan',
+    productImage: '',
+    productPrice: 4500000,
+    quantity: 1,
+  );
+
+  test(
+    'grandTotal equals subtotal — delivery is quoted by seller after placement',
+    () {
+      const state = CheckoutState();
+      expect(state.subtotal, 0);
+      expect(state.grandTotal, 0);
+      expect(state.hasAddress, isFalse);
+    },
+  );
 
   blocTest<CheckoutCubit, CheckoutState>(
     'selectPayment switches the payment method',
     build: build,
     act: (cubit) => cubit.selectPayment(CheckoutPayment.card),
     expect: () => [
-      isA<CheckoutState>()
-          .having((s) => s.payment, 'payment', CheckoutPayment.card),
+      isA<CheckoutState>().having(
+        (s) => s.payment,
+        'payment',
+        CheckoutPayment.card,
+      ),
     ],
   );
 
@@ -54,15 +66,20 @@ void main() {
   );
 
   blocTest<CheckoutCubit, CheckoutState>(
-    'submit emits [submitting, failure] when the order insert fails',
+    'submit emits [submitting, failure] when the order POST fails',
     build: () {
-      when(() => supabase.from(any())).thenThrow(Exception('db unreachable'));
-      return build();
+      when(
+        () => api.post<Map<String, dynamic>>(any(), body: any(named: 'body')),
+      ).thenThrow(Exception('backend unreachable'));
+      return build(items: const [item]);
     },
     act: (cubit) => cubit.submit('user-1'),
     expect: () => [
-      isA<CheckoutState>()
-          .having((s) => s.status, 'status', CheckoutStatus.submitting),
+      isA<CheckoutState>().having(
+        (s) => s.status,
+        'status',
+        CheckoutStatus.submitting,
+      ),
       isA<CheckoutState>()
           .having((s) => s.status, 'status', CheckoutStatus.failure)
           .having((s) => s.error, 'error', isNotNull),

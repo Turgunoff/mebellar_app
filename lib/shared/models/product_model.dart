@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 
-class SupabaseProductModel extends Equatable {
-  const SupabaseProductModel({
+class ProductModel extends Equatable {
+  const ProductModel({
     required this.id,
     required this.categoryId,
     this.subcategoryId,
@@ -68,7 +68,7 @@ class SupabaseProductModel extends Equatable {
   int get discountPercent =>
       hasDiscount ? (((price - discountPrice!) / price) * 100).round() : 0;
 
-  factory SupabaseProductModel.fromJson(Map<String, dynamic> json) {
+  factory ProductModel.fromJson(Map<String, dynamic> json) {
     final shopEmbed = json['shops'] as Map<String, dynamic>?;
     // `product_variants` embeds as a list; the product carries one variant
     // today, so the discount is read off the first row.
@@ -76,7 +76,7 @@ class SupabaseProductModel extends Equatable {
     final firstVariant = (variants != null && variants.isNotEmpty)
         ? variants.first as Map<String, dynamic>?
         : null;
-    return SupabaseProductModel(
+    return ProductModel(
       id: json['id'] as String,
       categoryId: json['category_id'] as String,
       subcategoryId: json['subcategory_id'] as String?,
@@ -108,7 +108,7 @@ class SupabaseProductModel extends Equatable {
     );
   }
 
-  /// Serialises to a Supabase-shaped Map so `fromJson` can round-trip the
+  /// Serialises to a PostgREST-shaped Map so `fromJson` can round-trip the
   /// model from cache. `shops`/`product_variants` are re-emitted in the same
   /// embed shape PostgREST produces, so the parser stays one code path.
   Map<String, dynamic> toJson() => {

@@ -17,9 +17,9 @@ import '../../../../shared/models/attribute_definition.dart';
 import '../../../../shared/models/multilingual_text.dart';
 import '../../../../shared/models/product.dart';
 import '../../../../shared/models/review.dart';
-import '../../../../shared/models/supabase_product_model.dart';
+import '../../../../shared/models/product_model.dart';
 import '../../../../shared/repositories/customer_reviews_repository.dart';
-import '../../../../shared/repositories/supabase_product_data_source.dart';
+import '../../../../shared/repositories/product_data_source.dart';
 import '../../../../shared/widgets/star_rating.dart';
 // `AttributesRepository` is registered at root scope, so it resolves fine
 // from the customer surface too.
@@ -57,18 +57,18 @@ TextStyle _ts({
 
 String _money(num value) => NumberFormat('#,###', 'uz').format(value);
 
-class SupabaseProductDetailScreen extends StatefulWidget {
-  const SupabaseProductDetailScreen({super.key, required this.product});
+class CatalogProductDetailScreen extends StatefulWidget {
+  const CatalogProductDetailScreen({super.key, required this.product});
 
-  final SupabaseProductModel product;
+  final ProductModel product;
 
   @override
-  State<SupabaseProductDetailScreen> createState() =>
-      _SupabaseProductDetailScreenState();
+  State<CatalogProductDetailScreen> createState() =>
+      _CatalogProductDetailScreenState();
 }
 
-class _SupabaseProductDetailScreenState
-    extends State<SupabaseProductDetailScreen> {
+class _CatalogProductDetailScreenState
+    extends State<CatalogProductDetailScreen> {
   final ScrollController _scrollController = ScrollController();
   double _titleOpacity = 0;
 
@@ -342,7 +342,7 @@ class _SupabaseProductDetailScreenState
 class _TitlePriceCard extends StatelessWidget {
   const _TitlePriceCard({required this.product});
 
-  final SupabaseProductModel product;
+  final ProductModel product;
 
   static const Color _green = Color(0xFF1F6B49);
 
@@ -881,15 +881,15 @@ class _SimilarSection extends StatefulWidget {
 }
 
 class _SimilarSectionState extends State<_SimilarSection> {
-  late final Future<List<SupabaseProductModel>> _future;
+  late final Future<List<ProductModel>> _future;
   // Synchronous cache peek so a re-visit paints the carousel at 0 ms;
   // `_future` still runs to refresh stock/price for the rail.
-  late final List<SupabaseProductModel>? _cached;
+  late final List<ProductModel>? _cached;
 
   @override
   void initState() {
     super.initState();
-    final source = sl<SupabaseProductDataSource>();
+    final source = sl<ProductDataSource>();
     _cached = source.peekSimilar(widget.productId);
     // Server-ranked recommendations — see `get_similar_products`.
     _future = source.listSimilar(widget.productId);
@@ -897,7 +897,7 @@ class _SimilarSectionState extends State<_SimilarSection> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<SupabaseProductModel>>(
+    return FutureBuilder<List<ProductModel>>(
       future: _future,
       initialData: _cached,
       builder: (context, snap) {
@@ -1021,7 +1021,7 @@ class _SimilarSkeleton extends StatelessWidget {
 class _BottomBar extends StatelessWidget {
   const _BottomBar({required this.product, required this.onAddToCart});
 
-  final SupabaseProductModel product;
+  final ProductModel product;
   final VoidCallback onAddToCart;
 
   @override
@@ -1119,7 +1119,7 @@ class _BottomBar extends StatelessWidget {
 // Helpers
 // ═══════════════════════════════════════════════════════════════════════════
 
-Product _toProduct(SupabaseProductModel m) => Product(
+Product _toProduct(ProductModel m) => Product(
   id: m.id,
   slug: m.id,
   name: MultilingualText(uz: m.name, ru: m.name, en: m.name),

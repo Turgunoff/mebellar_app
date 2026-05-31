@@ -11,7 +11,7 @@ import '../models/tariff.dart';
 import 'seller_product_repository.dart';
 
 /// REST-backed seller product repository — targets `/seller/products` on
-/// api.woody.uz. Replaces [SupabaseSellerProductRepository].
+/// api.woody.uz.
 ///
 /// Backend mismatches handled here (see [WoodyApiClient] throws on non-2xx):
 ///

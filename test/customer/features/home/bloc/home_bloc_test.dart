@@ -3,17 +3,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:woody_app/customer/features/home/bloc/home_bloc.dart';
 import 'package:woody_app/shared/models/banner.dart';
-import 'package:woody_app/shared/models/supabase_product_model.dart';
+import 'package:woody_app/shared/models/product_model.dart';
 import 'package:woody_app/shared/repositories/banner_repository.dart';
-import 'package:woody_app/shared/repositories/supabase_product_data_source.dart';
+import 'package:woody_app/shared/repositories/product_data_source.dart';
 
 class _MockBannerRepo extends Mock implements BannerRepository {}
 
-class _MockProductSource extends Mock implements SupabaseProductDataSource {}
+class _MockProductSource extends Mock implements ProductDataSource {}
 
 HomeBanner _banner(String id) => HomeBanner(id: id, imageUrl: 'https://x/$id');
 
-SupabaseProductModel _sp(String id) => SupabaseProductModel(
+ProductModel _sp(String id) => ProductModel(
       id: id,
       categoryId: 'cat-1',
       name: 'Product $id',
@@ -60,7 +60,7 @@ void main() {
     build: () {
       when(bannerRepo.list).thenThrow(Exception('banners down'));
       when(() => productSource.listAll(limit: any(named: 'limit')))
-          .thenAnswer((_) async => const <SupabaseProductModel>[]);
+          .thenAnswer((_) async => const <ProductModel>[]);
       return build();
     },
     act: (bloc) => bloc.add(const HomeRequested()),

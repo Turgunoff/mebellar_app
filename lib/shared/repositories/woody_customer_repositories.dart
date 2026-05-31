@@ -15,13 +15,13 @@ import '../models/product.dart';
 import '../models/region.dart';
 import '../models/review.dart';
 import '../models/shop.dart';
-import '../models/supabase_product_model.dart';
+import '../models/product_model.dart';
 import 'cart_repository.dart';
 import 'customer_reviews_repository.dart';
 import 'favorites_repository.dart';
 import 'order_repository.dart';
 
-/// Bundled REST replacements for the Supabase customer-side repositories.
+/// Bundled REST customer-side repositories.
 /// Each one implements its existing abstract contract; only the transport
 /// flips. Kept in a single file so the migration commit is easy to scan.
 
@@ -89,7 +89,7 @@ class WoodyCartRepository implements CartRepository {
 
   @override
   Future<void> addProduct(
-    SupabaseProductModel product, {
+    ProductModel product, {
     int quantity = 1,
     String? selectedColor,
   }) async {

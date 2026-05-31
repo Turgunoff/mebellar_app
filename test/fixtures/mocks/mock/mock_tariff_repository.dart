@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:clock/clock.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:woody_app/core/error/failure.dart';
 import 'package:woody_app/core/result/result.dart';
@@ -14,15 +13,12 @@ import 'mock_seller_state.dart';
 /// submission, an admin "approves" the request via Telegram bot — here we
 /// fake that with a 12-second timer so demos can see the status flip live.
 ///
-/// The plan catalog ([fetchPlans]) is the exception: it hits Supabase
-/// directly when [_supabase] is provided so the UI is fully server-driven.
-/// Falls back to the enum-derived static list when Supabase isn't wired.
+/// The plan catalog ([fetchPlans]) returns the enum-derived static list — the
+/// mock never touches a live backend.
 class MockTariffRepository implements TariffRepository {
-  MockTariffRepository({SupabaseClient? supabase}) : _supabase = supabase {
+  MockTariffRepository() {
     _seedHistory();
   }
-
-  final SupabaseClient? _supabase;
 
   static const _delay = Duration(milliseconds: 280);
   static const _uploadDelay = Duration(milliseconds: 700);
@@ -44,10 +40,12 @@ class MockTariffRepository implements TariffRepository {
   @override
   Future<Result<TariffSnapshot>> currentSnapshot() async {
     await Future<void>.delayed(_delay);
-    return Ok(TariffSnapshot(
-      plan: _currentPlan,
-      activeProductsCount: MockSellerState.instance.profile == null ? 0 : 12,
-    ));
+    return Ok(
+      TariffSnapshot(
+        plan: _currentPlan,
+        activeProductsCount: MockSellerState.instance.profile == null ? 0 : 12,
+      ),
+    );
   }
 
   @override
@@ -64,30 +62,12 @@ class MockTariffRepository implements TariffRepository {
 
   @override
   Future<Result<List<SubscriptionPlan>>> fetchPlans() async {
-    final supabase = _supabase;
-    if (supabase != null) {
-      try {
-        final rows = await supabase
-            .from('subscription_plans')
-            .select(
-              'id, code, name, price_monthly, max_products, '
-              'max_images_per_product, commission_rate, is_recommended, '
-              'features_uz, features_ru',
-            )
-            .order('price_monthly', ascending: true);
-        return Ok(rows
-            .map<SubscriptionPlan>(SubscriptionPlan.fromJson)
-            .toList(growable: false));
-      } catch (_) {
-        // Network/auth blip — drop through to the static fallback so the
-        // tariff screen still renders something sensible.
-      }
-    }
+    await Future<void>.delayed(_delay);
     return Ok(_enumFallbackPlans());
   }
 
-  /// Mirrors the rows the migration seeded so offline / no-Supabase runs
-  /// still have a non-empty catalog.
+  /// Mirrors the rows the migration seeded so the mock always has a non-empty
+  /// catalog.
   List<SubscriptionPlan> _enumFallbackPlans() {
     SubscriptionPlan from(
       TariffPlan plan, {
@@ -157,13 +137,15 @@ class MockTariffRepository implements TariffRepository {
   Future<Result<TariffPaymentInstructions>> paymentInstructions() async {
     await Future<void>.delayed(const Duration(milliseconds: 150));
     final shopId = MockSellerState.instance.shopId ?? 'shop-mh';
-    return Ok(TariffPaymentInstructions(
-      cardNumber: '8600 1234 5678 9012',
-      cardHolder: 'KARIMOV AZIZ',
-      bankName: 'Uzcard',
-      note: 'SHOP-$shopId',
-      telegramSupportUrl: 'tg://resolve?domain=MebellarSupportBot',
-    ));
+    return Ok(
+      TariffPaymentInstructions(
+        cardNumber: '8600 1234 5678 9012',
+        cardHolder: 'KARIMOV AZIZ',
+        bankName: 'Uzcard',
+        note: 'SHOP-$shopId',
+        telegramSupportUrl: 'tg://resolve?domain=MebellarSupportBot',
+      ),
+    );
   }
 
   @override
@@ -182,10 +164,13 @@ class MockTariffRepository implements TariffRepository {
   Future<Result<TariffSubscription>> upgrade(TariffUpgradeInput input) async {
     await Future<void>.delayed(_delay);
     if (_pending != null && _pending!.status.isPending) {
-      return const Err(ServerFailure(
-        message: "Sizda allaqachon kutayotgan to'lov bor — "
-            "uni tekshirib bo'lguncha kuting",
-      ));
+      return const Err(
+        ServerFailure(
+          message:
+              "Sizda allaqachon kutayotgan to'lov bor — "
+              "uni tekshirib bo'lguncha kuting",
+        ),
+      );
     }
     _idCounter += 1;
     final subscription = TariffSubscription(
