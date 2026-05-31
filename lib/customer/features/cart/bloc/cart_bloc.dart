@@ -17,8 +17,7 @@ sealed class CartEvent extends Equatable {
 }
 
 /// Initial fetch of the cart. The bloc also wires a `watchItems` subscription
-/// in its constructor so subsequent updates from the repository (e.g.
-/// auth-state-driven delegate swaps in [HybridCartRepository]) flow in
+/// in its constructor so subsequent updates from the repository flow in
 /// without an explicit reload.
 class LoadCart extends CartEvent {
   const LoadCart();
@@ -107,15 +106,15 @@ class CartState extends Equatable {
 
 // ── Bloc ───────────────────────────────────────────────────────────────────
 
-/// Cart bloc backed by a [CartRepository] (typically [HybridCartRepository]).
+/// Cart bloc backed by a [CartRepository] (Woody REST in production).
 ///
 /// All mutating handlers run optimistically: the predicted next state is
 /// emitted immediately, then the repository is called and the resulting
 /// snapshot replaces the optimistic state. On failure we roll back.
 class CartBloc extends Bloc<CartEvent, CartState> {
   CartBloc(this._repo, {AnalyticsService? analytics})
-      : _analytics = analytics,
-        super(const CartState()) {
+    : _analytics = analytics,
+      super(const CartState()) {
     on<LoadCart>(_onLoad);
     on<AddToCart>(_onAdd);
     on<UpdateQuantity>(_onUpdate);
@@ -191,11 +190,13 @@ class CartBloc extends Bloc<CartEvent, CartState> {
       // surface a "ready" status here so listeners not subscribed to
       // intermediate mutating frames see a clean transition.
       emit(state.copyWith(status: CartStatus.ready));
-      unawaited(_analytics?.addedToCart(
-        productId: event.product.id,
-        price: event.product.effectivePrice,
-        quantity: qtyClamped,
-      ));
+      unawaited(
+        _analytics?.addedToCart(
+          productId: event.product.id,
+          price: event.product.effectivePrice,
+          quantity: qtyClamped,
+        ),
+      );
     } catch (e) {
       emit(
         state.copyWith(

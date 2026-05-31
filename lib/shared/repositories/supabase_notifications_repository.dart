@@ -1,5 +1,4 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
-
+import '../../core/network/woody_api_client.dart';
 import '../models/notification_model.dart';
 
 abstract class NotificationDataSource {
@@ -17,69 +16,60 @@ abstract class NotificationDataSource {
   Future<void> markAllRead();
 }
 
-/// Reads / mutates the `public.notifications` table for the currently
-/// authenticated user. RLS policies in
-/// `20260510000002_create_notifications_table.sql` already restrict every
-/// query to `auth.uid() = user_id`, so we don't need to filter by user_id
-/// on the client side.
-class SupabaseNotificationsRepository implements NotificationDataSource {
-  SupabaseNotificationsRepository({required SupabaseClient supabase})
-    : _supabase = supabase;
+/// Reads / mutates the customer inbox via `GET /notifications`,
+/// `PATCH /notifications/{id}/read` and `POST /notifications/read-all`. The
+/// backend scopes every query to the JWT's user, so no client-side user filter
+/// is needed; the row carries no `user_id`, so we stamp a synthetic one.
+class WoodyNotificationDataSource implements NotificationDataSource {
+  WoodyNotificationDataSource({required WoodyApiClient api}) : _api = api;
 
-  final SupabaseClient _supabase;
+  final WoodyApiClient _api;
 
   @override
   Future<List<NotificationModel>> list() async {
-    final user = _supabase.auth.currentUser;
-    if (user == null) return const [];
-    return fetchNotifications(user.id);
-  }
-
-  @override
-  Future<List<NotificationModel>> fetchNotifications(String userId) async {
-    final data = await _supabase
-        .from('notifications')
-        .select()
-        .eq('user_id', userId)
-        .order('created_at', ascending: false);
-    return (data as List)
+    final body = await _api.get<Map<String, dynamic>>('/notifications');
+    final rows = body['rows'] as List<dynamic>? ?? const [];
+    return rows
         .whereType<Map<String, dynamic>>()
-        .map(NotificationModel.fromJson)
+        .map(_toModel)
         .toList(growable: false);
   }
 
   @override
+  Future<List<NotificationModel>> fetchNotifications(String userId) => list();
+
+  @override
   Future<int> unreadCount() async {
-    final user = _supabase.auth.currentUser;
-    if (user == null) return 0;
-    final data = await _supabase
-        .from('notifications')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('is_read', false);
-    return (data as List).length;
+    final body = await _api.get<Map<String, dynamic>>('/notifications');
+    return (body['unread_count'] as num?)?.toInt() ?? 0;
   }
 
   @override
   Future<void> markRead(String id) async {
-    final user = _supabase.auth.currentUser;
-    if (user == null) return;
-    await _supabase
-        .from('notifications')
-        .update({'is_read': true})
-        .eq('id', id)
-        .eq('user_id', user.id);
+    await _api.patch<dynamic>('/notifications/$id/read');
   }
 
   @override
   Future<void> markAllRead() async {
-    final user = _supabase.auth.currentUser;
-    if (user == null) return;
-    await _supabase
-        .from('notifications')
-        .update({'is_read': true})
-        .eq('user_id', user.id)
-        .eq('is_read', false);
+    await _api.post<dynamic>('/notifications/read-all');
+  }
+
+  NotificationModel _toModel(Map<String, dynamic> r) {
+    final rawPayload = r['data'];
+    final payload = rawPayload is Map
+        ? Map<String, dynamic>.from(rawPayload)
+        : null;
+    return NotificationModel(
+      id: r['id'] as String,
+      userId: 'me',
+      title: r['title'] as String? ?? '',
+      body: r['body'] as String? ?? '',
+      kind: NotificationKind.fromString(r['type'] as String?),
+      referenceId: r['reference_id'] as String?,
+      isRead: r['is_read'] as bool? ?? false,
+      createdAt: DateTime.parse(r['created_at'] as String),
+      payload: payload,
+    );
   }
 }
 

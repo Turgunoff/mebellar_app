@@ -14,49 +14,33 @@ import '../../shared/repositories/seller_reviews_repository.dart';
 import '../../shared/repositories/seller_services_repository.dart';
 import '../../shared/repositories/seller_verification_repository.dart';
 import '../../shared/repositories/shop_settings_repository.dart';
-import '../../shared/repositories/supabase_seller_dashboard_repository.dart';
-import '../../shared/repositories/supabase_seller_onboarding_repository.dart';
 import '../../shared/repositories/supabase_seller_services_repository.dart';
 import '../../shared/repositories/supabase_tariff_repository.dart';
 import '../../shared/repositories/tariff_repository.dart';
 import '../../shared/repositories/woody_seller_order_repository.dart';
 import '../../shared/repositories/woody_seller_product_repository.dart';
 import '../../shared/repositories/woody_seller_repositories.dart';
-import '../../config/app_config.dart';
 import '../auth/auth_repository.dart';
 import '../network/woody_api_client.dart';
 import '../storage/hive_boxes.dart';
 import '../storage/r2_upload_client.dart';
 import 'repository_resolver.dart';
 
-/// Root-scope seller-side repositories. Every seller repo is wired against
-/// its Supabase implementation when a client is available; the legacy Dio/REST
-/// `Remote*` variants remain as the no-Supabase fallback used by integration
-/// tests that boot without a backing project.
+/// Root-scope seller-side repositories. Most seller surfaces are wired to
+/// their Woody REST implementations (`/seller/*`); the few not-yet-migrated
+/// ones (services, tariff) still resolve via [RepositoryResolver] to their
+/// Supabase impl when a client is present.
 void registerSellerModule(GetIt sl) {
   final resolver = RepositoryResolver.fromEnvironment(
     hasSupabase: sl.isRegistered<SupabaseClient>(),
   );
   final draftBox = sl<Box>(instanceName: HiveBoxes.onboardingDraft);
-  final useWoody = AppConfig.hasWoodyApi;
 
   sl.registerLazySingleton<SellerOnboardingRepository>(
-    () => useWoody
-        ? WoodySellerOnboardingRepository(
-            api: sl<WoodyApiClient>(),
-            draftBox: draftBox,
-          )
-        : resolver.resolve<SellerOnboardingRepository>(
-            supabase: () => SupabaseSellerOnboardingRepository(
-              supabase: sl<SupabaseClient>(),
-              draftBox: draftBox,
-            ),
-            remote: () => RemoteSellerOnboardingRepository(
-              dio: sl<Dio>(),
-              draftBox: draftBox,
-              findRegionById: (id) => null,
-            ),
-          ),
+    () => WoodySellerOnboardingRepository(
+      api: sl<WoodyApiClient>(),
+      draftBox: draftBox,
+    ),
   );
 
   sl.registerLazySingleton<SellerVerificationRepository>(
@@ -89,12 +73,9 @@ void registerSellerModule(GetIt sl) {
     );
   }
 
-  // Dashboard reads live shop/product/order data so the empty-state
-  // experience is exercised by default. Prefer Woody REST when configured.
+  // Dashboard — Woody REST (`/seller/dashboard`).
   sl.registerLazySingleton<SellerDashboardRepository>(
-    () => useWoody
-        ? WoodySellerDashboardRepository(api: sl<WoodyApiClient>())
-        : SupabaseSellerDashboardRepository(sl<SupabaseClient>()),
+    () => WoodySellerDashboardRepository(api: sl<WoodyApiClient>()),
   );
 
   // Analytics reads live data — the empty-revenue state is the source of

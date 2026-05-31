@@ -1,5 +1,3 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
-
 import '../models/category_model.dart';
 
 abstract class CategoryDataSource {
@@ -12,29 +10,7 @@ abstract class CategoryDataSource {
   List<CategoryModel>? peek() => null;
 }
 
-/// Fetches categories with their nested subcategories from Supabase.
-/// Ordered by `sort_order` ascending.
-class SupabaseCategoryRepository extends CategoryDataSource {
-  SupabaseCategoryRepository({required SupabaseClient supabase})
-    : _supabase = supabase;
-
-  final SupabaseClient _supabase;
-
-  @override
-  Future<List<CategoryModel>> list() async {
-    final data = await _supabase
-        .from('categories')
-        .select('*, subcategories(*)')
-        .order('sort_order', ascending: true);
-
-    return (data as List)
-        .whereType<Map<String, dynamic>>()
-        .map(CategoryModel.fromJson)
-        .toList(growable: false);
-  }
-}
-
-/// In-memory fallback used when Supabase is unavailable (e.g. offline or
+/// In-memory fallback used when the network is unavailable (e.g. offline or
 /// test environment). Mirrors the Unsplash images from the categories table.
 class MockCategoryDataSource extends CategoryDataSource {
   static const _delay = Duration(milliseconds: 350);

@@ -2,34 +2,25 @@ import 'dart:async';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/auth/auth_repository.dart';
 import '../../../../shared/models/order.dart';
 import '../../../../shared/repositories/seller_dashboard_repository.dart';
-import '../../../../shared/repositories/supabase_seller_dashboard_repository.dart';
 import '../../profile/data/seller_identity_cache.dart';
 
 /// Single-state cubit that powers `SellerDashboardScreen`. The state always
 /// holds a valid (possibly zero-filled) `data` object so the UI never has to
 /// branch on null — the zero-state experience is just `data == empty`.
 class SellerDashboardCubit extends Cubit<SellerDashboardState> {
-  SellerDashboardCubit(
-    this._repo, {
-    this.cache,
-    SupabaseClient? supabase,
-  })  : _supabase = supabase,
-        super(SellerDashboardState.initial()) {
-    final repo = _repo;
-    if (repo is SupabaseSellerDashboardRepository) {
-      _shopInfoFetcher = repo.fetchShopInfo;
-    }
+  SellerDashboardCubit(this._repo, {this.cache, AuthRepository? auth})
+    : _auth = auth,
+      super(SellerDashboardState.initial()) {
     _newOrdersSub = _repo.newOrders().listen((_) => refresh());
   }
 
   final SellerDashboardRepository _repo;
   final SellerIdentityCache? cache;
-  final SupabaseClient? _supabase;
-  Future<SellerShopInfo> Function()? _shopInfoFetcher;
+  final AuthRepository? _auth;
   StreamSubscription<Order>? _newOrdersSub;
 
   Future<void> load() async {
@@ -37,14 +28,16 @@ class SellerDashboardCubit extends Cubit<SellerDashboardState> {
     // immediately while the live snapshot fetch is still in flight.
     final cached = _readCachedGreeting();
     if (cached != null) {
-      emit(state.copyWith(
-        isLoading: true,
-        clearError: true,
-        data: state.data.copyWith(
-          shopName: cached.shopName,
-          sellerName: cached.sellerName,
+      emit(
+        state.copyWith(
+          isLoading: true,
+          clearError: true,
+          data: state.data.copyWith(
+            shopName: cached.shopName,
+            sellerName: cached.sellerName,
+          ),
         ),
-      ));
+      );
     } else {
       emit(state.copyWith(isLoading: true, clearError: true));
     }
@@ -61,36 +54,24 @@ class SellerDashboardCubit extends Cubit<SellerDashboardState> {
     bool skipLoadingFlag = false,
   }) async {
     try {
-      final shopInfoFuture = _shopInfoFetcher?.call() ??
-          Future.value(const SellerShopInfo());
-      final snapshotFuture = _repo.snapshot();
-
-      final results = await Future.wait<dynamic>([
-        shopInfoFuture,
-        snapshotFuture,
-      ]);
-      final info = results[0] as SellerShopInfo;
-      final snap = results[1] as dynamic; // DashboardSnapshot
-
+      final snap = await _repo.snapshot();
       emit(
         SellerDashboardState(
           isLoading: false,
+          // Shop/seller name come from the identity cache (populated by the
+          // profile cubit); the Woody dashboard snapshot carries KPIs only —
+          // so preserve whatever greeting was already painted.
           data: SellerDashboardData(
-            sellerName: info.sellerName,
-            shopName: info.shopName,
-            todaysSales: snap.todaysRevenue as num,
-            todaysOrders: snap.todaysOrders as int,
-            pendingOrders: snap.pendingOrdersCount as int,
-            productsCount: snap.activeProductsCount as int,
-            productLimit: SupabaseSellerDashboardRepository.productLimit,
-            recentOrders: List<Order>.from(snap.recentOrders as Iterable),
+            sellerName: previous.sellerName,
+            shopName: previous.shopName,
+            todaysSales: snap.todaysRevenue,
+            todaysOrders: snap.todaysOrders,
+            pendingOrders: snap.pendingOrdersCount,
+            productsCount: snap.activeProductsCount,
+            recentOrders: List<Order>.from(snap.recentOrders),
           ),
         ),
       );
-      // Persist the greeting fields the profile screen also reads. `merge` so
-      // the profile-only fields (logo, verification, plan) survive when the
-      // dashboard is the first surface to populate the cache.
-      _writeCachedGreeting(info);
     } catch (e) {
       emit(
         SellerDashboardState(
@@ -104,24 +85,11 @@ class SellerDashboardCubit extends Cubit<SellerDashboardState> {
 
   SellerIdentitySnapshot? _readCachedGreeting() {
     final c = cache;
-    final userId = _supabase?.auth.currentUser?.id;
+    final userId = _auth?.currentUserId;
     if (c == null || userId == null) return null;
     final snapshot = c.read(userId);
     if (snapshot == null || snapshot.isEmpty) return null;
     return snapshot;
-  }
-
-  void _writeCachedGreeting(SellerShopInfo info) {
-    final c = cache;
-    final userId = _supabase?.auth.currentUser?.id;
-    if (c == null || userId == null) return;
-    unawaited(c.merge(
-      userId,
-      SellerIdentitySnapshot(
-        shopName: info.shopName,
-        sellerName: info.sellerName,
-      ),
-    ));
   }
 
   @override
@@ -186,15 +154,15 @@ class SellerDashboardData extends Equatable {
 
   @override
   List<Object?> get props => [
-        sellerName,
-        shopName,
-        todaysSales,
-        todaysOrders,
-        pendingOrders,
-        productsCount,
-        productLimit,
-        recentOrders.length,
-      ];
+    sellerName,
+    shopName,
+    todaysSales,
+    todaysOrders,
+    pendingOrders,
+    productsCount,
+    productLimit,
+    recentOrders.length,
+  ];
 }
 
 class SellerDashboardState extends Equatable {
@@ -204,10 +172,8 @@ class SellerDashboardState extends Equatable {
     this.error,
   });
 
-  factory SellerDashboardState.initial() => const SellerDashboardState(
-        isLoading: true,
-        data: SellerDashboardData(),
-      );
+  factory SellerDashboardState.initial() =>
+      const SellerDashboardState(isLoading: true, data: SellerDashboardData());
 
   final bool isLoading;
   final SellerDashboardData data;

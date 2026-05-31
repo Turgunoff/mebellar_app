@@ -103,7 +103,7 @@ void registerSellerScope(GetIt sl) {
     () => SellerDashboardCubit(
       sl<SellerDashboardRepository>(),
       cache: sl<SellerIdentityCache>(),
-      supabase: sl.isRegistered<SupabaseClient>() ? sl<SupabaseClient>() : null,
+      auth: sl<AuthRepository>(),
     ),
   );
   sl.registerFactory<SellerProfileCubit>(
