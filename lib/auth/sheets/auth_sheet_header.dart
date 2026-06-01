@@ -2,23 +2,6 @@ import 'package:flutter/material.dart';
 
 import 'auth_sheet_kit.dart';
 
-/// Drag-handle pill at the top of the sheet.
-class AuthGrabber extends StatelessWidget {
-  const AuthGrabber({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 40,
-      height: 4,
-      decoration: BoxDecoration(
-        color: AuthTokens.of(context).border,
-        borderRadius: BorderRadius.circular(2),
-      ),
-    );
-  }
-}
-
 /// Header row: optional back button, centred 3-dot step indicator, optional
 /// close button.
 class AuthSheetHeader extends StatelessWidget {

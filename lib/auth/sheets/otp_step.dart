@@ -42,52 +42,64 @@ class OtpStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = AuthTokens.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text('Kodni kiriting', style: authTitleStyle(context)),
-        const SizedBox(height: 8),
-        RichText(
-          text: TextSpan(
-            style: authSubtitleStyle(context),
-            children: [
-              TextSpan(text: '$length xonali kod '),
-              TextSpan(
-                text: destination,
-                style: authSubtitleStyle(context).copyWith(
-                  color: t.textPrimary,
-                  fontWeight: FontWeight.w600,
+    // AutofillGroup registers the OTP field with the platform autofill
+    // framework — required for iOS QuickType "from Messages" and Android's
+    // autofill-service OTP suggestion to attach to the field.
+    return AutofillGroup(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('Kodni kiriting', style: authTitleStyle(context)),
+          const SizedBox(height: 8),
+          RichText(
+            text: TextSpan(
+              style: authSubtitleStyle(context),
+              children: [
+                TextSpan(text: '$length xonali kod '),
+                TextSpan(
+                  text: destination,
+                  style: authSubtitleStyle(
+                    context,
+                  ).copyWith(color: t.textPrimary, fontWeight: FontWeight.w600),
                 ),
-              ),
-              const TextSpan(text: ' raqamiga yuborildi.'),
-            ],
+                const TextSpan(text: ' raqamiga yuborildi.'),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 28),
-        _PinField(
-          length: length,
-          controller: controller,
-          enabled: !busy,
-          onCompleted: onSubmit,
-          hasError: errorMessage != null,
-        ),
-        if (errorMessage != null) ...[
-          const SizedBox(height: 10),
-          _InlineError(message: errorMessage!),
+          const SizedBox(height: 28),
+          _PinField(
+            length: length,
+            controller: controller,
+            enabled: !busy,
+            onCompleted: onSubmit,
+            hasError: errorMessage != null,
+          ),
+          if (errorMessage != null) ...[
+            const SizedBox(height: 10),
+            _InlineError(message: errorMessage!),
+          ],
+          const SizedBox(height: 28),
+          // Stays dimmed until all digits are in, then "activates" — a small
+          // bit of feedback that the code is ready to submit.
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: controller,
+            builder: (context, value, _) {
+              final complete = value.text.length == length;
+              return AuthPrimaryButton(
+                label: 'Tasdiqlash',
+                busy: busy,
+                onTap: (busy || !complete) ? null : onSubmit,
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+          Center(
+            child: canResend
+                ? _ResendButton(onTap: onResend)
+                : _ResendCountdown(label: remainingLabel),
+          ),
         ],
-        const SizedBox(height: 28),
-        AuthPrimaryButton(
-          label: 'Tasdiqlash',
-          busy: busy,
-          onTap: busy ? null : onSubmit,
-        ),
-        const SizedBox(height: 16),
-        Center(
-          child: canResend
-              ? _ResendButton(onTap: onResend)
-              : _ResendCountdown(label: remainingLabel),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -184,19 +196,19 @@ class _PinFieldState extends State<_PinField>
         final dx = progress == 0
             ? 0.0
             : 8 *
-                (1 - progress) *
-                (progress < 0.166
-                        ? 1
-                        : progress < 0.333
-                            ? -1
-                            : progress < 0.5
-                                ? 1
-                                : progress < 0.666
-                                    ? -1
-                                    : progress < 0.833
-                                        ? 1
-                                        : -1)
-                    .toDouble();
+                  (1 - progress) *
+                  (progress < 0.166
+                          ? 1
+                          : progress < 0.333
+                          ? -1
+                          : progress < 0.5
+                          ? 1
+                          : progress < 0.666
+                          ? -1
+                          : progress < 0.833
+                          ? 1
+                          : -1)
+                      .toDouble();
         return Transform.translate(offset: Offset(dx, 0), child: child);
       },
       child: SizedBox(
@@ -219,11 +231,17 @@ class _PinFieldState extends State<_PinField>
                 style: const TextStyle(color: Colors.transparent, height: 0.01),
                 decoration: const InputDecoration(
                   counterText: '',
+                  // The app theme fills inputs grey; this hidden field must stay
+                  // transparent or its full-width fill shows as a grey band
+                  // behind the (centred) pin cells.
+                  filled: false,
+                  fillColor: Colors.transparent,
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,
                   disabledBorder: InputBorder.none,
                   contentPadding: EdgeInsets.zero,
+                  isCollapsed: true,
                 ),
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               ),
@@ -231,26 +249,28 @@ class _PinFieldState extends State<_PinField>
             IgnorePointer(
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  // Compute cell width from available space so the row
-                  // breathes nicely on every screen — no fixed width.
-                  const gap = 10.0;
-                  final cellW = (constraints.maxWidth -
-                          gap * (widget.length - 1)) /
+                  // Cap the cell width so the row reads as neat squares and
+                  // stays centred on wide screens; shrinks to fit on narrow.
+                  const gap = 12.0;
+                  const maxCellW = 58.0;
+                  final fit =
+                      (constraints.maxWidth - gap * (widget.length - 1)) /
                       widget.length;
+                  final cellW = fit < maxCellW ? fit : maxCellW;
                   return Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: List.generate(widget.length, (i) {
-                      final filled = i < value.length;
-                      final isCursor = i == value.length && _focus.hasFocus;
-                      final ch = filled ? value[i] : '';
-                      return _PinBox(
-                        width: cellW,
-                        digit: ch,
-                        active: isCursor,
-                        filled: filled,
-                        error: widget.hasError,
-                      );
-                    }),
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      for (var i = 0; i < widget.length; i++) ...[
+                        if (i > 0) const SizedBox(width: gap),
+                        _PinBox(
+                          width: cellW,
+                          digit: i < value.length ? value[i] : '',
+                          active: i == value.length && _focus.hasFocus,
+                          filled: i < value.length,
+                          error: widget.hasError,
+                        ),
+                      ],
+                    ],
                   );
                 },
               ),
@@ -290,44 +310,37 @@ class _PinBox extends StatelessWidget {
     if (error) {
       // Soft red tint in light mode; deeper, less-saturated red in dark
       // so the cell doesn't glare against the dark surface.
-      borderColor = isDark
-          ? const Color(0xFFD06464)
-          : const Color(0xFFE36F6F);
-      fillColor = isDark
-          ? const Color(0xFF3A1E1E)
-          : const Color(0xFFFDEFEF);
+      borderColor = isDark ? const Color(0xFFD06464) : const Color(0xFFE36F6F);
+      fillColor = isDark ? const Color(0xFF3A1E1E) : const Color(0xFFFDEFEF);
       borderWidth = 1.6;
       shadow = null;
-    } else if (filled) {
-      borderColor = kTerracotta;
-      // Filled cells use the sheet's surface (not pure white) so they
-      // read as "raised" rather than "different colour" in dark mode.
-      fillColor = t.surface;
-      borderWidth = 1.6;
-      shadow = [
-        BoxShadow(
-          color: kTerracotta.withValues(alpha: 0.10),
-          blurRadius: 14,
-          offset: const Offset(0, 4),
-          spreadRadius: -4,
-        ),
-      ];
     } else if (active) {
+      // The cell awaiting input — brand border + a soft focus ring + caret.
+      // This is the ONLY cell that glows, so the eye lands on it cleanly.
       borderColor = kTerracotta;
       fillColor = t.surface;
-      borderWidth = 1.6;
+      borderWidth = 2;
       shadow = [
         BoxShadow(
-          color: kTerracotta.withValues(alpha: 0.18),
-          blurRadius: 12,
-          offset: Offset.zero,
-          spreadRadius: 2,
+          color: kTerracotta.withValues(alpha: 0.16),
+          blurRadius: 14,
+          spreadRadius: 1.5,
         ),
       ];
+    } else if (filled) {
+      // A typed digit — brand border + a faint warm tint so the cell reads
+      // as "done", with no drop shadow (keeps the row calm and flat).
+      borderColor = kTerracotta;
+      fillColor = Color.alphaBlend(
+        kTerracotta.withValues(alpha: 0.06),
+        t.surface,
+      );
+      borderWidth = 1.6;
+      shadow = null;
     } else {
       borderColor = t.border;
       fillColor = t.fieldFill;
-      borderWidth = 1;
+      borderWidth = 1.4;
       shadow = null;
     }
 
@@ -353,8 +366,8 @@ class _PinBox extends StatelessWidget {
         ),
         child: digit.isEmpty
             ? active
-                ? _BlinkingCaret(key: ValueKey('caret-$active'))
-                : const SizedBox.shrink(key: ValueKey('empty'))
+                  ? _BlinkingCaret(key: ValueKey('caret-$active'))
+                  : const SizedBox.shrink(key: ValueKey('empty'))
             : Text(
                 digit,
                 key: ValueKey('d-$digit'),
@@ -364,8 +377,8 @@ class _PinBox extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                   color: error
                       ? (isDark
-                          ? const Color(0xFFEAA0A0)
-                          : const Color(0xFF993D3D))
+                            ? const Color(0xFFEAA0A0)
+                            : const Color(0xFF993D3D))
                       : t.textPrimary,
                   height: 1.0,
                 ),
@@ -432,8 +445,9 @@ class _InlineError extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     // Pick a red that stays legible against either surface. Dark mode
     // wants a lighter shade because the surface itself is already deep.
-    final errorColor =
-        isDark ? const Color(0xFFEAA0A0) : const Color(0xFF993D3D);
+    final errorColor = isDark
+        ? const Color(0xFFEAA0A0)
+        : const Color(0xFF993D3D);
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [

@@ -37,9 +37,7 @@ class ProfileGuestScreen extends StatelessWidget {
           children: [
             const _GuestHeader(),
             const SizedBox(height: 24),
-            _WelcomeHeroCard(
-              onContinue: () => showAuthBottomSheet(context),
-            ),
+            _WelcomeHeroCard(onContinue: () => showAuthScreen(context)),
             const SizedBox(height: 24),
             _GuestMenuListCard(
               items: _guestMenuItems(context),
@@ -52,9 +50,9 @@ class ProfileGuestScreen extends StatelessWidget {
   }
 
   void _openSellerOnboarding(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const OnboardingScreen()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const OnboardingScreen()));
   }
 }
 
@@ -105,17 +103,10 @@ class _WelcomeHeroCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: pt.imageBg,
               shape: BoxShape.circle,
-              border: Border.all(
-                color: pt.divider,
-                width: 1,
-              ),
+              border: Border.all(color: pt.divider, width: 1),
             ),
             alignment: Alignment.center,
-            child: Icon(
-              Iconsax.user,
-              size: 40,
-              color: pt.dark,
-            ),
+            child: Icon(Iconsax.user, size: 40, color: pt.dark),
           ),
           const SizedBox(height: 20),
           Text(
@@ -128,11 +119,7 @@ class _WelcomeHeroCard extends StatelessWidget {
             "Buyurtmalarni boshqarish va do'koningiz savdosini "
             "kuzatish uchun tizimga kiring yoki ro'yxatdan o'ting.",
             textAlign: TextAlign.center,
-            style: PremiumTokens.body(
-              size: 14,
-              color: pt.grey,
-              height: 1.5,
-            ),
+            style: PremiumTokens.body(size: 14, color: pt.grey, height: 1.5),
           ),
           const SizedBox(height: 24),
           _PrimaryCta(label: 'Davom etish', onTap: onContinue),
@@ -327,17 +314,10 @@ class _MenuRow extends StatelessWidget {
               Expanded(
                 child: Text(
                   entry.label,
-                  style: PremiumTokens.body(
-                    size: 14,
-                    weight: FontWeight.w500,
-                  ),
+                  style: PremiumTokens.body(size: 14, weight: FontWeight.w500),
                 ),
               ),
-              Icon(
-                Icons.chevron_right,
-                size: 20,
-                color: pt.greyLight,
-              ),
+              Icon(Icons.chevron_right, size: 20, color: pt.greyLight),
             ],
           ),
         ),
@@ -359,25 +339,25 @@ class _MenuEntry {
 }
 
 List<_MenuEntry> _guestMenuItems(BuildContext context) => [
-      _MenuEntry(
-        icon: Iconsax.setting_2,
-        label: 'Sozlamalar',
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const SettingsScreen()),
-        ),
-      ),
-      _MenuEntry(
-        icon: Iconsax.message_question,
-        label: "Yordam va Qo'llab-quvvatlash",
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const HelpScreen()),
-        ),
-      ),
-      _MenuEntry(
-        icon: Iconsax.info_circle,
-        label: 'Ilova haqida',
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const AboutScreen()),
-        ),
-      ),
-    ];
+  _MenuEntry(
+    icon: Iconsax.setting_2,
+    label: 'Sozlamalar',
+    onTap: () => Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
+  ),
+  _MenuEntry(
+    icon: Iconsax.message_question,
+    label: "Yordam va Qo'llab-quvvatlash",
+    onTap: () => Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const HelpScreen())),
+  ),
+  _MenuEntry(
+    icon: Iconsax.info_circle,
+    label: 'Ilova haqida',
+    onTap: () => Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const AboutScreen())),
+  ),
+];

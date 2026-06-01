@@ -20,7 +20,7 @@ FastAPI backend (`woody_backend` at `api.woody.uz`). Package name
 
 ```
 lib/
-├── auth/                        passwordless email-OTP bottom-sheet flow
+├── auth/                        passwordless phone-OTP full-screen flow (showAuthScreen)
 ├── config/                      AppConfig, RemoteConfig, AppMode
 ├── core/
 │   ├── analytics/               AnalyticsService (abstract + Firebase + Noop)
@@ -251,5 +251,14 @@ This brain captures the state after a multi-session redesign:
   search, cart, checkout, chat, seller (onboarding, products, orders)
 - Profile/seller-profile cleanup — "Bildirishnomalar" entry removed
   from seller profile (redundant with dashboard bell)
-- Auth bottom sheet (email → OTP → profile) refactored for dark mode
-  via `AuthTokens`
+- Auth flow (phone → OTP → profile) is a full-screen modal route opened
+  by `showAuthScreen()` (was a bottom sheet); closed via the header X or
+  system back. Dark mode via `AuthTokens`; steps under `auth/sheets/`,
+  logic in `AuthSheetController`. File is still `auth/auth_bottom_sheet.dart`.
+- OTP autofill: iOS uses QuickType (`AutofillHints.oneTimeCode` inside an
+  `AutofillGroup` in `otp_step.dart`); Android uses `smart_auth` **SMS User
+  Consent** (`AuthSheetController._listenForSmsCode`), started when the OTP
+  is requested — fills `otpCtrl` → auto-submits. User Consent is used (not
+  SMS Retriever) because the Eskiz template carries another app's signature
+  hash, so hash-based retrieval can't match. Fully-automatic Android autofill
+  would need an Eskiz template ending in Mebellar's own app-signature hash.

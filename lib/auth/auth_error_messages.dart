@@ -33,6 +33,8 @@ String authErrorMessageFromApi(ApiError error) {
     case 'network_error':
       return tr('error.network');
   }
-  if (error.status >= 500) return tr('error.network');
+  // A 5xx is the SERVER failing, not the user's connection — don't tell them
+  // to "check your internet". Real no-response failures hit `network_error`.
+  if (error.status >= 500) return tr('error.server');
   return error.message ?? tr('error.network');
 }

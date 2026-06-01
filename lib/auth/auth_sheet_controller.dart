@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:flutter/widgets.dart';
+import 'package:smart_auth/smart_auth.dart';
 
 import '../core/auth/auth_repository.dart';
 import '../core/di/service_locator.dart';
@@ -28,6 +30,7 @@ class AuthSheetController extends ChangeNotifier {
   int _secondsRemaining = 0;
   Timer? _resendTimer;
   bool _disposed = false;
+  bool _smsListenerActive = false;
 
   /// Last cooldown the server returned. We pass this to the resend timer
   /// instead of a hardcoded 120s so the UI matches the backend's policy.
@@ -91,6 +94,10 @@ class AuthSheetController extends ChangeNotifier {
       final cooldown = await repo.requestOtp(phone);
       _lastCooldown = cooldown > 0 ? cooldown : 60;
       talker.info('✓ OTP requested ok (cooldown=$cooldown s)');
+      // Start listening for the incoming SMS so the code auto-fills (Android
+      // User Consent — no app-hash needed, unlike SMS Retriever). Fire-and-
+      // forget; manual entry always works as a fallback.
+      unawaited(_listenForSmsCode());
       otpCtrl.clear();
       _startResendTimer();
       _step = AuthStep.otp;
@@ -217,6 +224,29 @@ class AuthSheetController extends ChangeNotifier {
 
   void cancelResendTimer() => _resendTimer?.cancel();
 
+  /// Android SMS User Consent: shows the system "read this message?" dialog
+  /// when the OTP SMS arrives, then fills [otpCtrl] with the extracted code
+  /// (which trips the pin-field listener → auto-submit). Hash-free, so it
+  /// works even though the Eskiz template carries another app's SMS-Retriever
+  /// hash. No-op on iOS — there, QuickType handles it via the field's
+  /// `AutofillHints.oneTimeCode` inside an `AutofillGroup`.
+  Future<void> _listenForSmsCode() async {
+    if (!Platform.isAndroid || _smsListenerActive) return;
+    _smsListenerActive = true;
+    try {
+      final res = await SmartAuth.instance.getSmsWithUserConsentApi();
+      if (_disposed) return;
+      final code = res.data?.code;
+      if (code != null && code.length >= 4) {
+        otpCtrl.text = code; // trips _PinField's listener → auto-submit
+      }
+    } catch (_) {
+      // Best-effort autofill — the user can always type the code by hand.
+    } finally {
+      _smsListenerActive = false;
+    }
+  }
+
   void clearError() {
     if (_errorMessage == null) return;
     _errorMessage = null;
@@ -249,9 +279,11 @@ class AuthSheetController extends ChangeNotifier {
   }
 
   void _setError(String msg) {
+    // Errors render inline only (AuthErrorBanner on phone/profile, the pin
+    // field's own message on the OTP step). No SnackBar — it duplicated the
+    // banner. `onMessage` is reserved for transient info (e.g. "code resent").
     _errorMessage = msg;
     _notify();
-    onMessage?.call(msg, isError: true);
   }
 
   void _showInfo(String msg) => onMessage?.call(msg, isError: false);
@@ -264,6 +296,9 @@ class AuthSheetController extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     _resendTimer?.cancel();
+    if (Platform.isAndroid) {
+      unawaited(SmartAuth.instance.removeUserConsentApiListener());
+    }
     phoneCtrl.dispose();
     otpCtrl.dispose();
     nameCtrl.dispose();

@@ -122,7 +122,7 @@ class _OnboardingViewState extends State<_OnboardingView> {
   }
 
   Future<void> _promptAuthAndAdvance() async {
-    await showAuthBottomSheet(context);
+    await showAuthScreen(context);
     if (!mounted) return;
     if (_isAuthenticated()) {
       context.read<OnboardingBloc>().add(const OnboardingNextStep());

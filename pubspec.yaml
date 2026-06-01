@@ -116,6 +116,7 @@ dependencies:
   # has no internet.
   connectivity_plus: ^6.1.0
   internet_connection_checker_plus: ^2.5.2
+  smart_auth: ^3.2.0
 
 dev_dependencies:
   flutter_test:

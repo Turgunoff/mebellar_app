@@ -145,7 +145,7 @@ class CartScreen extends StatelessWidget {
     HapticFeedback.lightImpact();
     final authState = context.read<AuthCubit>().state;
     if (authState is AppAuthUnauthenticated) {
-      showAuthBottomSheet(context);
+      showAuthScreen(context);
       return;
     }
     context.push('/checkout', extra: items);

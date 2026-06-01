@@ -9,38 +9,34 @@ import 'sheets/otp_step.dart';
 import 'sheets/phone_step.dart';
 import 'sheets/profile_step.dart';
 
-/// Opens the passwordless email-OTP authentication flow as a bottom sheet.
+/// Opens the passwordless phone-OTP authentication flow as a full screen.
 ///
 /// Resolves to `true` when the user completed sign-in (and any first-time
-/// profile capture for new users); `false` if the sheet was dismissed before
-/// authentication finished. The Woody auth state stream is the source of
-/// truth for session — callers typically just rebuild on the stream and use
-/// the boolean only to decide post-success navigation.
+/// profile capture for new users); `false` if the screen was closed (header
+/// X or system back) before authentication finished. The Woody auth state
+/// stream is the source of truth for session — callers typically just rebuild
+/// on the stream and use the boolean only to decide post-success navigation.
 ///
-/// ROADMAP B.4 — the original 1,154-line file was split: the three wizard
-/// steps live under `auth/sheets/`, the flow logic in [AuthSheetController].
-Future<bool> showAuthBottomSheet(BuildContext context) async {
-  final result = await showModalBottomSheet<bool>(
-    context: context,
-    isScrollControlled: true,
-    useRootNavigator: true,
-    isDismissible: false,
-    enableDrag: false,
-    backgroundColor: Colors.transparent,
-    barrierColor: Colors.black.withValues(alpha: 0.45),
-    builder: (_) => const _AuthBottomSheet(),
+/// Presented as a full-screen modal route on the ROOT navigator (so it covers
+/// the bottom tab bar), not a bottom sheet. Closed via the header's X button.
+Future<bool> showAuthScreen(BuildContext context) async {
+  final result = await Navigator.of(context, rootNavigator: true).push<bool>(
+    MaterialPageRoute<bool>(
+      fullscreenDialog: true,
+      builder: (_) => const _AuthScreen(),
+    ),
   );
   return result ?? false;
 }
 
-class _AuthBottomSheet extends StatefulWidget {
-  const _AuthBottomSheet();
+class _AuthScreen extends StatefulWidget {
+  const _AuthScreen();
 
   @override
-  State<_AuthBottomSheet> createState() => _AuthBottomSheetState();
+  State<_AuthScreen> createState() => _AuthScreenState();
 }
 
-class _AuthBottomSheetState extends State<_AuthBottomSheet> {
+class _AuthScreenState extends State<_AuthScreen> {
   late final AuthSheetController _controller;
 
   @override
@@ -93,69 +89,77 @@ class _AuthBottomSheetState extends State<_AuthBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final keyboard = MediaQuery.of(context).viewInsets.bottom;
+    final t = AuthTokens.of(context);
     return PopScope(
       canPop: false,
-      child: Padding(
-        padding: EdgeInsets.only(bottom: keyboard),
-        child: Container(
-          decoration: BoxDecoration(
-            color: AuthTokens.of(context).surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
-              child: ListenableBuilder(
-                listenable: _controller,
-                builder: (context, _) {
-                  return Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const AuthGrabber(),
-                      const SizedBox(height: 8),
-                      AuthSheetHeader(
-                        step: _controller.step,
-                        onBack: _controller.step == AuthStep.otp
-                            ? _controller.goBack
-                            : null,
-                        onClose: _onAbort,
-                      ),
-                      const SizedBox(height: 18),
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 260),
-                        switchInCurve: Curves.easeOutCubic,
-                        switchOutCurve: Curves.easeInCubic,
-                        transitionBuilder: (child, animation) {
-                          return FadeTransition(
-                            opacity: animation,
-                            child: SlideTransition(
-                              position: Tween<Offset>(
-                                begin: const Offset(0.05, 0),
-                                end: Offset.zero,
-                              ).animate(animation),
-                              child: child,
+      onPopInvokedWithResult: (didPop, _) {
+        // System back / swipe acts like the header X — cancel and close.
+        if (!didPop) _onAbort();
+      },
+      child: Scaffold(
+        backgroundColor: t.surface,
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+            child: ListenableBuilder(
+              listenable: _controller,
+              builder: (context, _) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    AuthSheetHeader(
+                      step: _controller.step,
+                      onBack: _controller.step == AuthStep.otp
+                          ? _controller.goBack
+                          : null,
+                      onClose: _onAbort,
+                    ),
+                    const SizedBox(height: 28),
+                    // Scrolls so the keyboard never overflows the content.
+                    Expanded(
+                      child: SingleChildScrollView(
+                        physics: const ClampingScrollPhysics(),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 260),
+                              switchInCurve: Curves.easeOutCubic,
+                              switchOutCurve: Curves.easeInCubic,
+                              transitionBuilder: (child, animation) {
+                                return FadeTransition(
+                                  opacity: animation,
+                                  child: SlideTransition(
+                                    position: Tween<Offset>(
+                                      begin: const Offset(0.05, 0),
+                                      end: Offset.zero,
+                                    ).animate(animation),
+                                    child: child,
+                                  ),
+                                );
+                              },
+                              child: KeyedSubtree(
+                                key: ValueKey(_controller.step),
+                                child: _buildBody(),
+                              ),
                             ),
-                          );
-                        },
-                        child: KeyedSubtree(
-                          key: ValueKey(_controller.step),
-                          child: _buildBody(),
+                            // OTP step shows its error inline under the pins,
+                            // so the banner is for the phone/profile steps only.
+                            if (_controller.errorMessage != null &&
+                                _controller.step != AuthStep.otp) ...[
+                              const SizedBox(height: 14),
+                              AuthErrorBanner(
+                                message: _controller.errorMessage!,
+                                onDismiss: _controller.clearError,
+                              ),
+                            ],
+                          ],
                         ),
                       ),
-                      if (_controller.errorMessage != null) ...[
-                        const SizedBox(height: 14),
-                        AuthErrorBanner(
-                          message: _controller.errorMessage!,
-                          onDismiss: _controller.clearError,
-                        ),
-                      ],
-                    ],
-                  );
-                },
-              ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         ),
