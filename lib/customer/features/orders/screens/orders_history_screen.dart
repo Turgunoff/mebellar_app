@@ -27,10 +27,11 @@ enum _OrderFilter {
   bool matches(String status) {
     return switch (this) {
       _OrderFilter.all => true,
-      _OrderFilter.active => status == 'pending' ||
-          status == 'confirmed' ||
-          status == 'preparing' ||
-          status == 'shipped',
+      _OrderFilter.active =>
+        status == 'pending' ||
+            status == 'confirmed' ||
+            status == 'preparing' ||
+            status == 'shipped',
       _OrderFilter.delivered => status == 'delivered',
       _OrderFilter.cancelled => status == 'cancelled',
     };
@@ -76,13 +77,13 @@ class _OrdersHistoryScreenState extends State<OrdersHistoryScreen> {
           final counts = {
             for (final f in _OrderFilter.values)
               f: orders
-                  .where(
-                      (o) => f.matches(o['status'] as String? ?? 'pending'))
+                  .where((o) => f.matches(o['status'] as String? ?? 'pending'))
                   .length,
           };
           final visible = orders
               .where(
-                  (o) => _filter.matches(o['status'] as String? ?? 'pending'))
+                (o) => _filter.matches(o['status'] as String? ?? 'pending'),
+              )
               .toList();
 
           return Column(
@@ -100,41 +101,45 @@ class _OrdersHistoryScreenState extends State<OrdersHistoryScreen> {
                 child: firstLoad
                     ? const Center(
                         child: BrandLoadingIndicator(
-                            color: PremiumTokens.accent),
+                          color: PremiumTokens.accent,
+                        ),
                       )
                     : BrandRefreshIndicator(
-                        onRefresh: () =>
-                            ctx.read<ProfileOrdersCubit>().fetch(),
+                        onRefresh: () => ctx.read<ProfileOrdersCubit>().fetch(),
                         color: PremiumTokens.accent,
                         child: orders.isEmpty
                             ? _ScrollableCenter(child: _EmptyOrders(pt: pt))
                             : visible.isEmpty
-                                ? _ScrollableCenter(
-                                    child: _FilterEmpty(
-                                        pt: pt, filter: _filter))
-                                : ListView.separated(
-                                    physics:
-                                        const AlwaysScrollableScrollPhysics(
-                                      parent: BouncingScrollPhysics(),
-                                    ),
-                                    padding: const EdgeInsets.fromLTRB(
-                                        16, 16, 16, 32),
-                                    itemCount: visible.length,
-                                    separatorBuilder: (_, _) =>
-                                        const SizedBox(height: 12),
-                                    itemBuilder: (_, i) {
-                                      final order = visible[i];
-                                      return _OrderCard(
-                                        order: order,
-                                        pt: pt,
-                                        onCancel: (reason) => ctx
-                                            .read<ProfileOrdersCubit>()
-                                            .cancelOrder(
-                                                order['id'] as String,
-                                                reason),
-                                      );
-                                    },
-                                  ),
+                            ? _ScrollableCenter(
+                                child: _FilterEmpty(pt: pt, filter: _filter),
+                              )
+                            : ListView.separated(
+                                physics: const AlwaysScrollableScrollPhysics(
+                                  parent: BouncingScrollPhysics(),
+                                ),
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  16,
+                                  16,
+                                  32,
+                                ),
+                                itemCount: visible.length,
+                                separatorBuilder: (_, _) =>
+                                    const SizedBox(height: 12),
+                                itemBuilder: (_, i) {
+                                  final order = visible[i];
+                                  return _OrderCard(
+                                    order: order,
+                                    pt: pt,
+                                    onCancel: (reason) => ctx
+                                        .read<ProfileOrdersCubit>()
+                                        .cancelOrder(
+                                          order['id'] as String,
+                                          reason,
+                                        ),
+                                  );
+                                },
+                              ),
                       ),
               ),
             ],
@@ -173,11 +178,12 @@ class _Header extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: pt.surface,
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(26)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -186,31 +192,52 @@ class _Header extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Toolbar — back button.
+            // Toolbar — back button + order-count pill.
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-              child: _CircleIconButton(
-                icon: Iconsax.arrow_left,
-                onTap: onBack,
-                pt: pt,
+              padding: const EdgeInsets.fromLTRB(12, 8, 16, 0),
+              child: Row(
+                children: [
+                  _CircleIconButton(
+                    icon: Iconsax.arrow_left,
+                    onTap: onBack,
+                    pt: pt,
+                  ),
+                  const Spacer(),
+                  if (orderCount > 0)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: PremiumTokens.accent.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '$orderCount ta',
+                        style: PremiumTokens.body(
+                          size: 12.5,
+                          weight: FontWeight.w700,
+                          color: PremiumTokens.accent,
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
-            // Title + order count.
+            // Title + subtitle.
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Mening buyurtmalarim',
-                    style: PremiumTokens.display(
-                        size: 24, letterSpacing: -0.5),
+                    'Buyurtmalarim',
+                    style: PremiumTokens.display(size: 28, letterSpacing: -0.6),
                   ),
-                  const SizedBox(height: 3),
+                  const SizedBox(height: 4),
                   Text(
-                    orderCount == 0
-                        ? 'Buyurtmalar tarixi'
-                        : '$orderCount ta buyurtma',
+                    'Buyurtmalaringiz tarixi va holati',
                     style: PremiumTokens.body(
                       size: 13,
                       weight: FontWeight.w500,
@@ -222,7 +249,7 @@ class _Header extends StatelessWidget {
             ),
             // Filter chips.
             if (showFilters) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: 18),
               SizedBox(
                 height: 40,
                 child: ListView(
@@ -240,9 +267,9 @@ class _Header extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
             ] else
-              const SizedBox(height: 18),
+              const SizedBox(height: 20),
           ],
         ),
       ),
@@ -333,7 +360,9 @@ class _FilterChip extends StatelessWidget {
                 const SizedBox(width: 7),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 6, vertical: 1.5),
+                    horizontal: 6,
+                    vertical: 1.5,
+                  ),
                   constraints: const BoxConstraints(minWidth: 19),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
@@ -383,15 +412,17 @@ class _OrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final id = order['id'] as String? ?? '';
-    final shortId =
-        id.length >= 8 ? 'M-${id.substring(0, 8).toUpperCase()}' : 'M-$id';
+    final shortId = id.length >= 8
+        ? 'M-${id.substring(0, 8).toUpperCase()}'
+        : 'M-$id';
     final date = _fmtDate(order['created_at'] as String?);
     final total = (order['total_amount'] as num?)?.toDouble() ?? 0.0;
     final status = order['status'] as String? ?? 'pending';
     final address = order['delivery_address'] as String? ?? '';
     final canCancel = _cancellableStatuses.contains(status);
     final st = _statusInfo(status);
-    final feePending = order['fee_adjustment_status'] == 'pending_customer' &&
+    final feePending =
+        order['fee_adjustment_status'] == 'pending_customer' &&
         order['proposed_delivery_fee'] != null;
 
     final items = (order['order_items'] as List?) ?? const [];
@@ -399,7 +430,8 @@ class _OrderCard extends StatelessWidget {
     // "rate your products" call-to-action. `reviews` embeds as a single
     // object (or null) because `reviews.order_item_id` is a UNIQUE column,
     // so PostgREST treats it as a to-one relationship — `null` ⇒ unreviewed.
-    final needsReview = status == 'delivered' &&
+    final needsReview =
+        status == 'delivered' &&
         items.any((it) => (it as Map?)?['reviews'] == null);
     final thumbs = items.map<String?>((it) {
       final products = (it as Map?)?['products'];
@@ -481,14 +513,12 @@ class _OrderCard extends StatelessWidget {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Iconsax.location,
-                          size: 14, color: pt.greyLight),
+                      Icon(Iconsax.location, size: 14, color: pt.greyLight),
                       const SizedBox(width: 5),
                       Expanded(
                         child: Text(
                           address,
-                          style: PremiumTokens.body(
-                              size: 12.5, color: pt.grey),
+                          style: PremiumTokens.body(size: 12.5, color: pt.grey),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -580,40 +610,36 @@ class _StatusPill extends StatelessWidget {
 ({IconData icon, Color color, String label}) _statusInfo(String status) {
   return switch (status) {
     'pending' => (
-        icon: Iconsax.clock,
-        color: const Color(0xFFD97706),
-        label: 'Kutilmoqda',
-      ),
+      icon: Iconsax.clock,
+      color: const Color(0xFFD97706),
+      label: 'Kutilmoqda',
+    ),
     'confirmed' => (
-        icon: Iconsax.box_tick,
-        color: const Color(0xFF4F46E5),
-        label: 'Qabul qilindi',
-      ),
+      icon: Iconsax.box_tick,
+      color: const Color(0xFF4F46E5),
+      label: 'Qabul qilindi',
+    ),
     'preparing' => (
-        icon: Iconsax.box_1,
-        color: const Color(0xFF2563EB),
-        label: 'Tayyorlanmoqda',
-      ),
+      icon: Iconsax.box_1,
+      color: const Color(0xFF2563EB),
+      label: 'Tayyorlanmoqda',
+    ),
     'shipped' => (
-        icon: Iconsax.truck_fast,
-        color: const Color(0xFF0891B2),
-        label: "Yo'lda",
-      ),
+      icon: Iconsax.truck_fast,
+      color: const Color(0xFF0891B2),
+      label: "Yo'lda",
+    ),
     'delivered' => (
-        icon: Iconsax.tick_circle,
-        color: const Color(0xFF16A34A),
-        label: 'Yetkazilgan',
-      ),
+      icon: Iconsax.tick_circle,
+      color: const Color(0xFF16A34A),
+      label: 'Yetkazilgan',
+    ),
     'cancelled' => (
-        icon: Iconsax.close_circle,
-        color: const Color(0xFFDC2626),
-        label: 'Bekor qilingan',
-      ),
-    _ => (
-        icon: Iconsax.clock,
-        color: const Color(0xFF757575),
-        label: status,
-      ),
+      icon: Iconsax.close_circle,
+      color: const Color(0xFFDC2626),
+      label: 'Bekor qilingan',
+    ),
+    _ => (icon: Iconsax.clock, color: const Color(0xFF757575), label: status),
   };
 }
 
@@ -673,8 +699,11 @@ class _FeePendingBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.local_shipping_outlined,
-              size: 15, color: Color(0xFF8C5A12)),
+          const Icon(
+            Icons.local_shipping_outlined,
+            size: 15,
+            color: Color(0xFF8C5A12),
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -686,8 +715,7 @@ class _FeePendingBanner extends StatelessWidget {
               ),
             ),
           ),
-          const Icon(Iconsax.arrow_right_3,
-              size: 13, color: Color(0xFF8C5A12)),
+          const Icon(Iconsax.arrow_right_3, size: 13, color: Color(0xFF8C5A12)),
         ],
       ),
     );
@@ -723,8 +751,11 @@ class _RateCta extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(Icons.star_rounded,
-                size: 18, color: PremiumTokens.accent),
+            const Icon(
+              Icons.star_rounded,
+              size: 18,
+              color: PremiumTokens.accent,
+            ),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
@@ -736,8 +767,11 @@ class _RateCta extends StatelessWidget {
                 ),
               ),
             ),
-            const Icon(Iconsax.arrow_right_3,
-                size: 14, color: PremiumTokens.accent),
+            const Icon(
+              Iconsax.arrow_right_3,
+              size: 14,
+              color: PremiumTokens.accent,
+            ),
           ],
         ),
       ),
@@ -785,10 +819,7 @@ class _CancelButtonState extends State<_CancelButton> {
         width: 18,
         height: 18,
         child: Center(
-          child: BrandLoadingIndicator(
-            color: Color(0xFFDC2626),
-            radius: 8,
-          ),
+          child: BrandLoadingIndicator(color: Color(0xFFDC2626), radius: 8),
         ),
       );
     }
@@ -897,12 +928,14 @@ class _CancellationSheetState extends State<_CancellationSheet> {
             ),
           ),
           const SizedBox(height: 20),
-          ..._reasons.map((reason) => _ReasonRow(
-                reason: reason,
-                selected: _selected == reason,
-                pt: pt,
-                onTap: () => setState(() => _selected = reason),
-              )),
+          ..._reasons.map(
+            (reason) => _ReasonRow(
+              reason: reason,
+              selected: _selected == reason,
+              pt: pt,
+              onTap: () => setState(() => _selected = reason),
+            ),
+          ),
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
@@ -913,8 +946,9 @@ class _CancellationSheetState extends State<_CancellationSheet> {
                   : () => Navigator.of(context).pop(_selected),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFDC2626),
-                disabledBackgroundColor:
-                    const Color(0xFFDC2626).withValues(alpha: 0.35),
+                disabledBackgroundColor: const Color(
+                  0xFFDC2626,
+                ).withValues(alpha: 0.35),
                 foregroundColor: Colors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
@@ -1037,34 +1071,39 @@ class _EmptyOrders extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: PremiumTokens.accent.withValues(alpha: 0.08),
-              shape: BoxShape.circle,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 96,
+              height: 96,
+              decoration: BoxDecoration(
+                color: PremiumTokens.accent.withValues(alpha: 0.10),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Iconsax.receipt,
+                size: 42,
+                color: PremiumTokens.accent,
+              ),
             ),
-            child: const Icon(
-              Iconsax.receipt,
-              size: 36,
-              color: PremiumTokens.accent,
+            const SizedBox(height: 24),
+            Text(
+              'Hali buyurtmalar yo\'q',
+              textAlign: TextAlign.center,
+              style: PremiumTokens.display(size: 22, letterSpacing: -0.3),
             ),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            'Hali buyurtmalar yo\'q',
-            style: PremiumTokens.display(size: 20, letterSpacing: -0.3),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Katalogga o\'tib, birinchi buyurtmangizni\nbering.',
-            textAlign: TextAlign.center,
-            style: PremiumTokens.body(size: 14, color: pt.grey, height: 1.5),
-          ),
-        ],
+            const SizedBox(height: 10),
+            Text(
+              'Birinchi buyurtmangizni berganingizdan so\'ng, '
+              'u shu yerda ko\'rinadi.',
+              textAlign: TextAlign.center,
+              style: PremiumTokens.body(size: 14, color: pt.grey, height: 1.5),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1115,8 +1154,18 @@ class _FilterEmpty extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const _uzMonths = [
-  'yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun',
-  'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr',
+  'yanvar',
+  'fevral',
+  'mart',
+  'aprel',
+  'may',
+  'iyun',
+  'iyul',
+  'avgust',
+  'sentabr',
+  'oktabr',
+  'noyabr',
+  'dekabr',
 ];
 
 /// `2026-05-21T15:32:00Z` → `21-may 2026, 15:32` (local time, Uzbek month).
