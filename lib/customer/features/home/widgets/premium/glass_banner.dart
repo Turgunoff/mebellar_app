@@ -2,7 +2,9 @@ import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../../shared/models/banner.dart';
 import '../../../../../shared/widgets/image_error_placeholder.dart';
@@ -66,6 +68,30 @@ class _GlassBannerState extends State<GlassBanner> {
   }
 }
 
+/// Routes a banner tap to the configured target. Mirrors the admin panel's
+/// action picker (category / product / url). Unknown types (incl. 'shop',
+/// which has no customer screen yet) are no-ops.
+Future<void> _handleBannerTap(BuildContext context, HomeBanner banner) async {
+  final type = banner.linkType ?? '';
+  final target = banner.linkTarget?.trim() ?? '';
+  if (target.isEmpty) return;
+
+  if (type == 'url') {
+    final uri = Uri.tryParse(target);
+    if (uri != null) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+    return;
+  }
+
+  final route = switch (type) {
+    'product' => '/product-detail/$target',
+    'category' => '/product-list?categoryId=${Uri.encodeComponent(target)}',
+    _ => null,
+  };
+  if (route != null) context.push(route);
+}
+
 class _BannerCard extends StatelessWidget {
   const _BannerCard({required this.data, required this.height});
 
@@ -79,99 +105,113 @@ class _BannerCard extends StatelessWidget {
     final eyebrow = data.title?.get(lang) ?? '';
     final title = data.subtitle?.get(lang) ?? '';
     final hasText = eyebrow.isNotEmpty || title.isNotEmpty;
+    final hasAction =
+        (data.linkType ?? '').isNotEmpty &&
+        (data.linkTarget ?? '').trim().isNotEmpty;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            CachedNetworkImage(
-              imageUrl: data.imageUrl,
-              // ROADMAP B.7 — full-width banner; cap near device width.
-              memCacheWidth: 1080,
-              fit: BoxFit.cover,
-              placeholder: (_, _) => Shimmer.fromColors(
-                baseColor: pt.imageBg,
-                highlightColor: const Color(0xFFFAFAFA),
-                child: Container(color: Colors.white),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: hasAction ? () => _handleBannerTap(context, data) : null,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              CachedNetworkImage(
+                imageUrl: data.imageUrl,
+                // ROADMAP B.7 — full-width banner; cap near device width.
+                memCacheWidth: 1080,
+                fit: BoxFit.cover,
+                placeholder: (_, _) => Shimmer.fromColors(
+                  baseColor: pt.imageBg,
+                  highlightColor: const Color(0xFFFAFAFA),
+                  child: Container(color: Colors.white),
+                ),
+                errorWidget: (_, _, _) =>
+                    const ImageErrorPlaceholder(iconSize: 40),
               ),
-              errorWidget: (_, _, _) =>
-                  const ImageErrorPlaceholder(iconSize: 40),
-            ),
-            const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topRight,
-                  end: Alignment.bottomLeft,
-                  colors: [Colors.transparent, Colors.black26],
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topRight,
+                    end: Alignment.bottomLeft,
+                    colors: [Colors.transparent, Colors.black26],
+                  ),
                 ),
               ),
-            ),
-            if (hasText)
-              Positioned(
-                left: 20,
-                bottom: 20,
-                right: 80,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 18,
-                        vertical: 14,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.18),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.35),
-                          width: 1,
+              if (hasText)
+                Positioned(
+                  left: 20,
+                  bottom: 20,
+                  right: 80,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 14,
                         ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (eyebrow.isNotEmpty)
-                            Text(
-                              eyebrow,
-                              style: PremiumTokens.body(
-                                size: 12,
-                                weight: FontWeight.w500,
-                                color: Colors.white,
-                                letterSpacing: 1.5,
-                              ).copyWith(
-                                shadows: const [
-                                  Shadow(blurRadius: 8, color: Colors.black26),
-                                ],
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.35),
+                            width: 1,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (eyebrow.isNotEmpty)
+                              Text(
+                                eyebrow,
+                                style:
+                                    PremiumTokens.body(
+                                      size: 12,
+                                      weight: FontWeight.w500,
+                                      color: Colors.white,
+                                      letterSpacing: 1.5,
+                                    ).copyWith(
+                                      shadows: const [
+                                        Shadow(
+                                          blurRadius: 8,
+                                          color: Colors.black26,
+                                        ),
+                                      ],
+                                    ),
                               ),
-                            ),
-                          if (eyebrow.isNotEmpty && title.isNotEmpty)
-                            const SizedBox(height: 6),
-                          if (title.isNotEmpty)
-                            Text(
-                              title,
-                              style: PremiumTokens.display(
-                                size: 22,
-                                color: Colors.white,
-                                height: 1.1,
-                              ).copyWith(
-                                shadows: const [
-                                  Shadow(
-                                      blurRadius: 12, color: Colors.black38),
-                                ],
+                            if (eyebrow.isNotEmpty && title.isNotEmpty)
+                              const SizedBox(height: 6),
+                            if (title.isNotEmpty)
+                              Text(
+                                title,
+                                style:
+                                    PremiumTokens.display(
+                                      size: 22,
+                                      color: Colors.white,
+                                      height: 1.1,
+                                    ).copyWith(
+                                      shadows: const [
+                                        Shadow(
+                                          blurRadius: 12,
+                                          color: Colors.black38,
+                                        ),
+                                      ],
+                                    ),
                               ),
-                            ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );
