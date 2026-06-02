@@ -42,6 +42,9 @@ class WoodyApiClient {
       StreamController<void>.broadcast();
   Stream<void> get forcedSignOuts => _forcedSignOut.stream;
 
+  /// Guards against a concurrent refresh stampede — see [_attemptRefresh].
+  Future<bool>? _refreshFlight;
+
   static Dio _defaultDio() {
     return Dio(
       BaseOptions(
@@ -166,7 +169,20 @@ class WoodyApiClient {
     );
   }
 
-  Future<bool> _attemptRefresh() async {
+  /// Single-flight refresh. A cold start fires a burst of authenticated
+  /// requests; if the access token has expired they all 401 at once and
+  /// each would independently POST `/auth/refresh`. The backend ROTATES
+  /// the refresh token and treats a second use of the now-revoked token
+  /// as theft — `revoke_all_for_user` scorches the user's entire refresh
+  /// chain, so the freshly-minted token dies too and the user is bounced
+  /// to login. Funnelling every caller through one in-flight future means
+  /// the rotating refresh token is presented to the server exactly once.
+  Future<bool> _attemptRefresh() {
+    return _refreshFlight ??=
+        _doRefresh().whenComplete(() => _refreshFlight = null);
+  }
+
+  Future<bool> _doRefresh() async {
     final current = await tokens.read();
     final refresh = current?.refreshToken;
     if (refresh == null) return false;
@@ -177,35 +193,37 @@ class WoodyApiClient {
         options: Options(extra: {_skipRefreshKey: true, _anonymousKey: true}),
       );
       final status = response.statusCode ?? 0;
-      if (status < 200 || status >= 300) {
-        await _forceSignOut();
-        return false;
-      }
       final data = response.data;
-      if (data is! Map<String, dynamic>) {
-        await _forceSignOut();
-        return false;
+      if (status >= 200 && status < 300 && data is Map<String, dynamic>) {
+        final access = data['access_token'] as String?;
+        final newRefresh = data['refresh_token'] as String?;
+        final expiresIn = data['expires_in'];
+        if (access != null && newRefresh != null) {
+          final expiresAt = expiresIn is int
+              ? DateTime.now().add(Duration(seconds: expiresIn))
+              : null;
+          await tokens.write(
+            TokenPair(
+              accessToken: access,
+              refreshToken: newRefresh,
+              expiresAt: expiresAt,
+            ),
+          );
+          return true;
+        }
       }
-      final access = data['access_token'] as String?;
-      final newRefresh = data['refresh_token'] as String?;
-      final expiresIn = data['expires_in'];
-      if (access == null || newRefresh == null) {
+      // Only a definitive 401 (invalid_refresh_token) means the refresh
+      // token is genuinely dead — then, and only then, sign out. A 429 /
+      // 5xx / malformed body is transient: keep the session so a later
+      // request can recover instead of dumping the user at the login screen.
+      if (status == 401) {
         await _forceSignOut();
-        return false;
       }
-      final expiresAt = expiresIn is int
-          ? DateTime.now().add(Duration(seconds: expiresIn))
-          : null;
-      await tokens.write(
-        TokenPair(
-          accessToken: access,
-          refreshToken: newRefresh,
-          expiresAt: expiresAt,
-        ),
-      );
-      return true;
+      return false;
     } on DioException {
-      await _forceSignOut();
+      // No network, timeout, or a 5xx — the refresh token is almost
+      // certainly still valid. Fail this one request quietly; never wipe
+      // the session on a transient error.
       return false;
     }
   }

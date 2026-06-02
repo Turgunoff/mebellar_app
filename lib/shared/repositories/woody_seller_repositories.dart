@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../core/auth/auth_repository.dart';
@@ -119,12 +120,15 @@ class WoodySellerOnboardingRepository implements SellerOnboardingRepository {
   WoodySellerOnboardingRepository({
     required WoodyApiClient api,
     required Box draftBox,
+    required R2UploadClient uploads,
   }) : _api = api,
-       _draftBox = draftBox;
+       _draftBox = draftBox,
+       _uploads = uploads;
 
   static const _draftKey = 'current_draft';
   final WoodyApiClient _api;
   final Box _draftBox;
+  final R2UploadClient _uploads;
 
   @override
   OnboardingDraft loadDraft() {
@@ -194,14 +198,56 @@ class WoodySellerOnboardingRepository implements SellerOnboardingRepository {
         if (draft.shopLng != null) 'longitude': draft.shopLng,
       },
     );
-    // Passport uploads ship as a separate step in Phase 7 once the R2
-    // presigned PUT plumbing lands; for now they stay queued in the draft.
+    final sellerId = body['seller_id'] as String;
+    // The onboarding POST creates the seller + shop; bucket-access gating on
+    // /storage/upload-url requires that shop to exist, so passports upload
+    // only after it returns. Docs go to the private `verification-docs` bucket
+    // and are registered via POST /seller/verification/documents — the same
+    // pair the standalone verification screen uses.
+    //
+    // Each submit gets its own folder (`attempt`) so a resubmit-after-rejection
+    // doesn't overwrite the prior attempt's images — the backend keeps a
+    // per-attempt history and the admin can review what was sent each time.
+    final attempt = DateTime.now().millisecondsSinceEpoch.toRadixString(36);
+    await _uploadPassport(sellerId, attempt, 'passport_front', passportFrontPath);
+    await _uploadPassport(sellerId, attempt, 'passport_back', passportBackPath);
     return OnboardingSubmissionResult(
-      sellerProfileId: body['seller_id'] as String,
+      sellerProfileId: sellerId,
       shopId: body['shop_id'] as String? ?? '',
       verificationStatus: VerificationStatus.fromCode(
         body['verification_status'] as String?,
       ),
+    );
+  }
+
+  Future<void> _uploadPassport(
+    String sellerId,
+    String attempt,
+    String documentType,
+    String? localPath,
+  ) async {
+    if (localPath == null) return;
+    // Compress to WebP (~88% quality) before upload — keeps passport text
+    // legible while cutting the payload, and the admin renders WebP natively.
+    final compressed = await FlutterImageCompress.compressWithFile(
+      File(localPath).absolute.path,
+      format: CompressFormat.webp,
+      quality: 88,
+      keepExif: false,
+      minWidth: 1600,
+      minHeight: 1600,
+    );
+    final bytes = compressed ?? await File(localPath).readAsBytes();
+    final path = '$sellerId/$attempt/$documentType.webp';
+    await _uploads.upload(
+      bucket: R2Bucket.verificationDocs,
+      path: path,
+      bytes: bytes,
+      contentType: 'image/webp',
+    );
+    await _api.post<dynamic>(
+      '/seller/verification/documents',
+      body: {'document_type': documentType, 'storage_path': path},
     );
   }
 }

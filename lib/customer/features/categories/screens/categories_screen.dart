@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -10,7 +9,6 @@ import 'package:shimmer/shimmer.dart';
 
 import '../../../../core/i18n/i18n.dart';
 import '../../../../shared/models/category_model.dart';
-import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/image_error_placeholder.dart';
 import '../../../widgets/glass_bottom_nav.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
@@ -26,99 +24,56 @@ class CategoriesScreen extends StatelessWidget {
       color: pt.background,
       child: SafeArea(
         bottom: false,
-        child: BlocBuilder<CategoriesBloc, CategoriesState>(
-          builder: (context, state) {
-            Future<void> handleRefresh() {
-              // Dispatch the refresh and wait for the bloc to leave the
-              // loading state — keeps the spinner pinned while the request
-              // is in flight, instead of disappearing the instant we add
-              // the event.
-              final bloc = context.read<CategoriesBloc>();
-              final completer = Completer<void>();
-              late final StreamSubscription sub;
-              sub = bloc.stream.listen((s) {
-                if (s.status != CategoriesStatus.loading &&
-                    !completer.isCompleted) {
-                  completer.complete();
-                  sub.cancel();
-                }
-              });
-              bloc.add(const CategoriesRequested());
-              return completer.future.timeout(
-                const Duration(seconds: 12),
-                onTimeout: () {
-                  sub.cancel();
-                },
-              );
-            }
-
-            // First-load failure with nothing cached → premium error state.
-            // Subsequent failures while we still have stale items keep the
-            // list visible (the global red banner already tells the user
-            // about the connection).
-            final isFailure = state.status == CategoriesStatus.failure;
-            final hasItems = state.categories.isNotEmpty;
-            if (isFailure && !hasItems) {
-              return BrandRefreshIndicator(
-                onRefresh: handleRefresh,
-                color: PremiumTokens.accent,
-                child: ListView(
-                  physics: const AlwaysScrollableScrollPhysics(
-                    parent: BouncingScrollPhysics(),
-                  ),
-                  padding: EdgeInsets.fromLTRB(
-                    16,
-                    8,
-                    16,
-                    GlassBottomNav.reservedHeight(context) + 48,
-                  ),
-                  children: [
-                    const _CategoriesAppBar(),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      height: MediaQuery.of(context).size.height * 0.55,
-                      child: _CategoriesErrorState(
-                        onRetry: () => context.read<CategoriesBloc>().add(
-                          const CategoriesRequested(),
-                        ),
+        child: Column(
+          children: [
+            // Pinned header — stays put while the category list scrolls.
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: _CategoriesAppBar(),
+            ),
+            Expanded(
+              child: BlocBuilder<CategoriesBloc, CategoriesState>(
+                builder: (context, state) {
+                  // First-load failure with nothing cached → premium error
+                  // state. Subsequent failures while we still have stale items
+                  // keep the list visible (the global red banner already tells
+                  // the user about the connection).
+                  final isFailure = state.status == CategoriesStatus.failure;
+                  final hasItems = state.categories.isNotEmpty;
+                  if (isFailure && !hasItems) {
+                    return _CategoriesErrorState(
+                      onRetry: () => context.read<CategoriesBloc>().add(
+                        const CategoriesRequested(),
                       ),
+                    );
+                  }
+
+                  // Shimmer only while we're actively loading; once the bloc
+                  // emits failure (or ready) we never re-enter shimmer state.
+                  final isLoading =
+                      state.status == CategoriesStatus.loading ||
+                      state.status == CategoriesStatus.initial;
+                  final items = state.categories;
+
+                  return ListView.separated(
+                    padding: EdgeInsets.fromLTRB(
+                      16,
+                      4,
+                      16,
+                      GlassBottomNav.reservedHeight(context) + 48,
                     ),
-                  ],
-                ),
-              );
-            }
-
-            // Shimmer only while we're actively loading; once the bloc
-            // emits failure (or ready) we never re-enter shimmer state.
-            final isLoading =
-                state.status == CategoriesStatus.loading ||
-                state.status == CategoriesStatus.initial;
-            final items = state.categories;
-
-            return BrandRefreshIndicator(
-              onRefresh: handleRefresh,
-              color: PremiumTokens.accent,
-              child: ListView.separated(
-                padding: EdgeInsets.fromLTRB(
-                  16,
-                  8,
-                  16,
-                  GlassBottomNav.reservedHeight(context) + 48,
-                ),
-                physics: const AlwaysScrollableScrollPhysics(
-                  parent: BouncingScrollPhysics(),
-                ),
-                itemCount: isLoading ? 5 : items.length + 1,
-                separatorBuilder: (_, _) => const SizedBox(height: 14),
-                itemBuilder: (context, i) {
-                  if (i == 0) return const _CategoriesAppBar();
-                  if (isLoading) return const _SkeletonCard();
-                  final cat = items[i - 1];
-                  return _EditorialCategoryCard(category: cat);
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: isLoading ? 5 : items.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 14),
+                    itemBuilder: (context, i) {
+                      if (isLoading) return const _SkeletonCard();
+                      return _EditorialCategoryCard(category: items[i]);
+                    },
+                  );
                 },
               ),
-            );
-          },
+            ),
+          ],
         ),
       ),
     );

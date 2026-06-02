@@ -32,6 +32,7 @@ void registerSellerModule(GetIt sl) {
     () => WoodySellerOnboardingRepository(
       api: sl<WoodyApiClient>(),
       draftBox: draftBox,
+      uploads: sl<R2UploadClient>(),
     ),
   );
 
