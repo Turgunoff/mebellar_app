@@ -41,6 +41,10 @@ class SellerDashboardCubit extends Cubit<SellerDashboardState> {
     } else {
       emit(state.copyWith(isLoading: true, clearError: true));
     }
+    // Fetch the greeting (name/shop) here — independent of the profile tab —
+    // so it's correct on the first load after sign-in, not only after a hot
+    // restart that happens to read a surviving cache.
+    await _refreshIdentity();
     await _loadInto(state.data);
   }
 
@@ -90,6 +94,45 @@ class SellerDashboardCubit extends Cubit<SellerDashboardState> {
     final snapshot = c.read(userId);
     if (snapshot == null || snapshot.isEmpty) return null;
     return snapshot;
+  }
+
+  /// Fetches the seller's display name + shop name and updates the greeting.
+  /// Best-effort: a 404 (no seller row yet) or a transient failure leaves the
+  /// cached/default greeting untouched. The result is persisted to the shared
+  /// identity cache so the profile tab and the next cold start read it too.
+  Future<void> _refreshIdentity() async {
+    try {
+      final ident = await _repo.identity();
+      final name = (ident.sellerName?.isNotEmpty ?? false)
+          ? ident.sellerName
+          : state.data.sellerName;
+      final shop = (ident.shopName?.isNotEmpty ?? false)
+          ? ident.shopName
+          : state.data.shopName;
+      if (name == state.data.sellerName && shop == state.data.shopName) return;
+      emit(
+        state.copyWith(
+          data: state.data.copyWith(sellerName: name, shopName: shop),
+        ),
+      );
+      _persistIdentity(name, shop);
+    } catch (_) {
+      // Best-effort — keep whatever greeting is already on screen.
+    }
+  }
+
+  void _persistIdentity(String? sellerName, String? shopName) {
+    final c = cache;
+    final userId = _auth?.currentUserId;
+    if (c == null || userId == null) return;
+    // Merge (not write) so the profile-only fields the cache also holds —
+    // logo, verification status, plan — survive.
+    unawaited(
+      c.merge(
+        userId,
+        SellerIdentitySnapshot(sellerName: sellerName, shopName: shopName),
+      ),
+    );
   }
 
   @override

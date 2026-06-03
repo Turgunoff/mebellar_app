@@ -62,6 +62,10 @@ class MockSellerDashboardRepository implements SellerDashboardRepository {
   }
 
   @override
+  Future<({String? sellerName, String? shopName})> identity() async =>
+      (sellerName: 'Sotuvchi', shopName: 'Mebel Hub');
+
+  @override
   Stream<Order> newOrders() => _orderController.stream;
 
   void _emitFakeNewOrder(Timer _) {

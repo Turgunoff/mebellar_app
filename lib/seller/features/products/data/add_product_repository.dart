@@ -257,7 +257,19 @@ class AddProductRepository {
         bytes: Uint8List.fromList(bytes),
         contentType: 'image/webp',
       );
-      urls.add(result.publicUrl ?? result.path);
+      // The backend only returns a public URL when the product-images bucket's
+      // R2_PRODUCT_IMAGES_PUBLIC_BASE_URL is set. Falling back to the bare
+      // object key here would persist an unrenderable image reference (no
+      // scheme/host) that shows as broken in the admin and as a placeholder in
+      // the app — fail loudly instead, like SellerProductRepository.addImage.
+      final publicUrl = result.publicUrl;
+      if (publicUrl == null || publicUrl.isEmpty) {
+        throw StateError(
+          'Image upload returned no public URL — the backend is missing '
+          'R2_PRODUCT_IMAGES_PUBLIC_BASE_URL',
+        );
+      }
+      urls.add(publicUrl);
     }
     return urls;
   }

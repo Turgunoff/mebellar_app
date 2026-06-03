@@ -69,6 +69,20 @@ class WoodySellerDashboardRepository implements SellerDashboardRepository {
   }
 
   @override
+  Future<({String? sellerName, String? shopName})> identity() async {
+    final body = await _api.get<Map<String, dynamic>>('/seller/me');
+    String? clean(Object? v) {
+      final s = (v as String?)?.trim();
+      return (s == null || s.isEmpty) ? null : s;
+    }
+
+    return (
+      sellerName: clean(body['legal_name']),
+      shopName: clean(body['shop_name']),
+    );
+  }
+
+  @override
   Stream<order_models.Order> newOrders() {
     // Phase 6 wires WebSocket-backed new-order events. Until then emit a
     // closed stream so the seller dashboard renders the existing snapshot

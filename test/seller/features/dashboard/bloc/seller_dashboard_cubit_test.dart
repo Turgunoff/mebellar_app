@@ -26,6 +26,10 @@ void main() {
     repo = _MockDashboardRepo();
     // The cubit subscribes to newOrders() in its constructor.
     when(() => repo.newOrders()).thenAnswer((_) => Stream<Order>.empty());
+    // load() fetches the greeting identity; default to "no change" so the
+    // existing KPI assertions below see the same state sequence as before.
+    when(() => repo.identity())
+        .thenAnswer((_) async => (sellerName: null, shopName: null));
   });
 
   blocTest<SellerDashboardCubit, SellerDashboardState>(
@@ -47,6 +51,37 @@ void main() {
           .having((s) => s.data.todaysOrders, 'todaysOrders', 3)
           .having((s) => s.data.productsCount, 'productsCount', 7)
           .having((s) => s.error, 'error', isNull),
+    ],
+  );
+
+  blocTest<SellerDashboardCubit, SellerDashboardState>(
+    'load() fetches the seller identity so the greeting is correct on the '
+    'first load (not only after a hot restart)',
+    build: () {
+      when(repo.snapshot).thenAnswer((_) async => _snapshot());
+      when(() => repo.identity()).thenAnswer(
+        (_) async => (sellerName: 'Eldor Turgunov', shopName: 'Meaning mebelim'),
+      );
+      return SellerDashboardCubit(repo);
+    },
+    seed: () => const SellerDashboardState(
+      isLoading: false,
+      data: SellerDashboardData(),
+    ),
+    act: (cubit) => cubit.load(),
+    expect: () => [
+      // 1) loading
+      isA<SellerDashboardState>()
+          .having((s) => s.isLoading, 'isLoading', true),
+      // 2) greeting filled from /seller/me — before the KPIs even arrive
+      isA<SellerDashboardState>()
+          .having((s) => s.data.sellerName, 'sellerName', 'Eldor Turgunov')
+          .having((s) => s.data.shopName, 'shopName', 'Meaning mebelim'),
+      // 3) KPIs land; greeting is preserved
+      isA<SellerDashboardState>()
+          .having((s) => s.isLoading, 'isLoading', false)
+          .having((s) => s.data.sellerName, 'sellerName kept', 'Eldor Turgunov')
+          .having((s) => s.data.todaysOrders, 'todaysOrders', 3),
     ],
   );
 
