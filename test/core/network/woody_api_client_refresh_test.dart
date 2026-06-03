@@ -23,6 +23,7 @@ const _json = {
 /// test dictate the refresh response status.
 class _FakeAdapter implements HttpClientAdapter {
   int refreshHits = 0;
+  int rejectedHits = 0;
   int refreshStatus = 200;
   final String validAccess = 'NEW';
 
@@ -59,6 +60,7 @@ class _FakeAdapter implements HttpClientAdapter {
     if (auth == 'Bearer $validAccess') {
       return ResponseBody.fromString('{"ok":true}', 200, headers: _json);
     }
+    rejectedHits++;
     return ResponseBody.fromString(
       '{"detail":"not_authenticated"}',
       401,
@@ -167,4 +169,44 @@ void main() {
 
     await sub.cancel();
   });
+
+  test(
+    'an already-expired access token refreshes PROACTIVELY — the burst never '
+    '401s and the rotating refresh token is presented exactly once',
+    () async {
+      // The day-later cold start: the stored access token is already past its
+      // 15-minute expiry while the 30-day refresh token is still valid.
+      await store.write(
+        TokenPair(
+          accessToken: 'OLD',
+          refreshToken: 'OLDREFRESH',
+          expiresAt: DateTime.now().subtract(const Duration(minutes: 1)),
+        ),
+      );
+      final adapter = _FakeAdapter();
+      final client = _client(adapter, store);
+
+      // A cold-start / post-rebirth burst of eight authenticated requests.
+      final results = await Future.wait(
+        List.generate(8, (_) => client.get<Map<String, dynamic>>('/me')),
+      );
+
+      // Refreshed up front, exactly once (single-flight) — so not a single
+      // request ever went out with the expired token and got a 401. This is
+      // what keeps the rotating refresh token from being presented twice and
+      // tripping the backend's reuse-detection.
+      expect(adapter.refreshHits, 1);
+      expect(
+        adapter.rejectedHits,
+        0,
+        reason: 'proactive refresh means no request leaves with an expired token',
+      );
+      for (final r in results) {
+        expect(r['ok'], true);
+      }
+      final pair = await store.read();
+      expect(pair?.accessToken, 'NEW');
+      expect(pair?.refreshToken, 'NEWREFRESH');
+    },
+  );
 }

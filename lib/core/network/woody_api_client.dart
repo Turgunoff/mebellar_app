@@ -252,8 +252,25 @@ class _AuthInterceptor extends Interceptor {
     RequestInterceptorHandler handler,
   ) async {
     final anonymous = options.extra[WoodyApiClient._anonymousKey] == true;
+    final skipRefresh = options.extra[WoodyApiClient._skipRefreshKey] == true;
     if (!anonymous) {
-      final pair = await _client.tokens.read();
+      var pair = await _client.tokens.read();
+      // Proactive refresh: if the access token is already expired, refresh
+      // ONCE up front (through the single-flight) instead of letting the
+      // request 401 and join a reactive refresh storm. A cold start — or a
+      // Phoenix.rebirth on a customer↔seller mode switch — fires a burst of
+      // authenticated requests carrying the same expired access token; access
+      // tokens live only 15 min while refresh tokens live 30 days, so a day
+      // later EVERY boot request is expired. Funnelling them through one
+      // proactive refresh presents the rotating refresh token to the server
+      // exactly once and means the very first call already carries a valid
+      // token (so e.g. /seller/me returns the real verification status rather
+      // than a swallowed 401). `skipRefresh` guards the refresh call itself
+      // and replays so this never recurses.
+      if (!skipRefresh && pair != null && pair.isExpired) {
+        await _client._attemptRefresh();
+        pair = await _client.tokens.read();
+      }
       if (pair != null) {
         options.headers['Authorization'] = 'Bearer ${pair.accessToken}';
       }

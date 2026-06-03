@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/auth/auth_repository.dart';
 import '../../../../core/logging/talker.dart';
+import '../../../../core/network/api_error.dart';
 import '../../../../core/network/woody_api_client.dart';
 import '../../../../shared/models/tariff.dart';
 import '../../../../shared/models/verification_status.dart';
@@ -40,66 +41,113 @@ class SellerProfileCubit extends Cubit<SellerProfileState> {
     }
 
     // 1. Hydrate from cache so the screen paints with last-known values
-    //    immediately. The fresh fetch overrides whatever was here in step 2.
-    final cached = _cache.read(userId);
-    if (cached != null && !cached.isEmpty) {
-      emit(SellerProfileState.fromSnapshot(cached, isLoading: true));
+    //    immediately. Step 2 refines it — but only with fields the server
+    //    actually answered for.
+    final base = _cache.read(userId) ?? const SellerIdentitySnapshot();
+    if (!base.isEmpty) {
+      emit(SellerProfileState.fromSnapshot(base, isLoading: true));
     } else {
       emit(state.copyWith(isLoading: true, clearError: true));
     }
 
-    // 2. Refresh from Woody. Three endpoints fetched in parallel.
-    try {
-      final results = await Future.wait<Map<String, dynamic>?>([
-        _swallow(_api.get<Map<String, dynamic>>('/seller/me'), label: 'me'),
-        _swallow(_api.get<Map<String, dynamic>>('/seller/shop'), label: 'shop'),
-        _swallow(
-          _api.get<Map<String, dynamic>>('/seller/tariff/current'),
-          label: 'tariff',
-        ),
-      ]);
-      final me = results[0];
-      final shop = results[1];
-      final tariff = results[2];
+    // 2. Refresh from Woody. Three endpoints in parallel, each classified
+    //    ok / absent (404) / failed (401, network, 5xx). A transient failure
+    //    must NEVER downgrade a known-good field: a hiccup on /seller/me must
+    //    not flip an approved seller back to "unverified" — nor poison the
+    //    cache with that wrong value, which is what made an approved seller
+    //    render as "Tasdiqlanmagan" after a stale-token boot.
+    final results = await Future.wait<_Fetch>([
+      _fetch(_api.get<Map<String, dynamic>>('/seller/me'), label: 'me'),
+      _fetch(_api.get<Map<String, dynamic>>('/seller/shop'), label: 'shop'),
+      _fetch(
+        _api.get<Map<String, dynamic>>('/seller/tariff/current'),
+        label: 'tariff',
+      ),
+    ]);
+    final meRes = results[0];
+    final shopRes = results[1];
+    final tariffRes = results[2];
 
-      final snapshot = SellerIdentitySnapshot(
-        shopName: _trimOrNull(
-          (shop?['name'] as String?) ?? (me?['shop_name'] as String?),
+    // /seller/me — verification status + legal name (+ shop_name fallback).
+    final verification = switch (meRes.outcome) {
+      _Outcome.ok => VerificationStatus.fromCode(
+          meRes.data?['verification_status'] as String?,
         ),
-        logoUrl: _trimOrNull(shop?['logo_url'] as String?),
-        sellerName: _trimOrNull(me?['legal_name'] as String?),
-        verificationStatus: VerificationStatus.fromCode(
-          me?['verification_status'] as String?,
-        ),
-        plan: TariffPlan.fromCode(tariff?['plan_code'] as String?),
-      );
+      _Outcome.absent => VerificationStatus.none,
+      _Outcome.failed => base.verificationStatus,
+    };
+    final sellerName = switch (meRes.outcome) {
+      _Outcome.ok => _trimOrNull(meRes.data?['legal_name'] as String?),
+      _Outcome.absent => null,
+      _Outcome.failed => base.sellerName,
+    };
+    final meShopName = meRes.outcome == _Outcome.ok
+        ? _trimOrNull(meRes.data?['shop_name'] as String?)
+        : null;
 
-      emit(SellerProfileState.fromSnapshot(snapshot, isLoading: false));
-      // Persist after emit so a slow disk write never blocks the UI render.
-      unawaited(_cache.write(userId, snapshot));
-    } catch (e, st) {
-      // Unreachable in practice — each read is already swallowed individually
-      // — but surfacing the error here keeps the screen renderable on a truly
-      // unexpected failure (e.g. Future.wait itself).
-      talker.handle(e, st, 'SellerProfileCubit.load');
-      emit(state.copyWith(isLoading: false, error: e.toString()));
-    }
+    // /seller/shop — shop name + logo.
+    final shopName = switch (shopRes.outcome) {
+      _Outcome.ok => _trimOrNull(shopRes.data?['name'] as String?) ?? meShopName,
+      _Outcome.absent => meShopName,
+      _Outcome.failed => meShopName ?? base.shopName,
+    };
+    final logoUrl = switch (shopRes.outcome) {
+      _Outcome.ok => _trimOrNull(shopRes.data?['logo_url'] as String?),
+      _Outcome.absent => null,
+      _Outcome.failed => base.logoUrl,
+    };
+
+    // /seller/tariff/current — active plan.
+    final plan = switch (tariffRes.outcome) {
+      _Outcome.ok => TariffPlan.fromCode(tariffRes.data?['plan_code'] as String?),
+      _Outcome.absent => TariffPlan.free,
+      _Outcome.failed => base.plan,
+    };
+
+    final snapshot = SellerIdentitySnapshot(
+      shopName: shopName,
+      logoUrl: logoUrl,
+      sellerName: sellerName,
+      verificationStatus: verification,
+      plan: plan,
+    );
+
+    emit(SellerProfileState.fromSnapshot(snapshot, isLoading: false));
+    // Persist after emit so a slow disk write never blocks the UI render.
+    unawaited(_cache.write(userId, snapshot));
   }
 
-  /// Each endpoint is independent: a missing `/seller/me` row (pre-onboarding)
-  /// must not blank out the shop logo, and a free plan (404 on tariff) must not
-  /// blank out the verification badge.
-  Future<Map<String, dynamic>?> _swallow(
+  /// Classifies a single endpoint read. A 404 is a definite "no row yet"
+  /// (`absent`) — distinct from a transient failure (`failed`: 401, network,
+  /// 5xx) where the caller preserves the last-known value instead of blanking
+  /// it. Each endpoint is independent: a missing `/seller/shop` row must not
+  /// touch the verification badge, and a transient `/seller/me` failure must
+  /// not touch the shop logo.
+  Future<_Fetch> _fetch(
     Future<Map<String, dynamic>> future, {
     required String label,
   }) async {
     try {
-      return await future;
+      return _Fetch(_Outcome.ok, await future);
+    } on ApiError catch (e, st) {
+      if (e.isNotFound) return const _Fetch(_Outcome.absent);
+      talker.handle(e, st, 'SellerProfileCubit.$label');
+      return const _Fetch(_Outcome.failed);
     } catch (e, st) {
       talker.handle(e, st, 'SellerProfileCubit.$label');
-      return null;
+      return const _Fetch(_Outcome.failed);
     }
   }
+}
+
+/// Outcome of a single `/seller/*` read used by [SellerProfileCubit.load].
+enum _Outcome { ok, absent, failed }
+
+class _Fetch {
+  const _Fetch(this.outcome, [this.data]);
+
+  final _Outcome outcome;
+  final Map<String, dynamic>? data;
 }
 
 class SellerProfileState extends Equatable {
