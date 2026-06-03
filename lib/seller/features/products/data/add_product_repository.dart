@@ -211,6 +211,7 @@ class AddProductRepository {
         if (input.subcategoryId != null) 'subcategory_id': input.subcategoryId,
         'name': input.name,
         if (input.description.isNotEmpty) 'description': input.description,
+        if (input.sku.isNotEmpty) 'sku': input.sku,
         'price': input.price,
         if (discountPrice != null) 'discount_price': discountPrice,
         'images': imageUrls,

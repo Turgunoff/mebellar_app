@@ -307,7 +307,7 @@ class WoodySellerProductRepository implements SellerProductRepository {
       oldPrice: row['discount_price'] as num?,
       discountPrice: row['discount_price'] as num?,
       stock: (row['stock'] as num?)?.toInt() ?? 0,
-      sku: '',
+      sku: (row['sku'] as String?) ?? '',
       images: images,
       primaryImageId: images.isEmpty ? null : images.first.id,
       attributes: row['attributes'] is Map<String, dynamic>

@@ -91,20 +91,38 @@ class WoodyRealtimeService {
     }
 
     final wsUrl = _toWsUrl(base, pair.accessToken);
+    final channel = WebSocketChannel.connect(wsUrl);
     try {
-      final channel = WebSocketChannel.connect(wsUrl);
-      _channel = channel;
-      _channelSub = channel.stream.listen(
-        _onMessage,
-        onDone: _onDone,
-        onError: _onError,
-        cancelOnError: false,
-      );
-      _backoffStep = 0;
-    } catch (e, st) {
-      talker.handle(e, st, 'WoodyRealtimeService: connect failed');
+      // Await the upgrade so a failed handshake (e.g. the server/nginx not
+      // serving WS at this path, or an expired token) is caught HERE instead
+      // of escaping as an unhandled async error. Without this await, the
+      // rejection bubbles to `runZonedGuarded` in main.dart and gets recorded
+      // by Crashlytics as a fatal "Uncaught zone error" on EVERY reconnect —
+      // spamming the console. Realtime is graceful-degradation; a missing WS
+      // endpoint must stay quiet.
+      await channel.ready;
+    } catch (e) {
+      // Expected when the realtime endpoint is unavailable. Logged at warning
+      // level — kept in the in-app Talker screen, but NOT forwarded to
+      // Crashlytics (the observer only bridges talker.handle) and NOT printed
+      // to the console (`useConsoleLogs: false`). Retry with backoff.
+      talker.warning('Realtime WS unavailable, retrying: $e');
       _scheduleReconnect();
+      return;
     }
+    if (!_running) {
+      // Torn down (sign-out / stop) while the handshake was in flight.
+      await channel.sink.close();
+      return;
+    }
+    _channel = channel;
+    _channelSub = channel.stream.listen(
+      _onMessage,
+      onDone: _onDone,
+      onError: _onError,
+      cancelOnError: false,
+    );
+    _backoffStep = 0;
   }
 
   Uri _toWsUrl(String base, String token) {
@@ -151,8 +169,11 @@ class WoodyRealtimeService {
     _scheduleReconnect();
   }
 
-  void _onError(Object error, StackTrace stack) {
-    talker.handle(error, stack, 'WoodyRealtimeService: stream error');
+  void _onError(Object error) {
+    // A mid-stream drop is routine (idle timeout, network blip, server
+    // restart). Keep it in the in-app log only — never escalate a reconnect
+    // to Crashlytics or the console (see `_connect` for the rationale).
+    talker.warning('Realtime WS stream error, reconnecting: $error');
     _channel = null;
     _channelSub = null;
     _scheduleReconnect();

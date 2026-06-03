@@ -240,96 +240,127 @@ class ProductFormBody extends StatelessWidget {
 
   Future<void> _openCustomDiscountDialog(BuildContext context) async {
     final cubit = context.read<AddProductCubit>();
-    final primary = Theme.of(context).colorScheme.primary;
-    final controller = TextEditingController(
-      text: cubit.state.discountPercent == 0
-          ? ''
-          : '${cubit.state.discountPercent}',
-    );
     final picked = await showDialog<int>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Maxsus chegirma',
-          style: TextStyle(
-            fontFamily: AppFonts.seller,
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: kInk,
-            letterSpacing: -0.2,
-          ),
-        ),
-        content: TextField(
-          controller: controller,
-          keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          autofocus: true,
-          cursorColor: primary,
-          style: const TextStyle(
-            fontFamily: AppFonts.seller,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: kInk,
-          ),
-          decoration: InputDecoration(
-            isDense: true,
-            hintText: '0',
-            suffixText: '%',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: kOutline),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: kOutline),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: primary, width: 1.4),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text(
-              'Bekor qilish',
-              style: TextStyle(
-                fontFamily: AppFonts.seller,
-                fontWeight: FontWeight.w600,
-                color: kGrey,
-              ),
-            ),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: primary,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            onPressed: () {
-              final v = int.tryParse(controller.text) ?? 0;
-              Navigator.of(ctx).pop(v.clamp(0, 100));
-            },
-            child: const Text(
-              'Saqlash',
-              style: TextStyle(
-                fontFamily: AppFonts.seller,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
-      ),
+      builder: (_) =>
+          _CustomDiscountDialog(initial: cubit.state.discountPercent),
     );
-    controller.dispose();
     if (picked != null) {
       cubit.setDiscountPercent(picked);
     }
+  }
+}
+
+/// Custom-discount entry dialog. Owns its [TextEditingController] so the
+/// framework disposes it on unmount — i.e. AFTER the dialog's exit animation
+/// completes. Disposing the controller synchronously after `showDialog`
+/// returns (while the autofocused field is still animating out) tears the
+/// element tree down mid-flight and trips the framework's
+/// `'_dependents.isEmpty'` assertion.
+class _CustomDiscountDialog extends StatefulWidget {
+  const _CustomDiscountDialog({required this.initial});
+
+  final int initial;
+
+  @override
+  State<_CustomDiscountDialog> createState() => _CustomDiscountDialogState();
+}
+
+class _CustomDiscountDialogState extends State<_CustomDiscountDialog> {
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.initial == 0 ? '' : '${widget.initial}',
+  );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    final v = int.tryParse(_controller.text) ?? 0;
+    Navigator.of(context).pop(v.clamp(0, 100));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    return AlertDialog(
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: const Text(
+        'Maxsus chegirma',
+        style: TextStyle(
+          fontFamily: AppFonts.seller,
+          fontSize: 16,
+          fontWeight: FontWeight.w700,
+          color: kInk,
+          letterSpacing: -0.2,
+        ),
+      ),
+      content: TextField(
+        controller: _controller,
+        keyboardType: TextInputType.number,
+        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+        autofocus: true,
+        cursorColor: primary,
+        textInputAction: TextInputAction.done,
+        onSubmitted: (_) => _save(),
+        style: const TextStyle(
+          fontFamily: AppFonts.seller,
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: kInk,
+        ),
+        decoration: InputDecoration(
+          isDense: true,
+          hintText: '0',
+          suffixText: '%',
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: kOutline),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: kOutline),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: primary, width: 1.4),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text(
+            'Bekor qilish',
+            style: TextStyle(
+              fontFamily: AppFonts.seller,
+              fontWeight: FontWeight.w600,
+              color: kGrey,
+            ),
+          ),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: primary,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+          onPressed: _save,
+          child: const Text(
+            'Saqlash',
+            style: TextStyle(
+              fontFamily: AppFonts.seller,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
 
