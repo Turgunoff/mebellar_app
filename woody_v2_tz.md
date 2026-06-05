@@ -22,7 +22,7 @@
 
 ## 0. Executive Summary
 
-Woody (kod nomi `Mebellar`) — O'zbekistonda **faqat mebelga ixtisoslashgan**
+Woody (kod nomi `Woody`) — O'zbekistonda **faqat mebelga ixtisoslashgan**
 ikki tomonlama (two-sided) onlayn marketplace. Xaridor va tasdiqlangan
 sotuvchini bir platformada bog'laydi.
 

@@ -1,4 +1,4 @@
-# Flutter App ROADMAP — Mebellar V2
+# Flutter App ROADMAP — Woody V2
 
 > Sprint-bo'yicha batafsil amaliy reja. Har sprint **bir hafta** (haftada 35-40 soat). Acceptance criteria bilan — sprint tugaganda nima ishlashi kerakligi aniq.
 >
@@ -554,7 +554,7 @@
   - [x] "SHOP-{shop_id}" izoh ListTile + alohida copy button
   - [x] "📋 Karta raqamini ko'chirish" — snackbar
   - [x] "📸 To'lov skrinshotini yuklash" — image picker (resize/quality enforced)
-  - [x] Telegram alternativ tugma (`tg://resolve?domain=MebellarSupportBot`)
+  - [x] Telegram alternativ tugma (`tg://resolve?domain=WoodySupportBot`)
 - [x] **Skrinshot upload flow**
   - [x] Image picker → 2048px max + 85% quality (`ImageUploadHelper`)
   - [x] Mock URL synth (`payments/upgrade-{ts}.{ext}`); Remote stub holds the contract

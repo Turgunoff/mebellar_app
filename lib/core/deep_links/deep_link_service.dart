@@ -61,13 +61,10 @@ class MockDeepLinkService implements DeepLinkService {
   /// Web hosts whose universal links this app claims. Every entry must also
   /// be listed in the Apple `apple-app-site-association` and Android
   /// `assetlinks.json` deploys. Both the bare apex and the `www.` host are
-  /// accepted; the legacy `mebellar-olami.uz` is kept alongside the canonical
-  /// `mebellar.uz` so links minted by older builds keep resolving.
+  /// accepted.
   static const Set<String> _webHosts = {
-    'mebellar.uz',
-    'www.mebellar.uz',
-    'mebellar-olami.uz',
-    'www.mebellar-olami.uz',
+    'woody.uz',
+    'www.woody.uz',
   };
 
   /// Memory fallback used when no Hive box is wired (unit tests).
@@ -114,15 +111,15 @@ class MockDeepLinkService implements DeepLinkService {
     if (uri == null) return null;
 
     // Accepted forms:
-    //   mebellar://orders/abc-123
-    //   https://mebellar.uz/orders/abc-123
-    //   https://mebellar.uz/seller/products/sp-7
-    final isAppScheme = uri.scheme == 'mebellar';
+    //   woody://orders/abc-123
+    //   https://woody.uz/orders/abc-123
+    //   https://woody.uz/seller/products/sp-7
+    final isAppScheme = uri.scheme == 'woody';
     final isWebHost = uri.scheme == 'https' && _webHosts.contains(uri.host);
     if (!isAppScheme && !isWebHost) return null;
 
     // For app-scheme URIs the host carries the first segment (e.g.
-    // `mebellar://orders/abc` parses with host=orders, path=/abc).
+    // `woody://orders/abc` parses with host=orders, path=/abc).
     final segments = isAppScheme
         ? <String>[uri.host, ...uri.pathSegments]
         : uri.pathSegments;

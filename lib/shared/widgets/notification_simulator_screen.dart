@@ -255,7 +255,7 @@ class _ConnectivityToggleCard extends StatelessWidget {
   }
 }
 
-/// Sprint 11: paste any `mebellar://` or `https://mebellar.uz/...` URI to
+/// Sprint 11: paste any `woody://` or `https://woody.uz/...` URI to
 /// fire `DeepLinkService.handleUri`. Useful for verifying the routing
 /// rules without configuring the OS-level App Links handler.
 class _DeepLinkTesterCard extends StatefulWidget {
@@ -267,7 +267,7 @@ class _DeepLinkTesterCard extends StatefulWidget {
 
 class _DeepLinkTesterCardState extends State<_DeepLinkTesterCard> {
   late final TextEditingController _ctrl =
-      TextEditingController(text: 'mebellar://orders/ord-1001');
+      TextEditingController(text: 'woody://orders/ord-1001');
 
   @override
   void dispose() {
@@ -314,7 +314,7 @@ class _DeepLinkTesterCardState extends State<_DeepLinkTesterCard> {
             TextField(
               controller: _ctrl,
               decoration: InputDecoration(
-                hintText: 'mebellar://orders/ord-1001',
+                hintText: 'woody://orders/ord-1001',
                 isDense: true,
                 border: const OutlineInputBorder(),
                 suffixIcon: IconButton(

@@ -1,6 +1,6 @@
-# Mebellar — Two-Sided Furniture Marketplace (Flutter)
+# Woody — Two-Sided Furniture Marketplace (Flutter)
 
-> Internal codename: **Woody** (`pubspec.yaml` → `name: woody_app`). Brand: **Mebellar** — an Uzbekistan-focused furniture (`mebel`) marketplace.
+> Internal codename: **Woody** (`pubspec.yaml` → `name: woody_app`). Brand: **Woody** — an Uzbekistan-focused furniture (`mebel`) marketplace.
 
 [![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter)](https://flutter.dev)
 [![Dart](https://img.shields.io/badge/Dart-^3.11.5-0175C2?logo=dart)](https://dart.dev)
@@ -10,9 +10,9 @@
 
 ---
 
-## 1. What is Mebellar?
+## 1. What is Woody?
 
-Mebellar is a **two-sided B2C/C2C marketplace for furniture**, targeting the Uzbekistan market. It ships as **one Flutter binary that hosts two independent product surfaces**:
+Woody is a **two-sided B2C/C2C marketplace for furniture**, targeting the Uzbekistan market. It ships as **one Flutter binary that hosts two independent product surfaces**:
 
 - a **customer storefront** — browse catalog, search, cart, checkout, track orders;
 - a **seller back-office** — onboard a shop, manage products, fulfill orders, subscribe to tariff plans.

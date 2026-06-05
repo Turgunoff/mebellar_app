@@ -13,7 +13,7 @@ This document is the single source of truth for a new developer joining the team
 
 | Metric | Value |
 | --- | --- |
-| Product | **Mebellar** — two-sided furniture (`mebel`) marketplace for Uzbekistan |
+| Product | **Woody** — two-sided furniture (`mebel`) marketplace for Uzbekistan |
 | Internal codename | `woody_app` (`pubspec.yaml` → `name:`) |
 | Framework | Flutter (Dart SDK `^3.11.5`) |
 | Dart source | **360 files**, ~**59,800 lines** under `lib/` |

@@ -20,7 +20,7 @@
 
 ```
 Step 1: Welcome
-  "Mebellar'da sotishni boshlang. 5 daqiqada ro'yxatdan o'ting."
+  "Woody'da sotishni boshlang. 5 daqiqada ro'yxatdan o'ting."
   [Boshlash]
 
 Step 2: Yuridik holat

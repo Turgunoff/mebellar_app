@@ -1,4 +1,4 @@
-Tekshiruv natijalari — Mebellar Olami Flutter UI
+Tekshiruv natijalari — Woody Olami Flutter UI
 
 4 ta parallel reviewer 233 ta dart fayl bo'ylab yurib chiqdi.
 flutter analyze bitta unused element warning bilan toza, ammo UI

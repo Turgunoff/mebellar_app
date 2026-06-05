@@ -1,6 +1,6 @@
 # Woody Mobile — Texnik Topshiriq (TZ)
 
-**Komponent:** `mebellar_app` — Mebellar mobil ilova (customer + seller)
+**Komponent:** `mebellar_app` — Woody mobil ilova (customer + seller)
 **Sana:** 2026-06-04 · **Holat:** Production · **Versiya:** `1.0.5+6`
 **Package:** `com.mebellar.app` (Dart paket `woody_app`)
 **Umumiy TZ:** [`../woody_v2_tz.md`](../woody_v2_tz.md) · **Brain:** `CLAUDE.md`

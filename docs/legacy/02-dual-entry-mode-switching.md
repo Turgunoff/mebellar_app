@@ -237,7 +237,7 @@ class _CustomerAppState extends State<CustomerApp> {
         // ... customer-specific blocs
       ],
       child: MaterialApp.router(
-        title: 'Mebellar',
+        title: 'Woody',
         theme: customerLightTheme,
         darkTheme: customerDarkTheme,
         routerConfig: _router,
@@ -260,7 +260,7 @@ class _CustomerAppState extends State<CustomerApp> {
 ```
 1. Profile screen → "Sotuvchi bo'lish" tugma
 2. Onboarding bottom sheet:
-   "Mebellar'da sotishni boshlang. 5 daqiqada ro'yxatdan o'ting."
+   "Woody'da sotishni boshlang. 5 daqiqada ro'yxatdan o'ting."
    [Boshlash]
 3. Multi-step form (still in customer app):
    - Yuridik holat (Jismoniy / YaTT / MChJ)

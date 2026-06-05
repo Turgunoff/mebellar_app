@@ -1,4 +1,4 @@
-# Mebellar — project brain
+# Woody — project brain
 
 Furniture marketplace for Uzbekistan. Flutter mobile app with two
 distinct modes (customer + seller) inside one binary, backed by a custom
@@ -261,4 +261,4 @@ This brain captures the state after a multi-session redesign:
   is requested — fills `otpCtrl` → auto-submits. User Consent is used (not
   SMS Retriever) because the Eskiz template carries another app's signature
   hash, so hash-based retrieval can't match. Fully-automatic Android autofill
-  would need an Eskiz template ending in Mebellar's own app-signature hash.
+  would need an Eskiz template ending in Woody's own app-signature hash.

@@ -54,7 +54,7 @@ Foydalanuvchi tarif tanlaganda, bottom sheet ochiladi:
 │ [📋 Karta raqamini ko'chirish]          │
 │ [📸 To'lov skrinshotini yuklash]        │
 │                                         │
-│ Yoki @MebellarSupportBot'ga             │
+│ Yoki @WoodySupportBot'ga             │
 │ skrinshot yuboring                      │
 └─────────────────────────────────────────┘
 ```
@@ -246,9 +246,9 @@ on DioException catch (e) {
 
 ## 8. Telegram alternativ
 
-Bottom sheet'da link: "Yoki @MebellarSupportBot'ga skrinshot yuboring":
+Bottom sheet'da link: "Yoki @WoodySupportBot'ga skrinshot yuboring":
 
-- `tg://resolve?domain=MebellarSupportBot` deep link
+- `tg://resolve?domain=WoodySupportBot` deep link
 - Telegram ochiladi, bot bilan suhbat
 - Admin Telegram bot orqali skrinshot oladi va manual tasdiqlaydi
 - Status mobile app'da sync bo'ladi (push notif)

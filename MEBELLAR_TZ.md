@@ -1,8 +1,8 @@
-# Mebellar — To'liq Texnik Topshiriq (TZ)
+# Woody — To'liq Texnik Topshiriq (TZ)
 
-> **Loyiha:** Mebellar — O'zbekiston bozori uchun ikki tomonli (B2C/C2C) mebel marketplace.
+> **Loyiha:** Woody — O'zbekiston bozori uchun ikki tomonli (B2C/C2C) mebel marketplace.
 > **Ichki kod nomi:** `woody_app` (`pubspec.yaml` → `name:`)
-> **Brend:** Mebellar (`uz.mebellar.app` / `com.mebellar.app`)
+> **Brend:** Woody (`uz.mebellar.app` / `com.mebellar.app`)
 > **Hujjat sanasi:** 2026-05-19
 > **Versiya:** V1 (MVP) — Code Complete bosqichida (`dart analyze` toza, 192 test o'tadi)
 > **Maintainer:** Eldor Turg'unov (`Turgunoff`)
@@ -24,7 +24,7 @@ Ikkala qism **bitta loyihani** turli o'qish prizmasidan tasvirlaydi — kontekst
 
 ## 1.1 Executive Summary
 
-**Mebellar** — O'zbekistonda mebel sotib olish va sotishni raqamlashtiradigan ikki tomonli mobil marketplace. Bir tomonida xaridorlar — istalgan joydan mebel topa olish, narxlar taqqoslay olish va buyurtma kuzatib borish imkoniyatiga ega. Boshqa tomonida sotuvchilar — mahalliy do'kondorlar va ishlab chiqaruvchilar — yagona ilova orqali do'konini boshqarish, mahsulot joylash, buyurtmalarni qabul qilish va analitika ko'rish imkoniyatiga ega.
+**Woody** — O'zbekistonda mebel sotib olish va sotishni raqamlashtiradigan ikki tomonli mobil marketplace. Bir tomonida xaridorlar — istalgan joydan mebel topa olish, narxlar taqqoslay olish va buyurtma kuzatib borish imkoniyatiga ega. Boshqa tomonida sotuvchilar — mahalliy do'kondorlar va ishlab chiqaruvchilar — yagona ilova orqali do'konini boshqarish, mahsulot joylash, buyurtmalarni qabul qilish va analitika ko'rish imkoniyatiga ega.
 
 Asosiy farqli xususiyat: **bitta foydalanuvchi** ham xaridor, ham sotuvchi bo'la oladi, va ilovani qayta o'rnatmasdan, real-time rejimida ikki interfeys o'rtasida almashtira oladi.
 
@@ -43,7 +43,7 @@ Asosiy farqli xususiyat: **bitta foydalanuvchi** ham xaridor, ham sotuvchi bo'la
 
 - **Yuqori chek (high AOV).** Bitta mebel buyurtmasi o'rtacha $200–$2,000 oralig'ida — universal marketplace'lardagi $10–$30 chekka qaraganda har bir tranzaksiya komissiyasi yuqori
 - **Vizual kategoriya.** Mahsulot fotosurati va o'lchamlari muhim — bu mobil ilovaga ishlash uchun yaxshi mos keladi
-- **Mahalliy logistika.** Mebel jo'natish murakkab, bu markazlashgan logistikani majburlamaydi — sotuvchilar o'z yetkazib berishini o'zlari uyushtiradi (Mebellar logistik xarajat ko'tarmaydi)
+- **Mahalliy logistika.** Mebel jo'natish murakkab, bu markazlashgan logistikani majburlamaydi — sotuvchilar o'z yetkazib berishini o'zlari uyushtiradi (Woody logistik xarajat ko'tarmaydi)
 - **Hozir to'g'ridan-to'g'ri raqobatchi yo'q.** O'zbekistonda **faqat mebel'ga ixtisoslashgan** marketplace yo'q — universal platformalardagi mebel bo'limi sayoz va ishonchsiz
 
 ### 1.2.3 Sotuvchi tomoni (B2B uchun motivatsiya)
@@ -54,7 +54,7 @@ Mahalliy mebel sotuvchilarining katta qismi:
 - O'z onlayn-do'koni yo'q (texnik to'siq + xarajat)
 - Mahsulot, buyurtma, mijoz ma'lumotlarini tizimli yuritmaydi
 
-Mebellar bu sotuvchilarni bir necha daqiqada onlayn-faol qiladi: ro'yxatdan o'tish → do'kon yaratish → mahsulot joylash → buyurtma qabul qilish. **DIY tariffidagi Free plan** texnik to'siqni butunlay olib tashlaydi.
+Woody bu sotuvchilarni bir necha daqiqada onlayn-faol qiladi: ro'yxatdan o'tish → do'kon yaratish → mahsulot joylash → buyurtma qabul qilish. **DIY tariffidagi Free plan** texnik to'siqni butunlay olib tashlaydi.
 
 ## 1.3 Mahsulot Ko'rinishi
 
@@ -192,7 +192,7 @@ Sababi: joriy strategik pivot **faqat kod sifati va funksional to'liqligiga** qa
 
 ## 1.7 Raqobat Tahlili
 
-| Raqobatchi | Mebellar uchun tahdid darajasi | Izoh |
+| Raqobatchi | Woody uchun tahdid darajasi | Izoh |
 | --- | --- | --- |
 | **Uzum Market** | O'rta | Universal marketplace; mebel — kichik bo'lim; CX general |
 | **Sello / OLX** | Past | Klassifayd model — sotuvchi-shop tushunchasi yo'q, ishonch past |
@@ -217,7 +217,7 @@ Sababi: joriy strategik pivot **faqat kod sifati va funksional to'liqligiga** qa
 | **Universal marketplace mebel bo'limini kuchaytirishi** | O'rta | Yuqori | Niche UX afzalligi; mebel-specific feature'lar (size visualizer, AR room preview V3) |
 | **Verifikatsiya manual jarayon, scaling** | O'rta | O'rta | V2'da MyID integratsiya; admin tooling |
 | **Yagona maintainer bog'liqligi (bus factor 1)** | Yuqori | Yuqori | Hujjatlar to'liq; ikkinchi muhandis qo'shilishi tavsiya etiladi |
-| **Mahalliy logistika sifati past** | Yuqori | O'rta | Sotuvchining o'z logistikasi modeli — Mebellar logistic xarajat ko'tarmaydi |
+| **Mahalliy logistika sifati past** | Yuqori | O'rta | Sotuvchining o'z logistikasi modeli — Woody logistic xarajat ko'tarmaydi |
 
 ## 1.9 Jamoa va Operatsion Holat
 

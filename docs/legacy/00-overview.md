@@ -2,9 +2,9 @@
 
 > Asl §0, §1, §2.
 
-## Mebellar nima
+## Woody nima
 
-Mebellar — O'zbekistondagi mebel marketplace platformasi. Ikki tomonli (two-sided):
+Woody — O'zbekistondagi mebel marketplace platformasi. Ikki tomonli (two-sided):
 
 - **Customer** — xaridor: catalog, search, cart, checkout, order tracking
 - **Seller** — sotuvchi: shop, mahsulot CRUD, order fulfillment, dashboard, tariff

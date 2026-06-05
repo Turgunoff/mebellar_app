@@ -41,23 +41,23 @@ void main() {
   });
 
   group('MockDeepLinkService URI routing', () {
-    test('mebellar:// scheme routes to customer mode', () {
+    test('woody:// scheme routes to customer mode', () {
       final target =
-          MockDeepLinkService.parse('mebellar://orders/ord-1001');
+          MockDeepLinkService.parse('woody://orders/ord-1001');
       expect(target?.mode, AppMode.customer);
       expect(target?.route, '/orders/ord-1001');
     });
 
-    test('https://mebellar.uz/... routes the same way', () {
+    test('https://woody.uz/... routes the same way', () {
       final target =
-          MockDeepLinkService.parse('https://mebellar.uz/orders/ord-1001');
+          MockDeepLinkService.parse('https://woody.uz/orders/ord-1001');
       expect(target?.mode, AppMode.customer);
       expect(target?.route, '/orders/ord-1001');
     });
 
     test('seller-prefixed routes flip the mode', () {
       final target =
-          MockDeepLinkService.parse('mebellar://seller/products/sp-7');
+          MockDeepLinkService.parse('woody://seller/products/sp-7');
       expect(target?.mode, AppMode.seller);
       expect(target?.route, '/seller/products/sp-7');
     });
@@ -69,7 +69,7 @@ void main() {
 
     test('search query string survives parsing', () {
       final target = MockDeepLinkService.parse(
-          'https://mebellar.uz/catalog?category=sofas');
+          'https://woody.uz/catalog?category=sofas');
       expect(target?.mode, AppMode.customer);
       expect(target?.route, contains('catalog'));
       expect(target?.route, contains('category=sofas'));

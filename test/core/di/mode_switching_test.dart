@@ -17,7 +17,7 @@ void main() {
   late Directory tmp;
 
   setUp(() async {
-    tmp = await Directory.systemTemp.createTemp('mebellar_modeswitch_');
+    tmp = await Directory.systemTemp.createTemp('woody_modeswitch_');
     Hive.init(tmp.path);
     final sl = GetIt.instance;
     await sl.reset();
