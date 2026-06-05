@@ -294,5 +294,5 @@ To'plangan ma'lumotlar buyurtmalarni qayta ishlash va yetkazib berish, mijozlarg
 
 3. Ma'lumotlarni himoya qilish va huquqlar
 
-Barcha ma'lumotlar shifrlangan kanallar orqali uzatiladi va xavfsiz serverllarda saqlanadi. Foydalanuvchi o'z shaxsiy ma'lumotlarini ko'rish, o'zgartirish yoki o'chirish huquqiga ega. Bunday so'rovlar bilan privacy@mebellar.uz elektron pochta manziliga murojaat qilishingiz mumkin.
+Barcha ma'lumotlar shifrlangan kanallar orqali uzatiladi va xavfsiz serverllarda saqlanadi. Foydalanuvchi o'z shaxsiy ma'lumotlarini ko'rish, o'zgartirish yoki o'chirish huquqiga ega. Bunday so'rovlar bilan info@woody.uz elektron pochta manziliga murojaat qilishingiz mumkin.
 ''';

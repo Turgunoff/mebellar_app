@@ -7,8 +7,9 @@ import '../../home/widgets/premium/premium_tokens.dart';
 class HelpScreen extends StatelessWidget {
   const HelpScreen({super.key});
 
-  static const _telegramUrl = 'https://t.me/mebellar_support';
-  static const _whatsappUrl = 'https://wa.me/998901234567';
+  static const _telegramUrl = 'https://t.me/woody_support';
+  static const _whatsappUrl = 'https://wa.me/998946433733';
+  static const _emailUrl = 'mailto:info@woody.uz';
 
   Future<void> _launch(String url) async {
     final uri = Uri.parse(url);
@@ -107,9 +108,17 @@ class HelpScreen extends StatelessWidget {
           const _SectionLabel("Murojaat qiling"),
           const SizedBox(height: 8),
           _ContactCard(
+            icon: Iconsax.sms,
+            label: 'Email orqali',
+            subtitle: 'info@woody.uz',
+            color: PremiumTokens.accent,
+            onTap: () => _launch(_emailUrl),
+          ),
+          const SizedBox(height: 10),
+          _ContactCard(
             icon: Iconsax.message,
             label: 'Telegram orqali',
-            subtitle: '@mebellar_support',
+            subtitle: '@woody_support',
             color: const Color(0xFF2AABEE),
             onTap: () => _launch(_telegramUrl),
           ),
@@ -117,7 +126,7 @@ class HelpScreen extends StatelessWidget {
           _ContactCard(
             icon: Iconsax.call,
             label: 'WhatsApp orqali',
-            subtitle: '+998 90 123 45 67',
+            subtitle: '+998 94 643 37 33',
             color: const Color(0xFF25D366),
             onTap: () => _launch(_whatsappUrl),
           ),

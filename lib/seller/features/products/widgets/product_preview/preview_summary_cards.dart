@@ -228,7 +228,7 @@ class TitlePriceCard extends StatelessWidget {
           const SizedBox(height: 14),
           const Divider(height: 1, thickness: 1, color: kDivider),
           const SizedBox(height: 14),
-          // Mebellar's catalog is made-to-order — every product is rendered
+          // Woody's catalog is made-to-order — every product is rendered
           // as "available" once the moderator approves it; otherwise we
           // surface the moderation state instead of a fake stock count.
           Row(

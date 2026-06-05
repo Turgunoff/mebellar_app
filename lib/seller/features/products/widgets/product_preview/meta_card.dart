@@ -9,7 +9,7 @@ import 'product_preview_kit.dart';
 /// glance: the human-friendly product code (renamed from "SKU" so it doesn't
 /// read as warehouse jargon) and the resolved category name.
 ///
-/// Stock used to live here but Mebellar is made-to-order — no stock count to
+/// Stock used to live here but Woody is made-to-order — no stock count to
 /// surface, so the row was removed.
 class MetaCard extends StatelessWidget {
   const MetaCard({

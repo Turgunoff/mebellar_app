@@ -138,7 +138,7 @@ class SellerProduct extends Equatable {
   /// when there's no active discount.
   final num? discountPrice;
 
-  /// Legacy stock column — not surfaced in any UI any more (Mebellar is
+  /// Legacy stock column — not surfaced in any UI any more (Woody is
   /// made-to-order). Kept as an internal default so older code paths
   /// (favourites, cart) that still touch the field don't break.
   final int stock;

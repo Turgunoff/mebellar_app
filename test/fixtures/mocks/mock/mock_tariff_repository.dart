@@ -143,7 +143,7 @@ class MockTariffRepository implements TariffRepository {
         cardHolder: 'KARIMOV AZIZ',
         bankName: 'Uzcard',
         note: 'SHOP-$shopId',
-        telegramSupportUrl: 'tg://resolve?domain=MebellarSupportBot',
+        telegramSupportUrl: 'tg://resolve?domain=WoodySupportBot',
       ),
     );
   }

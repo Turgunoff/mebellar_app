@@ -5,3 +5,5 @@
   
   --obfuscate --split-debug-info — kodni himoyalaydi (tavsiya). Oddiyroq variant: shunchaki flutter build appbundle 
   --release.
+
+  flutter run --dart-define-from-file=env/prod.json
