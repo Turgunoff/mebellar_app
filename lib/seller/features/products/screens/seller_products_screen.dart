@@ -476,52 +476,30 @@ class _ProductTile extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 10),
-                      Row(
+                      // Wrap (not Row) so the action drops to a second line
+                      // instead of overflowing when the chip + label are wider
+                      // than the card — e.g. the rejected state's long chip.
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           ProductStatusChip(
                             status: product.status,
                             compact: true,
                           ),
-                          const Spacer(),
                           if (product.status == SellerProductStatus.draft ||
                               product.status == SellerProductStatus.rejected)
-                            TextButton(
+                            _SubmitForReviewButton(
                               onPressed: () => context
                                   .read<SellerProductsBloc>()
                                   .add(SellerProductSubmitted(product.id)),
-                              style: TextButton.styleFrom(
-                                foregroundColor: AppColors.terracotta,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                minimumSize: Size.zero,
-                                tapTargetSize:
-                                    MaterialTapTargetSize.shrinkWrap,
-                              ),
-                              child: Text(
-                                tr('seller.product_submit_for_review'),
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.terracotta,
-                                  height: 1.2,
-                                ),
-                              ),
                             ),
                         ],
                       ),
                       if (product.rejectionReason != null) ...[
-                        const SizedBox(height: 6),
-                        Text(
-                          product.rejectionReason!,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: Color(0xFFC0392B),
-                            height: 1.3,
-                          ),
-                        ),
+                        const SizedBox(height: 8),
+                        _RejectionReason(reason: product.rejectionReason!),
                       ],
                     ],
                   ),
@@ -530,6 +508,91 @@ class _ProductTile extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+// Soft terracotta pill — the "submit for review" action for draft/rejected
+// products. Lives in a Wrap beside the status chip, so it slides to the next
+// line when there's no room rather than overflowing the row.
+class _SubmitForReviewButton extends StatelessWidget {
+  const _SubmitForReviewButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.terracotta.withValues(alpha: 0.10),
+      borderRadius: BorderRadius.circular(999),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onPressed,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Iconsax.send_2, size: 13, color: AppColors.terracotta),
+              const SizedBox(width: 5),
+              Text(
+                tr('seller.product_submit_for_review'),
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.terracotta,
+                  height: 1.0,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Rejection reason callout — a soft red surface with an info glyph, so the
+// reason reads as a distinct, scannable note instead of bare red body text.
+class _RejectionReason extends StatelessWidget {
+  const _RejectionReason({required this.reason});
+
+  final String reason;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFDECEA),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 1),
+            child: Icon(
+              Iconsax.info_circle,
+              size: 14,
+              color: Color(0xFFC0392B),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              reason,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFFB23B2E),
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

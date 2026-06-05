@@ -24,9 +24,9 @@ import 'seller_product_repository.dart';
 ///   PATCHes the appended array.
 /// * `name`/`description` are plain strings server-side — the multilingual
 ///   uz value is sent and read back into [MultilingualText.uz].
-/// * The read model has no `updated_at`, `sku`, `category_name`,
-///   `old_price` or `rejection_reason`, so those degrade (updatedAt mirrors
-///   createdAt, sku/categoryName are empty/null).
+/// * The read model has no `updated_at`, `sku` or `category_name`, so those
+///   degrade (updatedAt mirrors createdAt, sku/categoryName are empty/null).
+///   `rejection_reason` IS returned — populated when an admin rejects.
 /// * `category_id` is a UUID server-side; [SellerProductInput.categorySlug]
 ///   carries the raw id and is forwarded as `category_id` — passing an actual
 ///   slug here would 422 (see riskNotes).
@@ -323,6 +323,9 @@ class WoodySellerProductRepository implements SellerProductRepository {
       installationPrice: (row['installation_price'] as num?) ?? 0,
       warrantyMonths: (row['warranty_months'] as num?)?.toInt() ?? 0,
       status: SellerProductStatus.fromCode(row['status'] as String?),
+      rejectionReason: (row['rejection_reason'] as String?)?.trim().isNotEmpty == true
+          ? (row['rejection_reason'] as String).trim()
+          : null,
       createdAt: created,
       // Backend SellerProductRow exposes no updated_at — mirror created_at.
       updatedAt: created,
