@@ -34,7 +34,7 @@ to'lov integratsiyasi** (hozircha manual/naqd).
 | Komponent | Repo | Stack | Deploy | Holat |
 |---|---|---|---|---|
 | Backend (yagona) | `woody_backend/` | FastAPI · Python ≥3.11 · asyncpg · Alembic · PyJWT · Eskiz · R2 · Redis | `api.woody.uz` (:4001) | ✅ Live |
-| Admin panel | `woody_admin/` | Next.js 16 · React 19 · TS · Tailwind v4 · shadcn | `admin.mebellar.uz` (:3002) | ✅ Live |
+| Admin panel | `woody_admin/` | Next.js 16 · React 19 · TS · Tailwind v4 · shadcn | `admin.woody.uz` (:3002) | ✅ Live |
 | Mobil ilova | `mebellar_app/` | Flutter · Dart ^3.11.5 · flutter_bloc · GetIt · go_router · Firebase | Play / App Store | ✅ v1.0.5+6 |
 
 **Asosiy biznes-modeli:** xaridorlar uchun bepul; daromad sotuvchilardan —
@@ -124,7 +124,7 @@ lekin **chuqurroq va ishonchliroq**:
 ┌──────────────────────────┐        ┌──────────────────────────┐
 │   mebellar_app (Flutter)  │        │   woody_admin (Next.js)   │
 │   customer + seller       │        │   super_admin + manager   │
-│   bitta binary, 2 rejim   │        │   admin.mebellar.uz:3002  │
+│   bitta binary, 2 rejim   │        │   admin.woody.uz:3002  │
 └────────────┬─────────────┘        └────────────┬─────────────┘
              │  REST (/api/v1) + WebSocket realtime + presigned R2
              │                                     │
@@ -317,7 +317,7 @@ Investor deck GTM bosqichlari + texnik holatga moslangan.
 | Komponent | URL / Port | Deploy oqimi |
 |---|---|---|
 | Backend | `api.woody.uz` :4001 | push→main → GH Actions → SSH → `git reset --hard` → `pip install -e '.[dev]'` → `woody migrate` → `systemctl restart woody-backend` → health-check |
-| Admin | `admin.mebellar.uz` :3002 | push→main → SSH → `npm ci` → `npm run build` → `systemctl restart woody-admin` |
+| Admin | `admin.woody.uz` :3002 | push→main → SSH → `npm ci` → `npm run build` → `systemctl restart woody-admin` |
 | Mobile | Play / App Store | `./tools/build_release.sh` (AAB, obfuscated, split-debug-info) |
 
 - **Migration** prod'da `woody migrate` diskret CI qadami sifatida, restart'dan
