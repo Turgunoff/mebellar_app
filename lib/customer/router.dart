@@ -17,7 +17,6 @@ import '../core/logging/talker.dart';
 import '../shared/models/cart_item_model.dart';
 import '../shared/widgets/brand_refresh_indicator.dart';
 import '../shared/widgets/notification_simulator_screen.dart';
-import '../shared/widgets/notifications_screen.dart';
 import 'customer_app.dart';
 import 'features/broadcasts/screens/broadcast_placeholder_screen.dart';
 import 'features/cart/screens/cart_screen.dart';
@@ -169,9 +168,13 @@ GoRouter buildCustomerRouter() {
         builder: (context, state) => const OnboardingScreen(),
       ),
       GoRoute(
+        // Both the app-bar bell and push-tap deep-links land here. Routed to
+        // the cubit-backed customer screen (resilient: a 401/guest personal
+        // fetch degrades to the public news feed instead of a full error) —
+        // the legacy shared NotificationsScreen is no longer wired.
         path: '/notifications',
         builder: (context, state) =>
-            const NotificationsScreen(mode: AppMode.customer),
+            const customer_notifications.NotificationsScreen(),
       ),
       // ---- Broadcast deep-link placeholders -------------------------------
       // Promo / news / system-alert notifications resolve to these routes

@@ -91,9 +91,9 @@ class _SellerAppState extends State<SellerApp> with WidgetsBindingObserver {
     if (route == null) return;
     final router = _router;
     if (router != null) {
-      // go_router path: the destination builds the full tab + detail stack;
-      // unmapped paths land on the router's errorBuilder rather than no-op.
-      router.go(route);
+      // push (not go) so the deep-link target sits on top of the seller home
+      // base and Back returns there instead of dead-ending.
+      router.push(route);
     } else {
       // Legacy path: push onto the global navigator. Unmapped routes no-op.
       sellerNavigatorKey.currentState?.pushNamed(route);

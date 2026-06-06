@@ -371,7 +371,8 @@ class PushService {
 
     final ctx = customerNavigatorKey.currentContext;
     if (modeName == AppMode.customer.name && ctx != null && ctx.mounted) {
-      GoRouter.of(ctx).go(route);
+      // push, not go — keep home underneath so Back returns to it.
+      GoRouter.of(ctx).push(route);
       return;
     }
     _notificationHandler.savePendingRoute(route, modeName, kind: kind);

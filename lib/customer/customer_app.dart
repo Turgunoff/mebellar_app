@@ -96,7 +96,10 @@ class _CustomerAppState extends State<CustomerApp> with WidgetsBindingObserver {
     if (route == null && sl.isRegistered<NotificationHandler>()) {
       route = sl<NotificationHandler>().consumeFor(AppMode.customer.name);
     }
-    if (route != null) _router.go(route);
+    // push (not go) so the deep-link target sits ON TOP of home — the router's
+    // initialLocation is '/', so the stack becomes [home, target] and Back
+    // returns to home instead of dead-ending on a rootless screen.
+    if (route != null) _router.push(route);
   }
 
   /// Listens for incoming app/universal links. Sprint 11 mock: the simulator
