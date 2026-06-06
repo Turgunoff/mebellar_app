@@ -8,6 +8,7 @@ import '../../../../config/app_mode.dart';
 import '../../../../core/auth/app_mode_cubit.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
+import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/fullscreen_image_viewer.dart';
 import '../../../widgets/glass_bottom_nav.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
@@ -74,6 +75,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _push(BuildContext context, Widget screen) {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
+  }
+
+  Future<void> _handleRefresh() async {
+    await Future.wait([
+      sl<ProfileCubit>().fetch(),
+      sl<ProfileOrdersCubit>().fetch(),
+    ]);
   }
 
   Future<void> _openSellerOnboarding() async {
@@ -171,57 +179,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
           style: PremiumTokens.display(size: 28, letterSpacing: -0.5),
         ),
       ),
-      body: ListView(
-        physics: const BouncingScrollPhysics(),
-        padding: EdgeInsets.fromLTRB(
-          16,
-          8,
-          16,
-          GlassBottomNav.reservedHeight(context) + 24,
-        ),
-        children: [
-          if (profileState.isLoading)
-            const UserCardShimmer()
-          else if (profileState.isSignedIn)
-            UserCard(
-              profile: profileState,
-              onEdit: () => _openEditScreen(profileState),
-              onAvatarTap: () => _openAvatarViewer(profileState),
-            ),
-          const SizedBox(height: 24),
-          const OrdersBlock(),
-          const SizedBox(height: 20),
-          if (profileState.isSellerApproved)
-            SellerApprovedBanner(
-              onOpenDashboard: () {
-                // Defence-in-depth: refresh the cached approval flag before
-                // flipping. The banner only renders when approved, but the
-                // boot-time guard depends on this cache being true to honor
-                // a persisted `seller` mode on the next cold start.
-                sl<AppModeCubit>().recordSellerApproval(true);
-                context.read<AppModeCubit>().switchMode(AppMode.seller);
-                // Phoenix.rebirth (triggered by the root-level mode-swap
-                // listener in main.dart) tears this widget tree down and
-                // mounts SellerApp — no further navigation needed here.
-              },
-            )
-          else if (profileState.isSellerRejected)
-            SellerRejectedBanner(
-              reason: profileState.sellerRejectionReason,
-              onEdit: _openSellerOnboarding,
-            )
-          else if (profileState.isSellerPending)
-            const SellerPendingBanner()
-          else
-            BecomeSellerBanner(onTap: _openSellerOnboarding),
-          const SizedBox(height: 24),
-          MenuListCard(items: _buildMenuItems(context)),
-          const SizedBox(height: 28),
-          DangerZone(
-            onSignOut: () => showSignOutDialog(context),
-            onDeleteAccount: () => confirmAccountDeletion(context),
+      body: BrandRefreshIndicator(
+        onRefresh: _handleRefresh,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics(),
           ),
-        ],
+          padding: EdgeInsets.fromLTRB(
+            16,
+            8,
+            16,
+            GlassBottomNav.reservedHeight(context) + 24,
+          ),
+          children: [
+            if (profileState.isLoading)
+              const UserCardShimmer()
+            else if (profileState.isSignedIn)
+              UserCard(
+                profile: profileState,
+                onEdit: () => _openEditScreen(profileState),
+                onAvatarTap: () => _openAvatarViewer(profileState),
+              ),
+            const SizedBox(height: 24),
+            const OrdersBlock(),
+            const SizedBox(height: 20),
+            if (profileState.isSellerApproved)
+              SellerApprovedBanner(
+                onOpenDashboard: () {
+                  // Defence-in-depth: refresh the cached approval flag before
+                  // flipping. The banner only renders when approved, but the
+                  // boot-time guard depends on this cache being true to honor
+                  // a persisted `seller` mode on the next cold start.
+                  sl<AppModeCubit>().recordSellerApproval(true);
+                  context.read<AppModeCubit>().switchMode(AppMode.seller);
+                  // Phoenix.rebirth (triggered by the root-level mode-swap
+                  // listener in main.dart) tears this widget tree down and
+                  // mounts SellerApp — no further navigation needed here.
+                },
+              )
+            else if (profileState.isSellerRejected)
+              SellerRejectedBanner(
+                reason: profileState.sellerRejectionReason,
+                onEdit: _openSellerOnboarding,
+              )
+            else if (profileState.isSellerPending)
+              const SellerPendingBanner()
+            else
+              BecomeSellerBanner(onTap: _openSellerOnboarding),
+            const SizedBox(height: 24),
+            MenuListCard(items: _buildMenuItems(context)),
+            const SizedBox(height: 28),
+            DangerZone(
+              onSignOut: () => showSignOutDialog(context),
+              onDeleteAccount: () => confirmAccountDeletion(context),
+            ),
+          ],
+        ),
       ),
     );
   }

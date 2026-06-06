@@ -50,10 +50,7 @@ abstract class AnalyticsService {
     int appliedFiltersCount = 0,
   });
 
-  Future<void> filterApplied({
-    required int activeFacetCount,
-    String? sort,
-  });
+  Future<void> filterApplied({required int activeFacetCount, String? sort});
 
   // ── cart / favorites ──────────────────────────────────────────────────
 
@@ -98,10 +95,7 @@ abstract class AnalyticsService {
 
   // ── chat ──────────────────────────────────────────────────────────────
 
-  Future<void> chatOpened({
-    required String chatId,
-    required String viewerRole,
-  });
+  Future<void> chatOpened({required String chatId, required String viewerRole});
 
   Future<void> chatMessageSent({
     required String chatId,
@@ -129,4 +123,10 @@ abstract class AnalyticsService {
 
   Future<void> languageChanged({required String code});
   Future<void> themeChanged({required String mode});
+
+  // ── notifications ─────────────────────────────────────────────────────
+
+  /// A notification was tapped (push or in-app inbox). [kind] is the
+  /// snake_case wire type; [opened] is whether it resolved to a destination.
+  Future<void> notificationOpened({required String kind, bool opened});
 }

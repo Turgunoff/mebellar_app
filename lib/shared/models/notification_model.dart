@@ -39,6 +39,11 @@ enum NotificationKind {
   feeAdjustmentProposed('fee_adjustment_proposed'),
   feeAdjustmentResponse('fee_adjustment_response'),
 
+  // ---- Chat (bi-directional) --------------------------------------------
+  // Recipient mode isn't derivable from the kind — it rides in the payload's
+  // `mode` field. Route to the per-mode chat thread via [resolveTargetMode].
+  chatMessage('chat_message'),
+
   // ---- Fallback ----------------------------------------------------------
   general('general');
 
@@ -60,8 +65,7 @@ enum NotificationKind {
   /// because the same mapping is reused by the simulator screen and tests.
   IconData get icon {
     return switch (this) {
-      NotificationKind.order ||
-      NotificationKind.orderCreated => Iconsax.box_1,
+      NotificationKind.order || NotificationKind.orderCreated => Iconsax.box_1,
       NotificationKind.orderShipped => Iconsax.truck_fast,
       NotificationKind.orderDelivered => Iconsax.tick_circle,
       NotificationKind.priceDrop => Iconsax.discount_circle,
@@ -79,6 +83,7 @@ enum NotificationKind {
       NotificationKind.systemAlert => Iconsax.danger,
       NotificationKind.feeAdjustmentProposed => Iconsax.truck_fast,
       NotificationKind.feeAdjustmentResponse => Iconsax.tick_circle,
+      NotificationKind.chatMessage => Iconsax.message_text_1,
       NotificationKind.general => Iconsax.notification,
     };
   }
@@ -106,8 +111,13 @@ enum NotificationKind {
       NotificationKind.sellerProductRejected => const Color(0xFFE05A4A),
       NotificationKind.sellerLowStock => const Color(0xFFE5A23B), // honey
       NotificationKind.systemAlert => const Color(0xFFE05A4A), // alert red
-      NotificationKind.feeAdjustmentProposed => const Color(0xFFE5A23B), // honey-amber
-      NotificationKind.feeAdjustmentResponse => const Color(0xFF2F9E6E), // emerald
+      NotificationKind.feeAdjustmentProposed => const Color(
+        0xFFE5A23B,
+      ), // honey-amber
+      NotificationKind.feeAdjustmentResponse => const Color(
+        0xFF2F9E6E,
+      ), // emerald
+      NotificationKind.chatMessage => const Color(0xFF4A6CF7), // cool blue
       NotificationKind.general => const Color(0xFF8A8A8A), // neutral grey
     };
   }
@@ -197,6 +207,23 @@ class NotificationModel extends Equatable {
   /// in tests / from push payloads that don't include the key.
   final Map<String, dynamic>? payload;
 
+  /// The [AppMode] whose router can render this notification's destination.
+  /// Prefers an explicit `mode` in [payload] — authoritative for
+  /// bi-directional kinds like [NotificationKind.chatMessage], where the
+  /// recipient's mode isn't derivable from [kind] alone — and falls back to
+  /// the static per-kind [NotificationKindRouting.targetMode]. This mirrors
+  /// the FCM push path (`PushService._onMessageTapped`), which already reads
+  /// `data['mode']` directly.
+  AppMode resolveTargetMode() {
+    final raw = payload?['mode'];
+    if (raw is String) {
+      for (final m in AppMode.values) {
+        if (m.name == raw) return m;
+      }
+    }
+    return kind.targetMode;
+  }
+
   NotificationModel copyWith({bool? isRead}) {
     return NotificationModel(
       id: id,
@@ -249,6 +276,14 @@ class NotificationModel extends Equatable {
   }
 
   @override
-  List<Object?> get props =>
-      [id, isRead, title, body, kind, referenceId, createdAt, payload];
+  List<Object?> get props => [
+    id,
+    isRead,
+    title,
+    body,
+    kind,
+    referenceId,
+    createdAt,
+    payload,
+  ];
 }

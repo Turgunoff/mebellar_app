@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -5,6 +7,7 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../../config/app_mode.dart';
+import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/auth/app_mode_cubit.dart';
 import '../../../../core/deep_links/deep_link_service.dart';
 import '../../../../core/di/service_locator.dart';
@@ -53,9 +56,20 @@ class _NotificationsViewState extends State<_NotificationsView> {
   void _handleTap(BuildContext context, NotificationModel notification) {
     context.read<NotificationsCubit>().markRead(notification.id);
     final route = determineRouteFor(notification);
+    final analytics = sl.isRegistered<AnalyticsService>()
+        ? sl<AnalyticsService>()
+        : null;
+    unawaited(
+      analytics?.notificationOpened(
+        kind: notification.kind.code,
+        opened: route != null,
+      ),
+    );
     if (route == null) return;
 
-    final targetMode = notification.kind.targetMode;
+    // Prefer the recipient mode carried in the payload (authoritative for
+    // bi-directional kinds like chat) over the static per-kind mapping.
+    final targetMode = notification.resolveTargetMode();
     final currentMode = context.read<AppModeCubit>().state;
 
     if (currentMode != targetMode) {
@@ -106,12 +120,11 @@ class _NotificationsViewState extends State<_NotificationsView> {
       NotificationKind.orderCreated ||
       NotificationKind.orderShipped ||
       NotificationKind.orderDelivered =>
-        orderId != null && orderId.isNotEmpty
-            ? '/orders/$orderId'
-            : '/orders',
-      NotificationKind.priceDrop => productId != null && productId.isNotEmpty
-          ? '/product-detail/$productId'
-          : '/',
+        orderId != null && orderId.isNotEmpty ? '/orders/$orderId' : '/orders',
+      NotificationKind.priceDrop =>
+        productId != null && productId.isNotEmpty
+            ? '/product-detail/$productId'
+            : '/',
       NotificationKind.supportReply => '/profile',
 
       // ---- Seller --------------------------------------------------------
@@ -133,9 +146,7 @@ class _NotificationsViewState extends State<_NotificationsView> {
       // Customer receives 'proposed' → navigates to /orders/{id} to approve.
       // Seller receives 'response' → navigates to /seller/orders/{id}.
       NotificationKind.feeAdjustmentProposed =>
-        orderId != null && orderId.isNotEmpty
-            ? '/orders/$orderId'
-            : '/orders',
+        orderId != null && orderId.isNotEmpty ? '/orders/$orderId' : '/orders',
       NotificationKind.feeAdjustmentResponse =>
         orderId != null && orderId.isNotEmpty
             ? '/seller/orders/$orderId'
@@ -152,24 +163,39 @@ class _NotificationsViewState extends State<_NotificationsView> {
       // then a missing route in GoRouter falls back to its error page;
       // wire those routes (or remap to `/` as a safe fallback) before
       // shipping these notification types to production users.
-      NotificationKind.promo => _firstPayloadString(
-            n,
-            const ['promo_id', 'campaign_id'],
-            prefix: '/promo/',
-          ) ??
-          '/promo',
-      NotificationKind.news => _firstPayloadString(
-            n,
-            const ['news_id', 'article_id'],
-            prefix: '/news/',
-          ) ??
-          '/news',
+      NotificationKind.promo =>
+        _firstPayloadString(n, const [
+              'promo_id',
+              'campaign_id',
+            ], prefix: '/promo/') ??
+            '/promo',
+      NotificationKind.news =>
+        _firstPayloadString(n, const [
+              'news_id',
+              'article_id',
+            ], prefix: '/news/') ??
+            '/news',
       NotificationKind.systemAlert => '/system-alert',
 
+      // ---- Chat ----------------------------------------------------------
+      // Per-order chat thread. reference_id is the chat id; the payload's
+      // `mode` decides which shell's route to build (customer vs seller).
+      NotificationKind.chatMessage => _chatRoute(n),
+
       // ---- Informational — read-only, no destination ---------------------
-      NotificationKind.review ||
-      NotificationKind.general => null,
+      NotificationKind.review || NotificationKind.general => null,
     };
+  }
+
+  /// Resolves a chat notification to the right per-mode thread route. Falls
+  /// back to the chat list when the chat id is missing.
+  static String _chatRoute(NotificationModel n) {
+    final chatId = n.referenceId ?? (n.payload?['chat_id'] as String?);
+    final sellerSide = n.payload?['mode'] == AppMode.seller.name;
+    if (chatId == null || chatId.isEmpty) {
+      return sellerSide ? '/seller/chats' : '/chats';
+    }
+    return sellerSide ? '/seller/chats/$chatId' : '/chats/$chatId';
   }
 
   /// Returns the first non-empty payload value at any of [keys], wrapped in
@@ -201,7 +227,11 @@ class _NotificationsViewState extends State<_NotificationsView> {
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: pt.dark),
+          icon: Icon(
+            Icons.arrow_back_ios_new_rounded,
+            size: 20,
+            color: pt.dark,
+          ),
           onPressed: () => context.pop(),
         ),
         title: Text(
@@ -238,29 +268,30 @@ class _NotificationsViewState extends State<_NotificationsView> {
               message: state.error,
               onRetry: () => context.read<NotificationsCubit>().load(),
             ),
-            _ => state.items.isEmpty
-                ? EmptyState(
-                    icon: Iconsax.notification,
-                    title: tr('notifications.empty'),
-                    message: tr('notifications.empty_hint'),
-                  )
-                : BrandRefreshIndicator(
-                    color: PremiumTokens.accent,
-                    onRefresh: () =>
-                        context.read<NotificationsCubit>().load(),
-                    child: ListView.separated(
-                      physics: const AlwaysScrollableScrollPhysics(
-                        parent: BouncingScrollPhysics(),
-                      ),
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                      itemCount: state.items.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 12),
-                      itemBuilder: (_, i) => _NotificationTile(
-                        notification: state.items[i],
-                        onTap: () => _handleTap(context, state.items[i]),
+            _ =>
+              state.items.isEmpty
+                  ? EmptyState(
+                      icon: Iconsax.notification,
+                      title: tr('notifications.empty'),
+                      message: tr('notifications.empty_hint'),
+                    )
+                  : BrandRefreshIndicator(
+                      color: PremiumTokens.accent,
+                      onRefresh: () =>
+                          context.read<NotificationsCubit>().load(),
+                      child: ListView.separated(
+                        physics: const AlwaysScrollableScrollPhysics(
+                          parent: BouncingScrollPhysics(),
+                        ),
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                        itemCount: state.items.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 12),
+                        itemBuilder: (_, i) => _NotificationTile(
+                          notification: state.items[i],
+                          onTap: () => _handleTap(context, state.items[i]),
+                        ),
                       ),
                     ),
-                  ),
           };
         },
       ),
@@ -285,8 +316,10 @@ class _NotificationTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
     final lang = context.locale.languageCode;
-    final formatted = DateFormat('dd MMM, HH:mm', lang)
-        .format(notification.createdAt.toLocal());
+    final formatted = DateFormat(
+      'dd MMM, HH:mm',
+      lang,
+    ).format(notification.createdAt.toLocal());
     final isRead = notification.isRead;
     final kindAccent = notification.kind.accent;
     // Unread rows get a faint tinted background + bolder title, so the
@@ -305,10 +338,7 @@ class _NotificationTile extends StatelessWidget {
           boxShadow: PremiumTokens.softShadow,
           border: isRead
               ? null
-              : Border.all(
-                  color: kindAccent.withValues(alpha: 0.22),
-                  width: 1,
-                ),
+              : Border.all(color: kindAccent.withValues(alpha: 0.22), width: 1),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -317,9 +347,7 @@ class _NotificationTile extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: isRead
-                    ? pt.imageBg
-                    : kindAccent.withValues(alpha: 0.14),
+                color: isRead ? pt.imageBg : kindAccent.withValues(alpha: 0.14),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(

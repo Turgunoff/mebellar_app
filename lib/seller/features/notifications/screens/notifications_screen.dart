@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -5,6 +7,7 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../../config/app_mode.dart';
+import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/auth/app_mode_cubit.dart';
 import '../../../../core/deep_links/deep_link_service.dart';
 import '../../../../core/di/service_locator.dart';
@@ -62,9 +65,18 @@ class _NotificationsViewState extends State<_NotificationsView> {
   void _handleTap(BuildContext context, NotificationModel notification) {
     context.read<NotificationsCubit>().markRead(notification.id);
     final route = determineRouteFor(notification);
+    final analytics = sl.isRegistered<AnalyticsService>()
+        ? sl<AnalyticsService>()
+        : null;
+    unawaited(
+      analytics?.notificationOpened(
+        kind: notification.kind.code,
+        opened: route != null,
+      ),
+    );
     if (route == null) return;
 
-    final targetMode = notification.kind.targetMode;
+    final targetMode = notification.resolveTargetMode();
     final currentMode = context.read<AppModeCubit>().state;
 
     if (currentMode != targetMode) {
@@ -90,12 +102,11 @@ class _NotificationsViewState extends State<_NotificationsView> {
       NotificationKind.orderCreated ||
       NotificationKind.orderShipped ||
       NotificationKind.orderDelivered =>
-        orderId != null && orderId.isNotEmpty
-            ? '/orders/$orderId'
-            : '/orders',
-      NotificationKind.priceDrop => productId != null && productId.isNotEmpty
-          ? '/product-detail/$productId'
-          : '/',
+        orderId != null && orderId.isNotEmpty ? '/orders/$orderId' : '/orders',
+      NotificationKind.priceDrop =>
+        productId != null && productId.isNotEmpty
+            ? '/product-detail/$productId'
+            : '/',
       NotificationKind.supportReply => '/profile',
 
       // ---- Seller --------------------------------------------------------
@@ -114,23 +125,39 @@ class _NotificationsViewState extends State<_NotificationsView> {
       NotificationKind.sellerLowStock => '/seller/products',
 
       // ---- Broadcasts (also cross-mode from seller) ----------------------
-      NotificationKind.promo => _payloadDeepLink(n, const ['promo_id', 'campaign_id'], '/promo/') ?? '/promo',
-      NotificationKind.news => _payloadDeepLink(n, const ['news_id', 'article_id'], '/news/') ?? '/news',
+      NotificationKind.promo =>
+        _payloadDeepLink(n, const ['promo_id', 'campaign_id'], '/promo/') ??
+            '/promo',
+      NotificationKind.news =>
+        _payloadDeepLink(n, const ['news_id', 'article_id'], '/news/') ??
+            '/news',
       NotificationKind.systemAlert => '/system-alert',
 
       // ---- Fee adjustment ------------------------------------------------
       NotificationKind.feeAdjustmentProposed =>
-        orderId != null && orderId.isNotEmpty
-            ? '/orders/$orderId'
-            : '/orders',
+        orderId != null && orderId.isNotEmpty ? '/orders/$orderId' : '/orders',
       NotificationKind.feeAdjustmentResponse =>
         orderId != null && orderId.isNotEmpty
             ? '/seller/orders/$orderId'
             : '/seller/orders',
 
-      NotificationKind.review ||
-      NotificationKind.general => null,
+      // ---- Chat ----------------------------------------------------------
+      NotificationKind.chatMessage => _chatRoute(n),
+
+      NotificationKind.review || NotificationKind.general => null,
     };
+  }
+
+  /// Resolves a chat notification to the right per-mode thread route. Mirrors
+  /// the customer-side helper. reference_id is the chat id; the payload's
+  /// `mode` picks customer vs seller shell.
+  static String _chatRoute(NotificationModel n) {
+    final chatId = n.referenceId ?? (n.payload?['chat_id'] as String?);
+    final sellerSide = n.payload?['mode'] == AppMode.seller.name;
+    if (chatId == null || chatId.isEmpty) {
+      return sellerSide ? '/seller/chats' : '/chats';
+    }
+    return sellerSide ? '/seller/chats/$chatId' : '/chats/$chatId';
   }
 
   static String? _payloadDeepLink(
@@ -183,8 +210,7 @@ class _NotificationsViewState extends State<_NotificationsView> {
         ),
         actions: [
           BlocBuilder<NotificationsCubit, NotificationsState>(
-            buildWhen: (a, b) =>
-                _unreadFor(a) != _unreadFor(b),
+            buildWhen: (a, b) => _unreadFor(a) != _unreadFor(b),
             builder: (context, state) {
               if (_unreadFor(state) == 0) return const SizedBox.shrink();
               return TextButton(
@@ -213,41 +239,43 @@ class _NotificationsViewState extends State<_NotificationsView> {
               message: state.error,
               onRetry: () => context.read<NotificationsCubit>().load(),
             ),
-            _ => items.isEmpty
-                ? EmptyState(
-                    icon: Iconsax.notification,
-                    title: tr('notifications.empty'),
-                    message: tr('notifications.empty_hint'),
-                  )
-                : BrandRefreshIndicator(
-                    color: AppColors.sellerPrimary,
-                    onRefresh: () =>
-                        context.read<NotificationsCubit>().load(),
-                    child: ListView.separated(
-                      physics: const AlwaysScrollableScrollPhysics(
-                        parent: BouncingScrollPhysics(),
-                      ),
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                      itemCount: items.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 10),
-                      itemBuilder: (_, i) => _NotificationTile(
-                        notification: items[i],
-                        onTap: () => _handleTap(context, items[i]),
+            _ =>
+              items.isEmpty
+                  ? EmptyState(
+                      icon: Iconsax.notification,
+                      title: tr('notifications.empty'),
+                      message: tr('notifications.empty_hint'),
+                    )
+                  : BrandRefreshIndicator(
+                      color: AppColors.sellerPrimary,
+                      onRefresh: () =>
+                          context.read<NotificationsCubit>().load(),
+                      child: ListView.separated(
+                        physics: const AlwaysScrollableScrollPhysics(
+                          parent: BouncingScrollPhysics(),
+                        ),
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                        itemCount: items.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 10),
+                        itemBuilder: (_, i) => _NotificationTile(
+                          notification: items[i],
+                          onTap: () => _handleTap(context, items[i]),
+                        ),
                       ),
                     ),
-                  ),
           };
         },
       ),
     );
   }
 
-  /// Filters the cubit's unified inbox down to rows whose `targetMode` is
-  /// seller. The customer screen does the symmetric filter — both screens
-  /// share the same in-memory list and pick what to render locally.
+  /// Filters the cubit's unified inbox down to rows targeted at seller mode.
+  /// Uses [NotificationModel.resolveTargetMode] (not the static
+  /// `kind.targetMode`) so bi-directional kinds like chat — whose recipient
+  /// mode rides in the payload — land in the right inbox.
   static List<NotificationModel> _sellerItems(List<NotificationModel> all) {
     return all
-        .where((n) => n.kind.targetMode == AppMode.seller)
+        .where((n) => n.resolveTargetMode() == AppMode.seller)
         .toList(growable: false);
   }
 
@@ -265,8 +293,10 @@ class _NotificationTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final lang = context.locale.languageCode;
-    final formatted = DateFormat('dd MMM, HH:mm', lang)
-        .format(notification.createdAt.toLocal());
+    final formatted = DateFormat(
+      'dd MMM, HH:mm',
+      lang,
+    ).format(notification.createdAt.toLocal());
     final isRead = notification.isRead;
     final kindAccent = notification.kind.accent;
     return GestureDetector(
@@ -291,10 +321,7 @@ class _NotificationTile extends StatelessWidget {
           border: isRead
               ? null
               : Border(
-                  left: BorderSide(
-                    color: AppColors.sellerPrimary,
-                    width: 3,
-                  ),
+                  left: BorderSide(color: AppColors.sellerPrimary, width: 3),
                 ),
         ),
         child: Row(
@@ -330,8 +357,9 @@ class _NotificationTile extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: 14,
-                            fontWeight:
-                                isRead ? FontWeight.w600 : FontWeight.w700,
+                            fontWeight: isRead
+                                ? FontWeight.w600
+                                : FontWeight.w700,
                             color: _ink,
                             letterSpacing: -0.1,
                           ),

@@ -11,7 +11,7 @@ import 'analytics_service.dart';
 /// matching predefined event (chat, seller_*, language_changed, …).
 class FirebaseAnalyticsService implements AnalyticsService {
   FirebaseAnalyticsService({FirebaseAnalytics? analytics})
-      : _analytics = analytics ?? FirebaseAnalytics.instance;
+    : _analytics = analytics ?? FirebaseAnalytics.instance;
 
   final FirebaseAnalytics _analytics;
 
@@ -21,10 +21,7 @@ class FirebaseAnalyticsService implements AnalyticsService {
 
   /// Centralised swallow-and-log so an analytics failure never bubbles up
   /// into the UI. Talker → Crashlytics already covers visibility.
-  Future<void> _safeLog(
-    String name, [
-    Map<String, Object>? params,
-  ]) async {
+  Future<void> _safeLog(String name, [Map<String, Object>? params]) async {
     try {
       await _analytics.logEvent(
         name: name,
@@ -135,20 +132,20 @@ class FirebaseAnalyticsService implements AnalyticsService {
     int appliedFiltersCount = 0,
   }) async {
     try {
-      await _analytics.logSearch(searchTerm: query, parameters: {
-        'results_count': resultsCount,
-        'applied_filters_count': appliedFiltersCount,
-      });
+      await _analytics.logSearch(
+        searchTerm: query,
+        parameters: {
+          'results_count': resultsCount,
+          'applied_filters_count': appliedFiltersCount,
+        },
+      );
     } catch (e, st) {
       talker.handle(e, st, 'analytics: searchPerformed failed');
     }
   }
 
   @override
-  Future<void> filterApplied({
-    required int activeFacetCount,
-    String? sort,
-  }) {
+  Future<void> filterApplied({required int activeFacetCount, String? sort}) {
     return _safeLog('filter_applied', {
       'active_facets': activeFacetCount,
       // ignore: use_null_aware_elements
@@ -186,9 +183,9 @@ class FirebaseAnalyticsService implements AnalyticsService {
   @override
   Future<void> removedFromCart({required String productId}) async {
     try {
-      await _analytics.logRemoveFromCart(items: [
-        AnalyticsEventItem(itemId: productId),
-      ]);
+      await _analytics.logRemoveFromCart(
+        items: [AnalyticsEventItem(itemId: productId)],
+      );
     } catch (e, st) {
       talker.handle(e, st, 'analytics: removedFromCart failed');
     }
@@ -213,9 +210,9 @@ class FirebaseAnalyticsService implements AnalyticsService {
   }) async {
     if (added) {
       try {
-        await _analytics.logAddToWishlist(items: [
-          AnalyticsEventItem(itemId: productId),
-        ]);
+        await _analytics.logAddToWishlist(
+          items: [AnalyticsEventItem(itemId: productId)],
+        );
       } catch (e, st) {
         talker.handle(e, st, 'analytics: wishlistToggled(add) failed');
       }
@@ -365,5 +362,15 @@ class FirebaseAnalyticsService implements AnalyticsService {
   @override
   Future<void> themeChanged({required String mode}) {
     return _safeLog('theme_changed', {'mode': mode});
+  }
+
+  // ── notifications ─────────────────────────────────────────────────────
+
+  @override
+  Future<void> notificationOpened({required String kind, bool opened = true}) {
+    return _safeLog('notification_opened', {
+      'kind': kind,
+      'opened': opened ? 1 : 0,
+    });
   }
 }
