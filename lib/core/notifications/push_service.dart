@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io' show Platform;
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../config/app_mode.dart';
 import '../../shared/models/notification_model.dart';
@@ -118,7 +120,12 @@ class PushService {
     // generates it, so it is the safest default.
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     const init = InitializationSettings(android: androidInit);
-    await _localNotifications.initialize(init);
+    await _localNotifications.initialize(
+      init,
+      // Tap on a foreground-reposted notification → route the same way a
+      // background FCM tap does.
+      onDidReceiveNotificationResponse: _onLocalNotificationTap,
+    );
 
     // Channel must exist before the first notification is shown; without it
     // Android 8+ silently drops the post. The id matches the manifest's
@@ -334,7 +341,40 @@ class PushService {
     // pattern guarantees uniqueness within a process; the tag above
     // provides cross-process uniqueness once the channel is reused.
     final id = (_localNotificationCounter++) & 0x7FFFFFFF;
-    await _localNotifications.show(id, n.title, n.body, details);
+    // Carry the FCM data payload so a tap can resolve route + mode.
+    await _localNotifications.show(
+      id,
+      n.title,
+      n.body,
+      details,
+      payload: jsonEncode(message.data),
+    );
+  }
+
+  /// Tap on a foreground-reposted local notification. The app is already alive
+  /// (no resume event fires), so navigate immediately when the matching shell
+  /// is mounted; otherwise stash the route for the shell to consume on the
+  /// next init/resume.
+  void _onLocalNotificationTap(NotificationResponse response) {
+    final raw = response.payload;
+    if (raw == null || raw.isEmpty) return;
+    Map<String, dynamic> data;
+    try {
+      data = jsonDecode(raw) as Map<String, dynamic>;
+    } catch (_) {
+      return;
+    }
+    final route = data['route'] as String?;
+    if (route == null || route.isEmpty) return;
+    final modeName = (data['mode'] as String?) ?? AppMode.customer.name;
+    final kind = data['kind'] as String?;
+
+    final ctx = customerNavigatorKey.currentContext;
+    if (modeName == AppMode.customer.name && ctx != null && ctx.mounted) {
+      GoRouter.of(ctx).go(route);
+      return;
+    }
+    _notificationHandler.savePendingRoute(route, modeName, kind: kind);
   }
 
   /// Exposed so debug tooling (push simulator screen) can preview a payload

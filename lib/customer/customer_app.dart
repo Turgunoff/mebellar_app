@@ -45,13 +45,14 @@ class CustomerApp extends StatefulWidget {
   State<CustomerApp> createState() => _CustomerAppState();
 }
 
-class _CustomerAppState extends State<CustomerApp> {
+class _CustomerAppState extends State<CustomerApp> with WidgetsBindingObserver {
   late final GoRouter _router = buildCustomerRouter();
   StreamSubscription<DeepLinkTarget>? _deepLinkSub;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _consumePendingRoute();
     });
@@ -62,8 +63,18 @@ class _CustomerAppState extends State<CustomerApp> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _deepLinkSub?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // A push tapped while the app was backgrounded saves a pending route, but
+    // there's no fresh initState to consume it — pick it up on resume.
+    if (state == AppLifecycleState.resumed) {
+      _consumePendingRoute();
+    }
   }
 
   void _consumePendingRoute() {

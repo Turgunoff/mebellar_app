@@ -34,7 +34,7 @@ class SellerApp extends StatefulWidget {
   State<SellerApp> createState() => _SellerAppState();
 }
 
-class _SellerAppState extends State<SellerApp> {
+class _SellerAppState extends State<SellerApp> with WidgetsBindingObserver {
   /// Built only when [AppConfig.sellerUsesGoRouter] is on; the legacy shell
   /// path leaves this null and routes imperatively via [sellerNavigatorKey].
   GoRouter? _router;
@@ -49,6 +49,7 @@ class _SellerAppState extends State<SellerApp> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     if (AppConfig.sellerUsesGoRouter) {
       _router = buildSellerRouter();
     }
@@ -59,8 +60,18 @@ class _SellerAppState extends State<SellerApp> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _router?.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // A push tapped while backgrounded stashed a pending route with no fresh
+    // initState to consume it — pick it up on resume.
+    if (state == AppLifecycleState.resumed) {
+      _consumePendingRoute();
+    }
   }
 
   void _consumePendingRoute() {
@@ -128,10 +139,7 @@ class _SellerAppState extends State<SellerApp> {
       theme: sellerLightTheme,
       darkTheme: sellerDarkTheme,
       navigatorKey: sellerNavigatorKey,
-      navigatorObservers: [
-        TalkerRouteObserver(talker),
-        ConsoleNavObserver(),
-      ],
+      navigatorObservers: [TalkerRouteObserver(talker), ConsoleNavObserver()],
       localizationsDelegates: _localizationsDelegates,
       supportedLocales: AppTranslations.supportedLocales,
       locale: AppLocaleScope.of(context).value,
@@ -143,9 +151,7 @@ class _SellerAppState extends State<SellerApp> {
   Widget _appBuilder(BuildContext context, Widget? child) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: appSystemOverlay(Theme.of(context).brightness),
-      child: NetworkOverlayWrapper(
-        child: child ?? const SizedBox.shrink(),
-      ),
+      child: NetworkOverlayWrapper(child: child ?? const SizedBox.shrink()),
     );
   }
 }
@@ -183,11 +189,7 @@ class _SellerHomeShellState extends State<SellerHomeShell> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: null,
-      body: Column(
-        children: [
-          Expanded(child: _bodyForTab(_index)),
-        ],
-      ),
+      body: Column(children: [Expanded(child: _bodyForTab(_index))]),
       bottomNavigationBar: SellerBottomNav(
         currentIndex: _index,
         onChanged: (i) => setState(() => _index = i),
