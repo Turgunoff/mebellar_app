@@ -79,25 +79,47 @@ class NotificationsCubit extends Cubit<NotificationsState> {
 
   Future<void> load() async {
     emit(state.copyWith(status: NotificationsStatus.loading, clearError: true));
-    try {
-      // Personal list is empty for anonymous users (no auth.uid → RLS
-      // returns nothing). News is fetched unconditionally.
-      final results = await Future.wait([
-        _repo.list(),
-        if (_newsRepo != null)
-          _newsRepo.list()
-        else
-          Future.value(<NotificationModel>[]),
-      ]);
-      final merged = [...results[0], ...results[1]];
-      _emitMerged(merged);
-    } catch (e) {
+
+    // Two independent sources, fetched concurrently but isolated: a failure in
+    // one must NOT blank the whole screen. Public news always shows; personal
+    // notifications layer on when the authed call succeeds. (`GET /notifications`
+    // returns 401 for guests — not an empty list — so the personal fetch
+    // legitimately fails when signed out; that's fine, news still renders.)
+    final results = await Future.wait([
+      _safeList(_repo.list),
+      if (_newsRepo != null)
+        _safeList(_newsRepo.list)
+      else
+        Future<List<NotificationModel>?>.value(null),
+    ]);
+    final personal = results[0];
+    final news = results[1];
+
+    // Hard error only when BOTH sources fail (e.g. no connectivity) — then
+    // there's genuinely nothing to show and the retry button is the right UX.
+    if (personal == null && news == null) {
       emit(
         state.copyWith(
           status: NotificationsStatus.failure,
-          error: e.toString(),
+          error: 'notifications_load_failed',
         ),
       );
+      return;
+    }
+
+    _emitMerged([...?personal, ...?news]);
+  }
+
+  /// Runs a list fetch, returning `null` on failure (so the caller can tell a
+  /// failed source from an empty one) instead of letting the throw bubble up
+  /// and tank the whole inbox.
+  Future<List<NotificationModel>?> _safeList(
+    Future<List<NotificationModel>> Function() fetch,
+  ) async {
+    try {
+      return await fetch();
+    } catch (_) {
+      return null;
     }
   }
 
@@ -130,21 +152,34 @@ class NotificationsCubit extends Cubit<NotificationsState> {
         .map((n) => n.isRead ? n : n.copyWith(isRead: true))
         .toList(growable: false);
     emit(state.copyWith(items: next));
+
+    final visibleNewsIds = previous
+        .where((n) => n.kind == NotificationKind.news && !n.isRead)
+        .map((n) => n.id);
+
+    // Personal table + local news set, persisted independently. A guest (or a
+    // failing personal endpoint) must not roll back the news mark — so only
+    // revert the optimistic update when EVERY write failed.
+    final results = await Future.wait([
+      _safeRun(_repo.markAllRead),
+      if (_newsRepo != null)
+        _safeRun(() => _newsRepo.markAllRead(visibleNewsIds))
+      else
+        Future.value(true),
+    ]);
+    if (results.every((ok) => !ok)) {
+      emit(state.copyWith(items: previous, error: 'mark_all_read_failed'));
+    }
+  }
+
+  /// Runs a write, returning whether it succeeded — lets the caller keep an
+  /// optimistic update alive when only one of several writes fails.
+  Future<bool> _safeRun(Future<void> Function() action) async {
     try {
-      // Two writes in parallel — one for the personal table, one for the
-      // local news set. Either failing rolls the optimistic update back.
-      final visibleNewsIds = previous
-          .where((n) => n.kind == NotificationKind.news && !n.isRead)
-          .map((n) => n.id);
-      await Future.wait([
-        _repo.markAllRead(),
-        if (_newsRepo != null)
-          _newsRepo.markAllRead(visibleNewsIds)
-        else
-          Future<void>.value(),
-      ]);
-    } catch (e) {
-      emit(state.copyWith(items: previous, error: e.toString()));
+      await action();
+      return true;
+    } catch (_) {
+      return false;
     }
   }
 
