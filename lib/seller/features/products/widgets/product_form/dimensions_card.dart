@@ -47,20 +47,23 @@ class DimensionsCard extends StatelessWidget {
                 if (g > 0) const SizedBox(height: 18),
                 _PieceHeader(title: groups[g].piece),
                 const SizedBox(height: 10),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 12,
+                // One row per piece — the (up to 3) measure fields share the
+                // width evenly so "uzunligi | balandligi | kengligi" sit side
+                // by side.
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    for (final def in groups[g].defs)
-                      SizedBox(
-                        width: 96,
+                    for (var i = 0; i < groups[g].defs.length; i++) ...[
+                      if (i > 0) const SizedBox(width: 10),
+                      Expanded(
                         child: _DimensionField(
-                          key: ValueKey(def.key),
-                          label: _measureLabel(def, locale),
-                          value: values[def.key],
-                          onChanged: (v) => onChanged(def.key, v),
+                          key: ValueKey(groups[g].defs[i].key),
+                          label: _measureLabel(groups[g].defs[i], locale),
+                          value: values[groups[g].defs[i].key],
+                          onChanged: (v) => onChanged(groups[g].defs[i].key, v),
                         ),
                       ),
+                    ],
                   ],
                 ),
               ],
@@ -85,10 +88,12 @@ class DimensionsCard extends StatelessWidget {
     final byPiece = <String, List<AttributeDefinition>>{};
     for (final def in defs) {
       final piece = _pieceLabel(def, locale);
-      byPiece.putIfAbsent(piece, () {
-        order.add(piece);
-        return [];
-      }).add(def);
+      byPiece
+          .putIfAbsent(piece, () {
+            order.add(piece);
+            return [];
+          })
+          .add(def);
     }
     return [for (final p in order) _PieceGroup(p, byPiece[p]!)];
   }

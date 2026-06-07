@@ -16,10 +16,19 @@ class MetaCard extends StatelessWidget {
     super.key,
     required this.sku,
     required this.category,
+    this.subcategory,
+    this.material,
   });
 
   final String sku;
   final String category;
+
+  /// Resolved subcategory name; null/blank rows are omitted so an empty column
+  /// never shows.
+  final String? subcategory;
+
+  /// Primary material text (`products.material`); omitted when blank.
+  final String? material;
 
   Future<void> _copySku(BuildContext context) async {
     await Clipboard.setData(ClipboardData(text: sku));
@@ -110,45 +119,86 @@ class MetaCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 14),
-          const Divider(height: 1, thickness: 1, color: kDivider),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              const Icon(Iconsax.category, size: 18, color: kGrey),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Kategoriya',
-                      style: TextStyle(
-                        fontFamily: AppFonts.seller,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: kGrey,
-                        height: 1.2,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      category,
-                      style: const TextStyle(
-                        fontFamily: AppFonts.seller,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: kInk,
-                        height: 1.2,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          _MetaInfoRow(
+            icon: Iconsax.category,
+            label: 'Kategoriya',
+            value: category,
           ),
+          if ((subcategory?.trim().isNotEmpty ?? false))
+            _MetaInfoRow(
+              icon: Iconsax.category_2,
+              label: 'Subkategoriya',
+              value: subcategory!.trim(),
+            ),
+          if ((material?.trim().isNotEmpty ?? false))
+            _MetaInfoRow(
+              icon: Iconsax.box_1,
+              label: 'Material',
+              value: material!.trim(),
+            ),
         ],
       ),
+    );
+  }
+}
+
+/// A divider-prefixed icon + label/value row inside [MetaCard]. The leading
+/// divider keeps the rows visually separated without a trailing divider after
+/// the last one.
+class _MetaInfoRow extends StatelessWidget {
+  const _MetaInfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        const SizedBox(height: 14),
+        const Divider(height: 1, thickness: 1, color: kDivider),
+        const SizedBox(height: 14),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, size: 18, color: kGrey),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontFamily: AppFonts.seller,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: kGrey,
+                      height: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      fontFamily: AppFonts.seller,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: kInk,
+                      height: 1.2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

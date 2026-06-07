@@ -85,6 +85,8 @@ class SellerProduct extends Equatable {
     required this.categorySlug,
     this.categoryName,
     this.subcategoryId,
+    this.subcategoryName,
+    this.material,
     this.colors = const [],
     required this.price,
     this.oldPrice,
@@ -126,6 +128,15 @@ class SellerProduct extends Equatable {
   /// category level. Used by the detail screen to load the right attribute
   /// schema so option labels resolve to their localised display strings.
   final String? subcategoryId;
+
+  /// Resolved human-readable subcategory name (joined from `subcategories.name`
+  /// in the list/detail query). Null when there's no subcategory or the join
+  /// wasn't requested.
+  final String? subcategoryName;
+
+  /// Primary material text from `products.material` (e.g. "MDF", "Tabiiy
+  /// yog'och"). Free-form; null when the seller left it blank.
+  final String? material;
 
   /// Canonical color slugs (e.g. `['white','black']`) — populated from
   /// `products.colors text[]`.
@@ -182,6 +193,8 @@ class SellerProduct extends Equatable {
     MultilingualText? description,
     String? categorySlug,
     String? categoryName,
+    String? subcategoryName,
+    String? material,
     List<String>? colors,
     num? price,
     num? oldPrice,
@@ -206,6 +219,9 @@ class SellerProduct extends Equatable {
       description: description ?? this.description,
       categorySlug: categorySlug ?? this.categorySlug,
       categoryName: categoryName ?? this.categoryName,
+      subcategoryId: subcategoryId,
+      subcategoryName: subcategoryName ?? this.subcategoryName,
+      material: material ?? this.material,
       colors: colors ?? this.colors,
       price: price ?? this.price,
       oldPrice: oldPrice ?? this.oldPrice,

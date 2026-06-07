@@ -243,21 +243,84 @@ class TitlePriceCard extends StatelessWidget {
                     : const Color(0xFF8C5A12),
               ),
               const SizedBox(width: 8),
-              Text(
-                product.status == SellerProductStatus.approved
-                    ? 'Sotuvda mavjud · buyurtma bo\'yicha tayyorlanadi'
-                    : 'Hozircha sotuvda emas',
-                style: TextStyle(
-                  fontFamily: AppFonts.seller,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: product.status == SellerProductStatus.approved
-                      ? const Color(0xFF1F6B49)
-                      : const Color(0xFF8C5A12),
-                  height: 1.2,
+              Expanded(
+                child: Text(
+                  product.status == SellerProductStatus.approved
+                      ? 'Sotuvda mavjud · buyurtma bo\'yicha tayyorlanadi'
+                      : 'Hozircha sotuvda emas',
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: product.status == SellerProductStatus.approved
+                        ? const Color(0xFF1F6B49)
+                        : const Color(0xFF8C5A12),
+                    height: 1.2,
+                  ),
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Soft-red callout surfacing the admin's rejection reason. Shown on the detail
+/// screen only when the product is rejected and a reason was recorded — the
+/// seller needs to read why before re-submitting.
+class RejectionReasonCard extends StatelessWidget {
+  const RejectionReasonCard({super.key, required this.reason});
+
+  final String reason;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFDECEA),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFF3C9C3)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Iconsax.info_circle,
+            size: 18,
+            color: Color(0xFFC0392B),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Rad etish sababi',
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFFC0392B),
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  reason,
+                  style: const TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFFB23B2E),
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

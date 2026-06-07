@@ -1,4 +1,4 @@
-﻿import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
@@ -68,10 +68,8 @@ class _SellerProductsViewState extends State<_SellerProductsView> {
     final bloc = context.read<SellerProductsBloc>();
     final created = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => BlocProvider.value(
-          value: bloc,
-          child: const ProductFormScreen(),
-        ),
+        builder: (_) =>
+            BlocProvider.value(value: bloc, child: const ProductFormScreen()),
       ),
     );
     if (!mounted) return;
@@ -135,16 +133,16 @@ class _SellerProductsViewState extends State<_SellerProductsView> {
                     child: _SearchField(
                       controller: _searchCtrl,
                       onChanged: (v) {
-                        context
-                            .read<SellerProductsBloc>()
-                            .add(SellerProductsSearchChanged(v));
+                        context.read<SellerProductsBloc>().add(
+                          SellerProductsSearchChanged(v),
+                        );
                         setState(() {});
                       },
                       onClear: () {
                         _searchCtrl.clear();
-                        context
-                            .read<SellerProductsBloc>()
-                            .add(const SellerProductsSearchChanged(''));
+                        context.read<SellerProductsBloc>().add(
+                          const SellerProductsSearchChanged(''),
+                        );
                         setState(() {});
                       },
                     ),
@@ -158,34 +156,36 @@ class _SellerProductsViewState extends State<_SellerProductsView> {
                         _StatusFilterChip(
                           label: tr('seller.filter_all'),
                           selected: state.filter.statuses.isEmpty,
-                          onTap: () => context
-                              .read<SellerProductsBloc>()
-                              .add(SellerProductsFilterChanged(
-                                state.filter.copyWith(statuses: const {}),
-                              )),
+                          onTap: () => context.read<SellerProductsBloc>().add(
+                            SellerProductsFilterChanged(
+                              state.filter.copyWith(statuses: const {}),
+                            ),
+                          ),
                         ),
                         // Draft status is intentionally excluded: per Sprint 11
                         // the product flow goes straight to pending_review on
                         // submit, so sellers never see a "Qoralama" bucket.
                         for (final s in SellerProductStatus.values.where(
-                            (s) => s != SellerProductStatus.draft)) ...[
+                          (s) => s != SellerProductStatus.draft,
+                        )) ...[
                           const SizedBox(width: 8),
                           _StatusFilterChip(
                             label: tr('seller_product_status.${s.code}'),
                             selected: state.filter.statuses.contains(s),
                             onTap: () {
                               final next = Set<SellerProductStatus>.from(
-                                  state.filter.statuses);
+                                state.filter.statuses,
+                              );
                               if (next.contains(s)) {
                                 next.remove(s);
                               } else {
                                 next.add(s);
                               }
-                              context
-                                  .read<SellerProductsBloc>()
-                                  .add(SellerProductsFilterChanged(
-                                    state.filter.copyWith(statuses: next),
-                                  ));
+                              context.read<SellerProductsBloc>().add(
+                                SellerProductsFilterChanged(
+                                  state.filter.copyWith(statuses: next),
+                                ),
+                              );
                             },
                           ),
                         ],
@@ -197,56 +197,54 @@ class _SellerProductsViewState extends State<_SellerProductsView> {
             ),
           ),
           body: switch (state.status) {
-            SellerProductsStatus.initial ||
-            SellerProductsStatus.loading => const Center(
-                child: BrandLoadingIndicator(),
-              ),
+            SellerProductsStatus.initial || SellerProductsStatus.loading =>
+              const Center(child: BrandLoadingIndicator()),
             SellerProductsStatus.failure when state.products.isEmpty =>
               ErrorState(
                 message: state.error,
-                onRetry: () => context
-                    .read<SellerProductsBloc>()
-                    .add(const SellerProductsRequested()),
+                onRetry: () => context.read<SellerProductsBloc>().add(
+                  const SellerProductsRequested(),
+                ),
               ),
             _ => BrandRefreshIndicator(
-                color: AppColors.sellerPrimary,
-                onRefresh: () async {
-                  context
-                      .read<SellerProductsBloc>()
-                      .add(const SellerProductsRequested());
-                  // Wait until the bloc transitions back out of `loading` so
-                  // the spinner stays up for the full refetch instead of
-                  // disappearing the instant the event fires.
-                  await context.read<SellerProductsBloc>().stream.firstWhere(
-                        (s) => s.status != SellerProductsStatus.loading,
-                      );
-                },
-                child: visible.isEmpty
-                    ? ListView(
-                        // AlwaysScrollable so the empty state can still be
-                        // pulled-to-refresh — without it, the gesture never
-                        // generates the overscroll the indicator listens for.
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        children: [
-                          SizedBox(
-                            height: MediaQuery.of(context).size.height * 0.6,
-                            child: _ProductsZeroState(
-                              onAdd: () => _openCreate(context),
-                            ),
+              color: AppColors.sellerPrimary,
+              onRefresh: () async {
+                context.read<SellerProductsBloc>().add(
+                  const SellerProductsRequested(),
+                );
+                // Wait until the bloc transitions back out of `loading` so
+                // the spinner stays up for the full refetch instead of
+                // disappearing the instant the event fires.
+                await context.read<SellerProductsBloc>().stream.firstWhere(
+                  (s) => s.status != SellerProductsStatus.loading,
+                );
+              },
+              child: visible.isEmpty
+                  ? ListView(
+                      // AlwaysScrollable so the empty state can still be
+                      // pulled-to-refresh — without it, the gesture never
+                      // generates the overscroll the indicator listens for.
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: [
+                        SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.6,
+                          child: _ProductsZeroState(
+                            onAdd: () => _openCreate(context),
                           ),
-                        ],
-                      )
-                    : ListView.separated(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.fromLTRB(20, 12, 20, 96),
-                        itemCount: visible.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 10),
-                        itemBuilder: (context, i) => _ProductTile(
-                          product: visible[i],
-                          onTap: () => _openPreview(context, visible[i]),
                         ),
+                      ],
+                    )
+                  : ListView.separated(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 96),
+                      itemCount: visible.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 10),
+                      itemBuilder: (context, i) => _ProductTile(
+                        product: visible[i],
+                        onTap: () => _openPreview(context, visible[i]),
                       ),
-              ),
+                    ),
+            ),
           },
           // FAB color comes from the seller theme's `colorScheme.primary` so
           // the "Mahsulot qo'shish" button stays on-brand (Deep Indigo) and
@@ -305,8 +303,7 @@ class _SearchField extends StatelessWidget {
           padding: EdgeInsets.only(left: 14, right: 8),
           child: Icon(Iconsax.search_normal, size: 18, color: _grey),
         ),
-        prefixIconConstraints:
-            const BoxConstraints(minWidth: 0, minHeight: 0),
+        prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
         hintText: tr('seller.products_search_hint'),
         hintStyle: const TextStyle(
           fontSize: 14,
@@ -465,16 +462,14 @@ class _ProductTile extends StatelessWidget {
                       const SizedBox(height: 8),
                       // Stock is intentionally omitted: furniture is mostly
                       // made-to-order, so seller list cards show price only.
-                      Text(
-                        "${priceFormat.format(product.price)} so'm",
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: _ink,
-                          letterSpacing: -0.2,
-                          height: 1.2,
+                      _PriceRow(product: product, priceFormat: priceFormat),
+                      if (product.hasDelivery || product.hasInstallation) ...[
+                        const SizedBox(height: 8),
+                        _LogisticsBadges(
+                          hasDelivery: product.hasDelivery,
+                          hasInstallation: product.hasInstallation,
                         ),
-                      ),
+                      ],
                       const SizedBox(height: 10),
                       // Wrap (not Row) so the action drops to a second line
                       // instead of overflowing when the chip + label are wider
@@ -508,6 +503,151 @@ class _ProductTile extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+// Price line — shows the discounted price prominently with the original
+// struck through and a `-N%` pill when there's an active discount, otherwise
+// just the single price. Mirrors the discount semantics used by the product
+// preview (`TitlePriceCard`): a discount is live only when `discountPrice` is
+// set, positive and below `price`.
+class _PriceRow extends StatelessWidget {
+  const _PriceRow({required this.product, required this.priceFormat});
+
+  final SellerProduct product;
+  final NumberFormat priceFormat;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasDiscount =
+        product.discountPrice != null &&
+        product.discountPrice! > 0 &&
+        product.discountPrice! < product.price;
+    final effectivePrice = hasDiscount ? product.discountPrice! : product.price;
+    final discountPercent = hasDiscount
+        ? (((product.price - product.discountPrice!) / product.price) * 100)
+              .round()
+        : 0;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Flexible(
+          child: Text(
+            "${priceFormat.format(effectivePrice)} so'm",
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: _ink,
+              letterSpacing: -0.2,
+              height: 1.2,
+            ),
+          ),
+        ),
+        if (hasDiscount) ...[
+          const SizedBox(width: 8),
+          Text(
+            priceFormat.format(product.price),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: _greyMid,
+              decoration: TextDecoration.lineThrough,
+              decorationColor: _greyMid,
+              height: 1.2,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFDECEA),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              '-$discountPercent%',
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFFC0392B),
+                height: 1.0,
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// Small at-a-glance logistics glyphs on the list card so a seller sees whether
+// delivery / installation are enabled without opening the product. Same icons
+// as the preview's `LogisticsCard` (truck_fast / setting_4).
+class _LogisticsBadges extends StatelessWidget {
+  const _LogisticsBadges({
+    required this.hasDelivery,
+    required this.hasInstallation,
+  });
+
+  final bool hasDelivery;
+  final bool hasInstallation;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        if (hasDelivery) ...[
+          _LogisticsChip(
+            icon: Iconsax.truck_fast,
+            label: tr('seller.product_has_delivery_short'),
+          ),
+          if (hasInstallation) const SizedBox(width: 6),
+        ],
+        if (hasInstallation)
+          _LogisticsChip(
+            icon: Iconsax.setting_4,
+            label: tr('seller.product_has_installation_short'),
+          ),
+      ],
+    );
+  }
+}
+
+class _LogisticsChip extends StatelessWidget {
+  const _LogisticsChip({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF4F4F4),
+        borderRadius: BorderRadius.circular(7),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: _grey),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: _grey,
+              height: 1.0,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -625,11 +765,7 @@ class _ProductsZeroState extends StatelessWidget {
                 shape: BoxShape.circle,
               ),
               alignment: Alignment.center,
-              child: Icon(
-                Icons.inventory_2_outlined,
-                size: 44,
-                color: primary,
-              ),
+              child: Icon(Icons.inventory_2_outlined, size: 44, color: primary),
             ),
             const SizedBox(height: 20),
             Text(
@@ -693,19 +829,19 @@ class _ProductThumbnail extends StatelessWidget {
         child: hero == null || hero!.isEmpty
             ? placeholder
             : (hero!.startsWith('http')
-                ? CachedNetworkImage(
-                    imageUrl: hero!,
-                    // ROADMAP B.7 — list-row thumbnail; small decode.
-                    memCacheWidth: 400,
-                    fit: BoxFit.cover,
-                    placeholder: (_, _) => placeholder,
-                    errorWidget: (_, _, _) => placeholder,
-                  )
-                : Image.asset(
-                    hero!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => placeholder,
-                  )),
+                  ? CachedNetworkImage(
+                      imageUrl: hero!,
+                      // ROADMAP B.7 — list-row thumbnail; small decode.
+                      memCacheWidth: 400,
+                      fit: BoxFit.cover,
+                      placeholder: (_, _) => placeholder,
+                      errorWidget: (_, _, _) => placeholder,
+                    )
+                  : Image.asset(
+                      hero!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => placeholder,
+                    )),
       ),
     );
   }

@@ -24,8 +24,10 @@ import 'seller_product_repository.dart';
 ///   PATCHes the appended array.
 /// * `name`/`description` are plain strings server-side — the multilingual
 ///   uz value is sent and read back into [MultilingualText.uz].
-/// * The read model has no `updated_at`, `sku` or `category_name`, so those
-///   degrade (updatedAt mirrors createdAt, sku/categoryName are empty/null).
+/// * The read model has no `updated_at`, so `updatedAt` mirrors `createdAt`.
+///   `sku`, `category_name`, `subcategory_name`, `material` and `attributes`
+///   ARE returned by the seller list/detail endpoints (the latter two were
+///   added so the detail screen can surface every stored field).
 ///   `rejection_reason` IS returned — populated when an admin rejects.
 /// * `category_id` is a UUID server-side; [SellerProductInput.categorySlug]
 ///   carries the raw id and is forwarded as `category_id` — passing an actual
@@ -301,7 +303,17 @@ class WoodySellerProductRepository implements SellerProductRepository {
       name: MultilingualText(uz: (row['name'] as String?) ?? ''),
       description: MultilingualText(uz: (row['description'] as String?) ?? ''),
       categorySlug: row['category_id'] as String? ?? '',
+      categoryName: (row['category_name'] as String?)?.trim().isNotEmpty == true
+          ? (row['category_name'] as String).trim()
+          : null,
       subcategoryId: row['subcategory_id'] as String?,
+      subcategoryName:
+          (row['subcategory_name'] as String?)?.trim().isNotEmpty == true
+          ? (row['subcategory_name'] as String).trim()
+          : null,
+      material: (row['material'] as String?)?.trim().isNotEmpty == true
+          ? (row['material'] as String).trim()
+          : null,
       colors: _stringList(row['colors']),
       price: (row['price'] as num?) ?? 0,
       oldPrice: row['discount_price'] as num?,

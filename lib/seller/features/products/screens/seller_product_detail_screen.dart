@@ -13,6 +13,7 @@ import '../widgets/product_preview/bottom_action_bar.dart';
 import '../widgets/product_preview/description_card.dart';
 import '../widgets/product_preview/logistics_card.dart';
 import '../widgets/product_preview/meta_card.dart';
+import '../widgets/product_form/dimensions_card.dart' as form_dims;
 import '../widgets/product_preview/preview_app_bar.dart';
 import '../widgets/product_preview/preview_summary_cards.dart';
 import '../widgets/product_preview/spec_cards.dart';
@@ -113,11 +114,12 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
     ];
     final description = product.description.uz?.trim() ?? '';
     final attributeRows = _attributeRows(product);
+    final setDimensionGroups = _setDimensionGroups(product);
     final hasDimensions =
-        product.widthCm != null ||
-        product.heightCm != null ||
-        product.lengthCm != null ||
-        product.weightKg != null;
+        (product.widthCm ?? 0) > 0 ||
+        (product.heightCm ?? 0) > 0 ||
+        (product.lengthCm ?? 0) > 0 ||
+        (product.weightKg ?? 0) > 0;
     final showLogistics =
         (product.productionTimeDays?.isNotEmpty ?? false) ||
         product.hasDelivery ||
@@ -150,12 +152,22 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
                     status: product.status,
                     updatedAtLabel: _formatDateTime(product.updatedAt),
                   ),
+                  if (product.status == SellerProductStatus.rejected &&
+                      (product.rejectionReason?.trim().isNotEmpty ??
+                          false)) ...[
+                    const SizedBox(height: 14),
+                    RejectionReasonCard(
+                      reason: product.rejectionReason!.trim(),
+                    ),
+                  ],
                   const SizedBox(height: 14),
                   TitlePriceCard(product: product),
                   const SizedBox(height: 14),
                   MetaCard(
                     sku: product.sku.isEmpty ? '—' : product.sku,
                     category: product.categoryName ?? '—',
+                    subcategory: product.subcategoryName,
+                    material: product.material,
                   ),
                   if (description.isNotEmpty) ...[
                     const SizedBox(height: 14),
@@ -169,13 +181,17 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
                       colorChips: _colorChipsFor(product.colors),
                     ),
                   ],
+                  if (setDimensionGroups.isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    SetDimensionsCard(groups: setDimensionGroups),
+                  ],
                   if (hasDimensions) ...[
                     const SizedBox(height: 14),
                     DimensionsCard(
-                      lengthCm: product.lengthCm ?? 0,
-                      widthCm: product.widthCm ?? 0,
-                      heightCm: product.heightCm ?? 0,
-                      weightKg: product.weightKg ?? 0,
+                      lengthCm: product.lengthCm,
+                      widthCm: product.widthCm,
+                      heightCm: product.heightCm,
+                      weightKg: product.weightKg,
                     ),
                   ],
                   if (showLogistics) ...[
@@ -210,7 +226,9 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
   /// 3. Last resort: humanise the raw key (snake_case → Title Case).
   ///
   /// Colours are NOT included here — they're rendered as swatch chips in the
-  /// dedicated `colorChips` slot on [AttributesCard].
+  /// dedicated `colorChips` slot on [AttributesCard]. Per-piece dimension
+  /// attributes are also excluded — they render in the grouped
+  /// [SetDimensionsCard] instead of as flat rows.
   List<(String, String)> _attributeRows(SellerProduct p) {
     final defByKey = {for (final d in _schema) d.key: d};
     final rows = <(String, String)>[];
@@ -220,6 +238,7 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
     final seen = <String>{};
     for (final def in _schema) {
       if (!p.attributes.containsKey(def.key)) continue;
+      if (form_dims.DimensionsCard.isDimensionAttribute(def)) continue;
       final value = _renderValue(p.attributes[def.key], def);
       if (value.isEmpty) continue;
       rows.add((_resolveLabel(def.key, def), value));
@@ -227,11 +246,47 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
     }
     for (final entry in p.attributes.entries) {
       if (seen.contains(entry.key)) continue;
-      final value = _renderValue(entry.value, defByKey[entry.key]);
+      final def = defByKey[entry.key];
+      if (def != null && form_dims.DimensionsCard.isDimensionAttribute(def)) {
+        continue;
+      }
+      final value = _renderValue(entry.value, def);
       if (value.isEmpty) continue;
-      rows.add((_resolveLabel(entry.key, defByKey[entry.key]), value));
+      rows.add((_resolveLabel(entry.key, def), value));
     }
     return rows;
+  }
+
+  /// Groups the per-piece dimension attributes (recognised by the form's
+  /// [form_dims.DimensionsCard.isDimensionAttribute]) by furniture piece, so a
+  /// bedroom set renders as KARAVOT / SHKAF / TRYUMO blocks. Returns empty when
+  /// the product has no dimension attributes (e.g. a single non-set product) —
+  /// the typed width/height/depth columns drive the plain [DimensionsCard]
+  /// then instead.
+  List<SetDimensionGroup> _setDimensionGroups(SellerProduct p) {
+    const locale = 'uz';
+    final order = <String>[];
+    final byPiece = <String, List<(String, String)>>{};
+    for (final def in _schema) {
+      if (!form_dims.DimensionsCard.isDimensionAttribute(def)) continue;
+      if (!p.attributes.containsKey(def.key)) continue;
+      final value = _renderValue(p.attributes[def.key], def);
+      if (value.isEmpty) continue;
+      final label = def.labelFor(locale);
+      final dash = label.indexOf('—');
+      final piece = dash == -1 ? label : label.substring(0, dash).trim();
+      final measure = dash == -1 ? label : label.substring(dash + 1).trim();
+      byPiece
+          .putIfAbsent(piece, () {
+            order.add(piece);
+            return [];
+          })
+          .add((measure, value));
+    }
+    return [
+      for (final piece in order)
+        SetDimensionGroup(piece: piece, measures: byPiece[piece]!),
+    ];
   }
 
   /// Maps each persisted colour slug to its visual chip (label + swatch).

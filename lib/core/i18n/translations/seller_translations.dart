@@ -60,6 +60,8 @@ const Map<String, dynamic> sellerUz = {
   'product_step_dimensions': 'O\'lcham va og\'irlik',
   'product_step_finalize': 'Yakuniy ko\'rinish',
   'product_submit_for_review': 'Tekshiruvga yuborish',
+  'product_has_delivery_short': 'Yetkazib berish',
+  'product_has_installation_short': 'O\'rnatish',
   'save_draft': 'Qoralama',
   'submit_for_review': 'Tekshiruvga',
   'finalize_hint':
@@ -82,15 +84,13 @@ const Map<String, dynamic> sellerRu = {
   'rejected_title': 'Режим продавца (отклонено)',
   'verify_title': 'Начать верификацию',
   'verify_subtitle': 'Загрузите ваши документы',
-  'no_profile_hint':
-      'Профиль продавца не найден. Пройдите онбординг заново.',
+  'no_profile_hint': 'Профиль продавца не найден. Пройдите онбординг заново.',
   'dashboard_title': 'Здравствуйте, продавец!',
   'dashboard_default_shop_name': 'продавец',
   'dashboard_metrics_subtitle': 'Ваши показатели за сегодня',
   'dashboard_subtitle_pending':
       'После верификации вы сможете добавлять товары.',
-  'dashboard_subtitle_approved':
-      'Следите за продажами и управляйте заказами.',
+  'dashboard_subtitle_approved': 'Следите за продажами и управляйте заказами.',
   'pending_banner_message':
       'Ожидает подтверждения. После проверки документов вы сможете добавлять товары.',
   'limit_exceeded_short': 'Лимит превышен',
@@ -111,8 +111,7 @@ const Map<String, dynamic> sellerRu = {
   'stock_input_label': 'Кол-во на складе',
   'products_search_hint': 'Поиск товара или SKU',
   'products_empty': 'Ваш каталог пуст',
-  'products_empty_hint':
-      'Добавьте первый товар и начните продавать!',
+  'products_empty_hint': 'Добавьте первый товар и начните продавать!',
   'filter_all': 'Все',
   'add_product': 'Добавить товар',
   'add_image': 'Добавить фото',
@@ -120,8 +119,7 @@ const Map<String, dynamic> sellerRu = {
   'image_uploading': 'Загрузка...',
   'images_title': 'Фото ({} / {})',
   'images_count_label': '{} фото',
-  'images_hint':
-      'Перетаскивайте за ручку, звёздочка отмечает основное фото',
+  'images_hint': 'Перетаскивайте за ручку, звёздочка отмечает основное фото',
   'image_delete_title': 'Удалить фото?',
   'image_limit': 'Максимум 10 фото',
   'set_primary': 'Сделать основным',
@@ -134,6 +132,8 @@ const Map<String, dynamic> sellerRu = {
   'product_step_dimensions': 'Размеры и вес',
   'product_step_finalize': 'Финальный обзор',
   'product_submit_for_review': 'Отправить на проверку',
+  'product_has_delivery_short': 'Доставка',
+  'product_has_installation_short': 'Установка',
   'save_draft': 'Черновик',
   'submit_for_review': 'На проверку',
   'finalize_hint':
@@ -160,8 +160,7 @@ const Map<String, dynamic> sellerEn = {
   'dashboard_title': 'Hello, seller!',
   'dashboard_default_shop_name': 'seller',
   'dashboard_metrics_subtitle': "Your metrics for today",
-  'dashboard_subtitle_pending':
-      "You'll be able to add products once verified.",
+  'dashboard_subtitle_pending': "You'll be able to add products once verified.",
   'dashboard_subtitle_approved': "Track today's sales and manage orders.",
   'pending_banner_message':
       "Pending verification. You'll be able to add products once your documents are reviewed.",
@@ -183,8 +182,7 @@ const Map<String, dynamic> sellerEn = {
   'stock_input_label': 'Stock on hand',
   'products_search_hint': 'Search product or SKU',
   'products_empty': 'Your catalog is empty',
-  'products_empty_hint':
-      'Add your first product and start selling!',
+  'products_empty_hint': 'Add your first product and start selling!',
   'filter_all': 'All',
   'add_product': 'Add product',
   'add_image': 'Add image',
@@ -205,6 +203,8 @@ const Map<String, dynamic> sellerEn = {
   'product_step_dimensions': 'Dimensions & weight',
   'product_step_finalize': 'Final review',
   'product_submit_for_review': 'Submit for review',
+  'product_has_delivery_short': 'Delivery',
+  'product_has_installation_short': 'Installation',
   'save_draft': 'Draft',
   'submit_for_review': 'Submit',
   'finalize_hint':
