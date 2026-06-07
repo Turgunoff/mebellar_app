@@ -162,6 +162,11 @@ Invariants:
   **awaits the attribute schema load** (`_awaitSchema`) before writing AI
   attributes, so only keys the chosen category defines survive — same rule
   the manual form enforces. Colours are filtered through `productColorBySlug`.
+  The category attribute schemas (dimensions, materials, `mattress_included`
+  switch, warranty, …) are seeded backend-side (`0011_seed_attributes.py`);
+  `DynamicAttributesSection` already renders all five data types
+  (select/multiselect/number/text/bool), so AI-filled attributes show as the
+  right widget. An empty schema = no attribute fields.
 - **Controller sync.** `name` / `description` are backed by free-standing
   `TextEditingController`s that don't auto-update from state, so
   `_runAiFill` writes them back from cubit state after applying.

@@ -31,3 +31,8 @@ class AssetGoogle_fonts {
 	static const String readme = 'assets/google_fonts/README.md';
 }
 
+class AssetLottie {
+	static const String aiAnimation = 'assets/lottie/ai_animation.json';
+	static const String aiAnimation2 = 'assets/lottie/ai_animation2.json';
+}
+

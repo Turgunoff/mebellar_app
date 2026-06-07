@@ -29,6 +29,9 @@ class ProductFormScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Warm the (large) AI Lottie decode in the background while the seller
+    // fills the form, so the loading overlay shows instantly on first tap.
+    AiLoadingOverlay.preload();
     return BlocProvider(
       create: (_) => AddProductCubit(
         repository: sl<AddProductRepository>(),

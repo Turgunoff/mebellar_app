@@ -103,20 +103,16 @@ class _AiFillButton extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (busy)
-                  SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation(primary),
-                    ),
-                  )
-                else
-                  Icon(Iconsax.magicpen, size: 18, color: primary),
+                // No spinner here — the full-screen AiLoadingOverlay shows the
+                // loading state. The button just disables while busy.
+                Icon(
+                  Iconsax.magicpen,
+                  size: 18,
+                  color: enabled ? primary : kGreyMid,
+                ),
                 const SizedBox(width: 8),
                 Text(
-                  busy ? 'AI o‘qiyapti…' : 'AI bilan to‘ldirish',
+                  'AI bilan to‘ldirish',
                   style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 13,
