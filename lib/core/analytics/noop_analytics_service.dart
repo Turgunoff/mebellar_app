@@ -129,6 +129,12 @@ class NoopAnalyticsService implements AnalyticsService {
   Future<void> productDeleted({required String productId}) async {}
 
   @override
+  Future<void> aiSuggestRequested({required int imageCount}) async {}
+
+  @override
+  Future<void> aiSuggestApplied({required bool available}) async {}
+
+  @override
   Future<void> sellerOrderStatusChanged({
     required String orderId,
     required String fromStatus,

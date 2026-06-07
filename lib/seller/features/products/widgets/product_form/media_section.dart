@@ -7,7 +7,8 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import 'form_kit.dart';
 
-/// Horizontal strip of product image thumbnails plus the "add photo" tile.
+/// Horizontal strip of product image thumbnails plus the "add photo" tile,
+/// with an "AI fill from photos" CTA once at least one image is present.
 class MediaSection extends StatelessWidget {
   const MediaSection({
     super.key,
@@ -15,12 +16,21 @@ class MediaSection extends StatelessWidget {
     required this.maxImages,
     required this.onAdd,
     required this.onRemove,
+    required this.onAiFill,
+    required this.aiBusy,
   });
 
   final List<File> files;
   final int maxImages;
   final VoidCallback onAdd;
   final ValueChanged<int> onRemove;
+
+  /// Tapped to draft the form from the picked photos. Null disables the CTA
+  /// (e.g. while another action is in flight).
+  final VoidCallback? onAiFill;
+
+  /// True while the AI request is running — shows a spinner, blocks re-tap.
+  final bool aiBusy;
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +51,7 @@ class MediaSection extends StatelessWidget {
                 children: [
                   _AddPhotoTile(
                     countLabel: '${files.length}/$caption',
-                    enabled: !isFull,
+                    enabled: !isFull && !aiBusy,
                     onTap: onAdd,
                   ),
                   for (var i = 0; i < files.length; i++) ...[
@@ -58,7 +68,68 @@ class MediaSection extends StatelessWidget {
             ),
           ),
         ),
+        if (files.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          _AiFillButton(busy: aiBusy, onTap: onAiFill),
+        ],
       ],
+    );
+  }
+}
+
+/// "Fill from photos with AI" CTA. Shows a spinner + disables itself while the
+/// request runs. Themed off the seller primary so it reads as an assist, not a
+/// primary save action.
+class _AiFillButton extends StatelessWidget {
+  const _AiFillButton({required this.busy, required this.onTap});
+
+  final bool busy;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    final enabled = !busy && onTap != null;
+    return SizedBox(
+      width: double.infinity,
+      child: Material(
+        color: enabled ? primary.withValues(alpha: 0.10) : kFillSoft,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onTap: enabled ? onTap : null,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (busy)
+                  SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation(primary),
+                    ),
+                  )
+                else
+                  Icon(Iconsax.magicpen, size: 18, color: primary),
+                const SizedBox(width: 8),
+                Text(
+                  busy ? 'AI o‘qiyapti…' : 'AI bilan to‘ldirish',
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: enabled ? primary : kGreyMid,
+                    letterSpacing: -0.1,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -172,10 +243,7 @@ class _ImageThumbnail extends StatelessWidget {
                 color: primary.withValues(alpha: 0.25),
                 width: 1.2,
               ),
-              image: DecorationImage(
-                image: FileImage(file),
-                fit: BoxFit.cover,
-              ),
+              image: DecorationImage(image: FileImage(file), fit: BoxFit.cover),
             ),
           ),
           if (isPrimary)
@@ -183,10 +251,7 @@ class _ImageThumbnail extends StatelessWidget {
               left: 6,
               bottom: 6,
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 6,
-                  vertical: 3,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                 decoration: BoxDecoration(
                   color: primary,
                   borderRadius: BorderRadius.circular(6),

@@ -340,6 +340,16 @@ class FirebaseAnalyticsService implements AnalyticsService {
   }
 
   @override
+  Future<void> aiSuggestRequested({required int imageCount}) {
+    return _safeLog('ai_suggest_requested', {'image_count': imageCount});
+  }
+
+  @override
+  Future<void> aiSuggestApplied({required bool available}) {
+    return _safeLog('ai_suggest_applied', {'available': available});
+  }
+
+  @override
   Future<void> sellerOrderStatusChanged({
     required String orderId,
     required String fromStatus,

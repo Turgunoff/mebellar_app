@@ -58,6 +58,7 @@ class AddProductState extends Equatable {
     this.installationPrice = 0,
     this.warrantyMonths = 12,
     this.imageFiles = const [],
+    this.isAiBusy = false,
     this.error,
   });
 
@@ -81,6 +82,10 @@ class AddProductState extends Equatable {
   final num installationPrice;
   final int warrantyMonths;
   final List<File> imageFiles;
+
+  /// True while an AI "fill from photos" request is in flight. Drives the
+  /// button spinner + disables the form so applied fields don't fight a tap.
+  final bool isAiBusy;
   final String? error;
 
   /// `-1` means unlimited.
@@ -151,6 +156,7 @@ class AddProductState extends Equatable {
     num? installationPrice,
     int? warrantyMonths,
     List<File>? imageFiles,
+    bool? isAiBusy,
     String? error,
     bool clearError = false,
   }) {
@@ -177,6 +183,7 @@ class AddProductState extends Equatable {
       installationPrice: installationPrice ?? this.installationPrice,
       warrantyMonths: warrantyMonths ?? this.warrantyMonths,
       imageFiles: imageFiles ?? this.imageFiles,
+      isAiBusy: isAiBusy ?? this.isAiBusy,
       error: clearError ? null : (error ?? this.error),
     );
   }
@@ -204,6 +211,7 @@ class AddProductState extends Equatable {
     installationPrice,
     warrantyMonths,
     imageFiles.length,
+    isAiBusy,
     error,
   ];
 }
@@ -508,6 +516,114 @@ class AddProductCubit extends Cubit<AddProductState> {
         state.copyWith(status: AddProductStatus.failure, error: e.toString()),
       );
       return false;
+    }
+  }
+
+  /// Drafts the form from the currently-picked photos: uploads them, asks the
+  /// backend's vision model for a suggestion, and applies whatever came back.
+  /// The seller reviews and edits before saving — AI never auto-submits.
+  ///
+  /// Returns the suggestion's `available` flag so the UI can show a soft
+  /// "couldn't read the photos" message when the backend has AI off or the
+  /// call failed. Empty images, a busy run, or an upload failure are handled
+  /// gracefully — this never throws.
+  Future<bool> generateFromImages() async {
+    final ctx = state.context;
+    if (ctx == null || state.imageFiles.isEmpty || state.isAiBusy) {
+      return false;
+    }
+    emit(state.copyWith(isAiBusy: true, clearError: true));
+    unawaited(
+      _analytics?.aiSuggestRequested(imageCount: state.imageFiles.length),
+    );
+    try {
+      final result = await _repository.suggestFromImages(
+        sellerId: ctx.sellerId,
+        files: state.imageFiles,
+      );
+      final s = result.suggestion;
+      if (s.hasAnything) {
+        await _applySuggestion(s);
+      }
+      unawaited(_analytics?.aiSuggestApplied(available: s.available));
+      emit(state.copyWith(isAiBusy: false));
+      talker.info(
+        '[add-product-cubit] ai-suggest done available=${s.available} '
+        'applied=${s.hasAnything}',
+      );
+      return s.available;
+    } catch (e, st) {
+      talker.handle(e, st, '[add-product-cubit] ai-suggest failed');
+      emit(state.copyWith(isAiBusy: false));
+      return false;
+    }
+  }
+
+  /// Applies a suggestion field-by-field. Category is applied first and its
+  /// attribute schema is awaited before the AI attributes land, so we only
+  /// keep keys the chosen category actually defines (the same contract the
+  /// manual form enforces).
+  Future<void> _applySuggestion(AiProductSuggestion s) async {
+    if (s.name != null) emit(state.copyWith(name: s.name));
+    if (s.description != null) emit(state.copyWith(description: s.description));
+
+    for (final slug in s.colors) {
+      if (!state.colorSlugs.contains(slug) &&
+          productColorBySlug(slug) != null) {
+        toggleColor(slug);
+      }
+    }
+
+    final categoryId = s.categoryId;
+    if (categoryId != null && findCategory(categoryId) != null) {
+      selectCategory(categoryId);
+      final sub = s.subcategoryId;
+      if (sub != null && _subcategoryExists(categoryId, sub)) {
+        selectSubcategory(sub);
+      }
+      // selectCategory/selectSubcategory kick off an async schema load; wait
+      // for it to settle so the attributes below are validated against the
+      // real schema rather than an empty one.
+      await _awaitSchema();
+    }
+
+    if (s.attributes.isNotEmpty && state.attributeSchema.isNotEmpty) {
+      final validKeys = {for (final d in state.attributeSchema) d.key};
+      for (final entry in s.attributes.entries) {
+        if (validKeys.contains(entry.key) && entry.value != null) {
+          setAttribute(entry.key, entry.value);
+        }
+      }
+    }
+  }
+
+  bool _subcategoryExists(String categoryId, String subcategoryId) {
+    final cat = findCategory(categoryId);
+    if (cat == null) return false;
+    for (final s in cat.subcategories) {
+      if (s.id == subcategoryId) return true;
+    }
+    return false;
+  }
+
+  /// Loads the attribute schema for the current (category, subcategory) and
+  /// awaits it — the awaitable twin of [_reloadSchema], used by the AI flow so
+  /// attribute application can depend on the schema being present.
+  Future<void> _awaitSchema() async {
+    final categoryId = state.categoryId;
+    if (categoryId == null) return;
+    final token = ++_schemaRequestId;
+    emit(state.copyWith(isLoadingSchema: true));
+    try {
+      final schema = await _attributesRepository.loadForCategory(
+        categoryId: categoryId,
+        subcategoryId: state.subcategoryId,
+      );
+      if (token != _schemaRequestId) return;
+      emit(state.copyWith(attributeSchema: schema, isLoadingSchema: false));
+    } catch (e) {
+      if (token != _schemaRequestId) return;
+      emit(state.copyWith(isLoadingSchema: false, error: e.toString()));
     }
   }
 

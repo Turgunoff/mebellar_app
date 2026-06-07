@@ -107,6 +107,62 @@ class AddProductResult {
   final List<String> imageUrls;
 }
 
+/// Best-effort form prefill returned by `POST /seller/products/ai-suggest`.
+/// Every field is optional — the cubit applies only what came back and the
+/// seller reviews before saving. [available] is false when the backend has AI
+/// disabled or the vision call failed; the UI surfaces a soft message rather
+/// than treating it as an error.
+class AiProductSuggestion {
+  const AiProductSuggestion({
+    required this.available,
+    this.name,
+    this.description,
+    this.categoryId,
+    this.subcategoryId,
+    this.colors = const [],
+    this.attributes = const {},
+  });
+
+  final bool available;
+  final String? name;
+  final String? description;
+  final String? categoryId;
+  final String? subcategoryId;
+  final List<String> colors;
+  final Map<String, dynamic> attributes;
+
+  factory AiProductSuggestion.fromJson(Map<String, dynamic> json) {
+    final colorsRaw = json['colors'];
+    final attrsRaw = json['attributes'];
+    return AiProductSuggestion(
+      available: json['available'] as bool? ?? false,
+      name: (json['name'] as String?)?.trim().isEmpty ?? true
+          ? null
+          : (json['name'] as String).trim(),
+      description: (json['description'] as String?)?.trim().isEmpty ?? true
+          ? null
+          : (json['description'] as String).trim(),
+      categoryId: json['category_id'] as String?,
+      subcategoryId: json['subcategory_id'] as String?,
+      colors: colorsRaw is List
+          ? colorsRaw.whereType<String>().toList(growable: false)
+          : const [],
+      attributes: attrsRaw is Map<String, dynamic>
+          ? Map<String, dynamic>.from(attrsRaw)
+          : const {},
+    );
+  }
+
+  /// True when there's at least one field worth applying to the form.
+  bool get hasAnything =>
+      available &&
+      (name != null ||
+          description != null ||
+          categoryId != null ||
+          colors.isNotEmpty ||
+          attributes.isNotEmpty);
+}
+
 /// Add-product data layer (Woody REST). Images upload to the public
 /// `product-images` R2 bucket; the product is created via `POST
 /// /seller/products` (which stores `images` + `attributes` inline — no
@@ -233,6 +289,43 @@ class AddProductRepository {
       productId: body['id'] as String,
       imageUrls: imageUrls,
     );
+  }
+
+  /// Uploads [files] to R2, then asks the backend to draft product fields from
+  /// the resulting public image URLs (`POST /seller/products/ai-suggest`).
+  /// Returns the parsed suggestion plus the uploaded URLs so the caller can
+  /// reuse them at save time and avoid re-uploading the same bytes.
+  ///
+  /// Never throws on an AI failure — a non-2xx or malformed body yields an
+  /// `available: false` suggestion so the form degrades softly. An *upload*
+  /// failure still throws, since that's the seller's own network/quota problem
+  /// and they'll hit it again at save time.
+  Future<({AiProductSuggestion suggestion, List<String> imageUrls})>
+  suggestFromImages({
+    required String sellerId,
+    required List<File> files,
+  }) async {
+    if (files.isEmpty) {
+      throw StateError('At least one image is required for AI suggestion');
+    }
+    final imageUrls = await _uploadImages(sellerId: sellerId, files: files);
+    try {
+      final body = await _api.post<Map<String, dynamic>>(
+        '/seller/products/ai-suggest',
+        body: {'image_urls': imageUrls},
+      );
+      return (
+        suggestion: AiProductSuggestion.fromJson(body),
+        imageUrls: imageUrls,
+      );
+    } catch (_) {
+      // The images uploaded fine; only the draft failed. Hand the URLs back
+      // with an unavailable suggestion so the caller keeps the uploads.
+      return (
+        suggestion: const AiProductSuggestion(available: false),
+        imageUrls: imageUrls,
+      );
+    }
   }
 
   Future<List<String>> _uploadImages({

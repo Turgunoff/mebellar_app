@@ -113,6 +113,13 @@ abstract class AnalyticsService {
   Future<void> productUpdated({required String productId});
   Future<void> productDeleted({required String productId});
 
+  /// Seller tapped "fill from photos" on the add-product form.
+  Future<void> aiSuggestRequested({required int imageCount});
+
+  /// An AI suggestion came back and was applied to the form. [available]
+  /// reflects whether the backend returned usable fields.
+  Future<void> aiSuggestApplied({required bool available});
+
   Future<void> sellerOrderStatusChanged({
     required String orderId,
     required String fromStatus,

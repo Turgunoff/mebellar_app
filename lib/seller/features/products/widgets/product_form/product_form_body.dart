@@ -51,6 +51,8 @@ class ProductFormBody extends StatelessWidget {
             maxImages: state.maxImages,
             onAdd: () => _pickImages(context),
             onRemove: cubit.removeImageAt,
+            onAiFill: () => _runAiFill(context),
+            aiBusy: state.isAiBusy,
           ),
           const SizedBox(height: 20),
           BasicInfoSection(
@@ -65,10 +67,7 @@ class ProductFormBody extends StatelessWidget {
             onDescriptionChanged: cubit.setDescription,
           ),
           const SizedBox(height: 20),
-          DynamicAttributesSection(
-            state: state,
-            onChanged: cubit.setAttribute,
-          ),
+          DynamicAttributesSection(state: state, onChanged: cubit.setAttribute),
           if (state.attributeSchema.isNotEmpty || state.categoryId != null)
             const SizedBox(height: 20),
           VariantSection(
@@ -113,8 +112,9 @@ class ProductFormBody extends StatelessWidget {
     if (!state.canPickMoreImages) return;
 
     final unlimited = state.maxImages < 0;
-    final remaining =
-        unlimited ? null : state.maxImages - state.imageFiles.length;
+    final remaining = unlimited
+        ? null
+        : state.maxImages - state.imageFiles.length;
     if (!unlimited && (remaining ?? 0) <= 0) return;
 
     final List<XFile> picked;
@@ -169,6 +169,58 @@ class ProductFormBody extends StatelessWidget {
           ),
         );
     }
+  }
+
+  /// Runs the AI "fill from photos" flow, then syncs the name/description text
+  /// controllers from the cubit state (the cubit owns the values, but these two
+  /// fields are backed by free-standing controllers that won't auto-update).
+  Future<void> _runAiFill(BuildContext context) async {
+    final cubit = context.read<AddProductCubit>();
+    final messenger = ScaffoldMessenger.of(context);
+    final available = await cubit.generateFromImages();
+
+    final state = cubit.state;
+    if (state.name.isNotEmpty) controllers.name.text = state.name;
+    if (state.description.isNotEmpty) {
+      controllers.description.text = state.description;
+    }
+
+    if (!context.mounted) return;
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          backgroundColor: available
+              ? Theme.of(context).colorScheme.primary
+              : AppColors.warning,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 4),
+          content: Row(
+            children: [
+              Icon(
+                available ? Iconsax.magicpen : Iconsax.info_circle,
+                color: Colors.white,
+                size: 20,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  available
+                      ? 'AI maydonlarni to‘ldirdi — tekshirib, saqlang.'
+                      : 'AI rasmlardan ma‘lumot o‘qiy olmadi. '
+                            'Maydonlarni qo‘lda to‘ldiring.',
+                  style: const TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                    height: 1.3,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
   }
 
   Future<void> _openCategorySheet(BuildContext context) async {

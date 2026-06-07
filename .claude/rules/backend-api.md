@@ -30,3 +30,10 @@
 - **Enums mirror** the backend (`app/domain/enums.py`) and the admin
   (`lib/enums.ts`) — `OrderStatus`, `VerificationStatus`, `ProductStatus`.
   Change one side, change all three (see the workspace `CLAUDE.md`).
+- **AI suggestion is backend-owned.** `POST /seller/products/ai-suggest`
+  takes `{image_urls}` (R2 URLs) and returns a best-effort prefill. **No AI
+  SDK or API key in the app** — the backend holds the Azure/Foundry key. The
+  endpoint always 200s; on `available:false` (AI off / failed) the form
+  degrades to manual entry. `suggestFromImages()` never throws on an AI
+  failure (only on an upload failure). AI never auto-saves — the seller
+  reviews, then `POST /seller/products` as usual.

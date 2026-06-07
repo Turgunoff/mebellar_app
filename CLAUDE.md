@@ -139,7 +139,40 @@ names (`view_item`, `add_to_cart`, `purchase`, `sign_up`, …) are used
 where they exist; custom snake_case names for the rest. `AppModeCubit`
 uses a *lookup closure* (`() => sl<AnalyticsService>()`) because it's
 constructed before catalog_module registers analytics — module order
-matters in `service_locator.dart`.
+matters in `service_locator.dart`. AI events: `ai_suggest_requested`,
+`ai_suggest_applied`.
+
+### AI product authoring (seller "fill from photos")
+
+The seller add-product form can draft itself from the uploaded photos.
+The work is **all backend** — the app speaks only REST; there is no AI
+SDK or API key in the app (woody_backend owns the Azure/Foundry key).
+
+Flow: `MediaSection` shows the "AI bilan to'ldirish" CTA once ≥1 photo is
+picked → `AddProductCubit.generateFromImages()` →
+`AddProductRepository.suggestFromImages()` uploads the photos to R2 (reusing
+the normal product-image upload) and POSTs the URLs to
+`/seller/products/ai-suggest` → applies the returned
+`AiProductSuggestion` (name, description, category, subcategory, colours,
+attributes). **AI never auto-saves** — the seller reviews and taps save.
+
+Invariants:
+
+- **Sequencing matters.** `_applySuggestion` selects the category first and
+  **awaits the attribute schema load** (`_awaitSchema`) before writing AI
+  attributes, so only keys the chosen category defines survive — same rule
+  the manual form enforces. Colours are filtered through `productColorBySlug`.
+- **Controller sync.** `name` / `description` are backed by free-standing
+  `TextEditingController`s that don't auto-update from state, so
+  `_runAiFill` writes them back from cubit state after applying.
+- **Graceful degrade.** The endpoint always returns 200; on
+  `available:false` (AI off / failed) the form shows a soft snackbar and the
+  seller fills manually. `generateFromImages()` never throws; an upload
+  failure is the only thing surfaced (the seller hits it again at save time).
+- `isAiBusy` drives the button spinner and blocks re-tap / the add-photo tile.
+- This seller flow is Uzbek-only with seller-local tokens (`kInk`,
+  `AppFonts.seller`), not `tr()` / `PremiumTokens` — matching the rest of the
+  add-product form. Don't force i18n here.
 
 ### Crashlytics
 
@@ -241,6 +274,12 @@ This brain captures the state after a multi-session redesign:
   entirely; every repository, auth, realtime, storage and the seller
   add-product / tariff / services / attributes flows now run against the
   Woody REST API + R2 + WebSocket. `grep -i supabase lib/` is zero.
+- **AI "fill from photos"** in the seller add-product form — the
+  `MediaSection` shows an "AI bilan to'ldirish" CTA once a photo is added;
+  `AddProductCubit.generateFromImages()` uploads the photos, calls
+  `POST /seller/products/ai-suggest`, and applies the returned name /
+  description / category / colours / attributes. AI never auto-saves — the
+  seller reviews and taps save. See §AI product authoring.
 - Search + per-category filter sheet — `ProductSearchFilter`, adaptive
   facet visibility, search UI redesigned with active-filter pills
 - Subcategory chip bar in product list with realtime-safe race protection
