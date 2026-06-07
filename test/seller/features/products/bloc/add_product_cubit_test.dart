@@ -553,5 +553,36 @@ void main() {
       expect(available, isFalse);
       expect(cubit.state.isAiBusy, isFalse);
     });
+
+    test('trims to the first 4 images before sending (backend cap)', () async {
+      List<File>? sentFiles;
+      when(
+        () => repo.suggestFromImages(
+          sellerId: any(named: 'sellerId'),
+          files: any(named: 'files'),
+        ),
+      ).thenAnswer((invocation) async {
+        sentFiles = invocation.namedArguments[#files] as List<File>;
+        return (
+          suggestion: const AiProductSuggestion(available: false),
+          imageUrls: const <String>[],
+        );
+      });
+
+      final cubit = _cubit(repo);
+      cubit.emit(
+        AddProductState(
+          status: AddProductStatus.ready,
+          context: aiContext(),
+          imageFiles: [for (var i = 0; i < 6; i++) File('/tmp/$i.jpg')],
+        ),
+      );
+      await cubit.generateFromImages();
+
+      expect(sentFiles, isNotNull);
+      expect(sentFiles!.length, 4, reason: 'capped at the backend limit');
+      // The form keeps all 6 — only the AI call is trimmed.
+      expect(cubit.state.imageFiles.length, 6);
+    });
   });
 }

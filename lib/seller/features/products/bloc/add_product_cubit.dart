@@ -230,6 +230,11 @@ class AddProductCubit extends Cubit<AddProductState> {
   final AttributesRepository _attributesRepository;
   final AnalyticsService? _analytics;
 
+  /// Max photos sent to the AI endpoint. The backend caps `image_urls` at 4
+  /// (more rarely improves recognition and each one costs vision tokens), so
+  /// we trim here to avoid a 422 when the seller's tariff allows more images.
+  static const int _maxAiImages = 4;
+
   /// Increments on every category/subcategory change. Stale responses from
   /// the attributes repository are discarded by comparing against the
   /// in-flight token so rapid taps don't paint the wrong schema.
@@ -532,14 +537,18 @@ class AddProductCubit extends Cubit<AddProductState> {
     if (ctx == null || state.imageFiles.isEmpty || state.isAiBusy) {
       return false;
     }
+    // Trim to the backend's image cap — the first photos are the primary/most
+    // representative ones, and sending more would 422.
+    final files = state.imageFiles.length > _maxAiImages
+        ? state.imageFiles.sublist(0, _maxAiImages)
+        : state.imageFiles;
+
     emit(state.copyWith(isAiBusy: true, clearError: true));
-    unawaited(
-      _analytics?.aiSuggestRequested(imageCount: state.imageFiles.length),
-    );
+    unawaited(_analytics?.aiSuggestRequested(imageCount: files.length));
     try {
       final result = await _repository.suggestFromImages(
         sellerId: ctx.sellerId,
-        files: state.imageFiles,
+        files: files,
       );
       final s = result.suggestion;
       if (s.hasAnything) {

@@ -346,7 +346,9 @@ class FirebaseAnalyticsService implements AnalyticsService {
 
   @override
   Future<void> aiSuggestApplied({required bool available}) {
-    return _safeLog('ai_suggest_applied', {'available': available});
+    // Firebase event params accept only String/num — encode the bool as 0/1,
+    // matching the `has_image` / `opened` convention elsewhere in this file.
+    return _safeLog('ai_suggest_applied', {'available': available ? 1 : 0});
   }
 
   @override
