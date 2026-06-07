@@ -163,10 +163,19 @@ Invariants:
   attributes, so only keys the chosen category defines survive — same rule
   the manual form enforces. Colours are filtered through `productColorBySlug`.
   The category attribute schemas (dimensions, materials, `mattress_included`
-  switch, warranty, …) are seeded backend-side (`0011_seed_attributes.py`);
-  `DynamicAttributesSection` already renders all five data types
-  (select/multiselect/number/text/bool), so AI-filled attributes show as the
-  right widget. An empty schema = no attribute fields.
+  switch, …) are seeded backend-side (`0011_seed_attributes.py`,
+  `0012_revise_bed_attributes.py`); `DynamicAttributesSection` renders all five
+  data types (select/multiselect/number/text/bool), so AI-filled attributes
+  show as the right widget. An empty schema = no attribute fields.
+- **Dimensions card.** `DynamicAttributesSection` splits out the per-piece
+  dimension attributes (`number` + unit `sm` + label `"Piece — measure"`, e.g.
+  `bed_length_cm` "Krovat — uzunligi") into a grouped `DimensionsCard`
+  (KARAVOT / SHKAF / TRYUMO headers + compact number fields), so a bedroom set
+  reads cleanly instead of as a flat list of nine fields. Everything else
+  renders in the plain "Xususiyatlar" card. **Warranty is NOT an attribute** —
+  it's the hard-coded `warrantyController` in `LogisticsSection` (→ typed
+  `products.warranty_months`); don't reintroduce a `warranty_months` attribute
+  or it shows twice.
 - **Controller sync.** `name` / `description` are backed by free-standing
   `TextEditingController`s that don't auto-update from state, so
   `_runAiFill` writes them back from cubit state after applying.

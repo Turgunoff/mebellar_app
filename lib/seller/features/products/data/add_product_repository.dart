@@ -345,10 +345,14 @@ class AddProductRepository {
       final compressed = await FlutterImageCompress.compressWithFile(
         file.absolute.path,
         format: CompressFormat.webp,
-        quality: 82,
+        quality: 88,
         keepExif: false,
-        minWidth: 1024,
-        minHeight: 1024,
+        // Sellers upload poster-style photos with printed dimensions; the AI
+        // suggestion reads those numbers (detail:high tiles at 512px), so keep
+        // enough resolution for the small text to survive. webp keeps the file
+        // small even at 1600px.
+        minWidth: 1600,
+        minHeight: 1600,
       );
       final bytes = compressed ?? await file.readAsBytes();
       final objectPath = '$sellerId/${_randomObjectName()}.webp';

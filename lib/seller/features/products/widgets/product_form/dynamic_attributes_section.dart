@@ -5,6 +5,7 @@ import '../../../../../core/theme/app_fonts.dart';
 import '../../../../../shared/models/attribute_definition.dart';
 import '../../../../../shared/models/attribute_option.dart';
 import '../../bloc/add_product_cubit.dart';
+import 'dimensions_card.dart';
 import 'form_kit.dart';
 
 /// Renders the dynamic-schema portion of the add-product form. Each
@@ -32,29 +33,55 @@ class DynamicAttributesSection extends StatelessWidget {
     }
     final locale = Localizations.localeOf(context).languageCode;
 
+    if (state.isLoadingSchema && state.attributeSchema.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: const [
+          SectionTitle('Xususiyatlar'),
+          FormCard(child: _SchemaLoadingPlaceholder()),
+        ],
+      );
+    }
+
+    // Dimension number fields (bed/wardrobe/dresser × measure) get their own
+    // grouped card; everything else renders in the plain "Xususiyatlar" card.
+    final dimensions = <AttributeDefinition>[];
+    final rest = <AttributeDefinition>[];
+    for (final def in state.attributeSchema) {
+      (DimensionsCard.isDimensionAttribute(def) ? dimensions : rest).add(def);
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionTitle('Xususiyatlar'),
-        FormCard(
-          child: state.isLoadingSchema && state.attributeSchema.isEmpty
-              ? const _SchemaLoadingPlaceholder()
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    for (var i = 0; i < state.attributeSchema.length; i++) ...[
-                      if (i > 0) const SizedBox(height: 16),
-                      _AttributeField(
-                        definition: state.attributeSchema[i],
-                        value: state.attributes[state.attributeSchema[i].key],
-                        locale: locale,
-                        onChanged: (v) =>
-                            onChanged(state.attributeSchema[i].key, v),
-                      ),
-                    ],
-                  ],
-                ),
-        ),
+        if (dimensions.isNotEmpty) ...[
+          DimensionsCard(
+            definitions: dimensions,
+            values: state.attributes,
+            locale: locale,
+            onChanged: onChanged,
+          ),
+          if (rest.isNotEmpty) const SizedBox(height: 20),
+        ],
+        if (rest.isNotEmpty) ...[
+          const SectionTitle('Xususiyatlar'),
+          FormCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (var i = 0; i < rest.length; i++) ...[
+                  if (i > 0) const SizedBox(height: 16),
+                  _AttributeField(
+                    definition: rest[i],
+                    value: state.attributes[rest[i].key],
+                    locale: locale,
+                    onChanged: (v) => onChanged(rest[i].key, v),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -144,8 +171,7 @@ class _AttributeField extends StatelessWidget {
               options: definition.options,
               selectedValues: selected,
               locale: locale,
-              onSelectedMany: (next) =>
-                  onChanged(next.isEmpty ? null : next),
+              onSelectedMany: (next) => onChanged(next.isEmpty ? null : next),
             ),
           ],
         );
@@ -373,9 +399,7 @@ class _NumberFieldState extends State<_NumberField> {
       hint: widget.unit ?? '',
       suffix: widget.unit,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      inputFormatters: [
-        FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-      ],
+      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
       onChanged: (raw) {
         if (raw.isEmpty) {
           widget.onChanged(null);
@@ -460,7 +484,9 @@ class _BoolToggle extends StatelessWidget {
     final primary = Theme.of(context).colorScheme.primary;
     return Row(
       children: [
-        Expanded(child: _FieldLabel(label: label, isRequired: isRequired)),
+        Expanded(
+          child: _FieldLabel(label: label, isRequired: isRequired),
+        ),
         Switch.adaptive(
           value: value,
           activeThumbColor: primary,
