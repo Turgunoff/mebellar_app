@@ -528,14 +528,15 @@ class AddProductCubit extends Cubit<AddProductState> {
   /// backend's vision model for a suggestion, and applies whatever came back.
   /// The seller reviews and edits before saving — AI never auto-submits.
   ///
-  /// Returns the suggestion's `available` flag so the UI can show a soft
-  /// "couldn't read the photos" message when the backend has AI off or the
-  /// call failed. Empty images, a busy run, or an upload failure are handled
-  /// gracefully — this never throws.
-  Future<bool> generateFromImages() async {
+  /// Returns `(available, sameProduct)` so the UI can pick the right message:
+  /// success, a "couldn't read the photos" soft message (`available:false`),
+  /// or a "these look like different products" warning (`sameProduct:false`).
+  /// Empty images, a busy run, or an upload failure are handled gracefully —
+  /// this never throws.
+  Future<({bool available, bool sameProduct})> generateFromImages() async {
     final ctx = state.context;
     if (ctx == null || state.imageFiles.isEmpty || state.isAiBusy) {
-      return false;
+      return (available: false, sameProduct: true);
     }
     // Trim to the backend's image cap — the first photos are the primary/most
     // representative ones, and sending more would 422.
@@ -558,13 +559,13 @@ class AddProductCubit extends Cubit<AddProductState> {
       emit(state.copyWith(isAiBusy: false));
       talker.info(
         '[add-product-cubit] ai-suggest done available=${s.available} '
-        'applied=${s.hasAnything}',
+        'sameProduct=${s.sameProduct} applied=${s.hasAnything}',
       );
-      return s.available;
+      return (available: s.available, sameProduct: s.sameProduct);
     } catch (e, st) {
       talker.handle(e, st, '[add-product-cubit] ai-suggest failed');
       emit(state.copyWith(isAiBusy: false));
-      return false;
+      return (available: false, sameProduct: true);
     }
   }
 

@@ -11,6 +11,7 @@ import '../bloc/add_product_cubit.dart';
 import '../controller/product_form_controllers.dart';
 import '../data/add_product_repository.dart';
 import '../data/attributes_repository.dart';
+import '../widgets/product_form/ai_loading_overlay.dart';
 import '../widgets/product_form/product_form_app_bar.dart';
 import '../widgets/product_form/product_form_body.dart';
 import '../widgets/product_form/save_bottom_bar.dart';
@@ -129,49 +130,59 @@ class _ProductFormViewState extends State<_ProductFormView> {
         }
       },
       builder: (context, state) {
-        final isLoadingContext = state.status == AddProductStatus.loadingContext;
-        return Scaffold(
-          backgroundColor: AppColors.lightBackground,
-          appBar: const ProductFormAppBar(),
-          // Render the form shell immediately — categories/plan load in the
-          // background. A thin progress line above the body signals the
-          // load; the save CTA stays disabled via `canSubmit` until ready.
-          body: switch (state.status) {
-            AddProductStatus.tariffBlocked => TariffBlockedView(
-                snapshot: context.read<AddProductCubit>().tariffSnapshot,
-              ),
-            _ => Column(
-                children: [
-                  SizedBox(
-                    height: 2,
-                    child: isLoadingContext
-                        ? LinearProgressIndicator(
-                            minHeight: 2,
-                            backgroundColor: Colors.transparent,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Theme.of(context).colorScheme.primary,
-                            ),
-                          )
-                        : null,
-                  ),
-                  Expanded(
-                    child: ProductFormBody(
-                      controllers: _controllers,
-                      picker: _picker,
-                      state: state,
-                    ),
-                  ),
-                ],
-              ),
-          },
-          bottomNavigationBar: state.status == AddProductStatus.tariffBlocked
-              ? null
-              : SaveBottomBar(
-                  enabled: state.canSubmit &&
-                      state.status != AddProductStatus.saving,
-                  busy: state.status == AddProductStatus.saving,
-                  onSave: () => _save(context),
+        final isLoadingContext =
+            state.status == AddProductStatus.loadingContext;
+        return Stack(
+          children: [
+            Scaffold(
+              backgroundColor: AppColors.lightBackground,
+              appBar: const ProductFormAppBar(),
+              // Render the form shell immediately — categories/plan load in the
+              // background. A thin progress line above the body signals the
+              // load; the save CTA stays disabled via `canSubmit` until ready.
+              body: switch (state.status) {
+                AddProductStatus.tariffBlocked => TariffBlockedView(
+                  snapshot: context.read<AddProductCubit>().tariffSnapshot,
                 ),
+                _ => Column(
+                  children: [
+                    SizedBox(
+                      height: 2,
+                      child: isLoadingContext
+                          ? LinearProgressIndicator(
+                              minHeight: 2,
+                              backgroundColor: Colors.transparent,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Theme.of(context).colorScheme.primary,
+                              ),
+                            )
+                          : null,
+                    ),
+                    Expanded(
+                      child: ProductFormBody(
+                        controllers: _controllers,
+                        picker: _picker,
+                        state: state,
+                      ),
+                    ),
+                  ],
+                ),
+              },
+              bottomNavigationBar:
+                  state.status == AddProductStatus.tariffBlocked
+                  ? null
+                  : SaveBottomBar(
+                      enabled:
+                          state.canSubmit &&
+                          state.status != AddProductStatus.saving,
+                      busy: state.status == AddProductStatus.saving,
+                      onSave: () => _save(context),
+                    ),
+            ),
+            // Blocks the whole screen (incl. app bar + save bar) while the AI
+            // request runs, so nothing behind it can be edited.
+            AiLoadingOverlay(visible: state.isAiBusy),
+          ],
         );
       },
     );

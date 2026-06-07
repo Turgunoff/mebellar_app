@@ -169,6 +169,15 @@ Invariants:
   `available:false` (AI off / failed) the form shows a soft snackbar and the
   seller fills manually. `generateFromImages()` never throws; an upload
   failure is the only thing surfaced (the seller hits it again at save time).
+- **Three outcomes.** `generateFromImages()` returns
+  `(available, sameProduct)`; `_runAiFill` picks one of three snackbars:
+  success, a "couldn't read" soft failure (`!available`), or a "these look
+  like different products — add each separately" warning (`!sameProduct`,
+  still filled from the primary photo). The cubit doesn't branch on
+  `sameProduct` — it rides through `AiProductSuggestion` to the UI.
+- **Image cap.** `_maxAiImages = 4` — the cubit trims before sending so a
+  tariff that allows >4 photos doesn't 422 the backend. The form keeps all
+  photos; only the AI call is trimmed.
 - `isAiBusy` drives the button spinner and blocks re-tap / the add-photo tile.
 - This seller flow is Uzbek-only with seller-local tokens (`kInk`,
   `AppFonts.seller`), not `tr()` / `PremiumTokens` — matching the rest of the

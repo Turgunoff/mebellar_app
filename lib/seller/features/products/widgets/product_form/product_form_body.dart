@@ -177,7 +177,7 @@ class ProductFormBody extends StatelessWidget {
   Future<void> _runAiFill(BuildContext context) async {
     final cubit = context.read<AddProductCubit>();
     final messenger = ScaffoldMessenger.of(context);
-    final available = await cubit.generateFromImages();
+    final result = await cubit.generateFromImages();
 
     final state = cubit.state;
     if (state.name.isNotEmpty) controllers.name.text = state.name;
@@ -186,29 +186,40 @@ class ProductFormBody extends StatelessWidget {
     }
 
     if (!context.mounted) return;
+
+    // Three outcomes: success, a "different products" warning (still filled
+    // from the primary photo), and an "couldn't read" soft failure.
+    final bool success = result.available && result.sameProduct;
+    final Color background = success
+        ? Theme.of(context).colorScheme.primary
+        : AppColors.warning;
+    final IconData icon = success ? Iconsax.magicpen : Iconsax.info_circle;
+    final String message;
+    if (success) {
+      message = 'AI maydonlarni to‘ldirdi — tekshirib, saqlang.';
+    } else if (result.available) {
+      message =
+          'Rasmlar har xil mahsulotlardek. Asosiy rasm bo‘yicha to‘ldirdim — '
+          'har bir mahsulotni alohida e‘lon qiling.';
+    } else {
+      message =
+          'AI rasmlardan ma‘lumot o‘qiy olmadi. Maydonlarni qo‘lda to‘ldiring.';
+    }
+
     messenger
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          backgroundColor: available
-              ? Theme.of(context).colorScheme.primary
-              : AppColors.warning,
+          backgroundColor: background,
           behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 4),
+          duration: const Duration(seconds: 5),
           content: Row(
             children: [
-              Icon(
-                available ? Iconsax.magicpen : Iconsax.info_circle,
-                color: Colors.white,
-                size: 20,
-              ),
+              Icon(icon, color: Colors.white, size: 20),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  available
-                      ? 'AI maydonlarni to‘ldirdi — tekshirib, saqlang.'
-                      : 'AI rasmlardan ma‘lumot o‘qiy olmadi. '
-                            'Maydonlarni qo‘lda to‘ldiring.',
+                  message,
                   style: const TextStyle(
                     fontFamily: AppFonts.seller,
                     fontWeight: FontWeight.w600,

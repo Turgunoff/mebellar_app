@@ -487,9 +487,10 @@ void main() {
         ).thenAnswer((_) async => [_def('material', categoryId: 'cat-1')]);
 
         final cubit = readyCubit(attrs);
-        final available = await cubit.generateFromImages();
+        final result = await cubit.generateFromImages();
 
-        expect(available, isTrue);
+        expect(result.available, isTrue);
+        expect(result.sameProduct, isTrue);
         expect(cubit.state.name, 'Burchakli divan');
         expect(cubit.state.description, 'Yumshoq velür divan.');
         expect(cubit.state.categoryId, 'cat-1');
@@ -515,9 +516,9 @@ void main() {
       );
 
       final cubit = readyCubit(_MockAttributesRepo());
-      final available = await cubit.generateFromImages();
+      final result = await cubit.generateFromImages();
 
-      expect(available, isFalse);
+      expect(result.available, isFalse);
       expect(cubit.state.name, isEmpty);
       expect(cubit.state.categoryId, isNull);
       expect(cubit.state.isAiBusy, isFalse);
@@ -528,9 +529,9 @@ void main() {
       cubit.emit(
         AddProductState(status: AddProductStatus.ready, context: aiContext()),
       );
-      final available = await cubit.generateFromImages();
+      final result = await cubit.generateFromImages();
 
-      expect(available, isFalse);
+      expect(result.available, isFalse);
       verifyNever(
         () => repo.suggestFromImages(
           sellerId: any(named: 'sellerId'),
@@ -548,10 +549,46 @@ void main() {
       ).thenThrow(Exception('network down'));
 
       final cubit = readyCubit(_MockAttributesRepo());
-      final available = await cubit.generateFromImages();
+      final result = await cubit.generateFromImages();
 
-      expect(available, isFalse);
+      expect(result.available, isFalse);
       expect(cubit.state.isAiBusy, isFalse);
+    });
+
+    test('passes sameProduct:false through for mixed products', () async {
+      when(
+        () => repo.suggestFromImages(
+          sellerId: any(named: 'sellerId'),
+          files: any(named: 'files'),
+        ),
+      ).thenAnswer(
+        (_) async => (
+          suggestion: const AiProductSuggestion(
+            available: true,
+            sameProduct: false,
+            name: 'Divan',
+            categoryId: 'cat-1',
+          ),
+          imageUrls: ['https://r2/a.webp'],
+        ),
+      );
+      final attrs = _MockAttributesRepo();
+      when(
+        () => attrs.loadForCategory(
+          categoryId: any(named: 'categoryId'),
+          subcategoryId: any(named: 'subcategoryId'),
+        ),
+      ).thenAnswer((_) async => const []);
+
+      final cubit = readyCubit(attrs);
+      final result = await cubit.generateFromImages();
+
+      // Still applies the primary product; only the flag differs so the UI
+      // can warn the seller to split the listing.
+      expect(result.available, isTrue);
+      expect(result.sameProduct, isFalse);
+      expect(cubit.state.name, 'Divan');
+      expect(cubit.state.categoryId, 'cat-1');
     });
 
     test('trims to the first 4 images before sending (backend cap)', () async {

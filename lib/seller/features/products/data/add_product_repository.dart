@@ -115,6 +115,7 @@ class AddProductResult {
 class AiProductSuggestion {
   const AiProductSuggestion({
     required this.available,
+    this.sameProduct = true,
     this.name,
     this.description,
     this.categoryId,
@@ -124,6 +125,11 @@ class AiProductSuggestion {
   });
 
   final bool available;
+
+  /// False when the photos look like different products (divan + stol + …)
+  /// rather than one product from several angles. The prefill still describes
+  /// the primary image; the UI warns the seller to split them up.
+  final bool sameProduct;
   final String? name;
   final String? description;
   final String? categoryId;
@@ -136,6 +142,8 @@ class AiProductSuggestion {
     final attrsRaw = json['attributes'];
     return AiProductSuggestion(
       available: json['available'] as bool? ?? false,
+      // Absent flag = single product (older backend / no mismatch detected).
+      sameProduct: json['same_product'] as bool? ?? true,
       name: (json['name'] as String?)?.trim().isEmpty ?? true
           ? null
           : (json['name'] as String).trim(),
