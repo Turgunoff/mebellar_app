@@ -27,11 +27,15 @@ import '../../../../seller/features/products/data/attributes_repository.dart';
 // The customer detail page deliberately reuses the seller's product-preview
 // widgets so the two screens are pixel-identical. Seller-only cards (preview
 // banner, moderation status, SKU meta, edit action bar) are simply omitted.
+import '../../../../seller/features/products/widgets/product_form/dimensions_card.dart'
+    as form_dims;
 import '../../../../seller/features/products/widgets/product_preview/attributes_card.dart';
 import '../../../../seller/features/products/widgets/product_preview/description_card.dart';
 import '../../../../seller/features/products/widgets/product_preview/logistics_card.dart';
+import '../../../../seller/features/products/widgets/product_preview/meta_card.dart';
 import '../../../../seller/features/products/widgets/product_preview/preview_app_bar.dart';
 import '../../../../seller/features/products/widgets/product_preview/product_preview_kit.dart';
+import '../../../../seller/features/products/widgets/product_preview/spec_cards.dart';
 import '../../../features/cart/bloc/cart_bloc.dart';
 import '../../../features/favorites/bloc/favorites_bloc.dart';
 import '../../home/widgets/premium/premium_product_card.dart';
@@ -191,9 +195,20 @@ class _CatalogProductDetailScreenState
   Widget build(BuildContext context) {
     final product = widget.product;
     final description = product.description?.trim() ?? '';
-    final attributeRows = _attributeRows(product.attributes ?? const {});
+    final attributes = product.attributes ?? const {};
+    final attributeRows = _attributeRows(attributes);
+    final setDimensionGroups = _setDimensionGroups(attributes);
     final shopName = product.shopName?.trim() ?? '';
     final colorOptions = _colorOptions;
+    final categoryName = product.categoryName?.trim() ?? '';
+    final hasMeta =
+        categoryName.isNotEmpty ||
+        (product.subcategoryName?.trim().isNotEmpty ?? false) ||
+        (product.material?.trim().isNotEmpty ?? false);
+    final hasTypedDimensions =
+        (product.widthCm ?? 0) > 0 ||
+        (product.heightCm ?? 0) > 0 ||
+        (product.depthCm ?? 0) > 0;
     final showLogistics =
         (product.productionTimeDays?.trim().isNotEmpty ?? false) ||
         product.hasDelivery ||
@@ -239,10 +254,24 @@ class _CatalogProductDetailScreenState
                             }),
                           ),
                         if (shopName.isNotEmpty) _ShopCard(name: shopName),
+                        if (hasMeta)
+                          MetaCard(
+                            category: categoryName.isEmpty ? '—' : categoryName,
+                            subcategory: product.subcategoryName,
+                            material: product.material,
+                          ),
                         if (description.isNotEmpty)
                           DescriptionCard(text: description),
                         if (attributeRows.isNotEmpty)
                           AttributesCard(rows: attributeRows),
+                        if (setDimensionGroups.isNotEmpty)
+                          SetDimensionsCard(groups: setDimensionGroups),
+                        if (hasTypedDimensions)
+                          DimensionsCard(
+                            lengthCm: product.depthCm,
+                            widthCm: product.widthCm,
+                            heightCm: product.heightCm,
+                          ),
                         if (showLogistics)
                           LogisticsCard(
                             productionTimeDays: product.productionTimeDays,
@@ -276,12 +305,15 @@ class _CatalogProductDetailScreenState
 
   /// Builds the `(label, value)` rows the [AttributesCard] renders. Schema
   /// keys come first (so the order matches the seller's form), then leftovers.
+  /// Per-piece dimension attributes are excluded — they render in the grouped
+  /// [SetDimensionsCard] instead of as flat rows (matching the seller detail).
   List<(String, String)> _attributeRows(Map<String, dynamic> attributes) {
     final defByKey = {for (final d in _schema) d.key: d};
     final rows = <(String, String)>[];
     final seen = <String>{};
     for (final def in _schema) {
       if (!attributes.containsKey(def.key)) continue;
+      if (form_dims.DimensionsCard.isDimensionAttribute(def)) continue;
       final value = _renderValue(attributes[def.key], def);
       if (value.isEmpty) continue;
       rows.add((_resolveLabel(def.key, def), value));
@@ -289,11 +321,45 @@ class _CatalogProductDetailScreenState
     }
     for (final entry in attributes.entries) {
       if (seen.contains(entry.key)) continue;
-      final value = _renderValue(entry.value, defByKey[entry.key]);
+      final def = defByKey[entry.key];
+      if (def != null && form_dims.DimensionsCard.isDimensionAttribute(def)) {
+        continue;
+      }
+      final value = _renderValue(entry.value, def);
       if (value.isEmpty) continue;
-      rows.add((_resolveLabel(entry.key, defByKey[entry.key]), value));
+      rows.add((_resolveLabel(entry.key, def), value));
     }
     return rows;
+  }
+
+  /// Groups per-piece dimension attributes (recognised via the seller form's
+  /// [form_dims.DimensionsCard.isDimensionAttribute]) by furniture piece, so a
+  /// bedroom set reads as KARAVOT / SHKAF / TRYUMO blocks rather than nine flat
+  /// rows. Empty for single, non-set products.
+  List<SetDimensionGroup> _setDimensionGroups(Map<String, dynamic> attributes) {
+    const locale = 'uz';
+    final order = <String>[];
+    final byPiece = <String, List<(String, String)>>{};
+    for (final def in _schema) {
+      if (!form_dims.DimensionsCard.isDimensionAttribute(def)) continue;
+      if (!attributes.containsKey(def.key)) continue;
+      final value = _renderValue(attributes[def.key], def);
+      if (value.isEmpty) continue;
+      final label = def.labelFor(locale);
+      final dash = label.indexOf('—');
+      final piece = dash == -1 ? label : label.substring(0, dash).trim();
+      final measure = dash == -1 ? label : label.substring(dash + 1).trim();
+      byPiece
+          .putIfAbsent(piece, () {
+            order.add(piece);
+            return [];
+          })
+          .add((measure, value));
+    }
+    return [
+      for (final piece in order)
+        SetDimensionGroup(piece: piece, measures: byPiece[piece]!),
+    ];
   }
 
   String _resolveLabel(String key, AttributeDefinition? def) {

@@ -4,7 +4,9 @@ class ProductModel extends Equatable {
   const ProductModel({
     required this.id,
     required this.categoryId,
+    this.categoryName,
     this.subcategoryId,
+    this.subcategoryName,
     this.shopId,
     this.shopName,
     required this.name,
@@ -15,6 +17,10 @@ class ProductModel extends Equatable {
     required this.stock,
     required this.createdAt,
     this.colors = const [],
+    this.material,
+    this.widthCm,
+    this.heightCm,
+    this.depthCm,
     this.hasDelivery = false,
     this.deliveryPrice = 0,
     this.hasInstallation = false,
@@ -26,7 +32,14 @@ class ProductModel extends Equatable {
 
   final String id;
   final String categoryId;
+
+  /// Resolved category display name (joined `categories.name_uz`); null when
+  /// the join wasn't requested or the category is missing.
+  final String? categoryName;
   final String? subcategoryId;
+
+  /// Resolved subcategory display name (joined `subcategories.name`).
+  final String? subcategoryName;
   final String? shopId;
   final String? shopName;
   final String name;
@@ -36,6 +49,15 @@ class ProductModel extends Equatable {
   final Map<String, dynamic>? attributes;
   final int stock;
   final DateTime createdAt;
+
+  /// Primary material text (`products.material`); null when left blank.
+  final String? material;
+
+  /// Typed dimension columns (cm). Null when the seller didn't enter them —
+  /// most set products carry their per-piece dimensions in [attributes] instead.
+  final num? widthCm;
+  final num? heightCm;
+  final num? depthCm;
 
   /// Canonical colour slugs from `products.colors` (`text[]`), e.g.
   /// `['white','black']`. Resolved against `kProductColors` for display.
@@ -79,7 +101,14 @@ class ProductModel extends Equatable {
     return ProductModel(
       id: json['id'] as String,
       categoryId: json['category_id'] as String,
+      categoryName: (json['category_name'] as String?)?.trim().isNotEmpty == true
+          ? (json['category_name'] as String).trim()
+          : null,
       subcategoryId: json['subcategory_id'] as String?,
+      subcategoryName:
+          (json['subcategory_name'] as String?)?.trim().isNotEmpty == true
+          ? (json['subcategory_name'] as String).trim()
+          : null,
       shopId: json['shop_id'] as String?,
       shopName: shopEmbed?['name'] as String?,
       name: json['name'] as String,
@@ -98,6 +127,12 @@ class ProductModel extends Equatable {
             growable: false,
           ) ??
           const [],
+      material: (json['material'] as String?)?.trim().isNotEmpty == true
+          ? (json['material'] as String).trim()
+          : null,
+      widthCm: json['width_cm'] as num?,
+      heightCm: json['height_cm'] as num?,
+      depthCm: json['depth_cm'] as num?,
       hasDelivery: json['has_delivery'] as bool? ?? false,
       deliveryPrice: (json['delivery_price'] as num?) ?? 0,
       hasInstallation: json['has_installation'] as bool? ?? false,
@@ -114,7 +149,9 @@ class ProductModel extends Equatable {
   Map<String, dynamic> toJson() => {
     'id': id,
     'category_id': categoryId,
+    if (categoryName != null) 'category_name': categoryName,
     'subcategory_id': subcategoryId,
+    if (subcategoryName != null) 'subcategory_name': subcategoryName,
     'shop_id': shopId,
     if (shopName != null) 'shops': {'name': shopName},
     'name': name,
@@ -125,6 +162,10 @@ class ProductModel extends Equatable {
     'stock': stock,
     'created_at': createdAt.toIso8601String(),
     'colors': colors,
+    if (material != null) 'material': material,
+    if (widthCm != null) 'width_cm': widthCm,
+    if (heightCm != null) 'height_cm': heightCm,
+    if (depthCm != null) 'depth_cm': depthCm,
     'has_delivery': hasDelivery,
     'delivery_price': deliveryPrice,
     'has_installation': hasInstallation,
