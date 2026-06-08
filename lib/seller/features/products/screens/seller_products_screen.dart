@@ -408,30 +408,38 @@ class _ProductTile extends StatelessWidget {
     final lang = context.locale.languageCode;
     final priceFormat = NumberFormat('#,###', lang);
     final hero = product.heroImage;
+    final isArchived = product.status == SellerProductStatus.archived;
     return Material(
-      color: Colors.white,
+      // Archived tiles sit on a flat muted surface with no lift, so they read
+      // as "retired" against the white, shadowed live cards above them.
+      color: isArchived ? const Color(0xFFF4F4F5) : Colors.white,
       borderRadius: BorderRadius.circular(16),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         child: Ink(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: isArchived ? const Color(0xFFF4F4F5) : Colors.white,
             borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.06),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
+            border: isArchived
+                ? Border.all(color: const Color(0xFFE6E6E8))
+                : null,
+            boxShadow: isArchived
+                ? null
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.06),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
           ),
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _ProductThumbnail(hero: hero),
+                _ProductThumbnail(hero: hero, muted: isArchived),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -441,10 +449,10 @@ class _ProductTile extends StatelessWidget {
                         product.name.get(lang),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: _ink,
+                          color: isArchived ? _grey : _ink,
                           letterSpacing: -0.1,
                           height: 1.25,
                         ),
@@ -462,8 +470,15 @@ class _ProductTile extends StatelessWidget {
                       const SizedBox(height: 8),
                       // Stock is intentionally omitted: furniture is mostly
                       // made-to-order, so seller list cards show price only.
-                      _PriceRow(product: product, priceFormat: priceFormat),
-                      if (product.hasDelivery || product.hasInstallation) ...[
+                      _PriceRow(
+                        product: product,
+                        priceFormat: priceFormat,
+                        muted: isArchived,
+                      ),
+                      // Logistics badges are about live fulfilment, so hide
+                      // them on an archived (off-catalogue) listing.
+                      if (!isArchived &&
+                          (product.hasDelivery || product.hasInstallation)) ...[
                         const SizedBox(height: 8),
                         _LogisticsBadges(
                           hasDelivery: product.hasDelivery,
@@ -490,6 +505,12 @@ class _ProductTile extends StatelessWidget {
                                   .read<SellerProductsBloc>()
                                   .add(SellerProductSubmitted(product.id)),
                             ),
+                          if (isArchived)
+                            _RestoreButton(
+                              onPressed: () => context
+                                  .read<SellerProductsBloc>()
+                                  .add(SellerProductRestored(product.id)),
+                            ),
                         ],
                       ),
                       if (product.rejectionReason != null) ...[
@@ -514,10 +535,17 @@ class _ProductTile extends StatelessWidget {
 // preview (`TitlePriceCard`): a discount is live only when `discountPrice` is
 // set, positive and below `price`.
 class _PriceRow extends StatelessWidget {
-  const _PriceRow({required this.product, required this.priceFormat});
+  const _PriceRow({
+    required this.product,
+    required this.priceFormat,
+    this.muted = false,
+  });
 
   final SellerProduct product;
   final NumberFormat priceFormat;
+
+  /// Archived tiles grey the primary price so it doesn't read as a live offer.
+  final bool muted;
 
   @override
   Widget build(BuildContext context) {
@@ -539,10 +567,10 @@ class _PriceRow extends StatelessWidget {
             "${priceFormat.format(effectivePrice)} so'm",
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
-              color: _ink,
+              color: muted ? _grey : _ink,
               letterSpacing: -0.2,
               height: 1.2,
             ),
@@ -693,6 +721,48 @@ class _SubmitForReviewButton extends StatelessWidget {
   }
 }
 
+// Restore pill — the "bring back from archive" action shown only on archived
+// tiles. Uses the seller-primary indigo (the affirmative brand action) so it
+// reads as distinct from the terracotta submit pill, and stands out against
+// the muted grey archived card.
+class _RestoreButton extends StatelessWidget {
+  const _RestoreButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    return Material(
+      color: primary.withValues(alpha: 0.10),
+      borderRadius: BorderRadius.circular(999),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onPressed,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Iconsax.refresh_2, size: 13, color: primary),
+              const SizedBox(width: 5),
+              Text(
+                tr('seller.product_restore'),
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: primary,
+                  height: 1.0,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 // Rejection reason callout — a soft red surface with an info glyph, so the
 // reason reads as a distinct, scannable note instead of bare red body text.
 class _RejectionReason extends StatelessWidget {
@@ -810,9 +880,22 @@ class _ProductsZeroState extends StatelessWidget {
 }
 
 class _ProductThumbnail extends StatelessWidget {
-  const _ProductThumbnail({required this.hero});
+  const _ProductThumbnail({required this.hero, this.muted = false});
 
   final String? hero;
+
+  /// Archived products desaturate + dim the thumbnail so an inactive listing
+  /// reads as "filed away" at a glance, not as a live catalogue item.
+  final bool muted;
+
+  // Luminance-preserving greyscale matrix — drains all colour while keeping the
+  // image legible, so an archived photo looks intentionally retired.
+  static const _greyscale = ColorFilter.matrix(<double>[
+    0.2126, 0.7152, 0.0722, 0, 0, //
+    0.2126, 0.7152, 0.0722, 0, 0, //
+    0.2126, 0.7152, 0.0722, 0, 0, //
+    0, 0, 0, 1, 0, //
+  ]);
 
   @override
   Widget build(BuildContext context) {
@@ -821,28 +904,31 @@ class _ProductThumbnail extends StatelessWidget {
       alignment: Alignment.center,
       child: const Icon(Iconsax.image, size: 22, color: _greyMid),
     );
+    Widget image = hero == null || hero!.isEmpty
+        ? placeholder
+        : (hero!.startsWith('http')
+              ? CachedNetworkImage(
+                  imageUrl: hero!,
+                  // ROADMAP B.7 — list-row thumbnail; small decode.
+                  memCacheWidth: 400,
+                  fit: BoxFit.cover,
+                  placeholder: (_, _) => placeholder,
+                  errorWidget: (_, _, _) => placeholder,
+                )
+              : Image.asset(
+                  hero!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => placeholder,
+                ));
+    if (muted) {
+      image = Opacity(
+        opacity: 0.55,
+        child: ColorFiltered(colorFilter: _greyscale, child: image),
+      );
+    }
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
-      child: SizedBox(
-        width: 76,
-        height: 76,
-        child: hero == null || hero!.isEmpty
-            ? placeholder
-            : (hero!.startsWith('http')
-                  ? CachedNetworkImage(
-                      imageUrl: hero!,
-                      // ROADMAP B.7 — list-row thumbnail; small decode.
-                      memCacheWidth: 400,
-                      fit: BoxFit.cover,
-                      placeholder: (_, _) => placeholder,
-                      errorWidget: (_, _, _) => placeholder,
-                    )
-                  : Image.asset(
-                      hero!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => placeholder,
-                    )),
-      ),
+      child: SizedBox(width: 76, height: 76, child: image),
     );
   }
 }
