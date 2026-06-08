@@ -204,27 +204,46 @@ void _wirePushToInboxRefresh() {
 
 /// Subscribes to the global [AuthCubit] so that:
 ///   * a successful sign-in (or a restored session at cold start) saves the
-///     current FCM token under the user's id, and
-///   * a sign-out tear-down is handled separately by `performLogout`, which
-///     calls `removeCurrentToken()` *before* clearing the Woody session
-///     (RLS would deny the delete after sign-out).
+///     current FCM token under the user's id and records the session as active
+///     (so the next cold start's boot guard can honor a persisted seller mode),
+///     and
+///   * a sign-out — whether manual or a 401-forced one from the token-refresh
+///     path — demotes the app back to customer mode. `demoteToCustomer()`
+///     clears the synchronous session flag and, if the user was in seller mode,
+///     flips the persisted mode + emits `customer`, which the root
+///     `BlocListener<AppModeCubit>` turns into a scope swap + `Phoenix.rebirth`
+///     onto the customer surface. Without this the seller surface would stay
+///     standing behind a dead session (and a cold restart would land back in
+///     seller). The heavy Hive/scope teardown still lives in `performLogout`
+///     for the manual path; this listener is what catches the *automatic* one.
 ///
 /// Listener fires once per state change after registration; we also push
-/// the current state through it manually so a session restored synchronously
-/// in `AuthCubit._init` (before this subscription was attached) still
-/// triggers a token sync.
+/// the current state through it manually so a session restored (or found
+/// missing) synchronously in `AuthCubit._init` — before this subscription was
+/// attached — still triggers the right side effects.
 void _wireAuthToPushTokens() {
   final authCubit = sl<AuthCubit>();
   final pushService = sl<PushService>();
+  final modeCubit = sl<AppModeCubit>();
 
-  void handleState(AppAuthState state) {
+  void handleState(AppAuthState state, {required bool fromStream}) {
     if (state is AppAuthAuthenticated) {
       pushService.syncTokenForUser(state.userId);
+      unawaited(modeCubit.markSessionActive());
+    } else if (state is AppAuthUnauthenticated && fromStream) {
+      // Only demote on a genuine logged-out *transition* delivered by the
+      // stream (manual logout or a 401-forced sign-out). The cubit's initial
+      // pre-hydration state is also Unauthenticated, so reacting to the
+      // synchronous `authCubit.state` below would wrongly demote a logged-in
+      // seller mid-boot, before the token read resolves. A logged-out cold
+      // start is already handled synchronously by the boot guard
+      // (`AppModeCubit._resolveBoot` reads the persisted session flag).
+      unawaited(modeCubit.demoteToCustomer());
     }
   }
 
-  handleState(authCubit.state);
-  authCubit.stream.listen(handleState);
+  handleState(authCubit.state, fromStream: false);
+  authCubit.stream.listen((state) => handleState(state, fromStream: true));
 }
 
 class _AppRoot extends StatelessWidget {

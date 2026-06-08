@@ -14,8 +14,12 @@ void main() {
     box = _MockBox();
     when(() => box.get('app_mode')).thenReturn(null);
     when(() => box.get('seller_approval_cached')).thenReturn(false);
-    when(() => box.put(any<dynamic>(), any<dynamic>()))
-        .thenAnswer((_) async {});
+    // Default to an active session so the seller-mode boot tests below isolate
+    // the approval guard; the logged-out tests override this to false.
+    when(() => box.get('session_active')).thenReturn(true);
+    when(
+      () => box.put(any<dynamic>(), any<dynamic>()),
+    ).thenAnswer((_) async {});
   });
 
   test('boots into customer mode when nothing is persisted', () {
@@ -39,6 +43,25 @@ void main() {
     when(() => box.get('seller_approval_cached')).thenReturn(true);
     final cubit = AppModeCubit(box);
     expect(cubit.state, AppMode.seller);
+    cubit.close();
+  });
+
+  test('boot guard demotes a persisted seller mode when logged out', () {
+    // Approved seller, but no live session (logged out / 401-forced sign-out).
+    when(() => box.get('app_mode')).thenReturn('seller');
+    when(() => box.get('seller_approval_cached')).thenReturn(true);
+    when(() => box.get('session_active')).thenReturn(false);
+    final cubit = AppModeCubit(box);
+    expect(cubit.state, AppMode.customer);
+    cubit.close();
+  });
+
+  test('boot guard treats a missing session flag as logged out', () {
+    when(() => box.get('app_mode')).thenReturn('seller');
+    when(() => box.get('seller_approval_cached')).thenReturn(true);
+    when(() => box.get('session_active')).thenReturn(null);
+    final cubit = AppModeCubit(box);
+    expect(cubit.state, AppMode.customer);
     cubit.close();
   });
 
@@ -66,5 +89,61 @@ void main() {
     },
     act: (cubit) => cubit.recordSellerApproval(false),
     expect: () => [AppMode.customer],
+  );
+
+  blocTest<AppModeCubit, AppMode>(
+    'demoteToCustomer() flips a seller-mode user back to customer on logout',
+    build: () {
+      when(() => box.get('app_mode')).thenReturn('seller');
+      when(() => box.get('seller_approval_cached')).thenReturn(true);
+      when(() => box.get('session_active')).thenReturn(true);
+      return AppModeCubit(box);
+    },
+    act: (cubit) => cubit.demoteToCustomer(),
+    expect: () => [AppMode.customer],
+    verify: (_) {
+      verify(() => box.put('session_active', false)).called(1);
+      verify(() => box.put('app_mode', 'customer')).called(1);
+    },
+  );
+
+  blocTest<AppModeCubit, AppMode>(
+    'demoteToCustomer() only clears the flag when already in customer mode',
+    build: () => AppModeCubit(box), // boots customer (nothing persisted)
+    act: (cubit) => cubit.demoteToCustomer(),
+    expect: () => const <AppMode>[],
+    verify: (_) {
+      verify(() => box.put('session_active', false)).called(1);
+      verifyNever(() => box.put('app_mode', 'customer'));
+    },
+  );
+
+  blocTest<AppModeCubit, AppMode>(
+    'markSessionActive() re-promotes an approved seller demoted only for the '
+    'missing session flag (first launch after the flag was introduced)',
+    build: () {
+      // Persisted seller + approval cached, but no session flag yet — the boot
+      // guard demotes to customer. Once the restored session confirms, the
+      // user should land back on seller.
+      when(() => box.get('app_mode')).thenReturn('seller');
+      when(() => box.get('seller_approval_cached')).thenReturn(true);
+      when(() => box.get('session_active')).thenReturn(null);
+      return AppModeCubit(box);
+    },
+    act: (cubit) => cubit.markSessionActive(),
+    expect: () => [AppMode.seller],
+    verify: (_) => verify(() => box.put('session_active', true)).called(1),
+  );
+
+  blocTest<AppModeCubit, AppMode>(
+    'markSessionActive() does NOT re-promote when the preference is customer',
+    build: () {
+      when(() => box.get('app_mode')).thenReturn('customer');
+      when(() => box.get('seller_approval_cached')).thenReturn(true);
+      when(() => box.get('session_active')).thenReturn(null);
+      return AppModeCubit(box);
+    },
+    act: (cubit) => cubit.markSessionActive(),
+    expect: () => const <AppMode>[],
   );
 }

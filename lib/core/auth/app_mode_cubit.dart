@@ -17,8 +17,8 @@ import '../analytics/analytics_service.dart';
 /// without threading a Navigator context through their callbacks.
 class AppModeCubit extends Cubit<AppMode> {
   AppModeCubit(this._settings, {AnalyticsService Function()? analyticsLookup})
-      : _analyticsLookup = analyticsLookup,
-        super(_resolveBoot(_settings));
+    : _analyticsLookup = analyticsLookup,
+      super(_resolveBoot(_settings));
 
   final Box _settings;
   // Lazy lookup — AnalyticsService is registered AFTER this cubit in
@@ -39,15 +39,32 @@ class AppModeCubit extends Cubit<AppMode> {
   /// round-trip is available, so we lean on the previous session's snapshot.
   static const String sellerApprovedCacheKey = 'seller_approval_cached';
 
+  /// Synchronous mirror of "is there a live Woody session". [AuthCubit] keeps
+  /// it in sync (true on sign-in, false on sign-out / forced 401 logout) via
+  /// [markSessionActive] / [demoteToCustomer]. The boot guard reads it so a
+  /// cold start while logged out never lands on the seller surface — secure
+  /// storage (where the real tokens live) is async-only and isn't available
+  /// at the cubit's synchronous construction.
+  static const String sessionActiveKey = 'session_active';
+
   /// Resolves the mode the app should boot into.
   ///
-  /// Security guard: if Hive remembers `seller` but the cached approval flag
-  /// is false (banned, status reverted, or never approved on this device),
-  /// downgrade to `customer` for this session. The persisted `modeKey` is
-  /// left untouched so a re-approval restores the user's preference on the
-  /// next launch without forcing them to re-flip the toggle.
+  /// Security guards, in order:
+  ///   1. **Logged out** — if there's no live session, force `customer`. The
+  ///      seller surface must never be reachable without auth, so a logged-out
+  ///      cold start (manual or 401-forced sign-out) always boots to customer.
+  ///   2. **Unapproved seller** — if Hive remembers `seller` but the cached
+  ///      approval flag is false (banned, status reverted, or never approved
+  ///      on this device), downgrade to `customer`.
+  ///
+  /// The persisted `modeKey` is left untouched in both cases so a re-login /
+  /// re-approval restores the user's preference on the next launch without
+  /// forcing them to re-flip the toggle.
   static AppMode _resolveBoot(Box settings) {
     final saved = AppMode.fromName(settings.get(modeKey) as String?);
+    if (saved == AppMode.seller && !_readSessionActive(settings)) {
+      return AppMode.customer;
+    }
     if (saved == AppMode.seller && !_readApprovalCache(settings)) {
       return AppMode.customer;
     }
@@ -56,6 +73,9 @@ class AppModeCubit extends Cubit<AppMode> {
 
   static bool _readApprovalCache(Box settings) =>
       (settings.get(sellerApprovedCacheKey) as bool?) ?? false;
+
+  static bool _readSessionActive(Box settings) =>
+      (settings.get(sessionActiveKey) as bool?) ?? false;
 
   Future<void> switchMode(AppMode mode) async {
     if (state == mode) return;
@@ -94,6 +114,43 @@ class AppModeCubit extends Cubit<AppMode> {
   Future<void> recordSellerApproval(bool isApproved) async {
     await _settings.put(sellerApprovedCacheKey, isApproved);
     if (state == AppMode.seller && !isApproved) {
+      await _settings.put(modeKey, AppMode.customer.name);
+      emit(AppMode.customer);
+    }
+  }
+
+  /// Records that a live session exists so the next cold start's boot guard
+  /// can honor a persisted `seller` mode. Called by [AuthCubit] on sign-in.
+  ///
+  /// Also re-promotes to seller when the boot guard had demoted the *live*
+  /// state purely because the session flag was missing/false at construction
+  /// (the common case on the first launch after this flag was introduced, when
+  /// no `sessionActiveKey` exists yet for an already-logged-in seller). The
+  /// persisted preference is still `seller` and approval is cached, so once the
+  /// session is confirmed we restore the user's chosen surface rather than
+  /// silently leaving an approved seller on customer.
+  Future<void> markSessionActive() async {
+    await _settings.put(sessionActiveKey, true);
+    final persisted = AppMode.fromName(_settings.get(modeKey) as String?);
+    if (state == AppMode.customer &&
+        persisted == AppMode.seller &&
+        _readApprovalCache(_settings)) {
+      emit(AppMode.seller);
+    }
+  }
+
+  /// Logout-driven demotion. Clears the session flag and, if the user is
+  /// currently in seller mode, flips the persisted mode + emits `customer` so
+  /// the root listener swaps the GetIt scope and `Phoenix.rebirth`s into the
+  /// customer surface. Called by [AuthCubit] on every sign-out — both the
+  /// manual logout and a 401-forced one — so the seller surface is never left
+  /// standing behind a dead session.
+  ///
+  /// [performLogout] does its own scope teardown and key cleanup, so this is a
+  /// no-op there beyond clearing the flag (state is already customer by then).
+  Future<void> demoteToCustomer() async {
+    await _settings.put(sessionActiveKey, false);
+    if (state == AppMode.seller) {
       await _settings.put(modeKey, AppMode.customer.name);
       emit(AppMode.customer);
     }

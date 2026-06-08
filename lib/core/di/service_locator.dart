@@ -113,6 +113,10 @@ Future<void> performLogout(BuildContext context) async {
   final settings = sl<Box>(instanceName: HiveBoxes.settings);
   await settings.delete(AppModeCubit.modeKey);
   await settings.delete(AppModeCubit.sellerApprovedCacheKey);
+  // Drop the synchronous session mirror too so the next cold start's boot
+  // guard resolves to customer even before AuthCubit re-reads the (now empty)
+  // token store. Deleting reads back as false in [AppModeCubit._resolveBoot].
+  await settings.delete(AppModeCubit.sessionActiveKey);
 
   // Drop the image caches so cached avatars / product photos / KYC docs
   // from the previous account never paint for the next user.
