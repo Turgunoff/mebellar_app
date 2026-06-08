@@ -48,9 +48,6 @@ class CartScreen extends StatelessWidget {
                 title: "Savatchangiz bo'sh",
                 subtitle:
                     "Katalogga o'tib, o'zingizga yoqqan premium mebellarni xarid qiling.",
-                buttonText: "Katalogga o'tish",
-                onButtonPressed: () =>
-                    CustomerShellScope.of(context).goToTab(0),
                 bottomPadding: GlassBottomNav.reservedHeight(context) + 24,
               ),
             );
