@@ -12,7 +12,6 @@ import '../../../../shared/models/cart_item_model.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/premium_empty_state.dart';
 import '../../../../shared/widgets/product_color_chip.dart';
-import '../../../customer_app.dart';
 import '../../../widgets/glass_bottom_nav.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../bloc/cart_bloc.dart';

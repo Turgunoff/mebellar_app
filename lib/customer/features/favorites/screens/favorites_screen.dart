@@ -7,7 +7,6 @@ import '../../../../core/i18n/i18n.dart';
 import '../../../../shared/models/product.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/premium_empty_state.dart';
-import '../../../customer_app.dart';
 import '../../../widgets/glass_bottom_nav.dart';
 import '../../home/widgets/premium/premium_product_card.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
@@ -65,9 +64,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 title: 'Sizda hozircha sevimlilar yo\'q',
                 subtitle:
                     'Sizga yoqqan har qanday mahsulotni yurakcha tugmasi orqali saqlang — keyin osongina topib oling.',
-                buttonText: 'Katalogga o\'tish',
-                onButtonPressed: () =>
-                    CustomerShellScope.of(context).goToTab(0),
                 bottomPadding: bottomPad,
               ),
             );
