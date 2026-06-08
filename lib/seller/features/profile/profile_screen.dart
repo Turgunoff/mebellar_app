@@ -11,7 +11,6 @@ import '../../../config/remote_config.dart';
 import '../../../core/di/service_locator.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_fonts.dart';
-import '../../../shared/models/tariff.dart';
 import '../../../shared/models/verification_status.dart';
 import '../../../shared/widgets/brand_refresh_indicator.dart';
 import '../reviews/screens/reviews_screen.dart';
@@ -181,16 +180,7 @@ class _SellerProfileView extends StatelessWidget {
 
   static String _planSubtitle(SellerProfileState state) {
     if (state.isInitialLoading) return 'Yuklanmoqda…';
-    return 'Joriy tarif: ${_planLabel(state.plan)}';
-  }
-
-  static String _planLabel(TariffPlan plan) {
-    return switch (plan) {
-      TariffPlan.free => 'Free',
-      TariffPlan.basic => 'Basic',
-      TariffPlan.pro => 'Pro',
-      TariffPlan.enterprise => 'Enterprise',
-    };
+    return 'Joriy tarif: ${state.plan.label}';
   }
 }
 

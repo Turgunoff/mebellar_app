@@ -46,7 +46,17 @@ class WoodySellerDashboardRepository implements SellerDashboardRepository {
 
   @override
   Future<DashboardSnapshot> snapshot() async {
-    final body = await _api.get<Map<String, dynamic>>('/seller/dashboard');
+    // The dashboard KPIs and the seller's current plan come from two
+    // endpoints; fetch them together. The tariff call degrades to an empty
+    // map (→ free) so a tariff hiccup never blanks the whole dashboard.
+    final results = await Future.wait([
+      _api.get<Map<String, dynamic>>('/seller/dashboard'),
+      _api
+          .get<Map<String, dynamic>>('/seller/tariff/current')
+          .catchError((_) => <String, dynamic>{}),
+    ]);
+    final body = results[0];
+    final tariffBody = results[1];
     final kpis = body['kpis'] as Map<String, dynamic>? ?? const {};
     final recent = body['recent_orders'] as List<dynamic>? ?? const [];
 
@@ -57,8 +67,10 @@ class WoodySellerDashboardRepository implements SellerDashboardRepository {
       pendingOrdersCount: (kpis['orders_pending'] as num?)?.toInt() ?? 0,
       activeProductsCount: activeProducts,
       tariff: TariffSnapshot(
-        plan: TariffPlan.free,
-        activeProductsCount: activeProducts,
+        plan: TariffPlan.fromCode(tariffBody['plan_code'] as String?),
+        activeProductsCount:
+            (tariffBody['active_products_count'] as num?)?.toInt() ??
+            activeProducts,
       ),
       recentOrders: recent
           .whereType<Map<String, dynamic>>()
@@ -223,7 +235,12 @@ class WoodySellerOnboardingRepository implements SellerOnboardingRepository {
     // doesn't overwrite the prior attempt's images — the backend keeps a
     // per-attempt history and the admin can review what was sent each time.
     final attempt = DateTime.now().millisecondsSinceEpoch.toRadixString(36);
-    await _uploadPassport(sellerId, attempt, 'passport_front', passportFrontPath);
+    await _uploadPassport(
+      sellerId,
+      attempt,
+      'passport_front',
+      passportFrontPath,
+    );
     await _uploadPassport(sellerId, attempt, 'passport_back', passportBackPath);
     return OnboardingSubmissionResult(
       sellerProfileId: sellerId,

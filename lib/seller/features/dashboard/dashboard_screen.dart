@@ -183,9 +183,7 @@ class _NotificationBell extends StatelessWidget {
 
   void _open(BuildContext context) {
     Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => const NotificationsScreen(),
-      ),
+      MaterialPageRoute<void>(builder: (_) => const NotificationsScreen()),
     );
   }
 
@@ -290,6 +288,11 @@ class _KpiGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final tariffEnabled = RemoteConfig.instance.tariffEnabled;
     final exceeded = tariffEnabled && data.productLimitExceeded;
+    // Active-product quota: "N / cap" for capped plans, plain "N" when the
+    // plan is unlimited (or tariffs are off). Subtitle shows the real plan.
+    final productsValue = tariffEnabled && !data.plan.isUnlimited
+        ? '${data.productsCount} / ${data.productLimit}'
+        : '${data.productsCount}';
     return GridView.count(
       crossAxisCount: 2,
       crossAxisSpacing: 12,
@@ -320,10 +323,8 @@ class _KpiGrid extends StatelessWidget {
           icon: Iconsax.box,
           title: 'Mahsulotlar',
           // With tariff off there's no quota — show a plain product count.
-          value: tariffEnabled
-              ? '${data.productsCount} / ${data.productLimit}'
-              : '${data.productsCount}',
-          subtitle: tariffEnabled ? 'Standard tarif' : null,
+          value: productsValue,
+          subtitle: tariffEnabled ? '${data.plan.label} tarif' : null,
           indicator: exceeded ? KpiIndicator.terracotta('Limit oshdi') : null,
         ),
       ],
@@ -462,8 +463,18 @@ class _RecentOrderTile extends StatelessWidget {
 
 String _formatDate(DateTime dt) {
   const months = [
-    'yan', 'fev', 'mar', 'apr', 'may', 'iyn',
-    'iyl', 'avg', 'sen', 'okt', 'noy', 'dek',
+    'yan',
+    'fev',
+    'mar',
+    'apr',
+    'may',
+    'iyn',
+    'iyl',
+    'avg',
+    'sen',
+    'okt',
+    'noy',
+    'dek',
   ];
   final day = dt.day.toString().padLeft(2, '0');
   final mon = months[dt.month - 1];
@@ -503,33 +514,23 @@ class _StatusPill extends StatelessWidget {
 
   static (Color, Color) _styleFor(OrderStatus s) {
     return switch (s) {
-      OrderStatus.delivered => (
-          Color(0xFF1F6B49),
-          Color(0xFFDCF1E5),
-        ),
-      OrderStatus.shipped || OrderStatus.preparing => (
-          Color(0xFF5B21B6),
-          Color(0xFFEDE3FF),
-        ),
-      OrderStatus.cancelled => (
-          Color(0xFFC0392B),
-          Color(0xFFFDECEA),
-        ),
-      OrderStatus.pending || OrderStatus.confirmed => (
-          Color(0xFF8C5A12),
-          Color(0xFFFFF1D6),
-        ),
+      OrderStatus.delivered => (Color(0xFF1F6B49), Color(0xFFDCF1E5)),
+      OrderStatus.shipped ||
+      OrderStatus.preparing => (Color(0xFF5B21B6), Color(0xFFEDE3FF)),
+      OrderStatus.cancelled => (Color(0xFFC0392B), Color(0xFFFDECEA)),
+      OrderStatus.pending ||
+      OrderStatus.confirmed => (Color(0xFF8C5A12), Color(0xFFFFF1D6)),
     };
   }
 
   static String _labelFor(OrderStatus s) => switch (s) {
-        OrderStatus.pending => 'Kutilmoqda',
-        OrderStatus.confirmed => 'Tasdiqlangan',
-        OrderStatus.preparing => 'Tayyorlanmoqda',
-        OrderStatus.shipped => "Yo'lda",
-        OrderStatus.delivered => 'Yetkazildi',
-        OrderStatus.cancelled => 'Bekor qilingan',
-      };
+    OrderStatus.pending => 'Kutilmoqda',
+    OrderStatus.confirmed => 'Tasdiqlangan',
+    OrderStatus.preparing => 'Tayyorlanmoqda',
+    OrderStatus.shipped => "Yo'lda",
+    OrderStatus.delivered => 'Yetkazildi',
+    OrderStatus.cancelled => 'Bekor qilingan',
+  };
 }
 
 // =============================================================================

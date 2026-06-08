@@ -74,6 +74,14 @@ enum TariffPlan {
   bool get hasUnlimitedImages => maxImagesPerProduct < 0;
   bool get isFree => this == TariffPlan.free;
 
+  /// Display name for the tier ("Free" / "Basic" / "Pro" / "Enterprise").
+  String get label => switch (this) {
+    TariffPlan.free => 'Free',
+    TariffPlan.basic => 'Basic',
+    TariffPlan.pro => 'Pro',
+    TariffPlan.enterprise => 'Enterprise',
+  };
+
   /// Gate used by the "Add product" flow.
   bool canAddMoreProducts(int currentCount) =>
       isUnlimited || currentCount < maxActiveProducts;
@@ -197,16 +205,16 @@ class SubscriptionPlan extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        code,
-        priceMonthly,
-        maxProducts,
-        maxImagesPerProduct,
-        commissionRate,
-        isRecommended,
-        featuresUz,
-        featuresRu,
-      ];
+    id,
+    code,
+    priceMonthly,
+    maxProducts,
+    maxImagesPerProduct,
+    commissionRate,
+    isRecommended,
+    featuresUz,
+    featuresRu,
+  ];
 }
 
 enum BillingPeriod {
@@ -227,10 +235,7 @@ enum BillingPeriod {
 /// Backend would return more — this is enough for the dashboard KPI tile
 /// and the create-product limit guard.
 class TariffSnapshot extends Equatable {
-  const TariffSnapshot({
-    required this.plan,
-    required this.activeProductsCount,
-  });
+  const TariffSnapshot({required this.plan, required this.activeProductsCount});
 
   final TariffPlan plan;
   final int activeProductsCount;
@@ -318,7 +323,8 @@ class TariffSubscription extends Equatable {
       period: BillingPeriod.fromCode(json['billing_period'] as String?),
       amount: (json['amount'] as num?)?.toInt() ?? 0,
       status: TariffUpgradeStatus.fromCode(json['status'] as String?),
-      submittedAt: DateTime.tryParse(json['submitted_at'] as String? ?? '') ??
+      submittedAt:
+          DateTime.tryParse(json['submitted_at'] as String? ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0),
       approvedAt: _parseDateOrNull(json['approved_at']),
       rejectedAt: _parseDateOrNull(json['rejected_at']),
@@ -329,18 +335,18 @@ class TariffSubscription extends Equatable {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'plan_code': plan.code,
-        'billing_period': period.code,
-        'amount': amount,
-        'status': status.code,
-        'submitted_at': submittedAt.toIso8601String(),
-        'approved_at': approvedAt?.toIso8601String(),
-        'rejected_at': rejectedAt?.toIso8601String(),
-        'expires_at': expiresAt?.toIso8601String(),
-        'rejection_reason': rejectionReason,
-        'payment_screenshot_path': paymentScreenshotUrl,
-      };
+    'id': id,
+    'plan_code': plan.code,
+    'billing_period': period.code,
+    'amount': amount,
+    'status': status.code,
+    'submitted_at': submittedAt.toIso8601String(),
+    'approved_at': approvedAt?.toIso8601String(),
+    'rejected_at': rejectedAt?.toIso8601String(),
+    'expires_at': expiresAt?.toIso8601String(),
+    'rejection_reason': rejectionReason,
+    'payment_screenshot_path': paymentScreenshotUrl,
+  };
 
   TariffSubscription copyWith({
     TariffUpgradeStatus? status,
@@ -373,8 +379,16 @@ class TariffSubscription extends Equatable {
   }
 
   @override
-  List<Object?> get props =>
-      [id, plan, period, amount, status, submittedAt, approvedAt, rejectedAt];
+  List<Object?> get props => [
+    id,
+    plan,
+    period,
+    amount,
+    status,
+    submittedAt,
+    approvedAt,
+    rejectedAt,
+  ];
 }
 
 DateTime? _parseDateOrNull(Object? value) =>

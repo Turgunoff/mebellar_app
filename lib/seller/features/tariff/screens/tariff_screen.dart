@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_fonts.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
@@ -32,8 +32,8 @@ class TariffScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => TariffBloc(sl<TariffRepository>())
-        ..add(const TariffRequested()),
+      create: (_) =>
+          TariffBloc(sl<TariffRepository>())..add(const TariffRequested()),
       child: const _TariffView(),
     );
   }
@@ -63,15 +63,14 @@ class _TariffView extends StatelessWidget {
           backgroundColor: AppColors.lightBackground,
           appBar: const _TariffAppBar(),
           body: switch (state.status) {
-            TariffStatus.initial ||
-            TariffStatus.loading =>
-              const Center(child: BrandLoadingIndicator()),
+            TariffStatus.initial || TariffStatus.loading => const Center(
+              child: BrandLoadingIndicator(),
+            ),
             TariffStatus.failure when state.snapshot == null => ErrorState(
-                message: state.error,
-                onRetry: () => context
-                    .read<TariffBloc>()
-                    .add(const TariffRequested()),
-              ),
+              message: state.error,
+              onRetry: () =>
+                  context.read<TariffBloc>().add(const TariffRequested()),
+            ),
             _ => _TariffBody(state: state),
           },
         );
@@ -103,7 +102,8 @@ class _TariffAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       title: Text(
         tr('tariff.title'),
-        style: TextStyle(fontFamily: AppFonts.seller, 
+        style: TextStyle(
+          fontFamily: AppFonts.seller,
           fontSize: 18,
           fontWeight: FontWeight.w700,
           color: _ink,
@@ -115,9 +115,7 @@ class _TariffAppBar extends StatelessWidget implements PreferredSizeWidget {
           tooltip: tr('tariff.history'),
           icon: const Icon(Iconsax.clock, size: 22, color: _ink),
           onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => const TariffHistoryScreen(),
-            ),
+            MaterialPageRoute(builder: (_) => const TariffHistoryScreen()),
           ),
         ),
         const SizedBox(width: 4),
@@ -203,8 +201,7 @@ class _PendingBanner extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (_) =>
-                TariffPendingScreen(subscription: subscription),
+            builder: (_) => TariffPendingScreen(subscription: subscription),
           ),
         ),
         child: Padding(
@@ -234,9 +231,12 @@ class _PendingBanner extends StatelessWidget {
                     Text(
                       tr(
                         'tariff.pending_banner_title',
-                        args: [tr('tariff.plan.${subscription.plan.code}_label')],
+                        args: [
+                          tr('tariff.plan.${subscription.plan.code}_label'),
+                        ],
                       ),
-                      style: TextStyle(fontFamily: AppFonts.seller, 
+                      style: TextStyle(
+                        fontFamily: AppFonts.seller,
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: _ink,
@@ -246,7 +246,8 @@ class _PendingBanner extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       tr('tariff.pending_banner_subtitle'),
-                      style: TextStyle(fontFamily: AppFonts.seller, 
+                      style: TextStyle(
+                        fontFamily: AppFonts.seller,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                         color: _grey,
@@ -347,7 +348,8 @@ class _PeriodTab extends StatelessWidget {
           children: [
             Text(
               label,
-              style: TextStyle(fontFamily: AppFonts.seller, 
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
                 color: isActive ? Colors.white : _grey,
@@ -366,7 +368,8 @@ class _PeriodTab extends StatelessWidget {
                 ),
                 child: Text(
                   savingsLabel,
-                  style: TextStyle(fontFamily: AppFonts.seller, 
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
                     color: Colors.white,
@@ -502,7 +505,8 @@ class _PlanHeader extends StatelessWidget {
         Expanded(
           child: Text(
             plan.name,
-            style: TextStyle(fontFamily: AppFonts.seller,
+            style: TextStyle(
+              fontFamily: AppFonts.seller,
               fontSize: 20,
               fontWeight: FontWeight.w700,
               color: _ink,
@@ -553,7 +557,8 @@ class _StaticChip extends StatelessWidget {
           ],
           Text(
             label,
-            style: TextStyle(fontFamily: AppFonts.seller, 
+            style: TextStyle(
+              fontFamily: AppFonts.seller,
               fontSize: 10,
               fontWeight: FontWeight.w800,
               color: foreground,
@@ -596,7 +601,8 @@ class _RecommendedRibbon extends StatelessWidget {
           const SizedBox(width: 5),
           Text(
             label,
-            style: TextStyle(fontFamily: AppFonts.seller, 
+            style: TextStyle(
+              fontFamily: AppFonts.seller,
               fontSize: 10,
               fontWeight: FontWeight.w800,
               color: Colors.white,
@@ -623,7 +629,8 @@ class _PriceRow extends StatelessWidget {
     if (plan.isFree) {
       return Text(
         tr('tariff.price_free'),
-        style: TextStyle(fontFamily: AppFonts.seller,
+        style: TextStyle(
+          fontFamily: AppFonts.seller,
           fontSize: 30,
           fontWeight: FontWeight.w800,
           color: _ink,
@@ -658,7 +665,8 @@ class _PriceRow extends StatelessWidget {
         children: [
           Text(
             _formatPrice(price),
-            style: TextStyle(fontFamily: AppFonts.seller, 
+            style: TextStyle(
+              fontFamily: AppFonts.seller,
               fontSize: 30,
               fontWeight: FontWeight.w800,
               color: _ink,
@@ -671,7 +679,8 @@ class _PriceRow extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 4),
             child: Text(
               "so'm",
-              style: TextStyle(fontFamily: AppFonts.seller, 
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
                 color: _ink,
@@ -684,7 +693,8 @@ class _PriceRow extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 5),
             child: Text(
               suffix,
-              style: TextStyle(fontFamily: AppFonts.seller, 
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
                 color: _grey,
@@ -707,35 +717,35 @@ class _FeatureList extends StatelessWidget {
 
   final SubscriptionPlan plan;
 
-  /// Renders the product-cap row from the model. Unlimited (-1) falls back
-  /// to the i18n placeholder; capped tiers interpolate the integer cap.
-  String _productLimitText() {
-    return plan.hasUnlimitedProducts
-        ? tr('tariff.feature_unlimited_products')
-        : tr('tariff.feature_products', args: ['${plan.maxProducts}']);
-  }
-
   @override
   Widget build(BuildContext context) {
     final lang = AppTranslations.instance.locale.languageCode;
-    final bullets = plan.featuresForLocale(lang);
 
-    // The Enterprise admin row ("Cheksiz mahsulot va xodimlar") already
-    // covers the product cap, so when products are unlimited we don't
-    // repeat it. Capped plans show the cap as the first row.
+    // The structured caps (products / images / commission) are derived here so
+    // they always render and stay in sync with the plan's limits. `features_*`
+    // carries only the extra perks the admin authors per plan — so nothing is
+    // duplicated.
     final lines = <String>[
-      if (!plan.hasUnlimitedProducts) _productLimitText(),
-      ...bullets,
+      plan.hasUnlimitedProducts
+          ? tr('tariff.feature_unlimited_products')
+          : tr('tariff.feature_products', args: ['${plan.maxProducts}']),
+      plan.hasUnlimitedImages
+          ? tr('tariff.feature_unlimited_images')
+          : tr('tariff.feature_images', args: ['${plan.maxImagesPerProduct}']),
+      tr('tariff.feature_commission', args: [_fmtPercent(plan.commissionRate)]),
+      ...plan.featuresForLocale(lang),
     ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (final text in lines) _FeatureRow(text: text),
-      ],
+      children: [for (final text in lines) _FeatureRow(text: text)],
     );
   }
 }
+
+/// Trims a whole-number percent to an integer string ("10" not "10.0").
+String _fmtPercent(num value) =>
+    value % 1 == 0 ? value.toInt().toString() : value.toString();
 
 class _FeatureRow extends StatelessWidget {
   const _FeatureRow({required this.text});
@@ -761,7 +771,8 @@ class _FeatureRow extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: TextStyle(fontFamily: AppFonts.seller,
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
                 color: _ink,
@@ -800,10 +811,10 @@ class _PlanCta extends StatelessWidget {
     final label = isCurrent
         ? tr('tariff.cta_current')
         : (isPending
-            ? tr('tariff.cta_pending')
-            : (plan.isFree
-                ? tr('tariff.cta_downgrade')
-                : tr('tariff.cta_upgrade')));
+              ? tr('tariff.cta_pending')
+              : (plan.isFree
+                    ? tr('tariff.cta_downgrade')
+                    : tr('tariff.cta_upgrade')));
 
     final Color background;
     final Color foreground;
@@ -838,7 +849,8 @@ class _PlanCta extends StatelessWidget {
         ),
         child: Text(
           label,
-          style: TextStyle(fontFamily: AppFonts.seller, 
+          style: TextStyle(
+            fontFamily: AppFonts.seller,
             fontSize: 14,
             fontWeight: FontWeight.w700,
             color: foreground,

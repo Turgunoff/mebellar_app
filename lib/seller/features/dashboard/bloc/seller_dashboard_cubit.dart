@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/auth/auth_repository.dart';
 import '../../../../shared/models/order.dart';
+import '../../../../shared/models/tariff.dart';
 import '../../../../shared/repositories/seller_dashboard_repository.dart';
 import '../../profile/data/seller_identity_cache.dart';
 
@@ -72,6 +73,8 @@ class SellerDashboardCubit extends Cubit<SellerDashboardState> {
             todaysOrders: snap.todaysOrders,
             pendingOrders: snap.pendingOrdersCount,
             productsCount: snap.activeProductsCount,
+            plan: snap.tariff.plan,
+            productLimit: snap.tariff.plan.maxActiveProducts,
             recentOrders: List<Order>.from(snap.recentOrders),
           ),
         ),
@@ -152,7 +155,8 @@ class SellerDashboardData extends Equatable {
     this.todaysOrders = 0,
     this.pendingOrders = 0,
     this.productsCount = 0,
-    this.productLimit = 30,
+    this.plan = TariffPlan.free,
+    this.productLimit = 3,
     this.recentOrders = const [],
   });
 
@@ -163,6 +167,11 @@ class SellerDashboardData extends Equatable {
   final int todaysOrders;
   final int pendingOrders;
   final int productsCount;
+
+  /// The seller's current plan — drives the product-quota label/limit.
+  final TariffPlan plan;
+
+  /// Active-product cap for [plan]. `-1` means unlimited.
   final int productLimit;
   final List<Order> recentOrders;
 
@@ -171,7 +180,8 @@ class SellerDashboardData extends Equatable {
       (sellerName == null || sellerName!.isEmpty) ? 'Sotuvchi' : sellerName!;
 
   bool get hasRecentOrders => recentOrders.isNotEmpty;
-  bool get productLimitExceeded => productsCount > productLimit;
+  bool get productLimitExceeded =>
+      !plan.isUnlimited && productsCount > productLimit;
 
   SellerDashboardData copyWith({
     String? sellerName,
@@ -180,6 +190,7 @@ class SellerDashboardData extends Equatable {
     int? todaysOrders,
     int? pendingOrders,
     int? productsCount,
+    TariffPlan? plan,
     int? productLimit,
     List<Order>? recentOrders,
   }) {
@@ -190,6 +201,7 @@ class SellerDashboardData extends Equatable {
       todaysOrders: todaysOrders ?? this.todaysOrders,
       pendingOrders: pendingOrders ?? this.pendingOrders,
       productsCount: productsCount ?? this.productsCount,
+      plan: plan ?? this.plan,
       productLimit: productLimit ?? this.productLimit,
       recentOrders: recentOrders ?? this.recentOrders,
     );
@@ -203,6 +215,7 @@ class SellerDashboardData extends Equatable {
     todaysOrders,
     pendingOrders,
     productsCount,
+    plan,
     productLimit,
     recentOrders.length,
   ];

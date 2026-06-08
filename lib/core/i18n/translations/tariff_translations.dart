@@ -28,6 +28,9 @@ const Map<String, dynamic> tariffUz = {
   // computed client-side from `max_products` using the two keys below.
   'feature_unlimited_products': 'Cheksiz mahsulotlar',
   'feature_products': '{} tagacha aktiv mahsulot',
+  'feature_unlimited_images': 'Cheksiz rasm',
+  'feature_images': 'Har mahsulotga {} ta rasm',
+  'feature_commission': '{}% komissiya',
   'payment_title': 'To\'lov yo\'riqnomasi',
   'payment_subtitle': '{} tarif ({}) — {} so\'m',
   'tap_to_copy': 'Karta raqamini ko\'chirish uchun bosing',
@@ -49,8 +52,7 @@ const Map<String, dynamic> tariffUz = {
       'Adminimiz ko\'rib chiqyapti. Status o\'zgarishi haqida bildirishnoma keladi.',
   'sla_title': 'SLA — qolgan vaqt',
   'submitted_at': 'Yuborilgan: {}',
-  'current_remains':
-      'Joriy tarif tasdiqlangungacha amal qilishda davom etadi',
+  'current_remains': 'Joriy tarif tasdiqlangungacha amal qilishda davom etadi',
   'cancel_title': 'So\'rovni bekor qilasizmi?',
   'cancel_subtitle':
       'Bekor qilingan to\'lovni qayta tasdiqlay olmaysiz. Pulingizni qaytarish uchun support bilan bog\'laning.',
@@ -103,6 +105,9 @@ const Map<String, dynamic> tariffRu = {
   // See tariffUz — feature bullets are server-driven via subscription_plans.
   'feature_unlimited_products': 'Неограниченные товары',
   'feature_products': 'До {} активных товаров',
+  'feature_unlimited_images': 'Безлимит фото',
+  'feature_images': 'До {} фото на товар',
+  'feature_commission': 'Комиссия {}%',
   'payment_title': 'Инструкция по оплате',
   'payment_subtitle': '{} тариф ({}) — {} сум',
   'tap_to_copy': 'Нажмите, чтобы скопировать номер карты',
@@ -157,8 +162,7 @@ const Map<String, dynamic> tariffEn = {
   'history_empty': 'No payments yet',
   'history_empty_hint': 'Your upgrades will show up here',
   'limit_title': 'Tariff limit',
-  'limit_subtitle':
-      'Your plan allows {} / {} products. Upgrade to add more.',
+  'limit_subtitle': 'Your plan allows {} / {} products. Upgrade to add more.',
   'upgrade_hint':
       'Pro grants 200 products, 10 photos + video per item and just 4% commission.',
   'upgrade_cta': 'Upgrade to Pro',
@@ -177,6 +181,9 @@ const Map<String, dynamic> tariffEn = {
   // See tariffUz — feature bullets are server-driven via subscription_plans.
   'feature_unlimited_products': 'Unlimited products',
   'feature_products': 'Up to {} active products',
+  'feature_unlimited_images': 'Unlimited images',
+  'feature_images': 'Up to {} images per product',
+  'feature_commission': '{}% commission',
   'payment_title': 'Payment instructions',
   'payment_subtitle': '{} plan ({}) — {} UZS',
   'tap_to_copy': 'Tap to copy card number',
