@@ -51,6 +51,9 @@ class WoodyApiClient {
         baseUrl: AppConfig.woodyApiUrl,
         connectTimeout: const Duration(seconds: 15),
         receiveTimeout: const Duration(seconds: 30),
+        // Without a send timeout an upload that stalls mid-body (a flaky
+        // connection during a product-image / KYC push) hangs forever; cap it.
+        sendTimeout: const Duration(seconds: 30),
         contentType: Headers.jsonContentType,
         responseType: ResponseType.json,
         validateStatus: (status) => status != null && status < 500,
