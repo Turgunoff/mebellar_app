@@ -19,6 +19,7 @@ import '../../seller/features/profile/data/seller_identity_cache.dart';
 import '../../seller/features/reviews/cubit/reviews_cubit.dart';
 import '../../seller/services/new_orders_listener.dart';
 import '../../shared/repositories/seller_order_repository.dart';
+import '../../shared/repositories/profile_orders_repository.dart';
 import '../../shared/repositories/banner_repository.dart';
 import '../../shared/repositories/cart_repository.dart';
 import '../../shared/repositories/favorites_repository.dart';
@@ -67,7 +68,10 @@ void registerCustomerScope(GetIt sl) {
     dispose: (bloc) => bloc.close(),
   );
   sl.registerLazySingleton<ProfileOrdersCubit>(
-    () => ProfileOrdersCubit(sl<WoodyApiClient>(), sl<AuthRepository>()),
+    () => ProfileOrdersCubit(
+      sl<ProfileOrdersRepository>(),
+      sl<AuthRepository>(),
+    ),
     dispose: (c) => c.close(),
   );
   sl.registerLazySingleton<ProfileCubit>(
