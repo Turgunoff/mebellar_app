@@ -1,0 +1,10 @@
+# Test-runner config (honoured by `flutter test`).
+#
+# Golden tests are pixel-exact and only reproducible on the platform + Flutter
+# revision that generated the baselines, so they fail on a CI runner that
+# renders fonts/anti-aliasing differently. They're tagged `golden` so CI can
+# skip them (`flutter test --exclude-tags golden`) while they still run locally
+# on the canonical machine (`flutter test --tags golden`, regenerate with
+# `--update-goldens`).
+tags:
+  golden:
