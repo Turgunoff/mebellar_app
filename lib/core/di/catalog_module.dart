@@ -14,18 +14,23 @@ import '../../shared/repositories/cart_repository.dart';
 import '../../shared/repositories/chat_repository.dart';
 import '../../shared/repositories/customer_reviews_repository.dart';
 import '../../shared/repositories/favorites_repository.dart';
+import '../../shared/repositories/hive_cart_repository.dart';
+import '../../shared/repositories/hybrid_cart_repository.dart';
 import '../../shared/repositories/news_repository.dart';
 import '../../shared/repositories/notifications_repository.dart';
 import '../../shared/repositories/order_repository.dart';
 import '../../shared/repositories/category_data_source.dart';
 import '../../shared/repositories/notifications_data_source.dart';
 import '../../shared/repositories/product_data_source.dart';
+import '../../shared/repositories/shop_repository.dart';
 import '../../shared/repositories/woody_banner_repository.dart';
 import '../../shared/repositories/woody_category_repository.dart';
 import '../../shared/repositories/woody_chat_repositories.dart';
 import '../../shared/repositories/woody_customer_repositories.dart';
 import '../../shared/repositories/woody_product_repository.dart';
+import '../../shared/repositories/woody_shop_repository.dart';
 import '../auth/auth_repository.dart';
+import '../network/token_store.dart';
 import '../network/woody_api_client.dart';
 import '../realtime/woody_realtime_service.dart';
 import '../storage/cache_store.dart';
@@ -82,6 +87,11 @@ void registerCatalogModule(GetIt sl) {
       () => WoodyCustomerReviewsRepository(api: sl<WoodyApiClient>()),
     );
 
+    // Public shop/seller profile (`/catalog/shops/{id}` + its product list).
+    sl.registerLazySingleton<ShopRepository>(
+      () => WoodyShopRepository(api: sl<WoodyApiClient>()),
+    );
+
     // NewsDataSource — public broadcast feed; only when the Woody API is live.
     sl.registerLazySingleton<NewsDataSource>(
       () => WoodyNewsRepository(
@@ -124,12 +134,18 @@ void registerCatalogModule(GetIt sl) {
       cache: sl<CacheStore>(),
     ),
   );
-  // `WoodyCartRepository` talks to the backend directly and handles a
-  // signed-out caller gracefully (empty cart on 401). Hive-backed offline
-  // guest carts on the Woody path are a future follow-up.
-  sl.registerLazySingleton<CartRepository>(
-    () => WoodyCartRepository(api: sl<WoodyApiClient>()),
-  );
+  // Hybrid cart: a Hive-backed local cart for guests, the backend cart once
+  // signed in, and a merge of the former into the latter on login. The active
+  // side is chosen per-call from the live token state.
+  sl.registerLazySingleton<CartRepository>(() {
+    final tokens = sl<TokenStore>();
+    return HybridCartRepository(
+      remote: WoodyCartRepository(api: sl<WoodyApiClient>()),
+      local: HiveCartRepository(box: sl<Box>(instanceName: HiveBoxes.cart)),
+      isSignedIn: () => tokens.current != null,
+      authChanges: tokens.changes.map((pair) => pair != null),
+    );
+  }, dispose: (r) => (r as HybridCartRepository).dispose());
   sl.registerLazySingleton<FavoritesRepository>(
     () => WoodyFavoritesRepository(api: sl<WoodyApiClient>()),
   );

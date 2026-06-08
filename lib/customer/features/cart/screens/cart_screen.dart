@@ -141,11 +141,21 @@ class CartScreen extends StatelessWidget {
     );
   }
 
-  void _onCheckout(BuildContext context, List<CartItemModel> items) {
+  Future<void> _onCheckout(
+    BuildContext context,
+    List<CartItemModel> items,
+  ) async {
     HapticFeedback.lightImpact();
     final authState = context.read<AuthCubit>().state;
     if (authState is AppAuthUnauthenticated) {
-      showAuthScreen(context);
+      // Guests build their cart locally; login is required only here. After a
+      // successful sign-in the local cart has merged into the server cart, so
+      // re-read the latest rows before proceeding.
+      final ok = await showAuthScreen(context);
+      if (!ok || !context.mounted) return;
+      final latest = context.read<CartBloc>().state.items;
+      if (latest.isEmpty) return;
+      context.push('/checkout', extra: latest);
       return;
     }
     context.push('/checkout', extra: items);

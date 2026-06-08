@@ -253,7 +253,8 @@ class _CatalogProductDetailScreenState
                               _colorError = false;
                             }),
                           ),
-                        if (shopName.isNotEmpty) _ShopCard(name: shopName),
+                        if (shopName.isNotEmpty)
+                          _ShopCard(name: shopName, shopId: product.shopId),
                         if (hasMeta)
                           MetaCard(
                             category: categoryName.isEmpty ? '—' : categoryName,
@@ -523,45 +524,73 @@ class _TitlePriceCard extends StatelessWidget {
 // ═══════════════════════════════════════════════════════════════════════════
 
 class _ShopCard extends StatelessWidget {
-  const _ShopCard({required this.name});
+  const _ShopCard({required this.name, this.shopId});
 
   final String name;
 
+  /// Seller's shop id. When present, the card opens the public shop profile;
+  /// null (a dangling shop reference) leaves the card static.
+  final String? shopId;
+
   @override
   Widget build(BuildContext context) {
-    return SectionCard(
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: AppColors.terracotta.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Iconsax.shop,
-              size: 21,
+    final tappable = (shopId ?? '').isNotEmpty;
+    final row = Row(
+      children: [
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: AppColors.terracotta.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Icon(
+            Iconsax.shop,
+            size: 21,
+            color: AppColors.terracotta,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Sotuvchi', style: _ts(size: 12, color: kGrey)),
+              const SizedBox(height: 2),
+              Text(
+                name,
+                style: _ts(size: 14.5, weight: FontWeight.w600),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+        if (tappable) ...[
+          const SizedBox(width: 8),
+          Text(
+            'Profil',
+            style: _ts(
+              size: 12.5,
+              weight: FontWeight.w600,
               color: AppColors.terracotta,
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Sotuvchi', style: _ts(size: 12, color: kGrey)),
-                const SizedBox(height: 2),
-                Text(
-                  name,
-                  style: _ts(size: 14.5, weight: FontWeight.w600),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
+          const Icon(
+            Iconsax.arrow_right_3,
+            size: 16,
+            color: AppColors.terracotta,
           ),
         ],
+      ],
+    );
+
+    if (!tappable) return SectionCard(child: row);
+    return SectionCard(
+      child: InkWell(
+        onTap: () => context.push('/shop/$shopId'),
+        borderRadius: BorderRadius.circular(8),
+        child: row,
       ),
     );
   }

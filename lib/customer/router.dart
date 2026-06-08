@@ -31,6 +31,7 @@ import 'features/orders/screens/orders_history_screen.dart';
 import 'features/notifications/screens/notifications_screen.dart'
     as customer_notifications;
 import 'features/search/screens/search_screen.dart';
+import 'features/shop/screens/shop_profile_screen.dart';
 import 'features/tutorial/tutorial_screen.dart';
 import '../seller/features/onboarding/screens/onboarding_screen.dart';
 
@@ -103,6 +104,11 @@ GoRouter buildCustomerRouter() {
           }
           return _ProductDetailLoader(id: state.pathParameters['id']!);
         },
+      ),
+      GoRoute(
+        path: '/shop/:id',
+        builder: (context, state) =>
+            ShopProfileScreen(shopId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/search',

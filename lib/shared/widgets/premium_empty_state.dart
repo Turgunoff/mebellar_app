@@ -8,16 +8,19 @@ class PremiumEmptyState extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.subtitle,
-    required this.buttonText,
-    required this.onButtonPressed,
+    this.buttonText,
+    this.onButtonPressed,
     this.bottomPadding = 0,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
-  final String buttonText;
-  final VoidCallback onButtonPressed;
+
+  /// Optional call-to-action. When [buttonText] or [onButtonPressed] is null
+  /// the button is omitted entirely.
+  final String? buttonText;
+  final VoidCallback? onButtonPressed;
   final double bottomPadding;
 
   @override
@@ -68,25 +71,27 @@ class PremiumEmptyState extends StatelessWidget {
                       height: 1.5,
                     ),
                   ),
-                  const SizedBox(height: 32),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: FilledButton(
-                      onPressed: onButtonPressed,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: PremiumTokens.accent,
-                        foregroundColor: Colors.white,
-                        shape: const StadiumBorder(),
-                        textStyle: PremiumTokens.body(
-                          size: 15,
-                          weight: FontWeight.w600,
-                          letterSpacing: 0.3,
+                  if (buttonText != null && onButtonPressed != null) ...[
+                    const SizedBox(height: 32),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: FilledButton(
+                        onPressed: onButtonPressed,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: PremiumTokens.accent,
+                          foregroundColor: Colors.white,
+                          shape: const StadiumBorder(),
+                          textStyle: PremiumTokens.body(
+                            size: 15,
+                            weight: FontWeight.w600,
+                            letterSpacing: 0.3,
+                          ),
                         ),
+                        child: Text(buttonText!),
                       ),
-                      child: Text(buttonText),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
