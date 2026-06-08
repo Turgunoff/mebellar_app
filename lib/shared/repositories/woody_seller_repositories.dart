@@ -6,6 +6,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../core/auth/auth_repository.dart';
 import '../../core/error/failure.dart';
+import '../../core/logging/talker.dart';
 import '../../core/network/woody_api_client.dart';
 import '../../core/result/result.dart';
 import '../../core/storage/r2_upload_client.dart';
@@ -507,10 +508,13 @@ class WoodyShopSettingsRepository implements ShopSettingsRepository {
       runCatching(() async {
         // PATCH accepts shop columns only (ShopUpdateBody); contact channels
         // live on the seller row and aren't editable through this endpoint yet.
+        final payload = settings.toShopJson();
+        talker.info('[shop-settings] PATCH /seller/shop → request: $payload');
         final shop = await _api.patch<Map<String, dynamic>>(
           '/seller/shop',
-          body: settings.toShopJson(),
+          body: payload,
         );
+        talker.info('[shop-settings] PATCH /seller/shop ← response: $shop');
         return ShopSettings.fromRow(
           shopRow: shop,
           sellerRow: await _contactSlice(),

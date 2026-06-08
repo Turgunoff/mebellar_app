@@ -24,8 +24,9 @@ class ShopSettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => ShopSettingsBloc(sl<ShopSettingsRepository>())
-        ..add(const ShopSettingsRequested()),
+      create: (_) =>
+          ShopSettingsBloc(sl<ShopSettingsRepository>())
+            ..add(const ShopSettingsRequested()),
       child: const _ShopSettingsView(),
     );
   }
@@ -45,6 +46,8 @@ class _ShopSettingsView extends StatelessWidget {
           (b.error != null && b.error != a.error),
       listener: (context, state) {
         if (state.status == ShopSettingsStatus.saved) {
+          // The toast is shown on the app-level messenger, so it survives the
+          // pop and lands on the screen we return to.
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               backgroundColor: kInk,
@@ -59,6 +62,8 @@ class _ShopSettingsView extends StatelessWidget {
               ),
             ),
           );
+          // Close the settings screen on a successful save.
+          Navigator.of(context).pop();
         } else if (state.error != null) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -80,18 +85,15 @@ class _ShopSettingsView extends StatelessWidget {
           appBar: const ShopSettingsAppBar(),
           body: switch (state.status) {
             ShopSettingsStatus.initial ||
-            ShopSettingsStatus.loading =>
-              const Center(
-                child: CircularProgressIndicator(
-                  color: AppColors.terracotta,
-                ),
-              ),
+            ShopSettingsStatus.loading => const Center(
+              child: CircularProgressIndicator(color: AppColors.terracotta),
+            ),
             ShopSettingsStatus.failure when state.settings == null =>
               ErrorState(
                 message: state.error,
-                onRetry: () => context
-                    .read<ShopSettingsBloc>()
-                    .add(const ShopSettingsRequested()),
+                onRetry: () => context.read<ShopSettingsBloc>().add(
+                  const ShopSettingsRequested(),
+                ),
               ),
             _ => SettingsForm(state: state),
           },
@@ -99,9 +101,9 @@ class _ShopSettingsView extends StatelessWidget {
               ? null
               : SettingsSaveBar(
                   saving: state.status == ShopSettingsStatus.saving,
-                  onSave: () => context
-                      .read<ShopSettingsBloc>()
-                      .add(const ShopSettingsSaved()),
+                  onSave: () => context.read<ShopSettingsBloc>().add(
+                    const ShopSettingsSaved(),
+                  ),
                 ),
         );
       },
