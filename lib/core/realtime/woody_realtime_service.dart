@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../../config/app_config.dart';
@@ -20,6 +21,14 @@ import '../network/token_store.dart';
 /// server confirms the JWT is valid; on receive failures the loop retries
 /// silently. Sign-out clears the token, which causes the next reconnect
 /// attempt to skip the dial — the auth layer drives `start`/`stop`.
+///
+/// Auth travels in the `Authorization: Bearer <jwt>` header of the upgrade
+/// request, never in the URL query string — a query-string token leaks into
+/// proxy/access logs and TLS-terminating load-balancer logs. The header path
+/// requires `IOWebSocketChannel` (native sockets expose the upgrade headers;
+/// the cross-platform `WebSocketChannel.connect` does not), which is fine for
+/// this mobile-only app. The backend reads the token from this header on
+/// `/api/v1/realtime/ws`.
 class WoodyRealtimeService {
   WoodyRealtimeService({required TokenStore tokens}) : _tokens = tokens;
 
@@ -90,8 +99,11 @@ class WoodyRealtimeService {
       return;
     }
 
-    final wsUrl = _toWsUrl(base, pair.accessToken);
-    final channel = WebSocketChannel.connect(wsUrl);
+    final wsUrl = _toWsUrl(base);
+    final channel = IOWebSocketChannel.connect(
+      wsUrl,
+      headers: {'Authorization': 'Bearer ${pair.accessToken}'},
+    );
     try {
       // Await the upgrade so a failed handshake (e.g. the server/nginx not
       // serving WS at this path, or an expired token) is caught HERE instead
@@ -125,7 +137,7 @@ class WoodyRealtimeService {
     _backoffStep = 0;
   }
 
-  Uri _toWsUrl(String base, String token) {
+  Uri _toWsUrl(String base) {
     final baseUri = Uri.parse(base);
     final secure = baseUri.scheme == 'https' || baseUri.scheme == 'wss';
     // Dart's Uri only knows default ports for http/https. A `wss` Uri with
@@ -133,12 +145,13 @@ class WoodyRealtimeService {
     // upgrade request as `https://host:0/...`, which never connects. Pin the
     // port so it always carries 443 (wss) / 80 (ws).
     final port = baseUri.hasPort ? baseUri.port : (secure ? 443 : 80);
+    // No token in the query string — auth rides the Authorization header set
+    // by the caller (see [_connect]).
     return Uri(
       scheme: secure ? 'wss' : 'ws',
       host: baseUri.host,
       port: port,
       path: '/api/v1/realtime/ws',
-      queryParameters: {'token': token},
     );
   }
 
