@@ -38,6 +38,13 @@ class SellerProductArchived extends SellerProductsEvent {
   List<Object?> get props => [id];
 }
 
+class SellerProductRestored extends SellerProductsEvent {
+  const SellerProductRestored(this.id);
+  final String id;
+  @override
+  List<Object?> get props => [id];
+}
+
 class SellerProductSubmitted extends SellerProductsEvent {
   const SellerProductSubmitted(this.id);
   final String id;
@@ -92,24 +99,25 @@ class SellerProductsState extends Equatable {
 class SellerProductsBloc
     extends Bloc<SellerProductsEvent, SellerProductsState> {
   SellerProductsBloc(this._repo, {AnalyticsService? analytics})
-      : _analytics = analytics,
-        super(const SellerProductsState()) {
+    : _analytics = analytics,
+      super(const SellerProductsState()) {
     on<SellerProductsRequested>(_onRequested);
     on<SellerProductsFilterChanged>(
-        (e, emit) => emit(state.copyWith(filter: e.filter)));
-    on<SellerProductsSearchChanged>(
-      (e, emit) {
-        final filter = state.filter.copyWith(
-          search: e.query,
-          clearSearch: e.query.isEmpty,
-        );
-        emit(state.copyWith(filter: filter));
-      },
+      (e, emit) => emit(state.copyWith(filter: e.filter)),
     );
+    on<SellerProductsSearchChanged>((e, emit) {
+      final filter = state.filter.copyWith(
+        search: e.query,
+        clearSearch: e.query.isEmpty,
+      );
+      emit(state.copyWith(filter: filter));
+    });
     on<SellerProductArchived>(_onArchived);
+    on<SellerProductRestored>(_onRestored);
     on<SellerProductSubmitted>(_onSubmitted);
     on<_SellerProductsRefreshed>(
-        (e, emit) => emit(state.copyWith(products: e.products)));
+      (e, emit) => emit(state.copyWith(products: e.products)),
+    );
 
     _sub = _repo.watch().listen((products) {
       add(_SellerProductsRefreshed(products));
@@ -124,16 +132,22 @@ class SellerProductsBloc
     SellerProductsRequested event,
     Emitter<SellerProductsState> emit,
   ) async {
-    emit(state.copyWith(
-        status: SellerProductsStatus.loading, clearError: true));
+    emit(
+      state.copyWith(status: SellerProductsStatus.loading, clearError: true),
+    );
     try {
       // Pull a generous first page; further pagination lands in Sprint 8.
       final res = await _repo.list(perPage: 50);
-      emit(state.copyWith(
-          status: SellerProductsStatus.ready, products: res.items));
+      emit(
+        state.copyWith(status: SellerProductsStatus.ready, products: res.items),
+      );
     } catch (e) {
-      emit(state.copyWith(
-          status: SellerProductsStatus.failure, error: e.toString()));
+      emit(
+        state.copyWith(
+          status: SellerProductsStatus.failure,
+          error: e.toString(),
+        ),
+      );
     }
   }
 
@@ -143,17 +157,56 @@ class SellerProductsBloc
   ) async {
     emit(state.copyWith(status: SellerProductsStatus.mutating));
     try {
-      await _repo.archive(event.id);
-      // _SellerProductsRefreshed via stream will update the list.
-      emit(state.copyWith(status: SellerProductsStatus.ready));
+      final updated = await _repo.archive(event.id);
+      // The Woody repo's watch() is empty, so patch the returned row into the
+      // list directly rather than relying on a stream refresh (the mock's
+      // _emit() converges to the same result).
+      emit(
+        state.copyWith(
+          status: SellerProductsStatus.ready,
+          products: _replaced(updated),
+        ),
+      );
       // Archive is our soft-delete — track it as productDeleted so the
       // analytics funnel sees a single "removed from catalog" signal.
       unawaited(_analytics?.productDeleted(productId: event.id));
     } catch (e) {
-      emit(state.copyWith(
-          status: SellerProductsStatus.ready, error: e.toString()));
+      emit(
+        state.copyWith(status: SellerProductsStatus.ready, error: e.toString()),
+      );
     }
   }
+
+  Future<void> _onRestored(
+    SellerProductRestored event,
+    Emitter<SellerProductsState> emit,
+  ) async {
+    emit(state.copyWith(status: SellerProductsStatus.mutating));
+    try {
+      final updated = await _repo.restore(event.id);
+      emit(
+        state.copyWith(
+          status: SellerProductsStatus.ready,
+          products: _replaced(updated),
+        ),
+      );
+      // Restore puts the product back into the review queue — the closest
+      // signal we have on this surface is a product update.
+      unawaited(_analytics?.productUpdated(productId: event.id));
+    } catch (e) {
+      emit(
+        state.copyWith(status: SellerProductsStatus.ready, error: e.toString()),
+      );
+    }
+  }
+
+  /// Returns a copy of the current product list with [updated] swapped in by
+  /// id. If the id isn't present (e.g. archived from a detail screen opened
+  /// before the list loaded) the list is returned unchanged.
+  List<SellerProduct> _replaced(SellerProduct updated) => [
+    for (final p in state.products)
+      if (p.id == updated.id) updated else p,
+  ];
 
   Future<void> _onSubmitted(
     SellerProductSubmitted event,
@@ -167,8 +220,9 @@ class SellerProductsBloc
       // update on this surface — fire it so the dashboard sees the edit.
       unawaited(_analytics?.productUpdated(productId: event.id));
     } catch (e) {
-      emit(state.copyWith(
-          status: SellerProductsStatus.ready, error: e.toString()));
+      emit(
+        state.copyWith(status: SellerProductsStatus.ready, error: e.toString()),
+      );
     }
   }
 

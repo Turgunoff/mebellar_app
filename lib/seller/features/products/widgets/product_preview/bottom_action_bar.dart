@@ -5,14 +5,35 @@ import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import 'product_preview_kit.dart';
 
-/// Bottom bar — Archive (outlined, secondary) + Edit (filled, primary).
+/// Bottom bar — secondary action (Archive, or Restore when the product is
+/// already archived) + Edit (filled, primary). The secondary action is hidden
+/// when its callback is null.
 class BottomActionBar extends StatelessWidget {
-  const BottomActionBar({super.key, required this.onEdit});
+  const BottomActionBar({
+    super.key,
+    required this.onEdit,
+    this.onArchive,
+    this.onRestore,
+    this.isArchived = false,
+    this.isBusy = false,
+  });
 
   final VoidCallback? onEdit;
+  final VoidCallback? onArchive;
+  final VoidCallback? onRestore;
+
+  /// When true the product is archived, so the secondary action restores it
+  /// (terracotta "Qaytarish") instead of archiving it (neutral "Arxivlash").
+  final bool isArchived;
+
+  /// Disables both actions and shows a spinner on the secondary one while a
+  /// mutation is in flight, so a double-tap can't fire two requests.
+  final bool isBusy;
 
   @override
   Widget build(BuildContext context) {
+    final secondaryOnPressed = isArchived ? onRestore : onArchive;
+    final hasSecondary = secondaryOnPressed != null;
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -23,9 +44,7 @@ class BottomActionBar extends StatelessWidget {
             offset: const Offset(0, -4),
           ),
         ],
-        border: const Border(
-          top: BorderSide(color: kDivider, width: 1),
-        ),
+        border: const Border(top: BorderSide(color: kDivider, width: 1)),
       ),
       child: SafeArea(
         top: false,
@@ -33,36 +52,60 @@ class BottomActionBar extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
           child: Row(
             children: [
-              Expanded(
-                flex: 5,
-                child: SizedBox(
-                  height: 52,
-                  child: OutlinedButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Iconsax.archive_2, size: 18),
-                    label: const Text(
-                      'Arxivlash',
-                      style: TextStyle(
-                        fontFamily: AppFonts.seller,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: kInk,
-                        height: 1.0,
+              if (hasSecondary) ...[
+                Expanded(
+                  flex: 5,
+                  child: SizedBox(
+                    height: 52,
+                    child: OutlinedButton.icon(
+                      onPressed: isBusy ? null : secondaryOnPressed,
+                      icon: isBusy
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation(kGrey),
+                              ),
+                            )
+                          : Icon(
+                              isArchived
+                                  ? Iconsax.refresh_2
+                                  : Iconsax.archive_2,
+                              size: 18,
+                              color: isArchived ? AppColors.terracotta : kInk,
+                            ),
+                      label: Text(
+                        isArchived ? 'Qaytarish' : 'Arxivlash',
+                        style: TextStyle(
+                          fontFamily: AppFonts.seller,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: isArchived ? AppColors.terracotta : kInk,
+                          height: 1.0,
+                        ),
                       ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: kInk,
-                      backgroundColor: Colors.white,
-                      side: const BorderSide(color: kOutline, width: 1),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: isArchived
+                            ? AppColors.terracotta
+                            : kInk,
+                        backgroundColor: Colors.white,
+                        side: BorderSide(
+                          color: isArchived
+                              ? AppColors.terracotta.withValues(alpha: 0.4)
+                              : kOutline,
+                          width: 1,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        padding: EdgeInsets.zero,
                       ),
-                      padding: EdgeInsets.zero,
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 10),
+                const SizedBox(width: 10),
+              ],
               Expanded(
                 flex: 7,
                 child: SizedBox(

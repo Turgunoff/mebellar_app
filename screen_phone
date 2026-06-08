@@ -1,0 +1,3 @@
+Preview'da ochish (eng oson)	adb exec-out screencap -p > /tmp/screen.png && open /tmp/screen.png
+Finder'da /tmp ga o'tish	Finder ochiq → Cmd+Shift+G → /tmp yozing
+Ish stoliga saqlash (topish oson)	adb exec-out screencap -p > ~/Desktop/screen.png && open ~/Desktop/screen.png

@@ -53,7 +53,14 @@ abstract class SellerProductRepository {
 
   Future<SellerProduct> update(String id, SellerProductInput input);
 
+  /// Soft-archive — drops the product from the customer catalogue and frees a
+  /// tariff slot, but stays recoverable via [restore]. Backed by
+  /// `POST /seller/products/{id}/archive`.
   Future<SellerProduct> archive(String id);
+
+  /// Un-archive — sends the product back into moderation as `pending_review`.
+  /// Only the admin flow can return it to `approved`.
+  Future<SellerProduct> restore(String id);
 
   Future<SellerProduct> submitForReview(String id);
 

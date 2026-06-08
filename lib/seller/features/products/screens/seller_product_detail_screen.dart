@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/logging/talker.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/constants/product_colors.dart';
 import '../../../../shared/models/attribute_definition.dart';
 import '../../../../shared/models/seller_product.dart';
+import '../bloc/seller_products_bloc.dart';
 import '../data/attributes_repository.dart';
 import '../widgets/product_preview/attributes_card.dart';
 import '../widgets/product_preview/bottom_action_bar.dart';
 import '../widgets/product_preview/description_card.dart';
 import '../widgets/product_preview/logistics_card.dart';
 import '../widgets/product_preview/meta_card.dart';
+import '../widgets/product_preview/product_preview_kit.dart';
 import '../widgets/product_form/dimensions_card.dart' as form_dims;
 import '../widgets/product_preview/preview_app_bar.dart';
 import '../widgets/product_preview/preview_summary_cards.dart';
@@ -45,6 +49,12 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
   List<AttributeDefinition> _schema = const [];
   final ScrollController _scrollController = ScrollController();
   double _titleOpacity = 0;
+
+  // The product is passed in as a snapshot; archive/restore can change its
+  // status without leaving the screen, so we track the live status locally and
+  // let the bottom bar + status card flip between Archive and Restore.
+  late SellerProductStatus _status = widget.product.status;
+  bool _isBusy = false;
 
   @override
   void initState() {
@@ -105,6 +115,143 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
     }
   }
 
+  Future<void> _onArchive() async {
+    final confirmed = await _confirm(
+      title: 'Mahsulotni arxivlash',
+      message:
+          'Mahsulot xaridorlarga ko\'rinmaydi, lekin keyin qaytarib olishingiz '
+          'mumkin. Arxivlansinmi?',
+      confirmLabel: 'Arxivlash',
+      destructive: false,
+    );
+    if (confirmed != true) return;
+    await _runMutation(
+      action: () => context.read<SellerProductsBloc>().add(
+        SellerProductArchived(widget.product.id),
+      ),
+      nextStatus: SellerProductStatus.archived,
+      successMessage: 'Mahsulot arxivlandi',
+    );
+  }
+
+  Future<void> _onRestore() async {
+    await _runMutation(
+      action: () => context.read<SellerProductsBloc>().add(
+        SellerProductRestored(widget.product.id),
+      ),
+      nextStatus: SellerProductStatus.pendingReview,
+      successMessage:
+          'Mahsulot qaytarildi va qayta ko\'rib chiqishga yuborildi',
+    );
+  }
+
+  /// Dispatches [action], waits for the bloc to settle, then reflects the new
+  /// status locally and shows a snackbar. Surfaces the bloc's error if the
+  /// mutation failed. Guards against a double-tap via [_isBusy].
+  Future<void> _runMutation({
+    required VoidCallback action,
+    required SellerProductStatus nextStatus,
+    required String successMessage,
+  }) async {
+    if (_isBusy) return;
+    final bloc = context.read<SellerProductsBloc>();
+    setState(() => _isBusy = true);
+    action();
+    // Wait until the bloc leaves the `mutating` state the event triggers.
+    final settled = await bloc.stream.firstWhere(
+      (s) => s.status != SellerProductsStatus.mutating,
+    );
+    if (!mounted) return;
+    setState(() => _isBusy = false);
+    if (settled.error != null) {
+      _showSnack(settled.error!, isError: true);
+      return;
+    }
+    setState(() => _status = nextStatus);
+    _showSnack(successMessage);
+  }
+
+  Future<bool?> _confirm({
+    required String title,
+    required String message,
+    required String confirmLabel,
+    required bool destructive,
+  }) {
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: Text(
+          title,
+          style: const TextStyle(
+            fontFamily: AppFonts.seller,
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            color: kInk,
+          ),
+        ),
+        content: Text(
+          message,
+          style: const TextStyle(
+            fontFamily: AppFonts.seller,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: kGrey,
+            height: 1.4,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text(
+              'Bekor qilish',
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
+                fontWeight: FontWeight.w600,
+                color: kGrey,
+              ),
+            ),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: destructive
+                  ? const Color(0xFFC0392B)
+                  : AppColors.terracotta,
+              foregroundColor: Colors.white,
+            ),
+            child: Text(
+              confirmLabel,
+              style: const TextStyle(
+                fontFamily: AppFonts.seller,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSnack(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            message,
+            style: const TextStyle(
+              fontFamily: AppFonts.seller,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          backgroundColor: isError ? const Color(0xFFC0392B) : kInk,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
+
   @override
   Widget build(BuildContext context) {
     final product = widget.product;
@@ -149,7 +296,7 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
                   const PreviewModeBanner(),
                   const SizedBox(height: 14),
                   StatusCard(
-                    status: product.status,
+                    status: _status,
                     updatedAtLabel: _formatDateTime(product.updatedAt),
                   ),
                   if (product.status == SellerProductStatus.rejected &&
@@ -211,7 +358,13 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: BottomActionBar(onEdit: widget.onEdit),
+      bottomNavigationBar: BottomActionBar(
+        onEdit: widget.onEdit,
+        onArchive: _onArchive,
+        onRestore: _onRestore,
+        isArchived: _status == SellerProductStatus.archived,
+        isBusy: _isBusy,
+      ),
     );
   }
 

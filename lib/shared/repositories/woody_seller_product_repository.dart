@@ -33,9 +33,11 @@ import 'seller_product_repository.dart';
 ///   carries the raw id and is forwarded as `category_id` — passing an actual
 ///   slug here would 422 (see riskNotes).
 /// * The backend `update` does not accept a writable `status`; any field PATCH
-///   forces `pending_review`. So [archive] and [submitForReview] send `status`
-///   (a no-op until the backend honours it) and reflect the intended status
-///   optimistically via copyWith.
+///   forces `pending_review`. [archive]/[restore] therefore use the dedicated
+///   `POST /seller/products/{id}/archive` and `.../restore` endpoints (which
+///   set `archived` / `pending_review` server-side and read the row back).
+///   [submitForReview] still sends `status` via PATCH — a no-op until the
+///   backend grows its own submit endpoint — and reflects it optimistically.
 class WoodySellerProductRepository implements SellerProductRepository {
   WoodySellerProductRepository({required WoodyApiClient api}) : _api = api;
 
@@ -123,8 +125,20 @@ class WoodySellerProductRepository implements SellerProductRepository {
   }
 
   @override
-  Future<SellerProduct> archive(String id) =>
-      _patchStatus(id, SellerProductStatus.archived);
+  Future<SellerProduct> archive(String id) async {
+    final body = await _api.post<Map<String, dynamic>>(
+      '/seller/products/$id/archive',
+    );
+    return _fromRow(body);
+  }
+
+  @override
+  Future<SellerProduct> restore(String id) async {
+    final body = await _api.post<Map<String, dynamic>>(
+      '/seller/products/$id/restore',
+    );
+    return _fromRow(body);
+  }
 
   @override
   Future<SellerProduct> submitForReview(String id) =>

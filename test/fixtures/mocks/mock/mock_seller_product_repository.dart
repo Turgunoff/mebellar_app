@@ -142,6 +142,23 @@ class MockSellerProductRepository implements SellerProductRepository {
   }
 
   @override
+  Future<SellerProduct> restore(String id) async {
+    await Future<void>.delayed(_delay);
+    final idx = _products.indexWhere((p) => p.id == id);
+    if (idx < 0) throw StateError('Mahsulot topilmadi: $id');
+    // Mirrors the backend: an archived product re-enters moderation rather
+    // than going straight back to approved.
+    if (_products[idx].status == SellerProductStatus.archived) {
+      _products[idx] = _products[idx].copyWith(
+        status: SellerProductStatus.pendingReview,
+        updatedAt: DateTime.now(),
+      );
+      _emit();
+    }
+    return _products[idx];
+  }
+
+  @override
   Future<SellerProduct> submitForReview(String id) async {
     await Future<void>.delayed(_delay);
     final idx = _products.indexWhere((p) => p.id == id);
