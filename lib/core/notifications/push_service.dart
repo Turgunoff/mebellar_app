@@ -90,11 +90,7 @@ class PushService {
     // FCM rotates tokens occasionally (app data wipe, restore, etc.). When
     // it does, re-save the new token under the currently logged-in user so
     // the server-side sender keeps reaching this device.
-    _tokenRefreshSub = _messaging.onTokenRefresh.listen((token) async {
-      // The Woody JWT already carries the user id, so the upsert doesn't need
-      // it here. Skips silently when no backend is configured (_woodyApi null).
-      await _upsertToken(token: token, userId: '');
-    });
+    _tokenRefreshSub = _messaging.onTokenRefresh.listen(_onTokenRefreshed);
   }
 
   /// Invoked when the user taps a push (background or cold start). Reads
@@ -217,6 +213,26 @@ class PushService {
     } catch (e, st) {
       talker.handle(e, st, 'PushService.syncTokenForUser failed');
       debugPrint('[FCM] syncTokenForUser failed: $e');
+    }
+  }
+
+  /// FCM rotated the registration token (app restore, data wipe, etc.).
+  /// Re-registers it under the active session — the Woody JWT carries the user
+  /// id, so the upsert needs only the token; it skips silently when no backend
+  /// is configured (`_woodyApi` null) or the user is signed out (401, swallowed
+  /// in [_upsertToken]).
+  ///
+  /// Errors are caught and logged as non-fatals, never rethrown: this runs from
+  /// a stream listener, so an escaping rejection (offline, a transient 5xx)
+  /// would land in `runZonedGuarded` and Crashlytics would record a *fatal* on
+  /// every blip. A dropped rotation self-heals — the next launch re-syncs
+  /// through [syncTokenForUser] off the restored session.
+  Future<void> _onTokenRefreshed(String token) async {
+    if (token.isEmpty) return;
+    try {
+      await _upsertToken(token: token, userId: '');
+    } catch (e, st) {
+      talker.handle(e, st, 'PushService.onTokenRefresh upsert failed');
     }
   }
 
