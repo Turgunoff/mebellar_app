@@ -49,17 +49,28 @@ app.*.map.json
 
 # Firebase Admin SDK service-account JSONs — contain a private key that
 # can mint OAuth2 tokens against the Firebase project. Never commit.
-# woody-*-firebase-adminsdk-*.json
-# *-firebase-adminsdk-*.json
-# serviceAccountKey.json
+woody-*-firebase-adminsdk-*.json
+*-firebase-adminsdk-*.json
+serviceAccountKey.json
 
-# # Environment / secrets — every env file is ignored except the committed
-# # template. dev.json / prod.json were un-tracked via `git rm --cached`;
-# # real keys now live only in untracked env files (see env/example.json).
-# /env/dev.json
-# /env/prod.json
-# /env/*.json
-# !env/example.json
+# Android signing — the upload keystore and its passwords. A leaked keystore
+# lets an attacker sign builds as this app, and key.properties carries the
+# store/key passwords. Never commit; provision these out-of-band on the
+# release machine / CI secrets.
+/android/key.properties
+**/*.jks
+**/*.keystore
+# Stray Firebase config backup. The live android/app/google-services.json
+# stays tracked so a fresh clone's Gradle build still resolves it.
+/android/app/google-services.json.bak
+
+# Environment / secrets — every env file is ignored except the committed
+# template. dev.json / prod.json are un-tracked via `git rm --cached`;
+# real keys live only in untracked env files (see env/example.json).
+/env/dev.json
+/env/prod.json
+/env/*.json
+!env/example.json
 
 # Claude Code — per-user settings stay local; shared settings.json
 # (with hook wiring) is committed for the team. Skill installs are
