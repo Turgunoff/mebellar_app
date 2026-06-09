@@ -152,7 +152,12 @@ Future<void> _bootstrapAndRun() async {
   // prompt until the user reaches the customer home shell (see
   // `_CustomerHomeShellState.initState`). Asking on splash / onboarding
   // tanks opt-in rates and feels intrusive.
-  await sl<PushService>().bootstrap();
+  //
+  // Not awaited: bootstrap() calls FirebaseMessaging.getInitialMessage(),
+  // which never resolves on the iOS Simulator (no APNs token) and would
+  // otherwise hang boot before runApp — a permanent white launch screen.
+  // Nothing before runApp depends on push being ready, so fire-and-forget.
+  unawaited(sl<PushService>().bootstrap());
   _wireAuthToPushTokens();
   _wirePushToInboxRefresh();
 

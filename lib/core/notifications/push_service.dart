@@ -115,7 +115,16 @@ class PushService {
     // mipmaps; @mipmap/ic_launcher always exists since flutter_launcher_icons
     // generates it, so it is the safest default.
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const init = InitializationSettings(android: androidInit);
+    // iOS requires Darwin settings or initialize() throws. We don't request
+    // permissions here (requestPermissionAndSubscribe does that via FCM); the
+    // OS shows foreground pings itself through
+    // setForegroundNotificationPresentationOptions, so iOS never re-posts.
+    const darwinInit = DarwinInitializationSettings(
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
+    );
+    const init = InitializationSettings(android: androidInit, iOS: darwinInit);
     await _localNotifications.initialize(
       init,
       // Tap on a foreground-reposted notification → route the same way a
@@ -176,11 +185,42 @@ class PushService {
       await _messaging.subscribeToTopic(kNewsTopic);
       talker.info('Subscribed to FCM topic: $kNewsTopic');
       debugPrint('[FCM] subscribed to topic: $kNewsTopic');
-    } catch (e, st) {
+    } on FirebaseException catch (e, st) {
       // Reset so a manual retry (e.g. settings toggle later) can re-prompt.
+      _permissionRequested = false;
+      if (_isApnsTokenNotReady(e)) {
+        _logApnsNotReady('skipping topic subscribe');
+        return;
+      }
+      talker.handle(e, st, 'PushService.requestPermissionAndSubscribe failed');
+    } catch (e, st) {
+      // Non-Firebase failure — keep the existing reporting behaviour.
       _permissionRequested = false;
       talker.handle(e, st, 'PushService.requestPermissionAndSubscribe failed');
     }
+  }
+
+  /// True when [e] is the benign `apns-token-not-set` thrown by
+  /// firebase_messaging's internal `_APNSTokenCheck`. It gates `getToken`,
+  /// `subscribeToTopic`, `unsubscribeFromTopic` and `deleteToken` on iOS/macOS
+  /// and fires whenever `getAPNSToken()` is still null: *always* on the
+  /// Simulator (FCM-over-APNs is unsupported there) and transiently on a real
+  /// device during the cold-start race before APNs hands the token back. It is
+  /// not a crash — just "no APNs token yet here". We match the error *code*
+  /// (the plugin's contract), never the human message; `endsWith` absorbs any
+  /// future namespacing ('messaging/apns-token-not-set').
+  static bool _isApnsTokenNotReady(FirebaseException e) {
+    if (kIsWeb || !(Platform.isIOS || Platform.isMacOS)) return false;
+    final code = e.code.toLowerCase();
+    return code == 'apns-token-not-set' || code.endsWith('apns-token-not-set');
+  }
+
+  /// Benign-swallow log for the APNs-not-ready case. Warning level — kept in
+  /// the in-app Talker screen but NOT forwarded to Crashlytics (the observer
+  /// only bridges talker.handle) and NOT printed (useConsoleLogs:false).
+  void _logApnsNotReady(String action) {
+    talker.warning('FCM APNs token not ready — $action');
+    debugPrint('[FCM] APNs token not set — $action');
   }
 
   /// Stop receiving the news topic — call from logout / "disable news"
@@ -188,6 +228,12 @@ class PushService {
   Future<void> unsubscribeFromNews() async {
     try {
       await _messaging.unsubscribeFromTopic(kNewsTopic);
+    } on FirebaseException catch (e, st) {
+      if (_isApnsTokenNotReady(e)) {
+        _logApnsNotReady('skipping topic unsubscribe');
+        return;
+      }
+      talker.handle(e, st, 'PushService.unsubscribeFromNews failed');
     } catch (e, st) {
       talker.handle(e, st, 'PushService.unsubscribeFromNews failed');
     }
@@ -210,6 +256,13 @@ class PushService {
       }
       debugPrint('[FCM] token (first 24): ${token.substring(0, 24)}...');
       await _upsertToken(token: token, userId: userId);
+    } on FirebaseException catch (e, st) {
+      if (_isApnsTokenNotReady(e)) {
+        _logApnsNotReady('skipping token sync');
+        return;
+      }
+      talker.handle(e, st, 'PushService.syncTokenForUser failed');
+      debugPrint('[FCM] syncTokenForUser failed: $e');
     } catch (e, st) {
       talker.handle(e, st, 'PushService.syncTokenForUser failed');
       debugPrint('[FCM] syncTokenForUser failed: $e');
@@ -252,6 +305,12 @@ class PushService {
       }
       talker.info('FCM token removed from device_tokens');
       debugPrint('[FCM] token removed from device_tokens');
+    } on FirebaseException catch (e, st) {
+      if (_isApnsTokenNotReady(e)) {
+        _logApnsNotReady('skipping token removal');
+        return;
+      }
+      talker.handle(e, st, 'PushService.removeCurrentToken failed');
     } catch (e, st) {
       talker.handle(e, st, 'PushService.removeCurrentToken failed');
     }
