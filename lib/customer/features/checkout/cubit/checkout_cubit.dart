@@ -4,9 +4,9 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/analytics/analytics_service.dart';
-import '../../../../core/network/woody_api_client.dart';
 import '../../../../shared/models/cart_item_model.dart';
 import '../../../../shared/repositories/cart_repository.dart';
+import '../../../../shared/repositories/checkout_repository.dart';
 
 enum CheckoutPayment { cash, card }
 
@@ -92,10 +92,10 @@ class CheckoutState extends Equatable {
 class CheckoutCubit extends Cubit<CheckoutState> {
   CheckoutCubit({
     required List<CartItemModel> items,
-    required WoodyApiClient api,
+    required CheckoutRepository checkout,
     required CartRepository cartRepo,
     AnalyticsService? analytics,
-  }) : _api = api,
+  }) : _checkout = checkout,
        _cartRepo = cartRepo,
        _analytics = analytics,
        super(CheckoutState(groups: _groupByShop(items))) {
@@ -108,7 +108,7 @@ class CheckoutCubit extends Cubit<CheckoutState> {
     unawaited(_analytics?.beginCheckout(value: total, itemsCount: items.length));
   }
 
-  final WoodyApiClient _api;
+  final CheckoutRepository _checkout;
   final CartRepository _cartRepo;
   final AnalyticsService? _analytics;
 
@@ -137,18 +137,13 @@ class CheckoutCubit extends Cubit<CheckoutState> {
         // caller from the JWT and computes the authoritative total from product
         // prices (so total_amount/price/status aren't client-supplied). Per-item
         // colour isn't persisted on the Woody order yet — a known limitation.
-        final body = await _api.post<Map<String, dynamic>>(
-          '/orders',
-          body: {
-            'items': [
-              for (final it in group.items)
-                {'product_id': it.productId, 'quantity': it.quantity},
-            ],
-            'delivery_address': state.deliveryAddress,
-          },
+        final orderId = await _checkout.placeOrder(
+          lines: [
+            for (final it in group.items)
+              CheckoutOrderLine(productId: it.productId, quantity: it.quantity),
+          ],
+          deliveryAddress: state.deliveryAddress,
         );
-
-        final orderId = body['id'] as String;
         placedIds.add(orderId);
 
         // Per-shop purchase event — Firebase counts each as one conversion

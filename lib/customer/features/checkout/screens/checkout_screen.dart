@@ -6,10 +6,10 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/auth/auth_cubit.dart';
 import '../../../../core/di/service_locator.dart';
-import '../../../../core/network/woody_api_client.dart';
 import '../../orders/cubit/profile_orders_cubit.dart';
 import '../../../../shared/models/cart_item_model.dart';
 import '../../../../shared/repositories/cart_repository.dart';
+import '../../../../shared/repositories/checkout_repository.dart';
 import '../../../../shared/widgets/product_color_chip.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../cubit/checkout_cubit.dart';
@@ -25,7 +25,7 @@ class CheckoutScreen extends StatelessWidget {
     return BlocProvider(
       create: (_) => CheckoutCubit(
         items: items,
-        api: sl<WoodyApiClient>(),
+        checkout: sl<CheckoutRepository>(),
         cartRepo: sl<CartRepository>(),
         analytics: sl<AnalyticsService>(),
       ),

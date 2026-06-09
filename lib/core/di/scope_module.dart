@@ -3,7 +3,6 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import '../analytics/analytics_service.dart';
 import '../auth/auth_repository.dart';
-import '../network/woody_api_client.dart';
 import '../realtime/woody_realtime_service.dart';
 import '../../customer/features/cart/bloc/cart_bloc.dart';
 import '../../customer/features/categories/bloc/categories_bloc.dart';
@@ -19,6 +18,7 @@ import '../../seller/features/profile/data/seller_identity_cache.dart';
 import '../../seller/features/reviews/cubit/reviews_cubit.dart';
 import '../../seller/services/new_orders_listener.dart';
 import '../../shared/repositories/seller_order_repository.dart';
+import '../../shared/repositories/seller_profile_repository.dart';
 import '../../shared/repositories/profile_orders_repository.dart';
 import '../../shared/repositories/banner_repository.dart';
 import '../../shared/repositories/cart_repository.dart';
@@ -116,7 +116,7 @@ void registerSellerScope(GetIt sl) {
   );
   sl.registerFactory<SellerProfileCubit>(
     () => SellerProfileCubit(
-      sl<WoodyApiClient>(),
+      sl<SellerProfileRepository>(),
       sl<AuthRepository>(),
       sl<SellerIdentityCache>(),
     ),
