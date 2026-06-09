@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/models/analytics.dart';
 import 'analytics_common.dart';
@@ -9,7 +10,11 @@ import 'revenue_line_chart.dart';
 /// "Baholar" tab — average rating hero + distribution histogram +
 /// reply-rate + recent reviews preview.
 class ReviewsTab extends StatelessWidget {
-  const ReviewsTab({super.key, required this.snapshot, required this.refreshing});
+  const ReviewsTab({
+    super.key,
+    required this.snapshot,
+    required this.refreshing,
+  });
 
   final AnalyticsSnapshot snapshot;
   final bool refreshing;
@@ -53,6 +58,7 @@ class _ReviewsHeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final hasData = reviews.total > 0;
     return AnalyticsCard(
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
@@ -68,7 +74,7 @@ class _ReviewsHeroCard extends StatelessWidget {
                     fontFamily: AppFonts.seller,
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
-                    color: AnalyticsTokens.grey,
+                    color: c.grey,
                   ),
                 ),
               ),
@@ -78,8 +84,9 @@ class _ReviewsHeroCard extends StatelessWidget {
                   height: 14,
                   child: CircularProgressIndicator(
                     strokeWidth: 1.6,
-                    valueColor:
-                        AlwaysStoppedAnimation(AnalyticsTokens.positive),
+                    valueColor: AlwaysStoppedAnimation(
+                      AnalyticsTokens.positive,
+                    ),
                   ),
                 ),
             ],
@@ -94,7 +101,7 @@ class _ReviewsHeroCard extends StatelessWidget {
                   fontFamily: AppFonts.seller,
                   fontSize: 36,
                   fontWeight: FontWeight.w800,
-                  color: AnalyticsTokens.ink,
+                  color: c.ink,
                   letterSpacing: -1.0,
                   height: 1.0,
                 ),
@@ -115,7 +122,7 @@ class _ReviewsHeroCard extends StatelessWidget {
               fontFamily: AppFonts.seller,
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: AnalyticsTokens.grey,
+              color: c.grey,
             ),
           ),
           if (reviews.series.isNotEmpty &&
@@ -233,6 +240,7 @@ class _DistributionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final ratio = count / max;
     final color = switch (star) {
       5 => AnalyticsTokens.success,
@@ -252,7 +260,7 @@ class _DistributionRow extends StatelessWidget {
               fontFamily: AppFonts.seller,
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: AnalyticsTokens.ink,
+              color: c.ink,
             ),
           ),
         ),
@@ -266,7 +274,7 @@ class _DistributionRow extends StatelessWidget {
               height: 8,
               child: Stack(
                 children: [
-                  Container(color: AnalyticsTokens.placeholderBg),
+                  Container(color: c.trackBg),
                   FractionallySizedBox(
                     widthFactor: ratio.clamp(0, 1),
                     child: Container(color: color),
@@ -286,7 +294,7 @@ class _DistributionRow extends StatelessWidget {
               fontFamily: AppFonts.seller,
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: AnalyticsTokens.ink,
+              color: c.ink,
             ),
           ),
         ),
@@ -335,6 +343,7 @@ class _RecentReviewTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return AnalyticsCard(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       child: Column(
@@ -355,7 +364,7 @@ class _RecentReviewTile extends StatelessWidget {
                         fontFamily: AppFonts.seller,
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: AnalyticsTokens.ink,
+                        color: c.ink,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -367,7 +376,7 @@ class _RecentReviewTile extends StatelessWidget {
                         fontFamily: AppFonts.seller,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: AnalyticsTokens.grey,
+                        color: c.grey,
                       ),
                     ),
                   ],
@@ -386,7 +395,7 @@ class _RecentReviewTile extends StatelessWidget {
                 fontFamily: AppFonts.seller,
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: AnalyticsTokens.ink,
+                color: c.ink,
                 height: 1.4,
               ),
             ),
@@ -400,14 +409,16 @@ class _RecentReviewTile extends StatelessWidget {
                   fontFamily: AppFonts.seller,
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
-                  color: AnalyticsTokens.greyMid,
+                  color: c.greyMid,
                 ),
               ),
               const Spacer(),
               if (review.hasReply)
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 3),
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: AnalyticsTokens.success.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(999),
@@ -415,8 +426,11 @@ class _RecentReviewTile extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Iconsax.tick_circle,
-                          size: 12, color: AnalyticsTokens.success),
+                      const Icon(
+                        Iconsax.tick_circle,
+                        size: 12,
+                        color: AnalyticsTokens.success,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         'Javob berildi',
@@ -433,7 +447,9 @@ class _RecentReviewTile extends StatelessWidget {
               else
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 3),
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: AnalyticsTokens.warning.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(999),
@@ -441,8 +457,11 @@ class _RecentReviewTile extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Iconsax.message_question,
-                          size: 12, color: AnalyticsTokens.warning),
+                      const Icon(
+                        Iconsax.message_question,
+                        size: 12,
+                        color: AnalyticsTokens.warning,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         'Javob kutilmoqda',
@@ -474,15 +493,16 @@ class _StarRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Filled stars stay the fixed amber; the unfilled track adapts so it
+    // doesn't vanish against the dark card surface.
+    final emptyColor = SellerColors.of(context).greyMid;
     return Row(
       mainAxisSize: MainAxisSize.min,
-      children: [
-        for (var i = 1; i <= 5; i++) _starAt(i),
-      ],
+      children: [for (var i = 1; i <= 5; i++) _starAt(i, emptyColor)],
     );
   }
 
-  Widget _starAt(int idx) {
+  Widget _starAt(int idx, Color emptyColor) {
     // Use rounded half-step to keep the visual close to the numeric.
     final delta = value - (idx - 1);
     final IconData icon;
@@ -493,9 +513,7 @@ class _StarRow extends StatelessWidget {
     } else {
       icon = Iconsax.star;
     }
-    final color = delta >= 0.25
-        ? const Color(0xFFFBBF24)
-        : const Color(0xFFE5E5E5);
+    final color = delta >= 0.25 ? const Color(0xFFFBBF24) : emptyColor;
     return Padding(
       padding: const EdgeInsets.only(right: 2),
       child: Icon(icon, size: size, color: color),

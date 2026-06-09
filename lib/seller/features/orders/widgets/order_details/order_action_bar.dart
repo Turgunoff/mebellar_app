@@ -6,7 +6,6 @@ import '../../../../../core/theme/app_fonts.dart';
 import '../../../../../shared/models/order_status.dart';
 import '../../../../../shared/repositories/seller_order_repository.dart';
 import '../order_format.dart';
-import 'order_details_kit.dart';
 
 /// Sticky bottom action bar for the seller order-detail screen.
 ///
@@ -39,6 +38,7 @@ class OrderActionBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final forward = status.sellerForwardTransitions;
     // Terminal order — nothing left for the seller to do.
     if (forward.isEmpty) return const SizedBox.shrink();
@@ -55,7 +55,7 @@ class OrderActionBar extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.surface,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.06),
@@ -63,7 +63,7 @@ class OrderActionBar extends StatelessWidget {
             offset: const Offset(0, -4),
           ),
         ],
-        border: const Border(top: BorderSide(color: kDivider, width: 1)),
+        border: Border(top: BorderSide(color: c.dividerStrong, width: 1)),
       ),
       child: SafeArea(
         top: false,
@@ -79,21 +79,21 @@ class OrderActionBar extends StatelessWidget {
                     child: OutlinedButton(
                       onPressed: busy ? null : onCancel,
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: kInk,
-                        backgroundColor: Colors.white,
-                        side: const BorderSide(color: kOutline, width: 1),
+                        foregroundColor: c.ink,
+                        backgroundColor: c.surface,
+                        side: BorderSide(color: c.outline, width: 1),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
                         padding: EdgeInsets.zero,
                       ),
-                      child: const Text(
+                      child: Text(
                         'Bekor qilish',
                         style: TextStyle(
                           fontFamily: AppFonts.seller,
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: kInk,
+                          color: c.ink,
                           height: 1.0,
                         ),
                       ),
@@ -175,9 +175,10 @@ class _WaitingForCustomerBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.surface,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.06),
@@ -185,7 +186,7 @@ class _WaitingForCustomerBar extends StatelessWidget {
             offset: const Offset(0, -4),
           ),
         ],
-        border: const Border(top: BorderSide(color: kDivider, width: 1)),
+        border: Border(top: BorderSide(color: c.dividerStrong, width: 1)),
       ),
       child: SafeArea(
         top: false,
@@ -201,20 +202,20 @@ class _WaitingForCustomerBar extends StatelessWidget {
                     child: OutlinedButton(
                       onPressed: onCancel,
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: kInk,
-                        side: const BorderSide(color: kOutline, width: 1),
+                        foregroundColor: c.ink,
+                        side: BorderSide(color: c.outline, width: 1),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
                         padding: EdgeInsets.zero,
                       ),
-                      child: const Text(
+                      child: Text(
                         'Bekor qilish',
                         style: TextStyle(
                           fontFamily: AppFonts.seller,
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: kInk,
+                          color: c.ink,
                         ),
                       ),
                     ),

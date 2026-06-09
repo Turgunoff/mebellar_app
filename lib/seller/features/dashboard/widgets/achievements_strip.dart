@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../data/dashboard_mock.dart';
 import 'dashboard_kit.dart';
 
@@ -35,19 +36,18 @@ class _AchievementCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final unlocked = item.unlocked;
     return Container(
       width: 116,
       padding: const EdgeInsets.fromLTRB(12, 14, 12, 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.surface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: unlocked
-              ? DashKit.gold.withValues(alpha: 0.4)
-              : DashKit.hairline,
+          color: unlocked ? DashKit.gold.withValues(alpha: 0.4) : c.divider,
         ),
-        boxShadow: DashKit.cardShadow,
+        boxShadow: DashKit.cardShadow(Theme.of(context).brightness),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -63,7 +63,7 @@ class _AchievementCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: unlocked ? DashKit.ink : DashKit.grey,
+              color: unlocked ? c.ink : c.grey,
               height: 1.1,
               letterSpacing: -0.1,
             ),
@@ -74,10 +74,10 @@ class _AchievementCard extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w500,
-              color: DashKit.greyMid,
+              color: c.greyMid,
               height: 1.1,
             ),
           ),
@@ -94,6 +94,7 @@ class _Badge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final unlocked = item.unlocked;
     return SizedBox(
       width: 52,
@@ -106,7 +107,10 @@ class _Badge extends StatelessWidget {
               width: 52,
               height: 52,
               child: CustomPaint(
-                painter: _RingPainter(progress: item.progress),
+                painter: _RingPainter(
+                  progress: item.progress,
+                  ringTrack: c.ringTrack,
+                ),
               ),
             ),
           Container(
@@ -122,12 +126,12 @@ class _Badge extends StatelessWidget {
                       colors: [DashKit.goldBright, DashKit.gold],
                     )
                   : null,
-              color: unlocked ? null : DashKit.lockedBg,
+              color: unlocked ? null : c.lockedBg,
             ),
             child: Icon(
               unlocked ? item.icon : Iconsax.lock_1,
               size: 20,
-              color: unlocked ? Colors.white : DashKit.greyMid,
+              color: unlocked ? Colors.white : c.greyMid,
             ),
           ),
           if (unlocked)
@@ -156,16 +160,20 @@ class _Badge extends StatelessWidget {
 }
 
 class _RingPainter extends CustomPainter {
-  _RingPainter({required this.progress});
+  _RingPainter({required this.progress, required this.ringTrack});
 
   final double progress;
+
+  /// Track colour is passed in because a [CustomPainter] has no [BuildContext]
+  /// to read [SellerColors.of] — the caller resolves it from the theme.
+  final Color ringTrack;
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = size.center(Offset.zero);
     final radius = size.width / 2 - 2;
     final track = Paint()
-      ..color = DashKit.ringTrack
+      ..color = ringTrack
       ..strokeWidth = 3
       ..style = PaintingStyle.stroke;
     canvas.drawCircle(center, radius, track);
@@ -186,5 +194,6 @@ class _RingPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _RingPainter old) => old.progress != progress;
+  bool shouldRepaint(covariant _RingPainter old) =>
+      old.progress != progress || old.ringTrack != ringTrack;
 }

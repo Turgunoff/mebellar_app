@@ -4,17 +4,16 @@ import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 
 // Local design tokens for the order-details screen — a thin facade over the
-// central seller palette in [AppColors]. Jakarta Sans is applied to every
-// `Text` explicitly so the surface is immune to seller-theme tint
-// regressions. These stay `const` because they back const TextStyles.
-const Color kInk = AppColors.sellerInk;
-const Color kGrey = AppColors.sellerGrey;
-const Color kGreyMid = AppColors.sellerGreyMid;
-const Color kGreySoft = AppColors.sellerGreySoft;
-const Color kDivider = AppColors.sellerDividerStrong;
-const Color kOutline = AppColors.sellerOutline;
-const Color kSurfaceMuted = AppColors.sellerFillSoft;
-const Color kImageBg = AppColors.sellerImageBg;
+// central seller palette in [AppColors].
+//
+// Only the FIXED (brightness-independent) tokens live here as `const` aliases:
+// the amber pill and the soft indigo accent read the same on light and dark.
+// The ADAPTIVE colours (ink / greys / dividers / surfaces / image bg) are NOT
+// here — every consuming widget grabs `final c = SellerColors.of(context)` at
+// the top of its `build` and reads `c.ink` / `c.grey` / `c.dividerStrong` /
+// `c.outline` / `c.fillSoft` / `c.imageBg`, so they flip with the theme.
+// Jakarta Sans is applied to every `Text` explicitly so the surface is immune
+// to seller-theme tint regressions.
 
 // Amber pill — soft tint, saturated text. Don't darken [kAmberFg] without
 // re-checking contrast against [kAmberBg].
@@ -24,7 +23,8 @@ const Color kAmberFg = AppColors.sellerWarning;
 // Soft indigo tint for active step rings & accent backgrounds.
 const Color kAccentSoft = AppColors.sellerPrimaryTint;
 
-/// White, rounded, soft-shadowed card wrapping an order-details section.
+/// Rounded, soft-shadowed card wrapping an order-details section. The surface
+/// flips with the theme via [SellerColors].
 class SectionCard extends StatelessWidget {
   const SectionCard({super.key, required this.child});
 
@@ -32,10 +32,11 @@ class SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -60,11 +61,11 @@ class SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(
+      style: TextStyle(
         fontFamily: AppFonts.seller,
         fontSize: 14,
         fontWeight: FontWeight.w700,
-        color: kInk,
+        color: SellerColors.of(context).ink,
         letterSpacing: -0.2,
         height: 1.2,
       ),

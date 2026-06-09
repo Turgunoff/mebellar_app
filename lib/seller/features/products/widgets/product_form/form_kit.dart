@@ -5,16 +5,11 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 
-// Local design tokens shared by every product-form widget — thin facades over
-// the central seller palette in [AppColors]. Branded interactive surfaces still
-// flow through `colorScheme.primary`; these tokens only cover neutral ink /
-// borders / fills.
-const Color kInk = AppColors.sellerInk;
-const Color kGrey = AppColors.sellerGrey;
-const Color kGreyMid = AppColors.sellerGreyMid;
-const Color kDivider = AppColors.sellerDivider;
-const Color kOutline = AppColors.sellerOutline;
-const Color kFillSoft = AppColors.sellerFillFaint;
+// Local design tokens for the product form. Adaptive neutrals (ink, greys,
+// dividers, outline, fills) flip with light/dark — read them from
+// `SellerColors.of(context)`: ink→c.ink, grey→c.grey, greyMid→c.greyMid,
+// divider→c.divider, outline→c.outline, fillSoft→c.fillFaint. Branded
+// interactive surfaces still flow through `colorScheme.primary`.
 
 /// Section heading above each [FormCard].
 class SectionTitle extends StatelessWidget {
@@ -24,15 +19,16 @@ class SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Padding(
       padding: const EdgeInsets.only(left: 4, bottom: 10),
       child: Text(
         text,
-        style: const TextStyle(
+        style: TextStyle(
           fontFamily: AppFonts.seller,
           fontSize: 15,
           fontWeight: FontWeight.w700,
-          color: kInk,
+          color: c.ink,
           letterSpacing: -0.2,
           height: 1.2,
         ),
@@ -49,10 +45,11 @@ class FormCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -97,10 +94,11 @@ class FormTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final primary = Theme.of(context).colorScheme.primary;
     final border = OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: const BorderSide(color: kOutline, width: 1),
+      borderSide: BorderSide(color: c.outline, width: 1),
     );
 
     return Column(
@@ -110,11 +108,11 @@ class FormTextField extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 6, left: 2),
           child: Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: kGrey,
+              color: c.grey,
               letterSpacing: 0.1,
             ),
           ),
@@ -127,11 +125,11 @@ class FormTextField extends StatelessWidget {
           maxLines: maxLines,
           cursorColor: primary,
           onChanged: onChanged,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: AppFonts.seller,
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: kInk,
+            color: c.ink,
             letterSpacing: -0.1,
           ),
           decoration: InputDecoration(
@@ -141,22 +139,22 @@ class FormTextField extends StatelessWidget {
               vertical: 14,
             ),
             hintText: hint,
-            hintStyle: const TextStyle(
+            hintStyle: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: kGreyMid,
+              color: c.greyMid,
             ),
             suffixText: suffix,
-            suffixStyle: const TextStyle(
+            suffixStyle: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: kGreyMid,
+              color: c.greyMid,
               letterSpacing: 0.2,
             ),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: c.surface,
             border: border,
             enabledBorder: border,
             focusedBorder: OutlineInputBorder(
@@ -170,11 +168,11 @@ class FormTextField extends StatelessWidget {
             padding: const EdgeInsets.only(top: 6, left: 2),
             child: Text(
               helper!,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: AppFonts.seller,
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
-                color: kGrey,
+                color: c.grey,
                 height: 1.3,
               ),
             ),
@@ -203,6 +201,7 @@ class PickerField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final hasValue = value != null;
     final disabled = onTap == null;
     return Column(
@@ -212,11 +211,11 @@ class PickerField extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 6, left: 2),
           child: Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: kGrey,
+              color: c.grey,
               letterSpacing: 0.1,
             ),
           ),
@@ -227,13 +226,17 @@ class PickerField extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             decoration: BoxDecoration(
-              color: disabled ? kFillSoft : Colors.white,
+              color: disabled ? c.fillFaint : c.surface,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: kOutline, width: 1),
+              border: Border.all(color: c.outline, width: 1),
             ),
             child: Row(
               children: [
-                Icon(leadingIcon, size: 20, color: disabled ? kGreyMid : kGrey),
+                Icon(
+                  leadingIcon,
+                  size: 20,
+                  color: disabled ? c.greyMid : c.grey,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -242,7 +245,7 @@ class PickerField extends StatelessWidget {
                       fontFamily: AppFonts.seller,
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: hasValue ? kInk : kGreyMid,
+                      color: hasValue ? c.ink : c.greyMid,
                       letterSpacing: -0.1,
                     ),
                   ),
@@ -250,7 +253,9 @@ class PickerField extends StatelessWidget {
                 Icon(
                   Iconsax.arrow_down_1,
                   size: 18,
-                  color: disabled ? kGreyMid.withValues(alpha: 0.5) : kGreyMid,
+                  color: disabled
+                      ? c.greyMid.withValues(alpha: 0.5)
+                      : c.greyMid,
                 ),
               ],
             ),

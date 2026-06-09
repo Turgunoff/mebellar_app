@@ -165,84 +165,215 @@ class AppColors {
   ];
 }
 
-/// Resolver that picks the right seller token for a [Brightness].
+/// Seller-mode colour set, resolved per [Brightness].
 ///
-/// Seller widgets currently read colours statically (through the per-feature
-/// `*_kit.dart` facades, which point at [SellerColors.light]). Keeping the
-/// dark set defined here means switching the whole seller surface to dark mode
-/// later is a one-line change in each kit (`SellerColors.light` →
-/// `SellerColors.of(context)`), not a hunt for scattered hex literals.
-class SellerColors {
+/// Registered as a [ThemeExtension] on both `sellerLightTheme` and
+/// `sellerDarkTheme` (see `seller_theme.dart`), so every seller widget reads
+/// its colours from `SellerColors.of(context)` and flips automatically with
+/// the theme. The per-feature `*_kit.dart` facades expose these through
+/// context-aware helpers.
+///
+/// **Adaptive** fields (ink / greys / surfaces / dividers / neutrals / locked
+/// / track) carry separate light & dark values. **Fixed** tokens (brand indigo,
+/// status intents, gold, medals, chart series) are getters returning the same
+/// [AppColors] constant in both modes — they read fine on either background.
+@immutable
+class SellerColors extends ThemeExtension<SellerColors> {
   const SellerColors({
     required this.ink,
     required this.grey,
+    required this.greyFaint,
     required this.greyMid,
     required this.greySoft,
     required this.background,
     required this.surface,
     required this.divider,
+    required this.dividerStrong,
     required this.outline,
     required this.fillSoft,
+    required this.fillFaint,
     required this.imageBg,
+    required this.neutralFg,
+    required this.neutralBg,
+    required this.neutralFgAlt,
+    required this.neutralBgAlt,
+    required this.lockedBg,
+    required this.ringTrack,
+    required this.trackBg,
   });
 
-  // Adaptive (light/dark) tokens.
+  // ---- Adaptive (light/dark) tokens ---------------------------------------
   final Color ink;
   final Color grey;
+  final Color greyFaint;
   final Color greyMid;
   final Color greySoft;
   final Color background;
   final Color surface;
   final Color divider;
+  final Color dividerStrong;
   final Color outline;
   final Color fillSoft;
+  final Color fillFaint;
   final Color imageBg;
+  final Color neutralFg;
+  final Color neutralBg;
+  final Color neutralFgAlt;
+  final Color neutralBgAlt;
+  final Color lockedBg;
+  final Color ringTrack;
+  final Color trackBg;
 
-  // Brand — identical on both backgrounds.
+  // ---- Fixed tokens (identical on both backgrounds) -----------------------
   Color get primary => AppColors.sellerPrimary;
   Color get primaryDeep => AppColors.sellerPrimaryDeep;
   Color get primaryTint => AppColors.sellerPrimaryTint;
   Color get primaryBright => AppColors.sellerPrimaryBright;
 
-  // Status intents — identical on both backgrounds.
   Color get positive => AppColors.sellerPositive;
   Color get positiveBg => AppColors.sellerPositiveBg;
   Color get negative => AppColors.sellerNegative;
   Color get negativeBg => AppColors.sellerNegativeBg;
   Color get warning => AppColors.sellerWarning;
   Color get warningBg => AppColors.sellerWarningBg;
+  Color get progress => AppColors.sellerProgress;
+  Color get progressBg => AppColors.sellerProgressBg;
   Color get gold => AppColors.sellerGold;
   Color get goldBright => AppColors.sellerGoldBright;
   Color get goldBg => AppColors.sellerGoldBg;
+  Color get silver => AppColors.sellerSilver;
+  Color get silverBg => AppColors.sellerSilverBg;
+  Color get bronze => AppColors.sellerBronze;
+  Color get bronzeBg => AppColors.sellerBronzeBg;
+  List<Color> get chartPalette => AppColors.sellerChartPalette;
 
   static const SellerColors light = SellerColors(
     ink: AppColors.sellerInk,
     grey: AppColors.sellerGrey,
+    greyFaint: AppColors.sellerGreyFaint,
     greyMid: AppColors.sellerGreyMid,
     greySoft: AppColors.sellerGreySoft,
     background: AppColors.sellerBackground,
     surface: AppColors.sellerSurface,
     divider: AppColors.sellerDivider,
+    dividerStrong: AppColors.sellerDividerStrong,
     outline: AppColors.sellerOutline,
     fillSoft: AppColors.sellerFillSoft,
+    fillFaint: AppColors.sellerFillFaint,
     imageBg: AppColors.sellerImageBg,
+    neutralFg: AppColors.sellerNeutralFg,
+    neutralBg: AppColors.sellerNeutralBg,
+    neutralFgAlt: AppColors.sellerNeutralFgAlt,
+    neutralBgAlt: AppColors.sellerNeutralBgAlt,
+    lockedBg: AppColors.sellerLockedBg,
+    ringTrack: AppColors.sellerRingTrack,
+    trackBg: AppColors.sellerTrackBg,
   );
 
   static const SellerColors dark = SellerColors(
     ink: AppColors.sellerInkDark,
     grey: AppColors.sellerGreyDark,
+    greyFaint: AppColors.sellerGreyFaintDark,
     greyMid: AppColors.sellerGreyMidDark,
     greySoft: AppColors.sellerGreySoftDark,
     background: AppColors.sellerBackgroundDark,
     surface: AppColors.sellerSurfaceDark,
     divider: AppColors.sellerDividerDark,
+    dividerStrong: AppColors.sellerDividerStrongDark,
     outline: AppColors.sellerOutlineDark,
     fillSoft: AppColors.sellerFillSoftDark,
+    fillFaint: AppColors.sellerFillFaintDark,
     imageBg: AppColors.sellerImageBgDark,
+    neutralFg: AppColors.sellerNeutralFgDark,
+    neutralBg: AppColors.sellerNeutralBgDark,
+    neutralFgAlt: AppColors.sellerNeutralFgAltDark,
+    neutralBgAlt: AppColors.sellerNeutralBgAltDark,
+    lockedBg: AppColors.sellerLockedBgDark,
+    ringTrack: AppColors.sellerRingTrackDark,
+    trackBg: AppColors.sellerTrackBgDark,
   );
 
-  /// Resolves from a [Brightness] — use once seller screens read
-  /// `Theme.of(context).brightness`. For now the kits use [light] directly.
-  static SellerColors of(Brightness brightness) =>
+  /// Reads the active set from the nearest seller theme. Falls back to [light]
+  /// if the extension isn't registered (e.g. a widget pumped outside the
+  /// seller theme in a test) so callers never hit a null.
+  static SellerColors of(BuildContext context) =>
+      Theme.of(context).extension<SellerColors>() ?? light;
+
+  /// Picks a set by raw [Brightness] — for painters/tests without a context.
+  static SellerColors forBrightness(Brightness brightness) =>
       brightness == Brightness.dark ? dark : light;
+
+  @override
+  SellerColors copyWith({
+    Color? ink,
+    Color? grey,
+    Color? greyFaint,
+    Color? greyMid,
+    Color? greySoft,
+    Color? background,
+    Color? surface,
+    Color? divider,
+    Color? dividerStrong,
+    Color? outline,
+    Color? fillSoft,
+    Color? fillFaint,
+    Color? imageBg,
+    Color? neutralFg,
+    Color? neutralBg,
+    Color? neutralFgAlt,
+    Color? neutralBgAlt,
+    Color? lockedBg,
+    Color? ringTrack,
+    Color? trackBg,
+  }) {
+    return SellerColors(
+      ink: ink ?? this.ink,
+      grey: grey ?? this.grey,
+      greyFaint: greyFaint ?? this.greyFaint,
+      greyMid: greyMid ?? this.greyMid,
+      greySoft: greySoft ?? this.greySoft,
+      background: background ?? this.background,
+      surface: surface ?? this.surface,
+      divider: divider ?? this.divider,
+      dividerStrong: dividerStrong ?? this.dividerStrong,
+      outline: outline ?? this.outline,
+      fillSoft: fillSoft ?? this.fillSoft,
+      fillFaint: fillFaint ?? this.fillFaint,
+      imageBg: imageBg ?? this.imageBg,
+      neutralFg: neutralFg ?? this.neutralFg,
+      neutralBg: neutralBg ?? this.neutralBg,
+      neutralFgAlt: neutralFgAlt ?? this.neutralFgAlt,
+      neutralBgAlt: neutralBgAlt ?? this.neutralBgAlt,
+      lockedBg: lockedBg ?? this.lockedBg,
+      ringTrack: ringTrack ?? this.ringTrack,
+      trackBg: trackBg ?? this.trackBg,
+    );
+  }
+
+  @override
+  SellerColors lerp(ThemeExtension<SellerColors>? other, double t) {
+    if (other is! SellerColors) return this;
+    return SellerColors(
+      ink: Color.lerp(ink, other.ink, t)!,
+      grey: Color.lerp(grey, other.grey, t)!,
+      greyFaint: Color.lerp(greyFaint, other.greyFaint, t)!,
+      greyMid: Color.lerp(greyMid, other.greyMid, t)!,
+      greySoft: Color.lerp(greySoft, other.greySoft, t)!,
+      background: Color.lerp(background, other.background, t)!,
+      surface: Color.lerp(surface, other.surface, t)!,
+      divider: Color.lerp(divider, other.divider, t)!,
+      dividerStrong: Color.lerp(dividerStrong, other.dividerStrong, t)!,
+      outline: Color.lerp(outline, other.outline, t)!,
+      fillSoft: Color.lerp(fillSoft, other.fillSoft, t)!,
+      fillFaint: Color.lerp(fillFaint, other.fillFaint, t)!,
+      imageBg: Color.lerp(imageBg, other.imageBg, t)!,
+      neutralFg: Color.lerp(neutralFg, other.neutralFg, t)!,
+      neutralBg: Color.lerp(neutralBg, other.neutralBg, t)!,
+      neutralFgAlt: Color.lerp(neutralFgAlt, other.neutralFgAlt, t)!,
+      neutralBgAlt: Color.lerp(neutralBgAlt, other.neutralBgAlt, t)!,
+      lockedBg: Color.lerp(lockedBg, other.lockedBg, t)!,
+      ringTrack: Color.lerp(ringTrack, other.ringTrack, t)!,
+      trackBg: Color.lerp(trackBg, other.trackBg, t)!,
+    );
+  }
 }

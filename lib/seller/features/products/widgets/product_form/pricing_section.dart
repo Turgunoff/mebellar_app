@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import 'form_kit.dart';
 import 'thousands_formatter.dart';
@@ -28,6 +29,7 @@ class PricingSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -49,15 +51,15 @@ class PricingSection extends StatelessWidget {
                 },
               ),
               const SizedBox(height: 18),
-              const Padding(
-                padding: EdgeInsets.only(bottom: 8, left: 2),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8, left: 2),
                 child: Text(
                   'Chegirma foizi',
                   style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: kGrey,
+                    color: c.grey,
                     letterSpacing: 0.1,
                   ),
                 ),
@@ -130,9 +132,10 @@ class _DiscountChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final primary = Theme.of(context).colorScheme.primary;
     return Material(
-      color: selected ? primary : Colors.white,
+      color: selected ? primary : c.surface,
       borderRadius: BorderRadius.circular(999),
       child: InkWell(
         onTap: onTap,
@@ -141,10 +144,7 @@ class _DiscountChip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: selected ? primary : kOutline,
-              width: 1,
-            ),
+            border: Border.all(color: selected ? primary : c.outline, width: 1),
           ),
           child: Text(
             label,
@@ -152,7 +152,7 @@ class _DiscountChip extends StatelessWidget {
               fontFamily: AppFonts.seller,
               fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: selected ? Colors.white : kInk,
+              color: selected ? Colors.white : c.ink,
               letterSpacing: -0.1,
             ),
           ),
@@ -175,6 +175,7 @@ class _DiscountSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final primary = Theme.of(context).colorScheme.primary;
     final hasPrice = priceValue > 0;
     final hasDiscount = discountPercent > 0;
@@ -184,12 +185,12 @@ class _DiscountSummary extends StatelessWidget {
       decoration: BoxDecoration(
         color: hasPrice && hasDiscount
             ? primary.withValues(alpha: 0.08)
-            : kFillSoft,
+            : c.fillFaint,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: hasPrice && hasDiscount
               ? primary.withValues(alpha: 0.35)
-              : kOutline,
+              : c.outline,
           width: 1,
         ),
       ),
@@ -198,7 +199,7 @@ class _DiscountSummary extends StatelessWidget {
           Icon(
             hasDiscount ? Iconsax.discount_shape : Iconsax.tag,
             size: 18,
-            color: hasPrice && hasDiscount ? primary : kGreyMid,
+            color: hasPrice && hasDiscount ? primary : c.greyMid,
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -207,11 +208,11 @@ class _DiscountSummary extends StatelessWidget {
               children: [
                 Text(
                   hasDiscount ? 'Chegirma bilan' : 'Chegirmasiz',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: kGrey,
+                    color: c.grey,
                     letterSpacing: 0.2,
                   ),
                 ),
@@ -224,7 +225,7 @@ class _DiscountSummary extends StatelessWidget {
                     fontFamily: AppFonts.seller,
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
-                    color: hasPrice && hasDiscount ? primary : kInk,
+                    color: hasPrice && hasDiscount ? primary : c.ink,
                     letterSpacing: -0.2,
                     height: 1.1,
                   ),
@@ -234,10 +235,7 @@ class _DiscountSummary extends StatelessWidget {
           ),
           if (hasDiscount && hasPrice)
             Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 8,
-                vertical: 4,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
                 color: primary,
                 borderRadius: BorderRadius.circular(8),

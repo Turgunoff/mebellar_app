@@ -32,13 +32,15 @@ class SellerBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: AppColors.lightDivider)),
+        color: c.surface,
+        border: Border(top: BorderSide(color: c.divider)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withValues(alpha: dark ? 0.3 : 0.04),
             blurRadius: 16,
             offset: const Offset(0, -4),
           ),
@@ -100,7 +102,7 @@ class _NavTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = selected
         ? Theme.of(context).colorScheme.primary
-        : AppColors.lightTextSecondary;
+        : SellerColors.of(context).grey;
     return Material(
       color: Colors.transparent,
       child: InkWell(

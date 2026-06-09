@@ -16,7 +16,6 @@ import '../widgets/product_preview/bottom_action_bar.dart';
 import '../widgets/product_preview/description_card.dart';
 import '../widgets/product_preview/logistics_card.dart';
 import '../widgets/product_preview/meta_card.dart';
-import '../widgets/product_preview/product_preview_kit.dart';
 import '../widgets/product_form/dimensions_card.dart' as form_dims;
 import '../widgets/product_preview/preview_app_bar.dart';
 import '../widgets/product_preview/preview_summary_cards.dart';
@@ -177,39 +176,40 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
     required String confirmLabel,
     required bool destructive,
   }) {
+    final c = SellerColors.of(context);
     return showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: c.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title: Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: AppFonts.seller,
             fontSize: 17,
             fontWeight: FontWeight.w700,
-            color: kInk,
+            color: c.ink,
           ),
         ),
         content: Text(
           message,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: AppFonts.seller,
             fontSize: 14,
             fontWeight: FontWeight.w500,
-            color: kGrey,
+            color: c.grey,
             height: 1.4,
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text(
+            child: Text(
               'Bekor qilish',
               style: TextStyle(
                 fontFamily: AppFonts.seller,
                 fontWeight: FontWeight.w600,
-                color: kGrey,
+                color: c.grey,
               ),
             ),
           ),
@@ -235,6 +235,7 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
   }
 
   void _showSnack(String message, {bool isError = false}) {
+    final c = SellerColors.of(context);
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
@@ -246,7 +247,7 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
               fontWeight: FontWeight.w600,
             ),
           ),
-          backgroundColor: isError ? AppColors.sellerNegative : kInk,
+          backgroundColor: isError ? AppColors.sellerNegative : c.ink,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -274,7 +275,7 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
         product.warrantyMonths > 0;
 
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: SellerColors.of(context).background,
       body: CustomScrollView(
         controller: _scrollController,
         physics: const BouncingScrollPhysics(

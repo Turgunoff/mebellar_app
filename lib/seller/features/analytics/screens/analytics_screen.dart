@@ -39,7 +39,7 @@ class _AnalyticsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: AppColors.lightBackground,
+      color: SellerColors.of(context).background,
       child: SafeArea(
         bottom: false,
         child: BlocBuilder<SellerAnalyticsCubit, SellerAnalyticsState>(
@@ -181,8 +181,9 @@ class _AnalyticsHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Container(
-      color: AppColors.lightBackground,
+      color: c.background,
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
       child: Row(
         children: [
@@ -193,7 +194,7 @@ class _AnalyticsHeader extends StatelessWidget {
                 fontFamily: AppFonts.seller,
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
-                color: AnalyticsTokens.ink,
+                color: c.ink,
                 height: 1.15,
                 letterSpacing: -0.4,
               ),
@@ -294,6 +295,7 @@ class _RangeSegment extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -304,7 +306,7 @@ class _RangeSegment extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: active ? AppColors.sellerPrimary : AnalyticsTokens.segmentBg,
+          color: active ? AppColors.sellerPrimary : c.divider,
           borderRadius: BorderRadius.circular(999),
           boxShadow: active
               ? [
@@ -322,7 +324,7 @@ class _RangeSegment extends StatelessWidget {
             fontFamily: AppFonts.seller,
             fontSize: 13,
             fontWeight: active ? FontWeight.w700 : FontWeight.w600,
-            color: active ? Colors.white : AnalyticsTokens.grey,
+            color: active ? Colors.white : c.grey,
             letterSpacing: -0.1,
             height: 1.0,
           ),
@@ -347,6 +349,7 @@ class _CustomRangeButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return GestureDetector(
       onTap: enabled ? onTap : null,
       behavior: HitTestBehavior.opaque,
@@ -356,10 +359,10 @@ class _CustomRangeButton extends StatelessWidget {
         height: 36,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-          color: active ? AppColors.sellerPrimary : Colors.white,
+          color: active ? AppColors.sellerPrimary : c.surface,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
-            color: active ? AppColors.sellerPrimary : const Color(0xFFE5E5E5),
+            color: active ? AppColors.sellerPrimary : c.outline,
           ),
           boxShadow: active
               ? [
@@ -377,7 +380,7 @@ class _CustomRangeButton extends StatelessWidget {
             Icon(
               Iconsax.calendar_1,
               size: 16,
-              color: active ? Colors.white : AnalyticsTokens.grey,
+              color: active ? Colors.white : c.grey,
             ),
             const SizedBox(width: 6),
             ConstrainedBox(
@@ -390,7 +393,7 @@ class _CustomRangeButton extends StatelessWidget {
                   fontFamily: AppFonts.seller,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: active ? Colors.white : AnalyticsTokens.grey,
+                  color: active ? Colors.white : c.grey,
                 ),
               ),
             ),
@@ -479,14 +482,15 @@ class _SkeletonCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       height: height,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: SellerColors.of(context).surface,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withValues(alpha: dark ? 0.26 : 0.04),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),

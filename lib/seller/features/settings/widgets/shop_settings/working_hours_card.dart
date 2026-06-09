@@ -20,6 +20,7 @@ class WorkingHoursCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -29,8 +30,7 @@ class WorkingHoursCard extends StatelessWidget {
           child: Column(
             children: [
               for (var i = 0; i < DayOfWeek.values.length; i++) ...[
-                if (i > 0)
-                  const Divider(height: 1, thickness: 1, color: kDivider),
+                if (i > 0) Divider(height: 1, thickness: 1, color: c.divider),
                 _DayRow(
                   day: DayOfWeek.values[i],
                   hours: hours[DayOfWeek.values[i]],
@@ -60,17 +60,18 @@ class _DayRow extends StatelessWidget {
     final initial =
         _parseHHmm(isOpen ? hours.open : hours.close) ??
         const TimeOfDay(hour: 9, minute: 0);
+    final c = SellerColors.of(context);
     final picked = await showTimePicker(
       context: context,
       initialTime: initial,
       builder: (ctx, child) {
         return Theme(
           data: Theme.of(ctx).copyWith(
-            colorScheme: const ColorScheme.light(
+            colorScheme: Theme.of(ctx).colorScheme.copyWith(
               primary: AppColors.sellerPrimary,
               onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: kInk,
+              surface: c.surface,
+              onSurface: c.ink,
             ),
           ),
           child: child ?? const SizedBox.shrink(),
@@ -88,6 +89,7 @@ class _DayRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
@@ -96,11 +98,11 @@ class _DayRow extends StatelessWidget {
             width: 44,
             child: Text(
               tr('day.${day.code}'),
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: AppFonts.seller,
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
-                color: kInk,
+                color: c.ink,
                 letterSpacing: -0.1,
               ),
             ),
@@ -110,11 +112,11 @@ class _DayRow extends StatelessWidget {
             child: hours.closed
                 ? Text(
                     tr('shop_settings.closed'),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: AppFonts.seller,
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: kGreyMid,
+                      color: c.greyMid,
                     ),
                   )
                 : Row(
@@ -124,13 +126,13 @@ class _DayRow extends StatelessWidget {
                         onTap: () => _pickTime(context, isOpen: true),
                       ),
                       const SizedBox(width: 8),
-                      const Text(
+                      Text(
                         '-',
                         style: TextStyle(
                           fontFamily: AppFonts.seller,
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: kGreyMid,
+                          color: c.greyMid,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -171,9 +173,10 @@ class _TimePill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Expanded(
       child: Material(
-        color: kFillSoft,
+        color: c.fillFaint,
         borderRadius: BorderRadius.circular(10),
         child: InkWell(
           onTap: onTap,
@@ -183,15 +186,15 @@ class _TimePill extends StatelessWidget {
             alignment: Alignment.center,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: kOutline, width: 1),
+              border: Border.all(color: c.outline, width: 1),
             ),
             child: Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: AppFonts.seller,
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color: kInk,
+                color: c.ink,
                 letterSpacing: 0.2,
               ),
             ),

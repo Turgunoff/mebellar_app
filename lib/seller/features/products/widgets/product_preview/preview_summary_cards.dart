@@ -74,6 +74,7 @@ class StatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final palette = statusPalette(status);
     return SectionCard(
       child: Row(
@@ -103,15 +104,15 @@ class StatusCard extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          const Icon(Iconsax.refresh, size: 13, color: kGreySoft),
+          Icon(Iconsax.refresh, size: 13, color: c.greySoft),
           const SizedBox(width: 6),
           Text(
             updatedAtLabel,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: kGrey,
+              color: c.grey,
               height: 1.2,
             ),
           ),
@@ -131,6 +132,7 @@ class TitlePriceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final priceFormat = NumberFormat('#,###', 'uz');
     final hasDiscount =
         product.discountPrice != null &&
@@ -148,11 +150,11 @@ class TitlePriceCard extends StatelessWidget {
         children: [
           Text(
             product.name.get('uz'),
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 20,
               fontWeight: FontWeight.w700,
-              color: kInk,
+              color: c.ink,
               letterSpacing: -0.4,
               height: 1.25,
             ),
@@ -164,22 +166,22 @@ class TitlePriceCard extends StatelessWidget {
               RichText(
                 text: TextSpan(
                   text: priceFormat.format(effectivePrice),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 26,
                     fontWeight: FontWeight.w800,
-                    color: kInk,
+                    color: c.ink,
                     letterSpacing: -0.6,
                     height: 1.0,
                   ),
-                  children: const [
+                  children: [
                     TextSpan(
                       text: '  UZS',
                       style: TextStyle(
                         fontFamily: AppFonts.seller,
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: kGreyMid,
+                        color: c.greyMid,
                         letterSpacing: 0,
                       ),
                     ),
@@ -192,13 +194,13 @@ class TitlePriceCard extends StatelessWidget {
                   padding: const EdgeInsets.only(bottom: 3),
                   child: Text(
                     "${priceFormat.format(product.price)} UZS",
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: AppFonts.seller,
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
-                      color: kGreySoft,
+                      color: c.greySoft,
                       decoration: TextDecoration.lineThrough,
-                      decorationColor: kGreySoft,
+                      decorationColor: c.greySoft,
                       height: 1.0,
                     ),
                   ),
@@ -227,7 +229,7 @@ class TitlePriceCard extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 14),
-          const Divider(height: 1, thickness: 1, color: kDivider),
+          Divider(height: 1, thickness: 1, color: c.dividerStrong),
           const SizedBox(height: 14),
           // Woody's catalog is made-to-order — every product is rendered
           // as "available" once the moderator approves it; otherwise we

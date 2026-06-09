@@ -17,9 +17,10 @@ class SettingsSaveBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.surface,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),

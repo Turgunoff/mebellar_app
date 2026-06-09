@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import 'form_kit.dart';
 
@@ -88,12 +89,13 @@ class _AiFillButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final primary = Theme.of(context).colorScheme.primary;
     final enabled = !busy && onTap != null;
     return SizedBox(
       width: double.infinity,
       child: Material(
-        color: enabled ? primary.withValues(alpha: 0.10) : kFillSoft,
+        color: enabled ? primary.withValues(alpha: 0.10) : c.fillFaint,
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           onTap: enabled ? onTap : null,
@@ -108,7 +110,7 @@ class _AiFillButton extends StatelessWidget {
                 Icon(
                   Iconsax.magicpen,
                   size: 18,
-                  color: enabled ? primary : kGreyMid,
+                  color: enabled ? primary : c.greyMid,
                 ),
                 const SizedBox(width: 8),
                 Text(
@@ -117,7 +119,7 @@ class _AiFillButton extends StatelessWidget {
                     fontFamily: AppFonts.seller,
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: enabled ? primary : kGreyMid,
+                    color: enabled ? primary : c.greyMid,
                     letterSpacing: -0.1,
                   ),
                 ),
@@ -143,9 +145,10 @@ class _AddPhotoTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final primary = Theme.of(context).colorScheme.primary;
-    final accent = enabled ? primary : kGreyMid;
-    final tint = enabled ? primary.withValues(alpha: 0.08) : kFillSoft;
+    final accent = enabled ? primary : c.greyMid;
+    final tint = enabled ? primary.withValues(alpha: 0.08) : c.fillFaint;
     return SizedBox(
       width: 110,
       height: 110,
@@ -194,7 +197,7 @@ class _AddPhotoTile extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                       color: enabled
                           ? primary.withValues(alpha: 0.8)
-                          : kGreyMid,
+                          : c.greyMid,
                       height: 1.0,
                     ),
                   ),
@@ -222,6 +225,7 @@ class _ImageThumbnail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final primary = Theme.of(context).colorScheme.primary;
     return SizedBox(
       width: 110,
@@ -233,7 +237,7 @@ class _ImageThumbnail extends StatelessWidget {
             width: 110,
             height: 110,
             decoration: BoxDecoration(
-              color: kFillSoft,
+              color: c.fillFaint,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
                 color: primary.withValues(alpha: 0.25),
@@ -268,7 +272,7 @@ class _ImageThumbnail extends StatelessWidget {
             top: -6,
             right: -6,
             child: Material(
-              color: Colors.white,
+              color: c.surface,
               shape: const CircleBorder(),
               elevation: 2,
               shadowColor: Colors.black26,
@@ -281,13 +285,9 @@ class _ImageThumbnail extends StatelessWidget {
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(color: kOutline, width: 1),
+                    border: Border.all(color: c.outline, width: 1),
                   ),
-                  child: const Icon(
-                    Iconsax.close_square,
-                    size: 13,
-                    color: kInk,
-                  ),
+                  child: Icon(Iconsax.close_square, size: 13, color: c.ink),
                 ),
               ),
             ),

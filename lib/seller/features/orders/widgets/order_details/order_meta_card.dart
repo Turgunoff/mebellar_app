@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import 'order_details_kit.dart';
 
@@ -27,6 +28,7 @@ class OrderMetaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return SectionCard(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -37,11 +39,11 @@ class OrderMetaCard extends StatelessWidget {
               children: [
                 Text(
                   '#$orderId',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: kInk,
+                    color: c.ink,
                     letterSpacing: -0.3,
                     height: 1.2,
                   ),
@@ -49,15 +51,15 @@ class OrderMetaCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    const Icon(Iconsax.calendar_1, size: 14, color: kGrey),
+                    Icon(Iconsax.calendar_1, size: 14, color: c.grey),
                     const SizedBox(width: 6),
                     Text(
                       date,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: AppFonts.seller,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: kGrey,
+                        color: c.grey,
                         height: 1.2,
                       ),
                     ),

@@ -73,11 +73,12 @@ class _TimelineNode extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     const activeColor = AppColors.sellerPrimary;
-    const inactiveDot = kSurfaceMuted;
-    const inactiveBorder = kOutline;
+    final inactiveDot = c.fillSoft;
+    final inactiveBorder = c.outline;
     const connectorActive = AppColors.sellerPrimary;
-    const connectorInactive = kDivider;
+    final connectorInactive = c.dividerStrong;
 
     Widget dot;
     if (isCompleted) {
@@ -122,7 +123,7 @@ class _TimelineNode extends StatelessWidget {
       );
     }
 
-    final labelColor = isCompleted || isCurrent ? kInk : kGreySoft;
+    final labelColor = isCompleted || isCurrent ? c.ink : c.greySoft;
     final labelWeight = isCurrent
         ? FontWeight.w700
         : (isCompleted ? FontWeight.w600 : FontWeight.w500);

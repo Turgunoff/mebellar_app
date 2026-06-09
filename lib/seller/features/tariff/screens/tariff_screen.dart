@@ -15,15 +15,10 @@ import '../widgets/payment_instructions_sheet.dart';
 import 'tariff_history_screen.dart';
 import 'tariff_pending_screen.dart';
 
-// Local design tokens. Repeated across the seller surface so each screen
-// reads top-to-bottom without theme indirection. Plus Jakarta Sans is
-// applied directly via `AppFonts.seller` so the M3 surface
-// tint never leaks into our white cards.
-const _ink = Color(0xFF1D1D1D);
-const _grey = Color(0xFF757575);
-const _greyMid = Color(0xFFBDBDBD);
-const _outline = Color(0xFFE3E3E3);
-const _fillSoft = Color(0xFFF3F3F3);
+// The only brightness-independent local token left: the pending-banner brand
+// tint. Adaptive ink/grey/surface/outline/fill colours are read from
+// `SellerColors.of(context)` per build so the screen flips with the seller
+// theme. Plus Jakarta Sans is applied directly via `AppFonts.seller`.
 const _accentTint = AppColors.sellerPrimaryTint;
 
 class TariffScreen extends StatelessWidget {
@@ -60,7 +55,7 @@ class _TariffView extends StatelessWidget {
       },
       builder: (context, state) {
         return Scaffold(
-          backgroundColor: AppColors.lightBackground,
+          backgroundColor: SellerColors.of(context).background,
           appBar: const _TariffAppBar(),
           body: switch (state.status) {
             TariffStatus.initial || TariffStatus.loading => const Center(
@@ -90,14 +85,15 @@ class _TariffAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return AppBar(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: c.background,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       scrolledUnderElevation: 0,
-      foregroundColor: _ink,
+      foregroundColor: c.ink,
       leading: IconButton(
-        icon: const Icon(Iconsax.arrow_left_2, size: 22, color: _ink),
+        icon: Icon(Iconsax.arrow_left_2, size: 22, color: c.ink),
         onPressed: () => Navigator.of(context).maybePop(),
       ),
       title: Text(
@@ -106,14 +102,14 @@ class _TariffAppBar extends StatelessWidget implements PreferredSizeWidget {
           fontFamily: AppFonts.seller,
           fontSize: 18,
           fontWeight: FontWeight.w700,
-          color: _ink,
+          color: c.ink,
           letterSpacing: -0.2,
         ),
       ),
       actions: [
         IconButton(
           tooltip: tr('tariff.history'),
-          icon: const Icon(Iconsax.clock, size: 22, color: _ink),
+          icon: Icon(Iconsax.clock, size: 22, color: c.ink),
           onPressed: () => Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const TariffHistoryScreen()),
           ),
@@ -235,22 +231,24 @@ class _PendingBanner extends StatelessWidget {
                           tr('tariff.plan.${subscription.plan.code}_label'),
                         ],
                       ),
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontFamily: AppFonts.seller,
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: _ink,
+                        // Banner sits on the fixed indigo tint, so dark ink
+                        // reads on both modes — kept constant deliberately.
+                        color: Color(0xFF1D1D1D),
                         letterSpacing: -0.1,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       tr('tariff.pending_banner_subtitle'),
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontFamily: AppFonts.seller,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: _grey,
+                        color: Color(0xFF5A5A5A),
                         height: 1.3,
                       ),
                     ),
@@ -285,7 +283,7 @@ class _PeriodToggle extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: _fillSoft,
+        color: SellerColors.of(context).fillSoft,
         borderRadius: BorderRadius.circular(28),
       ),
       child: Row(
@@ -352,7 +350,7 @@ class _PeriodTab extends StatelessWidget {
                 fontFamily: AppFonts.seller,
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
-                color: isActive ? Colors.white : _grey,
+                color: isActive ? Colors.white : SellerColors.of(context).grey,
                 letterSpacing: -0.1,
               ),
             ),
@@ -415,20 +413,24 @@ class _PlanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Stack(
       clipBehavior: Clip.none,
       children: [
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: c.surface,
             borderRadius: BorderRadius.circular(20),
             border: _isRecommended
                 ? Border.all(color: AppColors.sellerPrimary, width: 1.4)
-                : Border.all(color: _outline, width: 1),
+                : Border.all(color: c.outline, width: 1),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(
-                  alpha: _isRecommended ? 0.08 : 0.05,
+                  alpha: dark
+                      ? (_isRecommended ? 0.34 : 0.28)
+                      : (_isRecommended ? 0.08 : 0.05),
                 ),
                 blurRadius: _isRecommended ? 20 : 14,
                 offset: const Offset(0, 6),
@@ -486,6 +488,7 @@ class _PlanHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -494,11 +497,11 @@ class _PlanHeader extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: _ink,
+              color: c.ink,
               borderRadius: BorderRadius.circular(10),
             ),
             alignment: Alignment.center,
-            child: const Icon(Iconsax.crown_1, size: 18, color: Colors.white),
+            child: Icon(Iconsax.crown_1, size: 18, color: c.surface),
           ),
           const SizedBox(width: 10),
         ],
@@ -509,7 +512,7 @@ class _PlanHeader extends StatelessWidget {
               fontFamily: AppFonts.seller,
               fontSize: 20,
               fontWeight: FontWeight.w700,
-              color: _ink,
+              color: c.ink,
               letterSpacing: -0.4,
               height: 1.1,
             ),
@@ -518,8 +521,8 @@ class _PlanHeader extends StatelessWidget {
         if (isCurrent)
           _StaticChip(
             label: tr('tariff.current_chip'),
-            background: _fillSoft,
-            foreground: _grey,
+            background: c.fillSoft,
+            foreground: c.grey,
             icon: Iconsax.tick_circle,
           ),
       ],
@@ -626,6 +629,7 @@ class _PriceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     if (plan.isFree) {
       return Text(
         tr('tariff.price_free'),
@@ -633,7 +637,7 @@ class _PriceRow extends StatelessWidget {
           fontFamily: AppFonts.seller,
           fontSize: 30,
           fontWeight: FontWeight.w800,
-          color: _ink,
+          color: c.ink,
           letterSpacing: -0.8,
           height: 1.0,
         ),
@@ -669,7 +673,7 @@ class _PriceRow extends StatelessWidget {
               fontFamily: AppFonts.seller,
               fontSize: 30,
               fontWeight: FontWeight.w800,
-              color: _ink,
+              color: c.ink,
               letterSpacing: -0.8,
               height: 1.0,
             ),
@@ -683,7 +687,7 @@ class _PriceRow extends StatelessWidget {
                 fontFamily: AppFonts.seller,
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
-                color: _ink,
+                color: c.ink,
                 letterSpacing: -0.1,
               ),
             ),
@@ -697,7 +701,7 @@ class _PriceRow extends StatelessWidget {
                 fontFamily: AppFonts.seller,
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: _grey,
+                color: c.grey,
               ),
             ),
           ),
@@ -775,7 +779,7 @@ class _FeatureRow extends StatelessWidget {
                 fontFamily: AppFonts.seller,
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: _ink,
+                color: SellerColors.of(context).ink,
                 height: 1.35,
               ),
             ),
@@ -807,6 +811,7 @@ class _PlanCta extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final disabled = isCurrent || isPending || plan.isFree;
     final label = isCurrent
         ? tr('tariff.cta_current')
@@ -819,14 +824,16 @@ class _PlanCta extends StatelessWidget {
     final Color background;
     final Color foreground;
     if (isCurrent) {
-      background = _fillSoft;
-      foreground = _greyMid;
+      background = c.fillSoft;
+      foreground = c.greyMid;
     } else if (isPending) {
-      background = _fillSoft;
-      foreground = _grey;
+      background = c.fillSoft;
+      foreground = c.grey;
     } else if (isEnterprise) {
-      background = _ink;
-      foreground = Colors.white;
+      // Ink fill flips to near-white in dark; the surface colour keeps the
+      // label legible against it.
+      background = c.ink;
+      foreground = c.surface;
     } else {
       background = AppColors.sellerPrimary;
       foreground = Colors.white;

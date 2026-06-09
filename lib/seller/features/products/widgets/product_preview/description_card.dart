@@ -4,6 +4,7 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import 'product_preview_kit.dart';
+// app_colors.dart provides SellerColors for the adaptive ink token.
 
 /// Description card. Collapses to [collapsedMaxLines] lines with a "Ko'proq
 /// o'qish" / "Yopish" toggle — but the toggle only appears when the text
@@ -26,18 +27,18 @@ class DescriptionCard extends StatefulWidget {
 class _DescriptionCardState extends State<DescriptionCard> {
   bool _expanded = false;
 
-  static const _textStyle = TextStyle(
+  TextStyle _textStyle(Color ink) => TextStyle(
     fontFamily: AppFonts.seller,
     fontSize: 13.5,
     fontWeight: FontWeight.w500,
-    color: kInk,
+    color: ink,
     height: 1.55,
     letterSpacing: -0.05,
   );
 
-  bool _overflows(BuildContext context, double maxWidth) {
+  bool _overflows(BuildContext context, double maxWidth, TextStyle style) {
     final painter = TextPainter(
-      text: TextSpan(text: widget.text, style: _textStyle),
+      text: TextSpan(text: widget.text, style: style),
       maxLines: widget.collapsedMaxLines,
       textDirection: Directionality.of(context),
     )..layout(maxWidth: maxWidth);
@@ -46,10 +47,16 @@ class _DescriptionCardState extends State<DescriptionCard> {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    final textStyle = _textStyle(c.ink);
     return SectionCard(
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final overflows = _overflows(context, constraints.maxWidth);
+          final overflows = _overflows(
+            context,
+            constraints.maxWidth,
+            textStyle,
+          );
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -65,7 +72,7 @@ class _DescriptionCardState extends State<DescriptionCard> {
                   overflow: _expanded
                       ? TextOverflow.visible
                       : TextOverflow.ellipsis,
-                  style: _textStyle,
+                  style: textStyle,
                 ),
               ),
               if (overflows) ...[

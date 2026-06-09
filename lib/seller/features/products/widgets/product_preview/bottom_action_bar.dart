@@ -3,7 +3,6 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
-import 'product_preview_kit.dart';
 
 /// Bottom bar — secondary action (Archive, or Restore when the product is
 /// already archived) + Edit (filled, primary). The secondary action is hidden
@@ -32,11 +31,12 @@ class BottomActionBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final secondaryOnPressed = isArchived ? onRestore : onArchive;
     final hasSecondary = secondaryOnPressed != null;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.surface,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.06),
@@ -44,7 +44,7 @@ class BottomActionBar extends StatelessWidget {
             offset: const Offset(0, -4),
           ),
         ],
-        border: const Border(top: BorderSide(color: kDivider, width: 1)),
+        border: Border(top: BorderSide(color: c.dividerStrong, width: 1)),
       ),
       child: SafeArea(
         top: false,
@@ -60,12 +60,12 @@ class BottomActionBar extends StatelessWidget {
                     child: OutlinedButton.icon(
                       onPressed: isBusy ? null : secondaryOnPressed,
                       icon: isBusy
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 18,
                               height: 18,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation(kGrey),
+                                valueColor: AlwaysStoppedAnimation(c.grey),
                               ),
                             )
                           : Icon(
@@ -75,7 +75,7 @@ class BottomActionBar extends StatelessWidget {
                               size: 18,
                               color: isArchived
                                   ? AppColors.sellerPrimary
-                                  : kInk,
+                                  : c.ink,
                             ),
                       label: Text(
                         isArchived ? 'Qaytarish' : 'Arxivlash',
@@ -83,19 +83,19 @@ class BottomActionBar extends StatelessWidget {
                           fontFamily: AppFonts.seller,
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: isArchived ? AppColors.sellerPrimary : kInk,
+                          color: isArchived ? AppColors.sellerPrimary : c.ink,
                           height: 1.0,
                         ),
                       ),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: isArchived
                             ? AppColors.sellerPrimary
-                            : kInk,
-                        backgroundColor: Colors.white,
+                            : c.ink,
+                        backgroundColor: c.surface,
                         side: BorderSide(
                           color: isArchived
                               ? AppColors.sellerPrimary.withValues(alpha: 0.4)
-                              : kOutline,
+                              : c.outline,
                           width: 1,
                         ),
                         shape: RoundedRectangleBorder(

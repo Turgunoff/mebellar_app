@@ -17,6 +17,7 @@ import '../core/logging/talker.dart';
 import '../core/notifications/notification_handler.dart';
 import '../core/theme/app_theme.dart' show appSystemOverlay;
 import '../core/theme/seller_theme.dart';
+import '../core/theme/theme_cubit.dart';
 import '../main.dart' show AppLocaleScope;
 import '../shared/widgets/network_overlay_wrapper.dart';
 import 'features/analytics/screens/analytics_screen.dart';
@@ -107,21 +108,29 @@ class _SellerAppState extends State<SellerApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    // Reuse the global ThemeCubit (Hive `isDarkMode`) so toggling dark mode
+    // applies to both customer and seller modes from one setting.
     return BlocProvider<NetworkCubit>.value(
       value: sl<NetworkCubit>(),
-      child: _router != null
-          ? _buildRouterApp(context)
-          : _buildLegacyApp(context),
+      child: BlocProvider<ThemeCubit>.value(
+        value: sl<ThemeCubit>(),
+        child: BlocBuilder<ThemeCubit, ThemeState>(
+          builder: (context, themeState) => _router != null
+              ? _buildRouterApp(context, themeState.themeMode)
+              : _buildLegacyApp(context, themeState.themeMode),
+        ),
+      ),
     );
   }
 
   /// ROADMAP B.3 — `go_router`-driven seller shell.
-  Widget _buildRouterApp(BuildContext context) {
+  Widget _buildRouterApp(BuildContext context, ThemeMode themeMode) {
     return MaterialApp.router(
       title: 'Woody Seller',
       debugShowCheckedModeBanner: false,
       theme: sellerLightTheme,
       darkTheme: sellerDarkTheme,
+      themeMode: themeMode,
       routerConfig: _router!,
       localizationsDelegates: _localizationsDelegates,
       supportedLocales: AppTranslations.supportedLocales,
@@ -132,12 +141,13 @@ class _SellerAppState extends State<SellerApp> with WidgetsBindingObserver {
 
   /// Legacy imperative shell — kept behind the flag so the migration can be
   /// reverted without a code change while debugging.
-  Widget _buildLegacyApp(BuildContext context) {
+  Widget _buildLegacyApp(BuildContext context, ThemeMode themeMode) {
     return MaterialApp(
       title: 'Woody Seller',
       debugShowCheckedModeBanner: false,
       theme: sellerLightTheme,
       darkTheme: sellerDarkTheme,
+      themeMode: themeMode,
       navigatorKey: sellerNavigatorKey,
       navigatorObservers: [TalkerRouteObserver(talker), ConsoleNavObserver()],
       localizationsDelegates: _localizationsDelegates,

@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../../core/theme/app_colors.dart';
 import '../../../../../shared/widgets/fullscreen_image_viewer.dart';
-import 'product_preview_kit.dart';
 
 /// Pinned, square-expanding image gallery app bar for the product preview.
 ///
@@ -31,15 +31,19 @@ class PreviewAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final size = MediaQuery.of(context).size.width;
     return SliverAppBar(
       pinned: true,
       expandedHeight: size,
-      backgroundColor: Colors.white,
+      backgroundColor: c.surface,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       scrolledUnderElevation: 0,
-      systemOverlayStyle: SystemUiOverlayStyle.dark,
+      systemOverlayStyle: isDark
+          ? SystemUiOverlayStyle.light
+          : SystemUiOverlayStyle.dark,
       titleSpacing: 0,
       // Title sits in the toolbar slot. We render it ourselves with an
       // opacity tween so it disappears entirely when the gallery is
@@ -50,8 +54,8 @@ class PreviewAppBar extends StatelessWidget {
           productName,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: kInk,
+          style: TextStyle(
+            color: c.ink,
             fontSize: 16,
             fontWeight: FontWeight.w700,
             letterSpacing: -0.2,
@@ -87,6 +91,9 @@ class _GlassIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Frosted-white glass over the photo gallery in both modes, so the ink
+    // icon stays the fixed dark value (it must read on the white glass, not
+    // flip to a light ink in dark mode).
     return Material(
       color: Colors.white.withValues(alpha: 0.92),
       shape: const CircleBorder(),
@@ -96,7 +103,7 @@ class _GlassIconButton extends StatelessWidget {
         child: SizedBox(
           width: 40,
           height: 40,
-          child: Icon(icon, size: 20, color: kInk),
+          child: Icon(icon, size: 20, color: AppColors.sellerInk),
         ),
       ),
     );
@@ -125,15 +132,16 @@ class _ImageGalleryState extends State<_ImageGallery> {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final imgs = widget.images;
     return Stack(
       fit: StackFit.expand,
       children: [
         if (imgs.isEmpty)
           Container(
-            color: kImageBg,
+            color: c.imageBg,
             alignment: Alignment.center,
-            child: const Icon(Iconsax.image, size: 72, color: kGreyMid),
+            child: Icon(Iconsax.image, size: 72, color: c.greyMid),
           )
         else
           PageView.builder(
@@ -155,14 +163,14 @@ class _ImageGalleryState extends State<_ImageGallery> {
                   // ROADMAP B.7 — full-width product preview image.
                   memCacheWidth: 1080,
                   fit: BoxFit.cover,
-                  placeholder: (_, _) => Container(color: kImageBg),
+                  placeholder: (_, _) => Container(color: c.imageBg),
                   errorWidget: (_, _, _) => Container(
-                    color: kImageBg,
+                    color: c.imageBg,
                     alignment: Alignment.center,
-                    child: const Icon(
+                    child: Icon(
                       Iconsax.gallery_slash,
                       size: 48,
-                      color: kGreyMid,
+                      color: c.greyMid,
                     ),
                   ),
                 ),

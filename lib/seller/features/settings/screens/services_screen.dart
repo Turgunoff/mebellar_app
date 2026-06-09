@@ -12,14 +12,11 @@ import '../../../../shared/repositories/seller_services_repository.dart';
 import '../../../../shared/widgets/error_state.dart';
 import '../bloc/services_bloc.dart';
 
-// Local design tokens — explicit so the screen stays neutral and
-// doesn't pick up the M3 surface tint that the seller seed otherwise
-// bleeds onto white cards. Plus Jakarta Sans is applied to every
-// `Text` directly via `AppFonts.seller`.
-const _ink = Color(0xFF1D1D1D);
-const _grey = Color(0xFF757575);
-const _divider = Color(0xFFEFEFEF);
-const _outline = Color(0xFFE3E3E3);
+// The neutral colours now come from `SellerColors.of(context)` so the surface
+// flips with the theme; only the indigo accent tint (which reads fine on both
+// backgrounds) stays a const. Plus Jakarta Sans is applied to every `Text`
+// directly via `AppFonts.seller` so the surface is immune to the M3 surface tint
+// that the seller seed otherwise bleeds onto neutral cards.
 const _accentTint = AppColors.sellerPrimaryTint;
 
 class SellerServicesScreen extends StatelessWidget {
@@ -53,7 +50,7 @@ class _ServicesView extends StatelessWidget {
         if (state.status == ServicesStatus.saved) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              backgroundColor: _ink,
+              backgroundColor: SellerColors.of(context).ink,
               behavior: SnackBarBehavior.floating,
               content: Text(
                 tr('services.saved_toast'),
@@ -81,8 +78,9 @@ class _ServicesView extends StatelessWidget {
         }
       },
       builder: (context, state) {
+        final c = SellerColors.of(context);
         return Scaffold(
-          backgroundColor: AppColors.lightBackground,
+          backgroundColor: c.background,
           appBar: const _ServicesAppBar(),
           body: switch (state.status) {
             ServicesStatus.initial || ServicesStatus.loading => const Center(
@@ -119,14 +117,15 @@ class _ServicesAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return AppBar(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: c.background,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       scrolledUnderElevation: 0,
-      foregroundColor: _ink,
+      foregroundColor: c.ink,
       leading: IconButton(
-        icon: const Icon(Iconsax.arrow_left_2, size: 22, color: _ink),
+        icon: Icon(Iconsax.arrow_left_2, size: 22, color: c.ink),
         onPressed: () => Navigator.of(context).maybePop(),
       ),
       title: Text(
@@ -135,7 +134,7 @@ class _ServicesAppBar extends StatelessWidget implements PreferredSizeWidget {
           fontFamily: AppFonts.seller,
           fontSize: 18,
           fontWeight: FontWeight.w700,
-          color: _ink,
+          color: c.ink,
           letterSpacing: -0.2,
         ),
       ),
@@ -262,6 +261,7 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Padding(
       padding: const EdgeInsets.only(left: 4, bottom: 10),
       child: Text(
@@ -270,7 +270,7 @@ class _SectionTitle extends StatelessWidget {
           fontFamily: AppFonts.seller,
           fontSize: 15,
           fontWeight: FontWeight.w700,
-          color: _ink,
+          color: c.ink,
           letterSpacing: -0.2,
           height: 1.2,
         ),
@@ -289,9 +289,10 @@ class _Card extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -317,7 +318,8 @@ class _RowDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Divider(height: 1, thickness: 1, color: _divider);
+    final c = SellerColors.of(context);
+    return Divider(height: 1, thickness: 1, color: c.divider);
   }
 }
 
@@ -341,6 +343,7 @@ class _ServiceTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final hasInput = input != null;
 
     return Padding(
@@ -363,7 +366,7 @@ class _ServiceTile extends StatelessWidget {
                         fontFamily: AppFonts.seller,
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: _ink,
+                        color: c.ink,
                         letterSpacing: -0.1,
                       ),
                     ),
@@ -375,7 +378,7 @@ class _ServiceTile extends StatelessWidget {
                           fontFamily: AppFonts.seller,
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
-                          color: _grey,
+                          color: c.grey,
                           height: 1.3,
                         ),
                       ),
@@ -526,6 +529,7 @@ class _ServiceInputState extends State<_ServiceInput> {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final isAmount = widget.spec.kind == _InputKind.amount;
     final suffix = isAmount ? 'UZS' : tr('services.months_suffix');
     final formatters = <TextInputFormatter>[
@@ -534,7 +538,7 @@ class _ServiceInputState extends State<_ServiceInput> {
     ];
     final border = OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: const BorderSide(color: _outline, width: 1),
+      borderSide: BorderSide(color: c.outline, width: 1),
     );
 
     return Column(
@@ -548,7 +552,7 @@ class _ServiceInputState extends State<_ServiceInput> {
               fontFamily: AppFonts.seller,
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: _grey,
+              color: c.grey,
               letterSpacing: 0.1,
             ),
           ),
@@ -562,7 +566,7 @@ class _ServiceInputState extends State<_ServiceInput> {
             fontFamily: AppFonts.seller,
             fontSize: 15,
             fontWeight: FontWeight.w700,
-            color: _ink,
+            color: c.ink,
             letterSpacing: -0.1,
           ),
           onChanged: _onChanged,
@@ -577,11 +581,11 @@ class _ServiceInputState extends State<_ServiceInput> {
               fontFamily: AppFonts.seller,
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: _grey,
+              color: c.grey,
               letterSpacing: 0.2,
             ),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: c.surface,
             border: border,
             enabledBorder: border,
             focusedBorder: OutlineInputBorder(
@@ -609,9 +613,10 @@ class _SaveBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.surface,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),

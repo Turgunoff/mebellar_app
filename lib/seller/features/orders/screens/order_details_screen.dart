@@ -95,7 +95,7 @@ class _OrderDetailView extends StatelessWidget {
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: SellerColors.of(context).surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -134,6 +134,7 @@ class _OrderDetailView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return BlocConsumer<SellerOrderDetailBloc, SellerOrderDetailState>(
       listenWhen: (prev, curr) =>
           curr.error != null && curr.error != prev.error,
@@ -143,14 +144,14 @@ class _OrderDetailView extends StatelessWidget {
           ..showSnackBar(
             SnackBar(
               behavior: SnackBarBehavior.floating,
-              backgroundColor: kInk,
+              backgroundColor: c.ink,
               content: Text(
                 state.error!,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: Colors.white,
+                  color: c.surface,
                 ),
               ),
             ),
@@ -159,7 +160,7 @@ class _OrderDetailView extends StatelessWidget {
       builder: (context, state) {
         final order = state.order;
         return Scaffold(
-          backgroundColor: AppColors.lightBackground,
+          backgroundColor: c.background,
           appBar: OrderAppBar(
             orderId: order?.orderNumber ?? 'tafsilotlari',
             orderUuid: order?.id,
@@ -308,6 +309,7 @@ class _CustomerContactSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final name = order.address.recipientName;
     final phone = order.address.phone;
     final hasContact = name.isNotEmpty || phone.isNotEmpty;
@@ -328,19 +330,19 @@ class _CustomerContactSheet extends StatelessWidget {
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: kGreyMid,
+                  color: c.greyMid,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
             const SizedBox(height: 18),
-            const Text(
+            Text(
               "Qabul qilishdan oldin",
               style: TextStyle(
                 fontFamily: AppFonts.seller,
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
-                color: kInk,
+                color: c.ink,
                 letterSpacing: -0.3,
               ),
             ),
@@ -381,7 +383,7 @@ class _CustomerContactSheet extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: kSurfaceMuted,
+                  color: c.fillSoft,
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Column(
@@ -390,15 +392,15 @@ class _CustomerContactSheet extends StatelessWidget {
                     if (name.isNotEmpty) ...[
                       Row(
                         children: [
-                          const Icon(Iconsax.user, size: 16, color: kGrey),
+                          Icon(Iconsax.user, size: 16, color: c.grey),
                           const SizedBox(width: 8),
                           Text(
                             name,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: AppFonts.seller,
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: kInk,
+                              color: c.ink,
                             ),
                           ),
                         ],
@@ -428,12 +430,12 @@ class _CustomerContactSheet extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(width: 6),
-                            const Text(
+                            Text(
                               "Bosing",
                               style: TextStyle(
                                 fontFamily: AppFonts.seller,
                                 fontSize: 11,
-                                color: kGrey,
+                                color: c.grey,
                               ),
                             ),
                           ],
@@ -444,12 +446,12 @@ class _CustomerContactSheet extends StatelessWidget {
               ),
               const SizedBox(height: 16),
             ] else ...[
-              const Text(
+              Text(
                 "Mijoz aloqa ma'lumotlari topilmadi.",
                 style: TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 13,
-                  color: kGrey,
+                  color: c.grey,
                 ),
               ),
               const SizedBox(height: 16),
@@ -462,17 +464,17 @@ class _CustomerContactSheet extends StatelessWidget {
                     child: OutlinedButton(
                       onPressed: () => Navigator.of(context).pop(false),
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: kOutline),
+                        side: BorderSide(color: c.outline),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Yopish',
                         style: TextStyle(
                           fontFamily: AppFonts.seller,
                           fontWeight: FontWeight.w600,
-                          color: kGrey,
+                          color: c.grey,
                         ),
                       ),
                     ),
@@ -531,15 +533,16 @@ class _CancelReasonDialogState extends State<_CancelReasonDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return AlertDialog(
-      backgroundColor: Colors.white,
-      title: const Text(
+      backgroundColor: c.surface,
+      title: Text(
         'Buyurtmani bekor qilish',
         style: TextStyle(
           fontFamily: AppFonts.seller,
           fontSize: 16,
           fontWeight: FontWeight.w700,
-          color: kInk,
+          color: c.ink,
         ),
       ),
       content: TextField(
@@ -547,17 +550,17 @@ class _CancelReasonDialogState extends State<_CancelReasonDialog> {
         autofocus: true,
         minLines: 1,
         maxLines: 3,
-        style: const TextStyle(
+        style: TextStyle(
           fontFamily: AppFonts.seller,
           fontSize: 14,
-          color: kInk,
+          color: c.ink,
         ),
         decoration: InputDecoration(
           hintText: 'Bekor qilish sababi',
-          hintStyle: const TextStyle(fontFamily: AppFonts.seller, color: kGrey),
+          hintStyle: TextStyle(fontFamily: AppFonts.seller, color: c.grey),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: kOutline),
+            borderSide: BorderSide(color: c.outline),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
@@ -568,12 +571,12 @@ class _CancelReasonDialogState extends State<_CancelReasonDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text(
+          child: Text(
             'Yopish',
             style: TextStyle(
               fontFamily: AppFonts.seller,
               fontWeight: FontWeight.w600,
-              color: kGrey,
+              color: c.grey,
             ),
           ),
         ),
@@ -659,15 +662,16 @@ class _ProposeFeeDialogState extends State<_ProposeFeeDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return AlertDialog(
-      backgroundColor: Colors.white,
-      title: const Text(
+      backgroundColor: c.surface,
+      title: Text(
         'Yetkazish narxini taklif qilish',
         style: TextStyle(
           fontFamily: AppFonts.seller,
           fontSize: 16,
           fontWeight: FontWeight.w700,
-          color: kInk,
+          color: c.ink,
         ),
       ),
       content: Column(
@@ -678,21 +682,18 @@ class _ProposeFeeDialogState extends State<_ProposeFeeDialog> {
             autofocus: true,
             keyboardType: TextInputType.number,
             inputFormatters: [_SpaceThousandsFormatter()],
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 15,
-              color: kInk,
+              color: c.ink,
             ),
             decoration: InputDecoration(
               hintText: 'Yangi yetkazish narxi (UZS)',
-              hintStyle: const TextStyle(
-                fontFamily: AppFonts.seller,
-                color: kGrey,
-              ),
+              hintStyle: TextStyle(fontFamily: AppFonts.seller, color: c.grey),
               suffixText: 'UZS',
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: kOutline),
+                borderSide: BorderSide(color: c.outline),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -705,21 +706,21 @@ class _ProposeFeeDialogState extends State<_ProposeFeeDialog> {
             controller: _noteController,
             minLines: 1,
             maxLines: 3,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 13,
-              color: kInk,
+              color: c.ink,
             ),
             decoration: InputDecoration(
               hintText: 'Izoh (ixtiyoriy) — masalan: uzoq manzil',
-              hintStyle: const TextStyle(
+              hintStyle: TextStyle(
                 fontFamily: AppFonts.seller,
-                color: kGrey,
+                color: c.grey,
                 fontSize: 12,
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: kOutline),
+                borderSide: BorderSide(color: c.outline),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -732,11 +733,11 @@ class _ProposeFeeDialogState extends State<_ProposeFeeDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text(
+          child: Text(
             'Yopish',
             style: TextStyle(
               fontFamily: AppFonts.seller,
-              color: kGrey,
+              color: c.grey,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -780,22 +781,23 @@ class _DetailError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline_rounded, size: 44, color: kGreyMid),
+            Icon(Icons.error_outline_rounded, size: 44, color: c.greyMid),
             const SizedBox(height: 14),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: AppFonts.seller,
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: kGrey,
+                color: c.grey,
               ),
             ),
             const SizedBox(height: 18),

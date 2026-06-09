@@ -16,11 +16,8 @@ import '../../../../shared/models/product_model.dart';
 import '../../../../shared/models/shop_profile.dart';
 import '../../../../shared/models/working_hours.dart';
 import '../../../../shared/repositories/shop_repository.dart';
-// Reuse the seller product-preview kit so this screen is a pixel-consistent
-// continuation of the product detail page it's opened from (same SectionCard,
-// tokens, and Uzbek-only copy — see catalog_product_detail_screen.dart).
-import '../../../../seller/features/products/widgets/product_preview/product_preview_kit.dart';
 import '../../home/widgets/premium/premium_product_card.dart';
+import '../../home/widgets/premium/premium_tokens.dart';
 import '../../favorites/bloc/favorites_bloc.dart';
 import '../cubit/shop_profile_cubit.dart';
 
@@ -30,10 +27,12 @@ part 'shop_profile_cards.dart';
 const Color _kTelegram = Color(0xFF229ED9);
 const Color _kVerified = Color(0xFF1F6B49);
 
+/// `color` is nullable: pass an adaptive `PremiumTokens.of(context).dark` from
+/// the call site (it can't be a const default).
 TextStyle _ts({
   required double size,
   FontWeight weight = FontWeight.w500,
-  Color color = kInk,
+  Color? color,
   double height = 1.3,
   double letterSpacing = 0,
 }) {
@@ -48,6 +47,52 @@ TextStyle _ts({
 }
 
 String _money(num value) => NumberFormat('#,###', 'uz').format(value);
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Customer-native section primitives — replace the seller kit's SectionCard /
+// SectionTitle (which read SellerColors). These flip with customer dark mode
+// via PremiumTokens. Shared with the `part` file (shop_profile_cards).
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: pt.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: PremiumTokens.softShadow,
+      ),
+      child: child,
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w700,
+        color: PremiumTokens.of(context).dark,
+        letterSpacing: -0.2,
+        height: 1.2,
+      ),
+    );
+  }
+}
 
 /// Public seller/shop profile, pushed at `/shop/:id` from the product detail
 /// page's seller card.
@@ -164,6 +209,7 @@ class _ReadyContentState extends State<_ReadyContent> {
 
   @override
   Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
     final shop = widget.shop;
     final products = widget.products;
     final cards = <Widget>[
@@ -203,6 +249,7 @@ class _ReadyContentState extends State<_ReadyContent> {
                             size: 17,
                             weight: FontWeight.w700,
                             letterSpacing: -0.3,
+                            color: pt.dark,
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -281,6 +328,7 @@ class _ShopHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
     final topPad = MediaQuery.paddingOf(context).top;
     final brand = _brandColor(shop.brandColor);
 
@@ -325,6 +373,7 @@ class _ShopHeader extends StatelessWidget {
                   weight: FontWeight.w800,
                   letterSpacing: -0.5,
                   height: 1.2,
+                  color: pt.dark,
                 ),
               ),
               const SizedBox(height: 6),
@@ -379,6 +428,7 @@ class _SubtitleLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
     final parts = <String>[
       if (shop.isVerified) 'Tasdiqlangan sotuvchi',
       if (shop.createdAt != null) '${shop.createdAt!.year}-yildan beri',
@@ -396,7 +446,7 @@ class _SubtitleLine extends StatelessWidget {
             style: _ts(
               size: 12.5,
               weight: FontWeight.w600,
-              color: shop.isVerified ? _kVerified : kGrey,
+              color: shop.isVerified ? _kVerified : pt.grey,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -466,7 +516,7 @@ class _StatsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SectionCard(
+    return _SectionCard(
       child: Row(
         children: [
           _Stat(
@@ -508,6 +558,7 @@ class _Stat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
     return Expanded(
       child: Column(
         children: [
@@ -515,10 +566,15 @@ class _Stat extends StatelessWidget {
           const SizedBox(height: 7),
           Text(
             value,
-            style: _ts(size: 18, weight: FontWeight.w800, letterSpacing: -0.4),
+            style: _ts(
+              size: 18,
+              weight: FontWeight.w800,
+              letterSpacing: -0.4,
+              color: pt.dark,
+            ),
           ),
           const SizedBox(height: 2),
-          Text(label, style: _ts(size: 11.5, color: kGrey)),
+          Text(label, style: _ts(size: 11.5, color: pt.grey)),
         ],
       ),
     );
@@ -530,7 +586,11 @@ class _StatDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(width: 1, height: 38, color: kDivider);
+    return Container(
+      width: 1,
+      height: 38,
+      color: PremiumTokens.of(context).divider,
+    );
   }
 }
 
@@ -906,4 +966,3 @@ class _HoursRow extends StatelessWidget {
     );
   }
 }
-

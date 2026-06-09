@@ -35,11 +35,6 @@ import 'widgets/top_products_card.dart';
 //   `_RecentOrdersHeader`, where the design uses Manrope to give the
 //   trailing action a quieter, more utilitarian feel against the bold
 //   Jakarta section header.
-// Local aliases of the central seller tokens — kept as short names so the
-// many `const TextStyle(color: _ink)` sites stay terse and `const`.
-const _ink = DashKit.ink;
-const _grey = DashKit.grey;
-const _greyMid = DashKit.greyMid;
 
 // =============================================================================
 // Screen
@@ -66,8 +61,9 @@ class _DashboardView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return ColoredBox(
-      color: AppColors.lightBackground,
+      color: c.background,
       child: SafeArea(
         bottom: false,
         child: BlocBuilder<SellerDashboardCubit, SellerDashboardState>(
@@ -248,6 +244,7 @@ class _GreetingHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final shopLabel = (shopName == null || shopName!.trim().isEmpty)
         ? "Do'koningiz"
         : shopName!;
@@ -262,10 +259,10 @@ class _GreetingHeader extends StatelessWidget {
                 'Salom, $sellerName! 👋',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w700,
-                  color: _ink,
+                  color: c.ink,
                   height: 1.2,
                   letterSpacing: -0.4,
                 ),
@@ -280,10 +277,10 @@ class _GreetingHeader extends StatelessWidget {
           "$shopLabel do'koni ko'rsatkichlari",
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w500,
-            color: _grey,
+            color: c.grey,
             height: 1.3,
           ),
         ),
@@ -335,6 +332,7 @@ class _BellShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Material(
       color: Colors.transparent,
       borderRadius: BorderRadius.circular(12),
@@ -348,7 +346,7 @@ class _BellShell extends StatelessWidget {
             clipBehavior: Clip.none,
             alignment: Alignment.center,
             children: [
-              const Icon(Iconsax.notification, size: 24, color: _ink),
+              Icon(Iconsax.notification, size: 24, color: c.ink),
               if (unreadCount > 0)
                 Positioned(
                   top: 6,
@@ -365,10 +363,7 @@ class _BellShell extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: AppColors.sellerPrimary,
                       borderRadius: BorderRadius.circular(9),
-                      border: Border.all(
-                        color: AppColors.lightBackground,
-                        width: 1.5,
-                      ),
+                      border: Border.all(color: c.background, width: 1.5),
                     ),
                     alignment: Alignment.center,
                     child: Text(
@@ -473,15 +468,16 @@ class _RecentOrdersHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Row(
-      children: const [
+      children: [
         Expanded(
           child: Text(
             "So'nggi buyurtmalar",
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
-              color: _ink,
+              color: c.ink,
               height: 1.2,
               letterSpacing: -0.3,
             ),
@@ -499,10 +495,11 @@ class _RecentOrderTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -524,10 +521,10 @@ class _RecentOrderTile extends StatelessWidget {
                   '#${order.orderNumber}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: _ink,
+                    color: c.ink,
                     letterSpacing: -0.1,
                     height: 1.2,
                   ),
@@ -537,10 +534,10 @@ class _RecentOrderTile extends StatelessWidget {
                   _formatDate(order.createdAt),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: _grey,
+                    color: c.grey,
                     height: 1.2,
                   ),
                 ),
@@ -556,21 +553,21 @@ class _RecentOrderTile extends StatelessWidget {
             children: [
               Text(
                 _formatMoney(order.grandTotal),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: _ink,
+                  color: c.ink,
                   letterSpacing: -0.2,
                   height: 1.2,
                 ),
               ),
               const SizedBox(height: 2),
-              const Text(
+              Text(
                 'UZS',
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
-                  color: _greyMid,
+                  color: c.greyMid,
                   height: 1.0,
                 ),
               ),
@@ -672,10 +669,11 @@ class _EmptyOrdersView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: AppColors.sellerPrimary.withValues(alpha: 0.08),
@@ -705,26 +703,26 @@ class _EmptyOrdersView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             "Hozircha buyurtmalar yo'q",
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: _ink,
+              color: c.ink,
               height: 1.2,
               letterSpacing: -0.2,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             "Katalogingizga mahsulot qo'shing va birinchi savdoning "
             "zavqini his qiling!",
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
-              color: _grey,
+              color: c.grey,
               height: 1.4,
             ),
           ),
@@ -742,11 +740,10 @@ class _DashboardSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final base = Colors.grey.shade300;
-    final highlight = Colors.grey.shade100;
+    final c = SellerColors.of(context);
     return Shimmer.fromColors(
-      baseColor: base,
-      highlightColor: highlight,
+      baseColor: c.fillSoft,
+      highlightColor: c.surface,
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
         physics: const NeverScrollableScrollPhysics(),
@@ -800,11 +797,12 @@ class _ShimmerBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Container(
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.surface,
         borderRadius: BorderRadius.circular(radius),
       ),
     );

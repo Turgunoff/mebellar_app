@@ -19,6 +19,7 @@ class VisibilityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -38,11 +39,11 @@ class VisibilityCard extends StatelessWidget {
                             ? 'shop_settings.public'
                             : 'shop_settings.hidden',
                       ),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: AppFonts.seller,
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: kInk,
+                        color: c.ink,
                         letterSpacing: -0.1,
                       ),
                     ),
@@ -53,11 +54,11 @@ class VisibilityCard extends StatelessWidget {
                             ? 'shop_settings.public_hint'
                             : 'shop_settings.hidden_hint',
                       ),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: AppFonts.seller,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: kGrey,
+                        color: c.grey,
                         height: 1.3,
                       ),
                     ),

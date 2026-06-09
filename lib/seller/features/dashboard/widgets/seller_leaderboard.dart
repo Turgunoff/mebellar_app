@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../data/dashboard_mock.dart';
 import 'dashboard_kit.dart';
 
@@ -15,13 +16,13 @@ class SellerLeaderboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return DashCard(
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
       child: Column(
         children: [
           for (var i = 0; i < entries.length; i++) ...[
-            if (i > 0)
-              const Divider(height: 1, thickness: 1, color: DashKit.hairline),
+            if (i > 0) Divider(height: 1, thickness: 1, color: c.divider),
             _LeaderRow(entry: entries[i]),
           ],
         ],
@@ -37,6 +38,7 @@ class _LeaderRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final me = entry.isMe;
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
@@ -64,7 +66,7 @@ class _LeaderRow extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: me ? FontWeight.w700 : FontWeight.w600,
-                          color: me ? DashKit.indigoDeep : DashKit.ink,
+                          color: me ? DashKit.indigoDeep : c.ink,
                           height: 1.15,
                           letterSpacing: -0.1,
                         ),
@@ -97,10 +99,13 @@ class _LeaderRow extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   '${DashKit.compactMoney(entry.revenue)} so\'m',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: DashKit.grey,
+                    // The me-row sits on a FIXED light indigo tint, so its
+                    // secondary text stays a fixed grey; other rows are on the
+                    // adaptive surface and use the theme grey.
+                    color: me ? AppColors.sellerGrey : c.grey,
                     height: 1.1,
                   ),
                 ),
@@ -130,12 +135,11 @@ class _RankBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final medal = _medals[rank];
     final isTop3 = medal != null;
-    final fg = isTop3 ? medal.$1 : DashKit.grey;
-    final bg = isTop3
-        ? medal.$2
-        : (highlight ? Colors.white : DashKit.fillSoft);
+    final fg = isTop3 ? medal.$1 : c.grey;
+    final bg = isTop3 ? medal.$2 : (highlight ? Colors.white : c.fillSoft);
     return Container(
       width: 36,
       height: 36,

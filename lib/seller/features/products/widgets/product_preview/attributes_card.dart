@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import 'product_preview_kit.dart';
 
@@ -30,6 +31,7 @@ class AttributesCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final hasColors = colorChips.isNotEmpty;
     final totalRows = rows.length + (hasColors ? 1 : 0);
 
@@ -42,7 +44,7 @@ class AttributesCard extends StatelessWidget {
           for (var i = 0; i < rows.length; i++) ...[
             _TextRow(label: rows[i].$1, value: rows[i].$2),
             if (i != totalRows - 1)
-              const Divider(height: 1, thickness: 1, color: kDivider),
+              Divider(height: 1, thickness: 1, color: c.dividerStrong),
           ],
           if (hasColors) _ColorsRow(chips: colorChips),
         ],
@@ -59,6 +61,7 @@ class _TextRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
@@ -68,11 +71,11 @@ class _TextRow extends StatelessWidget {
             flex: 4,
             child: Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: AppFonts.seller,
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: kGrey,
+                color: c.grey,
                 height: 1.3,
               ),
             ),
@@ -83,11 +86,11 @@ class _TextRow extends StatelessWidget {
             child: Text(
               value,
               textAlign: TextAlign.end,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: AppFonts.seller,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: kInk,
+                color: c.ink,
                 height: 1.3,
                 letterSpacing: -0.05,
               ),
@@ -107,12 +110,13 @@ class _ColorsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Expanded(
+          Expanded(
             flex: 4,
             child: Text(
               'Ranglar',
@@ -120,7 +124,7 @@ class _ColorsRow extends StatelessWidget {
                 fontFamily: AppFonts.seller,
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: kGrey,
+                color: c.grey,
                 height: 1.3,
               ),
             ),
@@ -150,12 +154,13 @@ class _ColorSwatchChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Container(
       padding: const EdgeInsets.fromLTRB(4, 4, 10, 4),
       decoration: BoxDecoration(
-        color: kSurfaceMuted,
+        color: c.fillSoft,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: kOutline),
+        border: Border.all(color: c.outline),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -166,17 +171,17 @@ class _ColorSwatchChip extends StatelessWidget {
             decoration: BoxDecoration(
               color: chip.swatch,
               shape: BoxShape.circle,
-              border: Border.all(color: kOutline, width: 1),
+              border: Border.all(color: c.outline, width: 1),
             ),
           ),
           const SizedBox(width: 6),
           Text(
             chip.label,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: kInk,
+              color: c.ink,
               height: 1.0,
               letterSpacing: -0.05,
             ),

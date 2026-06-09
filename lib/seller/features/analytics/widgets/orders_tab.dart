@@ -2,6 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/models/analytics.dart';
 import '../../../../shared/models/order_status.dart';
@@ -11,7 +12,11 @@ import 'revenue_line_chart.dart';
 /// "Buyurtmalar" tab — fulfilment view. Shows order volume, the per-status
 /// donut, completion / cancellation rates, and a small "by status" list.
 class OrdersTab extends StatelessWidget {
-  const OrdersTab({super.key, required this.snapshot, required this.refreshing});
+  const OrdersTab({
+    super.key,
+    required this.snapshot,
+    required this.refreshing,
+  });
 
   final AnalyticsSnapshot snapshot;
   final bool refreshing;
@@ -147,6 +152,7 @@ class _StatusBreakdownCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final slices = orders.byStatus;
     final cancel = orders.cancellationRate;
     return Column(
@@ -189,7 +195,7 @@ class _StatusBreakdownCard extends StatelessWidget {
                       ],
                     ),
                     if (cancel != null) ...[
-                      const Divider(height: 24, color: Color(0xFFEFEFEF)),
+                      Divider(height: 24, color: c.divider),
                       Row(
                         children: [
                           const Icon(
@@ -205,7 +211,7 @@ class _StatusBreakdownCard extends StatelessWidget {
                                 fontFamily: AppFonts.seller,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
-                                color: AnalyticsTokens.grey,
+                                color: c.grey,
                               ),
                             ),
                           ),
@@ -264,6 +270,7 @@ class _StatusLegend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Row(
       children: [
         Container(
@@ -284,7 +291,7 @@ class _StatusLegend extends StatelessWidget {
               fontFamily: AppFonts.seller,
               fontSize: 13,
               fontWeight: FontWeight.w500,
-              color: AnalyticsTokens.ink,
+              color: c.ink,
               height: 1.2,
             ),
           ),
@@ -296,7 +303,7 @@ class _StatusLegend extends StatelessWidget {
             fontFamily: AppFonts.seller,
             fontSize: 13,
             fontWeight: FontWeight.w700,
-            color: AnalyticsTokens.ink,
+            color: c.ink,
             height: 1.2,
           ),
         ),
@@ -307,7 +314,7 @@ class _StatusLegend extends StatelessWidget {
             fontFamily: AppFonts.seller,
             fontSize: 11,
             fontWeight: FontWeight.w500,
-            color: AnalyticsTokens.grey,
+            color: c.grey,
             height: 1.2,
           ),
         ),
@@ -333,8 +340,8 @@ Color _statusColor(String status, int index) {
     case 'pending':
       return AnalyticsTokens.warning;
     default:
-      return AnalyticsTokens
-          .chartPalette[index % AnalyticsTokens.chartPalette.length];
+      return AnalyticsTokens.chartPalette[index %
+          AnalyticsTokens.chartPalette.length];
   }
 }
 
@@ -355,18 +362,18 @@ class _ChartPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Container(
       height: 140,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: AnalyticsTokens.placeholderBg,
+        color: c.fillSoft,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Iconsax.shopping_bag,
-              size: 32, color: AnalyticsTokens.greyMid),
+          Icon(Iconsax.shopping_bag, size: 32, color: c.greyMid),
           const SizedBox(height: 8),
           Text(
             message,
@@ -374,7 +381,7 @@ class _ChartPlaceholder extends StatelessWidget {
               fontFamily: AppFonts.seller,
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: AnalyticsTokens.grey,
+              color: c.grey,
             ),
           ),
         ],

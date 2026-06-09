@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import '../../../../../shared/constants/product_colors.dart';
 import 'form_kit.dart';
@@ -25,6 +26,7 @@ class VariantSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -33,28 +35,28 @@ class VariantSection extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Padding(
-                padding: EdgeInsets.only(left: 2, bottom: 8),
+              Padding(
+                padding: const EdgeInsets.only(left: 2, bottom: 8),
                 child: Text(
                   'Ranglar',
                   style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: kGrey,
+                    color: c.grey,
                     letterSpacing: 0.1,
                   ),
                 ),
               ),
-              const Padding(
-                padding: EdgeInsets.only(left: 2, bottom: 10),
+              Padding(
+                padding: const EdgeInsets.only(left: 2, bottom: 10),
                 child: Text(
                   'Bir nechtasini tanlash mumkin',
                   style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
-                    color: kGreyMid,
+                    color: c.greyMid,
                     letterSpacing: 0,
                   ),
                 ),
@@ -95,10 +97,11 @@ class _ColorChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final primary = Theme.of(context).colorScheme.primary;
     final tint = primary.withValues(alpha: 0.08);
     return Material(
-      color: selected ? tint : Colors.white,
+      color: selected ? tint : c.surface,
       borderRadius: BorderRadius.circular(999),
       child: InkWell(
         onTap: onTap,
@@ -108,7 +111,7 @@ class _ColorChip extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(999),
             border: Border.all(
-              color: selected ? primary : kOutline,
+              color: selected ? primary : c.outline,
               width: selected ? 1.4 : 1,
             ),
           ),
@@ -123,7 +126,7 @@ class _ColorChip extends StatelessWidget {
                   fontFamily: AppFonts.seller,
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
-                  color: selected ? primary : kInk,
+                  color: selected ? primary : c.ink,
                   letterSpacing: -0.1,
                 ),
               ),
@@ -143,6 +146,7 @@ class _Swatch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final primary = Theme.of(context).colorScheme.primary;
     // Pick a contrasting tick icon depending on the swatch brightness so the
     // check stays visible against both light (e.g. white) and dark fills.
@@ -153,7 +157,7 @@ class _Swatch extends StatelessWidget {
       decoration: BoxDecoration(
         color: color,
         shape: BoxShape.circle,
-        border: Border.all(color: kOutline, width: 1),
+        border: Border.all(color: c.outline, width: 1),
       ),
       alignment: Alignment.center,
       child: checked

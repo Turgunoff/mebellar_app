@@ -33,20 +33,22 @@ import '../../../../seller/features/products/widgets/product_preview/description
 import '../../../../seller/features/products/widgets/product_preview/logistics_card.dart';
 import '../../../../seller/features/products/widgets/product_preview/meta_card.dart';
 import '../../../../seller/features/products/widgets/product_preview/preview_app_bar.dart';
-import '../../../../seller/features/products/widgets/product_preview/product_preview_kit.dart';
 import '../../../../seller/features/products/widgets/product_preview/spec_cards.dart';
 import '../../../features/cart/bloc/cart_bloc.dart';
 import '../../../features/favorites/bloc/favorites_bloc.dart';
 import '../../home/widgets/premium/premium_product_card.dart';
+import '../../home/widgets/premium/premium_tokens.dart';
 
 part 'catalog_product_detail_sections.dart';
 
 /// Seller-mode font + Uzbek number grouping — kept identical to the seller
-/// preview so the customer detail page renders the same.
+/// preview so the customer detail page renders the same. `color` is nullable:
+/// pass an adaptive `PremiumTokens.of(context).dark` from the call site (it
+/// can't be a const default).
 TextStyle _ts({
   required double size,
   FontWeight weight = FontWeight.w500,
-  Color color = kInk,
+  Color? color,
   double height = 1.3,
   double letterSpacing = 0,
 }) {
@@ -61,6 +63,52 @@ TextStyle _ts({
 }
 
 String _money(num value) => NumberFormat('#,###', 'uz').format(value);
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Customer-native section primitives — replace the seller kit's SectionCard /
+// SectionTitle (which read SellerColors). These flip with customer dark mode
+// via PremiumTokens. Shared with the `part` file (catalog_product_detail_sections).
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: pt.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: PremiumTokens.softShadow,
+      ),
+      child: child,
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w700,
+        color: PremiumTokens.of(context).dark,
+        letterSpacing: -0.2,
+        height: 1.2,
+      ),
+    );
+  }
+}
 
 class CatalogProductDetailScreen extends StatefulWidget {
   const CatalogProductDetailScreen({super.key, required this.product});
@@ -416,7 +464,8 @@ class _TitlePriceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SectionCard(
+    final pt = PremiumTokens.of(context);
+    return _SectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -427,6 +476,7 @@ class _TitlePriceCard extends StatelessWidget {
               weight: FontWeight.w700,
               letterSpacing: -0.4,
               height: 1.25,
+              color: pt.dark,
             ),
           ),
           const SizedBox(height: 14),
@@ -441,6 +491,7 @@ class _TitlePriceCard extends StatelessWidget {
                     weight: FontWeight.w800,
                     letterSpacing: -0.6,
                     height: 1.0,
+                    color: pt.dark,
                   ),
                   children: [
                     TextSpan(
@@ -448,7 +499,7 @@ class _TitlePriceCard extends StatelessWidget {
                       style: _ts(
                         size: 13,
                         weight: FontWeight.w700,
-                        color: kGreyMid,
+                        color: pt.greyLight,
                       ),
                     ),
                   ],
@@ -464,11 +515,11 @@ class _TitlePriceCard extends StatelessWidget {
                         _ts(
                           size: 13,
                           weight: FontWeight.w500,
-                          color: kGreySoft,
+                          color: pt.greyLight,
                           height: 1.0,
                         ).copyWith(
                           decoration: TextDecoration.lineThrough,
-                          decorationColor: kGreySoft,
+                          decorationColor: pt.greyLight,
                         ),
                   ),
                 ),
@@ -495,7 +546,7 @@ class _TitlePriceCard extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 14),
-          const Divider(height: 1, thickness: 1, color: kDivider),
+          Divider(height: 1, thickness: 1, color: pt.divider),
           const SizedBox(height: 14),
           Row(
             children: [
@@ -535,6 +586,7 @@ class _ShopCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
     final tappable = (shopId ?? '').isNotEmpty;
     final row = Row(
       children: [
@@ -556,11 +608,11 @@ class _ShopCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Sotuvchi', style: _ts(size: 12, color: kGrey)),
+              Text('Sotuvchi', style: _ts(size: 12, color: pt.grey)),
               const SizedBox(height: 2),
               Text(
                 name,
-                style: _ts(size: 14.5, weight: FontWeight.w600),
+                style: _ts(size: 14.5, weight: FontWeight.w600, color: pt.dark),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -586,8 +638,8 @@ class _ShopCard extends StatelessWidget {
       ],
     );
 
-    if (!tappable) return SectionCard(child: row);
-    return SectionCard(
+    if (!tappable) return _SectionCard(child: row);
+    return _SectionCard(
       child: InkWell(
         onTap: () => context.push('/shop/$shopId'),
         borderRadius: BorderRadius.circular(8),
@@ -623,13 +675,13 @@ class _ColorsCard extends StatelessWidget {
     final selected = selectedSlug == null
         ? null
         : productColorBySlug(selectedSlug!);
-    return SectionCard(
+    return _SectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const SectionTitle(text: 'Rang tanlang'),
+              const _SectionTitle(text: 'Rang tanlang'),
               const Spacer(),
               if (selected != null)
                 Row(
@@ -702,6 +754,7 @@ class _ColorChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
     // The tick contrasts against the swatch: dark accent on light fills
     // (e.g. white/beige), white on dark ones — so it stays visible on both.
     final tickColor = option.swatch.computeLuminance() > 0.6
@@ -715,10 +768,10 @@ class _ColorChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected
               ? AppColors.terracotta.withValues(alpha: 0.08)
-              : kSurfaceMuted,
+              : pt.background,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
-            color: selected ? AppColors.terracotta : kOutline,
+            color: selected ? AppColors.terracotta : pt.divider,
             width: selected ? 1.5 : 1,
           ),
         ),
@@ -732,7 +785,7 @@ class _ColorChip extends StatelessWidget {
               decoration: BoxDecoration(
                 color: option.swatch,
                 shape: BoxShape.circle,
-                border: Border.all(color: kOutline, width: 1),
+                border: Border.all(color: pt.divider, width: 1),
               ),
               child: selected
                   ? Icon(Icons.check_rounded, size: 13, color: tickColor)
@@ -744,7 +797,7 @@ class _ColorChip extends StatelessWidget {
               style: _ts(
                 size: 13,
                 weight: FontWeight.w700,
-                color: selected ? AppColors.terracotta : kInk,
+                color: selected ? AppColors.terracotta : pt.dark,
               ),
             ),
           ],
@@ -793,19 +846,20 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
             ) ??
             ProductReviewSummary.empty;
         if (summary.isEmpty) return const SizedBox.shrink();
+        final pt = PremiumTokens.of(context);
         final shown = summary.reviews.take(4).toList();
         return Padding(
           padding: const EdgeInsets.only(top: 14),
-          child: SectionCard(
+          child: _SectionCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SectionTitle(text: 'Sharhlar'),
+                const _SectionTitle(text: 'Sharhlar'),
                 const SizedBox(height: 14),
                 _SummaryRow(summary: summary),
                 for (final review in shown) ...[
                   const SizedBox(height: 12),
-                  const Divider(height: 1, thickness: 1, color: kDivider),
+                  Divider(height: 1, thickness: 1, color: pt.divider),
                   const SizedBox(height: 12),
                   _ReviewRow(review: review),
                 ],
@@ -816,7 +870,7 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
                     style: _ts(
                       size: 12.5,
                       weight: FontWeight.w600,
-                      color: kGrey,
+                      color: pt.grey,
                     ),
                   ),
                 ],
@@ -836,14 +890,20 @@ class _SummaryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
     return Row(
       children: [
         Text(
           summary.average.toStringAsFixed(1),
-          style: _ts(size: 34, weight: FontWeight.w800, letterSpacing: -0.6),
+          style: _ts(
+            size: 34,
+            weight: FontWeight.w800,
+            letterSpacing: -0.6,
+            color: pt.dark,
+          ),
         ),
         const SizedBox(width: 14),
-        Container(width: 1, height: 42, color: kDivider),
+        Container(width: 1, height: 42, color: pt.divider),
         const SizedBox(width: 14),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -852,7 +912,7 @@ class _SummaryRow extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               '${summary.count} ta xaridor baho berdi',
-              style: _ts(size: 12.5, color: kGrey),
+              style: _ts(size: 12.5, color: pt.grey),
             ),
           ],
         ),
@@ -868,6 +928,7 @@ class _ReviewRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
     final name = review.customerName.trim();
     final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
     final comment = review.comment.trim();
@@ -900,14 +961,18 @@ class _ReviewRow extends StatelessWidget {
                 children: [
                   Text(
                     name.isEmpty ? 'Xaridor' : name,
-                    style: _ts(size: 13.5, weight: FontWeight.w600),
+                    style: _ts(
+                      size: 13.5,
+                      weight: FontWeight.w600,
+                      color: pt.dark,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 2),
                   Text(
                     _fmtReviewDate(review.createdAt),
-                    style: _ts(size: 11, color: kGreySoft),
+                    style: _ts(size: 11, color: pt.greyLight),
                   ),
                 ],
               ),
@@ -917,7 +982,7 @@ class _ReviewRow extends StatelessWidget {
         ),
         if (comment.isNotEmpty) ...[
           const SizedBox(height: 8),
-          Text(comment, style: _ts(size: 13, color: kInk, height: 1.5)),
+          Text(comment, style: _ts(size: 13, color: pt.dark, height: 1.5)),
         ],
         if (review.hasReply) ...[
           const SizedBox(height: 10),
@@ -925,7 +990,7 @@ class _ReviewRow extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(11),
             decoration: BoxDecoration(
-              color: kSurfaceMuted,
+              color: pt.background,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Column(
@@ -933,18 +998,22 @@ class _ReviewRow extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Icon(Iconsax.shop, size: 12, color: kGrey),
+                    Icon(Iconsax.shop, size: 12, color: pt.grey),
                     const SizedBox(width: 5),
                     Text(
                       'Sotuvchi javobi',
-                      style: _ts(size: 11.5, weight: FontWeight.w700),
+                      style: _ts(
+                        size: 11.5,
+                        weight: FontWeight.w700,
+                        color: pt.dark,
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 5),
                 Text(
                   review.sellerReply!.trim(),
-                  style: _ts(size: 12.5, color: kGrey, height: 1.45),
+                  style: _ts(size: 12.5, color: pt.grey, height: 1.45),
                 ),
               ],
             ),
@@ -962,4 +1031,3 @@ String _fmtReviewDate(DateTime date) {
   final mm = d.month.toString().padLeft(2, '0');
   return '$dd.$mm.${d.year}';
 }
-

@@ -80,6 +80,7 @@ class _RevenueLineChartState extends State<RevenueLineChart> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = SellerColors.of(context);
     final hasDates =
         widget.dates != null && widget.dates!.length == widget.values.length;
     // 22px reserved for the x-axis labels strip when present.
@@ -120,6 +121,9 @@ class _RevenueLineChartState extends State<RevenueLineChart> {
                       hourFmt: _hourFmt,
                       selectedIndex: _selectedIndex,
                       labelStripHeight: labelStrip,
+                      lineColor: colors.primary,
+                      axisTextColor: colors.greyFaint,
+                      dotRingColor: colors.surface,
                     ),
                   ),
                 ),
@@ -266,6 +270,9 @@ class _RevenueChartPainter extends CustomPainter {
     required this.hourFmt,
     required this.selectedIndex,
     required this.labelStripHeight,
+    required this.lineColor,
+    required this.axisTextColor,
+    required this.dotRingColor,
   });
 
   final List<num> values;
@@ -277,11 +284,22 @@ class _RevenueChartPainter extends CustomPainter {
   final int? selectedIndex;
   final double labelStripHeight;
 
-  static const _line = AppColors.sellerPrimary;
+  /// Curve + selection-dot colour. The indigo brand accent in light, the
+  /// theme's adaptive primary in dark — passed in so the painter (which has
+  /// no `BuildContext`) stays theme-aware.
+  final Color lineColor;
+
+  /// X-axis label colour — `SellerColors.greyFaint`, flips with the theme.
+  final Color axisTextColor;
+
+  /// Stroke ring around the selection dot — the card surface colour so the
+  /// dot reads as a punched-out hole on both light and dark cards.
+  final Color dotRingColor;
+
+  // Gradient fill under the curve stays the fixed indigo wash on both modes.
   static const _fillTop = Color(0x333949AB); // indigo @ 20%
   static const _fillBottom = Color(0x003949AB);
   static const _guide = Color(0xFFBDBDBD);
-  static const _axisText = Color(0xFF9E9E9E);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -326,7 +344,7 @@ class _RevenueChartPainter extends CustomPainter {
     canvas.drawPath(
       linePath,
       Paint()
-        ..color = _line
+        ..color = lineColor
         ..strokeWidth = 3
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round
@@ -360,13 +378,17 @@ class _RevenueChartPainter extends CustomPainter {
           ..strokeWidth = 1,
       );
       // Outer halo + inner dot.
-      canvas.drawCircle(p, 7, Paint()..color = _line.withValues(alpha: 0.15));
-      canvas.drawCircle(p, 4, Paint()..color = _line);
+      canvas.drawCircle(
+        p,
+        7,
+        Paint()..color = lineColor.withValues(alpha: 0.15),
+      );
+      canvas.drawCircle(p, 4, Paint()..color = lineColor);
       canvas.drawCircle(
         p,
         4,
         Paint()
-          ..color = Colors.white
+          ..color = dotRingColor
           ..strokeWidth = 1.5
           ..style = PaintingStyle.stroke,
       );
@@ -410,11 +432,11 @@ class _RevenueChartPainter extends CustomPainter {
       final tp = TextPainter(
         text: TextSpan(
           text: label,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'Plus Jakarta Sans',
             fontSize: 10,
             fontWeight: FontWeight.w500,
-            color: _axisText,
+            color: axisTextColor,
             height: 1.0,
           ),
         ),
@@ -480,7 +502,10 @@ class _RevenueChartPainter extends CustomPainter {
     return old.values != values ||
         old.dates != dates ||
         old.selectedIndex != selectedIndex ||
-        old.granularity != granularity;
+        old.granularity != granularity ||
+        old.lineColor != lineColor ||
+        old.axisTextColor != axisTextColor ||
+        old.dotRingColor != dotRingColor;
   }
 }
 

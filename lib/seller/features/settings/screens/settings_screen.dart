@@ -4,15 +4,10 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../../core/theme/app_colors.dart';
 
-// Local tokens — kept here so the screen reads top-to-bottom without
-// chasing theme indirection. Plus Jakarta Sans is applied to every
-// `Text` explicitly via `AppFonts.seller` so the surface
-// is immune to the M3 surface tint that the teal seller seed otherwise
-// bleeds onto neutral backgrounds.
-const _ink = Color(0xFF1D1D1D);
-const _grey = Color(0xFF757575);
-const _greyMid = Color(0xFFBDBDBD);
-const _divider = Color(0xFFEFEFEF);
+// All neutral colours now come from `SellerColors.of(context)` so the surface
+// flips with the theme. Plus Jakarta Sans is applied to every `Text` explicitly
+// via `AppFonts.seller` so the surface is immune to the M3 surface tint that the
+// seller seed otherwise bleeds onto neutral backgrounds.
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -38,8 +33,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: c.background,
       appBar: const _SettingsAppBar(),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
@@ -103,7 +99,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               _NavRow(
                 icon: Iconsax.trash,
-                iconColor: _grey,
+                iconColor: c.grey,
                 title: 'Keshni tozalash',
                 trailingText: '24 MB',
                 onTap: () {},
@@ -135,14 +131,15 @@ class _SettingsAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: c.surface,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       scrolledUnderElevation: 0,
-      foregroundColor: _ink,
+      foregroundColor: c.ink,
       leading: IconButton(
-        icon: const Icon(Iconsax.arrow_left_2, size: 22, color: _ink),
+        icon: Icon(Iconsax.arrow_left_2, size: 22, color: c.ink),
         onPressed: () => Navigator.of(context).maybePop(),
       ),
       title: Text(
@@ -151,7 +148,7 @@ class _SettingsAppBar extends StatelessWidget implements PreferredSizeWidget {
           fontFamily: AppFonts.seller,
           fontSize: 18,
           fontWeight: FontWeight.w700,
-          color: _ink,
+          color: c.ink,
           letterSpacing: -0.2,
         ),
       ),
@@ -169,6 +166,7 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Padding(
       padding: const EdgeInsets.only(left: 4),
       child: Text(
@@ -177,7 +175,7 @@ class _SectionLabel extends StatelessWidget {
           fontFamily: AppFonts.seller,
           fontSize: 12,
           fontWeight: FontWeight.w700,
-          color: _grey,
+          color: c.grey,
           letterSpacing: 0.4,
           height: 1.2,
         ),
@@ -196,9 +194,10 @@ class _SettingsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -221,9 +220,10 @@ class _RowDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.only(left: 60),
-      child: Divider(height: 1, thickness: 1, color: _divider),
+    final c = SellerColors.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(left: 60),
+      child: Divider(height: 1, thickness: 1, color: c.divider),
     );
   }
 }
@@ -250,6 +250,7 @@ class _NavRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -258,7 +259,7 @@ class _NavRow extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(14, 14, 16, 14),
           child: Row(
             children: [
-              Icon(icon, size: 22, color: iconColor ?? _ink),
+              Icon(icon, size: 22, color: iconColor ?? c.ink),
               const SizedBox(width: 16),
               Expanded(
                 child: Text(
@@ -267,7 +268,7 @@ class _NavRow extends StatelessWidget {
                     fontFamily: AppFonts.seller,
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: _ink,
+                    color: c.ink,
                     letterSpacing: -0.1,
                     height: 1.25,
                   ),
@@ -281,14 +282,14 @@ class _NavRow extends StatelessWidget {
                     fontFamily: AppFonts.seller,
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
-                    color: _grey,
+                    color: c.grey,
                     height: 1.2,
                   ),
                 ),
               ],
               if (showChevron) ...[
                 const SizedBox(width: 8),
-                const Icon(Iconsax.arrow_right_3, size: 18, color: _greyMid),
+                Icon(Iconsax.arrow_right_3, size: 18, color: c.greyMid),
               ],
             ],
           ),
@@ -318,6 +319,7 @@ class _SwitchRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -326,7 +328,7 @@ class _SwitchRow extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(14, 10, 12, 10),
           child: Row(
             children: [
-              Icon(icon, size: 22, color: _ink),
+              Icon(icon, size: 22, color: c.ink),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -339,7 +341,7 @@ class _SwitchRow extends StatelessWidget {
                         fontFamily: AppFonts.seller,
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: _ink,
+                        color: c.ink,
                         letterSpacing: -0.1,
                         height: 1.25,
                       ),
@@ -352,7 +354,7 @@ class _SwitchRow extends StatelessWidget {
                           fontFamily: AppFonts.seller,
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
-                          color: _grey,
+                          color: c.grey,
                           height: 1.3,
                         ),
                       ),

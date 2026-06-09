@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import '../../../../../shared/models/attribute_definition.dart';
 import '../../../../../shared/models/attribute_option.dart';
@@ -92,6 +93,7 @@ class _SchemaLoadingPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final primary = Theme.of(context).colorScheme.primary;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 18),
@@ -107,13 +109,13 @@ class _SchemaLoadingPlaceholder extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          const Text(
+          Text(
             'Xususiyatlar yuklanmoqda…',
             style: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: kGrey,
+              color: c.grey,
             ),
           ),
         ],
@@ -209,6 +211,7 @@ class _FieldLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Padding(
       padding: const EdgeInsets.only(left: 2),
       child: Row(
@@ -216,11 +219,11 @@ class _FieldLabel extends StatelessWidget {
           Flexible(
             child: Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: AppFonts.seller,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: kGrey,
+                color: c.grey,
                 letterSpacing: 0.1,
               ),
             ),
@@ -310,10 +313,11 @@ class _OptionChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final primary = Theme.of(context).colorScheme.primary;
     final tint = primary.withValues(alpha: 0.08);
     return Material(
-      color: selected ? tint : Colors.white,
+      color: selected ? tint : c.surface,
       borderRadius: BorderRadius.circular(999),
       child: InkWell(
         onTap: onTap,
@@ -323,7 +327,7 @@ class _OptionChip extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(999),
             border: Border.all(
-              color: selected ? primary : kOutline,
+              color: selected ? primary : c.outline,
               width: selected ? 1.4 : 1,
             ),
           ),
@@ -333,7 +337,7 @@ class _OptionChip extends StatelessWidget {
               fontFamily: AppFonts.seller,
               fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: selected ? primary : kInk,
+              color: selected ? primary : c.ink,
               letterSpacing: -0.1,
             ),
           ),

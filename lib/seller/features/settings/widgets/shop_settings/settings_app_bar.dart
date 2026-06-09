@@ -4,7 +4,6 @@ import 'package:woody_app/core/i18n/i18n.dart';
 
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
-import 'settings_form_kit.dart';
 
 /// App bar for the shop-settings screen — back arrow + bold title.
 class ShopSettingsAppBar extends StatelessWidget
@@ -16,23 +15,24 @@ class ShopSettingsAppBar extends StatelessWidget
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return AppBar(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: c.background,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       scrolledUnderElevation: 0,
-      foregroundColor: kInk,
+      foregroundColor: c.ink,
       leading: IconButton(
-        icon: const Icon(Iconsax.arrow_left_2, size: 22, color: kInk),
+        icon: Icon(Iconsax.arrow_left_2, size: 22, color: c.ink),
         onPressed: () => Navigator.of(context).maybePop(),
       ),
       title: Text(
         tr('shop_settings.title'),
-        style: const TextStyle(
+        style: TextStyle(
           fontFamily: AppFonts.seller,
           fontSize: 18,
           fontWeight: FontWeight.w700,
-          color: kInk,
+          color: c.ink,
           letterSpacing: -0.2,
         ),
       ),

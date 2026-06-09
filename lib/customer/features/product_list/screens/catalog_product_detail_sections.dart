@@ -30,6 +30,7 @@ class _SimilarSectionState extends State<_SimilarSection> {
 
   @override
   Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
     return FutureBuilder<List<ProductModel>>(
       future: _future,
       initialData: _cached,
@@ -46,6 +47,7 @@ class _SimilarSectionState extends State<_SimilarSection> {
                     size: 16,
                     weight: FontWeight.w700,
                     letterSpacing: -0.2,
+                    color: pt.dark,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -67,6 +69,7 @@ class _SimilarSectionState extends State<_SimilarSection> {
                   size: 16,
                   weight: FontWeight.w700,
                   letterSpacing: -0.2,
+                  color: pt.dark,
                 ),
               ),
               const SizedBox(height: 16),
@@ -124,6 +127,7 @@ class _SimilarSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
     return SizedBox(
       height: _kSimilarCardHeight,
       child: ListView.separated(
@@ -132,12 +136,12 @@ class _SimilarSkeleton extends StatelessWidget {
         itemCount: 4,
         separatorBuilder: (_, _) => const SizedBox(width: 14),
         itemBuilder: (_, _) => Shimmer.fromColors(
-          baseColor: kImageBg,
+          baseColor: pt.imageBg,
           highlightColor: Colors.white,
           child: Container(
             width: _kSimilarCardWidth,
             decoration: BoxDecoration(
-              color: kImageBg,
+              color: pt.imageBg,
               borderRadius: BorderRadius.circular(20),
             ),
           ),
@@ -159,6 +163,7 @@ class _BottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
     return Container(
       padding: EdgeInsets.fromLTRB(
         16,
@@ -167,7 +172,7 @@ class _BottomBar extends StatelessWidget {
         MediaQuery.paddingOf(context).bottom + 14,
       ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: pt.surface,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.07),
@@ -192,18 +197,18 @@ class _BottomBar extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: isFav
                         ? AppColors.terracotta.withValues(alpha: 0.12)
-                        : kImageBg,
+                        : pt.imageBg,
                     borderRadius: BorderRadius.circular(15),
                     border: Border.all(
                       color: isFav
                           ? AppColors.terracotta.withValues(alpha: 0.4)
-                          : kOutline,
+                          : pt.divider,
                     ),
                   ),
                   child: Icon(
                     isFav ? Iconsax.heart_copy : Iconsax.heart,
                     size: 23,
-                    color: isFav ? AppColors.terracotta : kGrey,
+                    color: isFav ? AppColors.terracotta : pt.grey,
                   ),
                 ),
               );
@@ -251,4 +256,3 @@ class _BottomBar extends StatelessWidget {
 // ═══════════════════════════════════════════════════════════════════════════
 // Helpers
 // ═══════════════════════════════════════════════════════════════════════════
-

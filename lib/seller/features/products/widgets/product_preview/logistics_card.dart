@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import 'product_preview_kit.dart';
 
@@ -68,6 +69,7 @@ class LogisticsCard extends StatelessWidget {
     ];
 
     if (rows.isEmpty) return const SizedBox.shrink();
+    final c = SellerColors.of(context);
 
     return SectionCard(
       child: Column(
@@ -81,7 +83,7 @@ class LogisticsCard extends StatelessWidget {
               child: _RowTile(row: rows[i]),
             ),
             if (i != rows.length - 1)
-              const Divider(height: 1, thickness: 1, color: kDivider),
+              Divider(height: 1, thickness: 1, color: c.dividerStrong),
           ],
         ],
       ),
@@ -112,6 +114,7 @@ class _RowTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -119,11 +122,11 @@ class _RowTile extends StatelessWidget {
           width: 32,
           height: 32,
           decoration: BoxDecoration(
-            color: kSurfaceMuted,
+            color: c.fillSoft,
             borderRadius: BorderRadius.circular(10),
           ),
           alignment: Alignment.center,
-          child: Icon(row.icon, size: 16, color: kGrey),
+          child: Icon(row.icon, size: 16, color: c.grey),
         ),
         const SizedBox(width: 12),
         // Label stays its natural width up to ~45% of the row so a long
@@ -133,11 +136,11 @@ class _RowTile extends StatelessWidget {
           flex: 5,
           child: Text(
             row.label,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 13,
               fontWeight: FontWeight.w500,
-              color: kGrey,
+              color: c.grey,
               height: 1.25,
             ),
           ),
@@ -155,7 +158,7 @@ class _RowTile extends StatelessWidget {
                   fontFamily: AppFonts.seller,
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: row.muted ? kGreyMid : kInk,
+                  color: row.muted ? c.greyMid : c.ink,
                   height: 1.25,
                   letterSpacing: -0.05,
                 ),
@@ -165,11 +168,11 @@ class _RowTile extends StatelessWidget {
                 Text(
                   row.secondary!,
                   textAlign: TextAlign.end,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 11.5,
                     fontWeight: FontWeight.w500,
-                    color: kGrey,
+                    color: c.grey,
                     height: 1.2,
                   ),
                 ),

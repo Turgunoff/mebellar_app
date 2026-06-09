@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import 'form_kit.dart';
 import 'thousands_formatter.dart';
@@ -39,6 +40,7 @@ class LogisticsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -53,9 +55,9 @@ class LogisticsSection extends StatelessWidget {
                 suffix: 'kun',
                 onChanged: onProductionDaysChanged,
               ),
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 14),
-                child: Divider(height: 1, thickness: 1, color: kDivider),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                child: Divider(height: 1, thickness: 1, color: c.divider),
               ),
               _ToggleRow(
                 icon: Iconsax.truck_fast,
@@ -82,9 +84,9 @@ class LogisticsSection extends StatelessWidget {
                   },
                 ),
               ],
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 14),
-                child: Divider(height: 1, thickness: 1, color: kDivider),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                child: Divider(height: 1, thickness: 1, color: c.divider),
               ),
               _ToggleRow(
                 icon: Iconsax.setting_4,
@@ -108,9 +110,9 @@ class LogisticsSection extends StatelessWidget {
                   },
                 ),
               ],
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 14),
-                child: Divider(height: 1, thickness: 1, color: kDivider),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                child: Divider(height: 1, thickness: 1, color: c.divider),
               ),
               FormTextField(
                 controller: warrantyController,
@@ -146,6 +148,7 @@ class _ToggleRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final primary = Theme.of(context).colorScheme.primary;
     return Row(
       children: [
@@ -166,22 +169,22 @@ class _ToggleRow extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: kInk,
+                  color: c.ink,
                   letterSpacing: -0.1,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 subtitle,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: kGrey,
+                  color: c.grey,
                 ),
               ),
             ],

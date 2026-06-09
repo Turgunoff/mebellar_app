@@ -21,6 +21,7 @@ class CustomerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return SectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -51,23 +52,23 @@ class CustomerCard extends StatelessWidget {
                       name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: AppFonts.seller,
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
-                        color: kInk,
+                        color: c.ink,
                         height: 1.2,
                         letterSpacing: -0.2,
                       ),
                     ),
                     const SizedBox(height: 4),
-                    const Text(
+                    Text(
                       'Mijoz',
                       style: TextStyle(
                         fontFamily: AppFonts.seller,
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
-                        color: kGrey,
+                        color: c.grey,
                         height: 1.2,
                       ),
                     ),
@@ -77,7 +78,7 @@ class CustomerCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          const Divider(height: 1, thickness: 1, color: kDivider),
+          Divider(height: 1, thickness: 1, color: c.dividerStrong),
           const SizedBox(height: 14),
           _ContactRow(
             label: 'Telefon',
@@ -87,7 +88,7 @@ class CustomerCard extends StatelessWidget {
             onTap: () {},
           ),
           const SizedBox(height: 12),
-          const Divider(height: 1, thickness: 1, color: kDivider),
+          Divider(height: 1, thickness: 1, color: c.dividerStrong),
           const SizedBox(height: 12),
           _AddressRow(address: address),
         ],
@@ -113,9 +114,10 @@ class _ContactRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Row(
       children: [
-        const Icon(Iconsax.call, size: 18, color: kGrey),
+        Icon(Iconsax.call, size: 18, color: c.grey),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -123,22 +125,22 @@ class _ContactRow extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
-                  color: kGrey,
+                  color: c.grey,
                   height: 1.2,
                 ),
               ),
               const SizedBox(height: 3),
               Text(
                 value,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: kInk,
+                  color: c.ink,
                   height: 1.2,
                   letterSpacing: -0.1,
                 ),
@@ -186,6 +188,7 @@ class _AddressRow extends StatelessWidget {
   final String address;
 
   Future<void> _copy(BuildContext context) async {
+    final c = SellerColors.of(context);
     await Clipboard.setData(ClipboardData(text: address));
     if (!context.mounted) return;
     ScaffoldMessenger.of(context)
@@ -194,14 +197,14 @@ class _AddressRow extends StatelessWidget {
         SnackBar(
           duration: const Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
-          backgroundColor: kInk,
-          content: const Text(
+          backgroundColor: c.ink,
+          content: Text(
             "Manzil nusxa olindi",
             style: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: Colors.white,
+              color: c.surface,
             ),
           ),
         ),
@@ -210,36 +213,37 @@ class _AddressRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.only(top: 1),
-          child: Icon(Iconsax.location, size: 18, color: kGrey),
+        Padding(
+          padding: const EdgeInsets.only(top: 1),
+          child: Icon(Iconsax.location, size: 18, color: c.grey),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 "Yetkazib berish manzili",
                 style: TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
-                  color: kGrey,
+                  color: c.grey,
                   height: 1.2,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 address,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 13.5,
                   fontWeight: FontWeight.w500,
-                  color: kInk,
+                  color: c.ink,
                   height: 1.45,
                   letterSpacing: -0.1,
                 ),
@@ -249,7 +253,7 @@ class _AddressRow extends StatelessWidget {
         ),
         const SizedBox(width: 8),
         Material(
-          color: kSurfaceMuted,
+          color: c.fillSoft,
           borderRadius: BorderRadius.circular(10),
           child: InkWell(
             onTap: () => _copy(context),
@@ -259,15 +263,15 @@ class _AddressRow extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Iconsax.copy, size: 14, color: kInk),
+                  Icon(Iconsax.copy, size: 14, color: c.ink),
                   const SizedBox(width: 6),
                   Text(
                     "Nusxa olish",
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: AppFonts.seller,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: kInk,
+                      color: c.ink,
                       height: 1.0,
                     ),
                   ),

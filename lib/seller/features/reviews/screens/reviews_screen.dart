@@ -11,17 +11,11 @@ import '../../../../shared/models/review.dart';
 import '../cubit/reviews_cubit.dart';
 
 // =============================================================================
-// Local design tokens — Plus Jakarta Sans is applied per-`Text` so the surface
-// is immune to the M3 surface tint that the teal seller seed would otherwise
-// bleed onto neutral backgrounds. Mirrors the convention used in
-// `profile_screen.dart` and `shop_settings_screen.dart`.
+// Fixed (brightness-independent) local tokens. Adaptive ink/grey/surface/
+// divider/fill colours are read from `SellerColors.of(context)` per build so
+// the screen flips with the seller theme; only the brand tint and the star
+// amber stay constant on both backgrounds.
 // =============================================================================
-const _ink = Color(0xFF1D1D1D);
-const _grey = Color(0xFF757575);
-const _greyMid = Color(0xFFBDBDBD);
-const _divider = Color(0xFFEFEFEF);
-const _chipIdle = Color(0xFFF1F1F1);
-const _replyBg = Color(0xFFF5F5F5);
 const _amber = Color(0xFFF5A623);
 const _accentTint = AppColors.sellerPrimaryTint;
 
@@ -32,7 +26,7 @@ class ReviewsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!sl.isRegistered<ReviewsCubit>()) {
       return Scaffold(
-        backgroundColor: AppColors.lightBackground,
+        backgroundColor: SellerColors.of(context).background,
         appBar: const _ReviewsAppBar(),
         body: const _NoBackendState(),
       );
@@ -50,7 +44,7 @@ class _ReviewsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: SellerColors.of(context).background,
       appBar: const _ReviewsAppBar(),
       body: BlocBuilder<ReviewsCubit, ReviewsState>(
         builder: (context, state) {
@@ -114,7 +108,7 @@ class _Body extends StatelessWidget {
   void _openReplySheet(BuildContext context, Review review) {
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: SellerColors.of(context).surface,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -138,14 +132,15 @@ class _ReviewsAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: c.surface,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       scrolledUnderElevation: 0,
-      foregroundColor: _ink,
+      foregroundColor: c.ink,
       leading: IconButton(
-        icon: const Icon(Iconsax.arrow_left_2, size: 22, color: _ink),
+        icon: Icon(Iconsax.arrow_left_2, size: 22, color: c.ink),
         onPressed: () => Navigator.of(context).maybePop(),
       ),
       title: Text(
@@ -154,7 +149,7 @@ class _ReviewsAppBar extends StatelessWidget implements PreferredSizeWidget {
           fontFamily: AppFonts.seller,
           fontSize: 18,
           fontWeight: FontWeight.w700,
-          color: _ink,
+          color: c.ink,
           letterSpacing: -0.2,
         ),
       ),
@@ -179,7 +174,7 @@ class _FilterTabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.white,
+      color: SellerColors.of(context).surface,
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -217,8 +212,9 @@ class _FilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bg = selected ? _ink : _chipIdle;
-    final fg = selected ? Colors.white : _ink;
+    final c = SellerColors.of(context);
+    final bg = selected ? c.ink : c.neutralBgAlt;
+    final fg = selected ? c.surface : c.ink;
 
     return Material(
       color: bg,
@@ -286,13 +282,15 @@ class _ReviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withValues(alpha: dark ? 0.26 : 0.04),
             blurRadius: 14,
             offset: const Offset(0, 4),
           ),
@@ -304,7 +302,7 @@ class _ReviewCard extends StatelessWidget {
         children: [
           _CardHeader(review: review),
           const SizedBox(height: 12),
-          const Divider(height: 1, thickness: 1, color: _divider),
+          Divider(height: 1, thickness: 1, color: c.divider),
           const SizedBox(height: 12),
           _CustomerLine(review: review),
           if (review.comment.isNotEmpty) ...[
@@ -315,7 +313,7 @@ class _ReviewCard extends StatelessWidget {
                 fontFamily: AppFonts.seller,
                 fontSize: 13.5,
                 fontWeight: FontWeight.w500,
-                color: const Color(0xFF3A3A3A),
+                color: c.neutralFgAlt,
                 height: 1.5,
                 letterSpacing: -0.1,
               ),
@@ -339,20 +337,21 @@ class _CardHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(10),
           child: review.productImage.isEmpty
-              ? _productImageFallback()
+              ? _productImageFallback(c)
               : CachedNetworkImage(
                   imageUrl: review.productImage,
                   width: 40,
                   height: 40,
                   fit: BoxFit.cover,
                   memCacheWidth: 120,
-                  errorWidget: (_, _, _) => _productImageFallback(),
+                  errorWidget: (_, _, _) => _productImageFallback(c),
                 ),
         ),
         const SizedBox(width: 10),
@@ -365,7 +364,7 @@ class _CardHeader extends StatelessWidget {
               fontFamily: AppFonts.seller,
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: _ink,
+              color: c.ink,
               height: 1.25,
               letterSpacing: -0.1,
             ),
@@ -378,7 +377,7 @@ class _CardHeader extends StatelessWidget {
             fontFamily: AppFonts.seller,
             fontSize: 11,
             fontWeight: FontWeight.w500,
-            color: _grey,
+            color: c.grey,
             height: 1.2,
           ),
         ),
@@ -386,13 +385,13 @@ class _CardHeader extends StatelessWidget {
     );
   }
 
-  Widget _productImageFallback() {
+  Widget _productImageFallback(SellerColors c) {
     return Container(
       width: 40,
       height: 40,
-      color: _chipIdle,
+      color: c.imageBg,
       alignment: Alignment.center,
-      child: const Icon(Iconsax.box, size: 18, color: _greyMid),
+      child: Icon(Iconsax.box, size: 18, color: c.greyMid),
     );
   }
 }
@@ -413,7 +412,7 @@ class _CustomerLine extends StatelessWidget {
               fontFamily: AppFonts.seller,
               fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: _ink,
+              color: SellerColors.of(context).ink,
               height: 1.2,
               letterSpacing: -0.1,
             ),
@@ -432,6 +431,7 @@ class _StarRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final emptyColor = SellerColors.of(context).greyMid;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -439,7 +439,7 @@ class _StarRow extends StatelessWidget {
           Icon(
             Iconsax.star_1,
             size: 14,
-            color: i <= rating ? _amber : const Color(0xFFE3E3E3),
+            color: i <= rating ? _amber : emptyColor,
           ),
           if (i < 5) const SizedBox(width: 2),
         ],
@@ -500,10 +500,11 @@ class _SellerReplyBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
       decoration: BoxDecoration(
-        color: _replyBg,
+        color: c.fillSoft,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -547,7 +548,7 @@ class _SellerReplyBlock extends StatelessWidget {
                     fontFamily: AppFonts.seller,
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
-                    color: _ink,
+                    color: c.ink,
                     height: 1.45,
                   ),
                 ),
@@ -606,6 +607,7 @@ class _ReplySheetState extends State<_ReplySheet> {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final viewInsets = MediaQuery.of(context).viewInsets.bottom;
     return BlocBuilder<ReviewsCubit, ReviewsState>(
       builder: (context, state) {
@@ -621,7 +623,7 @@ class _ReplySheetState extends State<_ReplySheet> {
                   width: 36,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE3E3E3),
+                    color: c.dividerStrong,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -633,7 +635,7 @@ class _ReplySheetState extends State<_ReplySheet> {
                   fontFamily: AppFonts.seller,
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
-                  color: _ink,
+                  color: c.ink,
                   letterSpacing: -0.2,
                 ),
               ),
@@ -644,7 +646,7 @@ class _ReplySheetState extends State<_ReplySheet> {
                   fontFamily: AppFonts.seller,
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: _grey,
+                  color: c.grey,
                   height: 1.3,
                 ),
               ),
@@ -657,7 +659,7 @@ class _ReplySheetState extends State<_ReplySheet> {
                   fontFamily: AppFonts.seller,
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: _ink,
+                  color: c.ink,
                   height: 1.45,
                 ),
                 decoration: InputDecoration(
@@ -666,10 +668,10 @@ class _ReplySheetState extends State<_ReplySheet> {
                     fontFamily: AppFonts.seller,
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: _greyMid,
+                    color: c.greyMid,
                   ),
                   filled: true,
-                  fillColor: const Color(0xFFF7F7F7),
+                  fillColor: c.fillFaint,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -735,6 +737,7 @@ class _EmptyState extends StatelessWidget {
     final subtitle = hasAnyReview
         ? "Boshqa filtr tanlang yoki keyinroq qayting."
         : "Buyurtma yetkazib berilgandan keyin mijozlar sharh qoldira oladi.";
+    final c = SellerColors.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -744,12 +747,12 @@ class _EmptyState extends StatelessWidget {
             Container(
               width: 72,
               height: 72,
-              decoration: const BoxDecoration(
-                color: _chipIdle,
+              decoration: BoxDecoration(
+                color: c.neutralBgAlt,
                 shape: BoxShape.circle,
               ),
               alignment: Alignment.center,
-              child: const Icon(Iconsax.messages_2, size: 32, color: _greyMid),
+              child: Icon(Iconsax.messages_2, size: 32, color: c.greyMid),
             ),
             const SizedBox(height: 16),
             Text(
@@ -759,7 +762,7 @@ class _EmptyState extends StatelessWidget {
                 fontFamily: AppFonts.seller,
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: _ink,
+                color: c.ink,
                 letterSpacing: -0.2,
               ),
             ),
@@ -771,7 +774,7 @@ class _EmptyState extends StatelessWidget {
                 fontFamily: AppFonts.seller,
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: _grey,
+                color: c.grey,
                 height: 1.4,
               ),
             ),
@@ -809,7 +812,7 @@ class _ErrorState extends StatelessWidget {
                 fontFamily: AppFonts.seller,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: _ink,
+                color: SellerColors.of(context).ink,
                 height: 1.4,
               ),
             ),
@@ -848,13 +851,14 @@ class _NoBackendState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Iconsax.info_circle, size: 40, color: _greyMid),
+            Icon(Iconsax.info_circle, size: 40, color: c.greyMid),
             const SizedBox(height: 16),
             Text(
               'Sharhlar mavjud emas',
@@ -862,7 +866,7 @@ class _NoBackendState extends StatelessWidget {
                 fontFamily: AppFonts.seller,
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: _ink,
+                color: c.ink,
               ),
             ),
             const SizedBox(height: 6),
@@ -873,7 +877,7 @@ class _NoBackendState extends StatelessWidget {
                 fontFamily: AppFonts.seller,
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: _grey,
+                color: c.grey,
                 height: 1.4,
               ),
             ),
@@ -889,9 +893,11 @@ class _ReviewsSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Shimmer.fromColors(
-      baseColor: const Color(0xFFE6E6E6),
-      highlightColor: const Color(0xFFF5F5F5),
+      baseColor: dark ? const Color(0xFF2A2A2A) : const Color(0xFFE6E6E6),
+      highlightColor: dark ? const Color(0xFF383838) : const Color(0xFFF5F5F5),
       child: ListView.separated(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
         physics: const NeverScrollableScrollPhysics(),
@@ -900,7 +906,7 @@ class _ReviewsSkeleton extends StatelessWidget {
         itemBuilder: (_, _) => Container(
           height: 140,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: c.surface,
             borderRadius: BorderRadius.circular(16),
           ),
         ),

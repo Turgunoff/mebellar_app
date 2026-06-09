@@ -70,10 +70,11 @@ class SellerKpiCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final card = Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.surface,
         borderRadius: BorderRadius.circular(16),
         border: important
             ? Border.all(color: AppColors.sellerPrimary.withValues(alpha: 0.35))
@@ -118,10 +119,10 @@ class SellerKpiCard extends StatelessWidget {
             title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: DashKit.grey,
+              color: c.grey,
               height: 1.0,
             ),
           ),
@@ -146,17 +147,17 @@ class SellerKpiCard extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                     letterSpacing: -0.4,
                     height: 1.1,
-                    color: accentValue ? AppColors.sellerPrimary : DashKit.ink,
+                    color: accentValue ? AppColors.sellerPrimary : c.ink,
                   ),
                 ),
                 if (unit != null) ...[
                   const SizedBox(width: 4),
                   Text(
                     unit!,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: DashKit.greyFaint,
+                      color: c.greyFaint,
                       height: 1.0,
                     ),
                   ),
@@ -170,10 +171,10 @@ class SellerKpiCard extends StatelessWidget {
               subtitle!,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
-                color: DashKit.greyFaint,
+                color: c.greyFaint,
                 height: 1.0,
               ),
             ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../data/dashboard_mock.dart';
 import 'dashboard_kit.dart';
 
@@ -14,13 +15,13 @@ class TopProductsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return DashCard(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       child: Column(
         children: [
           for (var i = 0; i < products.length; i++) ...[
-            if (i > 0)
-              const Divider(height: 1, thickness: 1, color: DashKit.hairline),
+            if (i > 0) Divider(height: 1, thickness: 1, color: c.divider),
             _ProductRow(product: products[i]),
           ],
         ],
@@ -36,6 +37,7 @@ class _ProductRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
@@ -51,13 +53,9 @@ class _ProductRow extends StatelessWidget {
               errorBuilder: (_, _, _) => Container(
                 width: 48,
                 height: 48,
-                color: DashKit.imageBg,
+                color: c.imageBg,
                 alignment: Alignment.center,
-                child: const Icon(
-                  Icons.image_outlined,
-                  size: 20,
-                  color: DashKit.greyMid,
-                ),
+                child: Icon(Icons.image_outlined, size: 20, color: c.greyMid),
               ),
             ),
           ),
@@ -71,10 +69,10 @@ class _ProductRow extends StatelessWidget {
                   product.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: DashKit.ink,
+                    color: c.ink,
                     height: 1.2,
                     letterSpacing: -0.1,
                   ),
@@ -97,10 +95,10 @@ class _ProductRow extends StatelessWidget {
                         "${DashKit.compactMoney(product.revenue)} so'm",
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
-                          color: DashKit.grey,
+                          color: c.grey,
                           height: 1.1,
                         ),
                       ),
@@ -123,14 +121,15 @@ class _Dot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 6),
+    final c = SellerColors.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6),
       child: Text(
         '·',
         style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w700,
-          color: DashKit.greyMid,
+          color: c.greyMid,
           height: 1.0,
         ),
       ),

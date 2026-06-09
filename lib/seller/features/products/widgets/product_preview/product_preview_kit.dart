@@ -5,18 +5,12 @@ import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import '../../../../../shared/models/seller_product.dart';
 
-// Local design tokens for the seller product preview — thin facades over the
-// central seller palette in [AppColors] so the preview stays visually
-// consistent with the rest of the seller surface and never reaches for a
-// customer-brand accent.
-const Color kInk = AppColors.sellerInk;
-const Color kGrey = AppColors.sellerGrey;
-const Color kGreyMid = AppColors.sellerGreyMid;
-const Color kGreySoft = AppColors.sellerGreySoft;
-const Color kDivider = AppColors.sellerDividerStrong;
-const Color kOutline = AppColors.sellerOutline;
-const Color kSurfaceMuted = AppColors.sellerFillSoft;
-const Color kImageBg = AppColors.sellerImageBg;
+// Local design tokens for the seller product preview. Adaptive neutrals (ink,
+// greys, dividers, surfaces, image bg) flip with light/dark — read them from
+// `SellerColors.of(context)`: ink→c.ink, grey→c.grey, greyMid→c.greyMid,
+// greySoft→c.greySoft, divider→c.dividerStrong, outline→c.outline,
+// surfaceMuted→c.fillSoft, imageBg→c.imageBg. Only the brand accent stays
+// const here — it reads fine on both backgrounds.
 
 /// Soft indigo tint behind the "customer view" banner — the seller brand
 /// accent at low intensity.
@@ -69,10 +63,11 @@ class SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -95,13 +90,14 @@ class SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Text(
       text,
-      style: const TextStyle(
+      style: TextStyle(
         fontFamily: AppFonts.seller,
         fontSize: 14,
         fontWeight: FontWeight.w700,
-        color: kInk,
+        color: c.ink,
         letterSpacing: -0.2,
         height: 1.2,
       ),

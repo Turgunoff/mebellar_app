@@ -30,6 +30,7 @@ class BrandLocationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -45,20 +46,16 @@ class BrandLocationCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: brandColor ?? AppColors.sellerPrimary,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: kOutline, width: 1),
+                    border: Border.all(color: c.outline, width: 1),
                   ),
                 ),
                 title: tr('shop_settings.brand_color'),
                 subtitle: brandHex ?? '#5E35B1',
-                trailing: const Icon(
-                  Iconsax.colorfilter,
-                  size: 18,
-                  color: kGreyMid,
-                ),
+                trailing: Icon(Iconsax.colorfilter, size: 18, color: c.greyMid),
               ),
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
-                child: Divider(height: 1, thickness: 1, color: kDivider),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Divider(height: 1, thickness: 1, color: c.divider),
               ),
               SettingsTextField(
                 controller: addressController,
@@ -91,6 +88,7 @@ class _ListRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -107,22 +105,22 @@ class _ListRow extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: AppFonts.seller,
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: kInk,
+                      color: c.ink,
                       letterSpacing: -0.1,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: AppFonts.seller,
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: kGrey,
+                      color: c.grey,
                     ),
                   ),
                 ],

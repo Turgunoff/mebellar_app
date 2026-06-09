@@ -3,16 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
-import 'order_details_kit.dart';
 
-/// White-surface app bar with a bold Jakarta title and a hairline divider.
+/// Surface app bar with a bold Jakarta title and a hairline divider; flips
+/// with the seller theme via [SellerColors].
 class OrderAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const OrderAppBar({
-    super.key,
-    required this.orderId,
-    this.orderUuid,
-  });
+  const OrderAppBar({super.key, required this.orderId, this.orderUuid});
 
   final String orderId;
 
@@ -26,25 +23,29 @@ class OrderAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return AppBar(
-      backgroundColor: Colors.white,
-      surfaceTintColor: Colors.white,
+      backgroundColor: c.surface,
+      surfaceTintColor: c.surface,
       elevation: 0,
       scrolledUnderElevation: 0,
-      systemOverlayStyle: SystemUiOverlayStyle.dark,
+      systemOverlayStyle: isDark
+          ? SystemUiOverlayStyle.light
+          : SystemUiOverlayStyle.dark,
       leading: IconButton(
         onPressed: () => Navigator.of(context).maybePop(),
         splashRadius: 22,
-        icon: const Icon(Iconsax.arrow_left_2, size: 22, color: kInk),
+        icon: Icon(Iconsax.arrow_left_2, size: 22, color: c.ink),
       ),
       titleSpacing: 0,
       title: Text(
         'Buyurtma $orderId',
-        style: const TextStyle(
+        style: TextStyle(
           fontFamily: AppFonts.seller,
           fontSize: 17,
           fontWeight: FontWeight.w700,
-          color: kInk,
+          color: c.ink,
           letterSpacing: -0.3,
           height: 1.2,
         ),
@@ -54,14 +55,13 @@ class OrderAppBar extends StatelessWidget implements PreferredSizeWidget {
         if (orderUuid != null)
           IconButton(
             tooltip: 'Mijoz bilan suhbat',
-            icon: const Icon(Iconsax.message, color: kInk, size: 22),
-            onPressed: () =>
-                context.push('/seller/orders/$orderUuid/chat'),
+            icon: Icon(Iconsax.message, color: c.ink, size: 22),
+            onPressed: () => context.push('/seller/orders/$orderUuid/chat'),
           ),
       ],
-      bottom: const PreferredSize(
-        preferredSize: Size.fromHeight(1),
-        child: Divider(height: 1, thickness: 1, color: kDivider),
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(1),
+        child: Divider(height: 1, thickness: 1, color: c.dividerStrong),
       ),
     );
   }

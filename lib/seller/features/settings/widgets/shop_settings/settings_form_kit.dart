@@ -3,17 +3,12 @@ import 'package:flutter/material.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 
-// Local design tokens shared by every shop-settings widget — a thin facade over
-// the central seller palette in [AppColors] so these widgets stay on the Deep
-// Indigo brand. Plus Jakarta Sans is applied to each `Text` explicitly via
-// `AppFonts.seller` so the surface is immune to the M3 surface tint the seller
-// seed bleeds onto neutrals.
-const Color kInk = AppColors.sellerInk;
-const Color kGrey = AppColors.sellerGrey;
-const Color kGreyMid = AppColors.sellerGreyMid;
-const Color kDivider = AppColors.sellerDivider;
-const Color kOutline = AppColors.sellerOutline;
-const Color kFillSoft = AppColors.sellerFillFaint;
+// The only brightness-independent token shared by the shop-settings widgets —
+// the indigo accent tint reads fine on both light and dark backgrounds. Every
+// adaptive colour (ink / grey / surface / divider / outline / fill) now comes
+// from `SellerColors.of(context)` so the surface flips with the theme. Plus
+// Jakarta Sans is applied to each `Text` explicitly via `AppFonts.seller` so the
+// surface is immune to the M3 surface tint the seller seed bleeds onto neutrals.
 const Color kAccentTint = AppColors.sellerPrimaryTint;
 
 /// Bold section header above each [SettingsCard].
@@ -24,15 +19,16 @@ class SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Padding(
       padding: const EdgeInsets.only(left: 4, bottom: 10),
       child: Text(
         text,
-        style: const TextStyle(
+        style: TextStyle(
           fontFamily: AppFonts.seller,
           fontSize: 15,
           fontWeight: FontWeight.w700,
-          color: kInk,
+          color: c.ink,
           letterSpacing: -0.2,
           height: 1.2,
         ),
@@ -50,10 +46,11 @@ class SettingsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Container(
       padding: padding ?? const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -116,9 +113,10 @@ class SettingsTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final border = OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: const BorderSide(color: kOutline, width: 1),
+      borderSide: BorderSide(color: c.outline, width: 1),
     );
 
     return Column(
@@ -128,11 +126,11 @@ class SettingsTextField extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 6, left: 2),
           child: Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: kGrey,
+              color: c.grey,
               letterSpacing: 0.1,
             ),
           ),
@@ -143,11 +141,11 @@ class SettingsTextField extends StatelessWidget {
           minLines: minLines,
           maxLines: maxLines,
           cursorColor: AppColors.sellerPrimary,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: AppFonts.seller,
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: kInk,
+            color: c.ink,
             letterSpacing: -0.1,
           ),
           onChanged: onChanged,
@@ -158,21 +156,21 @@ class SettingsTextField extends StatelessWidget {
               vertical: 14,
             ),
             hintText: hint,
-            hintStyle: const TextStyle(
+            hintStyle: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: kGreyMid,
+              color: c.greyMid,
             ),
             prefixText: prefix,
-            prefixStyle: const TextStyle(
+            prefixStyle: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: kGreyMid,
+              color: c.greyMid,
             ),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: c.surface,
             border: border,
             enabledBorder: border,
             focusedBorder: OutlineInputBorder(

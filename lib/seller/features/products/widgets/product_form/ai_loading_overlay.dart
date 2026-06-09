@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 
+import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
-import 'form_kit.dart';
 
 const String _kAiLottieAsset = 'assets/lottie/ai_animation2.json';
 
@@ -35,6 +35,7 @@ class AiLoadingOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!visible) return const SizedBox.shrink();
+    final c = SellerColors.of(context);
     final primary = Theme.of(context).colorScheme.primary;
 
     return Positioned.fill(
@@ -42,7 +43,7 @@ class AiLoadingOverlay extends StatelessWidget {
       // tapped or focused while the request runs.
       child: AbsorbPointer(
         child: ColoredBox(
-          color: Colors.white.withValues(alpha: 0.82),
+          color: c.surface.withValues(alpha: 0.82),
           child: Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -88,13 +89,13 @@ class AiLoadingOverlay extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 6),
-                const Text(
+                Text(
                   'Mahsulot ma‘lumotlari tayyorlanmoqda',
                   style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 12.5,
                     fontWeight: FontWeight.w500,
-                    color: kGreyMid,
+                    color: c.greyMid,
                     height: 1.3,
                   ),
                 ),

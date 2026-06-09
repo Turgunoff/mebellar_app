@@ -5,7 +5,6 @@ import 'package:woody_app/core/i18n/i18n.dart';
 
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
-import 'settings_form_kit.dart';
 
 /// Full-width shop cover image with an overlapping circular logo avatar and a
 /// "change logo" button.
@@ -80,6 +79,7 @@ class _CoverImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Positioned.fill(
       bottom: 40,
       child: ClipRRect(
@@ -88,7 +88,7 @@ class _CoverImage extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             Material(
-              color: kFillSoft,
+              color: c.fillFaint,
               child: InkWell(
                 onTap: onTap,
                 child: url == null || url!.isEmpty
@@ -96,19 +96,19 @@ class _CoverImage extends StatelessWidget {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(
+                            Icon(
                               Iconsax.gallery_add,
                               size: 28,
-                              color: kGreyMid,
+                              color: c.greyMid,
                             ),
                             const SizedBox(height: 6),
                             Text(
                               tr('shop_settings.upload_cover'),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontFamily: AppFonts.seller,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
-                                color: kGrey,
+                                color: c.grey,
                               ),
                             ),
                           ],
@@ -120,7 +120,7 @@ class _CoverImage extends StatelessWidget {
                         memCacheWidth: 1080,
                         fit: BoxFit.cover,
                         errorWidget: (_, _, _) =>
-                            const ColoredBox(color: kFillSoft),
+                            ColoredBox(color: c.fillFaint),
                       ),
               ),
             ),
@@ -145,8 +145,9 @@ class _CoverEditPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Material(
-      color: Colors.white.withValues(alpha: 0.92),
+      color: c.surface.withValues(alpha: 0.92),
       borderRadius: BorderRadius.circular(999),
       elevation: 1,
       shadowColor: Colors.black26,
@@ -158,15 +159,15 @@ class _CoverEditPill extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Iconsax.camera, size: 14, color: kInk),
+              Icon(Iconsax.camera, size: 14, color: c.ink),
               const SizedBox(width: 6),
               Text(
                 tr('shop_settings.upload_cover'),
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: kInk,
+                  color: c.ink,
                   letterSpacing: -0.1,
                 ),
               ),
@@ -191,15 +192,16 @@ class _LogoAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: 80,
         height: 80,
         decoration: BoxDecoration(
-          color: kFillSoft,
+          color: c.fillFaint,
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.white, width: 4),
+          border: Border.all(color: c.surface, width: 4),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.08),
@@ -263,10 +265,11 @@ class _ChangeLogoButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Align(
       alignment: Alignment.centerLeft,
       child: Material(
-        color: Colors.white,
+        color: c.surface,
         borderRadius: BorderRadius.circular(999),
         child: InkWell(
           onTap: onTap,
@@ -275,7 +278,7 @@ class _ChangeLogoButton extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: kOutline, width: 1),
+              border: Border.all(color: c.outline, width: 1),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,

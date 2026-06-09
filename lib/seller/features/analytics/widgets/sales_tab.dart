@@ -3,6 +3,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/models/analytics.dart';
 import 'analytics_common.dart';
@@ -166,8 +167,9 @@ class _CategoryDistributionSection extends StatelessWidget {
                             if (i > 0) const SizedBox(height: 10),
                             _LegendRow(
                               slice: slices[i],
-                              color: AnalyticsTokens.chartPalette[
-                                  i % AnalyticsTokens.chartPalette.length],
+                              color:
+                                  AnalyticsTokens.chartPalette[i %
+                                      AnalyticsTokens.chartPalette.length],
                             ),
                           ],
                         ],
@@ -217,6 +219,7 @@ class _LegendRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Row(
       children: [
         Container(
@@ -237,7 +240,7 @@ class _LegendRow extends StatelessWidget {
               fontFamily: AppFonts.seller,
               fontSize: 13,
               fontWeight: FontWeight.w500,
-              color: AnalyticsTokens.ink,
+              color: c.ink,
               height: 1.2,
             ),
           ),
@@ -249,7 +252,7 @@ class _LegendRow extends StatelessWidget {
             fontFamily: AppFonts.seller,
             fontSize: 13,
             fontWeight: FontWeight.w700,
-            color: AnalyticsTokens.ink,
+            color: c.ink,
             height: 1.2,
           ),
         ),
@@ -298,14 +301,16 @@ class _TopProductTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 12, 16, 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.surface,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withValues(alpha: dark ? 0.26 : 0.04),
             blurRadius: 12,
             offset: const Offset(0, 3),
           ),
@@ -322,18 +327,15 @@ class _TopProductTile extends StatelessWidget {
                   ? CachedNetworkImage(
                       imageUrl: product.imageUrl!,
                       fit: BoxFit.cover,
-                      placeholder: (_, _) =>
-                          const ColoredBox(color: AnalyticsTokens.placeholderBg),
-                      errorWidget: (_, _, _) => const ColoredBox(
-                        color: AnalyticsTokens.placeholderBg,
-                        child: Icon(Iconsax.image,
-                            color: AnalyticsTokens.greyMid, size: 22),
+                      placeholder: (_, _) => ColoredBox(color: c.imageBg),
+                      errorWidget: (_, _, _) => ColoredBox(
+                        color: c.imageBg,
+                        child: Icon(Iconsax.image, color: c.greyMid, size: 22),
                       ),
                     )
-                  : const ColoredBox(
-                      color: AnalyticsTokens.placeholderBg,
-                      child: Icon(Iconsax.image,
-                          color: AnalyticsTokens.greyMid, size: 22),
+                  : ColoredBox(
+                      color: c.imageBg,
+                      child: Icon(Iconsax.image, color: c.greyMid, size: 22),
                     ),
             ),
           ),
@@ -351,7 +353,7 @@ class _TopProductTile extends StatelessWidget {
                     fontFamily: AppFonts.seller,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: AnalyticsTokens.ink,
+                    color: c.ink,
                     letterSpacing: -0.1,
                     height: 1.2,
                   ),
@@ -365,7 +367,7 @@ class _TopProductTile extends StatelessWidget {
                     fontFamily: AppFonts.seller,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: AnalyticsTokens.grey,
+                    color: c.grey,
                     height: 1.2,
                   ),
                 ),
@@ -381,7 +383,7 @@ class _TopProductTile extends StatelessWidget {
                 fontFamily: AppFonts.seller,
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
-                color: AnalyticsTokens.ink,
+                color: c.ink,
                 letterSpacing: -0.2,
                 height: 1.2,
               ),
@@ -392,7 +394,7 @@ class _TopProductTile extends StatelessWidget {
                     fontFamily: AppFonts.seller,
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
-                    color: AnalyticsTokens.greyMid,
+                    color: c.greyMid,
                     letterSpacing: 0,
                   ),
                 ),
@@ -411,17 +413,18 @@ class _ChartEmpty extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Container(
       height: 160,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: AnalyticsTokens.placeholderBg,
+        color: c.fillSoft,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Iconsax.chart, size: 32, color: AnalyticsTokens.greyMid),
+          Icon(Iconsax.chart, size: 32, color: c.greyMid),
           const SizedBox(height: 8),
           Text(
             message,
@@ -429,7 +432,7 @@ class _ChartEmpty extends StatelessWidget {
               fontFamily: AppFonts.seller,
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: AnalyticsTokens.grey,
+              color: c.grey,
             ),
           ),
         ],

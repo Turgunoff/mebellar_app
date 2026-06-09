@@ -26,12 +26,9 @@ import 'seller_product_detail_screen.dart';
 //   Color overrides below also bypass the seller `ColorScheme` for the
 //   surfaces that were picking up an off-brand greenish/teal tint
 //   (FAB, filter chips, search field). Branded values come from
-//   [AppColors.sellerPrimary] / [AppColors.lightBackground] and a small set of
-//   private constants below.
-const _ink = Color(0xFF1D1D1D);
-const _grey = Color(0xFF757575);
-const _greyMid = Color(0xFFBDBDBD);
-const _hairline = Color(0xFFEEEEEE);
+//   [AppColors.sellerPrimary]; neutral ink / greys / hairlines / surfaces flip
+//   with light/dark via `SellerColors.of(context)` (ink→c.ink, grey→c.grey,
+//   greyMid→c.greyMid, hairline→c.divider, card/field surfaces→c.surface).
 
 class SellerProductsScreen extends StatelessWidget {
   const SellerProductsScreen({super.key});
@@ -103,23 +100,24 @@ class _SellerProductsViewState extends State<_SellerProductsView> {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return BlocBuilder<SellerProductsBloc, SellerProductsState>(
       builder: (context, state) {
         final visible = state.visibleProducts;
         return Scaffold(
-          backgroundColor: AppColors.lightBackground,
+          backgroundColor: c.background,
           appBar: AppBar(
-            backgroundColor: AppColors.lightBackground,
+            backgroundColor: c.background,
             surfaceTintColor: Colors.transparent,
             elevation: 0,
             scrolledUnderElevation: 0,
             titleSpacing: 20,
             title: Text(
               tr('seller.tab_products'),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w700,
-                color: _ink,
+                color: c.ink,
                 letterSpacing: -0.4,
                 height: 1.15,
               ),
@@ -288,40 +286,41 @@ class _SearchField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final hasText = controller.text.isNotEmpty;
     return TextField(
       controller: controller,
       cursorColor: AppColors.sellerPrimary,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w500,
-        color: _ink,
+        color: c.ink,
         height: 1.2,
       ),
       decoration: InputDecoration(
-        prefixIcon: const Padding(
-          padding: EdgeInsets.only(left: 14, right: 8),
-          child: Icon(Iconsax.search_normal, size: 18, color: _grey),
+        prefixIcon: Padding(
+          padding: const EdgeInsets.only(left: 14, right: 8),
+          child: Icon(Iconsax.search_normal, size: 18, color: c.grey),
         ),
         prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
         hintText: tr('seller.products_search_hint'),
-        hintStyle: const TextStyle(
+        hintStyle: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w500,
-          color: _greyMid,
+          color: c.greyMid,
           height: 1.2,
         ),
         isDense: true,
         contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: c.surface,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: _hairline),
+          borderSide: BorderSide(color: c.divider),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: _hairline),
+          borderSide: BorderSide(color: c.divider),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
@@ -331,7 +330,7 @@ class _SearchField extends StatelessWidget {
         ),
         suffixIcon: hasText
             ? IconButton(
-                icon: const Icon(Iconsax.close_circle, size: 18, color: _grey),
+                icon: Icon(Iconsax.close_circle, size: 18, color: c.grey),
                 onPressed: onClear,
               )
             : null,
@@ -359,13 +358,14 @@ class _StatusFilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final bg = selected
         ? AppColors.sellerPrimary.withValues(alpha: 0.1)
-        : Colors.white;
-    final fg = selected ? AppColors.sellerPrimary : _grey;
+        : c.surface;
+    final fg = selected ? AppColors.sellerPrimary : c.grey;
     final borderColor = selected
         ? AppColors.sellerPrimary.withValues(alpha: 0.35)
-        : _hairline;
+        : c.divider;
     return Material(
       color: bg,
       borderRadius: BorderRadius.circular(999),
@@ -404,25 +404,24 @@ class _ProductTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final lang = context.locale.languageCode;
     final priceFormat = NumberFormat('#,###', lang);
     final hero = product.heroImage;
     final isArchived = product.status == SellerProductStatus.archived;
     return Material(
       // Archived tiles sit on a flat muted surface with no lift, so they read
-      // as "retired" against the white, shadowed live cards above them.
-      color: isArchived ? const Color(0xFFF4F4F5) : Colors.white,
+      // as "retired" against the surface-coloured, shadowed live cards above.
+      color: isArchived ? c.fillSoft : c.surface,
       borderRadius: BorderRadius.circular(16),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         child: Ink(
           decoration: BoxDecoration(
-            color: isArchived ? const Color(0xFFF4F4F5) : Colors.white,
+            color: isArchived ? c.fillSoft : c.surface,
             borderRadius: BorderRadius.circular(16),
-            border: isArchived
-                ? Border.all(color: const Color(0xFFE6E6E8))
-                : null,
+            border: isArchived ? Border.all(color: c.outline) : null,
             boxShadow: isArchived
                 ? null
                 : [
@@ -451,7 +450,7 @@ class _ProductTile extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: isArchived ? _grey : _ink,
+                          color: isArchived ? c.grey : c.ink,
                           letterSpacing: -0.1,
                           height: 1.25,
                         ),
@@ -459,10 +458,10 @@ class _ProductTile extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         'SKU: ${product.sku}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
-                          color: _greyMid,
+                          color: c.greyMid,
                           height: 1.2,
                         ),
                       ),
@@ -548,6 +547,7 @@ class _PriceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final hasDiscount =
         product.discountPrice != null &&
         product.discountPrice! > 0 &&
@@ -569,7 +569,7 @@ class _PriceRow extends StatelessWidget {
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
-              color: muted ? _grey : _ink,
+              color: muted ? c.grey : c.ink,
               letterSpacing: -0.2,
               height: 1.2,
             ),
@@ -581,12 +581,12 @@ class _PriceRow extends StatelessWidget {
             priceFormat.format(product.price),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: _greyMid,
+              color: c.greyMid,
               decoration: TextDecoration.lineThrough,
-              decorationColor: _greyMid,
+              decorationColor: c.greyMid,
               height: 1.2,
             ),
           ),
@@ -654,23 +654,24 @@ class _LogisticsChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFFF4F4F4),
+        color: c.fillSoft,
         borderRadius: BorderRadius.circular(7),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 13, color: _grey),
+          Icon(icon, size: 13, color: c.grey),
           const SizedBox(width: 4),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: _grey,
+              color: c.grey,
               height: 1.0,
             ),
           ),
@@ -774,32 +775,29 @@ class _RejectionReason extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFFDECEA),
+        color: c.negativeBg,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(top: 1),
-            child: Icon(
-              Iconsax.info_circle,
-              size: 14,
-              color: Color(0xFFC0392B),
-            ),
+          Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Icon(Iconsax.info_circle, size: 14, color: c.negative),
           ),
           const SizedBox(width: 6),
           Expanded(
             child: Text(
               reason,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
-                color: Color(0xFFB23B2E),
+                color: c.negative,
                 height: 1.35,
               ),
             ),
@@ -822,6 +820,7 @@ class _ProductsZeroState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final primary = Theme.of(context).colorScheme.primary;
     return Center(
       child: Padding(
@@ -843,10 +842,10 @@ class _ProductsZeroState extends StatelessWidget {
             Text(
               tr('seller.products_empty'),
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: _ink,
+                color: c.ink,
                 letterSpacing: -0.2,
                 height: 1.25,
               ),
@@ -855,10 +854,10 @@ class _ProductsZeroState extends StatelessWidget {
             Text(
               tr('seller.products_empty_hint'),
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: _grey,
+                color: c.grey,
                 height: 1.4,
               ),
             ),
@@ -901,10 +900,11 @@ class _ProductThumbnail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final placeholder = Container(
-      color: const Color(0xFFF4F4F4),
+      color: c.imageBg,
       alignment: Alignment.center,
-      child: const Icon(Iconsax.image, size: 22, color: _greyMid),
+      child: Icon(Iconsax.image, size: 22, color: c.greyMid),
     );
     Widget image = hero == null || hero!.isEmpty
         ? placeholder

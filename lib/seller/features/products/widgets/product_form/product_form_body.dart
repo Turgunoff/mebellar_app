@@ -14,7 +14,6 @@ import '../../controller/product_form_controllers.dart';
 import 'basic_info_section.dart';
 import 'category_picker_sheet.dart';
 import 'dynamic_attributes_section.dart';
-import 'form_kit.dart';
 import 'logistics_section.dart';
 import 'media_section.dart';
 import 'pricing_section.dart';
@@ -242,7 +241,7 @@ class ProductFormBody extends StatelessWidget {
 
     final picked = await showModalBottomSheet<CategoryModel>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: SellerColors.of(context).surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -266,7 +265,7 @@ class ProductFormBody extends StatelessWidget {
 
     final picked = await showModalBottomSheet<Object>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: SellerColors.of(context).surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -347,17 +346,18 @@ class _CustomDiscountDialogState extends State<_CustomDiscountDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final primary = Theme.of(context).colorScheme.primary;
     return AlertDialog(
-      backgroundColor: Colors.white,
+      backgroundColor: c.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: const Text(
+      title: Text(
         'Maxsus chegirma',
         style: TextStyle(
           fontFamily: AppFonts.seller,
           fontSize: 16,
           fontWeight: FontWeight.w700,
-          color: kInk,
+          color: c.ink,
           letterSpacing: -0.2,
         ),
       ),
@@ -369,11 +369,11 @@ class _CustomDiscountDialogState extends State<_CustomDiscountDialog> {
         cursorColor: primary,
         textInputAction: TextInputAction.done,
         onSubmitted: (_) => _save(),
-        style: const TextStyle(
+        style: TextStyle(
           fontFamily: AppFonts.seller,
           fontSize: 14,
           fontWeight: FontWeight.w600,
-          color: kInk,
+          color: c.ink,
         ),
         decoration: InputDecoration(
           isDense: true,
@@ -381,11 +381,11 @@ class _CustomDiscountDialogState extends State<_CustomDiscountDialog> {
           suffixText: '%',
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: kOutline),
+            borderSide: BorderSide(color: c.outline),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: kOutline),
+            borderSide: BorderSide(color: c.outline),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
@@ -396,12 +396,12 @@ class _CustomDiscountDialogState extends State<_CustomDiscountDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text(
+          child: Text(
             'Bekor qilish',
             style: TextStyle(
               fontFamily: AppFonts.seller,
               fontWeight: FontWeight.w600,
-              color: kGrey,
+              color: c.grey,
             ),
           ),
         ),
@@ -434,19 +434,20 @@ class _SkuFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Row(
         children: [
-          const Icon(Iconsax.barcode, size: 14, color: kGreyMid),
+          Icon(Iconsax.barcode, size: 14, color: c.greyMid),
           const SizedBox(width: 6),
           Text(
             'Mahsulot kodi: $sku',
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: kGreyMid,
+              color: c.greyMid,
               letterSpacing: 0.2,
             ),
           ),

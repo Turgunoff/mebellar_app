@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import '../../../../../shared/models/attribute_definition.dart';
 import 'form_kit.dart';
@@ -124,6 +125,7 @@ class _PieceHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final primary = Theme.of(context).colorScheme.primary;
     return Row(
       children: [
@@ -135,7 +137,7 @@ class _PieceHeader extends StatelessWidget {
             fontFamily: AppFonts.seller,
             fontSize: 13,
             fontWeight: FontWeight.w700,
-            color: kInk,
+            color: c.ink,
             letterSpacing: -0.1,
           ),
         ),
@@ -201,6 +203,7 @@ class _DimensionFieldState extends State<_DimensionField> {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final primary = Theme.of(context).colorScheme.primary;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -209,11 +212,11 @@ class _DimensionFieldState extends State<_DimensionField> {
           widget.label,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: AppFonts.seller,
             fontSize: 11,
             fontWeight: FontWeight.w600,
-            color: kGrey,
+            color: c.grey,
           ),
         ),
         const SizedBox(height: 4),
@@ -224,11 +227,11 @@ class _DimensionFieldState extends State<_DimensionField> {
             FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
           ],
           cursorColor: primary,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: AppFonts.seller,
             fontSize: 14,
             fontWeight: FontWeight.w700,
-            color: kInk,
+            color: c.ink,
           ),
           decoration: InputDecoration(
             isDense: true,
@@ -238,14 +241,14 @@ class _DimensionFieldState extends State<_DimensionField> {
               vertical: 10,
             ),
             filled: true,
-            fillColor: kFillSoft,
+            fillColor: c.fillFaint,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: kOutline),
+              borderSide: BorderSide(color: c.outline),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: kOutline),
+              borderSide: BorderSide(color: c.outline),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),

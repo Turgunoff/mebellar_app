@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/models/analytics.dart';
 import 'analytics_common.dart';
@@ -192,6 +193,7 @@ class _SegmentLegendRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Row(
       children: [
         Container(
@@ -210,7 +212,7 @@ class _SegmentLegendRow extends StatelessWidget {
               fontFamily: AppFonts.seller,
               fontSize: 13,
               fontWeight: FontWeight.w500,
-              color: AnalyticsTokens.ink,
+              color: c.ink,
             ),
           ),
         ),
@@ -220,7 +222,7 @@ class _SegmentLegendRow extends StatelessWidget {
             fontFamily: AppFonts.seller,
             fontSize: 13,
             fontWeight: FontWeight.w700,
-            color: AnalyticsTokens.ink,
+            color: c.ink,
           ),
         ),
         const SizedBox(width: 6),
@@ -230,7 +232,7 @@ class _SegmentLegendRow extends StatelessWidget {
             fontFamily: AppFonts.seller,
             fontSize: 11,
             fontWeight: FontWeight.w500,
-            color: AnalyticsTokens.grey,
+            color: c.grey,
           ),
         ),
       ],
@@ -264,10 +266,8 @@ class _TopCustomersSection extends StatelessWidget {
             physics: const NeverScrollableScrollPhysics(),
             itemCount: list.length,
             separatorBuilder: (_, _) => const SizedBox(height: 10),
-            itemBuilder: (_, i) => _TopCustomerTile(
-              index: i,
-              customer: list[i],
-            ),
+            itemBuilder: (_, i) =>
+                _TopCustomerTile(index: i, customer: list[i]),
           ),
       ],
     );
@@ -282,6 +282,7 @@ class _TopCustomerTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return AnalyticsCard(
       padding: const EdgeInsets.fromLTRB(12, 12, 16, 12),
       child: Row(
@@ -291,9 +292,7 @@ class _TopCustomerTile extends StatelessWidget {
             height: 36,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: index == 0
-                  ? const Color(0x33F59E0B)
-                  : AnalyticsTokens.placeholderBg,
+              color: index == 0 ? const Color(0x33F59E0B) : c.fillSoft,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
@@ -302,9 +301,7 @@ class _TopCustomerTile extends StatelessWidget {
                 fontFamily: AppFonts.seller,
                 fontSize: 13,
                 fontWeight: FontWeight.w800,
-                color: index == 0
-                    ? const Color(0xFFB45309)
-                    : AnalyticsTokens.grey,
+                color: index == 0 ? const Color(0xFFB45309) : c.grey,
               ),
             ),
           ),
@@ -322,7 +319,7 @@ class _TopCustomerTile extends StatelessWidget {
                     fontFamily: AppFonts.seller,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: AnalyticsTokens.ink,
+                    color: c.ink,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -332,7 +329,7 @@ class _TopCustomerTile extends StatelessWidget {
                     fontFamily: AppFonts.seller,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: AnalyticsTokens.grey,
+                    color: c.grey,
                   ),
                 ),
               ],
@@ -347,7 +344,7 @@ class _TopCustomerTile extends StatelessWidget {
                 fontFamily: AppFonts.seller,
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
-                color: AnalyticsTokens.ink,
+                color: c.ink,
               ),
               children: [
                 TextSpan(
@@ -356,7 +353,7 @@ class _TopCustomerTile extends StatelessWidget {
                     fontFamily: AppFonts.seller,
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
-                    color: AnalyticsTokens.greyMid,
+                    color: c.greyMid,
                   ),
                 ),
               ],

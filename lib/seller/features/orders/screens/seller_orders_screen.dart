@@ -11,14 +11,10 @@ import '../bloc/seller_orders_bloc.dart';
 import '../widgets/order_format.dart';
 import 'order_details_screen.dart';
 
-// Local tokens — kept here so this screen reads top-to-bottom without
-// chasing theme indirection. Plus Jakarta Sans is applied to every `Text`
-// explicitly per the design spec rather than inheriting from the seller
-// theme; this protects the screen from theme regressions.
-const _ink = Color(0xFF1D1D1D);
-const _grey = Color(0xFF757575);
-const _greyMid = Color(0xFFBDBDBD);
-const _divider = Color(0xFFEAEAEA);
+// Colours come from `SellerColors.of(context)` so the list flips with the
+// theme. Plus Jakarta Sans is applied to every `Text` explicitly per the
+// design spec rather than inheriting from the seller theme; this protects the
+// screen from theme regressions.
 
 /// Maps the 4 tab indices to the bloc's [SellerOrdersTab] enum.
 const _tabsInOrder = <SellerOrdersTab>[
@@ -84,7 +80,7 @@ class _SellerOrdersViewState extends State<_SellerOrdersView>
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: AppColors.lightBackground,
+      color: SellerColors.of(context).background,
       child: SafeArea(
         bottom: false,
         child: Column(
@@ -158,8 +154,9 @@ class _OrdersHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Container(
-      color: AppColors.lightBackground,
+      color: c.background,
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
       child: Row(
         children: [
@@ -170,7 +167,7 @@ class _OrdersHeader extends StatelessWidget {
                 fontFamily: AppFonts.seller,
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
-                color: _ink,
+                color: c.ink,
                 height: 1.15,
                 letterSpacing: -0.4,
               ),
@@ -192,8 +189,9 @@ class _OrdersTabBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Container(
-      color: AppColors.lightBackground,
+      color: c.background,
       // Only the New + Active tabs carry a count badge, so rebuild the bar
       // only when one of those two counts changes — Done/Cancelled are static.
       child: BlocBuilder<SellerOrdersBloc, SellerOrdersState>(
@@ -210,7 +208,7 @@ class _OrdersTabBar extends StatelessWidget {
           indicatorWeight: 2.5,
           indicatorSize: TabBarIndicatorSize.label,
           labelColor: AppColors.sellerPrimary,
-          unselectedLabelColor: _grey,
+          unselectedLabelColor: c.grey,
           labelStyle: TextStyle(
             fontFamily: AppFonts.seller,
             fontSize: 14,
@@ -223,7 +221,7 @@ class _OrdersTabBar extends StatelessWidget {
             fontWeight: FontWeight.w500,
             letterSpacing: -0.1,
           ),
-          dividerColor: _divider,
+          dividerColor: c.dividerStrong,
           dividerHeight: 1,
           overlayColor: WidgetStateProperty.all(Colors.transparent),
           splashFactory: NoSplash.splashFactory,
@@ -269,6 +267,7 @@ class _TabLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -279,7 +278,7 @@ class _TabLabel extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             constraints: const BoxConstraints(minWidth: 18),
             decoration: BoxDecoration(
-              color: accent ? AppColors.sellerPrimary : const Color(0xFFEFEFEF),
+              color: accent ? AppColors.sellerPrimary : c.neutralBg,
               borderRadius: BorderRadius.circular(999),
             ),
             child: Text(
@@ -289,7 +288,7 @@ class _TabLabel extends StatelessWidget {
                 fontFamily: AppFonts.seller,
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
-                color: accent ? Colors.white : _grey,
+                color: accent ? Colors.white : c.grey,
                 height: 1.0,
               ),
             ),
@@ -317,7 +316,7 @@ class _OrdersList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: AppColors.lightBackground,
+      color: SellerColors.of(context).background,
       child: BrandRefreshIndicator(
         color: AppColors.sellerPrimary,
         onRefresh: onRefresh,
@@ -364,14 +363,15 @@ class _OrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final colors = sellerOrderStatusColors(order.status);
     return Material(
-      color: Colors.white,
+      color: c.surface,
       borderRadius: BorderRadius.circular(16),
       elevation: 0,
       child: Ink(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: c.surface,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
@@ -412,14 +412,14 @@ class _OrderCard extends StatelessWidget {
                           fontFamily: AppFonts.seller,
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
-                          color: _ink,
+                          color: c.ink,
                           letterSpacing: -0.2,
                           height: 1.2,
                         ),
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Icon(Iconsax.clock, size: 14, color: _grey),
+                    Icon(Iconsax.clock, size: 14, color: c.grey),
                     const SizedBox(width: 4),
                     Text(
                       formatOrderDateTime(order.createdAt),
@@ -427,14 +427,14 @@ class _OrderCard extends StatelessWidget {
                         fontFamily: AppFonts.seller,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: _grey,
+                        color: c.grey,
                         height: 1.2,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
-                const Divider(height: 1, thickness: 1, color: _divider),
+                Divider(height: 1, thickness: 1, color: c.dividerStrong),
                 const SizedBox(height: 14),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
@@ -449,7 +449,7 @@ class _OrderCard extends StatelessWidget {
                               fontFamily: AppFonts.seller,
                               fontSize: 11,
                               fontWeight: FontWeight.w500,
-                              color: _greyMid,
+                              color: c.greyMid,
                               height: 1.0,
                             ),
                           ),
@@ -461,7 +461,7 @@ class _OrderCard extends StatelessWidget {
                                 fontFamily: AppFonts.seller,
                                 fontSize: 20,
                                 fontWeight: FontWeight.w700,
-                                color: _ink,
+                                color: c.ink,
                                 letterSpacing: -0.5,
                                 height: 1.0,
                               ),
@@ -472,7 +472,7 @@ class _OrderCard extends StatelessWidget {
                                     fontFamily: AppFonts.seller,
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
-                                    color: _greyMid,
+                                    color: c.greyMid,
                                   ),
                                 ),
                               ],
@@ -536,8 +536,9 @@ class _EmptyTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return ColoredBox(
-      color: AppColors.lightBackground,
+      color: c.background,
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -545,15 +546,11 @@ class _EmptyTab extends StatelessWidget {
             Container(
               width: 64,
               height: 64,
-              decoration: const BoxDecoration(
-                color: Color(0xFFF1F1F1),
+              decoration: BoxDecoration(
+                color: c.neutralBg,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Iconsax.shopping_bag,
-                size: 28,
-                color: _greyMid,
-              ),
+              child: Icon(Iconsax.shopping_bag, size: 28, color: c.greyMid),
             ),
             const SizedBox(height: 14),
             Text(
@@ -562,7 +559,7 @@ class _EmptyTab extends StatelessWidget {
                 fontFamily: AppFonts.seller,
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: _grey,
+                color: c.grey,
               ),
             ),
           ],
@@ -580,15 +577,16 @@ class _OrdersError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return ColoredBox(
-      color: AppColors.lightBackground,
+      color: c.background,
       child: Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Iconsax.warning_2, size: 40, color: _greyMid),
+              Icon(Iconsax.warning_2, size: 40, color: c.greyMid),
               const SizedBox(height: 14),
               Text(
                 message,
@@ -597,7 +595,7 @@ class _OrdersError extends StatelessWidget {
                   fontFamily: AppFonts.seller,
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: _grey,
+                  color: c.grey,
                 ),
               ),
               const SizedBox(height: 18),

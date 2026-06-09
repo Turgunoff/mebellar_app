@@ -5,17 +5,16 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 
-/// Shared design tokens for the analytics surface — kept here so every
-/// tab renders with the same ink/grey palette without re-importing
-/// theme constants in each file.
+/// Shared **fixed** intent tokens for the analytics surface — the status
+/// colours that read the same on light and dark backgrounds.
+///
+/// Adaptive colours (ink / grey / surface / divider / fills) are **not** here:
+/// every widget reads those from `SellerColors.of(context)` so they flip with
+/// the seller theme. Grab `final c = SellerColors.of(context)` at the top of a
+/// `build` and use `c.ink` / `c.surface` / `c.divider`.
 class AnalyticsTokens {
   AnalyticsTokens._();
 
-  static const Color ink = Color(0xFF1D1D1D);
-  static const Color grey = Color(0xFF757575);
-  static const Color greyMid = Color(0xFFBDBDBD);
-  static const Color placeholderBg = Color(0xFFF1F1F1);
-  static const Color segmentBg = Color(0xFFEFEFEF);
   static const Color positive = AppColors.sellerPrimary;
   static const Color negative = Color(0xFFDC2626);
   static const Color warning = Color(0xFFF59E0B);
@@ -87,14 +86,16 @@ class AnalyticsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: dark ? 0.28 : 0.05),
             blurRadius: 14,
             offset: const Offset(0, 4),
           ),
@@ -114,6 +115,7 @@ class SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -125,7 +127,7 @@ class SectionHeader extends StatelessWidget {
                 fontFamily: AppFonts.seller,
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
-                color: AnalyticsTokens.ink,
+                color: c.ink,
                 letterSpacing: -0.3,
                 height: 1.2,
               ),
@@ -155,7 +157,7 @@ class TrendChip extends StatelessWidget {
     if (delta == null) {
       return _ChipShell(
         background: const Color(0x14757575),
-        foreground: AnalyticsTokens.grey,
+        foreground: SellerColors.of(context).grey,
         icon: Iconsax.minus,
         label: '—',
       );
@@ -235,15 +237,17 @@ class MiniKpiCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
     final accent = color ?? AnalyticsTokens.positive;
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.surface,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withValues(alpha: dark ? 0.26 : 0.04),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -271,7 +275,7 @@ class MiniKpiCard extends StatelessWidget {
               fontFamily: AppFonts.seller,
               fontSize: 11,
               fontWeight: FontWeight.w500,
-              color: AnalyticsTokens.grey,
+              color: c.grey,
               height: 1.2,
             ),
           ),
@@ -285,7 +289,7 @@ class MiniKpiCard extends StatelessWidget {
                 fontFamily: AppFonts.seller,
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: AnalyticsTokens.ink,
+                color: c.ink,
                 letterSpacing: -0.3,
                 height: 1.1,
               ),
@@ -297,7 +301,7 @@ class MiniKpiCard extends StatelessWidget {
                       fontFamily: AppFonts.seller,
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
-                      color: AnalyticsTokens.greyMid,
+                      color: c.greyMid,
                       letterSpacing: 0,
                     ),
                   ),
@@ -319,6 +323,7 @@ class SectionEmpty extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -327,10 +332,10 @@ class SectionEmpty extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: AnalyticsTokens.placeholderBg,
+              color: c.fillSoft,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: AnalyticsTokens.greyMid, size: 20),
+            child: Icon(icon, color: c.greyMid, size: 20),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -340,7 +345,7 @@ class SectionEmpty extends StatelessWidget {
                 fontFamily: AppFonts.seller,
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: AnalyticsTokens.grey,
+                color: c.grey,
                 height: 1.3,
               ),
             ),
@@ -373,6 +378,7 @@ class HeroMetric extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -385,7 +391,7 @@ class HeroMetric extends StatelessWidget {
                   fontFamily: AppFonts.seller,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: AnalyticsTokens.grey,
+                  color: c.grey,
                   height: 1.2,
                 ),
               ),
@@ -415,7 +421,7 @@ class HeroMetric extends StatelessWidget {
                     fontFamily: AppFonts.seller,
                     fontSize: 26,
                     fontWeight: FontWeight.w800,
-                    color: AnalyticsTokens.ink,
+                    color: c.ink,
                     letterSpacing: -0.7,
                     height: 1.1,
                   ),
@@ -427,7 +433,7 @@ class HeroMetric extends StatelessWidget {
                           fontFamily: AppFonts.seller,
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: AnalyticsTokens.greyMid,
+                          color: c.greyMid,
                           letterSpacing: 0,
                         ),
                       ),
@@ -461,6 +467,7 @@ class AnalyticsTabBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return SizedBox(
       height: 40,
       child: ListView.separated(
@@ -470,6 +477,9 @@ class AnalyticsTabBar extends StatelessWidget {
         separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (_, i) {
           final active = i == activeIndex;
+          // Active pill: ink fill with the surface colour as foreground so it
+          // stays legible after `ink` flips to near-white in dark mode.
+          final activeFg = c.surface;
           return GestureDetector(
             onTap: () => onChanged(i),
             behavior: HitTestBehavior.opaque,
@@ -479,21 +489,14 @@ class AnalyticsTabBar extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 14),
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: active ? AnalyticsTokens.ink : Colors.white,
+                color: active ? c.ink : c.surface,
                 borderRadius: BorderRadius.circular(999),
-                border: Border.all(
-                  color: active ? AnalyticsTokens.ink : const Color(0xFFE5E5E5),
-                  width: 1,
-                ),
+                border: Border.all(color: active ? c.ink : c.outline, width: 1),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    icons[i],
-                    size: 16,
-                    color: active ? Colors.white : AnalyticsTokens.grey,
-                  ),
+                  Icon(icons[i], size: 16, color: active ? activeFg : c.grey),
                   const SizedBox(width: 6),
                   Text(
                     labels[i],
@@ -501,7 +504,7 @@ class AnalyticsTabBar extends StatelessWidget {
                       fontFamily: AppFonts.seller,
                       fontSize: 13,
                       fontWeight: active ? FontWeight.w700 : FontWeight.w600,
-                      color: active ? Colors.white : AnalyticsTokens.grey,
+                      color: active ? activeFg : c.grey,
                       letterSpacing: -0.1,
                       height: 1.0,
                     ),

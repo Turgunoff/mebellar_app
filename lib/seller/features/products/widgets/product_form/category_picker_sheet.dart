@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import '../../../../../shared/models/category_model.dart';
-import 'form_kit.dart';
 
 /// Modal bottom sheet for picking a single category. Pops the chosen
 /// [CategoryModel]. Subcategory selection is handled by [SubcategoryPickerSheet]
@@ -24,12 +24,13 @@ class CategoryPickerSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return _PickerSheetShell(
       title: title,
       child: ListView.separated(
         shrinkWrap: true,
         itemCount: items.length,
-        separatorBuilder: (_, _) => const Divider(height: 1, color: kDivider),
+        separatorBuilder: (_, _) => Divider(height: 1, color: c.divider),
         itemBuilder: (_, i) => _CategoryTile(
           name: items[i].name,
           accent: accent,
@@ -59,6 +60,7 @@ class SubcategoryPickerSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return _PickerSheetShell(
       title: parentName,
       child: Column(
@@ -71,14 +73,12 @@ class SubcategoryPickerSheet extends StatelessWidget {
             accent: accent,
             onTap: () => Navigator.of(context).pop(_ClearSubcategorySentinel()),
           ),
-          if (subcategories.isNotEmpty)
-            const Divider(height: 1, color: kDivider),
+          if (subcategories.isNotEmpty) Divider(height: 1, color: c.divider),
           Flexible(
             child: ListView.separated(
               shrinkWrap: true,
               itemCount: subcategories.length,
-              separatorBuilder: (_, _) =>
-                  const Divider(height: 1, color: kDivider),
+              separatorBuilder: (_, _) => Divider(height: 1, color: c.divider),
               itemBuilder: (_, i) => _CategoryTile(
                 name: subcategories[i].name,
                 accent: accent,
@@ -115,6 +115,7 @@ class _PickerSheetShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return SafeArea(
       top: false,
       child: Padding(
@@ -128,7 +129,7 @@ class _PickerSheetShell extends StatelessWidget {
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: kOutline,
+                  color: c.outline,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -136,11 +137,11 @@ class _PickerSheetShell extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: AppFonts.seller,
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: kInk,
+                color: c.ink,
                 letterSpacing: -0.2,
               ),
             ),
@@ -168,6 +169,7 @@ class _CategoryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return InkWell(
       onTap: onTap,
       child: Padding(
@@ -188,11 +190,11 @@ class _CategoryTile extends StatelessWidget {
             Expanded(
               child: Text(
                 name,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: kInk,
+                  color: c.ink,
                   letterSpacing: -0.1,
                 ),
               ),
@@ -219,28 +221,28 @@ class _ClearTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return InkWell(
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
         child: Row(
           children: [
-            const Icon(Iconsax.close_circle, size: 20, color: kGreyMid),
+            Icon(Iconsax.close_circle, size: 20, color: c.greyMid),
             const SizedBox(width: 16),
-            const Expanded(
+            Expanded(
               child: Text(
                 'Subkategoriyasiz',
                 style: TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: kGrey,
+                  color: c.grey,
                   letterSpacing: -0.1,
                 ),
               ),
             ),
-            if (selected)
-              Icon(Iconsax.tick_circle, size: 20, color: accent),
+            if (selected) Icon(Iconsax.tick_circle, size: 20, color: accent),
           ],
         ),
       ),

@@ -25,8 +25,9 @@ class AchievementsScreen extends StatelessWidget {
     final unlocked = items.where((a) => a.unlocked).toList();
     final locked = items.where((a) => !a.unlocked).toList();
 
+    final c = SellerColors.of(context);
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: c.background,
       appBar: const _AchievementsAppBar(),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
@@ -73,22 +74,23 @@ class _AchievementsAppBar extends StatelessWidget
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: c.surface,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       scrolledUnderElevation: 0,
-      foregroundColor: DashKit.ink,
+      foregroundColor: c.ink,
       leading: IconButton(
-        icon: const Icon(Iconsax.arrow_left_2, size: 22, color: DashKit.ink),
+        icon: Icon(Iconsax.arrow_left_2, size: 22, color: c.ink),
         onPressed: () => Navigator.of(context).maybePop(),
       ),
-      title: const Text(
+      title: Text(
         'Yutuqlar',
         style: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.w700,
-          color: DashKit.ink,
+          color: c.ink,
           letterSpacing: -0.2,
         ),
       ),
@@ -197,16 +199,17 @@ class _GroupLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Row(
       children: [
-        Icon(icon, size: 18, color: DashKit.grey),
+        Icon(icon, size: 18, color: c.grey),
         const SizedBox(width: 8),
         Text(
           text,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w700,
-            color: DashKit.ink,
+            color: c.ink,
             height: 1.1,
             letterSpacing: -0.2,
           ),
@@ -214,10 +217,10 @@ class _GroupLabel extends StatelessWidget {
         const SizedBox(width: 6),
         Text(
           '$count',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: DashKit.greyMid,
+            color: c.greyMid,
             height: 1.1,
           ),
         ),
@@ -233,18 +236,17 @@ class _AchievementCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final unlocked = item.unlocked;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.surface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: unlocked
-              ? DashKit.gold.withValues(alpha: 0.35)
-              : DashKit.hairline,
+          color: unlocked ? DashKit.gold.withValues(alpha: 0.35) : c.divider,
         ),
-        boxShadow: DashKit.cardShadow,
+        boxShadow: DashKit.cardShadow(Theme.of(context).brightness),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -266,10 +268,10 @@ class _AchievementCard extends StatelessWidget {
                             item.title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
-                              color: DashKit.ink,
+                              color: c.ink,
                               height: 1.15,
                               letterSpacing: -0.2,
                             ),
@@ -281,10 +283,10 @@ class _AchievementCard extends StatelessWidget {
                     const SizedBox(height: 3),
                     Text(
                       item.caption,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w500,
-                        color: DashKit.grey,
+                        color: c.grey,
                         height: 1.25,
                       ),
                     ),
@@ -304,7 +306,7 @@ class _AchievementCard extends StatelessWidget {
                     child: LinearProgressIndicator(
                       value: item.progress,
                       minHeight: 7,
-                      backgroundColor: DashKit.trackBg,
+                      backgroundColor: c.trackBg,
                       valueColor: const AlwaysStoppedAnimation<Color>(
                         DashKit.indigo,
                       ),
@@ -341,6 +343,9 @@ class _RewardBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The tint background is a FIXED light colour (goldBg / indigoTint), so the
+    // text on it must be a fixed dark ink — using the adaptive `c.ink` would
+    // turn it near-white in dark mode and vanish against the light tint.
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -377,7 +382,7 @@ class _RewardBox extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w500,
-                    color: DashKit.ink,
+                    color: AppColors.sellerInk,
                     height: 1.35,
                   ),
                 ),
@@ -430,6 +435,7 @@ class _Badge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final unlocked = item.unlocked;
     return SizedBox(
       width: 56,
@@ -442,7 +448,10 @@ class _Badge extends StatelessWidget {
               width: 56,
               height: 56,
               child: CustomPaint(
-                painter: _RingPainter(progress: item.progress),
+                painter: _RingPainter(
+                  progress: item.progress,
+                  ringTrack: c.ringTrack,
+                ),
               ),
             ),
           Container(
@@ -458,12 +467,12 @@ class _Badge extends StatelessWidget {
                       colors: [DashKit.goldBright, DashKit.gold],
                     )
                   : null,
-              color: unlocked ? null : DashKit.lockedBg,
+              color: unlocked ? null : c.lockedBg,
             ),
             child: Icon(
               item.icon,
               size: 22,
-              color: unlocked ? Colors.white : DashKit.greyMid,
+              color: unlocked ? Colors.white : c.greyMid,
             ),
           ),
         ],
@@ -473,9 +482,13 @@ class _Badge extends StatelessWidget {
 }
 
 class _RingPainter extends CustomPainter {
-  _RingPainter({required this.progress});
+  _RingPainter({required this.progress, required this.ringTrack});
 
   final double progress;
+
+  /// Track colour is passed in because a [CustomPainter] has no [BuildContext]
+  /// to read [SellerColors.of] — the caller resolves it from the theme.
+  final Color ringTrack;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -485,7 +498,7 @@ class _RingPainter extends CustomPainter {
       center,
       radius,
       Paint()
-        ..color = DashKit.ringTrack
+        ..color = ringTrack
         ..strokeWidth = 3
         ..style = PaintingStyle.stroke,
     );
@@ -504,5 +517,6 @@ class _RingPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _RingPainter old) => old.progress != progress;
+  bool shouldRepaint(covariant _RingPainter old) =>
+      old.progress != progress || old.ringTrack != ringTrack;
 }

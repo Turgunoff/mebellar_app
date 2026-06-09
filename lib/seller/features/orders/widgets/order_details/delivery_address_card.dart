@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import 'order_details_kit.dart';
 
@@ -18,6 +19,7 @@ class DeliveryAddressCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final hasContact = recipientName.isNotEmpty || phone.isNotEmpty;
     final hasAddress = address.isNotEmpty;
 
@@ -51,21 +53,21 @@ class DeliveryAddressCard extends StatelessWidget {
                     if (hasAddress)
                       Text(
                         address,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: AppFonts.seller,
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: kInk,
+                          color: c.ink,
                           height: 1.4,
                         ),
                       )
                     else
-                      const Text(
+                      Text(
                         'Manzil ko\'rsatilmagan',
                         style: TextStyle(
                           fontFamily: AppFonts.seller,
                           fontSize: 13,
-                          color: kGrey,
+                          color: c.grey,
                         ),
                       ),
                     if (hasContact) ...[
@@ -73,15 +75,15 @@ class DeliveryAddressCard extends StatelessWidget {
                       if (recipientName.isNotEmpty)
                         Row(
                           children: [
-                            const Icon(Iconsax.user, size: 13, color: kGrey),
+                            Icon(Iconsax.user, size: 13, color: c.grey),
                             const SizedBox(width: 5),
                             Text(
                               recipientName,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontFamily: AppFonts.seller,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
-                                color: kGrey,
+                                color: c.grey,
                               ),
                             ),
                           ],
@@ -90,15 +92,15 @@ class DeliveryAddressCard extends StatelessWidget {
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            const Icon(Iconsax.call, size: 13, color: kGrey),
+                            Icon(Iconsax.call, size: 13, color: c.grey),
                             const SizedBox(width: 5),
                             Text(
                               phone,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontFamily: AppFonts.seller,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
-                                color: kGrey,
+                                color: c.grey,
                               ),
                             ),
                           ],

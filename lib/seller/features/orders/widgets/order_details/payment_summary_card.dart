@@ -32,6 +32,7 @@ class PaymentSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return SectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -47,14 +48,14 @@ class PaymentSummaryCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Jami',
                   style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: kInk,
+                    color: c.ink,
                     height: 1.2,
                   ),
                 ),
@@ -62,22 +63,22 @@ class PaymentSummaryCard extends StatelessWidget {
               RichText(
                 text: TextSpan(
                   text: total,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
-                    color: kInk,
+                    color: c.ink,
                     letterSpacing: -0.6,
                     height: 1.0,
                   ),
-                  children: const [
+                  children: [
                     TextSpan(
                       text: '  UZS',
                       style: TextStyle(
                         fontFamily: AppFonts.seller,
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: kGreyMid,
+                        color: c.greyMid,
                         letterSpacing: 0,
                       ),
                     ),
@@ -189,32 +190,32 @@ class PaymentSummaryCard extends StatelessWidget {
                   vertical: 9,
                 ),
                 decoration: BoxDecoration(
-                  color: kSurfaceMuted,
+                  color: c.fillSoft,
                   borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: kOutline, width: 1),
+                  border: Border.all(color: c.outline, width: 1),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Iconsax.wallet_3, size: 14, color: kInk),
+                    Icon(Iconsax.wallet_3, size: 14, color: c.ink),
                     const SizedBox(width: 8),
-                    const Text(
+                    Text(
                       "To'lov turi: ",
                       style: TextStyle(
                         fontFamily: AppFonts.seller,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: kGrey,
+                        color: c.grey,
                         height: 1.0,
                       ),
                     ),
                     Text(
                       paymentMethod,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: AppFonts.seller,
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: kInk,
+                        color: c.ink,
                         height: 1.0,
                       ),
                     ),
@@ -237,16 +238,17 @@ class _SummaryLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Row(
       children: [
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 13,
               fontWeight: FontWeight.w500,
-              color: kGrey,
+              color: c.grey,
               height: 1.2,
             ),
           ),
@@ -254,22 +256,22 @@ class _SummaryLine extends StatelessWidget {
         RichText(
           text: TextSpan(
             text: value,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: kInk,
+              color: c.ink,
               letterSpacing: -0.2,
               height: 1.2,
             ),
-            children: const [
+            children: [
               TextSpan(
                 text: '  UZS',
                 style: TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: kGreyMid,
+                  color: c.greyMid,
                   letterSpacing: 0,
                 ),
               ),
@@ -288,12 +290,13 @@ class _DashedDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dividerColor = SellerColors.of(context).dividerStrong;
     return SizedBox(
       height: 1,
       child: LayoutBuilder(
         builder: (_, c) => CustomPaint(
           size: Size(c.maxWidth, 1),
-          painter: _DashedLinePainter(),
+          painter: _DashedLinePainter(dividerColor),
         ),
       ),
     );
@@ -301,13 +304,17 @@ class _DashedDivider extends StatelessWidget {
 }
 
 class _DashedLinePainter extends CustomPainter {
+  _DashedLinePainter(this.color);
+
+  final Color color;
+
   @override
   void paint(Canvas canvas, Size size) {
     const dashWidth = 4.0;
     const dashSpace = 4.0;
     double startX = 0;
     final paint = Paint()
-      ..color = kDivider
+      ..color = color
       ..strokeWidth = 1;
     while (startX < size.width) {
       canvas.drawLine(Offset(startX, 0), Offset(startX + dashWidth, 0), paint);
@@ -316,5 +323,6 @@ class _DashedLinePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _DashedLinePainter oldDelegate) =>
+      oldDelegate.color != color;
 }

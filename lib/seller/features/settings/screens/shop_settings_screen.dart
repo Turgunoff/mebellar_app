@@ -10,7 +10,6 @@ import '../../../../shared/widgets/error_state.dart';
 import '../bloc/shop_settings_bloc.dart';
 import '../widgets/shop_settings/settings_app_bar.dart';
 import '../widgets/shop_settings/settings_form.dart';
-import '../widgets/shop_settings/settings_form_kit.dart';
 import '../widgets/shop_settings/settings_save_bar.dart';
 
 /// Seller shop-settings screen.
@@ -37,6 +36,7 @@ class _ShopSettingsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return BlocConsumer<ShopSettingsBloc, ShopSettingsState>(
       // Fire on a save success, and on any newly-set error — including an
       // asset-upload error, which leaves `status` unchanged (so a plain
@@ -50,7 +50,7 @@ class _ShopSettingsView extends StatelessWidget {
           // pop and lands on the screen we return to.
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              backgroundColor: kInk,
+              backgroundColor: c.ink,
               behavior: SnackBarBehavior.floating,
               content: Text(
                 tr('shop_settings.saved_toast'),
@@ -81,7 +81,7 @@ class _ShopSettingsView extends StatelessWidget {
       },
       builder: (context, state) {
         return Scaffold(
-          backgroundColor: AppColors.lightBackground,
+          backgroundColor: c.background,
           appBar: const ShopSettingsAppBar(),
           body: switch (state.status) {
             ShopSettingsStatus.initial ||

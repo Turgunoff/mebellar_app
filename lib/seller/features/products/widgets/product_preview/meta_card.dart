@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import 'product_preview_kit.dart';
 
@@ -35,20 +36,21 @@ class MetaCard extends StatelessWidget {
   Future<void> _copySku(BuildContext context, String code) async {
     await Clipboard.setData(ClipboardData(text: code));
     if (!context.mounted) return;
+    final c = SellerColors.of(context);
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
           duration: const Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
-          backgroundColor: kInk,
-          content: const Text(
+          backgroundColor: c.ink,
+          content: Text(
             "Mahsulot kodi nusxa olindi",
             style: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: Colors.white,
+              color: c.surface,
             ),
           ),
         ),
@@ -57,6 +59,7 @@ class MetaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final code = sku?.trim();
     final hasSku = code != null && code.isNotEmpty;
     return SectionCard(
@@ -68,42 +71,42 @@ class MetaCard extends StatelessWidget {
           if (hasSku)
             Row(
               children: [
-                const Icon(Iconsax.barcode, size: 18, color: kGrey),
+                Icon(Iconsax.barcode, size: 18, color: c.grey),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Mahsulot kodi',
                         style: TextStyle(
                           fontFamily: AppFonts.seller,
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
-                          color: kGrey,
+                          color: c.grey,
                           height: 1.2,
                         ),
                       ),
                       const SizedBox(height: 3),
                       Text(
                         code,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: AppFonts.seller,
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: kInk,
+                          color: c.ink,
                           height: 1.2,
                           letterSpacing: -0.1,
                         ),
                       ),
                       const SizedBox(height: 2),
-                      const Text(
+                      Text(
                         'Buyurtmalarda va omborda mahsulotni topish uchun',
                         style: TextStyle(
                           fontFamily: AppFonts.seller,
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
-                          color: kGreyMid,
+                          color: c.greyMid,
                           height: 1.25,
                         ),
                       ),
@@ -111,14 +114,14 @@ class MetaCard extends StatelessWidget {
                   ),
                 ),
                 Material(
-                  color: kSurfaceMuted,
+                  color: c.fillSoft,
                   borderRadius: BorderRadius.circular(10),
                   child: InkWell(
                     onTap: () => _copySku(context, code),
                     borderRadius: BorderRadius.circular(10),
-                    child: const Padding(
-                      padding: EdgeInsets.all(10),
-                      child: Icon(Iconsax.copy, size: 16, color: kInk),
+                    child: Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Icon(Iconsax.copy, size: 16, color: c.ink),
                     ),
                   ),
                 ),
@@ -168,17 +171,18 @@ class _MetaInfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Column(
       children: [
         if (showDivider) ...[
           const SizedBox(height: 14),
-          const Divider(height: 1, thickness: 1, color: kDivider),
+          Divider(height: 1, thickness: 1, color: c.dividerStrong),
         ],
         const SizedBox(height: 14),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, size: 18, color: kGrey),
+            Icon(icon, size: 18, color: c.grey),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -186,22 +190,22 @@ class _MetaInfoRow extends StatelessWidget {
                 children: [
                   Text(
                     label,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: AppFonts.seller,
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
-                      color: kGrey,
+                      color: c.grey,
                       height: 1.2,
                     ),
                   ),
                   const SizedBox(height: 3),
                   Text(
                     value,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: AppFonts.seller,
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: kInk,
+                      color: c.ink,
                       height: 1.2,
                     ),
                   ),

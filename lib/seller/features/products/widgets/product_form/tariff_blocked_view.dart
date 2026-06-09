@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import '../../../../../shared/models/tariff.dart';
-import 'form_kit.dart';
 
 /// Shown in place of the form when the seller's plan quota is exhausted.
 class TariffBlockedView extends StatelessWidget {
@@ -12,6 +12,7 @@ class TariffBlockedView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final primary = Theme.of(context).colorScheme.primary;
     return Center(
       child: Padding(
@@ -21,13 +22,13 @@ class TariffBlockedView extends StatelessWidget {
           children: [
             Icon(Icons.lock_outline, color: primary, size: 40),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Tarif chegarasi tugadi',
               style: TextStyle(
                 fontFamily: AppFonts.seller,
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: kInk,
+                color: c.ink,
               ),
             ),
             if (snapshot != null) ...[
@@ -35,11 +36,11 @@ class TariffBlockedView extends StatelessWidget {
               Text(
                 'Mahsulotlar: ${snapshot!.activeProductsCount} / '
                 '${snapshot!.plan.isUnlimited ? '∞' : snapshot!.plan.maxActiveProducts}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: kGrey,
+                  color: c.grey,
                 ),
               ),
             ],

@@ -47,23 +47,25 @@ ThemeData _build(Brightness brightness) {
     error: AppColors.danger,
     onError: Colors.white,
     surface: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-    onSurface:
-        isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-    surfaceContainerLowest:
-        isDark ? AppColors.darkBackground : AppColors.lightBackground,
-    surfaceContainerLow:
-        isDark ? AppColors.darkSurface : AppColors.lightSurface,
-    surfaceContainer:
-        isDark ? AppColors.darkSurface : AppColors.lightSurface,
-    surfaceContainerHigh:
-        isDark ? AppColors.darkImageBg : AppColors.lightImageBg,
-    surfaceContainerHighest:
-        isDark ? AppColors.darkImageBg : AppColors.lightImageBg,
-    onSurfaceVariant:
-        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+    onSurface: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+    surfaceContainerLowest: isDark
+        ? AppColors.darkBackground
+        : AppColors.lightBackground,
+    surfaceContainerLow: isDark
+        ? AppColors.darkSurface
+        : AppColors.lightSurface,
+    surfaceContainer: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+    surfaceContainerHigh: isDark
+        ? AppColors.darkImageBg
+        : AppColors.lightImageBg,
+    surfaceContainerHighest: isDark
+        ? AppColors.darkImageBg
+        : AppColors.lightImageBg,
+    onSurfaceVariant: isDark
+        ? AppColors.darkTextSecondary
+        : AppColors.lightTextSecondary,
     outline: isDark ? AppColors.darkDivider : AppColors.lightDivider,
-    outlineVariant:
-        isDark ? AppColors.darkDivider : AppColors.lightDivider,
+    outlineVariant: isDark ? AppColors.darkDivider : AppColors.lightDivider,
     surfaceTint: Colors.transparent,
   );
 
@@ -73,10 +75,15 @@ ThemeData _build(Brightness brightness) {
     useMaterial3: true,
     brightness: brightness,
     colorScheme: scheme,
-    scaffoldBackgroundColor:
-        isDark ? AppColors.darkBackground : AppColors.lightBackground,
-    canvasColor:
-        isDark ? AppColors.darkBackground : AppColors.lightBackground,
+    // Seller-mode semantic palette — every seller widget reads its colours
+    // from `SellerColors.of(context)`, which resolves this per brightness.
+    extensions: <ThemeExtension<dynamic>>[
+      isDark ? SellerColors.dark : SellerColors.light,
+    ],
+    scaffoldBackgroundColor: isDark
+        ? AppColors.darkBackground
+        : AppColors.lightBackground,
+    canvasColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
     textTheme: textTheme,
     primaryTextTheme: textTheme,
     appBarTheme: AppBarTheme(
@@ -84,12 +91,14 @@ ThemeData _build(Brightness brightness) {
       elevation: 0,
       backgroundColor: scheme.surface,
       foregroundColor: scheme.onSurface,
-      titleTextStyle: TextStyle(fontFamily: AppFonts.seller,
+      titleTextStyle: TextStyle(
+        fontFamily: AppFonts.seller,
         fontSize: 18,
         fontWeight: FontWeight.w700,
         color: scheme.onSurface,
       ),
-      toolbarTextStyle: TextStyle(fontFamily: AppFonts.seller,
+      toolbarTextStyle: TextStyle(
+        fontFamily: AppFonts.seller,
         fontSize: 14,
         fontWeight: FontWeight.w500,
         color: scheme.onSurface,
@@ -101,20 +110,20 @@ ThemeData _build(Brightness brightness) {
         backgroundColor: scheme.primary,
         foregroundColor: scheme.onPrimary,
         minimumSize: const Size.fromHeight(52),
-        textStyle: TextStyle(fontFamily: AppFonts.seller,
+        textStyle: TextStyle(
+          fontFamily: AppFonts.seller,
           fontSize: 15,
           fontWeight: FontWeight.w600,
         ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         foregroundColor: scheme.primary,
         side: BorderSide(color: scheme.primary, width: 1),
-        textStyle: TextStyle(fontFamily: AppFonts.seller,
+        textStyle: TextStyle(
+          fontFamily: AppFonts.seller,
           fontSize: 15,
           fontWeight: FontWeight.w600,
         ),
@@ -123,7 +132,8 @@ ThemeData _build(Brightness brightness) {
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
         foregroundColor: scheme.primary,
-        textStyle: TextStyle(fontFamily: AppFonts.seller,
+        textStyle: TextStyle(
+          fontFamily: AppFonts.seller,
           fontSize: 14,
           fontWeight: FontWeight.w600,
         ),
@@ -136,11 +146,16 @@ ThemeData _build(Brightness brightness) {
         borderSide: BorderSide(color: scheme.primary, width: 1.5),
       ),
       filled: true,
-      labelStyle: TextStyle(fontFamily: AppFonts.seller, fontWeight: FontWeight.w500),
-      hintStyle: TextStyle(fontFamily: AppFonts.seller, fontWeight: FontWeight.w400),
+      labelStyle: TextStyle(
+        fontFamily: AppFonts.seller,
+        fontWeight: FontWeight.w500,
+      ),
+      hintStyle: TextStyle(
+        fontFamily: AppFonts.seller,
+        fontWeight: FontWeight.w400,
+      ),
     ),
-    progressIndicatorTheme:
-        ProgressIndicatorThemeData(color: scheme.primary),
+    progressIndicatorTheme: ProgressIndicatorThemeData(color: scheme.primary),
     iconTheme: IconThemeData(color: scheme.onSurface, size: 22),
   );
 }

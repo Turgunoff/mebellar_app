@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import 'product_preview_kit.dart';
 
@@ -95,19 +96,20 @@ class _DimensionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
       decoration: BoxDecoration(
-        color: kSurfaceMuted,
+        color: c.fillSoft,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: kOutline),
+        border: Border.all(color: c.outline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, size: 14, color: kGrey),
+              Icon(icon, size: 14, color: c.grey),
               const SizedBox(width: 6),
               // Flexible + ellipsis so a long measure label ("Balandligi")
               // never overflows when three tiles share a row on a narrow phone.
@@ -116,11 +118,11 @@ class _DimensionTile extends StatelessWidget {
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
-                    color: kGrey,
+                    color: c.grey,
                     height: 1.2,
                   ),
                 ),
@@ -132,11 +134,11 @@ class _DimensionTile extends StatelessWidget {
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 15,
               fontWeight: FontWeight.w700,
-              color: kInk,
+              color: c.ink,
               letterSpacing: -0.2,
               height: 1.0,
             ),
@@ -171,6 +173,7 @@ class SetDimensionsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (groups.isEmpty) return const SizedBox.shrink();
+    final c = SellerColors.of(context);
     return SectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -180,15 +183,15 @@ class SetDimensionsCard extends StatelessWidget {
             SizedBox(height: g == 0 ? 14 : 18),
             Row(
               children: [
-                const Icon(Iconsax.ruler, size: 15, color: kGrey),
+                Icon(Iconsax.ruler, size: 15, color: c.grey),
                 const SizedBox(width: 6),
                 Text(
                   groups[g].piece,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: kInk,
+                    color: c.ink,
                     letterSpacing: -0.1,
                   ),
                 ),
@@ -230,12 +233,13 @@ class IdentifiersCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: kDivider),
+        border: Border.all(color: c.dividerStrong),
       ),
       child: Row(
         children: [
@@ -243,24 +247,24 @@ class IdentifiersCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Mahsulot ID',
                   style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
-                    color: kGrey,
+                    color: c.grey,
                     height: 1.2,
                   ),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   productId,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 12.5,
                     fontWeight: FontWeight.w600,
-                    color: kInk,
+                    color: c.ink,
                     height: 1.2,
                     letterSpacing: -0.1,
                   ),
@@ -272,24 +276,24 @@ class IdentifiersCard extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              const Text(
+              Text(
                 'Yaratilgan',
                 style: TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
-                  color: kGrey,
+                  color: c.grey,
                   height: 1.2,
                 ),
               ),
               const SizedBox(height: 3),
               Text(
                 createdAtLabel,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 12.5,
                   fontWeight: FontWeight.w600,
-                  color: kInk,
+                  color: c.ink,
                   height: 1.2,
                 ),
               ),

@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import '../../../../../shared/widgets/product_color_chip.dart';
 import 'order_details_kit.dart';
@@ -15,6 +16,7 @@ class ItemsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final totalUnits = items.fold<int>(0, (sum, it) => sum + it.qty);
     return SectionCard(
       child: Column(
@@ -26,7 +28,7 @@ class ItemsCard extends StatelessWidget {
             _ItemRow(item: items[i]),
             if (i != items.length - 1) ...[
               const SizedBox(height: 12),
-              const Divider(height: 1, thickness: 1, color: kDivider),
+              Divider(height: 1, thickness: 1, color: c.dividerStrong),
               const SizedBox(height: 12),
             ],
           ],
@@ -41,11 +43,12 @@ class _ImagePlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Container(
       width: 56,
       height: 56,
-      color: kImageBg,
-      child: const Icon(Iconsax.box_1, size: 22, color: kGreyMid),
+      color: c.imageBg,
+      child: Icon(Iconsax.box_1, size: 22, color: c.greyMid),
     );
   }
 }
@@ -57,6 +60,7 @@ class _ItemRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -82,11 +86,11 @@ class _ItemRow extends StatelessWidget {
                 item.name,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: kInk,
+                  color: c.ink,
                   height: 1.3,
                   letterSpacing: -0.1,
                 ),
@@ -94,11 +98,11 @@ class _ItemRow extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 '${item.qty} ta × ${item.unitPriceLabel} UZS',
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: kGrey,
+                  color: c.grey,
                   height: 1.2,
                 ),
               ),
@@ -107,11 +111,11 @@ class _ItemRow extends StatelessWidget {
                 ProductColorChip(
                   slug: item.colorSlug,
                   swatchSize: 13,
-                  labelStyle: const TextStyle(
+                  labelStyle: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: kGrey,
+                    color: c.grey,
                     height: 1.0,
                   ),
                 ),
@@ -125,23 +129,23 @@ class _ItemRow extends StatelessWidget {
           children: [
             Text(
               item.subtotalLabel,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: AppFonts.seller,
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
-                color: kInk,
+                color: c.ink,
                 height: 1.2,
                 letterSpacing: -0.2,
               ),
             ),
             const SizedBox(height: 4),
-            const Text(
+            Text(
               'UZS',
               style: TextStyle(
                 fontFamily: AppFonts.seller,
                 fontSize: 10,
                 fontWeight: FontWeight.w600,
-                color: kGreyMid,
+                color: c.greyMid,
                 height: 1.0,
               ),
             ),

@@ -20,16 +20,11 @@ import '../settings/screens/shop_settings_screen.dart';
 import '../tariff/screens/tariff_screen.dart';
 import 'cubit/seller_profile_cubit.dart';
 
-// Local tokens — kept here so the screen reads top-to-bottom without
-// chasing theme indirection. Plus Jakarta Sans is applied to every
-// `Text` explicitly via `AppFonts.seller` so the surface
-// is immune to theme regressions and the M3 surface tint that the
-// teal seller seed otherwise bleeds onto neutral backgrounds.
-const _ink = Color(0xFF1D1D1D);
-const _grey = Color(0xFF757575);
-const _greyMid = Color(0xFFBDBDBD);
-const _divider = Color(0xFFEFEFEF);
-const _avatarBg = Color(0xFFEDEDED);
+// Fixed (brightness-independent) local tokens — the verification-status
+// intent tints and the tariff gold. Adaptive ink/grey/surface/divider/avatar
+// colours are read from `SellerColors.of(context)` per build so the screen
+// flips with the seller theme. Plus Jakarta Sans is applied to every `Text`
+// explicitly via `AppFonts.seller`.
 const _verifiedBg = Color(0xFFDCF1E5);
 const _verifiedFg = Color(0xFF1F6B49);
 const _pendingBg = Color(0xFFFFF1D6);
@@ -58,7 +53,7 @@ class _SellerProfileView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: AppColors.lightBackground,
+      color: SellerColors.of(context).background,
       child: SafeArea(
         bottom: false,
         child: Column(
@@ -194,8 +189,9 @@ class _ProfileHeaderBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Container(
-      color: AppColors.lightBackground,
+      color: c.background,
       padding: const EdgeInsets.fromLTRB(20, 12, 12, 12),
       child: Row(
         children: [
@@ -206,7 +202,7 @@ class _ProfileHeaderBar extends StatelessWidget {
                 fontFamily: AppFonts.seller,
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
-                color: _ink,
+                color: c.ink,
                 height: 1.15,
                 letterSpacing: -0.4,
               ),
@@ -242,7 +238,7 @@ class _ProfileIdentity extends StatelessWidget {
             fontFamily: AppFonts.seller,
             fontSize: 20,
             fontWeight: FontWeight.w700,
-            color: _ink,
+            color: SellerColors.of(context).ink,
             letterSpacing: -0.3,
             height: 1.2,
           ),
@@ -265,7 +261,10 @@ class _Avatar extends StatelessWidget {
     return Container(
       width: 80,
       height: 80,
-      decoration: const BoxDecoration(color: _avatarBg, shape: BoxShape.circle),
+      decoration: BoxDecoration(
+        color: SellerColors.of(context).neutralBg,
+        shape: BoxShape.circle,
+      ),
       clipBehavior: Clip.antiAlias,
       alignment: Alignment.center,
       child: (url == null || url.isEmpty)
@@ -299,25 +298,24 @@ class _IdentitySkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final block = SellerColors.of(context).neutralBg;
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Shimmer.fromColors(
-      baseColor: const Color(0xFFE6E6E6),
-      highlightColor: const Color(0xFFF5F5F5),
+      baseColor: dark ? const Color(0xFF2A2A2A) : const Color(0xFFE6E6E6),
+      highlightColor: dark ? const Color(0xFF383838) : const Color(0xFFF5F5F5),
       child: Column(
         children: [
           Container(
             width: 80,
             height: 80,
-            decoration: const BoxDecoration(
-              color: _avatarBg,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: block, shape: BoxShape.circle),
           ),
           const SizedBox(height: 14),
           Container(
             width: 160,
             height: 20,
             decoration: BoxDecoration(
-              color: _avatarBg,
+              color: block,
               borderRadius: BorderRadius.circular(6),
             ),
           ),
@@ -326,7 +324,7 @@ class _IdentitySkeleton extends StatelessWidget {
             width: 140,
             height: 22,
             decoration: BoxDecoration(
-              color: _avatarBg,
+              color: block,
               borderRadius: BorderRadius.circular(999),
             ),
           ),
@@ -343,7 +341,15 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (label, bg, fg, icon) = _styleFor(status);
+    var (label, bg, fg, icon) = _styleFor(status);
+    // The "unverified" (neutral) badge sits on the page background, so its
+    // soft grey must flip with the theme — the coloured intent badges read
+    // fine on both modes and stay fixed.
+    if (status == VerificationStatus.none) {
+      final c = SellerColors.of(context);
+      bg = c.neutralBg;
+      fg = c.neutralFg;
+    }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
@@ -421,7 +427,7 @@ class _SectionLabel extends StatelessWidget {
           fontFamily: AppFonts.seller,
           fontSize: 12,
           fontWeight: FontWeight.w700,
-          color: _grey,
+          color: SellerColors.of(context).grey,
           letterSpacing: 0.4,
           height: 1.2,
         ),
@@ -440,14 +446,16 @@ class _SettingsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
     final children = <Widget>[];
     for (var i = 0; i < items.length; i++) {
       children.add(items[i]);
       if (i < items.length - 1) {
         children.add(
-          const Padding(
-            padding: EdgeInsets.only(left: 60),
-            child: Divider(height: 1, thickness: 1, color: _divider),
+          Padding(
+            padding: const EdgeInsets.only(left: 60),
+            child: Divider(height: 1, thickness: 1, color: c.divider),
           ),
         );
       }
@@ -455,11 +463,11 @@ class _SettingsCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: dark ? 0.28 : 0.05),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -497,6 +505,7 @@ class _SettingsItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -505,7 +514,7 @@ class _SettingsItem extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(14, 14, 16, 14),
           child: Row(
             children: [
-              Icon(icon, size: 22, color: iconColor ?? _ink),
+              Icon(icon, size: 22, color: iconColor ?? c.ink),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -518,7 +527,7 @@ class _SettingsItem extends StatelessWidget {
                         fontFamily: AppFonts.seller,
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: titleColor ?? _ink,
+                        color: titleColor ?? c.ink,
                         letterSpacing: -0.1,
                         height: 1.25,
                       ),
@@ -531,7 +540,7 @@ class _SettingsItem extends StatelessWidget {
                           fontFamily: AppFonts.seller,
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
-                          color: _grey,
+                          color: c.grey,
                           height: 1.3,
                         ),
                       ),
@@ -541,7 +550,7 @@ class _SettingsItem extends StatelessWidget {
               ),
               if (showTrailing) ...[
                 const SizedBox(width: 8),
-                const Icon(Iconsax.arrow_right_3, size: 18, color: _greyMid),
+                Icon(Iconsax.arrow_right_3, size: 18, color: c.greyMid),
               ],
             ],
           ),
