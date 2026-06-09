@@ -487,7 +487,7 @@ class _FavHeart extends StatelessWidget {
       builder: (context, isFav) {
         return GestureDetector(
           onTap: () => context.read<FavoritesBloc>().add(
-            FavoriteToggled(_toProduct(product)),
+            FavoriteToggled(Product.fromModel(product)),
           ),
           child: ClipOval(
             child: BackdropFilter(
@@ -516,16 +516,6 @@ class _FavHeart extends StatelessWidget {
   }
 }
 
-Product _toProduct(ProductModel m) => Product(
-  id: m.id,
-  slug: m.id,
-  name: MultilingualText(uz: m.name, ru: m.name, en: m.name),
-  price: m.effectivePrice,
-  oldPrice: m.hasDiscount ? m.price : null,
-  images: m.images,
-  attributes: m.attributes,
-  stock: m.stock,
-);
 
 // ---------------------------------------------------------------------------
 // Skeleton + empty + error

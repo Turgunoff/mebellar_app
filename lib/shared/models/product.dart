@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 import 'multilingual_text.dart';
+import 'product_model.dart';
 import 'shop.dart';
 import 'shop_service.dart';
 
@@ -21,6 +22,22 @@ class Product extends Equatable {
     this.stock = 0,
     this.isFavorite = false,
   });
+
+  /// Builds the domain [Product] from the data-layer [ProductModel] — the one
+  /// converter for the favourites flow, replacing the per-screen `_toProduct`
+  /// copies. `ProductModel.thumbnail` is `images.first`, so `heroImage`
+  /// resolves identically whether or not `primaryImage` is set.
+  factory Product.fromModel(ProductModel m) => Product(
+        id: m.id,
+        slug: m.id,
+        name: MultilingualText(uz: m.name, ru: m.name, en: m.name),
+        price: m.effectivePrice,
+        oldPrice: m.hasDiscount ? m.price : null,
+        images: m.images,
+        primaryImage: m.thumbnail,
+        attributes: m.attributes,
+        stock: m.stock,
+      );
 
   final String id;
   final String slug;

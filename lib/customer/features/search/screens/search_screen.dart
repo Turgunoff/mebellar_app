@@ -868,17 +868,6 @@ class _ResultsGrid extends StatelessWidget {
     return '$formatted UZS';
   }
 
-  static Product _toProduct(ProductModel m) => Product(
-        id: m.id,
-        slug: m.id,
-        name: MultilingualText(uz: m.name, ru: m.name, en: m.name),
-        price: m.effectivePrice,
-        oldPrice: m.hasDiscount ? m.price : null,
-        images: m.images,
-        primaryImage: m.thumbnail,
-        attributes: m.attributes,
-        stock: m.stock,
-      );
 
   @override
   Widget build(BuildContext context) {
@@ -905,7 +894,7 @@ class _ResultsGrid extends StatelessWidget {
             isFavorite: isFav,
             onTap: () => onItemTap(p),
             onFavoriteToggle: () => context.read<FavoritesBloc>().add(
-                  FavoriteToggled(_toProduct(p)),
+                  FavoriteToggled(Product.fromModel(p)),
                 ),
           ),
         );

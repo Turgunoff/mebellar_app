@@ -98,7 +98,7 @@ class _SimilarSectionState extends State<_SimilarSection> {
                               context.push('/product-detail/${p.id}', extra: p),
                           onFavoriteToggle: () => context
                               .read<FavoritesBloc>()
-                              .add(FavoriteToggled(_toProduct(p))),
+                              .add(FavoriteToggled(Product.fromModel(p))),
                         ),
                       ),
                     );
@@ -183,7 +183,7 @@ class _BottomBar extends StatelessWidget {
             builder: (context, isFav) {
               return GestureDetector(
                 onTap: () => context.read<FavoritesBloc>().add(
-                  FavoriteToggled(_toProduct(product)),
+                  FavoriteToggled(Product.fromModel(product)),
                 ),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
@@ -252,13 +252,3 @@ class _BottomBar extends StatelessWidget {
 // Helpers
 // ═══════════════════════════════════════════════════════════════════════════
 
-Product _toProduct(ProductModel m) => Product(
-  id: m.id,
-  slug: m.id,
-  name: MultilingualText(uz: m.name, ru: m.name, en: m.name),
-  price: m.effectivePrice,
-  oldPrice: m.hasDiscount ? m.price : null,
-  images: m.images,
-  attributes: m.attributes,
-  stock: m.stock,
-);

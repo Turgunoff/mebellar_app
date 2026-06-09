@@ -23,7 +23,7 @@ class _ShopProductCard extends StatelessWidget {
         onTap: () =>
             context.push('/product-detail/${product.id}', extra: product),
         onFavoriteToggle: () => context.read<FavoritesBloc>().add(
-          FavoriteToggled(_toProduct(product)),
+          FavoriteToggled(Product.fromModel(product)),
         ),
       ),
     );
@@ -302,13 +302,3 @@ int? _minutes(String hhmm) {
 /// Bridges [ProductModel] → [Product] so the favourites bloc (which speaks the
 /// richer [Product] type) can toggle a card from this screen. Mirrors the
 /// helper on the product detail page.
-Product _toProduct(ProductModel m) => Product(
-  id: m.id,
-  slug: m.id,
-  name: MultilingualText(uz: m.name, ru: m.name, en: m.name),
-  price: m.effectivePrice,
-  oldPrice: m.hasDiscount ? m.price : null,
-  images: m.images,
-  attributes: m.attributes,
-  stock: m.stock,
-);

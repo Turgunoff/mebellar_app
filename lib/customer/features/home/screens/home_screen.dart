@@ -604,17 +604,6 @@ class _RecommendedGrid extends StatelessWidget {
     return '$formatted UZS';
   }
 
-  static Product _toProduct(ProductModel m) => Product(
-    id: m.id,
-    slug: m.id,
-    name: MultilingualText(uz: m.name, ru: m.name, en: m.name),
-    price: m.effectivePrice,
-    oldPrice: m.hasDiscount ? m.price : null,
-    images: m.images,
-    primaryImage: m.thumbnail,
-    attributes: m.attributes,
-    stock: m.stock,
-  );
 
   @override
   Widget build(BuildContext context) {
@@ -653,7 +642,7 @@ class _RecommendedGrid extends StatelessWidget {
                   onTap: () =>
                       context.push('/product-detail/${p.id}', extra: p),
                   onFavoriteToggle: () => context.read<FavoritesBloc>().add(
-                    FavoriteToggled(_toProduct(p)),
+                    FavoriteToggled(Product.fromModel(p)),
                   ),
                 ),
               );
