@@ -12,6 +12,7 @@ import '../../shared/repositories/cached_category_repository.dart';
 import '../../shared/repositories/cached_product_data_source.dart';
 import '../../shared/repositories/cart_repository.dart';
 import '../../shared/repositories/chat_repository.dart';
+import '../../shared/repositories/checkout_repository.dart';
 import '../../shared/repositories/customer_reviews_repository.dart';
 import '../../shared/repositories/favorites_repository.dart';
 import '../../shared/repositories/hive_cart_repository.dart';
@@ -155,6 +156,9 @@ void registerCatalogModule(GetIt sl) {
   );
   sl.registerLazySingleton<ProfileOrdersRepository>(
     () => WoodyProfileOrdersRepository(sl<WoodyApiClient>()),
+  );
+  sl.registerLazySingleton<CheckoutRepository>(
+    () => WoodyCheckoutRepository(sl<WoodyApiClient>()),
   );
   sl.registerLazySingleton<NotificationsRepository>(
     () => WoodyNotificationsRepository(api: sl<WoodyApiClient>()),

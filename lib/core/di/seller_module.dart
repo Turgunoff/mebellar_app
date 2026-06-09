@@ -8,6 +8,7 @@ import '../../shared/repositories/seller_dashboard_repository.dart';
 import '../../shared/repositories/seller_onboarding_repository.dart';
 import '../../shared/repositories/seller_order_repository.dart';
 import '../../shared/repositories/seller_product_repository.dart';
+import '../../shared/repositories/seller_profile_repository.dart';
 import '../../shared/repositories/seller_reviews_repository.dart';
 import '../../shared/repositories/seller_services_repository.dart';
 import '../../shared/repositories/seller_verification_repository.dart';
@@ -70,6 +71,11 @@ void registerSellerModule(GetIt sl) {
   // Dashboard — Woody REST (`/seller/dashboard`).
   sl.registerLazySingleton<SellerDashboardRepository>(
     () => WoodySellerDashboardRepository(api: sl<WoodyApiClient>()),
+  );
+
+  // Profile header reads (/seller/me, /seller/shop, /seller/tariff/current).
+  sl.registerLazySingleton<SellerProfileRepository>(
+    () => WoodySellerProfileRepository(sl<WoodyApiClient>()),
   );
 
   // Analytics reads live data — the empty-revenue state is the source of

@@ -10,7 +10,6 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../core/storage/hive_boxes.dart';
 import '../../../../shared/models/category_model.dart';
-import '../../../../shared/models/multilingual_text.dart';
 import '../../../../shared/models/product.dart';
 import '../../../../shared/models/product_model.dart';
 import '../../../../shared/repositories/category_data_source.dart';
@@ -868,17 +867,6 @@ class _ResultsGrid extends StatelessWidget {
     return '$formatted UZS';
   }
 
-  static Product _toProduct(ProductModel m) => Product(
-        id: m.id,
-        slug: m.id,
-        name: MultilingualText(uz: m.name, ru: m.name, en: m.name),
-        price: m.effectivePrice,
-        oldPrice: m.hasDiscount ? m.price : null,
-        images: m.images,
-        primaryImage: m.thumbnail,
-        attributes: m.attributes,
-        stock: m.stock,
-      );
 
   @override
   Widget build(BuildContext context) {
@@ -905,7 +893,7 @@ class _ResultsGrid extends StatelessWidget {
             isFavorite: isFav,
             onTap: () => onItemTap(p),
             onFavoriteToggle: () => context.read<FavoritesBloc>().add(
-                  FavoriteToggled(_toProduct(p)),
+                  FavoriteToggled(Product.fromModel(p)),
                 ),
           ),
         );

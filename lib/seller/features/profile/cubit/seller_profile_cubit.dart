@@ -6,9 +6,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/auth/auth_repository.dart';
 import '../../../../core/logging/talker.dart';
 import '../../../../core/network/api_error.dart';
-import '../../../../core/network/woody_api_client.dart';
 import '../../../../shared/models/tariff.dart';
 import '../../../../shared/models/verification_status.dart';
+import '../../../../shared/repositories/seller_profile_repository.dart';
 import '../data/seller_identity_cache.dart';
 
 /// Single-state cubit powering [SellerProfileScreen].
@@ -26,10 +26,10 @@ import '../data/seller_identity_cache.dart';
 /// (`Sotuvchi`, no logo, `VerificationStatus.none`, `TariffPlan.free`) instead
 /// of an exception.
 class SellerProfileCubit extends Cubit<SellerProfileState> {
-  SellerProfileCubit(this._api, this._auth, this._cache)
+  SellerProfileCubit(this._repo, this._auth, this._cache)
     : super(const SellerProfileState(isLoading: true));
 
-  final WoodyApiClient _api;
+  final SellerProfileRepository _repo;
   final AuthRepository _auth;
   final SellerIdentityCache _cache;
 
@@ -57,12 +57,9 @@ class SellerProfileCubit extends Cubit<SellerProfileState> {
     //    cache with that wrong value, which is what made an approved seller
     //    render as "Tasdiqlanmagan" after a stale-token boot.
     final results = await Future.wait<_Fetch>([
-      _fetch(_api.get<Map<String, dynamic>>('/seller/me'), label: 'me'),
-      _fetch(_api.get<Map<String, dynamic>>('/seller/shop'), label: 'shop'),
-      _fetch(
-        _api.get<Map<String, dynamic>>('/seller/tariff/current'),
-        label: 'tariff',
-      ),
+      _fetch(_repo.fetchMe(), label: 'me'),
+      _fetch(_repo.fetchShop(), label: 'shop'),
+      _fetch(_repo.fetchTariffCurrent(), label: 'tariff'),
     ]);
     final meRes = results[0];
     final shopRes = results[1];

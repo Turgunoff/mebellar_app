@@ -1,26 +1,28 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:woody_app/core/network/woody_api_client.dart';
 import 'package:woody_app/customer/features/checkout/cubit/checkout_cubit.dart';
 import 'package:woody_app/shared/models/cart_item_model.dart';
 import 'package:woody_app/shared/repositories/cart_repository.dart';
+import 'package:woody_app/shared/repositories/checkout_repository.dart';
 
-class _MockWoodyApi extends Mock implements WoodyApiClient {}
+class _MockCheckoutRepo extends Mock implements CheckoutRepository {}
 
 class _MockCartRepo extends Mock implements CartRepository {}
 
 void main() {
-  late _MockWoodyApi api;
+  setUpAll(() => registerFallbackValue(const <CheckoutOrderLine>[]));
+
+  late _MockCheckoutRepo checkout;
   late _MockCartRepo cartRepo;
 
   setUp(() {
-    api = _MockWoodyApi();
+    checkout = _MockCheckoutRepo();
     cartRepo = _MockCartRepo();
   });
 
   CheckoutCubit build({List<CartItemModel> items = const <CartItemModel>[]}) =>
-      CheckoutCubit(items: items, api: api, cartRepo: cartRepo);
+      CheckoutCubit(items: items, checkout: checkout, cartRepo: cartRepo);
 
   const item = CartItemModel(
     id: 'c1',
@@ -69,7 +71,10 @@ void main() {
     'submit emits [submitting, failure] when the order POST fails',
     build: () {
       when(
-        () => api.post<Map<String, dynamic>>(any(), body: any(named: 'body')),
+        () => checkout.placeOrder(
+          lines: any(named: 'lines'),
+          deliveryAddress: any(named: 'deliveryAddress'),
+        ),
       ).thenThrow(Exception('backend unreachable'));
       return build(items: const [item]);
     },
