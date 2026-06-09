@@ -14,7 +14,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/constants/product_colors.dart';
 import '../../../../shared/models/attribute_definition.dart';
-import '../../../../shared/models/multilingual_text.dart';
 import '../../../../shared/models/product.dart';
 import '../../../../shared/models/review.dart';
 import '../../../../shared/models/product_model.dart';

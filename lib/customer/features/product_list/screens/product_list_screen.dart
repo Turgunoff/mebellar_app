@@ -9,7 +9,6 @@ import 'package:shimmer/shimmer.dart';
 
 import '../../../../core/i18n/i18n.dart';
 import '../../../../shared/models/category_model.dart';
-import '../../../../shared/models/multilingual_text.dart';
 import '../../../../shared/models/product.dart';
 import '../../../../shared/models/product_model.dart';
 import '../../../features/favorites/bloc/favorites_bloc.dart';

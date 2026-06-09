@@ -11,7 +11,6 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
-import '../../../../shared/models/multilingual_text.dart';
 import '../../../../shared/models/product.dart';
 import '../../../../shared/models/product_model.dart';
 import '../../../../shared/models/shop_profile.dart';

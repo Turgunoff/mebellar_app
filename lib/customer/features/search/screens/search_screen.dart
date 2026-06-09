@@ -10,7 +10,6 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../core/storage/hive_boxes.dart';
 import '../../../../shared/models/category_model.dart';
-import '../../../../shared/models/multilingual_text.dart';
 import '../../../../shared/models/product.dart';
 import '../../../../shared/models/product_model.dart';
 import '../../../../shared/repositories/category_data_source.dart';
