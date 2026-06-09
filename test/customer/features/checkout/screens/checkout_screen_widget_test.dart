@@ -4,22 +4,22 @@ import 'package:mocktail/mocktail.dart';
 import 'package:woody_app/core/analytics/analytics_service.dart';
 import 'package:woody_app/core/analytics/noop_analytics_service.dart';
 import 'package:woody_app/core/di/service_locator.dart';
-import 'package:woody_app/core/network/woody_api_client.dart';
 import 'package:woody_app/customer/features/checkout/screens/checkout_screen.dart';
 import 'package:woody_app/shared/models/cart_item_model.dart';
 import 'package:woody_app/shared/repositories/cart_repository.dart';
+import 'package:woody_app/shared/repositories/checkout_repository.dart';
 
 /// ROADMAP B.5 — widget test for the checkout screen. The screen builds its
-/// own `CheckoutCubit` from `sl<WoodyApiClient>()` + `sl<CartRepository>()`,
+/// own `CheckoutCubit` from `sl<CheckoutRepository>()` + `sl<CartRepository>()`,
 /// so test doubles are registered into the locator; the cubit's constructor
 /// touches neither, so the editing-state render is fully deterministic.
-class _MockWoodyApi extends Mock implements WoodyApiClient {}
+class _MockCheckoutRepo extends Mock implements CheckoutRepository {}
 
 class _MockCartRepo extends Mock implements CartRepository {}
 
 void main() {
   setUp(() {
-    sl.registerSingleton<WoodyApiClient>(_MockWoodyApi());
+    sl.registerSingleton<CheckoutRepository>(_MockCheckoutRepo());
     sl.registerSingleton<CartRepository>(_MockCartRepo());
     sl.registerSingleton<AnalyticsService>(const NoopAnalyticsService());
   });
