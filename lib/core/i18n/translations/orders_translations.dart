@@ -18,6 +18,16 @@ const Map<String, dynamic> ordersUz = {
   'cancel_reason_hint': 'Masalan: Boshqa do\'kondan oldim',
   'cancel_reason_default': 'Sababsiz',
   'realtime': 'Onlayn',
+  // Seller delivery-fee adjustment review (order detail).
+  'fee_changed_title': 'Yetkazish narxi o\'zgardi',
+  'fee_changed_body':
+      'Sotuvchi yangi yetkazish narxini taklif qildi: {fee} so\'m',
+  'fee_reject': 'Rad etish',
+  'fee_approve': 'Tasdiqlash',
+  'fee_confirm_title': 'Yangi narxni tasdiqlash',
+  'fee_confirm_body':
+      'Yetkazish narxi: {fee} so\'m\nJami to\'lov: {total} so\'m\n\nRozilik bildirasizmi?',
+  'fee_confirm_yes': 'Ha, tasdiqlayman',
 };
 
 const Map<String, dynamic> ordersRu = {
@@ -38,6 +48,15 @@ const Map<String, dynamic> ordersRu = {
   'cancel_reason_hint': 'Например: Купил в другом магазине',
   'cancel_reason_default': 'Без причины',
   'realtime': 'Онлайн',
+  'fee_changed_title': 'Стоимость доставки изменилась',
+  'fee_changed_body':
+      'Продавец предложил новую стоимость доставки: {fee} сум',
+  'fee_reject': 'Отклонить',
+  'fee_approve': 'Подтвердить',
+  'fee_confirm_title': 'Подтверждение новой цены',
+  'fee_confirm_body':
+      'Стоимость доставки: {fee} сум\nИтого к оплате: {total} сум\n\nПодтверждаете?',
+  'fee_confirm_yes': 'Да, подтверждаю',
 };
 
 const Map<String, dynamic> ordersEn = {
@@ -58,6 +77,14 @@ const Map<String, dynamic> ordersEn = {
   'cancel_reason_hint': 'e.g. Bought it elsewhere',
   'cancel_reason_default': 'No reason',
   'realtime': 'Live',
+  'fee_changed_title': 'Delivery fee changed',
+  'fee_changed_body': 'The seller proposed a new delivery fee: {fee} so\'m',
+  'fee_reject': 'Reject',
+  'fee_approve': 'Confirm',
+  'fee_confirm_title': 'Confirm the new price',
+  'fee_confirm_body':
+      'Delivery fee: {fee} so\'m\nTotal: {total} so\'m\n\nDo you agree?',
+  'fee_confirm_yes': 'Yes, confirm',
 };
 
 const Map<String, dynamic> orderStatusUz = {

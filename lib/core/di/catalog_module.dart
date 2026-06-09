@@ -19,6 +19,7 @@ import '../../shared/repositories/hybrid_cart_repository.dart';
 import '../../shared/repositories/news_repository.dart';
 import '../../shared/repositories/notifications_repository.dart';
 import '../../shared/repositories/order_repository.dart';
+import '../../shared/repositories/profile_orders_repository.dart';
 import '../../shared/repositories/category_data_source.dart';
 import '../../shared/repositories/notifications_data_source.dart';
 import '../../shared/repositories/product_data_source.dart';
@@ -151,6 +152,9 @@ void registerCatalogModule(GetIt sl) {
   );
   sl.registerLazySingleton<OrderRepository>(
     () => WoodyOrderRepository(sl<WoodyApiClient>()),
+  );
+  sl.registerLazySingleton<ProfileOrdersRepository>(
+    () => WoodyProfileOrdersRepository(sl<WoodyApiClient>()),
   );
   sl.registerLazySingleton<NotificationsRepository>(
     () => WoodyNotificationsRepository(api: sl<WoodyApiClient>()),

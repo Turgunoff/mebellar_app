@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/auth/auth_repository.dart';
 import '../../../../core/logging/talker.dart';
-import '../../../../core/network/woody_api_client.dart';
+import '../../../../shared/repositories/profile_orders_repository.dart';
 
 class ProfileOrdersState extends Equatable {
   const ProfileOrdersState({this.orders = const [], this.isLoading = false});
@@ -42,9 +42,10 @@ class ProfileOrdersState extends Equatable {
 }
 
 class ProfileOrdersCubit extends Cubit<ProfileOrdersState> {
-  ProfileOrdersCubit(this._api, this._auth) : super(const ProfileOrdersState());
+  ProfileOrdersCubit(this._repo, this._auth)
+    : super(const ProfileOrdersState());
 
-  final WoodyApiClient _api;
+  final ProfileOrdersRepository _repo;
   final AuthRepository _auth;
 
   Future<void> fetch() async {
@@ -53,15 +54,8 @@ class ProfileOrdersCubit extends Cubit<ProfileOrdersState> {
     emit(state.copyWith(isLoading: true));
 
     try {
-      final body = await _api.get<Map<String, dynamic>>('/orders');
-      final rows = body['rows'];
-      emit(
-        ProfileOrdersState(
-          orders: rows is List
-              ? rows.whereType<Map<String, dynamic>>().map(_toCardMap).toList()
-              : const [],
-        ),
-      );
+      final rows = await _repo.fetchOrders();
+      emit(ProfileOrdersState(orders: rows.map(_toCardMap).toList()));
     } catch (e, st) {
       // Order-list fetch failed — clear the spinner so the UI isn't stuck,
       // and log the cause so an auth/transport failure isn't mistaken for an
@@ -75,10 +69,7 @@ class ProfileOrdersCubit extends Cubit<ProfileOrdersState> {
   /// listener (OrdersHistoryScreen, ProfileScreen badges, delete-account
   /// guard) immediately reflects the cancellation without a full re-fetch.
   Future<void> cancelOrder(String orderId, String reason) async {
-    await _api.post<dynamic>(
-      '/orders/$orderId/cancel',
-      body: {'reason': reason},
-    );
+    await _repo.cancel(orderId, reason);
 
     final updated = state.orders.map((o) {
       if (o['id'] == orderId) {

@@ -1,0 +1,55 @@
+name: CI
+
+# Quality gate for every push and PR: resolve deps, static-analyse lib/, and
+# run the test suite. Mirrors the project's documented local checks
+# (`dart analyze lib/` + `flutter test`, see CLAUDE.md §Build & run) so a green
+# CI means the same thing a clean local run does. Tests are fed the committed,
+# secret-free env/example.json — env/prod.json is never needed (or available)
+# in CI.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+# A new push to the same ref cancels the previous, still-running CI.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze-and-test:
+    name: Analyze & Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter (stable)
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Print tool versions
+        run: flutter --version
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # Informational only — surfaces formatting drift without blocking the
+      # gate, since the existing tree was not enforced through `dart format`.
+      - name: Check formatting
+        continue-on-error: true
+        run: dart format --output=none --set-exit-if-changed lib test
+
+      - name: Analyze
+        run: dart analyze lib
+
+      # Golden tests are excluded: their baselines are pixel-exact to the
+      # platform/Flutter revision that generated them, so they fail on the CI
+      # runner over font/anti-aliasing differences, not real regressions. They
+      # stay runnable locally via `flutter test --tags golden`.
+      - name: Run tests
+        run: flutter test --exclude-tags golden --dart-define-from-file=env/example.json

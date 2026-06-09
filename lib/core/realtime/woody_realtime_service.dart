@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
-import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:web_socket_channel/io.dart';
 
 import '../../config/app_config.dart';
 import '../logging/talker.dart';
@@ -20,13 +20,45 @@ import '../network/token_store.dart';
 /// server confirms the JWT is valid; on receive failures the loop retries
 /// silently. Sign-out clears the token, which causes the next reconnect
 /// attempt to skip the dial — the auth layer drives `start`/`stop`.
+///
+/// Auth travels in the `Authorization: Bearer <jwt>` header of the upgrade
+/// request, never in the URL query string — a query-string token leaks into
+/// proxy/access logs and TLS-terminating load-balancer logs. The header path
+/// requires `IOWebSocketChannel` (native sockets expose the upgrade headers;
+/// the cross-platform `WebSocketChannel.connect` does not), which is fine for
+/// this mobile-only app. The backend reads the token from this header on
+/// `/api/v1/realtime/ws`.
+/// The slice of a WebSocket channel the service consumes. Injected via
+/// [RealtimeConnector] so tests can drive frames / done / error without a live
+/// socket; production uses [_defaultConnector] over [IOWebSocketChannel].
+abstract class RealtimeConnection {
+  Future<void> get ready;
+  Stream<dynamic> get stream;
+  Future<void> close();
+}
+
+/// Opens a [RealtimeConnection] for [uri], authenticating with [accessToken]
+/// (production puts it in the `Authorization` header — never the URL).
+typedef RealtimeConnector = RealtimeConnection Function(
+  Uri uri, {
+  required String accessToken,
+});
+
 class WoodyRealtimeService {
-  WoodyRealtimeService({required TokenStore tokens}) : _tokens = tokens;
+  WoodyRealtimeService({
+    required TokenStore tokens,
+    RealtimeConnector? connector,
+    String? baseUrlOverride,
+  })  : _tokens = tokens,
+        _connector = connector ?? _defaultConnector,
+        _baseUrlOverride = baseUrlOverride;
 
   final TokenStore _tokens;
+  final RealtimeConnector _connector;
+  final String? _baseUrlOverride;
 
   final _events = StreamController<RealtimeEvent>.broadcast();
-  WebSocketChannel? _channel;
+  RealtimeConnection? _channel;
   StreamSubscription<dynamic>? _channelSub;
   Timer? _reconnectTimer;
   bool _running = false;
@@ -62,7 +94,7 @@ class WoodyRealtimeService {
     await _channelSub?.cancel();
     _channelSub = null;
     try {
-      await _channel?.sink.close();
+      await _channel?.close();
     } catch (_) {
       // Closing an already-closed channel is fine.
     }
@@ -76,7 +108,7 @@ class WoodyRealtimeService {
 
   Future<void> _connect() async {
     if (!_running) return;
-    final base = AppConfig.woodyApiUrl;
+    final base = _baseUrlOverride ?? AppConfig.woodyApiUrl;
     if (base.isEmpty) {
       // No backend configured — bail out silently. The auth flow is gated
       // on `hasWoodyApi` anyway, so this branch protects unit tests.
@@ -90,8 +122,8 @@ class WoodyRealtimeService {
       return;
     }
 
-    final wsUrl = _toWsUrl(base, pair.accessToken);
-    final channel = WebSocketChannel.connect(wsUrl);
+    final wsUrl = _toWsUrl(base);
+    final channel = _connector(wsUrl, accessToken: pair.accessToken);
     try {
       // Await the upgrade so a failed handshake (e.g. the server/nginx not
       // serving WS at this path, or an expired token) is caught HERE instead
@@ -112,7 +144,7 @@ class WoodyRealtimeService {
     }
     if (!_running) {
       // Torn down (sign-out / stop) while the handshake was in flight.
-      await channel.sink.close();
+      await channel.close();
       return;
     }
     _channel = channel;
@@ -125,7 +157,7 @@ class WoodyRealtimeService {
     _backoffStep = 0;
   }
 
-  Uri _toWsUrl(String base, String token) {
+  Uri _toWsUrl(String base) {
     final baseUri = Uri.parse(base);
     final secure = baseUri.scheme == 'https' || baseUri.scheme == 'wss';
     // Dart's Uri only knows default ports for http/https. A `wss` Uri with
@@ -133,12 +165,13 @@ class WoodyRealtimeService {
     // upgrade request as `https://host:0/...`, which never connects. Pin the
     // port so it always carries 443 (wss) / 80 (ws).
     final port = baseUri.hasPort ? baseUri.port : (secure ? 443 : 80);
+    // No token in the query string — auth rides the Authorization header set
+    // by the caller (see [_connect]).
     return Uri(
       scheme: secure ? 'wss' : 'ws',
       host: baseUri.host,
       port: port,
       path: '/api/v1/realtime/ws',
-      queryParameters: {'token': token},
     );
   }
 
@@ -205,4 +238,33 @@ class RealtimeEvent {
   final String type;
   final Map<String, dynamic> data;
   final Map<String, dynamic> raw;
+}
+
+/// Production [RealtimeConnector]: a real native WebSocket carrying the JWT in
+/// the `Authorization` header. Native sockets expose upgrade headers; the
+/// cross-platform `WebSocketChannel.connect` does not — fine for this
+/// mobile-only app.
+RealtimeConnection _defaultConnector(Uri uri, {required String accessToken}) =>
+    _IoRealtimeConnection(
+      IOWebSocketChannel.connect(
+        uri,
+        headers: {'Authorization': 'Bearer $accessToken'},
+      ),
+    );
+
+class _IoRealtimeConnection implements RealtimeConnection {
+  _IoRealtimeConnection(this._channel);
+
+  final IOWebSocketChannel _channel;
+
+  @override
+  Future<void> get ready => _channel.ready;
+
+  @override
+  Stream<dynamic> get stream => _channel.stream;
+
+  @override
+  Future<void> close() async {
+    await _channel.sink.close();
+  }
 }
