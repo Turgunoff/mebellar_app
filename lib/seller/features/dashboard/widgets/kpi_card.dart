@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import 'dashboard_kit.dart';
 
 /// Premium KPI tile used on the seller dashboard 2×2 grid.
 ///
@@ -30,6 +31,8 @@ class SellerKpiCard extends StatelessWidget {
     this.unit,
     this.subtitle,
     this.indicator,
+    this.delta,
+    this.deltaLowerIsBetter = false,
     this.accentValue = false,
     this.important = false,
     this.onTap,
@@ -48,6 +51,15 @@ class SellerKpiCard extends StatelessWidget {
   /// Optional small indicator pill in the top-right (e.g. "Limit oshdi").
   final KpiIndicator? indicator;
 
+  /// Optional period-over-period delta (e.g. `12.0` ⇒ "+12.0%"). Rendered as
+  /// a trend chip in the top-right when no [indicator] is set. `null` ⇒ no
+  /// chip (a metric with no comparison yet).
+  final double? delta;
+
+  /// Flips the delta colour rule — used for metrics like pending orders where
+  /// a downward trend is the good outcome.
+  final bool deltaLowerIsBetter;
+
   /// Renders [value] in the brand terracotta — used for the headline metric.
   final bool accentValue;
 
@@ -59,14 +71,12 @@ class SellerKpiCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final card = Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: important
-            ? Border.all(
-                color: AppColors.sellerPrimary.withValues(alpha: 0.35),
-              )
+            ? Border.all(color: AppColors.sellerPrimary.withValues(alpha: 0.35))
             : null,
         boxShadow: [
           BoxShadow(
@@ -93,10 +103,17 @@ class SellerKpiCard extends StatelessWidget {
                 child: Icon(icon, size: 18, color: AppColors.sellerPrimaryDeep),
               ),
               const Spacer(),
-              if (indicator != null) _buildIndicator(indicator!),
+              if (indicator != null)
+                _buildIndicator(indicator!)
+              else if (delta != null)
+                DashTrendChip(
+                  deltaPercent: delta,
+                  lowerIsBetter: deltaLowerIsBetter,
+                  compact: true,
+                ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           Text(
             title,
             maxLines: 1,
@@ -108,7 +125,7 @@ class SellerKpiCard extends StatelessWidget {
               height: 1.0,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 5),
           // FittedBox prevents long values like "151 850 000 UZS" from being
           // truncated to "151 850 0..." in the narrow KPI cell. It only
           // scales down when the natural size doesn't fit, so short values
@@ -216,10 +233,10 @@ class KpiIndicator {
   final Color tint;
 
   factory KpiIndicator.danger(String label) => KpiIndicator._(
-        label: label,
-        fg: const Color(0xFFC0392B),
-        tint: const Color(0xFFFDECEA),
-      );
+    label: label,
+    fg: const Color(0xFFC0392B),
+    tint: const Color(0xFFFDECEA),
+  );
 
   /// On-brand variant: Deep Indigo foreground over a soft Indigo tint.
   /// Used on cards where a hard "danger" red would feel too alarming and
@@ -230,20 +247,20 @@ class KpiIndicator {
   /// customer-brand palette — the seller surface now resolves the same
   /// factory to its Indigo palette instead.
   factory KpiIndicator.terracotta(String label) => KpiIndicator._(
-        label: label,
-        fg: AppColors.sellerPrimaryDeep,
-        tint: AppColors.sellerPrimaryTint,
-      );
+    label: label,
+    fg: AppColors.sellerPrimaryDeep,
+    tint: AppColors.sellerPrimaryTint,
+  );
 
   factory KpiIndicator.warning(String label) => KpiIndicator._(
-        label: label,
-        fg: const Color(0xFF8C5A12),
-        tint: const Color(0xFFFFF1D6),
-      );
+    label: label,
+    fg: const Color(0xFF8C5A12),
+    tint: const Color(0xFFFFF1D6),
+  );
 
   factory KpiIndicator.success(String label) => KpiIndicator._(
-        label: label,
-        fg: const Color(0xFF1F6B49),
-        tint: const Color(0xFFDCF1E5),
-      );
+    label: label,
+    fg: const Color(0xFF1F6B49),
+    tint: const Color(0xFFDCF1E5),
+  );
 }
