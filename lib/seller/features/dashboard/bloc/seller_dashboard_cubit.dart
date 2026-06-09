@@ -4,10 +4,12 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/auth/auth_repository.dart';
+import '../../../../shared/models/dashboard_snapshot.dart';
 import '../../../../shared/models/order.dart';
 import '../../../../shared/models/tariff.dart';
 import '../../../../shared/repositories/seller_dashboard_repository.dart';
 import '../../profile/data/seller_identity_cache.dart';
+import '../data/dashboard_models.dart';
 
 /// Single-state cubit that powers `SellerDashboardScreen`. The state always
 /// holds a valid (possibly zero-filled) `data` object so the UI never has to
@@ -76,6 +78,17 @@ class SellerDashboardCubit extends Cubit<SellerDashboardState> {
             plan: snap.tariff.plan,
             productLimit: snap.tariff.plan.maxActiveProducts,
             recentOrders: List<Order>.from(snap.recentOrders),
+            weekly: snap.weekly,
+            kpiDeltas: snap.kpiDeltas,
+            achievements: snap.achievements
+                .map(Achievement.fromProgress)
+                .toList(growable: false),
+            leaderboard: snap.leaderboard
+                .map(LeaderboardEntry.fromStanding)
+                .toList(growable: false),
+            topProducts: snap.topProducts
+                .map(TopProduct.fromStat)
+                .toList(growable: false),
           ),
         ),
       );
@@ -158,6 +171,11 @@ class SellerDashboardData extends Equatable {
     this.plan = TariffPlan.free,
     this.productLimit = 3,
     this.recentOrders = const [],
+    this.weekly = const WeeklySales(),
+    this.kpiDeltas = const KpiDeltas(),
+    this.achievements = const [],
+    this.leaderboard = const [],
+    this.topProducts = const [],
   });
 
   /// `sellers.legal_name`. `null` when blank — UI falls back to "Sotuvchi".
@@ -174,6 +192,21 @@ class SellerDashboardData extends Equatable {
   /// Active-product cap for [plan]. `-1` means unlimited.
   final int productLimit;
   final List<Order> recentOrders;
+
+  /// Last-7-days sales series + week total + delta for the hero sparkline.
+  final WeeklySales weekly;
+
+  /// Period-over-period deltas for the KPI trend chips.
+  final KpiDeltas kpiDeltas;
+
+  /// Milestone progress for the achievements strip + detail screen.
+  final List<Achievement> achievements;
+
+  /// This week's top sellers (top 5 + the caller's own row).
+  final List<LeaderboardEntry> leaderboard;
+
+  /// Best-selling products over the last 30 days.
+  final List<TopProduct> topProducts;
 
   /// Greeting name. Always non-empty: "Sotuvchi" when `sellerName` is blank.
   String get displaySellerName =>
@@ -193,6 +226,11 @@ class SellerDashboardData extends Equatable {
     TariffPlan? plan,
     int? productLimit,
     List<Order>? recentOrders,
+    WeeklySales? weekly,
+    KpiDeltas? kpiDeltas,
+    List<Achievement>? achievements,
+    List<LeaderboardEntry>? leaderboard,
+    List<TopProduct>? topProducts,
   }) {
     return SellerDashboardData(
       sellerName: sellerName ?? this.sellerName,
@@ -204,6 +242,11 @@ class SellerDashboardData extends Equatable {
       plan: plan ?? this.plan,
       productLimit: productLimit ?? this.productLimit,
       recentOrders: recentOrders ?? this.recentOrders,
+      weekly: weekly ?? this.weekly,
+      kpiDeltas: kpiDeltas ?? this.kpiDeltas,
+      achievements: achievements ?? this.achievements,
+      leaderboard: leaderboard ?? this.leaderboard,
+      topProducts: topProducts ?? this.topProducts,
     );
   }
 
@@ -218,6 +261,11 @@ class SellerDashboardData extends Equatable {
     plan,
     productLimit,
     recentOrders.length,
+    weekly,
+    kpiDeltas,
+    achievements.length,
+    leaderboard.length,
+    topProducts.length,
   ];
 }
 

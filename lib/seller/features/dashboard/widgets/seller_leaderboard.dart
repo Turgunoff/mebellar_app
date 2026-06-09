@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../../core/theme/app_colors.dart';
-import '../data/dashboard_mock.dart';
+import '../data/dashboard_models.dart';
 import 'dashboard_kit.dart';
 
 /// Weekly seller leaderboard. Top-3 ranks get a coloured medal disc (gold /

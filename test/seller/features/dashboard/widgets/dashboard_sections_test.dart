@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:woody_app/seller/features/dashboard/data/dashboard_mock.dart';
+import 'package:woody_app/seller/features/dashboard/data/dashboard_models.dart';
 import 'package:woody_app/seller/features/dashboard/screens/achievements_screen.dart';
 import 'package:woody_app/seller/features/dashboard/widgets/achievements_strip.dart';
 import 'package:woody_app/seller/features/dashboard/widgets/dashboard_kit.dart';
@@ -8,12 +8,86 @@ import 'package:woody_app/seller/features/dashboard/widgets/hero_sales_card.dart
 import 'package:woody_app/seller/features/dashboard/widgets/kpi_card.dart';
 import 'package:woody_app/seller/features/dashboard/widgets/seller_leaderboard.dart';
 import 'package:woody_app/seller/features/dashboard/widgets/top_products_card.dart';
+import 'package:woody_app/shared/models/dashboard_snapshot.dart';
 
-/// These pump the redesigned dashboard sections against realistic mock data
-/// and assert they render without layout exceptions (overflow / unbounded
-/// constraints) — the main risk for a multi-section scroll view with nested
-/// horizontal lists and custom painters. They run without DI/auth because the
-/// rich sections are mock-driven, not cubit-driven.
+/// These pump the dashboard sections against realistic sample data and assert
+/// they render without layout exceptions (overflow / unbounded constraints) —
+/// the main risk for a multi-section scroll view with nested horizontal lists
+/// and custom painters. They run without DI/auth: the sections are pure
+/// widgets fed view-models, decoupled from the cubit.
+///
+/// Leaderboard names are pre-masked here on purpose — anonymisation moved to
+/// the backend (`SellerLeaderboardRepository`), so the client now trusts the
+/// `shop_name` it receives verbatim.
+const _series = <double>[
+  3200000,
+  4750000,
+  4100000,
+  6900000,
+  5400000,
+  8300000,
+  9650000,
+];
+const _labels = ['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh', 'Ya'];
+
+const _leaderboard = <LeaderboardEntry>[
+  LeaderboardEntry(rank: 1, shopName: 'B•••• M••••', revenue: 84300000),
+  LeaderboardEntry(rank: 2, shopName: 'S•••• H•••', revenue: 71900000),
+  LeaderboardEntry(
+    rank: 4,
+    shopName: 'Zumar Mebel',
+    revenue: 42300000,
+    deltaPercent: 18.4,
+    isMe: true,
+  ),
+];
+
+final _strip = <Achievement>[
+  Achievement(
+    icon: Icons.star,
+    title: 'Birinchi savdo',
+    caption: 'Bajarildi',
+    current: 1,
+    target: 1,
+    unlocked: true,
+    reward: 'r',
+  ),
+];
+
+const _topProducts = <TopProduct>[
+  TopProduct(
+    name: 'Burchakli divan "Modern"',
+    imageUrl: null,
+    unitsSold: 14,
+    revenue: 33600000,
+    deltaPercent: 24.0,
+  ),
+];
+
+Achievement _ach(
+  String title, {
+  required int current,
+  required int target,
+  required bool unlocked,
+}) => Achievement(
+  icon: Icons.star,
+  title: title,
+  caption: unlocked ? 'Bajarildi' : 'Davom etmoqda',
+  current: current,
+  target: target,
+  unlocked: unlocked,
+  reward: 'Mukofot matni',
+);
+
+final _screenAchievements = <Achievement>[
+  _ach('Birinchi savdo', current: 1, target: 1, unlocked: true),
+  _ach('10 ta buyurtma', current: 10, target: 10, unlocked: true),
+  _ach('Reyting yulduzi', current: 48, target: 50, unlocked: false),
+  _ach('50 ta mahsulot', current: 18, target: 50, unlocked: false),
+  _ach('Tez yetkazuvchi', current: 7, target: 10, unlocked: false),
+  _ach('Aylanma', current: 2, target: 5, unlocked: false),
+];
+
 void main() {
   Future<void> pump(WidgetTester tester, Widget child) async {
     await tester.pumpWidget(
@@ -36,9 +110,9 @@ void main() {
         padding: EdgeInsets.all(20),
         child: HeroSalesCard(
           weekRevenue: 42300000,
-          series: DashboardMock.mockRevenueSeries,
-          weekdayLabels: DashboardMock.mockWeekdayLabels,
-          deltaPercent: DashboardMock.mockSalesDeltaPercent,
+          series: _series,
+          weekdayLabels: _labels,
+          deltaPercent: 18.4,
         ),
       ),
     );
@@ -46,8 +120,7 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('Bu hafta savdo'), findsOneWidget);
     expect(find.text('+18.4%'), findsOneWidget);
-    // Every weekday label paints under the sparkline.
-    for (final d in DashboardMock.mockWeekdayLabels) {
+    for (final d in _labels) {
       expect(find.text(d), findsOneWidget);
     }
   });
@@ -77,14 +150,13 @@ void main() {
       tester,
       const Padding(
         padding: EdgeInsets.all(20),
-        child: SellerLeaderboard(entries: DashboardMock.mockLeaderboard),
+        child: SellerLeaderboard(entries: _leaderboard),
       ),
     );
     // The current shop shows its real name + the "Siz" tag.
     expect(find.text('Zumar Mebel'), findsOneWidget);
     expect(find.text('Siz'), findsOneWidget);
-    // Competitors are anonymised — the full name must NOT appear.
-    expect(find.text('Bravo Mebel'), findsNothing);
+    // Competitor rows render the server-masked name verbatim.
     expect(find.text('B•••• M••••'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -94,10 +166,7 @@ void main() {
   ) async {
     await pump(
       tester,
-      const SizedBox(
-        height: 132,
-        child: AchievementsStrip(achievements: DashboardMock.mockAchievements),
-      ),
+      SizedBox(height: 132, child: AchievementsStrip(achievements: _strip)),
     );
     expect(find.text('Birinchi savdo'), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -108,7 +177,7 @@ void main() {
       tester,
       const Padding(
         padding: EdgeInsets.all(20),
-        child: TopProductsCard(products: DashboardMock.mockTopProducts),
+        child: TopProductsCard(products: _topProducts),
       ),
     );
     expect(find.text('Burchakli divan "Modern"'), findsOneWidget);
@@ -130,20 +199,10 @@ void main() {
     expect(DashKit.compactMoney(640), '640');
   });
 
-  test('LeaderboardEntry.displayName masks competitors, not the owner', () {
-    const me = LeaderboardEntry(
-      rank: 4,
-      shopName: 'Zumar Mebel',
-      revenue: 1,
-      deltaPercent: 0,
-      isMe: true,
-    );
-    const other = LeaderboardEntry(
-      rank: 1,
-      shopName: 'Bravo Mebel',
-      revenue: 1,
-      deltaPercent: 0,
-    );
+  test('LeaderboardEntry.displayName trusts the server-provided name', () {
+    // Anonymisation is the server's job now — the client shows what it gets.
+    const me = LeaderboardEntry(rank: 4, shopName: 'Zumar Mebel', revenue: 1, isMe: true);
+    const other = LeaderboardEntry(rank: 1, shopName: 'B•••• M••••', revenue: 1);
     expect(me.displayName, 'Zumar Mebel');
     expect(other.displayName, 'B•••• M••••');
   });
@@ -171,6 +230,25 @@ void main() {
     expect(done.progress, 1.0);
   });
 
+  test('Achievement.fromProgress collapses revenue goals to millions', () {
+    final a = Achievement.fromProgress(
+      const AchievementProgress(
+        code: 'revenue_5m',
+        titleUz: '5 mln aylanma',
+        titleRu: 'Оборот 5 млн',
+        icon: 'wallet',
+        requirementType: 'revenue_realized',
+        threshold: 5000000,
+        progress: 2400000,
+        unlocked: false,
+      ),
+    );
+    // 2.4M / 5M → a clean "2 / 5" counter.
+    expect(a.current, 2);
+    expect(a.target, 5);
+    expect(a.unlocked, isFalse);
+  });
+
   testWidgets('AchievementsScreen lists earned + locked goals with rewards', (
     tester,
   ) async {
@@ -181,16 +259,18 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(const MaterialApp(home: AchievementsScreen()));
+    await tester.pumpWidget(
+      MaterialApp(home: AchievementsScreen(achievements: _screenAchievements)),
+    );
     await tester.pump();
     expect(tester.takeException(), isNull);
 
-    // Overall progress header (2 of 6 unlocked in the mock).
+    // Overall progress header (2 of 6 unlocked).
     expect(find.text('2 / 6 yutuq'), findsOneWidget);
     // Both group labels render.
     expect(find.text("Qo'lga kiritilgan"), findsOneWidget);
-    expect(find.text('Davom etmoqda'), findsOneWidget);
-    // A reward panel is shown for the cards.
+    expect(find.text('Davom etmoqda'), findsWidgets);
+    // A reward panel is shown for the locked cards.
     expect(find.text('Mukofot'), findsWidgets);
     // A locked goal shows its "x / y" progress counter.
     expect(find.text('18 / 50'), findsOneWidget);

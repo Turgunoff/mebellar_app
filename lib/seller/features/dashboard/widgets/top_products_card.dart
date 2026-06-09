@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
-import '../data/dashboard_mock.dart';
+import '../data/dashboard_models.dart';
 import 'dashboard_kit.dart';
 
 /// "Eng ko'p sotilgan" — a compact ranked list of the month's best sellers.
@@ -45,19 +45,16 @@ class _ProductRow extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: Image.network(
-              product.imageUrl,
-              width: 48,
-              height: 48,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => Container(
-                width: 48,
-                height: 48,
-                color: c.imageBg,
-                alignment: Alignment.center,
-                child: Icon(Icons.image_outlined, size: 20, color: c.greyMid),
-              ),
-            ),
+            child: product.imageUrl == null
+                ? _ThumbPlaceholder(color: c.imageBg, icon: c.greyMid)
+                : Image.network(
+                    product.imageUrl!,
+                    width: 48,
+                    height: 48,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) =>
+                        _ThumbPlaceholder(color: c.imageBg, icon: c.greyMid),
+                  ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -112,6 +109,24 @@ class _ProductRow extends StatelessWidget {
           DashTrendChip(deltaPercent: product.deltaPercent, compact: true),
         ],
       ),
+    );
+  }
+}
+
+class _ThumbPlaceholder extends StatelessWidget {
+  const _ThumbPlaceholder({required this.color, required this.icon});
+
+  final Color color;
+  final Color icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 48,
+      height: 48,
+      color: color,
+      alignment: Alignment.center,
+      child: Icon(Icons.image_outlined, size: 20, color: icon),
     );
   }
 }

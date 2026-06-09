@@ -47,30 +47,24 @@ class WoodySellerDashboardRepository implements SellerDashboardRepository {
 
   @override
   Future<DashboardSnapshot> snapshot() async {
-    // The dashboard KPIs and the seller's current plan come from two
-    // endpoints; fetch them together. The tariff call degrades to an empty
-    // map (→ free) so a tariff hiccup never blanks the whole dashboard.
-    final results = await Future.wait([
-      _api.get<Map<String, dynamic>>('/seller/dashboard'),
-      _api
-          .get<Map<String, dynamic>>('/seller/tariff/current')
-          .catchError((_) => <String, dynamic>{}),
-    ]);
-    final body = results[0];
-    final tariffBody = results[1];
+    // One optimised call: KPIs (incl. today's revenue), the seller's plan, the
+    // 7-day sparkline + deltas, top products, achievements and the leaderboard
+    // all ride in the single /seller/dashboard payload.
+    final body = await _api.get<Map<String, dynamic>>('/seller/dashboard');
     final kpis = body['kpis'] as Map<String, dynamic>? ?? const {};
     final recent = body['recent_orders'] as List<dynamic>? ?? const [];
+    final tariffBody = body['tariff'] as Map<String, dynamic>?;
 
     final activeProducts = (kpis['products_active'] as num?)?.toInt() ?? 0;
     return DashboardSnapshot(
       todaysOrders: (kpis['orders_today'] as num?)?.toInt() ?? 0,
-      todaysRevenue: 0, // Backend doesn't yet break out today's revenue.
+      todaysRevenue: (kpis['revenue_today'] as num?) ?? 0,
       pendingOrdersCount: (kpis['orders_pending'] as num?)?.toInt() ?? 0,
       activeProductsCount: activeProducts,
       tariff: TariffSnapshot(
-        plan: TariffPlan.fromCode(tariffBody['plan_code'] as String?),
+        plan: TariffPlan.fromCode(tariffBody?['plan_code'] as String?),
         activeProductsCount:
-            (tariffBody['active_products_count'] as num?)?.toInt() ??
+            (tariffBody?['active_products_count'] as num?)?.toInt() ??
             activeProducts,
       ),
       recentOrders: recent
@@ -78,6 +72,24 @@ class WoodySellerDashboardRepository implements SellerDashboardRepository {
           .map(_toOrder)
           .toList(growable: false),
       last30Days: const [],
+      weekly: WeeklySales.fromJson(
+        body['weekly_sales'] as Map<String, dynamic>? ?? const {},
+      ),
+      kpiDeltas: KpiDeltas.fromJson(
+        body['kpi_deltas'] as Map<String, dynamic>? ?? const {},
+      ),
+      achievements: ((body['achievements'] as List<dynamic>?) ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(AchievementProgress.fromJson)
+          .toList(growable: false),
+      leaderboard: ((body['leaderboard'] as List<dynamic>?) ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(LeaderboardStanding.fromJson)
+          .toList(growable: false),
+      topProducts: ((body['top_products'] as List<dynamic>?) ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(TopProductStat.fromJson)
+          .toList(growable: false),
     );
   }
 

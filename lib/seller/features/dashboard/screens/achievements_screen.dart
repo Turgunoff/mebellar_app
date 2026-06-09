@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../../core/theme/app_colors.dart';
-import '../data/dashboard_mock.dart';
+import '../data/dashboard_models.dart';
 import '../widgets/dashboard_kit.dart';
 
 /// Full "Yutuqlar" screen reached from the dashboard's "Hammasi" link.
@@ -11,17 +11,16 @@ import '../widgets/dashboard_kit.dart';
 /// and not-yet-earned groups. Each card spells out its progress *and* the
 /// reward for completing it, so the seller sees exactly what they're chasing.
 ///
-/// Mock-driven for now (see [DashboardMock.mockAchievements]); the backend
-/// will swap in `GET /seller/dashboard/achievements`.
+/// The list is passed in by the dashboard (already fetched from
+/// `GET /seller/dashboard`), so this screen does no fetching of its own.
 class AchievementsScreen extends StatelessWidget {
-  const AchievementsScreen({super.key, this.achievements});
+  const AchievementsScreen({super.key, required this.achievements});
 
-  /// Defaults to the mock list — injectable so tests/preview can vary it.
-  final List<Achievement>? achievements;
+  final List<Achievement> achievements;
 
   @override
   Widget build(BuildContext context) {
-    final items = achievements ?? DashboardMock.mockAchievements;
+    final items = achievements;
     final unlocked = items.where((a) => a.unlocked).toList();
     final locked = items.where((a) => !a.unlocked).toList();
 

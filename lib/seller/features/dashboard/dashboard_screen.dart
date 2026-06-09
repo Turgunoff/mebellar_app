@@ -15,7 +15,6 @@ import '../../../shared/models/order_status.dart';
 import '../../../shared/widgets/brand_refresh_indicator.dart';
 import '../notifications/screens/notifications_screen.dart';
 import 'bloc/seller_dashboard_cubit.dart';
-import 'data/dashboard_mock.dart';
 import 'screens/achievements_screen.dart';
 import 'widgets/achievements_strip.dart';
 import 'widgets/dashboard_kit.dart';
@@ -117,23 +116,27 @@ class _DashboardContent extends StatelessWidget {
         parent: AlwaysScrollableScrollPhysics(),
       ),
       children: [
-        // ---- Hero: this-week revenue + sparkline (mock) -------------------
+        // ---- Hero: this-week revenue + sparkline --------------------------
         _h(
           HeroSalesCard(
-            weekRevenue: DashboardMock.mockWeekRevenue,
-            series: DashboardMock.mockRevenueSeries,
-            weekdayLabels: DashboardMock.mockWeekdayLabels,
-            deltaPercent: DashboardMock.mockSalesDeltaPercent,
+            weekRevenue: data.weekly.total,
+            series: data.weekly.points
+                .map((p) => p.amount.toDouble())
+                .toList(growable: false),
+            weekdayLabels: data.weekly.points
+                .map((p) => _uzWeekday(p.date))
+                .toList(growable: false),
+            deltaPercent: data.weekly.deltaPercent ?? 0,
             onTap: () => context.go('/seller/analytics'),
           ),
         ),
         const SizedBox(height: 20),
 
-        // ---- KPI grid (real numbers from the cubit + mock deltas) ---------
+        // ---- KPI grid (real numbers + week-over-week deltas) --------------
         _h(_KpiGrid(data: data)),
         const SizedBox(height: 26),
 
-        // ---- Achievements (mock) — bleeds full-width ----------------------
+        // ---- Achievements — bleeds full-width -----------------------------
         _h(
           DashSectionHeader(
             title: 'Yutuqlar',
@@ -141,17 +144,18 @@ class _DashboardContent extends StatelessWidget {
             trailing: _SeeAllButton(
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(
-                  builder: (_) => const AchievementsScreen(),
+                  builder: (_) =>
+                      AchievementsScreen(achievements: data.achievements),
                 ),
               ),
             ),
           ),
         ),
         const SizedBox(height: 12),
-        AchievementsStrip(achievements: DashboardMock.mockAchievements),
+        AchievementsStrip(achievements: data.achievements),
         const SizedBox(height: 26),
 
-        // ---- Seller leaderboard (mock) ------------------------------------
+        // ---- Seller leaderboard -------------------------------------------
         _h(
           const DashSectionHeader(
             title: 'Sotuvchilar reytingi',
@@ -159,19 +163,21 @@ class _DashboardContent extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        _h(SellerLeaderboard(entries: DashboardMock.mockLeaderboard)),
+        _h(SellerLeaderboard(entries: data.leaderboard)),
         const SizedBox(height: 26),
 
-        // ---- Top products (mock) ------------------------------------------
-        _h(
-          const DashSectionHeader(
-            title: 'Eng ko\'p sotilgan',
-            subtitle: 'So\'nggi 30 kun',
+        // ---- Top products (last 30 days) — hidden until there are sales ---
+        if (data.topProducts.isNotEmpty) ...[
+          _h(
+            const DashSectionHeader(
+              title: 'Eng ko\'p sotilgan',
+              subtitle: 'So\'nggi 30 kun',
+            ),
           ),
-        ),
-        const SizedBox(height: 12),
-        _h(TopProductsCard(products: DashboardMock.mockTopProducts)),
-        const SizedBox(height: 26),
+          const SizedBox(height: 12),
+          _h(TopProductsCard(products: data.topProducts)),
+          const SizedBox(height: 26),
+        ],
 
         // ---- Recent orders (real, from the cubit) -------------------------
         _h(const _RecentOrdersHeader()),
@@ -419,20 +425,20 @@ class _KpiGrid extends StatelessWidget {
           unit: 'UZS',
           accentValue: true,
           important: true,
-          delta: DashboardMock.mockKpiDeltas['revenue'],
+          delta: data.kpiDeltas.revenue,
         ),
         SellerKpiCard(
           icon: Iconsax.shopping_bag,
           title: 'Bugungi orderlar',
           value: '${data.todaysOrders}',
-          delta: DashboardMock.mockKpiDeltas['orders'],
+          delta: data.kpiDeltas.orders,
         ),
         SellerKpiCard(
           icon: Iconsax.clock,
           title: 'Kutayotgan',
           value: '${data.pendingOrders}',
           // A drop in pending orders is the good outcome.
-          delta: DashboardMock.mockKpiDeltas['pending'],
+          delta: data.kpiDeltas.pending,
           deltaLowerIsBetter: true,
         ),
         SellerKpiCard(
@@ -458,6 +464,12 @@ String _formatMoney(num amount) {
     buf.write(s[i]);
   }
   return buf.toString();
+}
+
+/// Uzbek 2-letter weekday initial (Mon-anchored) for the hero sparkline labels.
+String _uzWeekday(DateTime date) {
+  const labels = ['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh', 'Ya'];
+  return labels[(date.weekday - 1) % 7];
 }
 
 // =============================================================================
