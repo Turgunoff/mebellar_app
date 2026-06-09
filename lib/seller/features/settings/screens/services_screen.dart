@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_fonts.dart';
@@ -20,7 +20,7 @@ const _ink = Color(0xFF1D1D1D);
 const _grey = Color(0xFF757575);
 const _divider = Color(0xFFEFEFEF);
 const _outline = Color(0xFFE3E3E3);
-const _terracottaTint = Color(0x14C27A5F);
+const _accentTint = AppColors.sellerPrimaryTint;
 
 class SellerServicesScreen extends StatelessWidget {
   const SellerServicesScreen({super.key});
@@ -28,8 +28,9 @@ class SellerServicesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => ServicesBloc(sl<SellerServicesRepository>())
-        ..add(const ServicesRequested()),
+      create: (_) =>
+          ServicesBloc(sl<SellerServicesRepository>())
+            ..add(const ServicesRequested()),
       child: const _ServicesView(),
     );
   }
@@ -56,7 +57,8 @@ class _ServicesView extends StatelessWidget {
               behavior: SnackBarBehavior.floating,
               content: Text(
                 tr('services.saved_toast'),
-                style: TextStyle(fontFamily: AppFonts.seller, 
+                style: TextStyle(
+                  fontFamily: AppFonts.seller,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
                 ),
@@ -69,7 +71,10 @@ class _ServicesView extends StatelessWidget {
               behavior: SnackBarBehavior.floating,
               content: Text(
                 state.error!,
-                style: TextStyle(fontFamily: AppFonts.seller, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  fontFamily: AppFonts.seller,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           );
@@ -80,26 +85,22 @@ class _ServicesView extends StatelessWidget {
           backgroundColor: AppColors.lightBackground,
           appBar: const _ServicesAppBar(),
           body: switch (state.status) {
-            ServicesStatus.initial ||
-            ServicesStatus.loading =>
-              const Center(
-                child: CircularProgressIndicator(color: AppColors.terracotta),
-              ),
+            ServicesStatus.initial || ServicesStatus.loading => const Center(
+              child: CircularProgressIndicator(color: AppColors.sellerPrimary),
+            ),
             ServicesStatus.failure when state.configs.isEmpty => ErrorState(
-                message: state.error,
-                onRetry: () => context
-                    .read<ServicesBloc>()
-                    .add(const ServicesRequested()),
-              ),
+              message: state.error,
+              onRetry: () =>
+                  context.read<ServicesBloc>().add(const ServicesRequested()),
+            ),
             _ => _ServicesForm(configs: state.configs),
           },
           bottomNavigationBar: state.configs.isEmpty
               ? null
               : _SaveBottomBar(
                   saving: state.status == ServicesStatus.saving,
-                  onSave: () => context
-                      .read<ServicesBloc>()
-                      .add(const ServicesSaved()),
+                  onSave: () =>
+                      context.read<ServicesBloc>().add(const ServicesSaved()),
                 ),
         );
       },
@@ -130,7 +131,8 @@ class _ServicesAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       title: Text(
         tr('services.title'),
-        style: TextStyle(fontFamily: AppFonts.seller, 
+        style: TextStyle(
+          fontFamily: AppFonts.seller,
           fontSize: 18,
           fontWeight: FontWeight.w700,
           color: _ink,
@@ -264,7 +266,8 @@ class _SectionTitle extends StatelessWidget {
       padding: const EdgeInsets.only(left: 4, bottom: 10),
       child: Text(
         text,
-        style: TextStyle(fontFamily: AppFonts.seller, 
+        style: TextStyle(
+          fontFamily: AppFonts.seller,
           fontSize: 15,
           fontWeight: FontWeight.w700,
           color: _ink,
@@ -356,7 +359,8 @@ class _ServiceTile extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: TextStyle(fontFamily: AppFonts.seller, 
+                      style: TextStyle(
+                        fontFamily: AppFonts.seller,
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                         color: _ink,
@@ -367,7 +371,8 @@ class _ServiceTile extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         subtitle!,
-                        style: TextStyle(fontFamily: AppFonts.seller, 
+                        style: TextStyle(
+                          fontFamily: AppFonts.seller,
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                           color: _grey,
@@ -382,10 +387,10 @@ class _ServiceTile extends StatelessWidget {
               Switch.adaptive(
                 value: config.enabled,
                 onChanged: (v) => context.read<ServicesBloc>().add(
-                      ServiceToggled(service: config.service, enabled: v),
-                    ),
+                  ServiceToggled(service: config.service, enabled: v),
+                ),
                 activeThumbColor: Colors.white,
-                activeTrackColor: AppColors.terracotta,
+                activeTrackColor: AppColors.sellerPrimary,
               ),
             ],
           ),
@@ -423,11 +428,11 @@ class _IconBadge extends StatelessWidget {
       width: 40,
       height: 40,
       decoration: BoxDecoration(
-        color: _terracottaTint,
+        color: _accentTint,
         borderRadius: BorderRadius.circular(12),
       ),
       alignment: Alignment.center,
-      child: Icon(icon, size: 20, color: AppColors.terracotta),
+      child: Icon(icon, size: 20, color: AppColors.sellerPrimary),
     );
   }
 }
@@ -449,27 +454,25 @@ class _InputSpec {
     required String label,
     required num? initial,
     required ShopServiceConfig Function(num? value, ShopServiceConfig current)
-        apply,
-  }) =>
-      _InputSpec._(
-        kind: _InputKind.amount,
-        label: label,
-        initial: initial,
-        apply: apply,
-      );
+    apply,
+  }) => _InputSpec._(
+    kind: _InputKind.amount,
+    label: label,
+    initial: initial,
+    apply: apply,
+  );
 
   factory _InputSpec.months({
     required String label,
     required int? initial,
     required ShopServiceConfig Function(int? value, ShopServiceConfig current)
-        apply,
-  }) =>
-      _InputSpec._(
-        kind: _InputKind.months,
-        label: label,
-        initial: initial,
-        apply: (v, c) => apply(v?.toInt(), c),
-      );
+    apply,
+  }) => _InputSpec._(
+    kind: _InputKind.months,
+    label: label,
+    initial: initial,
+    apply: (v, c) => apply(v?.toInt(), c),
+  );
 
   final _InputKind kind;
   final String label;
@@ -481,11 +484,7 @@ class _InputSpec {
 // 8. Service input — controllerful TextField, dispatches config changes
 // =============================================================================
 class _ServiceInput extends StatefulWidget {
-  const _ServiceInput({
-    super.key,
-    required this.config,
-    required this.spec,
-  });
+  const _ServiceInput({super.key, required this.config, required this.spec});
 
   final ShopServiceConfig config;
   final _InputSpec spec;
@@ -545,7 +544,8 @@ class _ServiceInputState extends State<_ServiceInput> {
           padding: const EdgeInsets.only(left: 2, bottom: 6),
           child: Text(
             widget.spec.label,
-            style: TextStyle(fontFamily: AppFonts.seller, 
+            style: TextStyle(
+              fontFamily: AppFonts.seller,
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: _grey,
@@ -557,8 +557,9 @@ class _ServiceInputState extends State<_ServiceInput> {
           controller: _ctrl,
           keyboardType: TextInputType.number,
           inputFormatters: formatters,
-          cursorColor: AppColors.terracotta,
-          style: TextStyle(fontFamily: AppFonts.seller, 
+          cursorColor: AppColors.sellerPrimary,
+          style: TextStyle(
+            fontFamily: AppFonts.seller,
             fontSize: 15,
             fontWeight: FontWeight.w700,
             color: _ink,
@@ -572,7 +573,8 @@ class _ServiceInputState extends State<_ServiceInput> {
               vertical: 14,
             ),
             suffixText: suffix,
-            suffixStyle: TextStyle(fontFamily: AppFonts.seller, 
+            suffixStyle: TextStyle(
+              fontFamily: AppFonts.seller,
               fontSize: 13,
               fontWeight: FontWeight.w600,
               color: _grey,
@@ -585,7 +587,7 @@ class _ServiceInputState extends State<_ServiceInput> {
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(
-                color: AppColors.terracotta,
+                color: AppColors.sellerPrimary,
                 width: 1.4,
               ),
             ),
@@ -597,7 +599,7 @@ class _ServiceInputState extends State<_ServiceInput> {
 }
 
 // =============================================================================
-// 9. Save bottom bar — fixed terracotta button with safe-area + soft top shadow
+// 9. Save bottom bar — fixed indigo button with safe-area + soft top shadow
 // =============================================================================
 class _SaveBottomBar extends StatelessWidget {
   const _SaveBottomBar({required this.saving, required this.onSave});
@@ -628,15 +630,17 @@ class _SaveBottomBar extends StatelessWidget {
             child: FilledButton(
               onPressed: saving ? null : onSave,
               style: FilledButton.styleFrom(
-                backgroundColor: AppColors.terracotta,
+                backgroundColor: AppColors.sellerPrimary,
                 foregroundColor: Colors.white,
-                disabledBackgroundColor:
-                    AppColors.terracotta.withValues(alpha: 0.5),
+                disabledBackgroundColor: AppColors.sellerPrimary.withValues(
+                  alpha: 0.5,
+                ),
                 disabledForegroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
-                textStyle: TextStyle(fontFamily: AppFonts.seller, 
+                textStyle: TextStyle(
+                  fontFamily: AppFonts.seller,
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -0.1,

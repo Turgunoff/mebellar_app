@@ -11,7 +11,7 @@ import 'dashboard_kit.dart';
 /// is communicated by the amber banner, not by lowering data contrast.
 ///
 /// Accent color is `AppColors.sellerPrimary` (Deep Indigo) — distinct from
-/// the customer surface's terracotta so the seller dashboard reads as
+/// the customer surface's accent so the seller dashboard reads as
 /// "Backoffice" on first glance.
 ///
 /// Long values (e.g. "151 850 000 UZS") are wrapped in a `FittedBox` so they
@@ -60,10 +60,10 @@ class SellerKpiCard extends StatelessWidget {
   /// a downward trend is the good outcome.
   final bool deltaLowerIsBetter;
 
-  /// Renders [value] in the brand terracotta — used for the headline metric.
+  /// Renders [value] in the brand indigo — used for the headline metric.
   final bool accentValue;
 
-  /// Adds a subtle terracotta border so the card stands out in the grid.
+  /// Adds a subtle indigo border so the card stands out in the grid.
   final bool important;
 
   final VoidCallback? onTap;
@@ -121,7 +121,7 @@ class SellerKpiCard extends StatelessWidget {
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: Color(0xFF757575),
+              color: DashKit.grey,
               height: 1.0,
             ),
           ),
@@ -146,9 +146,7 @@ class SellerKpiCard extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                     letterSpacing: -0.4,
                     height: 1.1,
-                    color: accentValue
-                        ? AppColors.sellerPrimary
-                        : const Color(0xFF1D1D1D),
+                    color: accentValue ? AppColors.sellerPrimary : DashKit.ink,
                   ),
                 ),
                 if (unit != null) ...[
@@ -158,7 +156,7 @@ class SellerKpiCard extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF9E9E9E),
+                      color: DashKit.greyFaint,
                       height: 1.0,
                     ),
                   ),
@@ -175,7 +173,7 @@ class SellerKpiCard extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
-                color: Color(0xFF9E9E9E),
+                color: DashKit.greyFaint,
                 height: 1.0,
               ),
             ),
@@ -234,19 +232,15 @@ class KpiIndicator {
 
   factory KpiIndicator.danger(String label) => KpiIndicator._(
     label: label,
-    fg: const Color(0xFFC0392B),
-    tint: const Color(0xFFFDECEA),
+    fg: AppColors.sellerNegative,
+    tint: AppColors.sellerNegativeBg,
   );
 
   /// On-brand variant: Deep Indigo foreground over a soft Indigo tint.
   /// Used on cards where a hard "danger" red would feel too alarming and
   /// clash with the seller mode's premium aesthetic (e.g. a polite
   /// "Limit oshdi" nudge on the products tile).
-  ///
-  /// Named `.terracotta` for backwards compatibility with the original
-  /// customer-brand palette — the seller surface now resolves the same
-  /// factory to its Indigo palette instead.
-  factory KpiIndicator.terracotta(String label) => KpiIndicator._(
+  factory KpiIndicator.accent(String label) => KpiIndicator._(
     label: label,
     fg: AppColors.sellerPrimaryDeep,
     tint: AppColors.sellerPrimaryTint,
@@ -254,13 +248,13 @@ class KpiIndicator {
 
   factory KpiIndicator.warning(String label) => KpiIndicator._(
     label: label,
-    fg: const Color(0xFF8C5A12),
-    tint: const Color(0xFFFFF1D6),
+    fg: AppColors.sellerWarning,
+    tint: AppColors.sellerWarningBg,
   );
 
   factory KpiIndicator.success(String label) => KpiIndicator._(
     label: label,
-    fg: const Color(0xFF1F6B49),
-    tint: const Color(0xFFDCF1E5),
+    fg: AppColors.sellerPositive,
+    tint: AppColors.sellerPositiveBg,
   );
 }

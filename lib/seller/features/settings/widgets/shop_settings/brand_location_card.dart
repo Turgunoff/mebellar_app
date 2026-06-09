@@ -43,7 +43,7 @@ class BrandLocationCard extends StatelessWidget {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: brandColor ?? AppColors.terracotta,
+                    color: brandColor ?? AppColors.sellerPrimary,
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: kOutline, width: 1),
                   ),

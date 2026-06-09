@@ -16,15 +16,15 @@ class PreviewModeBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
-        color: kTerracottaSoft,
+        color: kAccentSoft,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: AppColors.terracotta.withValues(alpha: 0.18),
+          color: AppColors.sellerPrimary.withValues(alpha: 0.18),
         ),
       ),
       child: Row(
         children: [
-          const Icon(Iconsax.eye, size: 18, color: AppColors.terracotta),
+          const Icon(Iconsax.eye, size: 18, color: AppColors.sellerPrimary),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -36,7 +36,7 @@ class PreviewModeBanner extends StatelessWidget {
                     fontFamily: AppFonts.seller,
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.terracotta,
+                    color: AppColors.sellerPrimary,
                     height: 1.2,
                     letterSpacing: -0.1,
                   ),
@@ -48,7 +48,7 @@ class PreviewModeBanner extends StatelessWidget {
                     fontFamily: AppFonts.seller,
                     fontSize: 11.5,
                     fontWeight: FontWeight.w500,
-                    color: const Color(0xFF8A4A35),
+                    color: AppColors.sellerPrimaryDeep,
                     height: 1.3,
                   ),
                 ),
@@ -132,13 +132,14 @@ class TitlePriceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final priceFormat = NumberFormat('#,###', 'uz');
-    final hasDiscount = product.discountPrice != null &&
+    final hasDiscount =
+        product.discountPrice != null &&
         product.discountPrice! > 0 &&
         product.discountPrice! < product.price;
     final effectivePrice = hasDiscount ? product.discountPrice! : product.price;
     final discountPercent = hasDiscount
         ? (((product.price - product.discountPrice!) / product.price) * 100)
-            .round()
+              .round()
         : 0;
 
     return SectionCard(
@@ -288,11 +289,7 @@ class RejectionReasonCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
-            Iconsax.info_circle,
-            size: 18,
-            color: Color(0xFFC0392B),
-          ),
+          const Icon(Iconsax.info_circle, size: 18, color: Color(0xFFC0392B)),
           const SizedBox(width: 10),
           Expanded(
             child: Column(

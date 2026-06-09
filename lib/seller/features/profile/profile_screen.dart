@@ -146,9 +146,9 @@ class _SellerProfileView extends StatelessWidget {
                           items: [
                             _SettingsItem(
                               icon: Iconsax.user_octagon,
-                              iconColor: AppColors.terracotta,
+                              iconColor: AppColors.sellerPrimary,
                               title: 'Xaridor rejimi',
-                              titleColor: AppColors.terracotta,
+                              titleColor: AppColors.sellerPrimary,
                               onTap: () =>
                                   switchAppMode(context, AppMode.customer),
                             ),
@@ -269,7 +269,7 @@ class _Avatar extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       alignment: Alignment.center,
       child: (url == null || url.isEmpty)
-          ? const Icon(Iconsax.shop, size: 36, color: AppColors.terracotta)
+          ? const Icon(Iconsax.shop, size: 36, color: AppColors.sellerPrimary)
           : CachedNetworkImage(
               imageUrl: url,
               fit: BoxFit.cover,
@@ -279,14 +279,14 @@ class _Avatar extends StatelessWidget {
               errorWidget: (_, _, _) => const Icon(
                 Iconsax.shop,
                 size: 36,
-                color: AppColors.terracotta,
+                color: AppColors.sellerPrimary,
               ),
               placeholder: (_, _) => const SizedBox(
                 width: 22,
                 height: 22,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: AppColors.terracotta,
+                  color: AppColors.sellerPrimary,
                 ),
               ),
             ),

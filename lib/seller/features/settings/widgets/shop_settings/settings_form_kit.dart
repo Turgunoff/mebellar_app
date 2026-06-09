@@ -3,16 +3,18 @@ import 'package:flutter/material.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 
-// Local design tokens shared by every shop-settings widget. Plus Jakarta Sans
-// is applied to each `Text` explicitly via `AppFonts.seller` so the surface is
-// immune to the M3 surface tint the teal seller seed bleeds onto neutrals.
-const Color kInk = Color(0xFF1D1D1D);
-const Color kGrey = Color(0xFF757575);
-const Color kGreyMid = Color(0xFFBDBDBD);
-const Color kDivider = Color(0xFFEFEFEF);
-const Color kOutline = Color(0xFFE3E3E3);
-const Color kFillSoft = Color(0xFFF7F7F7);
-const Color kTerracottaTint = Color(0x14C27A5F);
+// Local design tokens shared by every shop-settings widget — a thin facade over
+// the central seller palette in [AppColors] so these widgets stay on the Deep
+// Indigo brand. Plus Jakarta Sans is applied to each `Text` explicitly via
+// `AppFonts.seller` so the surface is immune to the M3 surface tint the seller
+// seed bleeds onto neutrals.
+const Color kInk = AppColors.sellerInk;
+const Color kGrey = AppColors.sellerGrey;
+const Color kGreyMid = AppColors.sellerGreyMid;
+const Color kDivider = AppColors.sellerDivider;
+const Color kOutline = AppColors.sellerOutline;
+const Color kFillSoft = AppColors.sellerFillFaint;
+const Color kAccentTint = AppColors.sellerPrimaryTint;
 
 /// Bold section header above each [SettingsCard].
 class SectionTitle extends StatelessWidget {
@@ -66,7 +68,7 @@ class SettingsCard extends StatelessWidget {
   }
 }
 
-/// Square terracotta-tinted icon chip used as a leading element in list rows.
+/// Square indigo-tinted icon chip used as a leading element in list rows.
 class IconTile extends StatelessWidget {
   const IconTile({super.key, required this.icon});
 
@@ -78,16 +80,16 @@ class IconTile extends StatelessWidget {
       width: 36,
       height: 36,
       decoration: BoxDecoration(
-        color: kTerracottaTint,
+        color: kAccentTint,
         borderRadius: BorderRadius.circular(10),
       ),
       alignment: Alignment.center,
-      child: Icon(icon, size: 18, color: AppColors.terracotta),
+      child: Icon(icon, size: 18, color: AppColors.sellerPrimary),
     );
   }
 }
 
-/// Labelled outlined text input with a terracotta focus border. Named
+/// Labelled outlined text input with an indigo focus border. Named
 /// `SettingsTextField` (not `FormField`) to avoid shadowing Flutter's
 /// built-in `FormField`.
 class SettingsTextField extends StatelessWidget {
@@ -140,7 +142,7 @@ class SettingsTextField extends StatelessWidget {
           keyboardType: keyboardType,
           minLines: minLines,
           maxLines: maxLines,
-          cursorColor: AppColors.terracotta,
+          cursorColor: AppColors.sellerPrimary,
           style: const TextStyle(
             fontFamily: AppFonts.seller,
             fontSize: 14,
@@ -176,7 +178,7 @@ class SettingsTextField extends StatelessWidget {
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(
-                color: AppColors.terracotta,
+                color: AppColors.sellerPrimary,
                 width: 1.4,
               ),
             ),

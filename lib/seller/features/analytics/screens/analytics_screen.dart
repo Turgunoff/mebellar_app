@@ -26,8 +26,8 @@ class SellerAnalyticsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider<SellerAnalyticsCubit>(
-      create: (_) => SellerAnalyticsCubit(sl<SellerAnalyticsRepository>())
-        ..load(),
+      create: (_) =>
+          SellerAnalyticsCubit(sl<SellerAnalyticsRepository>())..load(),
       child: const _AnalyticsView(),
     );
   }
@@ -62,9 +62,7 @@ class _AnalyticsView extends StatelessWidget {
                       context.read<SellerAnalyticsCubit>().changeTab(tab),
                 ),
                 const SizedBox(height: 4),
-                Expanded(
-                  child: _AnalyticsBody(state: state),
-                ),
+                Expanded(child: _AnalyticsBody(state: state)),
               ],
             );
           },
@@ -79,7 +77,8 @@ class _AnalyticsView extends StatelessWidget {
   ) async {
     final now = DateTime.now();
     final earliest = DateTime(now.year - 3, 1, 1);
-    final initial = (current.range == AnalyticsRange.custom &&
+    final initial =
+        (current.range == AnalyticsRange.custom &&
             current.customStart != null &&
             current.customEnd != null)
         ? DateTimeRange(start: current.customStart!, end: current.customEnd!)
@@ -100,8 +99,8 @@ class _AnalyticsView extends StatelessWidget {
         return Theme(
           data: Theme.of(ctx).copyWith(
             colorScheme: ColorScheme.fromSeed(
-              seedColor: AppColors.terracotta,
-              primary: AppColors.terracotta,
+              seedColor: AppColors.sellerPrimary,
+              primary: AppColors.sellerPrimary,
             ),
           ),
           child: child ?? const SizedBox.shrink(),
@@ -110,9 +109,10 @@ class _AnalyticsView extends StatelessWidget {
     );
     if (picked == null) return;
     if (!context.mounted) return;
-    await context
-        .read<SellerAnalyticsCubit>()
-        .applyCustomRange(start: picked.start, end: picked.end);
+    await context.read<SellerAnalyticsCubit>().applyCustomRange(
+      start: picked.start,
+      end: picked.end,
+    );
   }
 }
 
@@ -145,22 +145,27 @@ class _AnalyticsBody extends StatelessWidget {
         switchOutCurve: Curves.easeIn,
         layoutBuilder: (current, previous) => Stack(
           alignment: Alignment.topCenter,
-          children: [
-            ...previous,
-            ?current,
-          ],
+          children: [...previous, ?current],
         ),
         child: KeyedSubtree(
           key: ValueKey(state.tab),
           child: switch (state.tab) {
-            AnalyticsTab.sales =>
-              SalesTab(snapshot: snapshot, refreshing: refreshing),
-            AnalyticsTab.orders =>
-              OrdersTab(snapshot: snapshot, refreshing: refreshing),
-            AnalyticsTab.reviews =>
-              ReviewsTab(snapshot: snapshot, refreshing: refreshing),
-            AnalyticsTab.customers =>
-              CustomersTab(snapshot: snapshot, refreshing: refreshing),
+            AnalyticsTab.sales => SalesTab(
+              snapshot: snapshot,
+              refreshing: refreshing,
+            ),
+            AnalyticsTab.orders => OrdersTab(
+              snapshot: snapshot,
+              refreshing: refreshing,
+            ),
+            AnalyticsTab.reviews => ReviewsTab(
+              snapshot: snapshot,
+              refreshing: refreshing,
+            ),
+            AnalyticsTab.customers => CustomersTab(
+              snapshot: snapshot,
+              refreshing: refreshing,
+            ),
           },
         ),
       ),
@@ -299,12 +304,12 @@ class _RangeSegment extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: active ? AppColors.terracotta : AnalyticsTokens.segmentBg,
+          color: active ? AppColors.sellerPrimary : AnalyticsTokens.segmentBg,
           borderRadius: BorderRadius.circular(999),
           boxShadow: active
               ? [
                   BoxShadow(
-                    color: AppColors.terracotta.withValues(alpha: 0.25),
+                    color: AppColors.sellerPrimary.withValues(alpha: 0.25),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -351,15 +356,15 @@ class _CustomRangeButton extends StatelessWidget {
         height: 36,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-          color: active ? AppColors.terracotta : Colors.white,
+          color: active ? AppColors.sellerPrimary : Colors.white,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
-            color: active ? AppColors.terracotta : const Color(0xFFE5E5E5),
+            color: active ? AppColors.sellerPrimary : const Color(0xFFE5E5E5),
           ),
           boxShadow: active
               ? [
                   BoxShadow(
-                    color: AppColors.terracotta.withValues(alpha: 0.25),
+                    color: AppColors.sellerPrimary.withValues(alpha: 0.25),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),

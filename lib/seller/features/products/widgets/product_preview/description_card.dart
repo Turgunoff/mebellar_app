@@ -92,7 +92,7 @@ class _ToggleButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.terracotta.withValues(alpha: 0.08),
+      color: AppColors.sellerPrimary.withValues(alpha: 0.08),
       borderRadius: BorderRadius.circular(10),
       child: InkWell(
         onTap: onTap,
@@ -108,7 +108,7 @@ class _ToggleButton extends StatelessWidget {
                   fontFamily: AppFonts.seller,
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.terracotta,
+                  color: AppColors.sellerPrimary,
                   height: 1.2,
                   letterSpacing: -0.1,
                 ),
@@ -117,7 +117,7 @@ class _ToggleButton extends StatelessWidget {
               Icon(
                 expanded ? Iconsax.arrow_up_2 : Iconsax.arrow_down_1,
                 size: 14,
-                color: AppColors.terracotta,
+                color: AppColors.sellerPrimary,
               ),
             ],
           ),

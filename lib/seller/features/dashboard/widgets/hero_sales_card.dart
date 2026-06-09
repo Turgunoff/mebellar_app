@@ -6,9 +6,9 @@ import 'dashboard_kit.dart';
 /// The dashboard's hero: a deep-indigo gradient card with the week's revenue,
 /// a trend chip, and an interactive area sparkline with weekday labels.
 ///
-/// The sparkline is drawn with a self-contained painter (Indigo, not the
-/// terracotta `RevenueLineChart`) so the seller surface keeps its backoffice
-/// colour identity. Tapping a day reveals its value in the top-right readout.
+/// The sparkline is drawn with a self-contained white-on-indigo painter so the
+/// hero keeps its own gradient look (rather than reusing the analytics
+/// `RevenueLineChart`). Tapping a day reveals its value in the top-right readout.
 class HeroSalesCard extends StatefulWidget {
   const HeroSalesCard({
     super.key,
@@ -50,7 +50,7 @@ class _HeroSalesCardState extends State<HeroSalesCard> {
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF4554C4), DashKit.indigoDeep],
+            colors: [DashKit.indigoBright, DashKit.indigoDeep],
           ),
           boxShadow: [
             BoxShadow(

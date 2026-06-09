@@ -1,26 +1,28 @@
 import 'package:flutter/material.dart';
 
+import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 
-// Local design tokens for the order-details screen. Jakarta Sans is applied
-// to every `Text` explicitly so the surface is immune to seller-theme tint
-// regressions.
-const Color kInk = Color(0xFF1D1D1D);
-const Color kGrey = Color(0xFF757575);
-const Color kGreyMid = Color(0xFFBDBDBD);
-const Color kGreySoft = Color(0xFFB0B0B0);
-const Color kDivider = Color(0xFFEAEAEA);
-const Color kOutline = Color(0xFFE3E3E3);
-const Color kSurfaceMuted = Color(0xFFF5F5F5);
-const Color kImageBg = Color(0xFFF0F0F0);
+// Local design tokens for the order-details screen — a thin facade over the
+// central seller palette in [AppColors]. Jakarta Sans is applied to every
+// `Text` explicitly so the surface is immune to seller-theme tint
+// regressions. These stay `const` because they back const TextStyles.
+const Color kInk = AppColors.sellerInk;
+const Color kGrey = AppColors.sellerGrey;
+const Color kGreyMid = AppColors.sellerGreyMid;
+const Color kGreySoft = AppColors.sellerGreySoft;
+const Color kDivider = AppColors.sellerDividerStrong;
+const Color kOutline = AppColors.sellerOutline;
+const Color kSurfaceMuted = AppColors.sellerFillSoft;
+const Color kImageBg = AppColors.sellerImageBg;
 
 // Amber pill — soft tint, saturated text. Don't darken [kAmberFg] without
 // re-checking contrast against [kAmberBg].
-const Color kAmberBg = Color(0xFFFFF1D6);
-const Color kAmberFg = Color(0xFF8C5A12);
+const Color kAmberBg = AppColors.sellerWarningBg;
+const Color kAmberFg = AppColors.sellerWarning;
 
-// Soft terracotta tint for active step rings & accent backgrounds.
-const Color kTerracottaSoft = Color(0xFFFBEDE6);
+// Soft indigo tint for active step rings & accent backgrounds.
+const Color kAccentSoft = AppColors.sellerPrimaryTint;
 
 /// White, rounded, soft-shadowed card wrapping an order-details section.
 class SectionCard extends StatelessWidget {

@@ -6,7 +6,7 @@ import '../../../../../core/theme/app_fonts.dart';
 import 'order_details_kit.dart';
 
 /// Three-line payment breakdown plus a method badge. The total uses charcoal
-/// (not terracotta) so the only saturated accent on screen stays the CTA.
+/// (not the brand indigo) so the only saturated accent on screen stays the CTA.
 ///
 /// When [proposedDelivery] is non-null the card shows a pending-fee banner.
 /// [onProposeFee] wires the "Narxni o'zgartirish" button — omit to hide it.
@@ -100,8 +100,11 @@ class PaymentSummaryCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      const Icon(Iconsax.warning_2,
-                          size: 16, color: Color(0xFF8C5A12)),
+                      const Icon(
+                        Iconsax.warning_2,
+                        size: 16,
+                        color: Color(0xFF8C5A12),
+                      ),
                       const SizedBox(width: 8),
                       const Expanded(
                         child: Text(
@@ -181,8 +184,10 @@ class PaymentSummaryCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 9,
+                ),
                 decoration: BoxDecoration(
                   color: kSurfaceMuted,
                   borderRadius: BorderRadius.circular(999),
@@ -305,11 +310,7 @@ class _DashedLinePainter extends CustomPainter {
       ..color = kDivider
       ..strokeWidth = 1;
     while (startX < size.width) {
-      canvas.drawLine(
-        Offset(startX, 0),
-        Offset(startX + dashWidth, 0),
-        paint,
-      );
+      canvas.drawLine(Offset(startX, 0), Offset(startX + dashWidth, 0), paint);
       startX += dashWidth + dashSpace;
     }
   }

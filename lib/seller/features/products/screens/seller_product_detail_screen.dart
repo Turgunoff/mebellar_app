@@ -217,8 +217,8 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
             onPressed: () => Navigator.of(dialogContext).pop(true),
             style: FilledButton.styleFrom(
               backgroundColor: destructive
-                  ? const Color(0xFFC0392B)
-                  : AppColors.terracotta,
+                  ? AppColors.sellerNegative
+                  : AppColors.sellerPrimary,
               foregroundColor: Colors.white,
             ),
             child: Text(
@@ -246,7 +246,7 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
               fontWeight: FontWeight.w600,
             ),
           ),
-          backgroundColor: isError ? const Color(0xFFC0392B) : kInk,
+          backgroundColor: isError ? AppColors.sellerNegative : kInk,
           behavior: SnackBarBehavior.floating,
         ),
       );

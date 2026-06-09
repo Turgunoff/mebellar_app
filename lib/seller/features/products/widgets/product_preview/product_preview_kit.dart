@@ -1,20 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import '../../../../../shared/models/seller_product.dart';
 
-// Local design tokens for the seller product preview. Mirrors the
-// order_details palette so seller surfaces stay visually consistent.
-const Color kInk = Color(0xFF1D1D1D);
-const Color kGrey = Color(0xFF757575);
-const Color kGreyMid = Color(0xFFBDBDBD);
-const Color kGreySoft = Color(0xFFB0B0B0);
-const Color kDivider = Color(0xFFEAEAEA);
-const Color kOutline = Color(0xFFE3E3E3);
-const Color kSurfaceMuted = Color(0xFFF5F5F5);
-const Color kImageBg = Color(0xFFF0F0F0);
-const Color kTerracottaSoft = Color(0xFFFBEDE6);
+// Local design tokens for the seller product preview — thin facades over the
+// central seller palette in [AppColors] so the preview stays visually
+// consistent with the rest of the seller surface and never reaches for a
+// customer-brand accent.
+const Color kInk = AppColors.sellerInk;
+const Color kGrey = AppColors.sellerGrey;
+const Color kGreyMid = AppColors.sellerGreyMid;
+const Color kGreySoft = AppColors.sellerGreySoft;
+const Color kDivider = AppColors.sellerDividerStrong;
+const Color kOutline = AppColors.sellerOutline;
+const Color kSurfaceMuted = AppColors.sellerFillSoft;
+const Color kImageBg = AppColors.sellerImageBg;
+
+/// Soft indigo tint behind the "customer view" banner — the seller brand
+/// accent at low intensity.
+const Color kAccentSoft = AppColors.sellerPrimaryTint;
 
 /// Status palette — kept aligned with `ProductStatusChip` so the preview's
 /// banner pill matches the list-tile pill exactly.
@@ -23,35 +29,35 @@ const Color kTerracottaSoft = Color(0xFFFBEDE6);
 ) {
   return switch (status) {
     SellerProductStatus.draft => (
-        bg: const Color(0xFFF1F1F1),
-        fg: const Color(0xFF555555),
-        icon: Iconsax.edit,
-        label: 'Qoralama',
-      ),
+      bg: AppColors.sellerNeutralBgAlt,
+      fg: AppColors.sellerNeutralFgAlt,
+      icon: Iconsax.edit,
+      label: 'Qoralama',
+    ),
     SellerProductStatus.pendingReview => (
-        bg: const Color(0xFFFFF1D6),
-        fg: const Color(0xFF8C5A12),
-        icon: Iconsax.clock,
-        label: 'Tekshirilmoqda',
-      ),
+      bg: AppColors.sellerWarningBg,
+      fg: AppColors.sellerWarning,
+      icon: Iconsax.clock,
+      label: 'Tekshirilmoqda',
+    ),
     SellerProductStatus.approved => (
-        bg: const Color(0xFFDCF1E5),
-        fg: const Color(0xFF1F6B49),
-        icon: Iconsax.tick_circle,
-        label: 'Tasdiqlangan',
-      ),
+      bg: AppColors.sellerPositiveBg,
+      fg: AppColors.sellerPositive,
+      icon: Iconsax.tick_circle,
+      label: 'Tasdiqlangan',
+    ),
     SellerProductStatus.rejected => (
-        bg: const Color(0xFFFDECEA),
-        fg: const Color(0xFFC0392B),
-        icon: Iconsax.close_circle,
-        label: 'Rad etilgan',
-      ),
+      bg: AppColors.sellerNegativeBg,
+      fg: AppColors.sellerNegative,
+      icon: Iconsax.close_circle,
+      label: 'Rad etilgan',
+    ),
     SellerProductStatus.archived => (
-        bg: const Color(0xFFEDEDED),
-        fg: const Color(0xFF8A8A8A),
-        icon: Iconsax.archive_2,
-        label: 'Arxivlangan',
-      ),
+      bg: AppColors.sellerNeutralBg,
+      fg: AppColors.sellerNeutralFg,
+      icon: Iconsax.archive_2,
+      label: 'Arxivlangan',
+    ),
   };
 }
 
@@ -102,4 +108,3 @@ class SectionTitle extends StatelessWidget {
     );
   }
 }
-

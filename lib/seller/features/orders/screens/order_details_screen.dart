@@ -486,7 +486,7 @@ class _CustomerContactSheet extends StatelessWidget {
                     child: FilledButton(
                       onPressed: () => Navigator.of(context).pop(true),
                       style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.terracotta,
+                        backgroundColor: AppColors.sellerPrimary,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
@@ -561,7 +561,7 @@ class _CancelReasonDialogState extends State<_CancelReasonDialog> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.terracotta),
+            borderSide: const BorderSide(color: AppColors.sellerPrimary),
           ),
         ),
       ),
@@ -580,7 +580,7 @@ class _CancelReasonDialogState extends State<_CancelReasonDialog> {
         FilledButton(
           onPressed: () => Navigator.of(context).pop(_controller.text),
           style: FilledButton.styleFrom(
-            backgroundColor: AppColors.terracotta,
+            backgroundColor: AppColors.sellerPrimary,
             foregroundColor: Colors.white,
           ),
           child: const Text(
@@ -696,7 +696,7 @@ class _ProposeFeeDialogState extends State<_ProposeFeeDialog> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.terracotta),
+                borderSide: const BorderSide(color: AppColors.sellerPrimary),
               ),
             ),
           ),
@@ -723,7 +723,7 @@ class _ProposeFeeDialogState extends State<_ProposeFeeDialog> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.terracotta),
+                borderSide: const BorderSide(color: AppColors.sellerPrimary),
               ),
             ),
           ),
@@ -753,9 +753,9 @@ class _ProposeFeeDialogState extends State<_ProposeFeeDialog> {
                 )
               : null,
           style: FilledButton.styleFrom(
-            backgroundColor: AppColors.terracotta,
+            backgroundColor: AppColors.sellerPrimary,
             foregroundColor: Colors.white,
-            disabledBackgroundColor: AppColors.terracotta.withValues(
+            disabledBackgroundColor: AppColors.sellerPrimary.withValues(
               alpha: 0.4,
             ),
           ),
@@ -802,7 +802,7 @@ class _DetailError extends StatelessWidget {
             FilledButton(
               onPressed: onRetry,
               style: FilledButton.styleFrom(
-                backgroundColor: AppColors.terracotta,
+                backgroundColor: AppColors.sellerPrimary,
                 foregroundColor: Colors.white,
               ),
               child: const Text(

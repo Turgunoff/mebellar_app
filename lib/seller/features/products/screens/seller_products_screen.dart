@@ -26,7 +26,7 @@ import 'seller_product_detail_screen.dart';
 //   Color overrides below also bypass the seller `ColorScheme` for the
 //   surfaces that were picking up an off-brand greenish/teal tint
 //   (FAB, filter chips, search field). Branded values come from
-//   [AppColors.terracotta] / [AppColors.lightBackground] and a small set of
+//   [AppColors.sellerPrimary] / [AppColors.lightBackground] and a small set of
 //   private constants below.
 const _ink = Color(0xFF1D1D1D);
 const _grey = Color(0xFF757575);
@@ -248,7 +248,7 @@ class _SellerProductsViewState extends State<_SellerProductsView> {
           },
           // FAB color comes from the seller theme's `colorScheme.primary` so
           // the "Mahsulot qo'shish" button stays on-brand (Deep Indigo) and
-          // can't drift into the customer terracotta accent again.
+          // can't drift into the customer accent again.
           floatingActionButton: FloatingActionButton.extended(
             onPressed: () => _openCreate(context),
             backgroundColor: Theme.of(context).colorScheme.primary,
@@ -291,7 +291,7 @@ class _SearchField extends StatelessWidget {
     final hasText = controller.text.isNotEmpty;
     return TextField(
       controller: controller,
-      cursorColor: AppColors.terracotta,
+      cursorColor: AppColors.sellerPrimary,
       style: const TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w500,
@@ -326,7 +326,7 @@ class _SearchField extends StatelessWidget {
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(
-            color: AppColors.terracotta.withValues(alpha: 0.5),
+            color: AppColors.sellerPrimary.withValues(alpha: 0.5),
           ),
         ),
         suffixIcon: hasText
@@ -342,7 +342,7 @@ class _SearchField extends StatelessWidget {
 }
 
 // =============================================================================
-// Filter chip — terracotta tint + terracotta text when selected, white pill
+// Filter chip — indigo tint + indigo text when selected, white pill
 // otherwise. Replaces Material's `FilterChip` which was picking up the seller
 // scheme's secondary color (the off-brand greenish tint).
 // =============================================================================
@@ -360,12 +360,11 @@ class _StatusFilterChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bg = selected
-        // ignore: deprecated_member_use
-        ? Colors.orange.withOpacity(0.1)
+        ? AppColors.sellerPrimary.withValues(alpha: 0.1)
         : Colors.white;
-    final fg = selected ? AppColors.terracotta : _grey;
+    final fg = selected ? AppColors.sellerPrimary : _grey;
     final borderColor = selected
-        ? AppColors.terracotta.withValues(alpha: 0.35)
+        ? AppColors.sellerPrimary.withValues(alpha: 0.35)
         : _hairline;
     return Material(
       color: bg,
@@ -681,7 +680,7 @@ class _LogisticsChip extends StatelessWidget {
   }
 }
 
-// Soft terracotta pill — the "submit for review" action for draft/rejected
+// Soft indigo pill — the "submit for review" action for draft/rejected
 // products. Lives in a Wrap beside the status chip, so it slides to the next
 // line when there's no room rather than overflowing the row.
 class _SubmitForReviewButton extends StatelessWidget {
@@ -692,7 +691,7 @@ class _SubmitForReviewButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.terracotta.withValues(alpha: 0.10),
+      color: AppColors.sellerPrimary.withValues(alpha: 0.10),
       borderRadius: BorderRadius.circular(999),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -702,14 +701,18 @@ class _SubmitForReviewButton extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Iconsax.send_2, size: 13, color: AppColors.terracotta),
+              const Icon(
+                Iconsax.send_2,
+                size: 13,
+                color: AppColors.sellerPrimary,
+              ),
               const SizedBox(width: 5),
               Text(
                 tr('seller.product_submit_for_review'),
                 style: const TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.terracotta,
+                  color: AppColors.sellerPrimary,
                   height: 1.0,
                 ),
               ),
@@ -722,9 +725,8 @@ class _SubmitForReviewButton extends StatelessWidget {
 }
 
 // Restore pill — the "bring back from archive" action shown only on archived
-// tiles. Uses the seller-primary indigo (the affirmative brand action) so it
-// reads as distinct from the terracotta submit pill, and stands out against
-// the muted grey archived card.
+// tiles. Uses the seller-primary indigo (the affirmative brand action) and
+// stands out against the muted grey archived card.
 class _RestoreButton extends StatelessWidget {
   const _RestoreButton({required this.onPressed});
 

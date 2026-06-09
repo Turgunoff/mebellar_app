@@ -123,9 +123,9 @@ class _RankBadge extends StatelessWidget {
 
   /// Top-3 medal tints. Beyond 3rd, a plain neutral disc with the number.
   static const _medals = <int, (Color, Color)>{
-    1: (Color(0xFFE0A106), Color(0xFFFFF3D6)), // gold
-    2: (Color(0xFF8A94A6), Color(0xFFEDF0F4)), // silver
-    3: (Color(0xFFB06B3A), Color(0xFFF6E7DA)), // bronze
+    1: (DashKit.gold, DashKit.goldBg),
+    2: (DashKit.silver, DashKit.silverBg),
+    3: (DashKit.bronze, DashKit.bronzeBg),
   };
 
   @override
@@ -135,7 +135,7 @@ class _RankBadge extends StatelessWidget {
     final fg = isTop3 ? medal.$1 : DashKit.grey;
     final bg = isTop3
         ? medal.$2
-        : (highlight ? Colors.white : const Color(0xFFF3F3F3));
+        : (highlight ? Colors.white : DashKit.fillSoft);
     return Container(
       width: 36,
       height: 36,

@@ -80,8 +80,8 @@ class _RevenueLineChartState extends State<RevenueLineChart> {
 
   @override
   Widget build(BuildContext context) {
-    final hasDates = widget.dates != null &&
-        widget.dates!.length == widget.values.length;
+    final hasDates =
+        widget.dates != null && widget.dates!.length == widget.values.length;
     // 22px reserved for the x-axis labels strip when present.
     final labelStrip = hasDates ? 22.0 : 0.0;
     return SizedBox(
@@ -165,8 +165,9 @@ class _RevenueLineChartState extends State<RevenueLineChart> {
     // chart so it never clips at the card edges.
     const padX = 4.0;
     final usable = width - padX * 2;
-    final stepX =
-        widget.values.length == 1 ? usable : usable / (widget.values.length - 1);
+    final stepX = widget.values.length == 1
+        ? usable
+        : usable / (widget.values.length - 1);
     final pointX = padX + stepX * i;
     const tooltipWidth = 160.0;
     var left = pointX - tooltipWidth / 2;
@@ -276,9 +277,9 @@ class _RevenueChartPainter extends CustomPainter {
   final int? selectedIndex;
   final double labelStripHeight;
 
-  static const _line = AppColors.terracotta;
-  static const _fillTop = Color(0x33C27A5F); // terracotta @ 20%
-  static const _fillBottom = Color(0x00C27A5F);
+  static const _line = AppColors.sellerPrimary;
+  static const _fillTop = Color(0x333949AB); // indigo @ 20%
+  static const _fillBottom = Color(0x003949AB);
   static const _guide = Color(0xFFBDBDBD);
   static const _axisText = Color(0xFF9E9E9E);
 
@@ -334,7 +335,9 @@ class _RevenueChartPainter extends CustomPainter {
     );
 
     // X-axis date labels (sparse).
-    if (dates != null && dates!.length == values.length && labelStripHeight > 0) {
+    if (dates != null &&
+        dates!.length == values.length &&
+        labelStripHeight > 0) {
       _paintAxisLabels(
         canvas: canvas,
         coords: coords,
@@ -357,11 +360,7 @@ class _RevenueChartPainter extends CustomPainter {
           ..strokeWidth = 1,
       );
       // Outer halo + inner dot.
-      canvas.drawCircle(
-        p,
-        7,
-        Paint()..color = _line.withValues(alpha: 0.15),
-      );
+      canvas.drawCircle(p, 7, Paint()..color = _line.withValues(alpha: 0.15));
       canvas.drawCircle(p, 4, Paint()..color = _line);
       canvas.drawCircle(
         p,
@@ -387,8 +386,7 @@ class _RevenueChartPainter extends CustomPainter {
     // Pick how many labels to render based on width — aim for ~50px between
     // labels so they don't overlap. Always anchor first + last.
     const minSpacingPx = 56.0;
-    final maxLabels =
-        (size.width / minSpacingPx).floor().clamp(2, 7);
+    final maxLabels = (size.width / minSpacingPx).floor().clamp(2, 7);
     final indices = <int>{};
     if (n == 1) {
       indices.add(0);

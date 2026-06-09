@@ -2,17 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 
-// Local design tokens shared by every product-form widget. Branded
-// interactive surfaces still flow through `colorScheme.primary`; these tokens
-// only cover neutral ink / borders / fills.
-const Color kInk = Color(0xFF1D1D1D);
-const Color kGrey = Color(0xFF757575);
-const Color kGreyMid = Color(0xFFBDBDBD);
-const Color kDivider = Color(0xFFEFEFEF);
-const Color kOutline = Color(0xFFE3E3E3);
-const Color kFillSoft = Color(0xFFF7F7F7);
+// Local design tokens shared by every product-form widget — thin facades over
+// the central seller palette in [AppColors]. Branded interactive surfaces still
+// flow through `colorScheme.primary`; these tokens only cover neutral ink /
+// borders / fills.
+const Color kInk = AppColors.sellerInk;
+const Color kGrey = AppColors.sellerGrey;
+const Color kGreyMid = AppColors.sellerGreyMid;
+const Color kDivider = AppColors.sellerDivider;
+const Color kOutline = AppColors.sellerOutline;
+const Color kFillSoft = AppColors.sellerFillFaint;
 
 /// Section heading above each [FormCard].
 class SectionTitle extends StatelessWidget {
@@ -231,11 +233,7 @@ class PickerField extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Icon(
-                  leadingIcon,
-                  size: 20,
-                  color: disabled ? kGreyMid : kGrey,
-                ),
+                Icon(leadingIcon, size: 20, color: disabled ? kGreyMid : kGrey),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -252,9 +250,7 @@ class PickerField extends StatelessWidget {
                 Icon(
                   Iconsax.arrow_down_1,
                   size: 18,
-                  color: disabled
-                      ? kGreyMid.withValues(alpha: 0.5)
-                      : kGreyMid,
+                  color: disabled ? kGreyMid.withValues(alpha: 0.5) : kGreyMid,
                 ),
               ],
             ),

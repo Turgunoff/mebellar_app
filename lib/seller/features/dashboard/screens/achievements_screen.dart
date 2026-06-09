@@ -113,7 +113,7 @@ class _ProgressHeader extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF4554C4), DashKit.indigoDeep],
+          colors: [DashKit.indigoBright, DashKit.indigoDeep],
         ),
         boxShadow: [
           BoxShadow(
@@ -304,7 +304,7 @@ class _AchievementCard extends StatelessWidget {
                     child: LinearProgressIndicator(
                       value: item.progress,
                       minHeight: 7,
-                      backgroundColor: const Color(0xFFF0F0F2),
+                      backgroundColor: DashKit.trackBg,
                       valueColor: const AlwaysStoppedAnimation<Color>(
                         DashKit.indigo,
                       ),
@@ -455,10 +455,10 @@ class _Badge extends StatelessWidget {
                   ? const LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: [Color(0xFFFFCB52), DashKit.gold],
+                      colors: [DashKit.goldBright, DashKit.gold],
                     )
                   : null,
-              color: unlocked ? null : const Color(0xFFF1F1F4),
+              color: unlocked ? null : DashKit.lockedBg,
             ),
             child: Icon(
               item.icon,
@@ -485,7 +485,7 @@ class _RingPainter extends CustomPainter {
       center,
       radius,
       Paint()
-        ..color = const Color(0xFFEDEDF0)
+        ..color = DashKit.ringTrack
         ..strokeWidth = 3
         ..style = PaintingStyle.stroke,
     );

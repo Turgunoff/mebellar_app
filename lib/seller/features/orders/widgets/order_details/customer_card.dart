@@ -33,13 +33,13 @@ class CustomerCard extends StatelessWidget {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: kTerracottaSoft,
+                  color: kAccentSoft,
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: const Icon(
                   Iconsax.user,
                   size: 20,
-                  color: AppColors.terracotta,
+                  color: AppColors.sellerPrimary,
                 ),
               ),
               const SizedBox(width: 12),
@@ -148,14 +148,13 @@ class _ContactRow extends StatelessWidget {
         ),
         const SizedBox(width: 8),
         Material(
-          color: AppColors.terracotta,
+          color: AppColors.sellerPrimary,
           borderRadius: BorderRadius.circular(10),
           child: InkWell(
             onTap: onTap,
             borderRadius: BorderRadius.circular(10),
             child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -256,8 +255,7 @@ class _AddressRow extends StatelessWidget {
             onTap: () => _copy(context),
             borderRadius: BorderRadius.circular(10),
             child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [

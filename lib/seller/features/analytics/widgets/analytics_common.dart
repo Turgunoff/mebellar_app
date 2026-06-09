@@ -16,21 +16,14 @@ class AnalyticsTokens {
   static const Color greyMid = Color(0xFFBDBDBD);
   static const Color placeholderBg = Color(0xFFF1F1F1);
   static const Color segmentBg = Color(0xFFEFEFEF);
-  static const Color positive = AppColors.terracotta;
+  static const Color positive = AppColors.sellerPrimary;
   static const Color negative = Color(0xFFDC2626);
   static const Color warning = Color(0xFFF59E0B);
   static const Color success = Color(0xFF22C55E);
-  static const Color info = Color(0xFF3949AB);
+  static const Color info = AppColors.sellerPrimary;
 
   /// Donut/series palette — slices cycle through this list in order.
-  static const List<Color> chartPalette = <Color>[
-    AppColors.terracotta,
-    Color(0xFF2C3E50),
-    Color(0xFFF39C12),
-    Color(0xFF3949AB),
-    Color(0xFF22C55E),
-    Color(0xFFBDC3C7),
-  ];
+  static const List<Color> chartPalette = AppColors.sellerChartPalette;
 }
 
 /// "Today" / "Yesterday" / "DD MMM" / "MMM yyyy" date formatter used
@@ -489,9 +482,7 @@ class AnalyticsTabBar extends StatelessWidget {
                 color: active ? AnalyticsTokens.ink : Colors.white,
                 borderRadius: BorderRadius.circular(999),
                 border: Border.all(
-                  color: active
-                      ? AnalyticsTokens.ink
-                      : const Color(0xFFE5E5E5),
+                  color: active ? AnalyticsTokens.ink : const Color(0xFFE5E5E5),
                   width: 1,
                 ),
               ),

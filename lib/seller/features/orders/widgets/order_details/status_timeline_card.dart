@@ -5,7 +5,7 @@ import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import 'order_details_kit.dart';
 
-/// Horizontal order-status stepper. Completed = filled terracotta with a
+/// Horizontal order-status stepper. Completed = filled indigo with a
 /// white check; current = ring; upcoming = grey. Connectors trail the last
 /// completed step so progress reads at-a-glance.
 class StatusTimelineCard extends StatelessWidget {
@@ -73,10 +73,10 @@ class _TimelineNode extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const activeColor = AppColors.terracotta;
+    const activeColor = AppColors.sellerPrimary;
     const inactiveDot = kSurfaceMuted;
     const inactiveBorder = kOutline;
-    const connectorActive = AppColors.terracotta;
+    const connectorActive = AppColors.sellerPrimary;
     const connectorInactive = kDivider;
 
     Widget dot;
@@ -95,7 +95,7 @@ class _TimelineNode extends StatelessWidget {
         width: 26,
         height: 26,
         decoration: BoxDecoration(
-          color: kTerracottaSoft,
+          color: kAccentSoft,
           shape: BoxShape.circle,
           border: Border.all(color: activeColor, width: 2),
         ),
@@ -141,8 +141,8 @@ class _TimelineNode extends StatelessWidget {
                 height: 2,
                 color: showTrailingConnector
                     ? (trailingConnectorActive
-                        ? connectorActive
-                        : connectorInactive)
+                          ? connectorActive
+                          : connectorInactive)
                     : Colors.transparent,
               ),
             ),

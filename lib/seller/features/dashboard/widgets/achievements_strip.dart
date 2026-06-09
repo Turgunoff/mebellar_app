@@ -119,10 +119,10 @@ class _Badge extends StatelessWidget {
                   ? const LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: [Color(0xFFFFCB52), DashKit.gold],
+                      colors: [DashKit.goldBright, DashKit.gold],
                     )
                   : null,
-              color: unlocked ? null : const Color(0xFFF1F1F4),
+              color: unlocked ? null : DashKit.lockedBg,
             ),
             child: Icon(
               unlocked ? item.icon : Iconsax.lock_1,
@@ -165,7 +165,7 @@ class _RingPainter extends CustomPainter {
     final center = size.center(Offset.zero);
     final radius = size.width / 2 - 2;
     final track = Paint()
-      ..color = const Color(0xFFEDEDF0)
+      ..color = DashKit.ringTrack
       ..strokeWidth = 3
       ..style = PaintingStyle.stroke;
     canvas.drawCircle(center, radius, track);

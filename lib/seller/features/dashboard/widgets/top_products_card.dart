@@ -51,7 +51,7 @@ class _ProductRow extends StatelessWidget {
               errorBuilder: (_, _, _) => Container(
                 width: 48,
                 height: 48,
-                color: const Color(0xFFF0F0F0),
+                color: DashKit.imageBg,
                 alignment: Alignment.center,
                 child: const Icon(
                   Icons.image_outlined,

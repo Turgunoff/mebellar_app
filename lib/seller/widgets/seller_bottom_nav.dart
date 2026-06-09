@@ -13,7 +13,7 @@ import '../../core/theme/app_colors.dart';
 ///   weight only, matching the rest of the seller premium aesthetic.
 /// - The active color reads from `Theme.of(context).colorScheme.primary`,
 ///   so the nav automatically follows the seller theme's Deep Indigo and
-///   stays visually distinct from the customer's Terracotta nav.
+///   stays visually distinct from the customer mode's nav.
 ///
 /// Typography note: the label `TextStyle` deliberately omits `fontFamily`
 /// — the seller theme pins everything to Plus Jakarta Sans, and we want the
@@ -35,9 +35,7 @@ class SellerBottomNav extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border(
-          top: BorderSide(color: AppColors.lightDivider),
-        ),
+        border: Border(top: BorderSide(color: AppColors.lightDivider)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -70,7 +68,7 @@ class SellerBottomNav extends StatelessWidget {
 
 /// Single destination descriptor — one outline icon for inactive, an
 /// optional filled icon for the selected state, and the i18n-resolved label.
-/// Set [badge] to a positive integer to show a terracotta count bubble above
+/// Set [badge] to a positive integer to show an indigo count bubble above
 /// the icon (capped at "99+" to keep the bubble compact).
 @immutable
 class SellerNavItem {
@@ -124,9 +122,11 @@ class _NavTile extends StatelessWidget {
                     right: -8,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 4, vertical: 1),
+                        horizontal: 4,
+                        vertical: 1,
+                      ),
                       decoration: BoxDecoration(
-                        color: AppColors.terracotta,
+                        color: AppColors.sellerPrimary,
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(

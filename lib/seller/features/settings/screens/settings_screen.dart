@@ -147,7 +147,8 @@ class _SettingsAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       title: Text(
         'Sozlamalar',
-        style: TextStyle(fontFamily: AppFonts.seller, 
+        style: TextStyle(
+          fontFamily: AppFonts.seller,
           fontSize: 18,
           fontWeight: FontWeight.w700,
           color: _ink,
@@ -172,7 +173,8 @@ class _SectionLabel extends StatelessWidget {
       padding: const EdgeInsets.only(left: 4),
       child: Text(
         text,
-        style: TextStyle(fontFamily: AppFonts.seller, 
+        style: TextStyle(
+          fontFamily: AppFonts.seller,
           fontSize: 12,
           fontWeight: FontWeight.w700,
           color: _grey,
@@ -261,7 +263,8 @@ class _NavRow extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: TextStyle(fontFamily: AppFonts.seller, 
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: _ink,
@@ -274,7 +277,8 @@ class _NavRow extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   trailingText!,
-                  style: TextStyle(fontFamily: AppFonts.seller, 
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                     color: _grey,
@@ -295,7 +299,7 @@ class _NavRow extends StatelessWidget {
 }
 
 // =============================================================================
-// 5. Switch row — leading icon, title + optional subtitle, terracotta switch
+// 5. Switch row — leading icon, title + optional subtitle, indigo switch
 // =============================================================================
 class _SwitchRow extends StatelessWidget {
   const _SwitchRow({
@@ -331,7 +335,8 @@ class _SwitchRow extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: TextStyle(fontFamily: AppFonts.seller, 
+                      style: TextStyle(
+                        fontFamily: AppFonts.seller,
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                         color: _ink,
@@ -343,7 +348,8 @@ class _SwitchRow extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         subtitle!,
-                        style: TextStyle(fontFamily: AppFonts.seller, 
+                        style: TextStyle(
+                          fontFamily: AppFonts.seller,
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                           color: _grey,
@@ -358,8 +364,10 @@ class _SwitchRow extends StatelessWidget {
               Switch.adaptive(
                 value: value,
                 onChanged: onChanged,
-                activeThumbColor: AppColors.terracotta,
-                activeTrackColor: AppColors.terracotta.withValues(alpha: 0.4),
+                activeThumbColor: AppColors.sellerPrimary,
+                activeTrackColor: AppColors.sellerPrimary.withValues(
+                  alpha: 0.4,
+                ),
               ),
             ],
           ),

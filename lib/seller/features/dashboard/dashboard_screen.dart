@@ -35,9 +35,11 @@ import 'widgets/top_products_card.dart';
 //   `_RecentOrdersHeader`, where the design uses Manrope to give the
 //   trailing action a quieter, more utilitarian feel against the bold
 //   Jakarta section header.
-const _ink = Color(0xFF1D1D1D);
-const _grey = Color(0xFF757575);
-const _greyMid = Color(0xFFBDBDBD);
+// Local aliases of the central seller tokens — kept as short names so the
+// many `const TextStyle(color: _ink)` sites stay terse and `const`.
+const _ink = DashKit.ink;
+const _grey = DashKit.grey;
+const _greyMid = DashKit.greyMid;
 
 // =============================================================================
 // Screen
@@ -444,7 +446,7 @@ class _KpiGrid extends StatelessWidget {
           // With tariff off there's no quota — show a plain product count.
           value: productsValue,
           subtitle: tariffEnabled ? '${data.plan.label} tarif' : null,
-          indicator: exceeded ? KpiIndicator.terracotta('Limit oshdi') : null,
+          indicator: exceeded ? KpiIndicator.accent('Limit oshdi') : null,
         ),
       ],
     );
@@ -633,12 +635,22 @@ class _StatusPill extends StatelessWidget {
 
   static (Color, Color) _styleFor(OrderStatus s) {
     return switch (s) {
-      OrderStatus.delivered => (Color(0xFF1F6B49), Color(0xFFDCF1E5)),
-      OrderStatus.shipped ||
-      OrderStatus.preparing => (Color(0xFF5B21B6), Color(0xFFEDE3FF)),
-      OrderStatus.cancelled => (Color(0xFFC0392B), Color(0xFFFDECEA)),
-      OrderStatus.pending ||
-      OrderStatus.confirmed => (Color(0xFF8C5A12), Color(0xFFFFF1D6)),
+      OrderStatus.delivered => (
+        AppColors.sellerPositive,
+        AppColors.sellerPositiveBg,
+      ),
+      OrderStatus.shipped || OrderStatus.preparing => (
+        AppColors.sellerProgress,
+        AppColors.sellerProgressBg,
+      ),
+      OrderStatus.cancelled => (
+        AppColors.sellerNegative,
+        AppColors.sellerNegativeBg,
+      ),
+      OrderStatus.pending || OrderStatus.confirmed => (
+        AppColors.sellerWarning,
+        AppColors.sellerWarningBg,
+      ),
     };
   }
 

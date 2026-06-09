@@ -24,7 +24,7 @@ const _grey = Color(0xFF757575);
 const _greyMid = Color(0xFFBDBDBD);
 const _outline = Color(0xFFE3E3E3);
 const _fillSoft = Color(0xFFF3F3F3);
-const _terracottaTint = Color(0x14C27A5F);
+const _accentTint = AppColors.sellerPrimaryTint;
 
 class TariffScreen extends StatelessWidget {
   const TariffScreen({super.key});
@@ -185,7 +185,7 @@ class _TariffBody extends StatelessWidget {
 }
 
 // =============================================================================
-// 4. Pending banner — terracotta tint, taps through to pending screen
+// 4. Pending banner — indigo tint, taps through to pending screen
 // =============================================================================
 class _PendingBanner extends StatelessWidget {
   const _PendingBanner({required this.subscription});
@@ -195,7 +195,7 @@ class _PendingBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: _terracottaTint,
+      color: _accentTint,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -212,14 +212,14 @@ class _PendingBanner extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: AppColors.terracotta.withValues(alpha: 0.18),
+                  color: AppColors.sellerPrimary.withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 alignment: Alignment.center,
                 child: const Icon(
                   Iconsax.clock,
                   size: 20,
-                  color: AppColors.terracotta,
+                  color: AppColors.sellerPrimary,
                 ),
               ),
               const SizedBox(width: 12),
@@ -260,7 +260,7 @@ class _PendingBanner extends StatelessWidget {
               const Icon(
                 Iconsax.arrow_right_3,
                 size: 18,
-                color: AppColors.terracotta,
+                color: AppColors.sellerPrimary,
               ),
             ],
           ),
@@ -271,7 +271,7 @@ class _PendingBanner extends StatelessWidget {
 }
 
 // =============================================================================
-// 5. Period toggle — pill segmented control with terracotta active state +
+// 5. Period toggle — pill segmented control with indigo active state +
 //    "-17%" badge that swaps colour depending on which side is active.
 // =============================================================================
 class _PeriodToggle extends StatelessWidget {
@@ -331,12 +331,12 @@ class _PeriodTab extends StatelessWidget {
         curve: Curves.easeOut,
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: isActive ? AppColors.terracotta : Colors.transparent,
+          color: isActive ? AppColors.sellerPrimary : Colors.transparent,
           borderRadius: BorderRadius.circular(24),
           boxShadow: isActive
               ? [
                   BoxShadow(
-                    color: AppColors.terracotta.withValues(alpha: 0.25),
+                    color: AppColors.sellerPrimary.withValues(alpha: 0.25),
                     blurRadius: 14,
                     offset: const Offset(0, 4),
                   ),
@@ -363,7 +363,7 @@ class _PeriodTab extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: isActive
                       ? Colors.white.withValues(alpha: 0.22)
-                      : AppColors.terracotta,
+                      : AppColors.sellerPrimary,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
@@ -387,7 +387,7 @@ class _PeriodTab extends StatelessWidget {
 
 // =============================================================================
 // 6. Plan card — distinct treatment for free / basic / pro / enterprise.
-//    Pro gets the terracotta border + "TAVSIYA" ribbon. Enterprise leans on
+//    Pro gets the indigo border + "TAVSIYA" ribbon. Enterprise leans on
 //    a dark charcoal accent so it reads as the power tier.
 // =============================================================================
 class _PlanCard extends StatelessWidget {
@@ -405,7 +405,7 @@ class _PlanCard extends StatelessWidget {
   final bool isPending;
   final VoidCallback onUpgrade;
 
-  /// Terracotta border + ribbon are tied to the DB's `is_recommended` flag
+  /// Indigo border + ribbon are tied to the DB's `is_recommended` flag
   /// so admins can move the spotlight to any plan without an app release.
   bool get _isRecommended => plan.isRecommended;
 
@@ -423,7 +423,7 @@ class _PlanCard extends StatelessWidget {
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
             border: _isRecommended
-                ? Border.all(color: AppColors.terracotta, width: 1.4)
+                ? Border.all(color: AppColors.sellerPrimary, width: 1.4)
                 : Border.all(color: _outline, width: 1),
             boxShadow: [
               BoxShadow(
@@ -584,11 +584,11 @@ class _RecommendedRibbon extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.terracotta,
+        color: AppColors.sellerPrimary,
         borderRadius: BorderRadius.circular(999),
         boxShadow: [
           BoxShadow(
-            color: AppColors.terracotta.withValues(alpha: 0.32),
+            color: AppColors.sellerPrimary.withValues(alpha: 0.32),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -764,7 +764,7 @@ class _FeatureRow extends StatelessWidget {
             child: Icon(
               Iconsax.tick_circle,
               size: 18,
-              color: AppColors.terracotta,
+              color: AppColors.sellerPrimary,
             ),
           ),
           const SizedBox(width: 10),
@@ -828,7 +828,7 @@ class _PlanCta extends StatelessWidget {
       background = _ink;
       foreground = Colors.white;
     } else {
-      background = AppColors.terracotta;
+      background = AppColors.sellerPrimary;
       foreground = Colors.white;
     }
 

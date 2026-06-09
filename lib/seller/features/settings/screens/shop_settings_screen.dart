@@ -86,7 +86,7 @@ class _ShopSettingsView extends StatelessWidget {
           body: switch (state.status) {
             ShopSettingsStatus.initial ||
             ShopSettingsStatus.loading => const Center(
-              child: CircularProgressIndicator(color: AppColors.terracotta),
+              child: CircularProgressIndicator(color: AppColors.sellerPrimary),
             ),
             ShopSettingsStatus.failure when state.settings == null =>
               ErrorState(

@@ -23,7 +23,7 @@ const _divider = Color(0xFFEFEFEF);
 const _chipIdle = Color(0xFFF1F1F1);
 const _replyBg = Color(0xFFF5F5F5);
 const _amber = Color(0xFFF5A623);
-const _terracottaTint = Color(0x14C27A5F);
+const _accentTint = AppColors.sellerPrimaryTint;
 
 class ReviewsScreen extends StatelessWidget {
   const ReviewsScreen({super.key});
@@ -94,7 +94,7 @@ class _Body extends StatelessWidget {
       );
     }
     return RefreshIndicator(
-      color: AppColors.terracotta,
+      color: AppColors.sellerPrimary,
       onRefresh: () => context.read<ReviewsCubit>().load(),
       child: ListView.separated(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
@@ -251,7 +251,7 @@ class _FilterChip extends StatelessWidget {
                   ),
                   constraints: const BoxConstraints(minWidth: 18),
                   decoration: BoxDecoration(
-                    color: AppColors.terracotta,
+                    color: AppColors.sellerPrimary,
                     borderRadius: BorderRadius.circular(999),
                   ),
                   alignment: Alignment.center,
@@ -449,7 +449,7 @@ class _StarRow extends StatelessWidget {
 }
 
 // =============================================================================
-// Reply button — terracotta outlined
+// Reply button — indigo outlined
 // =============================================================================
 class _ReplyButton extends StatelessWidget {
   const _ReplyButton({required this.onTap});
@@ -462,21 +462,25 @@ class _ReplyButton extends StatelessWidget {
       width: double.infinity,
       child: OutlinedButton.icon(
         onPressed: onTap,
-        icon: const Icon(Iconsax.edit, size: 16, color: AppColors.terracotta),
+        icon: const Icon(
+          Iconsax.edit,
+          size: 16,
+          color: AppColors.sellerPrimary,
+        ),
         label: Text(
           'Javob yozish',
           style: TextStyle(
             fontFamily: AppFonts.seller,
             fontSize: 13.5,
             fontWeight: FontWeight.w700,
-            color: AppColors.terracotta,
+            color: AppColors.sellerPrimary,
             letterSpacing: -0.1,
           ),
         ),
         style: OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 12),
-          side: const BorderSide(color: AppColors.terracotta, width: 1.2),
-          backgroundColor: _terracottaTint,
+          side: const BorderSide(color: AppColors.sellerPrimary, width: 1.2),
+          backgroundColor: _accentTint,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -509,14 +513,14 @@ class _SellerReplyBlock extends StatelessWidget {
             width: 32,
             height: 32,
             decoration: const BoxDecoration(
-              color: _terracottaTint,
+              color: _accentTint,
               shape: BoxShape.circle,
             ),
             alignment: Alignment.center,
             child: const Icon(
               Iconsax.shop,
               size: 16,
-              color: AppColors.terracotta,
+              color: AppColors.sellerPrimary,
             ),
           ),
           const SizedBox(width: 10),
@@ -531,7 +535,7 @@ class _SellerReplyBlock extends StatelessWidget {
                     fontFamily: AppFonts.seller,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.terracotta,
+                    color: AppColors.sellerPrimary,
                     height: 1.2,
                     letterSpacing: 0.1,
                   ),
@@ -679,7 +683,7 @@ class _ReplySheetState extends State<_ReplySheet> {
                 child: FilledButton(
                   onPressed: sending ? null : _submit,
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.terracotta,
+                    backgroundColor: AppColors.sellerPrimary,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -795,7 +799,7 @@ class _ErrorState extends StatelessWidget {
             const Icon(
               Iconsax.warning_2,
               size: 40,
-              color: AppColors.terracotta,
+              color: AppColors.sellerPrimary,
             ),
             const SizedBox(height: 16),
             Text(
@@ -813,7 +817,7 @@ class _ErrorState extends StatelessWidget {
             FilledButton(
               onPressed: onRetry,
               style: FilledButton.styleFrom(
-                backgroundColor: AppColors.terracotta,
+                backgroundColor: AppColors.sellerPrimary,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 24,
                   vertical: 12,

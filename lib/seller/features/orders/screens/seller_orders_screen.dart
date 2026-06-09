@@ -68,9 +68,9 @@ class _SellerOrdersViewState extends State<_SellerOrdersView>
     // Fires on both tap and swipe; mirror the active tab into the bloc so the
     // unread-"new" badge clears when the seller opens that tab.
     if (_tabs.indexIsChanging) return;
-    context
-        .read<SellerOrdersBloc>()
-        .add(SellerOrdersTabChanged(_tabsInOrder[_tabs.index]));
+    context.read<SellerOrdersBloc>().add(
+      SellerOrdersTabChanged(_tabsInOrder[_tabs.index]),
+    );
   }
 
   @override
@@ -100,11 +100,10 @@ class _SellerOrdersViewState extends State<_SellerOrdersView>
                       return const Center(child: BrandLoadingIndicator());
                     case SellerOrdersStatus.failure:
                       return _OrdersError(
-                        message: state.error ??
-                            "Buyurtmalarni yuklab bo'lmadi",
-                        onRetry: () => context
-                            .read<SellerOrdersBloc>()
-                            .add(const SellerOrdersRequested()),
+                        message: state.error ?? "Buyurtmalarni yuklab bo'lmadi",
+                        onRetry: () => context.read<SellerOrdersBloc>().add(
+                          const SellerOrdersRequested(),
+                        ),
                       );
                     case SellerOrdersStatus.ready:
                       return TabBarView(
@@ -118,9 +117,9 @@ class _SellerOrdersViewState extends State<_SellerOrdersView>
                                   .toList(growable: false),
                               emptyMessage: _emptyMessageFor(tab),
                               onRefresh: () async {
-                                context
-                                    .read<SellerOrdersBloc>()
-                                    .add(const SellerOrdersRequested());
+                                context.read<SellerOrdersBloc>().add(
+                                  const SellerOrdersRequested(),
+                                );
                                 await context
                                     .read<SellerOrdersBloc>()
                                     .stream
@@ -144,11 +143,11 @@ class _SellerOrdersViewState extends State<_SellerOrdersView>
   }
 
   static String _emptyMessageFor(SellerOrdersTab tab) => switch (tab) {
-        SellerOrdersTab.newTab => "Yangi buyurtmalar yo'q",
-        SellerOrdersTab.active => "Faol buyurtmalar yo'q",
-        SellerOrdersTab.done => "Yetkazilgan buyurtmalar yo'q",
-        SellerOrdersTab.cancelled => "Bekor qilingan buyurtmalar yo'q",
-      };
+    SellerOrdersTab.newTab => "Yangi buyurtmalar yo'q",
+    SellerOrdersTab.active => "Faol buyurtmalar yo'q",
+    SellerOrdersTab.done => "Yetkazilgan buyurtmalar yo'q",
+    SellerOrdersTab.cancelled => "Bekor qilingan buyurtmalar yo'q",
+  };
 }
 
 // =============================================================================
@@ -184,7 +183,7 @@ class _OrdersHeader extends StatelessWidget {
 }
 
 // =============================================================================
-// Tab bar — terracotta indicator, Jakarta labels
+// Tab bar — indigo indicator, Jakarta labels
 // =============================================================================
 class _OrdersTabBar extends StatelessWidget {
   const _OrdersTabBar({required this.controller});
@@ -207,10 +206,10 @@ class _OrdersTabBar extends StatelessWidget {
           controller: controller,
           isScrollable: true,
           tabAlignment: TabAlignment.start,
-          indicatorColor: AppColors.terracotta,
+          indicatorColor: AppColors.sellerPrimary,
           indicatorWeight: 2.5,
           indicatorSize: TabBarIndicatorSize.label,
-          labelColor: AppColors.terracotta,
+          labelColor: AppColors.sellerPrimary,
           unselectedLabelColor: _grey,
           labelStyle: TextStyle(
             fontFamily: AppFonts.seller,
@@ -265,7 +264,7 @@ class _TabLabel extends StatelessWidget {
   final String text;
   final int count;
 
-  /// Terracotta bubble (New tab) vs neutral grey bubble (Active tab).
+  /// Indigo bubble (New tab) vs neutral grey bubble (Active tab).
   final bool accent;
 
   @override
@@ -280,7 +279,7 @@ class _TabLabel extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             constraints: const BoxConstraints(minWidth: 18),
             decoration: BoxDecoration(
-              color: accent ? AppColors.terracotta : const Color(0xFFEFEFEF),
+              color: accent ? AppColors.sellerPrimary : const Color(0xFFEFEFEF),
               borderRadius: BorderRadius.circular(999),
             ),
             child: Text(
@@ -605,7 +604,7 @@ class _OrdersError extends StatelessWidget {
               FilledButton(
                 onPressed: onRetry,
                 style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.terracotta,
+                  backgroundColor: AppColors.sellerPrimary,
                   foregroundColor: Colors.white,
                 ),
                 child: Text(

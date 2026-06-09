@@ -44,7 +44,10 @@ class OrderActionBar extends StatelessWidget {
     if (forward.isEmpty) return const SizedBox.shrink();
 
     if (feePendingCustomer) {
-      return _WaitingForCustomerBar(canCancel: status.cancellable, onCancel: onCancel);
+      return _WaitingForCustomerBar(
+        canCancel: status.cancellable,
+        onCancel: onCancel,
+      );
     }
 
     final target = forward.first;
@@ -106,10 +109,10 @@ class OrderActionBar extends StatelessWidget {
                   child: FilledButton(
                     onPressed: busy ? null : () => onTransition(target),
                     style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.terracotta,
+                      backgroundColor: AppColors.sellerPrimary,
                       foregroundColor: Colors.white,
-                      disabledBackgroundColor:
-                          AppColors.terracotta.withValues(alpha: 0.5),
+                      disabledBackgroundColor: AppColors.sellerPrimary
+                          .withValues(alpha: 0.5),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),
@@ -127,8 +130,11 @@ class OrderActionBar extends StatelessWidget {
                         : Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Iconsax.tick_circle,
-                                  size: 18, color: Colors.white),
+                              const Icon(
+                                Iconsax.tick_circle,
+                                size: 18,
+                                color: Colors.white,
+                              ),
                               const SizedBox(width: 8),
                               Flexible(
                                 child: Text(
@@ -223,8 +229,10 @@ class _WaitingForCustomerBar extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: const Color(0xFFFFF8EE),
                     borderRadius: BorderRadius.circular(14),
-                    border:
-                        Border.all(color: const Color(0xFFFFD580), width: 1),
+                    border: Border.all(
+                      color: const Color(0xFFFFD580),
+                      width: 1,
+                    ),
                   ),
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,

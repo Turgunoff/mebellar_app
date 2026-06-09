@@ -4,9 +4,13 @@ import 'package:woody_app/core/i18n/i18n.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 
-/// Fixed terracotta save button pinned to the bottom of the settings screen.
+/// Fixed indigo save button pinned to the bottom of the settings screen.
 class SettingsSaveBar extends StatelessWidget {
-  const SettingsSaveBar({super.key, required this.saving, required this.onSave});
+  const SettingsSaveBar({
+    super.key,
+    required this.saving,
+    required this.onSave,
+  });
 
   final bool saving;
   final VoidCallback onSave;
@@ -34,10 +38,11 @@ class SettingsSaveBar extends StatelessWidget {
             child: FilledButton(
               onPressed: saving ? null : onSave,
               style: FilledButton.styleFrom(
-                backgroundColor: AppColors.terracotta,
+                backgroundColor: AppColors.sellerPrimary,
                 foregroundColor: Colors.white,
-                disabledBackgroundColor:
-                    AppColors.terracotta.withValues(alpha: 0.5),
+                disabledBackgroundColor: AppColors.sellerPrimary.withValues(
+                  alpha: 0.5,
+                ),
                 disabledForegroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),

@@ -23,7 +23,7 @@ class BottomActionBar extends StatelessWidget {
   final VoidCallback? onRestore;
 
   /// When true the product is archived, so the secondary action restores it
-  /// (terracotta "Qaytarish") instead of archiving it (neutral "Arxivlash").
+  /// (indigo "Qaytarish") instead of archiving it (neutral "Arxivlash").
   final bool isArchived;
 
   /// Disables both actions and shows a spinner on the secondary one while a
@@ -73,7 +73,9 @@ class BottomActionBar extends StatelessWidget {
                                   ? Iconsax.refresh_2
                                   : Iconsax.archive_2,
                               size: 18,
-                              color: isArchived ? AppColors.terracotta : kInk,
+                              color: isArchived
+                                  ? AppColors.sellerPrimary
+                                  : kInk,
                             ),
                       label: Text(
                         isArchived ? 'Qaytarish' : 'Arxivlash',
@@ -81,18 +83,18 @@ class BottomActionBar extends StatelessWidget {
                           fontFamily: AppFonts.seller,
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: isArchived ? AppColors.terracotta : kInk,
+                          color: isArchived ? AppColors.sellerPrimary : kInk,
                           height: 1.0,
                         ),
                       ),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: isArchived
-                            ? AppColors.terracotta
+                            ? AppColors.sellerPrimary
                             : kInk,
                         backgroundColor: Colors.white,
                         side: BorderSide(
                           color: isArchived
-                              ? AppColors.terracotta.withValues(alpha: 0.4)
+                              ? AppColors.sellerPrimary.withValues(alpha: 0.4)
                               : kOutline,
                           width: 1,
                         ),
@@ -129,7 +131,7 @@ class BottomActionBar extends StatelessWidget {
                       ),
                     ),
                     style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.terracotta,
+                      backgroundColor: AppColors.sellerPrimary,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),

@@ -4,28 +4,46 @@ import '../../../../core/theme/app_colors.dart';
 
 /// Shared tokens + helpers for the seller dashboard widgets.
 ///
-/// Mirrors the seller-mode convention (hardcoded Uzbek copy, local colour
-/// tokens, Plus Jakarta Sans inherited from the theme — so `fontFamily` is
-/// intentionally omitted in every `TextStyle`). The Indigo accents come from
-/// [AppColors] so they stay in lockstep with the rest of seller mode.
+/// Mirrors the seller-mode convention (hardcoded Uzbek copy, Plus Jakarta Sans
+/// inherited from the theme — so `fontFamily` is intentionally omitted in every
+/// `TextStyle`). **Every colour is a `const` alias of an [AppColors] seller
+/// token** — there are no raw hex literals here, so the seller palette lives in
+/// one place. The aliases stay `const` so widgets can keep `const TextStyle(...)`;
+/// the light/dark split lives in [SellerColors] and is wired in when dark mode
+/// ships (at which point these become brightness-resolved getters).
 class DashKit {
   const DashKit._();
 
-  static const Color ink = Color(0xFF1D1D1D);
-  static const Color grey = Color(0xFF757575);
-  static const Color greyMid = Color(0xFFBDBDBD);
-  static const Color hairline = Color(0xFFEFEFEF);
+  static const Color ink = AppColors.sellerInk;
+  static const Color grey = AppColors.sellerGrey;
+  static const Color greyFaint = AppColors.sellerGreyFaint;
+  static const Color greyMid = AppColors.sellerGreyMid;
+  static const Color hairline = AppColors.sellerDivider;
 
   static const Color indigo = AppColors.sellerPrimary; // #3949AB
   static const Color indigoDeep = AppColors.sellerPrimaryDeep; // #283593
   static const Color indigoTint = AppColors.sellerPrimaryTint; // #E8EAF6
+  static const Color indigoBright = AppColors.sellerPrimaryBright; // #4554C4
 
-  static const Color positive = Color(0xFF1F6B49);
-  static const Color positiveBg = Color(0xFFDCF1E5);
-  static const Color negative = Color(0xFFC0392B);
-  static const Color negativeBg = Color(0xFFFDECEA);
-  static const Color gold = Color(0xFFE0A106);
-  static const Color goldBg = Color(0xFFFFF3D6);
+  static const Color positive = AppColors.sellerPositive;
+  static const Color positiveBg = AppColors.sellerPositiveBg;
+  static const Color negative = AppColors.sellerNegative;
+  static const Color negativeBg = AppColors.sellerNegativeBg;
+  static const Color gold = AppColors.sellerGold;
+  static const Color goldBright = AppColors.sellerGoldBright;
+  static const Color goldBg = AppColors.sellerGoldBg;
+
+  static const Color imageBg = AppColors.sellerImageBg;
+  static const Color fillSoft = AppColors.sellerFillSoft;
+  static const Color lockedBg = AppColors.sellerLockedBg;
+  static const Color ringTrack = AppColors.sellerRingTrack;
+  static const Color trackBg = AppColors.sellerTrackBg;
+
+  // Leaderboard medals.
+  static const Color silver = AppColors.sellerSilver;
+  static const Color silverBg = AppColors.sellerSilverBg;
+  static const Color bronze = AppColors.sellerBronze;
+  static const Color bronzeBg = AppColors.sellerBronzeBg;
 
   /// Soft elevation shared by every card on the dashboard.
   static List<BoxShadow> get cardShadow => [

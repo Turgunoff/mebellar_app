@@ -34,8 +34,7 @@ class WorkingHoursCard extends StatelessWidget {
                 _DayRow(
                   day: DayOfWeek.values[i],
                   hours: hours[DayOfWeek.values[i]],
-                  onChanged: (next) =>
-                      onDayChanged(DayOfWeek.values[i], next),
+                  onChanged: (next) => onDayChanged(DayOfWeek.values[i], next),
                 ),
               ],
             ],
@@ -58,7 +57,8 @@ class _DayRow extends StatelessWidget {
   final ValueChanged<DayHours> onChanged;
 
   Future<void> _pickTime(BuildContext context, {required bool isOpen}) async {
-    final initial = _parseHHmm(isOpen ? hours.open : hours.close) ??
+    final initial =
+        _parseHHmm(isOpen ? hours.open : hours.close) ??
         const TimeOfDay(hour: 9, minute: 0);
     final picked = await showTimePicker(
       context: context,
@@ -67,7 +67,7 @@ class _DayRow extends StatelessWidget {
         return Theme(
           data: Theme.of(ctx).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: AppColors.terracotta,
+              primary: AppColors.sellerPrimary,
               onPrimary: Colors.white,
               surface: Colors.white,
               onSurface: kInk,
@@ -155,7 +155,7 @@ class _DayRow extends StatelessWidget {
               );
             },
             activeThumbColor: Colors.white,
-            activeTrackColor: AppColors.terracotta,
+            activeTrackColor: AppColors.sellerPrimary,
           ),
         ],
       ),

@@ -217,7 +217,7 @@ class _LogoAvatar extends StatelessWidget {
                   child: Icon(
                     Iconsax.shop,
                     size: 28,
-                    color: AppColors.terracotta,
+                    color: AppColors.sellerPrimary,
                   ),
                 )
               else
@@ -230,7 +230,7 @@ class _LogoAvatar extends StatelessWidget {
                     child: Icon(
                       Iconsax.shop,
                       size: 28,
-                      color: AppColors.terracotta,
+                      color: AppColors.sellerPrimary,
                     ),
                   ),
                 ),
@@ -283,7 +283,7 @@ class _ChangeLogoButton extends StatelessWidget {
                 const Icon(
                   Iconsax.camera,
                   size: 16,
-                  color: AppColors.terracotta,
+                  color: AppColors.sellerPrimary,
                 ),
                 const SizedBox(width: 8),
                 Text(
@@ -292,7 +292,7 @@ class _ChangeLogoButton extends StatelessWidget {
                     fontFamily: AppFonts.seller,
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.terracotta,
+                    color: AppColors.sellerPrimary,
                     letterSpacing: -0.1,
                   ),
                 ),

@@ -33,9 +33,11 @@ class VisibilityCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      tr(isPublic
-                          ? 'shop_settings.public'
-                          : 'shop_settings.hidden'),
+                      tr(
+                        isPublic
+                            ? 'shop_settings.public'
+                            : 'shop_settings.hidden',
+                      ),
                       style: const TextStyle(
                         fontFamily: AppFonts.seller,
                         fontSize: 14,
@@ -46,9 +48,11 @@ class VisibilityCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      tr(isPublic
-                          ? 'shop_settings.public_hint'
-                          : 'shop_settings.hidden_hint'),
+                      tr(
+                        isPublic
+                            ? 'shop_settings.public_hint'
+                            : 'shop_settings.hidden_hint',
+                      ),
                       style: const TextStyle(
                         fontFamily: AppFonts.seller,
                         fontSize: 12,
@@ -64,7 +68,7 @@ class VisibilityCard extends StatelessWidget {
                 value: isPublic,
                 onChanged: onChanged,
                 activeThumbColor: Colors.white,
-                activeTrackColor: AppColors.terracotta,
+                activeTrackColor: AppColors.sellerPrimary,
               ),
             ],
           ),
