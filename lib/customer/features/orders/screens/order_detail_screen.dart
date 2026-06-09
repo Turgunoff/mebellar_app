@@ -381,10 +381,10 @@ class _FeeAdjustmentBanner extends StatelessWidget {
                 color: Color(0xFF8C5A12),
               ),
               const SizedBox(width: 8),
-              const Expanded(
+              Expanded(
                 child: Text(
-                  'Yetkazish narxi o\'zgardi',
-                  style: TextStyle(
+                  tr('orders.fee_changed_title'),
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF8C5A12),
@@ -395,8 +395,10 @@ class _FeeAdjustmentBanner extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Sotuvchi yangi yetkazish narxini taklif qildi: '
-            '${priceFormat.format(proposedFee)} so\'m',
+            tr(
+              'orders.fee_changed_body',
+              namedArgs: {'fee': priceFormat.format(proposedFee)},
+            ),
             style: const TextStyle(
               fontSize: 13,
               color: Color(0xFF5C3A0A),
@@ -432,7 +434,7 @@ class _FeeAdjustmentBanner extends StatelessWidget {
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  child: const Text('Rad etish'),
+                  child: Text(tr('orders.fee_reject')),
                 ),
               ),
               const SizedBox(width: 10),
@@ -457,7 +459,7 @@ class _FeeAdjustmentBanner extends StatelessWidget {
                             color: Colors.white,
                           ),
                         )
-                      : const Text('Tasdiqlash'),
+                      : Text(tr('orders.fee_approve')),
                 ),
               ),
             ],
@@ -475,16 +477,20 @@ class _FeeAdjustmentBanner extends StatelessWidget {
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Yangi narxni tasdiqlash'),
+        title: Text(tr('orders.fee_confirm_title')),
         content: Text(
-          'Yetkazish narxi: ${priceFormat.format(proposedFee)} so\'m\n'
-          'Jami to\'lov: ${priceFormat.format(newTotal)} so\'m\n\n'
-          'Rozilik bildirasizmi?',
+          tr(
+            'orders.fee_confirm_body',
+            namedArgs: {
+              'fee': priceFormat.format(proposedFee),
+              'total': priceFormat.format(newTotal),
+            },
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Bekor'),
+            child: Text(tr('common.cancel')),
           ),
           FilledButton(
             onPressed: () {
@@ -493,7 +499,7 @@ class _FeeAdjustmentBanner extends StatelessWidget {
               );
               Navigator.pop(ctx);
             },
-            child: const Text('Ha, tasdiqlayman'),
+            child: Text(tr('orders.fee_confirm_yes')),
           ),
         ],
       ),
