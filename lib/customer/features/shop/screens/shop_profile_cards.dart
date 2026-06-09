@@ -33,17 +33,18 @@ class _ShopProductCard extends StatelessWidget {
 class _EmptyProducts extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return SectionCard(
+    final pt = PremiumTokens.of(context);
+    return _SectionCard(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 20),
         child: Center(
           child: Column(
             children: [
-              Icon(Iconsax.box, size: 34, color: kGreyMid),
+              Icon(Iconsax.box, size: 34, color: pt.greyLight),
               const SizedBox(height: 10),
               Text(
                 'Hozircha mahsulot yo\'q',
-                style: _ts(size: 13.5, weight: FontWeight.w600, color: kGrey),
+                style: _ts(size: 13.5, weight: FontWeight.w600, color: pt.grey),
               ),
             ],
           ),
@@ -62,18 +63,19 @@ class _LoadingState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
     final topPad = MediaQuery.paddingOf(context).top;
     return ListView(
       physics: const NeverScrollableScrollPhysics(),
       padding: EdgeInsets.zero,
       children: [
         Shimmer.fromColors(
-          baseColor: kImageBg,
+          baseColor: pt.imageBg,
           highlightColor: Colors.white,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(height: 168 + topPad, color: kImageBg),
+              Container(height: 168 + topPad, color: pt.imageBg),
               Padding(
                 padding: const EdgeInsets.fromLTRB(18, 18, 18, 0),
                 child: Column(
@@ -83,7 +85,7 @@ class _LoadingState extends StatelessWidget {
                       width: 180,
                       height: 22,
                       decoration: BoxDecoration(
-                        color: kImageBg,
+                        color: pt.imageBg,
                         borderRadius: BorderRadius.circular(6),
                       ),
                     ),
@@ -92,7 +94,7 @@ class _LoadingState extends StatelessWidget {
                       width: 120,
                       height: 13,
                       decoration: BoxDecoration(
-                        color: kImageBg,
+                        color: pt.imageBg,
                         borderRadius: BorderRadius.circular(6),
                       ),
                     ),
@@ -100,7 +102,7 @@ class _LoadingState extends StatelessWidget {
                     Container(
                       height: 84,
                       decoration: BoxDecoration(
-                        color: kImageBg,
+                        color: pt.imageBg,
                         borderRadius: BorderRadius.circular(16),
                       ),
                     ),
@@ -122,18 +124,19 @@ class _ErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Iconsax.shop, size: 46, color: kGreyMid),
+            Icon(Iconsax.shop, size: 46, color: pt.greyLight),
             const SizedBox(height: 16),
             Text(
               'Do\'kon ma\'lumotlarini yuklab bo\'lmadi',
               textAlign: TextAlign.center,
-              style: _ts(size: 15, weight: FontWeight.w700),
+              style: _ts(size: 15, weight: FontWeight.w700, color: pt.dark),
             ),
             const SizedBox(height: 18),
             FilledButton(
@@ -210,6 +213,7 @@ class _TopBar extends StatelessWidget {
                         size: 16.5,
                         weight: FontWeight.w800,
                         letterSpacing: -0.3,
+                        color: PremiumTokens.of(context).dark,
                       ),
                     ),
                   ),
@@ -250,10 +254,14 @@ class _BackCircle extends StatelessWidget {
       child: InkWell(
         customBorder: const CircleBorder(),
         onTap: () => context.canPop() ? context.pop() : context.go('/'),
-        child: const SizedBox(
+        child: SizedBox(
           width: 40,
           height: 40,
-          child: Icon(Iconsax.arrow_left_2, size: 20, color: kInk),
+          child: Icon(
+            Iconsax.arrow_left_2,
+            size: 20,
+            color: PremiumTokens.of(context).dark,
+          ),
         ),
       ),
     );

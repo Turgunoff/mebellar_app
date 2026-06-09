@@ -20,6 +20,12 @@
       "Bash(curl * | sh)",
       "Bash(curl * | bash)",
       "Bash(wget * | sh)"
+    ],
+    "allow": [
+      "Bash(npx @claude-flow*)",
+      "Bash(npx claude-flow*)",
+      "Bash(node .claude/*)",
+      "mcp__claude-flow__:*"
     ]
   },
   "hooks": {
@@ -34,5 +40,10 @@
         ]
       }
     ]
+  },
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "CLAUDE_FLOW_V3_ENABLED": "true",
+    "CLAUDE_FLOW_HOOKS_ENABLED": "true"
   }
 }

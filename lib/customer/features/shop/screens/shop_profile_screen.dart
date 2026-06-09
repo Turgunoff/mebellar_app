@@ -642,7 +642,7 @@ class _ContactCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SectionCard(
+    return _SectionCard(
       child: Row(
         children: [
           if (shop.hasPhone)
@@ -721,13 +721,14 @@ class _AboutCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SectionCard(
+    final pt = PremiumTokens.of(context);
+    return _SectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SectionTitle(text: 'Do\'kon haqida'),
+          const _SectionTitle(text: 'Do\'kon haqida'),
           const SizedBox(height: 12),
-          Text(text, style: _ts(size: 13.5, color: kInk, height: 1.5)),
+          Text(text, style: _ts(size: 13.5, color: pt.dark, height: 1.5)),
         ],
       ),
     );
@@ -771,11 +772,12 @@ class _LocationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SectionCard(
+    final pt = PremiumTokens.of(context);
+    return _SectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SectionTitle(text: 'Manzil'),
+          const _SectionTitle(text: 'Manzil'),
           const SizedBox(height: 12),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -789,7 +791,7 @@ class _LocationCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   shop.hasAddress ? shop.address! : 'Xaritada belgilangan',
-                  style: _ts(size: 13.5, color: kInk, height: 1.4),
+                  style: _ts(size: 13.5, color: pt.dark, height: 1.4),
                 ),
               ),
             ],
@@ -797,7 +799,7 @@ class _LocationCard extends StatelessWidget {
           if (shop.hasLocation) ...[
             const SizedBox(height: 14),
             Material(
-              color: kSurfaceMuted,
+              color: pt.background,
               borderRadius: BorderRadius.circular(12),
               child: InkWell(
                 onTap: () => _openMap(context),
@@ -807,11 +809,15 @@ class _LocationCard extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Iconsax.map_1, size: 17, color: kInk),
+                      Icon(Iconsax.map_1, size: 17, color: pt.dark),
                       const SizedBox(width: 8),
                       Text(
                         'Xaritada ko\'rish',
-                        style: _ts(size: 13.5, weight: FontWeight.w700),
+                        style: _ts(
+                          size: 13.5,
+                          weight: FontWeight.w700,
+                          color: pt.dark,
+                        ),
                       ),
                     ],
                   ),
@@ -846,17 +852,18 @@ class _HoursCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
     final now = DateTime.now();
     final today = DayOfWeek.values[now.weekday - 1];
     final openNow = _isOpenNow(hours, now);
 
-    return SectionCard(
+    return _SectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const SectionTitle(text: 'Ish vaqti'),
+              const _SectionTitle(text: 'Ish vaqti'),
               const Spacer(),
               _OpenPill(openNow: openNow),
             ],
@@ -869,9 +876,9 @@ class _HoursCard extends StatelessWidget {
               isToday: day == today,
             ),
             if (day != DayOfWeek.sunday)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 9),
-                child: Divider(height: 1, thickness: 1, color: kDivider),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 9),
+                child: Divider(height: 1, thickness: 1, color: pt.divider),
               ),
           ],
         ],
@@ -926,6 +933,7 @@ class _HoursRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
     final String value;
     if (hours.closed || hours.open == null || hours.close == null) {
       value = 'Dam olish kuni';
@@ -935,7 +943,7 @@ class _HoursRow extends StatelessWidget {
       value = '${hours.open} – ${hours.close}';
     }
     final weight = isToday ? FontWeight.w700 : FontWeight.w500;
-    final color = (hours.closed || hours.open == null) ? kGreySoft : kInk;
+    final color = (hours.closed || hours.open == null) ? pt.greyLight : pt.dark;
     return Row(
       children: [
         if (isToday) ...[
@@ -954,7 +962,7 @@ class _HoursRow extends StatelessWidget {
           style: _ts(
             size: 13,
             weight: weight,
-            color: isToday ? AppColors.terracotta : kInk,
+            color: isToday ? AppColors.terracotta : pt.dark,
           ),
         ),
         const Spacer(),
