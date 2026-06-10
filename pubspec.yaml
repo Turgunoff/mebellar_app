@@ -64,6 +64,14 @@ dependencies:
   # App lifecycle
   flutter_phoenix: ^1.1.1
 
+  # In-app updates — Google Play's native update prompts (immediate = blocking
+  # full-screen, flexible = background download). Android-only; iOS no-ops.
+  # Driven by the `app_versions` RemoteConfig key (backend `app_settings`).
+  in_app_update: ^4.2.3
+  # Reads the installed versionName at runtime so the update gate can compare
+  # it against the backend-published min_version.
+  package_info_plus: ^8.1.0
+
   # Localization — translations live in pure Dart (lib/core/i18n/) so
   # Shorebird code-push can ship copy edits OTA. intl stays for
   # NumberFormat / DateFormat helpers.

@@ -18,6 +18,7 @@ import '../core/notifications/notification_handler.dart';
 import '../core/theme/app_theme.dart' show appSystemOverlay;
 import '../core/theme/seller_theme.dart';
 import '../core/theme/theme_cubit.dart';
+import '../core/updates/app_update_gate.dart';
 import '../main.dart' show AppLocaleScope;
 import '../shared/widgets/network_overlay_wrapper.dart';
 import 'features/analytics/screens/analytics_screen.dart';
@@ -161,7 +162,11 @@ class _SellerAppState extends State<SellerApp> with WidgetsBindingObserver {
   Widget _appBuilder(BuildContext context, Widget? child) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: appSystemOverlay(Theme.of(context).brightness),
-      child: NetworkOverlayWrapper(child: child ?? const SizedBox.shrink()),
+      // AppUpdateGate is outermost so its force-update overlay paints above
+      // the network banner and every route.
+      child: AppUpdateGate(
+        child: NetworkOverlayWrapper(child: child ?? const SizedBox.shrink()),
+      ),
     );
   }
 }

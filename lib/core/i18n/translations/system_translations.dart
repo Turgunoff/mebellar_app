@@ -1,4 +1,36 @@
-// Cross-cutting infra: offline indicator and the deep-link debug tester.
+// Cross-cutting infra: offline indicator, the in-app update gate, and the
+// deep-link debug tester.
+
+const Map<String, dynamic> updateUz = {
+  'required_title': 'Yangilanish kerak',
+  'required_body':
+      'Woody\'ning yangi versiyasi chiqdi. Davom etish uchun ilovani '
+      'yangilang.',
+  'update_now': 'Yangilash',
+  'ready_title': 'Yangilanish tayyor',
+  'ready_body': 'O\'rnatish uchun ilovani qayta ishga tushiring',
+  'restart_now': 'Qayta ochish',
+};
+
+const Map<String, dynamic> updateRu = {
+  'required_title': 'Требуется обновление',
+  'required_body':
+      'Вышла новая версия Woody. Обновите приложение, чтобы продолжить.',
+  'update_now': 'Обновить',
+  'ready_title': 'Обновление готово',
+  'ready_body': 'Перезапустите приложение, чтобы установить его',
+  'restart_now': 'Перезапуск',
+};
+
+const Map<String, dynamic> updateEn = {
+  'required_title': 'Update required',
+  'required_body':
+      'A new version of Woody is available. Update the app to continue.',
+  'update_now': 'Update',
+  'ready_title': 'Update ready',
+  'ready_body': 'Restart the app to install it',
+  'restart_now': 'Restart',
+};
 
 const Map<String, dynamic> offlineUz = {
   'banner': 'Internet aloqasi yo\'q',
@@ -34,8 +66,7 @@ const Map<String, dynamic> deepLinksUz = {
 
 const Map<String, dynamic> deepLinksRu = {
   'tester_title': 'Тест deep link',
-  'tester_hint':
-      'Введите URI и нажмите кнопку — обработчик выполнит переход',
+  'tester_hint': 'Введите URI и нажмите кнопку — обработчик выполнит переход',
   'routed': 'Перенаправлено: mode={}, route={}',
   'unrecognised': 'URI не распознан',
 };

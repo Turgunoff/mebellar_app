@@ -19,6 +19,7 @@ import '../core/notifications/push_service.dart';
 import '../core/connectivity/network_cubit.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/theme_cubit.dart';
+import '../core/updates/app_update_gate.dart';
 import 'features/categories/bloc/categories_bloc.dart';
 import '../main.dart' show AppLocaleScope;
 import '../shared/repositories/notifications_repository.dart';
@@ -158,10 +159,14 @@ class _CustomerAppState extends State<CustomerApp> with WidgetsBindingObserver {
           routerConfig: _router,
           builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
             value: appSystemOverlay(Theme.of(context).brightness),
-            child: NetworkOverlayWrapper(
-              child: DebugTalkerOverlay(
-                navigatorKey: customerNavigatorKey,
-                child: child,
+            // AppUpdateGate is outermost so its force-update overlay paints
+            // above the network banner and every route.
+            child: AppUpdateGate(
+              child: NetworkOverlayWrapper(
+                child: DebugTalkerOverlay(
+                  navigatorKey: customerNavigatorKey,
+                  child: child,
+                ),
               ),
             ),
           ),
