@@ -98,8 +98,10 @@ class _CustomerAppState extends State<CustomerApp> with WidgetsBindingObserver {
     }
     // push (not go) so the deep-link target sits ON TOP of home — the router's
     // initialLocation is '/', so the stack becomes [home, target] and Back
-    // returns to home instead of dead-ending on a rootless screen.
-    if (route != null) _router.push(route);
+    // returns to home instead of dead-ending on a rootless screen. Tab
+    // destinations (e.g. /profile) are the exception: the helper switches
+    // the shell tab instead.
+    if (route != null) navigateCustomerRoute(_router, route);
   }
 
   /// Listens for incoming app/universal links. Sprint 11 mock: the simulator

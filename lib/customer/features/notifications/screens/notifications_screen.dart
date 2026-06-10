@@ -16,6 +16,7 @@ import '../../../../shared/models/notification_model.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/error_state.dart';
+import '../../../router.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../cubit/notifications_cubit.dart';
 
@@ -97,7 +98,9 @@ class _NotificationsViewState extends State<_NotificationsView> {
       return;
     }
 
-    context.push(route);
+    // Tab destinations (/profile) switch the shell tab instead of pushing a
+    // standalone screen — the user lands on the real bottom-nav tab.
+    navigateCustomerRoute(GoRouter.of(context), route);
   }
 
   /// Resolves the deep-link destination for [n]. Returns `null` for purely

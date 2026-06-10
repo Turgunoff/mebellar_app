@@ -8,6 +8,7 @@ import '../../../../core/logging/talker.dart';
 import '../../../../core/storage/r2_upload_client.dart';
 import '../../../../shared/utils/image_upload.dart';
 import '../../../../shared/utils/phone_format.dart';
+import '../../../../shared/widgets/image_crop_screen.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../cubit/profile_cubit.dart';
 import '../widgets/user_card.dart';
@@ -58,7 +59,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         source: ImageSource.gallery,
       );
       if (picked == null || !mounted) return;
-      setState(() => _picked = picked);
+      // Telegram-style fit step: zoom/pan inside the circular frame the
+      // avatar is shown in everywhere — same flow as the seller logo.
+      final cropped = await openImageCropScreen(
+        context,
+        file: picked.file,
+        aspectRatio: 1,
+        circle: true,
+        maxOutputWidth: 1024,
+      );
+      if (cropped == null || !mounted) return;
+      setState(
+        () => _picked = PickedImage(
+          file: cropped,
+          extension: 'png',
+          bytes: cropped.lengthSync(),
+        ),
+      );
     } on ImagePickError catch (e, st) {
       talker.handle(e, st, '[edit-profile] avatar pick error');
       messenger.showSnackBar(SnackBar(content: Text(e.message)));

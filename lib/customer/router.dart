@@ -30,13 +30,23 @@ import 'features/orders/screens/order_detail_screen.dart';
 import 'features/orders/screens/orders_history_screen.dart';
 import 'features/notifications/screens/notifications_screen.dart'
     as customer_notifications;
-import 'features/profile/screens/profile_guest_screen.dart';
-import 'features/profile/screens/profile_screen.dart';
 import 'features/search/screens/search_screen.dart';
 import 'features/shop/screens/shop_profile_screen.dart';
 import 'features/tutorial/tutorial_screen.dart';
-import '../core/auth/auth_cubit.dart';
 import '../seller/features/onboarding/screens/onboarding_screen.dart';
+
+/// Executes a customer-side deep link (notification tap, pending route).
+/// Tab destinations — surfaces that live on the bottom nav, like `/profile`
+/// — switch the home shell's tab via the `?tab=` query so the user lands on
+/// the real tab with the nav bar visible, not a pushed standalone copy.
+/// Everything else is pushed so Back returns to where the user was.
+void navigateCustomerRoute(GoRouter router, String route) {
+  if (route == '/profile') {
+    router.go('/?tab=profile');
+    return;
+  }
+  router.push(route);
+}
 
 /// Customer-side navigation. The shell hosts the bottom tabs; the rest are
 /// pushed on top via `context.push(...)`. Filters propagate via query params
@@ -67,7 +77,19 @@ GoRouter buildCustomerRouter() {
     routes: [
       GoRoute(
         path: '/',
-        builder: (context, state) => const CustomerHomeShell(),
+        // `?tab=` deep-links straight into a bottom-nav tab (e.g.
+        // `/?tab=profile` from a verification-verdict notification) so the
+        // user lands on the real tab — bottom nav visible — not a pushed
+        // standalone copy of the screen.
+        builder: (context, state) => CustomerHomeShell(
+          initialTab: switch (state.uri.queryParameters['tab']) {
+            'categories' => 1,
+            'cart' => 2,
+            'favorites' => 3,
+            'profile' => 4,
+            _ => null,
+          },
+        ),
       ),
       GoRoute(
         path: '/tutorial',
@@ -175,18 +197,6 @@ GoRouter buildCustomerRouter() {
       GoRoute(
         path: '/seller/onboarding',
         builder: (context, state) => const OnboardingScreen(),
-      ),
-      GoRoute(
-        // Routed (pushed) twin of the bottom-nav Profile tab. Notification
-        // deep-links (seller verdicts, support replies) land here so the
-        // status banners are immediately visible; Back returns to wherever
-        // the user was. Auth-gated exactly like the tab.
-        path: '/profile',
-        builder: (context, state) => BlocBuilder<AuthCubit, AppAuthState>(
-          builder: (context, authState) => authState is AppAuthAuthenticated
-              ? const ProfileScreen()
-              : const ProfileGuestScreen(),
-        ),
       ),
       GoRoute(
         // Both the app-bar bell and push-tap deep-links land here. Routed to

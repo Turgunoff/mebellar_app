@@ -468,6 +468,13 @@ class PushService {
 
     final ctx = customerNavigatorKey.currentContext;
     if (modeName == AppMode.customer.name && ctx != null && ctx.mounted) {
+      // Tab destinations switch the home-shell tab (mirrors
+      // `navigateCustomerRoute` in customer/router.dart — kept inline so the
+      // core layer doesn't import the customer router).
+      if (route == '/profile') {
+        GoRouter.of(ctx).go('/?tab=profile');
+        return;
+      }
       // push, not go — keep home underneath so Back returns to it.
       GoRouter.of(ctx).push(route);
       return;
