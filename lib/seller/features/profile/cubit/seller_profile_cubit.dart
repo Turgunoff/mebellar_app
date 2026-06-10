@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/auth/auth_repository.dart';
 import '../../../../core/logging/talker.dart';
 import '../../../../core/network/api_error.dart';
+import '../../../../shared/models/shop_settings.dart';
 import '../../../../shared/models/tariff.dart';
 import '../../../../shared/models/verification_status.dart';
 import '../../../../shared/repositories/seller_profile_repository.dart';
@@ -118,6 +119,39 @@ class SellerProfileCubit extends Cubit<SellerProfileState> {
     emit(SellerProfileState.fromSnapshot(snapshot, isLoading: false));
     // Persist after emit so a slow disk write never blocks the UI render.
     unawaited(_cache.write(userId, snapshot));
+  }
+
+  /// Applies a just-saved shop-settings result straight onto the identity
+  /// card — shop name, logo and cover (explicit nulls = removed) — without a
+  /// refetch. The cache is rewritten too, so the next cold-start hydrate and
+  /// the dashboard greeting don't resurrect a deleted image.
+  void applyShopSettings(ShopSettings settings) {
+    emit(
+      SellerProfileState(
+        isLoading: false,
+        shopName: settings.name.isNotEmpty ? settings.name : state.shopName,
+        logoUrl: settings.logoUrl,
+        coverUrl: settings.coverUrl,
+        sellerName: state.sellerName,
+        verificationStatus: state.verificationStatus,
+        plan: state.plan,
+      ),
+    );
+    final userId = _auth.currentUserId;
+    if (userId == null) return;
+    unawaited(
+      _cache.write(
+        userId,
+        SellerIdentitySnapshot(
+          shopName: state.shopName,
+          logoUrl: state.logoUrl,
+          coverUrl: state.coverUrl,
+          sellerName: state.sellerName,
+          verificationStatus: state.verificationStatus,
+          plan: state.plan,
+        ),
+      ),
+    );
   }
 
   /// Classifies a single endpoint read. A 404 is a definite "no row yet"

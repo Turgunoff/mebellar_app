@@ -75,7 +75,10 @@ void registerCustomerScope(GetIt sl) {
     dispose: (c) => c.close(),
   );
   sl.registerLazySingleton<ProfileCubit>(
-    () => ProfileCubit(sl<AuthRepository>()),
+    () => ProfileCubit(
+      sl<AuthRepository>(),
+      cacheBox: sl<Box>(instanceName: HiveBoxes.cache),
+    ),
     dispose: (c) => c.close(),
   );
   // NotificationsCubit is root-scoped (see registerCatalogModule) so seller

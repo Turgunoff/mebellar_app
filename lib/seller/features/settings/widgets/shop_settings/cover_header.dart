@@ -47,34 +47,47 @@ class CoverHeader extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              _CoverImage(
-                url: coverUrl,
-                uploading: uploadingKind == 'cover',
-                onTap: onTapCover,
-              ),
-              Positioned(
-                top: 10,
-                right: 10,
-                child: _CoverEditPill(onTap: onTapCover),
-              ),
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: -_kAvatarOverlap,
-                child: Center(
-                  child: _LogoAvatar(
-                    url: logoUrl,
-                    uploading: uploadingKind == 'logo',
-                    onTap: onTapLogo,
+          // The Stack's own height includes the avatar's overhang — children
+          // outside a Stack's bounds render but never receive taps, which is
+          // exactly the "can't tap the logo" bug the old negative-bottom
+          // Positioned had.
+          SizedBox(
+            height: _kCoverHeight + _kAvatarOverlap + 6,
+            width: double.infinity,
+            child: Stack(
+              children: [
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: _kCoverHeight,
+                  child: _CoverImage(
+                    url: coverUrl,
+                    uploading: uploadingKind == 'cover',
+                    onTap: onTapCover,
                   ),
                 ),
-              ),
-            ],
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: _CoverEditPill(onTap: onTapCover),
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: Center(
+                    child: _LogoAvatar(
+                      url: logoUrl,
+                      uploading: uploadingKind == 'logo',
+                      onTap: onTapLogo,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: _kAvatarOverlap + 10),
+          const SizedBox(height: 10),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
             child: Text(

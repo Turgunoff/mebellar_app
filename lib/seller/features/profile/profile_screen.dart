@@ -11,6 +11,7 @@ import '../../../config/remote_config.dart';
 import '../../../core/di/service_locator.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_fonts.dart';
+import '../../../shared/models/shop_settings.dart';
 import '../../../shared/models/tariff.dart';
 import '../../../shared/models/verification_status.dart';
 import '../../../shared/widgets/brand_refresh_indicator.dart';
@@ -83,8 +84,7 @@ class _SellerProfileView extends StatelessWidget {
                               icon: Iconsax.shop,
                               title: "Do'kon sozlamalari",
                               subtitle: "Logo, ish vaqti, ko'rinish",
-                              onTap: () =>
-                                  _push(context, const ShopSettingsScreen()),
+                              onTap: () => _openShopSettings(context),
                             ),
                             _SettingsItem(
                               icon: Iconsax.truck_fast,
@@ -183,6 +183,17 @@ class _SellerProfileView extends StatelessWidget {
 
 final Color _logoutRed = Colors.red.shade600;
 
+/// Opens shop settings and, when the seller saves, applies the returned
+/// settings straight onto the profile identity card — logo/cover removals and
+/// renames show up the moment the settings screen pops, no manual refresh.
+Future<void> _openShopSettings(BuildContext context) async {
+  final cubit = context.read<SellerProfileCubit>();
+  final saved = await Navigator.of(context).push<ShopSettings>(
+    MaterialPageRoute(builder: (_) => const ShopSettingsScreen()),
+  );
+  if (saved != null) cubit.applyShopSettings(saved);
+}
+
 // =============================================================================
 // 1. Header — "Profil" title
 // =============================================================================
@@ -254,58 +265,66 @@ class _ProfileIdentity extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              GestureDetector(
-                onTap: state.hasCover
-                    ? () => openFullscreenImageViewer(
-                          context,
-                          images: [state.coverUrl!],
-                          initialIndex: 0,
-                          heroTagPrefix: 'shop-cover',
-                        )
-                    : null,
-                child: Hero(
-                  tag: 'shop-cover-0',
-                  child: _CoverBanner(coverUrl: state.coverUrl),
-                ),
-              ),
-              Positioned(
-                top: 10,
-                right: 10,
-                child: _CoverEditButton(
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const ShopSettingsScreen(),
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: -_kAvatarOverlap,
-                child: Center(
+          // The Stack's height includes the avatar overhang — content outside
+          // a Stack's bounds renders but never receives taps, so the old
+          // negative-bottom Positioned made the logo's lower half dead.
+          SizedBox(
+            height: _kCoverHeight + _kAvatarOverlap + 6,
+            width: double.infinity,
+            child: Stack(
+              children: [
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: _kCoverHeight,
                   child: GestureDetector(
-                    onTap: state.hasLogo
+                    onTap: state.hasCover
                         ? () => openFullscreenImageViewer(
                               context,
-                              images: [state.logoUrl!],
+                              images: [state.coverUrl!],
                               initialIndex: 0,
-                              heroTagPrefix: 'shop-logo',
+                              heroTagPrefix: 'shop-cover',
                             )
                         : null,
                     child: Hero(
-                      tag: 'shop-logo-0',
-                      child: _Avatar(logoUrl: state.logoUrl),
+                      tag: 'shop-cover-0',
+                      child: _CoverBanner(coverUrl: state.coverUrl),
                     ),
                   ),
                 ),
-              ),
-            ],
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: _CoverEditButton(
+                    onTap: () => _openShopSettings(context),
+                  ),
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: Center(
+                    child: GestureDetector(
+                      onTap: state.hasLogo
+                          ? () => openFullscreenImageViewer(
+                                context,
+                                images: [state.logoUrl!],
+                                initialIndex: 0,
+                                heroTagPrefix: 'shop-logo',
+                              )
+                          : null,
+                      child: Hero(
+                        tag: 'shop-logo-0',
+                        child: _Avatar(logoUrl: state.logoUrl),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: _kAvatarOverlap + 12),
+          const SizedBox(height: 12),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
             child: Column(

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../../../core/auth/app_mode_cubit.dart';
 import '../../../../core/auth/auth_repository.dart';
@@ -21,6 +22,7 @@ class ProfileState extends Equatable {
     this.isSellerPending = false,
     this.sellerVerificationStatus = VerificationStatus.none,
     this.sellerRejectionReason,
+    this.rejectedBannerDismissed = false,
     this.isLoading = false,
   });
 
@@ -42,6 +44,11 @@ class ProfileState extends Equatable {
 
   /// Moderator-set rejection note, surfaced inside the rejected banner.
   final String? sellerRejectionReason;
+
+  /// True when the user closed the rejected banner with its X — the profile
+  /// then shows the regular "become a seller" CTA instead, so re-applying
+  /// stays one tap away. Persisted per user in the Hive cache box.
+  final bool rejectedBannerDismissed;
 
   final bool isLoading;
 
@@ -67,6 +74,7 @@ class ProfileState extends Equatable {
     bool? isSellerPending,
     VerificationStatus? sellerVerificationStatus,
     String? sellerRejectionReason,
+    bool? rejectedBannerDismissed,
     bool? isLoading,
   }) {
     return ProfileState(
@@ -80,6 +88,8 @@ class ProfileState extends Equatable {
           sellerVerificationStatus ?? this.sellerVerificationStatus,
       sellerRejectionReason:
           sellerRejectionReason ?? this.sellerRejectionReason,
+      rejectedBannerDismissed:
+          rejectedBannerDismissed ?? this.rejectedBannerDismissed,
       isLoading: isLoading ?? this.isLoading,
     );
   }
@@ -94,6 +104,7 @@ class ProfileState extends Equatable {
     isSellerPending,
     sellerVerificationStatus,
     sellerRejectionReason,
+    rejectedBannerDismissed,
     isLoading,
   ];
 }
@@ -105,9 +116,41 @@ class ProfileState extends Equatable {
 /// name, avatar and seller status. A `/me` failure is non-fatal — the seeded
 /// identity stays on screen rather than blanking the card.
 class ProfileCubit extends Cubit<ProfileState> {
-  ProfileCubit(this._auth) : super(const ProfileState(isLoading: true));
+  ProfileCubit(this._auth, {Box? cacheBox})
+      : _cacheBox = cacheBox,
+        super(const ProfileState(isLoading: true));
 
   final AuthRepository _auth;
+
+  /// Hive cache box holding the per-user rejected-banner dismissal flag.
+  /// Wiped on logout with the rest of the cache box, so it never bleeds
+  /// across accounts. Null in tests → the flag lives only in state.
+  final Box? _cacheBox;
+
+  String? get _dismissKey {
+    final id = _auth.currentUserId;
+    return id == null ? null : 'seller_rejected_dismissed_$id';
+  }
+
+  /// Hides the rejected banner for this user until the verification status
+  /// changes again — the profile falls back to the "become a seller" CTA so
+  /// re-applying later stays possible.
+  void dismissRejectedBanner() {
+    final key = _dismissKey;
+    if (key != null) unawaited(_cacheBox?.put(key, true));
+    emit(state.copyWith(rejectedBannerDismissed: true));
+  }
+
+  bool _readDismissed() {
+    final key = _dismissKey;
+    if (key == null) return false;
+    return (_cacheBox?.get(key) as bool?) ?? false;
+  }
+
+  void _clearDismissed() {
+    final key = _dismissKey;
+    if (key != null) unawaited(_cacheBox?.delete(key));
+  }
 
   Future<void> fetch() async {
     final id = _auth.currentUserId;
@@ -171,6 +214,12 @@ class ProfileCubit extends Cubit<ProfileState> {
 
   ProfileState _fromMe(Me me) {
     final seller = me.sellerProfile;
+    final status = seller?.verificationStatus ?? VerificationStatus.none;
+    // The dismissal only applies while the rejection is current: as soon as
+    // the status moves on (resubmitted → pending, approved, …) the flag is
+    // dropped, so a future fresh rejection surfaces its banner again.
+    final dismissed = status.isRejected && _readDismissed();
+    if (!status.isRejected) _clearDismissed();
     return ProfileState(
       id: me.id,
       name: me.fullName,
@@ -178,9 +227,9 @@ class ProfileCubit extends Cubit<ProfileState> {
       email: me.email,
       avatarUrl: me.avatarUrl,
       isSellerPending: me.isSellerPending,
-      sellerVerificationStatus:
-          seller?.verificationStatus ?? VerificationStatus.none,
+      sellerVerificationStatus: status,
       sellerRejectionReason: seller?.rejectionReason,
+      rejectedBannerDismissed: dismissed,
     );
   }
 }

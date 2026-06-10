@@ -14,6 +14,7 @@ import '../../../shared/models/order.dart';
 import '../../../shared/models/order_status.dart';
 import '../../../shared/widgets/brand_refresh_indicator.dart';
 import '../notifications/screens/notifications_screen.dart';
+import '../tariff/screens/tariff_screen.dart';
 import 'bloc/seller_dashboard_cubit.dart';
 import 'screens/achievements_screen.dart';
 import 'widgets/achievements_strip.dart';
@@ -69,7 +70,8 @@ class _DashboardView extends StatelessWidget {
           builder: (context, state) {
             // No cached greeting yet and the identity fetch is still in
             // flight — shimmer instead of flashing the "Sotuvchi" default.
-            final identityPending = state.isLoading &&
+            final identityPending =
+                state.isLoading &&
                 state.data.sellerName == null &&
                 state.data.shopName == null;
             return Column(
@@ -501,6 +503,14 @@ class _KpiGrid extends StatelessWidget {
           value: productsValue,
           subtitle: tariffEnabled ? '${data.plan.label} tarif' : null,
           indicator: exceeded ? KpiIndicator.accent('Limit oshdi') : null,
+          // The card that shows the quota is the shortcut to managing it —
+          // especially when "Limit oshdi" is up. No quota with tariff off,
+          // so the card stays inert there.
+          onTap: tariffEnabled
+              ? () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => const TariffScreen()),
+                )
+              : null,
         ),
       ],
     );

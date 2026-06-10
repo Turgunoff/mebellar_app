@@ -86,6 +86,15 @@ class ShopSettingsAssetUploaded extends ShopSettingsEvent {
   List<Object?> get props => [kind, file.path];
 }
 
+/// Clears the logo or cover locally; persisted (as an explicit null) on the
+/// next [ShopSettingsSaved] — same lifecycle as every other field edit.
+class ShopSettingsAssetRemoved extends ShopSettingsEvent {
+  const ShopSettingsAssetRemoved(this.kind);
+  final String kind;
+  @override
+  List<Object?> get props => [kind];
+}
+
 class ShopSettingsSaved extends ShopSettingsEvent {
   const ShopSettingsSaved();
 }
@@ -137,6 +146,7 @@ class ShopSettingsBloc extends Bloc<ShopSettingsEvent, ShopSettingsState> {
     on<ShopSettingsHoursChanged>(_onHours);
     on<ShopSettingsVisibilityChanged>(_onVisibility);
     on<ShopSettingsAssetUploaded>(_onAsset);
+    on<ShopSettingsAssetRemoved>(_onAssetRemoved);
     on<ShopSettingsSaved>(_onSaved);
   }
 
@@ -251,6 +261,19 @@ class ShopSettingsBloc extends Bloc<ShopSettingsEvent, ShopSettingsState> {
         );
       },
     );
+  }
+
+  void _onAssetRemoved(
+    ShopSettingsAssetRemoved event,
+    Emitter<ShopSettingsState> emit,
+  ) {
+    final s = state.settings;
+    if (s == null) return;
+    talker.info('[shop-settings] asset removed kind=${event.kind}');
+    final next = event.kind == 'logo'
+        ? s.copyWith(clearLogo: true)
+        : s.copyWith(clearCover: true);
+    emit(state.copyWith(settings: next, clearError: true));
   }
 
   Future<void> _onSaved(

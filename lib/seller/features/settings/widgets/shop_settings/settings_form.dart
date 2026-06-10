@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:woody_app/core/i18n/i18n.dart';
 
 import '../../../../../core/logging/talker.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../../../core/theme/app_fonts.dart';
 import '../../../../../shared/models/shop_settings.dart';
 import '../../../../../shared/models/working_hours.dart';
 import '../../../../../shared/utils/image_upload.dart';
@@ -71,6 +75,86 @@ class _SettingsFormState extends State<SettingsForm> {
     context.read<ShopSettingsBloc>().add(
           ShopSettingsAddressChanged(address: _address.text),
         );
+  }
+
+  /// Entry point for a logo/cover tap: with no image yet it goes straight to
+  /// the picker; with an existing image it offers replace / remove.
+  Future<void> _assetTap(String kind) async {
+    final s = widget.state.settings;
+    if (s == null) return;
+    final url = kind == 'logo' ? s.logoUrl : s.coverUrl;
+    if (url == null || url.isEmpty) {
+      await _pickAsset(kind);
+      return;
+    }
+
+    final c = SellerColors.of(context);
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: c.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 14),
+            Text(
+              tr(
+                kind == 'logo'
+                    ? 'shop_settings.asset_logo_title'
+                    : 'shop_settings.asset_cover_title',
+              ),
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: c.ink,
+              ),
+            ),
+            const SizedBox(height: 6),
+            ListTile(
+              leading: const Icon(
+                Iconsax.camera,
+                color: AppColors.sellerPrimary,
+              ),
+              title: Text(
+                tr('shop_settings.asset_replace'),
+                style: TextStyle(
+                  fontFamily: AppFonts.seller,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: c.ink,
+                ),
+              ),
+              onTap: () => Navigator.of(sheetContext).pop('replace'),
+            ),
+            ListTile(
+              leading: Icon(Iconsax.trash, color: Colors.red.shade600),
+              title: Text(
+                tr('shop_settings.asset_remove'),
+                style: TextStyle(
+                  fontFamily: AppFonts.seller,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.red.shade600,
+                ),
+              ),
+              onTap: () => Navigator.of(sheetContext).pop('remove'),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (!mounted) return;
+    switch (action) {
+      case 'replace':
+        await _pickAsset(kind);
+      case 'remove':
+        context.read<ShopSettingsBloc>().add(ShopSettingsAssetRemoved(kind));
+    }
   }
 
   Future<void> _pickAsset(String kind) async {
@@ -156,8 +240,8 @@ class _SettingsFormState extends State<SettingsForm> {
           coverUrl: s.coverUrl,
           logoUrl: s.logoUrl,
           uploadingKind: state.uploadingKind,
-          onTapCover: () => _pickAsset('cover'),
-          onTapLogo: () => _pickAsset('logo'),
+          onTapCover: () => _assetTap('cover'),
+          onTapLogo: () => _assetTap('logo'),
         ),
         const SizedBox(height: 20),
         BasicInfoCard(

@@ -74,7 +74,10 @@ class SellerDashboardCubit extends Cubit<SellerDashboardState> {
             todaysSales: snap.todaysRevenue,
             todaysOrders: snap.todaysOrders,
             pendingOrders: snap.pendingOrdersCount,
-            productsCount: snap.activeProductsCount,
+            // The tile shows the QUOTA ("N / max"), so it must use the slot
+            // count (every non-archived product, mirroring the DB trigger),
+            // not kpis.products_active which is approved-only.
+            productsCount: snap.tariff.activeProductsCount,
             plan: snap.tariff.plan,
             productLimit: snap.tariff.plan.maxActiveProducts,
             recentOrders: List<Order>.from(snap.recentOrders),

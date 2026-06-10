@@ -62,8 +62,10 @@ class _ShopSettingsView extends StatelessWidget {
               ),
             ),
           );
-          // Close the settings screen on a successful save.
-          Navigator.of(context).pop();
+          // Close the settings screen on a successful save, handing the
+          // fresh settings back so the profile screen underneath can update
+          // its identity card instantly — no refetch, no stale cache flash.
+          Navigator.of(context).pop(state.settings);
         } else if (state.error != null) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

@@ -51,6 +51,24 @@ void main() {
         expect(bloc.state.settings!.brandColor, '#FF5733');
       },
     );
+
+    blocTest<ShopSettingsBloc, ShopSettingsState>(
+      'asset removal clears the URL locally so save persists the null',
+      build: () => ShopSettingsBloc(MockShopSettingsRepository()),
+      act: (bloc) async {
+        bloc.add(const ShopSettingsRequested());
+        await Future<void>.delayed(const Duration(milliseconds: 400));
+        bloc.add(const ShopSettingsAssetRemoved('logo'));
+        bloc.add(const ShopSettingsAssetRemoved('cover'));
+      },
+      wait: const Duration(milliseconds: 100),
+      verify: (bloc) {
+        expect(bloc.state.settings!.logoUrl, isNull);
+        expect(bloc.state.settings!.coverUrl, isNull);
+        // Removal must not blank anything else.
+        expect(bloc.state.settings!.name, isNotEmpty);
+      },
+    );
   });
 
   group('ServicesBloc (mock repository)', () {

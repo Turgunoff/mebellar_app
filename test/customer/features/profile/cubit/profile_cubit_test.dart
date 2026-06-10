@@ -113,6 +113,22 @@ void main() {
     },
   );
 
+  blocTest<ProfileCubit, ProfileState>(
+    'dismissRejectedBanner flips the flag so the CTA banner takes over',
+    build: () {
+      when(() => auth.currentUserId).thenReturn('u1');
+      return ProfileCubit(auth);
+    },
+    act: (cubit) => cubit.dismissRejectedBanner(),
+    expect: () => [
+      isA<ProfileState>().having(
+        (s) => s.rejectedBannerDismissed,
+        'rejectedBannerDismissed',
+        true,
+      ),
+    ],
+  );
+
   test('displayName falls back to a placeholder when no name is set', () {
     expect(const ProfileState(name: 'Aziz').displayName, 'Aziz');
     expect(const ProfileState().displayName, 'Ism kiritilmagan');

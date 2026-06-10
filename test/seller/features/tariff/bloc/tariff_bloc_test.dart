@@ -1,11 +1,32 @@
-﻿import 'dart:io';
+import 'dart:io';
 
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:woody_app/core/error/failure.dart';
+import 'package:woody_app/core/result/result.dart';
 import 'package:woody_app/seller/features/tariff/bloc/tariff_bloc.dart';
 import 'package:woody_app/seller/features/tariff/bloc/tariff_upgrade_bloc.dart';
 import '../../../../fixtures/mocks/mock/mock_tariff_repository.dart';
 import 'package:woody_app/shared/models/tariff.dart';
+
+/// Pending/history 500 while snapshot + plans succeed — the catalogue must
+/// still render (these reads only power the banner and the history sheet).
+class _FlakySecondaryTariffRepository extends MockTariffRepository {
+  @override
+  Future<Result<TariffSubscription?>> currentPending() async =>
+      const Err(UnknownFailure(message: 'pending 500'));
+
+  @override
+  Future<Result<List<TariffSubscription>>> history() async =>
+      const Err(UnknownFailure(message: 'history 500'));
+}
+
+/// The plan catalogue itself 500s — that IS a core failure and must surface.
+class _BrokenPlansTariffRepository extends MockTariffRepository {
+  @override
+  Future<Result<List<SubscriptionPlan>>> fetchPlans() async =>
+      const Err(ServerFailure(message: 'plans 500'));
+}
 
 void main() {
   group('TariffBloc (mock repository)', () {
@@ -20,6 +41,31 @@ void main() {
         expect(bloc.state.currentPlan, TariffPlan.free);
         expect(bloc.state.history.length, greaterThanOrEqualTo(1));
         expect(bloc.state.hasPending, isFalse);
+      },
+    );
+
+    blocTest<TariffBloc, TariffState>(
+      'secondary read failures (pending/history) still surface the catalogue',
+      build: () => TariffBloc(_FlakySecondaryTariffRepository()),
+      act: (bloc) => bloc.add(const TariffRequested()),
+      wait: const Duration(milliseconds: 1200),
+      verify: (bloc) {
+        expect(bloc.state.status, TariffStatus.ready);
+        expect(bloc.state.plans, isNotEmpty);
+        expect(bloc.state.history, isEmpty);
+        expect(bloc.state.hasPending, isFalse);
+      },
+    );
+
+    blocTest<TariffBloc, TariffState>(
+      'plan catalogue failure surfaces as failure with the error message',
+      build: () => TariffBloc(_BrokenPlansTariffRepository()),
+      act: (bloc) => bloc.add(const TariffRequested()),
+      wait: const Duration(milliseconds: 1200),
+      verify: (bloc) {
+        expect(bloc.state.status, TariffStatus.failure);
+        expect(bloc.state.plans, isEmpty);
+        expect(bloc.state.error, 'plans 500');
       },
     );
 
@@ -42,10 +88,12 @@ void main() {
     blocTest<TariffUpgradeBloc, TariffUpgradeState>(
       'started -> plan + period saved, status idle',
       build: () => TariffUpgradeBloc(MockTariffRepository()),
-      act: (bloc) => bloc.add(const TariffUpgradeStarted(
-        plan: TariffPlan.pro,
-        period: BillingPeriod.yearly,
-      )),
+      act: (bloc) => bloc.add(
+        const TariffUpgradeStarted(
+          plan: TariffPlan.pro,
+          period: BillingPeriod.yearly,
+        ),
+      ),
       verify: (bloc) {
         expect(bloc.state.plan, TariffPlan.pro);
         expect(bloc.state.period, BillingPeriod.yearly);
@@ -58,16 +106,20 @@ void main() {
       'screenshot upload -> ready, then submit -> submitted with subscription',
       build: () => TariffUpgradeBloc(MockTariffRepository()),
       act: (bloc) async {
-        bloc.add(const TariffUpgradeStarted(
-          plan: TariffPlan.pro,
-          period: BillingPeriod.monthly,
-        ));
+        bloc.add(
+          const TariffUpgradeStarted(
+            plan: TariffPlan.pro,
+            period: BillingPeriod.monthly,
+          ),
+        );
         await Future<void>.delayed(const Duration(milliseconds: 30));
         // The mock repo only stashes the path — file existence is irrelevant.
-        bloc.add(TariffUpgradeScreenshotPicked(
-          file: File('./test/.fake/payment.jpg'),
-          fileExtension: 'jpg',
-        ));
+        bloc.add(
+          TariffUpgradeScreenshotPicked(
+            file: File('./test/.fake/payment.jpg'),
+            fileExtension: 'jpg',
+          ),
+        );
         await Future<void>.delayed(const Duration(milliseconds: 900));
         bloc.add(const TariffUpgradeSubmitted());
         await Future<void>.delayed(const Duration(milliseconds: 600));
@@ -75,10 +127,7 @@ void main() {
       verify: (bloc) {
         expect(bloc.state.status, TariffUpgradeFlowStatus.submitted);
         expect(bloc.state.subscription, isNotNull);
-        expect(
-          bloc.state.subscription!.status,
-          TariffUpgradeStatus.pending,
-        );
+        expect(bloc.state.subscription!.status, TariffUpgradeStatus.pending);
       },
     );
   });
@@ -97,8 +146,9 @@ void main() {
     });
 
     test('Pro is the recommended plan', () {
-      final recommended =
-          TariffPlan.values.where((p) => p.recommended).toList();
+      final recommended = TariffPlan.values
+          .where((p) => p.recommended)
+          .toList();
       expect(recommended, [TariffPlan.pro]);
     });
   });

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/logging/talker.dart';
 import '../../../../core/result/result.dart';
 import '../../../../shared/models/tariff.dart';
 import '../../../../shared/repositories/tariff_repository.dart';
@@ -90,41 +91,50 @@ class TariffState extends Equatable {
 
   @override
   List<Object?> get props => [
-        status,
-        snapshot,
-        pending,
-        history.length,
-        plans,
-        period,
-        error,
-      ];
+    status,
+    snapshot,
+    pending,
+    history.length,
+    plans,
+    period,
+    error,
+  ];
 }
 
 class TariffBloc extends Bloc<TariffEvent, TariffState> {
   TariffBloc(this._repo) : super(const TariffState()) {
     on<TariffRequested>(_onRequested);
     on<TariffPeriodChanged>(
-        (event, emit) => emit(state.copyWith(period: event.period)));
-    on<_TariffPendingChanged>((event, emit) => emit(state.copyWith(
+      (event, emit) => emit(state.copyWith(period: event.period)),
+    );
+    on<_TariffPendingChanged>(
+      (event, emit) => emit(
+        state.copyWith(
           pending: event.pending,
           clearPending: event.pending == null,
-        )));
+        ),
+      ),
+    );
     on<_TariffPlanChanged>((event, emit) {
       final snap = state.snapshot;
-      emit(state.copyWith(
-        snapshot: snap == null
-            ? TariffSnapshot(plan: event.plan, activeProductsCount: 0)
-            : TariffSnapshot(
-                plan: event.plan,
-                activeProductsCount: snap.activeProductsCount,
-              ),
-      ));
+      emit(
+        state.copyWith(
+          snapshot: snap == null
+              ? TariffSnapshot(plan: event.plan, activeProductsCount: 0)
+              : TariffSnapshot(
+                  plan: event.plan,
+                  activeProductsCount: snap.activeProductsCount,
+                ),
+        ),
+      );
     });
 
-    _pendingSub =
-        _repo.watchPending().listen((p) => add(_TariffPendingChanged(p)));
-    _planSub =
-        _repo.watchCurrentPlan().listen((p) => add(_TariffPlanChanged(p)));
+    _pendingSub = _repo.watchPending().listen(
+      (p) => add(_TariffPendingChanged(p)),
+    );
+    _planSub = _repo.watchCurrentPlan().listen(
+      (p) => add(_TariffPlanChanged(p)),
+    );
   }
 
   final TariffRepository _repo;
@@ -150,30 +160,43 @@ class TariffBloc extends Bloc<TariffEvent, TariffState> {
     final historyR = await futures.$3;
     final plansR = await futures.$4;
 
-    switch ((snapshotR, pendingR, historyR, plansR)) {
-      case (
-          Ok(value: final snapshot),
-          Ok(value: final pending),
-          Ok(value: final history),
-          Ok(value: final plans),
-        ):
-        emit(state.copyWith(
-          status: TariffStatus.ready,
-          snapshot: snapshot,
-          pending: pending,
-          clearPending: pending == null,
-          history: history,
-          plans: plans,
-        ));
+    // Snapshot + plans are the screen's core; pending/history only power the
+    // banner and the history sheet. A secondary failure must not blank the
+    // plan catalogue (it used to fail the whole load — and the error was then
+    // masked by the watchCurrentPlan-synthesized snapshot, so the screen
+    // rendered an empty body with no message at all).
+    final secondaryFailure = pendingR.failureOrNull ?? historyR.failureOrNull;
+    if (secondaryFailure != null) {
+      talker.warning(
+        '[tariff-bloc] secondary read failed '
+        'pending=${pendingR.failureOrNull?.message ?? 'ok'} '
+        'history=${historyR.failureOrNull?.message ?? 'ok'}',
+      );
+    }
+
+    switch ((snapshotR, plansR)) {
+      case (Ok(value: final snapshot), Ok(value: final plans)):
+        final pending = pendingR.valueOrNull;
+        emit(
+          state.copyWith(
+            status: TariffStatus.ready,
+            snapshot: snapshot,
+            pending: pending,
+            clearPending: pending == null,
+            history: historyR.valueOrNull ?? const [],
+            plans: plans,
+          ),
+        );
       default:
-        final failure = snapshotR.failureOrNull ??
-            pendingR.failureOrNull ??
-            historyR.failureOrNull ??
-            plansR.failureOrNull;
-        emit(state.copyWith(
-          status: TariffStatus.failure,
-          error: failure?.message,
-        ));
+        final failure = snapshotR.failureOrNull ?? plansR.failureOrNull;
+        talker.warning(
+          '[tariff-bloc] core read failed '
+          'snapshot=${snapshotR.failureOrNull?.message ?? 'ok'} '
+          'plans=${plansR.failureOrNull?.message ?? 'ok'}',
+        );
+        emit(
+          state.copyWith(status: TariffStatus.failure, error: failure?.message),
+        );
     }
   }
 

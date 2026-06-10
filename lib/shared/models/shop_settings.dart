@@ -130,13 +130,15 @@ class ShopSettings extends Equatable {
     double? lng,
     WeeklyHours? workingHours,
     ShopVisibility? visibility,
+    bool clearLogo = false,
+    bool clearCover = false,
   }) {
     return ShopSettings(
       id: id,
       name: name ?? this.name,
       description: description ?? this.description,
-      logoUrl: logoUrl ?? this.logoUrl,
-      coverUrl: coverUrl ?? this.coverUrl,
+      logoUrl: clearLogo ? null : (logoUrl ?? this.logoUrl),
+      coverUrl: clearCover ? null : (coverUrl ?? this.coverUrl),
       contactPhone: contactPhone ?? this.contactPhone,
       contactEmail: contactEmail ?? this.contactEmail,
       telegramUsername: telegramUsername ?? this.telegramUsername,

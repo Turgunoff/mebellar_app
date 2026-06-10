@@ -71,22 +71,8 @@ class SellerKpiCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
-    final card = Container(
+    final content = Padding(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-      decoration: BoxDecoration(
-        color: c.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: important
-            ? Border.all(color: AppColors.sellerPrimary.withValues(alpha: 0.35))
-            : null,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -186,14 +172,35 @@ class SellerKpiCard extends StatelessWidget {
       ),
     );
 
-    if (onTap == null) return card;
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: onTap,
+    // The surface colour is painted by the Material (not the Container) so a
+    // tappable card's ink ripple renders ON the surface instead of invisibly
+    // underneath it. The Container keeps only the drop shadow (Material
+    // elevation can't reproduce it); the accent border rides on the
+    // Material's shape, which paints in the foreground and so survives the
+    // opaque fill.
+    return Container(
+      decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        child: card,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: c.surface,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: important
+              ? BorderSide(
+                  color: AppColors.sellerPrimary.withValues(alpha: 0.35),
+                )
+              : BorderSide.none,
+        ),
+        child: onTap == null ? content : InkWell(onTap: onTap, child: content),
       ),
     );
   }

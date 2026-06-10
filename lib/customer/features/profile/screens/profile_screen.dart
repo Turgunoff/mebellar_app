@@ -219,10 +219,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   // mounts SellerApp — no further navigation needed here.
                 },
               )
-            else if (profileState.isSellerRejected)
+            else if (profileState.isSellerRejected &&
+                !profileState.rejectedBannerDismissed)
               SellerRejectedBanner(
                 reason: profileState.sellerRejectionReason,
                 onEdit: _openSellerOnboarding,
+                onDismiss: () =>
+                    context.read<ProfileCubit>().dismissRejectedBanner(),
               )
             else if (profileState.isSellerPending)
               const SellerPendingBanner()

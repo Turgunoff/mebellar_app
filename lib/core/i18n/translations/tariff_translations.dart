@@ -2,6 +2,8 @@
 
 const Map<String, dynamic> tariffUz = {
   'title': 'Tarif rejalari',
+  'plans_empty':
+      'Tarif rejalari hozircha sozlanmagan. Birozdan so\'ng qayta urinib ko\'ring.',
   'history': 'To\'lovlar tarixi',
   'history_empty': 'Hali to\'lovlar yo\'q',
   'history_empty_hint': 'Tarif yangilaganingizda shu yerda paydo bo\'ladi',
@@ -81,6 +83,7 @@ const Map<String, dynamic> tariffUz = {
 
 const Map<String, dynamic> tariffRu = {
   'title': 'Тарифные планы',
+  'plans_empty': 'Тарифные планы пока не настроены. Попробуйте ещё раз позже.',
   'history': 'История платежей',
   'history_empty': 'Платежей пока нет',
   'history_empty_hint': 'Здесь появятся ваши апгрейды',
@@ -158,6 +161,7 @@ const Map<String, dynamic> tariffRu = {
 
 const Map<String, dynamic> tariffEn = {
   'title': 'Tariff plans',
+  'plans_empty': 'Tariff plans are not configured yet. Please try again later.',
   'history': 'Payment history',
   'history_empty': 'No payments yet',
   'history_empty_hint': 'Your upgrades will show up here',

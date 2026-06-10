@@ -4,8 +4,10 @@ import 'package:woody_app/core/auth/auth_repository.dart';
 import 'package:woody_app/core/network/api_error.dart';
 import 'package:woody_app/seller/features/profile/cubit/seller_profile_cubit.dart';
 import 'package:woody_app/seller/features/profile/data/seller_identity_cache.dart';
+import 'package:woody_app/shared/models/shop_settings.dart';
 import 'package:woody_app/shared/models/tariff.dart';
 import 'package:woody_app/shared/models/verification_status.dart';
+import 'package:woody_app/shared/models/working_hours.dart';
 import 'package:woody_app/shared/repositories/seller_profile_repository.dart';
 
 class _MockRepo extends Mock implements SellerProfileRepository {}
@@ -102,5 +104,58 @@ void main() {
     await cubit.load();
 
     expect(cubit.state.verificationStatus, VerificationStatus.none);
+  });
+
+  test('applyShopSettings updates the card instantly and rewrites the cache',
+      () async {
+    when(() => cache.read(uid)).thenReturn(
+      const SellerIdentitySnapshot(
+        shopName: 'Old Shop',
+        logoUrl: 'https://cdn/logo.png',
+        coverUrl: 'https://cdn/cover.png',
+        sellerName: 'Eldor',
+        verificationStatus: VerificationStatus.approved,
+        plan: TariffPlan.free,
+      ),
+    );
+    when(() => repo.fetchMe()).thenAnswer(
+      (_) async => {
+        'verification_status': 'approved',
+        'legal_name': 'Eldor',
+        'shop_name': 'Old Shop',
+      },
+    );
+
+    final cubit = SellerProfileCubit(repo, auth, cache);
+    await cubit.load();
+
+    // The seller saved settings with both images removed and a new name.
+    cubit.applyShopSettings(
+      const ShopSettings(
+        id: 'shop-1',
+        name: 'New Shop',
+        description: '',
+        address: '',
+        workingHours: WeeklyHours(byDay: {}),
+      ),
+    );
+
+    expect(cubit.state.shopName, 'New Shop');
+    expect(cubit.state.logoUrl, isNull, reason: 'removed logo must vanish');
+    expect(cubit.state.coverUrl, isNull, reason: 'removed cover must vanish');
+    expect(
+      cubit.state.verificationStatus,
+      VerificationStatus.approved,
+      reason: 'identity fields untouched by shop settings stay put',
+    );
+
+    final written = lastWritten();
+    expect(
+      written.logoUrl,
+      isNull,
+      reason: 'cache must not resurrect a deleted image on next start',
+    );
+    expect(written.coverUrl, isNull);
+    expect(written.shopName, 'New Shop');
   });
 }

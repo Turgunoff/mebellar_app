@@ -61,8 +61,19 @@ class _TariffView extends StatelessWidget {
             TariffStatus.initial || TariffStatus.loading => const Center(
               child: BrandLoadingIndicator(),
             ),
-            TariffStatus.failure when state.snapshot == null => ErrorState(
+            // Guard on the plan catalogue, not the snapshot — the 30s
+            // watchCurrentPlan poll synthesizes a snapshot, which used to
+            // swallow load failures into a silently empty body. With cards
+            // already on screen a refresh failure keeps the stale catalogue.
+            TariffStatus.failure when state.plans.isEmpty => ErrorState(
               message: state.error,
+              onRetry: () =>
+                  context.read<TariffBloc>().add(const TariffRequested()),
+            ),
+            // Backend reachable but zero plan rows configured — say so
+            // instead of rendering a bare period toggle.
+            TariffStatus.ready when state.plans.isEmpty => ErrorState(
+              message: tr('tariff.plans_empty'),
               onRetry: () =>
                   context.read<TariffBloc>().add(const TariffRequested()),
             ),

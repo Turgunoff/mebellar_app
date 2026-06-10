@@ -340,17 +340,21 @@ class SellerApprovedBanner extends StatelessWidget {
   }
 }
 
-/// Shown when a seller application was rejected — surfaces the reason and an
-/// edit-and-resubmit affordance.
+/// Shown when a seller application was rejected — surfaces the moderator's
+/// reason, a resubmit CTA, and an X that hides the banner for users who no
+/// longer plan to sell (the "become a seller" CTA takes its place, so
+/// re-applying later stays one tap away).
 class SellerRejectedBanner extends StatelessWidget {
   const SellerRejectedBanner({
     super.key,
     required this.reason,
     required this.onEdit,
+    required this.onDismiss,
   });
 
   final String? reason;
   final VoidCallback onEdit;
+  final VoidCallback onDismiss;
 
   static const Color _errorColor = Color(0xFFE05A4A);
 
@@ -360,11 +364,11 @@ class SellerRejectedBanner extends StatelessWidget {
     final hasReason = reason != null && reason!.trim().isNotEmpty;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
       decoration: BoxDecoration(
         color: pt.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _errorColor.withValues(alpha: 0.4)),
+        border: Border.all(color: _errorColor.withValues(alpha: 0.22)),
         boxShadow: PremiumTokens.softShadow,
       ),
       child: Column(
@@ -374,62 +378,117 @@ class SellerRejectedBanner extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 48,
-                height: 48,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
-                  color: _errorColor.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
+                  color: _errorColor.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 alignment: Alignment.center,
                 child: const Icon(
-                  Icons.error_outline_rounded,
-                  size: 24,
+                  Iconsax.info_circle,
+                  size: 22,
                   color: _errorColor,
                 ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 12),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Rad etildi',
-                      style: PremiumTokens.body(
-                        size: 15,
-                        weight: FontWeight.w600,
-                        color: _errorColor,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Ariza rad etildi',
+                        style: PremiumTokens.display(
+                          size: 17,
+                          letterSpacing: -0.2,
+                          color: pt.dark,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      hasReason
-                          ? reason!.trim()
-                          : 'Arizangiz rad etildi. Iltimos, ma\'lumotlarni '
-                                'qayta tekshirib, qaytadan yuboring.',
-                      style: PremiumTokens.body(
-                        size: 13,
-                        color: pt.grey,
-                        height: 1.45,
+                      const SizedBox(height: 3),
+                      Text(
+                        "Ma'lumotlarni to'g'rilab qayta yuborishingiz mumkin",
+                        style: PremiumTokens.body(
+                          size: 12.5,
+                          color: pt.grey,
+                          height: 1.4,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              // X — "I'm not planning to sell": hides the banner, the
+              // become-a-seller CTA replaces it.
+              Material(
+                color: pt.imageBg,
+                shape: const CircleBorder(),
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  onTap: onDismiss,
+                  child: SizedBox(
+                    width: 30,
+                    height: 30,
+                    child: Icon(Icons.close_rounded, size: 17, color: pt.grey),
+                  ),
                 ),
               ),
             ],
           ),
+          if (hasReason) ...[
+            const SizedBox(height: 14),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+              decoration: BoxDecoration(
+                color: _errorColor.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: _errorColor.withValues(alpha: 0.14)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'SABAB',
+                    style: PremiumTokens.body(
+                      size: 10,
+                      weight: FontWeight.w700,
+                      color: _errorColor,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    reason!.trim(),
+                    style: PremiumTokens.body(
+                      size: 13,
+                      color: pt.dark,
+                      height: 1.45,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 14),
           SizedBox(
             width: double.infinity,
-            height: 44,
+            height: 46,
             child: FilledButton.icon(
               onPressed: onEdit,
-              icon: const Icon(Icons.edit_outlined, size: 18),
-              label: const Text('Arizani tahrirlash'),
+              icon: const Icon(Iconsax.refresh, size: 17),
+              label: const Text('Qayta topshirish'),
               style: FilledButton.styleFrom(
                 backgroundColor: _errorColor,
                 foregroundColor: Colors.white,
+                textStyle: PremiumTokens.body(
+                  size: 14,
+                  weight: FontWeight.w600,
+                ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                 ),
               ),
             ),
