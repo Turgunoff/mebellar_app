@@ -1,27 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+
+import '../storage/app_settings.dart';
 
 class ThemeState {
   const ThemeState(this.themeMode);
   final ThemeMode themeMode;
 }
 
+/// Global, single source of truth for the app's [ThemeMode]. Registered once
+/// in the root DI scope and provided above Phoenix, so the customer and seller
+/// surfaces share the exact same instance — toggling dark mode in either mode
+/// updates both and persists across cold starts.
 class ThemeCubit extends Cubit<ThemeState> {
-  ThemeCubit(this._box) : super(_initial(_box));
+  ThemeCubit(this._settings) : super(ThemeState(_settings.themeMode));
 
-  final Box _box;
-  static const _key = 'isDarkMode';
+  final AppSettings _settings;
 
-  static ThemeState _initial(Box box) {
-    final isDark = box.get(_key, defaultValue: false) as bool;
-    return ThemeState(isDark ? ThemeMode.dark : ThemeMode.light);
+  ThemeMode get themeMode => state.themeMode;
+
+  /// Persists [mode] and emits it. No-ops when unchanged so listeners don't
+  /// rebuild needlessly.
+  Future<void> setThemeMode(ThemeMode mode) async {
+    if (mode == state.themeMode) return;
+    await _settings.setThemeMode(mode);
+    emit(ThemeState(mode));
   }
 
-  Future<void> setDark(bool isDark) async {
-    await _box.put(_key, isDark);
-    emit(ThemeState(isDark ? ThemeMode.dark : ThemeMode.light));
-  }
-
-  bool get isDark => state.themeMode == ThemeMode.dark;
+  /// Convenience for the boolean dark-mode switches in the settings screens:
+  /// maps the toggle to an explicit light/dark choice (never `system`).
+  Future<void> toggleDark(bool isDark) =>
+      setThemeMode(isDark ? ThemeMode.dark : ThemeMode.light);
 }

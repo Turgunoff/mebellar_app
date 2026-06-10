@@ -1,56 +1,66 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:woody_app/core/storage/app_settings.dart';
 import 'package:woody_app/core/theme/theme_cubit.dart';
 
-class _MockBox extends Mock implements Box {}
+class _MockAppSettings extends Mock implements AppSettings {}
 
 void main() {
-  late _MockBox box;
+  late _MockAppSettings settings;
+
+  setUpAll(() => registerFallbackValue(ThemeMode.system));
 
   setUp(() {
-    box = _MockBox();
-    when(() => box.get('isDarkMode', defaultValue: false)).thenReturn(false);
-    when(() => box.put(any<dynamic>(), any<dynamic>()))
-        .thenAnswer((_) async {});
+    settings = _MockAppSettings();
+    when(() => settings.themeMode).thenReturn(ThemeMode.system);
+    when(() => settings.setThemeMode(any())).thenAnswer((_) async {});
   });
 
-  test('initial state is light when nothing is persisted', () {
-    final cubit = ThemeCubit(box);
-    expect(cubit.state.themeMode, ThemeMode.light);
-    expect(cubit.isDark, isFalse);
+  test('initial state defaults to system when nothing is persisted', () {
+    final cubit = ThemeCubit(settings);
+    expect(cubit.state.themeMode, ThemeMode.system);
     cubit.close();
   });
 
-  test('initial state is dark when the box has a stored true flag', () {
-    when(() => box.get('isDarkMode', defaultValue: false)).thenReturn(true);
-    final cubit = ThemeCubit(box);
+  test('initial state reflects a persisted dark preference', () {
+    when(() => settings.themeMode).thenReturn(ThemeMode.dark);
+    final cubit = ThemeCubit(settings);
     expect(cubit.state.themeMode, ThemeMode.dark);
     cubit.close();
   });
 
   blocTest<ThemeCubit, ThemeState>(
-    'setDark(true) emits dark mode and persists the flag',
-    build: () => ThemeCubit(box),
-    act: (cubit) => cubit.setDark(true),
+    'toggleDark(true) emits dark mode and persists it',
+    build: () => ThemeCubit(settings),
+    act: (cubit) => cubit.toggleDark(true),
     expect: () => [
       isA<ThemeState>().having((s) => s.themeMode, 'mode', ThemeMode.dark),
     ],
-    verify: (_) => verify(() => box.put('isDarkMode', true)).called(1),
+    verify: (_) =>
+        verify(() => settings.setThemeMode(ThemeMode.dark)).called(1),
   );
 
   blocTest<ThemeCubit, ThemeState>(
-    'setDark(false) from a dark start emits light mode',
+    'toggleDark(false) from a dark start emits light mode',
     build: () {
-      when(() => box.get('isDarkMode', defaultValue: false)).thenReturn(true);
-      return ThemeCubit(box);
+      when(() => settings.themeMode).thenReturn(ThemeMode.dark);
+      return ThemeCubit(settings);
     },
-    act: (cubit) => cubit.setDark(false),
+    act: (cubit) => cubit.toggleDark(false),
     expect: () => [
       isA<ThemeState>().having((s) => s.themeMode, 'mode', ThemeMode.light),
     ],
-    verify: (_) => verify(() => box.put('isDarkMode', false)).called(1),
+    verify: (_) =>
+        verify(() => settings.setThemeMode(ThemeMode.light)).called(1),
+  );
+
+  blocTest<ThemeCubit, ThemeState>(
+    'setThemeMode no-ops (no emit, no write) when the mode is unchanged',
+    build: () => ThemeCubit(settings), // starts at system
+    act: (cubit) => cubit.setThemeMode(ThemeMode.system),
+    expect: () => const <ThemeState>[],
+    verify: (_) => verifyNever(() => settings.setThemeMode(any())),
   );
 }

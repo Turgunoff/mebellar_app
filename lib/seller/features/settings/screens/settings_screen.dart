@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_fonts.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/theme_cubit.dart';
 
 // All neutral colours now come from `SellerColors.of(context)` so the surface
 // flips with the theme. Plus Jakarta Sans is applied to every `Text` explicitly
@@ -18,8 +20,8 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   // Local UI state — wire to a real preferences store when the
-  // settings persistence layer lands.
-  bool _darkMode = false;
+  // settings persistence layer lands. (Dark mode now comes from the global
+  // ThemeCubit instead of a local flag.)
   bool _newOrders = true;
   bool _customerMessages = true;
   bool _systemAlerts = true;
@@ -34,6 +36,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
+    // Dark mode is global — read it from the shared ThemeCubit. `system`
+    // resolves against the device brightness so the switch reads correctly.
+    final themeMode = context.watch<ThemeCubit>().state.themeMode;
+    final isDark =
+        themeMode == ThemeMode.dark ||
+        (themeMode == ThemeMode.system &&
+            MediaQuery.platformBrightnessOf(context) == Brightness.dark);
     return Scaffold(
       backgroundColor: c.background,
       appBar: const _SettingsAppBar(),
@@ -57,8 +66,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _SwitchRow(
                 icon: Iconsax.moon,
                 title: 'Tungi rejim',
-                value: _darkMode,
-                onChanged: (v) => setState(() => _darkMode = v),
+                value: isDark,
+                onChanged: (v) => context.read<ThemeCubit>().toggleDark(v),
               ),
             ],
           ),
