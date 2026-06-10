@@ -26,7 +26,7 @@ void main() {
         await Future<void>.delayed(const Duration(milliseconds: 500));
         bloc.add(
           const SellerProductsFilterChanged(
-            SellerProductFilter(statuses: {SellerProductStatus.draft}),
+            SellerProductFilter(statuses: {SellerProductStatus.rejected}),
           ),
         );
       },
@@ -34,7 +34,7 @@ void main() {
       verify: (bloc) {
         expect(
           bloc.state.visibleProducts.every(
-            (p) => p.status == SellerProductStatus.draft,
+            (p) => p.status == SellerProductStatus.rejected,
           ),
           isTrue,
         );
@@ -117,27 +117,27 @@ void main() {
     );
 
     blocTest<SellerProductsBloc, SellerProductsState>(
-      'submit for review transitions draft -> pending',
+      'submit for review transitions rejected -> pending',
       build: () => SellerProductsBloc(MockSellerProductRepository()),
       act: (bloc) async {
         bloc.add(const SellerProductsRequested());
         await Future<void>.delayed(const Duration(milliseconds: 500));
-        final draft = bloc.state.products.firstWhere(
-          (p) => p.status == SellerProductStatus.draft,
+        final rejected = bloc.state.products.firstWhere(
+          (p) => p.status == SellerProductStatus.rejected,
         );
-        bloc.add(SellerProductSubmitted(draft.id));
+        bloc.add(SellerProductSubmitted(rejected.id));
         await Future<void>.delayed(const Duration(milliseconds: 500));
       },
       verify: (bloc) {
-        // The earlier draft should now be pending review (no longer draft).
+        // The earlier rejected product should now be pending review.
         final pendingCount = bloc.state.products
             .where((p) => p.status == SellerProductStatus.pendingReview)
             .length;
         expect(
           pendingCount,
-          greaterThan(2),
+          greaterThan(3),
           reason:
-              'Seed has 2 pending products; submit should add at least 1 more',
+              'Seed has 3 pending products; submit should add at least 1 more',
         );
       },
     );

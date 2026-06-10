@@ -15,6 +15,7 @@ class SellerIdentitySnapshot {
   const SellerIdentitySnapshot({
     this.shopName,
     this.logoUrl,
+    this.coverUrl,
     this.sellerName,
     this.verificationStatus = VerificationStatus.none,
     this.plan = TariffPlan.free,
@@ -22,6 +23,7 @@ class SellerIdentitySnapshot {
 
   final String? shopName;
   final String? logoUrl;
+  final String? coverUrl;
   final String? sellerName;
   final VerificationStatus verificationStatus;
   final TariffPlan plan;
@@ -29,6 +31,7 @@ class SellerIdentitySnapshot {
   bool get isEmpty =>
       shopName == null &&
       logoUrl == null &&
+      coverUrl == null &&
       sellerName == null &&
       verificationStatus == VerificationStatus.none &&
       plan == TariffPlan.free;
@@ -36,6 +39,7 @@ class SellerIdentitySnapshot {
   Map<String, dynamic> toJson() => {
         'shop_name': shopName,
         'logo_url': logoUrl,
+        'cover_url': coverUrl,
         'seller_name': sellerName,
         'verification_status': verificationStatus.code,
         'plan_code': plan.code,
@@ -45,6 +49,7 @@ class SellerIdentitySnapshot {
     return SellerIdentitySnapshot(
       shopName: json['shop_name'] as String?,
       logoUrl: json['logo_url'] as String?,
+      coverUrl: json['cover_url'] as String?,
       sellerName: json['seller_name'] as String?,
       verificationStatus:
           VerificationStatus.fromCode(json['verification_status'] as String?),
@@ -55,6 +60,7 @@ class SellerIdentitySnapshot {
   SellerIdentitySnapshot copyWith({
     String? shopName,
     String? logoUrl,
+    String? coverUrl,
     String? sellerName,
     VerificationStatus? verificationStatus,
     TariffPlan? plan,
@@ -62,6 +68,7 @@ class SellerIdentitySnapshot {
     return SellerIdentitySnapshot(
       shopName: shopName ?? this.shopName,
       logoUrl: logoUrl ?? this.logoUrl,
+      coverUrl: coverUrl ?? this.coverUrl,
       sellerName: sellerName ?? this.sellerName,
       verificationStatus: verificationStatus ?? this.verificationStatus,
       plan: plan ?? this.plan,
@@ -114,6 +121,7 @@ class SellerIdentityCache {
     final merged = existing.copyWith(
       shopName: patch.shopName ?? existing.shopName,
       logoUrl: patch.logoUrl ?? existing.logoUrl,
+      coverUrl: patch.coverUrl ?? existing.coverUrl,
       sellerName: patch.sellerName ?? existing.sellerName,
       verificationStatus:
           patch.verificationStatus == VerificationStatus.none

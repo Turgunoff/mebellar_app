@@ -8,6 +8,8 @@ import 'package:woody_app/seller/features/products/data/add_product_repository.d
 import 'package:woody_app/seller/features/products/data/attributes_repository.dart';
 import 'package:woody_app/shared/models/attribute_definition.dart';
 import 'package:woody_app/shared/models/category_model.dart';
+import 'package:woody_app/shared/models/multilingual_text.dart';
+import 'package:woody_app/shared/models/seller_product.dart';
 
 class _MockAddProductRepo extends Mock implements AddProductRepository {}
 
@@ -58,7 +60,32 @@ AddProductCubit _cubit(
 void main() {
   late _MockAddProductRepo repo;
 
-  setUpAll(() => registerFallbackValue(<File>[]));
+  setUpAll(() {
+    registerFallbackValue(<FormImage>[]);
+    registerFallbackValue(
+      const AddProductInput(
+        sellerId: '',
+        shopId: '',
+        name: '',
+        description: '',
+        categoryId: '',
+        subcategoryId: null,
+        price: 0,
+        discountPercent: 0,
+        sku: '',
+        colorSlugs: [],
+        colorNames: [],
+        attributes: {},
+        productionTimeDays: null,
+        hasDelivery: false,
+        deliveryPrice: 0,
+        hasInstallation: false,
+        installationPrice: 0,
+        warrantyMonths: 0,
+        images: [],
+      ),
+    );
+  });
 
   setUp(() => repo = _MockAddProductRepo());
 
@@ -152,6 +179,7 @@ void main() {
   group('addImages', () {
     final shopContext = _context(canAddMore: true);
     File makeFile(String name) => File('/tmp/$name');
+    FormImage makeImage(String name) => FormImage.local(makeFile(name));
 
     blocTest<AddProductCubit, AddProductState>(
       'appends all picked images when remaining quota covers them',
@@ -159,7 +187,7 @@ void main() {
       seed: () => AddProductState(
         status: AddProductStatus.ready,
         context: shopContext,
-        imageFiles: [makeFile('a.jpg')],
+        images: [makeImage('a.jpg')],
       ),
       act: (cubit) {
         final added = cubit.addImages([makeFile('b.jpg'), makeFile('c.jpg')]);
@@ -167,8 +195,8 @@ void main() {
       },
       expect: () => [
         isA<AddProductState>().having(
-          (s) => s.imageFiles.length,
-          'imageFiles.length',
+          (s) => s.images.length,
+          'images.length',
           3,
         ),
       ],
@@ -180,7 +208,7 @@ void main() {
       seed: () => AddProductState(
         status: AddProductStatus.ready,
         context: shopContext,
-        imageFiles: [for (var i = 0; i < 4; i++) makeFile('$i.jpg')],
+        images: [for (var i = 0; i < 4; i++) makeImage('$i.jpg')],
       ),
       act: (cubit) {
         final added = cubit.addImages([
@@ -192,8 +220,8 @@ void main() {
       },
       expect: () => [
         isA<AddProductState>().having(
-          (s) => s.imageFiles.length,
-          'imageFiles.length',
+          (s) => s.images.length,
+          'images.length',
           5,
         ),
       ],
@@ -205,7 +233,7 @@ void main() {
       seed: () => AddProductState(
         status: AddProductStatus.ready,
         context: shopContext,
-        imageFiles: [for (var i = 0; i < 5; i++) makeFile('$i.jpg')],
+        images: [for (var i = 0; i < 5; i++) makeImage('$i.jpg')],
       ),
       act: (cubit) {
         final added = cubit.addImages([makeFile('z.jpg')]);
@@ -405,7 +433,7 @@ void main() {
           name: 'Divan',
           categoryId: 'cat-1',
           price: 100,
-          imageFiles: [File('/tmp/a.jpg')],
+          images: [FormImage.local(File('/tmp/a.jpg'))],
           attributeSchema: [
             _def('fabric_type', isRequired: true, categoryId: 'cat-1'),
           ],
@@ -450,7 +478,7 @@ void main() {
         AddProductState(
           status: AddProductStatus.ready,
           context: aiContext(),
-          imageFiles: [File('/tmp/a.jpg')],
+          images: [FormImage.local(File('/tmp/a.jpg'))],
         ),
       );
       return cubit;
@@ -463,7 +491,7 @@ void main() {
         when(
           () => repo.suggestFromImages(
             sellerId: any(named: 'sellerId'),
-            files: any(named: 'files'),
+            images: any(named: 'images'),
           ),
         ).thenAnswer(
           (_) async => (
@@ -506,7 +534,7 @@ void main() {
       when(
         () => repo.suggestFromImages(
           sellerId: any(named: 'sellerId'),
-          files: any(named: 'files'),
+          images: any(named: 'images'),
         ),
       ).thenAnswer(
         (_) async => (
@@ -535,7 +563,7 @@ void main() {
       verifyNever(
         () => repo.suggestFromImages(
           sellerId: any(named: 'sellerId'),
-          files: any(named: 'files'),
+          images: any(named: 'images'),
         ),
       );
     });
@@ -544,7 +572,7 @@ void main() {
       when(
         () => repo.suggestFromImages(
           sellerId: any(named: 'sellerId'),
-          files: any(named: 'files'),
+          images: any(named: 'images'),
         ),
       ).thenThrow(Exception('network down'));
 
@@ -559,7 +587,7 @@ void main() {
       when(
         () => repo.suggestFromImages(
           sellerId: any(named: 'sellerId'),
-          files: any(named: 'files'),
+          images: any(named: 'images'),
         ),
       ).thenAnswer(
         (_) async => (
@@ -592,14 +620,14 @@ void main() {
     });
 
     test('trims to the first 4 images before sending (backend cap)', () async {
-      List<File>? sentFiles;
+      List<FormImage>? sentImages;
       when(
         () => repo.suggestFromImages(
           sellerId: any(named: 'sellerId'),
-          files: any(named: 'files'),
+          images: any(named: 'images'),
         ),
       ).thenAnswer((invocation) async {
-        sentFiles = invocation.namedArguments[#files] as List<File>;
+        sentImages = invocation.namedArguments[#images] as List<FormImage>;
         return (
           suggestion: const AiProductSuggestion(available: false),
           imageUrls: const <String>[],
@@ -611,15 +639,111 @@ void main() {
         AddProductState(
           status: AddProductStatus.ready,
           context: aiContext(),
-          imageFiles: [for (var i = 0; i < 6; i++) File('/tmp/$i.jpg')],
+          images: [
+            for (var i = 0; i < 6; i++) FormImage.local(File('/tmp/$i.jpg')),
+          ],
         ),
       );
       await cubit.generateFromImages();
 
-      expect(sentFiles, isNotNull);
-      expect(sentFiles!.length, 4, reason: 'capped at the backend limit');
+      expect(sentImages, isNotNull);
+      expect(sentImages!.length, 4, reason: 'capped at the backend limit');
       // The form keeps all 6 — only the AI call is trimmed.
-      expect(cubit.state.imageFiles.length, 6);
+      expect(cubit.state.images.length, 6);
+    });
+  });
+
+  group('edit mode', () {
+    SellerProduct product() => SellerProduct(
+      id: 'prod-1',
+      name: const MultilingualText(uz: 'Burchakli divan'),
+      description: const MultilingualText(uz: 'Yumshoq divan.'),
+      categorySlug: 'cat-1',
+      subcategoryId: 'sub-1',
+      colors: const ['grey'],
+      price: 1000000,
+      discountPrice: 900000,
+      sku: 'MH-2026-0001',
+      images: const [
+        SellerProductImage(id: 'u1', remoteUrl: 'https://r2/u1.webp'),
+      ],
+      attributes: const {'material': 'velür', 'bogus': 'x'},
+      productionTimeDays: '5-7',
+      hasDelivery: true,
+      deliveryPrice: 50000,
+      warrantyMonths: 6,
+      status: SellerProductStatus.approved,
+      createdAt: DateTime(2026),
+      updatedAt: DateTime(2026),
+    );
+
+    _MockShopContext editContext() {
+      final ctx = _context(canAddMore: false);
+      when(() => ctx.sellerId).thenReturn('seller-1');
+      when(() => ctx.categories).thenReturn(const [
+        CategoryModel(
+          id: 'cat-1',
+          name: 'Divanlar',
+          sortOrder: 0,
+          subcategories: [
+            SubcategoryModel(id: 'sub-1', categoryId: 'cat-1', name: 'Burchak'),
+          ],
+        ),
+      ]);
+      return ctx;
+    }
+
+    test('loadForEdit prefills the form and skips the tariff gate', () async {
+      final attrs = _MockAttributesRepo();
+      when(
+        () => attrs.loadForCategory(
+          categoryId: any(named: 'categoryId'),
+          subcategoryId: any(named: 'subcategoryId'),
+        ),
+      ).thenAnswer((_) async => [_def('material', categoryId: 'cat-1')]);
+      // canAddMore:false on purpose — editing must still reach `ready`.
+      when(repo.loadShopContext).thenAnswer((_) async => editContext());
+
+      final cubit = _cubit(repo, attrsRepo: attrs);
+      await cubit.loadForEdit(product());
+
+      expect(cubit.state.status, AddProductStatus.ready);
+      expect(cubit.state.isEditing, isTrue);
+      expect(cubit.state.editingProductId, 'prod-1');
+      expect(cubit.state.name, 'Burchakli divan');
+      expect(cubit.state.price, 1000000);
+      expect(cubit.state.discountPercent, 10);
+      expect(cubit.state.sku, 'MH-2026-0001');
+      expect(cubit.state.categoryId, 'cat-1');
+      expect(cubit.state.subcategoryId, 'sub-1');
+      expect(cubit.state.colorSlugs, {'grey'});
+      // Only schema-defined attribute keys survive the prefill.
+      expect(cubit.state.attributes, equals({'material': 'velür'}));
+      expect(cubit.state.images, hasLength(1));
+      expect(cubit.state.images.single.url, 'https://r2/u1.webp');
+      expect(cubit.state.hasDelivery, isTrue);
+      expect(cubit.state.warrantyMonths, 6);
+    });
+
+    test('submit PATCHes the existing row instead of creating', () async {
+      final attrs = _MockAttributesRepo();
+      when(
+        () => attrs.loadForCategory(
+          categoryId: any(named: 'categoryId'),
+          subcategoryId: any(named: 'subcategoryId'),
+        ),
+      ).thenAnswer((_) async => const []);
+      when(repo.loadShopContext).thenAnswer((_) async => editContext());
+      when(() => repo.updateProduct(any(), any())).thenAnswer((_) async {});
+
+      final cubit = _cubit(repo, attrsRepo: attrs);
+      await cubit.loadForEdit(product());
+      final ok = await cubit.submit();
+
+      expect(ok, isTrue);
+      expect(cubit.state.status, AddProductStatus.success);
+      verify(() => repo.updateProduct('prod-1', any())).called(1);
+      verifyNever(() => repo.createProduct(any()));
     });
   });
 }

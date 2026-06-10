@@ -6,6 +6,7 @@ import '../../../../../core/logging/talker.dart';
 import '../../../../../shared/models/shop_settings.dart';
 import '../../../../../shared/models/working_hours.dart';
 import '../../../../../shared/utils/image_upload.dart';
+import '../../../../../shared/widgets/image_crop_screen.dart';
 import '../../bloc/shop_settings_bloc.dart';
 import '../brand_color_picker.dart';
 import 'basic_info_card.dart';
@@ -88,11 +89,26 @@ class _SettingsFormState extends State<SettingsForm> {
         '[shop-settings] picked kind=$kind ext=${picked.extension} '
         'bytes=${picked.bytes}',
       );
+      // Telegram-style fit step: the seller zooms/pans the photo inside the
+      // exact frame it will be displayed in (circle for the logo, banner
+      // ratio for the cover) before anything is uploaded.
+      final cropped = await openImageCropScreen(
+        context,
+        file: picked.file,
+        aspectRatio: kind == 'logo' ? 1 : 2.4,
+        circle: kind == 'logo',
+        maxOutputWidth: kind == 'logo' ? 1024 : 1600,
+      );
+      if (cropped == null) {
+        talker.info('[shop-settings] crop cancelled kind=$kind');
+        return;
+      }
+      if (!mounted) return;
       context.read<ShopSettingsBloc>().add(
             ShopSettingsAssetUploaded(
               kind: kind,
-              file: picked.file,
-              fileExtension: picked.extension,
+              file: cropped,
+              fileExtension: 'png',
             ),
           );
     } on ImagePickError catch (e, st) {

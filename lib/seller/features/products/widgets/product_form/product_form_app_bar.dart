@@ -6,7 +6,10 @@ import '../../../../../core/theme/app_fonts.dart';
 
 /// App bar for the product form screen.
 class ProductFormAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const ProductFormAppBar({super.key});
+  const ProductFormAppBar({super.key, this.editing = false});
+
+  /// Edit mode retitles the bar — the form itself is identical.
+  final bool editing;
 
   @override
   Size get preferredSize => const Size.fromHeight(56);
@@ -25,7 +28,7 @@ class ProductFormAppBar extends StatelessWidget implements PreferredSizeWidget {
         onPressed: () => Navigator.of(context).maybePop(),
       ),
       title: Text(
-        "Mahsulot qo'shish",
+        editing ? 'Mahsulotni tahrirlash' : "Mahsulot qo'shish",
         style: TextStyle(
           fontFamily: AppFonts.seller,
           fontSize: 18,

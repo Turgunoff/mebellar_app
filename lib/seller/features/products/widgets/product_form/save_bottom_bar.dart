@@ -2,18 +2,22 @@ import 'package:flutter/material.dart';
 
 import '../../../../../core/theme/app_fonts.dart';
 
-/// Sticky bottom CTA for the product form ("Saqlash va e'lon qilish").
+/// Sticky bottom CTA for the product form ("Saqlash va e'lon qilish";
+/// edit mode shortens it to "Saqlash" — an edit re-enters moderation, it
+/// doesn't publish).
 class SaveBottomBar extends StatelessWidget {
   const SaveBottomBar({
     super.key,
     required this.enabled,
     required this.busy,
     required this.onSave,
+    this.editing = false,
   });
 
   final bool enabled;
   final bool busy;
   final VoidCallback onSave;
+  final bool editing;
 
   @override
   Widget build(BuildContext context) {
@@ -62,7 +66,7 @@ class SaveBottomBar extends StatelessWidget {
                         color: Colors.white,
                       ),
                     )
-                  : const Text("Saqlash va e'lon qilish"),
+                  : Text(editing ? 'Saqlash' : "Saqlash va e'lon qilish"),
             ),
           ),
         ),

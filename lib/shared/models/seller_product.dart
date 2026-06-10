@@ -18,7 +18,10 @@ enum SellerProductStatus {
   static SellerProductStatus fromCode(String? code) {
     return values.firstWhere(
       (s) => s.code == code,
-      orElse: () => SellerProductStatus.draft,
+      // The app never creates drafts (the backend forces pending_review on
+      // create), so an unknown/missing status reads as "in moderation"
+      // rather than resurrecting the retired draft bucket.
+      orElse: () => SellerProductStatus.pendingReview,
     );
   }
 
@@ -27,12 +30,12 @@ enum SellerProductStatus {
       this == SellerProductStatus.draft || this == SellerProductStatus.rejected;
 
   IconData get icon => switch (this) {
-        SellerProductStatus.draft => Icons.edit_note_outlined,
-        SellerProductStatus.pendingReview => Icons.hourglass_top_outlined,
-        SellerProductStatus.approved => Icons.check_circle_outline,
-        SellerProductStatus.rejected => Icons.error_outline,
-        SellerProductStatus.archived => Icons.inventory_outlined,
-      };
+    SellerProductStatus.draft => Icons.edit_note_outlined,
+    SellerProductStatus.pendingReview => Icons.hourglass_top_outlined,
+    SellerProductStatus.approved => Icons.check_circle_outline,
+    SellerProductStatus.rejected => Icons.error_outline,
+    SellerProductStatus.archived => Icons.inventory_outlined,
+  };
 }
 
 class SellerProductImage extends Equatable {
@@ -73,8 +76,14 @@ class SellerProductImage extends Equatable {
   }
 
   @override
-  List<Object?> get props =>
-      [id, localPath, remoteUrl, uploadProgress, uploading, error];
+  List<Object?> get props => [
+    id,
+    localPath,
+    remoteUrl,
+    uploadProgress,
+    uploading,
+    error,
+  ];
 }
 
 class SellerProduct extends Equatable {

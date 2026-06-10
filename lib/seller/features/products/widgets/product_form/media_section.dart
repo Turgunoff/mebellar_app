@@ -1,19 +1,22 @@
-import 'dart:io';
 import 'dart:math' as math;
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
+import '../../data/add_product_repository.dart';
 import 'form_kit.dart';
 
 /// Horizontal strip of product image thumbnails plus the "add photo" tile,
 /// with an "AI fill from photos" CTA once at least one image is present.
+/// Entries are [FormImage]s — local picks render from file, edit-mode's
+/// existing photos render from their remote URL.
 class MediaSection extends StatelessWidget {
   const MediaSection({
     super.key,
-    required this.files,
+    required this.images,
     required this.maxImages,
     required this.onAdd,
     required this.onRemove,
@@ -21,7 +24,7 @@ class MediaSection extends StatelessWidget {
     required this.aiBusy,
   });
 
-  final List<File> files;
+  final List<FormImage> images;
   final int maxImages;
   final VoidCallback onAdd;
   final ValueChanged<int> onRemove;
@@ -36,7 +39,7 @@ class MediaSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final unlimited = maxImages < 0;
-    final isFull = !unlimited && files.length >= maxImages;
+    final isFull = !unlimited && images.length >= maxImages;
     final caption = unlimited ? '∞' : '$maxImages';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -51,15 +54,18 @@ class MediaSection extends StatelessWidget {
               child: Row(
                 children: [
                   _AddPhotoTile(
-                    countLabel: '${files.length}/$caption',
+                    countLabel: '${images.length}/$caption',
                     enabled: !isFull && !aiBusy,
                     onTap: onAdd,
                   ),
-                  for (var i = 0; i < files.length; i++) ...[
+                  for (var i = 0; i < images.length; i++) ...[
                     const SizedBox(width: 10),
                     _ImageThumbnail(
-                      key: ValueKey('product-image-$i-${files[i].path}'),
-                      file: files[i],
+                      key: ValueKey(
+                        'product-image-$i-'
+                        '${images[i].url ?? images[i].file!.path}',
+                      ),
+                      image: images[i],
                       isPrimary: i == 0,
                       onRemove: () => onRemove(i),
                     ),
@@ -69,7 +75,7 @@ class MediaSection extends StatelessWidget {
             ),
           ),
         ),
-        if (files.isNotEmpty) ...[
+        if (images.isNotEmpty) ...[
           const SizedBox(height: 10),
           _AiFillButton(busy: aiBusy, onTap: onAiFill),
         ],
@@ -214,12 +220,12 @@ class _AddPhotoTile extends StatelessWidget {
 class _ImageThumbnail extends StatelessWidget {
   const _ImageThumbnail({
     super.key,
-    required this.file,
+    required this.image,
     required this.isPrimary,
     required this.onRemove,
   });
 
-  final File file;
+  final FormImage image;
   final bool isPrimary;
   final VoidCallback onRemove;
 
@@ -227,6 +233,9 @@ class _ImageThumbnail extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
     final primary = Theme.of(context).colorScheme.primary;
+    final provider = image.file != null
+        ? FileImage(image.file!) as ImageProvider
+        : CachedNetworkImageProvider(image.url!);
     return SizedBox(
       width: 110,
       height: 110,
@@ -243,7 +252,7 @@ class _ImageThumbnail extends StatelessWidget {
                 color: primary.withValues(alpha: 0.25),
                 width: 1.2,
               ),
-              image: DecorationImage(image: FileImage(file), fit: BoxFit.cover),
+              image: DecorationImage(image: provider, fit: BoxFit.cover),
             ),
           ),
           if (isPrimary)

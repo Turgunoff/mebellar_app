@@ -47,6 +47,20 @@ class AddProductShopContext {
   );
 }
 
+/// One slot in the form's image strip — either a freshly-picked local file
+/// or an already-uploaded remote URL. Edit mode keeps the product's existing
+/// images as remote refs so the bytes are never re-uploaded; create mode only
+/// ever holds local files.
+class FormImage {
+  const FormImage.local(File this.file) : url = null;
+  const FormImage.remote(String this.url) : file = null;
+
+  final File? file;
+  final String? url;
+
+  bool get isRemote => url != null;
+}
+
 /// Inputs the cubit hands to the repository when the user taps
 /// "Saqlash va e'lon qilish". Category-specific specs (dimensions, fabric,
 /// etc.) ride along inside the [attributes] JSONB payload; only logistics and
@@ -71,7 +85,7 @@ class AddProductInput {
     required this.hasInstallation,
     required this.installationPrice,
     required this.warrantyMonths,
-    required this.imageFiles,
+    required this.images,
   });
 
   final String sellerId;
@@ -98,7 +112,15 @@ class AddProductInput {
   final bool hasInstallation;
   final num installationPrice;
   final int warrantyMonths;
-  final List<File> imageFiles;
+
+  /// Gallery order as the seller arranged it — index 0 is the primary image.
+  /// Local entries get uploaded; remote entries pass their URL through.
+  final List<FormImage> images;
+
+  List<File> get localFiles => [
+    for (final img in images)
+      if (img.file != null) img.file!,
+  ];
 }
 
 class AddProductResult {
@@ -256,40 +278,16 @@ class AddProductRepository {
   /// Uploads images to R2 first (so a network failure aborts before the
   /// product row exists), then creates the product via `POST /seller/products`.
   Future<AddProductResult> createProduct(AddProductInput input) async {
-    if (input.imageFiles.isEmpty) {
+    if (input.images.isEmpty) {
       throw StateError('At least one product image is required');
     }
-    final imageUrls = await _uploadImages(
-      sellerId: input.sellerId,
-      files: input.imageFiles,
-    );
-
-    final discountPrice = input.discountPercent > 0
-        ? (input.price * (100 - input.discountPercent) / 100).roundToDouble()
-        : null;
+    final imageUrls = await _resolveImageUrls(input);
 
     final body = await _api.post<Map<String, dynamic>>(
       '/seller/products',
       body: {
-        'category_id': input.categoryId,
-        if (input.subcategoryId != null) 'subcategory_id': input.subcategoryId,
-        'name': input.name,
-        if (input.description.isNotEmpty) 'description': input.description,
+        ..._productFields(input, imageUrls),
         if (input.sku.isNotEmpty) 'sku': input.sku,
-        'price': input.price,
-        if (discountPrice != null) 'discount_price': discountPrice,
-        'images': imageUrls,
-        if (input.attributes.isNotEmpty) 'attributes': input.attributes,
-        'colors': input.colorSlugs,
-        'has_delivery': input.hasDelivery,
-        'delivery_price': input.hasDelivery ? input.deliveryPrice : 0,
-        'has_installation': input.hasInstallation,
-        'installation_price': input.hasInstallation
-            ? input.installationPrice
-            : 0,
-        'warranty_months': input.warrantyMonths,
-        if (input.productionTimeDays != null)
-          'production_time_days': input.productionTimeDays,
       },
     );
 
@@ -299,10 +297,71 @@ class AddProductRepository {
     );
   }
 
-  /// Uploads [files] to R2, then asks the backend to draft product fields from
-  /// the resulting public image URLs (`POST /seller/products/ai-suggest`).
-  /// Returns the parsed suggestion plus the uploaded URLs so the caller can
-  /// reuse them at save time and avoid re-uploading the same bytes.
+  /// Edit-mode save: uploads any newly-picked photos, then PATCHes the full
+  /// field set to `PATCH /seller/products/{id}`. The backend forces the
+  /// product back to `pending_review` on any column write, so an edited
+  /// product re-enters moderation — by design, not a bug.
+  Future<void> updateProduct(String productId, AddProductInput input) async {
+    if (input.images.isEmpty) {
+      throw StateError('At least one product image is required');
+    }
+    final imageUrls = await _resolveImageUrls(input);
+    await _api.patch<Map<String, dynamic>>(
+      '/seller/products/$productId',
+      // SKU is intentionally absent: it's generated at create time and the
+      // backend's update path doesn't write the variant SKU anyway.
+      body: _productFields(input, imageUrls),
+    );
+  }
+
+  /// Shared create/update body. `discount_price` is included only when a
+  /// discount is set — the backend clears the variant discount whenever
+  /// `price` arrives without it, so omitting it deletes a removed discount.
+  Map<String, dynamic> _productFields(
+    AddProductInput input,
+    List<String> imageUrls,
+  ) {
+    final discountPrice = input.discountPercent > 0
+        ? (input.price * (100 - input.discountPercent) / 100).roundToDouble()
+        : null;
+    return {
+      'category_id': input.categoryId,
+      if (input.subcategoryId != null) 'subcategory_id': input.subcategoryId,
+      'name': input.name,
+      if (input.description.isNotEmpty) 'description': input.description,
+      'price': input.price,
+      if (discountPrice != null) 'discount_price': discountPrice,
+      'images': imageUrls,
+      'attributes': input.attributes,
+      'colors': input.colorSlugs,
+      'has_delivery': input.hasDelivery,
+      'delivery_price': input.hasDelivery ? input.deliveryPrice : 0,
+      'has_installation': input.hasInstallation,
+      'installation_price': input.hasInstallation ? input.installationPrice : 0,
+      'warranty_months': input.warrantyMonths,
+      if (input.productionTimeDays != null)
+        'production_time_days': input.productionTimeDays,
+    };
+  }
+
+  /// Uploads the local entries of [AddProductInput.images] and stitches the
+  /// final URL list back together in the seller's gallery order, so a mixed
+  /// strip (kept remote photos + new picks) lands exactly as arranged.
+  Future<List<String>> _resolveImageUrls(AddProductInput input) async {
+    final locals = input.localFiles;
+    final uploaded = locals.isEmpty
+        ? const <String>[]
+        : await _uploadImages(sellerId: input.sellerId, files: locals);
+    var nextUpload = 0;
+    return [for (final img in input.images) img.url ?? uploaded[nextUpload++]];
+  }
+
+  /// Uploads any local entries of [images] to R2 (remote entries pass their
+  /// URL straight through — edit mode's existing photos), then asks the
+  /// backend to draft product fields from the public image URLs
+  /// (`POST /seller/products/ai-suggest`). Returns the parsed suggestion plus
+  /// the resolved URLs so the caller can reuse them at save time and avoid
+  /// re-uploading the same bytes.
   ///
   /// Never throws on an AI failure — a non-2xx or malformed body yields an
   /// `available: false` suggestion so the form degrades softly. An *upload*
@@ -311,12 +370,22 @@ class AddProductRepository {
   Future<({AiProductSuggestion suggestion, List<String> imageUrls})>
   suggestFromImages({
     required String sellerId,
-    required List<File> files,
+    required List<FormImage> images,
   }) async {
-    if (files.isEmpty) {
+    if (images.isEmpty) {
       throw StateError('At least one image is required for AI suggestion');
     }
-    final imageUrls = await _uploadImages(sellerId: sellerId, files: files);
+    final locals = [
+      for (final img in images)
+        if (img.file != null) img.file!,
+    ];
+    final uploaded = locals.isEmpty
+        ? const <String>[]
+        : await _uploadImages(sellerId: sellerId, files: locals);
+    var nextUpload = 0;
+    final imageUrls = [
+      for (final img in images) img.url ?? uploaded[nextUpload++],
+    ];
     try {
       final body = await _api.post<Map<String, dynamic>>(
         '/seller/products/ai-suggest',

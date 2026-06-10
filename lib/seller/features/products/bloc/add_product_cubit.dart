@@ -11,6 +11,7 @@ import '../../../../core/network/api_error.dart';
 import '../../../../shared/constants/product_colors.dart';
 import '../../../../shared/models/attribute_definition.dart';
 import '../../../../shared/models/category_model.dart';
+import '../../../../shared/models/seller_product.dart';
 import '../../../../shared/models/tariff.dart';
 import '../data/add_product_repository.dart';
 import '../data/attributes_repository.dart';
@@ -35,12 +36,14 @@ enum AddProductStatus {
   failure,
 }
 
-/// Form state for the "Add Product" screen. Holds plain values — the
-/// repository / backend row shape lives in [AddProductRepository].
+/// Form state for the "Add Product" screen (also reused in edit mode — see
+/// [AddProductState.editingProductId]). Holds plain values — the repository /
+/// backend row shape lives in [AddProductRepository].
 class AddProductState extends Equatable {
   const AddProductState({
     this.status = AddProductStatus.loadingContext,
     this.context,
+    this.editingProductId,
     this.sku = '',
     this.name = '',
     this.description = '',
@@ -58,13 +61,19 @@ class AddProductState extends Equatable {
     this.hasInstallation = false,
     this.installationPrice = 0,
     this.warrantyMonths = 12,
-    this.imageFiles = const [],
+    this.images = const [],
     this.isAiBusy = false,
     this.error,
   });
 
   final AddProductStatus status;
   final AddProductShopContext? context;
+
+  /// Non-null when the form edits an existing product instead of creating a
+  /// new one. Editing PATCHes the row (no new tariff slot is consumed), so
+  /// the quota gate is skipped in this mode.
+  final String? editingProductId;
+
   final String sku;
   final String name;
   final String description;
@@ -82,12 +91,17 @@ class AddProductState extends Equatable {
   final bool hasInstallation;
   final num installationPrice;
   final int warrantyMonths;
-  final List<File> imageFiles;
+
+  /// Gallery strip in display order — local picks and (in edit mode) the
+  /// product's existing remote images, mixed.
+  final List<FormImage> images;
 
   /// True while an AI "fill from photos" request is in flight. Drives the
   /// button spinner + disables the form so applied fields don't fight a tap.
   final bool isAiBusy;
   final String? error;
+
+  bool get isEditing => editingProductId != null;
 
   /// `-1` means unlimited.
   int get maxImages => context?.maxImages ?? 0;
@@ -98,7 +112,7 @@ class AddProductState extends Equatable {
       return false;
     }
     if (maxImages < 0) return true;
-    return imageFiles.length < maxImages;
+    return images.length < maxImages;
   }
 
   /// True when every `is_required` definition in [attributeSchema] has a
@@ -122,7 +136,7 @@ class AddProductState extends Equatable {
         status != AddProductStatus.failure) {
       return false;
     }
-    if (imageFiles.isEmpty) return false;
+    if (images.isEmpty) return false;
     if (name.trim().isEmpty) return false;
     if (categoryId == null) return false;
     if (price <= 0) return false;
@@ -137,6 +151,7 @@ class AddProductState extends Equatable {
   AddProductState copyWith({
     AddProductStatus? status,
     AddProductShopContext? context,
+    String? editingProductId,
     String? sku,
     String? name,
     String? description,
@@ -156,7 +171,7 @@ class AddProductState extends Equatable {
     bool? hasInstallation,
     num? installationPrice,
     int? warrantyMonths,
-    List<File>? imageFiles,
+    List<FormImage>? images,
     bool? isAiBusy,
     String? error,
     bool clearError = false,
@@ -164,6 +179,7 @@ class AddProductState extends Equatable {
     return AddProductState(
       status: status ?? this.status,
       context: context ?? this.context,
+      editingProductId: editingProductId ?? this.editingProductId,
       sku: sku ?? this.sku,
       name: name ?? this.name,
       description: description ?? this.description,
@@ -183,7 +199,7 @@ class AddProductState extends Equatable {
       hasInstallation: hasInstallation ?? this.hasInstallation,
       installationPrice: installationPrice ?? this.installationPrice,
       warrantyMonths: warrantyMonths ?? this.warrantyMonths,
-      imageFiles: imageFiles ?? this.imageFiles,
+      images: images ?? this.images,
       isAiBusy: isAiBusy ?? this.isAiBusy,
       error: clearError ? null : (error ?? this.error),
     );
@@ -194,6 +210,7 @@ class AddProductState extends Equatable {
     status,
     context?.shopId,
     context?.activeProductsCount,
+    editingProductId,
     sku,
     name,
     description,
@@ -211,7 +228,9 @@ class AddProductState extends Equatable {
     hasInstallation,
     installationPrice,
     warrantyMonths,
-    imageFiles.length,
+    // FormImage has no value equality; identity of the rebuilt list plus its
+    // length is enough for the form to repaint on add/remove.
+    images.length,
     isAiBusy,
     error,
   ];
@@ -262,6 +281,82 @@ class AddProductCubit extends Cubit<AddProductState> {
         return;
       }
       emit(state.copyWith(status: AddProductStatus.ready, context: ctx));
+    } catch (e) {
+      emit(
+        state.copyWith(status: AddProductStatus.failure, error: e.toString()),
+      );
+    }
+  }
+
+  /// Edit-mode boot: loads the shop context, then prefils every form field
+  /// from [product] — existing photos become remote image refs (no
+  /// re-upload), the category is selected first and its attribute schema
+  /// awaited so only schema-valid attribute keys survive (the same contract
+  /// the AI fill enforces). Emits `ready` exactly once, with the form fully
+  /// populated, so the screen can sync its text controllers on that
+  /// transition. The tariff quota gate is skipped — editing doesn't consume
+  /// a slot.
+  Future<void> loadForEdit(SellerProduct product) async {
+    emit(
+      state.copyWith(
+        status: AddProductStatus.loadingContext,
+        editingProductId: product.id,
+        clearError: true,
+      ),
+    );
+    try {
+      final ctx = await _repository.loadShopContext();
+      final hasDiscount =
+          product.discountPrice != null &&
+          product.discountPrice! > 0 &&
+          product.discountPrice! < product.price;
+      final discountPercent = hasDiscount
+          ? (((product.price - product.discountPrice!) / product.price) * 100)
+                .round()
+          : 0;
+      emit(
+        state.copyWith(
+          context: ctx,
+          sku: product.sku.isNotEmpty ? product.sku : state.sku,
+          name: product.name.uz ?? '',
+          description: product.description.uz ?? '',
+          price: product.price,
+          discountPercent: discountPercent,
+          productionTimeDays: product.productionTimeDays ?? '',
+          hasDelivery: product.hasDelivery,
+          deliveryPrice: product.deliveryPrice,
+          hasInstallation: product.hasInstallation,
+          installationPrice: product.installationPrice,
+          warrantyMonths: product.warrantyMonths,
+          colorSlugs: {
+            for (final slug in product.colors)
+              if (productColorBySlug(slug) != null) slug,
+          },
+          images: [
+            for (final img in product.images)
+              if (img.remoteUrl != null && img.remoteUrl!.isNotEmpty)
+                FormImage.remote(img.remoteUrl!),
+          ],
+        ),
+      );
+
+      final categoryId = product.categorySlug;
+      if (categoryId.isNotEmpty && findCategory(categoryId) != null) {
+        selectCategory(categoryId);
+        final sub = product.subcategoryId;
+        if (sub != null && _subcategoryExists(categoryId, sub)) {
+          selectSubcategory(sub);
+        }
+        await _awaitSchema();
+        final validKeys = {for (final d in state.attributeSchema) d.key};
+        for (final entry in product.attributes.entries) {
+          if (validKeys.contains(entry.key) && entry.value != null) {
+            setAttribute(entry.key, entry.value);
+          }
+        }
+      }
+
+      emit(state.copyWith(status: AddProductStatus.ready));
     } catch (e) {
       emit(
         state.copyWith(status: AddProductStatus.failure, error: e.toString()),
@@ -418,7 +513,7 @@ class AddProductCubit extends Cubit<AddProductState> {
 
   void addImage(File file) {
     if (!state.canPickMoreImages) return;
-    emit(state.copyWith(imageFiles: [...state.imageFiles, file]));
+    emit(state.copyWith(images: [...state.images, FormImage.local(file)]));
   }
 
   /// Append multiple images, trimming the input to whatever quota remains.
@@ -430,33 +525,40 @@ class AddProductCubit extends Cubit<AddProductState> {
     if (state.maxImages < 0) {
       accepted = files;
     } else {
-      final remaining = state.maxImages - state.imageFiles.length;
+      final remaining = state.maxImages - state.images.length;
       if (remaining <= 0) return 0;
       accepted = files.length <= remaining
           ? files
           : files.sublist(0, remaining);
     }
-    emit(state.copyWith(imageFiles: [...state.imageFiles, ...accepted]));
+    emit(
+      state.copyWith(
+        images: [...state.images, for (final f in accepted) FormImage.local(f)],
+      ),
+    );
     return accepted.length;
   }
 
   void removeImageAt(int index) {
-    if (index < 0 || index >= state.imageFiles.length) return;
-    final next = [...state.imageFiles]..removeAt(index);
-    emit(state.copyWith(imageFiles: next));
+    if (index < 0 || index >= state.images.length) return;
+    final next = [...state.images]..removeAt(index);
+    emit(state.copyWith(images: next));
   }
 
   void regenerateSku() => emit(state.copyWith(sku: _generateSku()));
 
-  /// Triggers the upload + 3-row insert. Returns `true` on success so the
-  /// screen can pop after the snackbar.
+  /// Saves the form: create mode uploads + POSTs a new product; edit mode
+  /// uploads only the newly-picked photos and PATCHes the existing row.
+  /// Returns `true` on success so the screen can pop after the snackbar.
   Future<bool> submit() async {
     final ctx = state.context;
     if (ctx == null) {
       talker.warning('[add-product-cubit] submit aborted — no shop context');
       return false;
     }
-    if (!ctx.canAddMoreProducts) {
+    // Editing never consumes a new tariff slot, so the quota gate only
+    // applies to create mode.
+    if (!state.isEditing && !ctx.canAddMoreProducts) {
       talker.warning(
         '[add-product-cubit] submit blocked by tariff '
         'plan=${ctx.plan.code} active=${ctx.activeProductsCount}',
@@ -468,7 +570,7 @@ class AddProductCubit extends Cubit<AddProductState> {
       talker.warning(
         '[add-product-cubit] submit blocked by validation '
         'name=${state.name.isNotEmpty} category=${state.categoryId != null} '
-        'price=${state.price} images=${state.imageFiles.length} '
+        'price=${state.price} images=${state.images.length} '
         'requiredAttrsOk=${state.hasAllRequiredAttributes}',
       );
       return false;
@@ -476,41 +578,47 @@ class AddProductCubit extends Cubit<AddProductState> {
 
     talker.info(
       '[add-product-cubit] submit start sku=${state.sku} '
+      'editing=${state.editingProductId ?? '-'} '
       'category=${state.categoryId} sub=${state.subcategoryId} '
-      'images=${state.imageFiles.length} attributes=${state.attributes.length}',
+      'images=${state.images.length} attributes=${state.attributes.length}',
     );
     emit(state.copyWith(status: AddProductStatus.saving, clearError: true));
     try {
-      final result = await _repository.createProduct(
-        AddProductInput(
-          sellerId: ctx.sellerId,
-          shopId: ctx.shopId,
-          name: state.name.trim(),
-          description: state.description.trim(),
-          categoryId: state.categoryId!,
-          subcategoryId: state.subcategoryId,
-          price: state.price,
-          discountPercent: state.discountPercent,
-          sku: state.sku,
-          colorSlugs: state.colorSlugs.toList(),
-          colorNames: [
-            for (final slug in state.colorSlugs) _colorNameFor(slug) ?? slug,
-          ],
-          attributes: Map<String, dynamic>.from(state.attributes),
-          productionTimeDays: state.productionTimeDays.trim().isEmpty
-              ? null
-              : state.productionTimeDays.trim(),
-          hasDelivery: state.hasDelivery,
-          deliveryPrice: state.deliveryPrice,
-          hasInstallation: state.hasInstallation,
-          installationPrice: state.installationPrice,
-          warrantyMonths: state.warrantyMonths,
-          imageFiles: state.imageFiles,
-        ),
+      final input = AddProductInput(
+        sellerId: ctx.sellerId,
+        shopId: ctx.shopId,
+        name: state.name.trim(),
+        description: state.description.trim(),
+        categoryId: state.categoryId!,
+        subcategoryId: state.subcategoryId,
+        price: state.price,
+        discountPercent: state.discountPercent,
+        sku: state.sku,
+        colorSlugs: state.colorSlugs.toList(),
+        colorNames: [
+          for (final slug in state.colorSlugs) _colorNameFor(slug) ?? slug,
+        ],
+        attributes: Map<String, dynamic>.from(state.attributes),
+        productionTimeDays: state.productionTimeDays.trim().isEmpty
+            ? null
+            : state.productionTimeDays.trim(),
+        hasDelivery: state.hasDelivery,
+        deliveryPrice: state.deliveryPrice,
+        hasInstallation: state.hasInstallation,
+        installationPrice: state.installationPrice,
+        warrantyMonths: state.warrantyMonths,
+        images: state.images,
       );
+      final editingId = state.editingProductId;
+      if (editingId != null) {
+        await _repository.updateProduct(editingId, input);
+        unawaited(_analytics?.productUpdated(productId: editingId));
+      } else {
+        final result = await _repository.createProduct(input);
+        unawaited(_analytics?.productCreated(productId: result.productId));
+      }
       emit(state.copyWith(status: AddProductStatus.success));
       talker.info('[add-product-cubit] submit ok sku=${state.sku}');
-      unawaited(_analytics?.productCreated(productId: result.productId));
       return true;
     } catch (e, st) {
       talker.handle(
@@ -537,21 +645,21 @@ class AddProductCubit extends Cubit<AddProductState> {
   /// this never throws.
   Future<({bool available, bool sameProduct})> generateFromImages() async {
     final ctx = state.context;
-    if (ctx == null || state.imageFiles.isEmpty || state.isAiBusy) {
+    if (ctx == null || state.images.isEmpty || state.isAiBusy) {
       return (available: false, sameProduct: true);
     }
     // Trim to the backend's image cap — the first photos are the primary/most
     // representative ones, and sending more would 422.
-    final files = state.imageFiles.length > _maxAiImages
-        ? state.imageFiles.sublist(0, _maxAiImages)
-        : state.imageFiles;
+    final images = state.images.length > _maxAiImages
+        ? state.images.sublist(0, _maxAiImages)
+        : state.images;
 
     emit(state.copyWith(isAiBusy: true, clearError: true));
-    unawaited(_analytics?.aiSuggestRequested(imageCount: files.length));
+    unawaited(_analytics?.aiSuggestRequested(imageCount: images.length));
     try {
       final result = await _repository.suggestFromImages(
         sellerId: ctx.sellerId,
-        files: files,
+        images: images,
       );
       final s = result.suggestion;
       if (s.hasAnything) {

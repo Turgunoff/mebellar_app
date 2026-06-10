@@ -4,8 +4,9 @@ import 'package:woody_app/shared/models/multilingual_text.dart';
 import 'package:woody_app/shared/models/seller_product.dart';
 
 /// Seed catalog for the seller dashboard. We hand-craft 12 products covering
-/// every status (draft / pending / approved / rejected / archived) so the
-/// status filter chips in the products list always have something to show.
+/// every seller-visible status (pending / approved / rejected / archived) so
+/// the status filter chips in the products list always have something to
+/// show. Draft is retired — the backend forces pending_review on create.
 class MockSellerProducts {
   const MockSellerProducts._();
 
@@ -19,8 +20,7 @@ class MockSellerProducts {
       for (var i = 0; i < count; i++)
         SellerProductImage(
           id: '$seed-img-$i',
-          remoteUrl:
-              'https://picsum.photos/seed/seller-$seed-$i/800/800',
+          remoteUrl: 'https://picsum.photos/seed/seller-$seed-$i/800/800',
         ),
     ];
   }
@@ -71,8 +71,11 @@ class MockSellerProducts {
   static final List<SellerProduct> products = [
     _p(
       id: 'sp-1',
-      name: _ml('Burchakli divan "Modern"', 'Угловой диван "Modern"',
-          'Corner sofa "Modern"'),
+      name: _ml(
+        'Burchakli divan "Modern"',
+        'Угловой диван "Modern"',
+        'Corner sofa "Modern"',
+      ),
       description: _ml(
         'Charm va to\'qima qoplama, qulay yotoq holatiga aylantirish imkoniyati.',
         'Кожа и ткань, удобное превращение в спальное место.',
@@ -107,10 +110,7 @@ class MockSellerProducts {
       price: 1850000,
       stock: 8,
       sku: 'MH-ARM-002',
-      attributes: {
-        'material': 'Yog\'och + velour',
-        'color': 'To\'q yashil',
-      },
+      attributes: {'material': 'Yog\'och + velour', 'color': 'To\'q yashil'},
       status: SellerProductStatus.approved,
       dayOffset: 22,
     ),
@@ -137,8 +137,11 @@ class MockSellerProducts {
     ),
     _p(
       id: 'sp-4',
-      name: _ml('Shisha oshxona stoli', 'Стеклянный обеденный стол',
-          'Glass dining table'),
+      name: _ml(
+        'Shisha oshxona stoli',
+        'Стеклянный обеденный стол',
+        'Glass dining table',
+      ),
       description: _ml(
         '8 mm shisha + metal oyoqlar.',
         '8 мм стекло + металлические ножки.',
@@ -148,14 +151,20 @@ class MockSellerProducts {
       price: 3100000,
       stock: 4,
       sku: 'MH-DIN-004',
-      attributes: {'material': 'Shisha + metall', 'shape': 'To\'g\'ri to\'rtburchak'},
+      attributes: {
+        'material': 'Shisha + metall',
+        'shape': 'To\'g\'ri to\'rtburchak',
+      },
       status: SellerProductStatus.pendingReview,
       dayOffset: 5,
     ),
     _p(
       id: 'sp-5',
-      name: _ml('Yumshoq kresla "Velvet"', 'Мягкое кресло "Velvet"',
-          'Soft armchair "Velvet"'),
+      name: _ml(
+        'Yumshoq kresla "Velvet"',
+        'Мягкое кресло "Velvet"',
+        'Soft armchair "Velvet"',
+      ),
       description: _ml(
         'Velour qoplama, qulay tutqich.',
         'Велюровая обивка, удобный подлокотник.',
@@ -166,13 +175,14 @@ class MockSellerProducts {
       stock: 0,
       sku: 'MH-ARM-005',
       attributes: {'color': 'Pushti'},
-      status: SellerProductStatus.draft,
+      status: SellerProductStatus.rejected,
+      rejectionReason:
+          'Tavsif yetarli emas — material va o\'lchamlarni qo\'shing',
       dayOffset: 2,
     ),
     _p(
       id: 'sp-6',
-      name: _ml('Bolalar yozuv stoli', 'Детский письменный стол',
-          'Kids desk'),
+      name: _ml('Bolalar yozuv stoli', 'Детский письменный стол', 'Kids desk'),
       description: _ml(
         'Balandlik moslashadigan, ergonomik.',
         'Регулируемая высота, эргономичный.',
@@ -182,13 +192,12 @@ class MockSellerProducts {
       price: 1200000,
       stock: 0,
       sku: 'MH-KID-006',
-      status: SellerProductStatus.draft,
+      status: SellerProductStatus.pendingReview,
       dayOffset: 1,
     ),
     _p(
       id: 'sp-7',
-      name: _ml('Eski tip stol', 'Стол старого образца',
-          'Old-style table'),
+      name: _ml('Eski tip stol', 'Стол старого образца', 'Old-style table'),
       description: _ml(
         'Eski stildagi mahsulot.',
         'Изделие в старом стиле.',
@@ -199,7 +208,8 @@ class MockSellerProducts {
       stock: 2,
       sku: 'MH-DIN-007',
       status: SellerProductStatus.rejected,
-      rejectionReason: 'Rasmlar sifati past — yorqinroq fonda qayta suratga oling',
+      rejectionReason:
+          'Rasmlar sifati past — yorqinroq fonda qayta suratga oling',
       dayOffset: 8,
     ),
     _p(
@@ -219,8 +229,11 @@ class MockSellerProducts {
     ),
     _p(
       id: 'sp-9',
-      name: _ml('Marmar jurnal stoli', 'Мраморный журнальный столик',
-          'Marble coffee table'),
+      name: _ml(
+        'Marmar jurnal stoli',
+        'Мраморный журнальный столик',
+        'Marble coffee table',
+      ),
       description: _ml(
         'Tabiiy marmar yuza, mustahkam metall karkas.',
         'Натуральная мраморная поверхность, прочный металлический каркас.',
@@ -236,8 +249,11 @@ class MockSellerProducts {
     ),
     _p(
       id: 'sp-10',
-      name: _ml('Klassik kuxnya jihozlari', 'Классический кухонный гарнитур',
-          'Classic kitchen set'),
+      name: _ml(
+        'Klassik kuxnya jihozlari',
+        'Классический кухонный гарнитур',
+        'Classic kitchen set',
+      ),
       description: _ml(
         '3 metr uzunlikda, MDF + akril qoplama.',
         '3 метра, МДФ + акриловое покрытие.',
@@ -252,8 +268,11 @@ class MockSellerProducts {
     ),
     _p(
       id: 'sp-11',
-      name: _ml('Kuxnya jihozlari "Modern"', 'Кухонный гарнитур "Modern"',
-          'Kitchen set "Modern"'),
+      name: _ml(
+        'Kuxnya jihozlari "Modern"',
+        'Кухонный гарнитур "Modern"',
+        'Kitchen set "Modern"',
+      ),
       description: _ml(
         'Premium klass, MDF korpus, akril fasadlar.',
         'Премиум-класс, корпус МДФ, акриловые фасады.',

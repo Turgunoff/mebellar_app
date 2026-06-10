@@ -11,8 +11,10 @@ import '../../../config/remote_config.dart';
 import '../../../core/di/service_locator.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_fonts.dart';
+import '../../../shared/models/tariff.dart';
 import '../../../shared/models/verification_status.dart';
 import '../../../shared/widgets/brand_refresh_indicator.dart';
+import '../../../shared/widgets/fullscreen_image_viewer.dart';
 import '../reviews/screens/reviews_screen.dart';
 import '../settings/screens/services_screen.dart';
 import '../settings/screens/settings_screen.dart';
@@ -215,8 +217,12 @@ class _ProfileHeaderBar extends StatelessWidget {
 }
 
 // =============================================================================
-// 2. Identity card — large avatar, shop name, status pill
+// 2. Identity hero card — cover banner, overlapping logo, name, badges
 // =============================================================================
+const double _kCoverHeight = 124;
+const double _kAvatarSize = 84;
+const double _kAvatarOverlap = _kAvatarSize / 2;
+
 class _ProfileIdentity extends StatelessWidget {
   const _ProfileIdentity({required this.state});
 
@@ -227,25 +233,218 @@ class _ProfileIdentity extends StatelessWidget {
     if (state.isInitialLoading) {
       return const _IdentitySkeleton();
     }
-    return Column(
-      children: [
-        _Avatar(logoUrl: state.logoUrl),
-        const SizedBox(height: 14),
-        Text(
-          state.displayShopName,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontFamily: AppFonts.seller,
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            color: SellerColors.of(context).ink,
-            letterSpacing: -0.3,
-            height: 1.2,
+    final c = SellerColors.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final sellerName = state.sellerName;
+    final showOwner = sellerName != null &&
+        sellerName.isNotEmpty &&
+        sellerName != state.displayShopName;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: c.surface,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: dark ? 0.28 : 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              GestureDetector(
+                onTap: state.hasCover
+                    ? () => openFullscreenImageViewer(
+                          context,
+                          images: [state.coverUrl!],
+                          initialIndex: 0,
+                          heroTagPrefix: 'shop-cover',
+                        )
+                    : null,
+                child: Hero(
+                  tag: 'shop-cover-0',
+                  child: _CoverBanner(coverUrl: state.coverUrl),
+                ),
+              ),
+              Positioned(
+                top: 10,
+                right: 10,
+                child: _CoverEditButton(
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const ShopSettingsScreen(),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: -_kAvatarOverlap,
+                child: Center(
+                  child: GestureDetector(
+                    onTap: state.hasLogo
+                        ? () => openFullscreenImageViewer(
+                              context,
+                              images: [state.logoUrl!],
+                              initialIndex: 0,
+                              heroTagPrefix: 'shop-logo',
+                            )
+                        : null,
+                    child: Hero(
+                      tag: 'shop-logo-0',
+                      child: _Avatar(logoUrl: state.logoUrl),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: _kAvatarOverlap + 12),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
+            child: Column(
+              children: [
+                Text(
+                  state.displayShopName,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: c.ink,
+                    letterSpacing: -0.3,
+                    height: 1.2,
+                  ),
+                ),
+                if (showOwner) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    sellerName,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: AppFonts.seller,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: c.grey,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 10),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _StatusBadge(status: state.verificationStatus),
+                    if (RemoteConfig.instance.tariffEnabled)
+                      _PlanChip(plan: state.plan),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Wide shop cover. Falls back to a branded indigo gradient with a subtle
+/// watermark when the seller hasn't uploaded one yet.
+class _CoverBanner extends StatelessWidget {
+  const _CoverBanner({required this.coverUrl});
+
+  final String? coverUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    final url = coverUrl;
+    final fallback = Container(
+      height: _kCoverHeight,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.sellerPrimary, AppColors.sellerPrimaryDeep],
         ),
-        const SizedBox(height: 8),
-        _StatusBadge(status: state.verificationStatus),
-      ],
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: -18,
+            bottom: -26,
+            child: Icon(
+              Iconsax.shop,
+              size: 120,
+              color: Colors.white.withValues(alpha: 0.10),
+            ),
+          ),
+          Positioned(
+            left: -30,
+            top: -40,
+            child: Container(
+              width: 140,
+              height: 140,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.06),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      child: (url == null || url.isEmpty)
+          ? fallback
+          : CachedNetworkImage(
+              imageUrl: url,
+              height: _kCoverHeight,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              memCacheWidth: 1200,
+              placeholder: (_, _) => Container(
+                height: _kCoverHeight,
+                color: SellerColors.of(context).imageBg,
+              ),
+              errorWidget: (_, _, _) => fallback,
+            ),
+    );
+  }
+}
+
+class _CoverEditButton extends StatelessWidget {
+  const _CoverEditButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.black.withValues(alpha: 0.32),
+      shape: const CircleBorder(),
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: const SizedBox(
+          width: 34,
+          height: 34,
+          child: Icon(Iconsax.edit_2, size: 16, color: Colors.white),
+        ),
+      ),
     );
   }
 }
@@ -257,38 +456,89 @@ class _Avatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final url = logoUrl;
+    // Surface-coloured ring lifts the logo off the cover photo.
     return Container(
-      width: 80,
-      height: 80,
+      width: _kAvatarSize,
+      height: _kAvatarSize,
       decoration: BoxDecoration(
-        color: SellerColors.of(context).neutralBg,
+        color: c.surface,
         shape: BoxShape.circle,
+        border: Border.all(color: c.surface, width: 4),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      clipBehavior: Clip.antiAlias,
-      alignment: Alignment.center,
-      child: (url == null || url.isEmpty)
-          ? const Icon(Iconsax.shop, size: 36, color: AppColors.sellerPrimary)
-          : CachedNetworkImage(
-              imageUrl: url,
-              fit: BoxFit.cover,
-              width: 80,
-              height: 80,
-              memCacheWidth: 240,
-              errorWidget: (_, _, _) => const Icon(
-                Iconsax.shop,
-                size: 36,
-                color: AppColors.sellerPrimary,
-              ),
-              placeholder: (_, _) => const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
+      child: Container(
+        decoration: BoxDecoration(
+          color: c.neutralBg,
+          shape: BoxShape.circle,
+        ),
+        clipBehavior: Clip.antiAlias,
+        alignment: Alignment.center,
+        child: (url == null || url.isEmpty)
+            ? const Icon(Iconsax.shop, size: 34, color: AppColors.sellerPrimary)
+            : CachedNetworkImage(
+                imageUrl: url,
+                fit: BoxFit.cover,
+                width: _kAvatarSize,
+                height: _kAvatarSize,
+                memCacheWidth: 240,
+                errorWidget: (_, _, _) => const Icon(
+                  Iconsax.shop,
+                  size: 34,
                   color: AppColors.sellerPrimary,
                 ),
+                placeholder: (_, _) => const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.sellerPrimary,
+                  ),
+                ),
               ),
+      ),
+    );
+  }
+}
+
+/// Gold crown chip showing the active tariff plan.
+class _PlanChip extends StatelessWidget {
+  const _PlanChip({required this.plan});
+
+  final TariffPlan plan;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: AppColors.sellerGoldBg,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Iconsax.crown_1, size: 13, color: _gold),
+          const SizedBox(width: 5),
+          Text(
+            '${plan.label} tarif',
+            style: TextStyle(
+              fontFamily: AppFonts.seller,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: _gold,
+              height: 1.0,
             ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -298,19 +548,40 @@ class _IdentitySkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final block = SellerColors.of(context).neutralBg;
+    final c = SellerColors.of(context);
+    final block = c.neutralBg;
     final dark = Theme.of(context).brightness == Brightness.dark;
     return Shimmer.fromColors(
       baseColor: dark ? const Color(0xFF2A2A2A) : const Color(0xFFE6E6E6),
       highlightColor: dark ? const Color(0xFF383838) : const Color(0xFFF5F5F5),
       child: Column(
         children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(color: block, shape: BoxShape.circle),
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                height: _kCoverHeight,
+                decoration: BoxDecoration(
+                  color: block,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: -_kAvatarOverlap,
+                child: Center(
+                  child: Container(
+                    width: _kAvatarSize,
+                    height: _kAvatarSize,
+                    decoration:
+                        BoxDecoration(color: block, shape: BoxShape.circle),
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: _kAvatarOverlap + 12),
           Container(
             width: 160,
             height: 20,

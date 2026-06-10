@@ -76,10 +76,27 @@ class _SellerProductsViewState extends State<_SellerProductsView> {
     }
   }
 
-  // Opens the customer-style preview of the seller's product. Edit support is
-  // re-enabled in a follow-up sprint — the add-product flow is the priority
-  // for this iteration, so the "Edit" CTA simply reopens the (single-variant)
-  // Add form for now.
+  /// Opens the same form prefilled with [product]; saving PATCHes the row and
+  /// the backend sends it back to moderation, so the list is refetched to
+  /// show the new pending state.
+  Future<void> _openEdit(BuildContext context, SellerProduct product) async {
+    final bloc = context.read<SellerProductsBloc>();
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => BlocProvider.value(
+          value: bloc,
+          child: ProductFormScreen(initial: product),
+        ),
+      ),
+    );
+    if (!mounted) return;
+    if (saved == true) {
+      bloc.add(const SellerProductsRequested());
+    }
+  }
+
+  // Opens the customer-style preview of the seller's product. The "Edit" CTA
+  // pops the preview and opens the form prefilled with this product.
   void _openPreview(BuildContext context, SellerProduct product) {
     final bloc = context.read<SellerProductsBloc>();
     Navigator.of(context).push(
@@ -90,7 +107,7 @@ class _SellerProductsViewState extends State<_SellerProductsView> {
             product: product,
             onEdit: () {
               Navigator.of(previewContext).pop();
-              _openCreate(context);
+              _openEdit(context, product);
             },
           ),
         ),
@@ -562,8 +579,7 @@ class _ProductTile extends StatelessWidget {
                             status: product.status,
                             compact: true,
                           ),
-                          if (product.status == SellerProductStatus.draft ||
-                              product.status == SellerProductStatus.rejected)
+                          if (product.status == SellerProductStatus.rejected)
                             _SubmitForReviewButton(
                               onPressed: () => context
                                   .read<SellerProductsBloc>()

@@ -6,8 +6,13 @@ import 'package:woody_app/core/i18n/i18n.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 
-/// Full-width shop cover image with an overlapping circular logo avatar and a
-/// "change logo" button.
+const double _kCoverHeight = 124;
+const double _kAvatarSize = 84;
+const double _kAvatarOverlap = _kAvatarSize / 2;
+
+/// Hero card mirroring the seller-profile identity card: wide cover banner,
+/// a centred overlapping logo with a camera badge, and an upload pill on the
+/// cover. Tapping either image opens its picker (then the crop step).
 class CoverHeader extends StatelessWidget {
   const CoverHeader({
     super.key,
@@ -26,12 +31,23 @@ class CoverHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          height: 180,
-          child: Stack(
+    final c = SellerColors.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      decoration: BoxDecoration(
+        color: c.surface,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: dark ? 0.28 : 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Stack(
             clipBehavior: Clip.none,
             children: [
               _CoverImage(
@@ -40,28 +56,40 @@ class CoverHeader extends StatelessWidget {
                 onTap: onTapCover,
               ),
               Positioned(
-                top: 12,
-                right: 12,
+                top: 10,
+                right: 10,
                 child: _CoverEditPill(onTap: onTapCover),
               ),
               Positioned(
-                left: 12,
-                bottom: 0,
-                child: _LogoAvatar(
-                  url: logoUrl,
-                  uploading: uploadingKind == 'logo',
-                  onTap: onTapLogo,
+                left: 0,
+                right: 0,
+                bottom: -_kAvatarOverlap,
+                child: Center(
+                  child: _LogoAvatar(
+                    url: logoUrl,
+                    uploading: uploadingKind == 'logo',
+                    onTap: onTapLogo,
+                  ),
                 ),
               ),
             ],
           ),
-        ),
-        const SizedBox(height: 14),
-        Padding(
-          padding: const EdgeInsets.only(left: 4),
-          child: _ChangeLogoButton(onTap: onTapLogo),
-        ),
-      ],
+          const SizedBox(height: _kAvatarOverlap + 10),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+            child: Text(
+              tr('shop_settings.upload_logo'),
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: c.grey,
+                height: 1.3,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -79,50 +107,72 @@ class _CoverImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = SellerColors.of(context);
-    return Positioned.fill(
-      bottom: 40,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+    final empty = url == null || url!.isEmpty;
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      child: SizedBox(
+        height: _kCoverHeight,
+        width: double.infinity,
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Material(
-              color: c.fillFaint,
-              child: InkWell(
-                onTap: onTap,
-                child: url == null || url!.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Iconsax.gallery_add,
-                              size: 28,
-                              color: c.greyMid,
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              tr('shop_settings.upload_cover'),
-                              style: TextStyle(
-                                fontFamily: AppFonts.seller,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: c.grey,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : CachedNetworkImage(
-                        imageUrl: url!,
-                        // ROADMAP B.7 — full-width shop cover banner.
-                        memCacheWidth: 1080,
-                        fit: BoxFit.cover,
-                        errorWidget: (_, _, _) =>
-                            ColoredBox(color: c.fillFaint),
-                      ),
+            if (empty)
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppColors.sellerPrimary,
+                      AppColors.sellerPrimaryDeep,
+                    ],
+                  ),
+                ),
+              )
+            else
+              CachedNetworkImage(
+                imageUrl: url!,
+                memCacheWidth: 1080,
+                fit: BoxFit.cover,
+                errorWidget: (_, _, _) => const DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        AppColors.sellerPrimary,
+                        AppColors.sellerPrimaryDeep,
+                      ],
+                    ),
+                  ),
+                ),
               ),
+            if (empty)
+              Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Iconsax.gallery_add,
+                      size: 26,
+                      color: Colors.white.withValues(alpha: 0.9),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      tr('shop_settings.upload_cover'),
+                      style: TextStyle(
+                        fontFamily: AppFonts.seller,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white.withValues(alpha: 0.9),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            Material(
+              color: Colors.transparent,
+              child: InkWell(onTap: onTap),
             ),
             if (uploading)
               const ColoredBox(
@@ -145,12 +195,9 @@ class _CoverEditPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = SellerColors.of(context);
     return Material(
-      color: c.surface.withValues(alpha: 0.92),
+      color: Colors.black.withValues(alpha: 0.32),
       borderRadius: BorderRadius.circular(999),
-      elevation: 1,
-      shadowColor: Colors.black26,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(999),
@@ -159,15 +206,15 @@ class _CoverEditPill extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Iconsax.camera, size: 14, color: c.ink),
+              const Icon(Iconsax.camera, size: 14, color: Colors.white),
               const SizedBox(width: 6),
               Text(
                 tr('shop_settings.upload_cover'),
-                style: TextStyle(
+                style: const TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: c.ink,
+                  color: Colors.white,
                   letterSpacing: -0.1,
                 ),
               ),
@@ -195,113 +242,95 @@ class _LogoAvatar extends StatelessWidget {
     final c = SellerColors.of(context);
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        width: 80,
-        height: 80,
-        decoration: BoxDecoration(
-          color: c.fillFaint,
-          shape: BoxShape.circle,
-          border: Border.all(color: c.surface, width: 4),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+      child: SizedBox(
+        // Extra room so the camera badge isn't clipped by the Stack.
+        width: _kAvatarSize + 8,
+        height: _kAvatarSize + 8,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: _kAvatarSize,
+              height: _kAvatarSize,
+              decoration: BoxDecoration(
+                color: c.surface,
+                shape: BoxShape.circle,
+                border: Border.all(color: c.surface, width: 4),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.12),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: c.neutralBg,
+                  shape: BoxShape.circle,
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (url == null || url!.isEmpty)
+                      const Center(
+                        child: Icon(
+                          Iconsax.shop,
+                          size: 30,
+                          color: AppColors.sellerPrimary,
+                        ),
+                      )
+                    else
+                      CachedNetworkImage(
+                        imageUrl: url!,
+                        memCacheWidth: 240,
+                        fit: BoxFit.cover,
+                        errorWidget: (_, _, _) => const Center(
+                          child: Icon(
+                            Iconsax.shop,
+                            size: 30,
+                            color: AppColors.sellerPrimary,
+                          ),
+                        ),
+                      ),
+                    if (uploading)
+                      const ColoredBox(
+                        color: Colors.black54,
+                        child: Center(
+                          child: SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            Positioned(
+              right: 0,
+              bottom: 0,
+              child: Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: AppColors.sellerPrimary,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: c.surface, width: 2.5),
+                ),
+                child: const Icon(
+                  Iconsax.camera,
+                  size: 13,
+                  color: Colors.white,
+                ),
+              ),
             ),
           ],
-        ),
-        child: ClipOval(
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              if (url == null || url!.isEmpty)
-                const Center(
-                  child: Icon(
-                    Iconsax.shop,
-                    size: 28,
-                    color: AppColors.sellerPrimary,
-                  ),
-                )
-              else
-                CachedNetworkImage(
-                  imageUrl: url!,
-                  // ROADMAP B.7 — 80px shop-logo avatar.
-                  memCacheWidth: 240,
-                  fit: BoxFit.cover,
-                  errorWidget: (_, _, _) => const Center(
-                    child: Icon(
-                      Iconsax.shop,
-                      size: 28,
-                      color: AppColors.sellerPrimary,
-                    ),
-                  ),
-                ),
-              if (uploading)
-                const ColoredBox(
-                  color: Colors.black54,
-                  child: Center(
-                    child: SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ChangeLogoButton extends StatelessWidget {
-  const _ChangeLogoButton({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = SellerColors.of(context);
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Material(
-        color: c.surface,
-        borderRadius: BorderRadius.circular(999),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(999),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: c.outline, width: 1),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Iconsax.camera,
-                  size: 16,
-                  color: AppColors.sellerPrimary,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  tr('shop_settings.upload_logo'),
-                  style: const TextStyle(
-                    fontFamily: AppFonts.seller,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.sellerPrimary,
-                    letterSpacing: -0.1,
-                  ),
-                ),
-              ],
-            ),
-          ),
         ),
       ),
     );

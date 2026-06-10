@@ -46,7 +46,7 @@ class ProductFormBody extends StatelessWidget {
         ),
         children: [
           MediaSection(
-            files: state.imageFiles,
+            images: state.images,
             maxImages: state.maxImages,
             onAdd: () => _pickImages(context),
             onRemove: cubit.removeImageAt,
@@ -111,9 +111,7 @@ class ProductFormBody extends StatelessWidget {
     if (!state.canPickMoreImages) return;
 
     final unlimited = state.maxImages < 0;
-    final remaining = unlimited
-        ? null
-        : state.maxImages - state.imageFiles.length;
+    final remaining = unlimited ? null : state.maxImages - state.images.length;
     if (!unlimited && (remaining ?? 0) <= 0) return;
 
     final List<XFile> picked;
