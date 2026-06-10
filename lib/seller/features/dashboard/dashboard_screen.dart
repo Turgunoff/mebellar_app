@@ -501,7 +501,14 @@ class _KpiGrid extends StatelessWidget {
           title: 'Mahsulotlar',
           // With tariff off there's no quota — show a plain product count.
           value: productsValue,
-          subtitle: tariffEnabled ? '${data.plan.label} tarif' : null,
+          // Expiring plans (trial bonus / paid) carry their remaining days
+          // right on the tile, so the seller sees the runway every day
+          // without opening the tariff screen.
+          subtitle: !tariffEnabled
+              ? null
+              : (data.tariffDaysLeft != null
+                    ? '${data.plan.label} tarif · ${data.tariffDaysLeft} kun'
+                    : '${data.plan.label} tarif'),
           indicator: exceeded ? KpiIndicator.accent('Limit oshdi') : null,
           // The card that shows the quota is the shortcut to managing it —
           // especially when "Limit oshdi" is up. No quota with tariff off,

@@ -7,6 +7,52 @@ import 'package:woody_app/shared/repositories/seller_product_repository.dart';
 
 void main() {
   group('SellerProductsBloc (mock repository)', () {
+    test('opens on the approved tab by default', () {
+      expect(const SellerProductsState().filter.statuses, {
+        SellerProductStatus.approved,
+      });
+    });
+
+    blocTest<SellerProductsBloc, SellerProductsState>(
+      'first search keystroke widens scope to all statuses',
+      build: () => SellerProductsBloc(MockSellerProductRepository()),
+      act: (bloc) async {
+        bloc.add(const SellerProductsRequested());
+        await Future<void>.delayed(const Duration(milliseconds: 500));
+        bloc.add(const SellerProductsSearchChanged('MH'));
+      },
+      wait: const Duration(milliseconds: 100),
+      verify: (bloc) {
+        expect(bloc.state.filter.statuses, isEmpty);
+        expect(bloc.state.filter.search, 'MH');
+      },
+    );
+
+    blocTest<SellerProductsBloc, SellerProductsState>(
+      'status chip picked mid-search survives later keystrokes',
+      build: () => SellerProductsBloc(MockSellerProductRepository()),
+      act: (bloc) async {
+        bloc.add(const SellerProductsRequested());
+        await Future<void>.delayed(const Duration(milliseconds: 500));
+        bloc.add(const SellerProductsSearchChanged('M'));
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        bloc.add(
+          SellerProductsFilterChanged(
+            bloc.state.filter.copyWith(
+              statuses: {SellerProductStatus.rejected},
+            ),
+          ),
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        bloc.add(const SellerProductsSearchChanged('MH'));
+      },
+      wait: const Duration(milliseconds: 100),
+      verify: (bloc) {
+        expect(bloc.state.filter.statuses, {SellerProductStatus.rejected});
+        expect(bloc.state.filter.search, 'MH');
+      },
+    );
+
     blocTest<SellerProductsBloc, SellerProductsState>(
       'fetch -> 12 seeded products',
       build: () => SellerProductsBloc(MockSellerProductRepository()),

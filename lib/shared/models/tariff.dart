@@ -251,11 +251,16 @@ class TariffSnapshot extends Equatable {
   const TariffSnapshot({
     required this.plan,
     required this.activeProductsCount,
+    this.startedAt,
     this.expiresAt,
   });
 
   final TariffPlan plan;
   final int activeProductsCount;
+
+  /// When the active subscription window opened. Paired with [expiresAt]
+  /// it gives the exact elapsed/remaining fraction for the progress ring.
+  final DateTime? startedAt;
 
   /// When the active subscription (trial bonus or paid plan) runs out and
   /// the shop falls back to `free`. Null for the free plan — it never
@@ -283,8 +288,21 @@ class TariffSnapshot extends Equatable {
     return days != null && days <= 5;
   }
 
+  /// Remaining share of the subscription window, 0..1 (1 = just granted,
+  /// 0 = expired). Null when either bound is missing — the ring falls back
+  /// to a plain icon.
+  double? get remainingFraction {
+    final start = startedAt;
+    final end = expiresAt;
+    if (start == null || end == null) return null;
+    final total = end.difference(start).inMinutes;
+    if (total <= 0) return 0;
+    final left = end.difference(DateTime.now()).inMinutes;
+    return (left / total).clamp(0.0, 1.0);
+  }
+
   @override
-  List<Object?> get props => [plan, activeProductsCount, expiresAt];
+  List<Object?> get props => [plan, activeProductsCount, startedAt, expiresAt];
 }
 
 class TariffLimitException implements Exception {

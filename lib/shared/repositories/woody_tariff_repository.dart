@@ -38,11 +38,13 @@ class WoodyTariffRepository implements TariffRepository {
   @override
   Future<Result<TariffSnapshot>> currentSnapshot() => runCatching(() async {
     final body = await _api.get<Map<String, dynamic>>('/seller/tariff/current');
+    final startedRaw = body['started_at'] as String?;
     final expiresRaw = body['expires_at'] as String?;
     return TariffSnapshot(
       plan: TariffPlan.fromCode(body['plan_code'] as String?),
       activeProductsCount:
           (body['active_products_count'] as num?)?.toInt() ?? 0,
+      startedAt: startedRaw == null ? null : DateTime.tryParse(startedRaw),
       expiresAt: expiresRaw == null ? null : DateTime.tryParse(expiresRaw),
     );
   });

@@ -22,9 +22,9 @@ class BusinessTypeStep extends StatelessWidget {
               title: tr('onboarding.step_business_type_title'),
               subtitle: tr('onboarding.step_business_type_subtitle'),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             for (final (i, type) in BusinessType.values.indexed) ...[
-              if (i > 0) const SizedBox(height: 12),
+              if (i > 0) const SizedBox(height: 10),
               _BusinessTypeCard(
                 type: type,
                 selected: state.draft.businessType == type,
@@ -52,11 +52,11 @@ class _BusinessTypeCard extends StatelessWidget {
   final bool enabled;
 
   IconData get _icon => switch (type) {
-        BusinessType.individual => Icons.person_outline_rounded,
-        BusinessType.selfEmployed => Icons.badge_outlined,
-        BusinessType.llc => Icons.business_outlined,
-        BusinessType.corporation => Icons.domain_outlined,
-      };
+    BusinessType.individual => Icons.person_outline_rounded,
+    BusinessType.selfEmployed => Icons.badge_outlined,
+    BusinessType.llc => Icons.business_outlined,
+    BusinessType.corporation => Icons.domain_outlined,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -82,20 +82,21 @@ class _BusinessTypeCard extends StatelessWidget {
           child: InkWell(
             borderRadius: BorderRadius.circular(16),
             onTap: enabled
-                ? () => context
-                    .read<OnboardingBloc>()
-                    .add(OnboardingBusinessTypeChanged(type))
+                ? () => context.read<OnboardingBloc>().add(
+                    OnboardingBusinessTypeChanged(type),
+                  )
                 : null,
             child: Padding(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  TintedIcon(icon: _icon),
-                  const SizedBox(width: 14),
+                  TintedIcon(icon: _icon, size: 36),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Row(
                           children: [
@@ -103,9 +104,9 @@ class _BusinessTypeCard extends StatelessWidget {
                               child: Text(
                                 tr('business_type.${type.code}'),
                                 style: PremiumTokens.body(
-                                  size: 14.5,
+                                  size: 14,
                                   weight: FontWeight.w600,
-                                  height: 1.3,
+                                  height: 1.25,
                                 ),
                               ),
                             ),
@@ -115,21 +116,24 @@ class _BusinessTypeCard extends StatelessWidget {
                             ],
                           ],
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          enabled
-                              ? tr('business_type.${type.code}_hint')
-                              : tr('business_type.coming_soon_hint'),
-                          style: PremiumTokens.body(
-                            size: 12.5,
-                            color: pt.grey,
-                            height: 1.4,
+                        // Only the pickable option explains itself; the
+                        // disabled roadmap rows stay one-liners — the "Tez
+                        // orada" badge already says everything.
+                        if (enabled) ...[
+                          const SizedBox(height: 3),
+                          Text(
+                            tr('business_type.${type.code}_hint'),
+                            style: PremiumTokens.body(
+                              size: 12,
+                              color: pt.grey,
+                              height: 1.3,
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   _RadioDot(selected: selected, enabled: enabled),
                 ],
               ),
@@ -178,7 +182,6 @@ class _RadioDot extends StatelessWidget {
       curve: Curves.easeOut,
       width: 22,
       height: 22,
-      margin: const EdgeInsets.only(top: 10),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(

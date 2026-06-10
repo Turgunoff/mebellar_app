@@ -50,8 +50,10 @@ class WoodySellerDashboardRepository implements SellerDashboardRepository {
     // One optimised call: KPIs (incl. today's revenue), the seller's plan, the
     // 7-day sparkline + deltas, top products, achievements and the leaderboard
     // all ride in the single /seller/dashboard payload.
-    final body =
-        await _api.get<Map<String, dynamic>>('/seller/dashboard', retries: 2);
+    final body = await _api.get<Map<String, dynamic>>(
+      '/seller/dashboard',
+      retries: 2,
+    );
     final kpis = body['kpis'] as Map<String, dynamic>? ?? const {};
     final recent = body['recent_orders'] as List<dynamic>? ?? const [];
     final tariffBody = body['tariff'] as Map<String, dynamic>?;
@@ -67,6 +69,8 @@ class WoodySellerDashboardRepository implements SellerDashboardRepository {
         activeProductsCount:
             (tariffBody?['active_products_count'] as num?)?.toInt() ??
             activeProducts,
+        startedAt: _parseDate(tariffBody?['started_at']),
+        expiresAt: _parseDate(tariffBody?['expires_at']),
       ),
       recentOrders: recent
           .whereType<Map<String, dynamic>>()
@@ -93,6 +97,9 @@ class WoodySellerDashboardRepository implements SellerDashboardRepository {
           .toList(growable: false),
     );
   }
+
+  static DateTime? _parseDate(Object? raw) =>
+      raw is String ? DateTime.tryParse(raw) : null;
 
   @override
   Future<({String? sellerName, String? shopName})> identity() async {

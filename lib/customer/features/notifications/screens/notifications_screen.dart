@@ -150,7 +150,11 @@ class _NotificationsViewState extends State<_NotificationsView> {
       NotificationKind.sellerLowStock => '/seller/products',
 
       // ---- Tariff lifecycle ------------------------------------------------
-      NotificationKind.tariffBonusGranted ||
+      // The bonus grant is purely informational — tapping expands the card
+      // in place (see _NotificationTile.expandsOnTap) instead of bouncing
+      // into seller mode. The expiry kinds DO navigate: the user has to act
+      // (pick a plan / renew) on the tariff screen.
+      NotificationKind.tariffBonusGranted => null,
       NotificationKind.tariffExpiring ||
       NotificationKind.tariffExpired => '/seller/tariff',
 
@@ -300,6 +304,11 @@ class _NotificationsViewState extends State<_NotificationsView> {
                         separatorBuilder: (_, _) => const SizedBox(height: 12),
                         itemBuilder: (_, i) => _NotificationTile(
                           notification: state.items[i],
+                          // Routeless (informational) kinds expand in place
+                          // so the full text is readable without leaving the
+                          // inbox.
+                          expandsOnTap:
+                              determineRouteFor(state.items[i]) == null,
                           onTap: () => _handleTap(context, state.items[i]),
                         ),
                       ),
@@ -311,11 +320,27 @@ class _NotificationsViewState extends State<_NotificationsView> {
   }
 }
 
-class _NotificationTile extends StatelessWidget {
-  const _NotificationTile({required this.notification, required this.onTap});
+class _NotificationTile extends StatefulWidget {
+  const _NotificationTile({
+    required this.notification,
+    required this.onTap,
+    this.expandsOnTap = false,
+  });
 
   final NotificationModel notification;
   final VoidCallback onTap;
+
+  /// Informational kinds (no destination route) toggle the clamped
+  /// title/body open on tap so long copy — e.g. the trial-bonus grant —
+  /// is readable without leaving the inbox.
+  final bool expandsOnTap;
+
+  @override
+  State<_NotificationTile> createState() => _NotificationTileState();
+}
+
+class _NotificationTileState extends State<_NotificationTile> {
+  bool _expanded = false;
 
   bool _hasViewCta(NotificationKind kind) {
     return kind == NotificationKind.sellerApproved ||
@@ -326,6 +351,7 @@ class _NotificationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final notification = widget.notification;
     final pt = PremiumTokens.of(context);
     final lang = context.locale.languageCode;
     final formatted = DateFormat(
@@ -340,113 +366,128 @@ class _NotificationTile extends StatelessWidget {
     // visually distinguishable at a glance.
     final unreadTint = kindAccent.withValues(alpha: 0.05);
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        if (widget.expandsOnTap) setState(() => _expanded = !_expanded);
+        widget.onTap();
+      },
       behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-        decoration: BoxDecoration(
-          color: isRead ? pt.surface : unreadTint,
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: PremiumTokens.softShadow,
-          border: isRead
-              ? null
-              : Border.all(color: kindAccent.withValues(alpha: 0.22), width: 1),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: isRead ? pt.imageBg : kindAccent.withValues(alpha: 0.14),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(
-                notification.kind.icon,
-                size: 20,
-                color: isRead ? pt.grey : kindAccent,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          notification.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: PremiumTokens.body(
-                            size: 14,
-                            weight: isRead ? FontWeight.w600 : FontWeight.w700,
-                            color: pt.dark,
-                            letterSpacing: -0.1,
-                          ),
-                        ),
-                      ),
-                      if (!isRead)
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: PremiumTokens.accent,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                    ],
+      child: AnimatedSize(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+        alignment: Alignment.topCenter,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+          decoration: BoxDecoration(
+            color: isRead ? pt.surface : unreadTint,
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: PremiumTokens.softShadow,
+            border: isRead
+                ? null
+                : Border.all(
+                    color: kindAccent.withValues(alpha: 0.22),
+                    width: 1,
                   ),
-                  if (notification.body.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      notification.body,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: PremiumTokens.body(
-                        size: 13,
-                        color: pt.grey,
-                        height: 1.35,
-                      ),
-                    ),
-                  ],
-                  if (_hasViewCta(notification.kind)) ...[
-                    const SizedBox(height: 10),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: isRead
+                      ? pt.imageBg
+                      : kindAccent.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  notification.kind.icon,
+                  size: 20,
+                  color: isRead ? pt.grey : kindAccent,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Row(
                       children: [
-                        Text(
-                          "Ko'rish",
-                          style: PremiumTokens.body(
-                            size: 12,
-                            weight: FontWeight.w700,
-                            color: kindAccent,
-                            letterSpacing: 0.2,
+                        Expanded(
+                          child: Text(
+                            notification.title,
+                            maxLines: _expanded ? null : 1,
+                            overflow: _expanded ? null : TextOverflow.ellipsis,
+                            style: PremiumTokens.body(
+                              size: 14,
+                              weight: isRead
+                                  ? FontWeight.w600
+                                  : FontWeight.w700,
+                              color: pt.dark,
+                              letterSpacing: -0.1,
+                            ),
                           ),
                         ),
-                        const SizedBox(width: 4),
-                        Icon(
-                          Iconsax.arrow_right_3,
-                          size: 14,
-                          color: kindAccent,
-                        ),
+                        if (!isRead)
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: PremiumTokens.accent,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
                       ],
                     ),
-                  ],
-                  const SizedBox(height: 8),
-                  Text(
-                    formatted,
-                    style: PremiumTokens.body(
-                      size: 11,
-                      weight: FontWeight.w500,
-                      color: pt.greyLight,
+                    if (notification.body.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        notification.body,
+                        maxLines: _expanded ? null : 3,
+                        overflow: _expanded ? null : TextOverflow.ellipsis,
+                        style: PremiumTokens.body(
+                          size: 13,
+                          color: pt.grey,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                    if (_hasViewCta(notification.kind)) ...[
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Text(
+                            "Ko'rish",
+                            style: PremiumTokens.body(
+                              size: 12,
+                              weight: FontWeight.w700,
+                              color: kindAccent,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            Iconsax.arrow_right_3,
+                            size: 14,
+                            color: kindAccent,
+                          ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 8),
+                    Text(
+                      formatted,
+                      style: PremiumTokens.body(
+                        size: 11,
+                        weight: FontWeight.w500,
+                        color: pt.greyLight,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

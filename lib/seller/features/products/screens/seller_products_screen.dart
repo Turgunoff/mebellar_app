@@ -207,9 +207,14 @@ class _SellerProductsViewState extends State<_SellerProductsView> {
                         // Draft status is intentionally excluded: per Sprint 11
                         // the product flow goes straight to pending_review on
                         // submit, so sellers never see a "Qoralama" bucket.
-                        for (final s in SellerProductStatus.values.where(
-                          (s) => s != SellerProductStatus.draft,
-                        )) ...[
+                        // Approved leads because it's the default tab — the
+                        // selected chip must be visible without scrolling.
+                        for (final s in const [
+                          SellerProductStatus.approved,
+                          SellerProductStatus.pendingReview,
+                          SellerProductStatus.rejected,
+                          SellerProductStatus.archived,
+                        ]) ...[
                           const SizedBox(width: 8),
                           _StatusFilterChip(
                             label: tr('seller_product_status.${s.code}'),
@@ -270,9 +275,18 @@ class _SellerProductsViewState extends State<_SellerProductsView> {
                       children: [
                         SizedBox(
                           height: MediaQuery.of(context).size.height * 0.6,
-                          child: _ProductsZeroState(
-                            onAdd: () => _openCreate(context),
-                          ),
+                          // A catalogue with products that the active tab or
+                          // search hides must not read as "katalogingiz
+                          // bo'sh" — e.g. a fresh seller's pending product on
+                          // the default approved tab.
+                          child: state.products.isEmpty
+                              ? _ProductsZeroState(
+                                  onAdd: () => _openCreate(context),
+                                )
+                              : _FilteredEmptyState(
+                                  searching:
+                                      state.filter.search?.isNotEmpty ?? false,
+                                ),
                         ),
                       ],
                     )
@@ -1083,6 +1097,75 @@ class _ProductsZeroState extends StatelessWidget {
             //         const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             //   ),
             // ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Filtered-empty state — the catalogue has products but the active status tab
+// or search query hides them all. Neutral grey treatment (vs the branded
+// onboarding zero-state) so it reads as "narrow view", not "no inventory".
+class _FilteredEmptyState extends StatelessWidget {
+  const _FilteredEmptyState({required this.searching});
+
+  final bool searching;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 96),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 96,
+              height: 96,
+              decoration: BoxDecoration(
+                color: c.fillSoft,
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: Icon(
+                searching ? Iconsax.search_normal : Iconsax.filter,
+                size: 40,
+                color: c.greyMid,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              tr(
+                searching
+                    ? 'seller.products_search_empty'
+                    : 'seller.products_filter_empty',
+              ),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: c.ink,
+                letterSpacing: -0.2,
+                height: 1.25,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              tr(
+                searching
+                    ? 'seller.products_search_empty_hint'
+                    : 'seller.products_filter_empty_hint',
+              ),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: c.grey,
+                height: 1.4,
+              ),
+            ),
           ],
         ),
       ),

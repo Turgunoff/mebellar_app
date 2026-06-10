@@ -127,7 +127,10 @@ class _NotificationsViewState extends State<_NotificationsView> {
       NotificationKind.sellerLowStock => '/seller/products',
 
       // ---- Tariff lifecycle ------------------------------------------------
-      NotificationKind.tariffBonusGranted ||
+      // The bonus grant is informational — it expands in place (see
+      // _NotificationTile.expandsOnTap); the expiry kinds navigate because
+      // the user has to act on the tariff screen.
+      NotificationKind.tariffBonusGranted => null,
       NotificationKind.tariffExpiring ||
       NotificationKind.tariffExpired => '/seller/tariff',
 
@@ -266,6 +269,10 @@ class _NotificationsViewState extends State<_NotificationsView> {
                         separatorBuilder: (_, _) => const SizedBox(height: 10),
                         itemBuilder: (_, i) => _NotificationTile(
                           notification: items[i],
+                          // Routeless (informational) kinds expand in place
+                          // so the full text is readable without leaving the
+                          // inbox.
+                          expandsOnTap: determineRouteFor(items[i]) == null,
                           onTap: () => _handleTap(context, items[i]),
                         ),
                       ),
@@ -291,14 +298,31 @@ class _NotificationsViewState extends State<_NotificationsView> {
   }
 }
 
-class _NotificationTile extends StatelessWidget {
-  const _NotificationTile({required this.notification, required this.onTap});
+class _NotificationTile extends StatefulWidget {
+  const _NotificationTile({
+    required this.notification,
+    required this.onTap,
+    this.expandsOnTap = false,
+  });
 
   final NotificationModel notification;
   final VoidCallback onTap;
 
+  /// Informational kinds (no destination route) toggle the clamped
+  /// title/body open on tap so long copy — e.g. the trial-bonus grant —
+  /// is readable without leaving the inbox.
+  final bool expandsOnTap;
+
+  @override
+  State<_NotificationTile> createState() => _NotificationTileState();
+}
+
+class _NotificationTileState extends State<_NotificationTile> {
+  bool _expanded = false;
+
   @override
   Widget build(BuildContext context) {
+    final notification = widget.notification;
     final lang = context.locale.languageCode;
     final formatted = DateFormat(
       'dd MMM, HH:mm',
@@ -307,7 +331,10 @@ class _NotificationTile extends StatelessWidget {
     final isRead = notification.isRead;
     final kindAccent = notification.kind.accent;
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        if (widget.expandsOnTap) setState(() => _expanded = !_expanded);
+        widget.onTap();
+      },
       behavior: HitTestBehavior.opaque,
       child: Container(
         padding: const EdgeInsets.all(14),
@@ -360,8 +387,8 @@ class _NotificationTile extends StatelessWidget {
                       Expanded(
                         child: Text(
                           notification.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                          maxLines: _expanded ? null : 1,
+                          overflow: _expanded ? null : TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: isRead
@@ -387,8 +414,8 @@ class _NotificationTile extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       notification.body,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
+                      maxLines: _expanded ? null : 3,
+                      overflow: _expanded ? null : TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 13,
                         color: _grey,

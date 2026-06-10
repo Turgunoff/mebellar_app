@@ -202,7 +202,7 @@ class _TariffBody extends StatelessWidget {
             isPending: hasPending,
             onUpgrade: () => _onUpgrade(context, plans[i]),
           ),
-          if (i != plans.length - 1) const SizedBox(height: 16),
+          if (i != plans.length - 1) const SizedBox(height: 12),
         ],
       ],
     );
@@ -349,19 +349,10 @@ class _ExpiryBanner extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         child: Row(
           children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: accent.withValues(alpha: 0.18),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              alignment: Alignment.center,
-              child: Icon(
-                warning ? Iconsax.warning_2 : Iconsax.gift,
-                size: 20,
-                color: accent,
-              ),
+            _ExpiryRing(
+              fraction: snapshot.remainingFraction,
+              accent: accent,
+              icon: warning ? Iconsax.warning_2 : Iconsax.gift,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -395,6 +386,69 @@ class _ExpiryBanner extends StatelessWidget {
                 ],
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
+// 4c. Expiry ring — the banner's leading glyph wrapped in a progress ring
+//     showing the REMAINING share of the subscription window. Fills once with
+//     a short ease-out sweep when the banner appears, then sits still — a
+//     deliberately calm alternative to a ticking countdown (a 30-day window
+//     has no business updating by the second). Falls back to a plain tinted
+//     square when the window bounds aren't known.
+// -----------------------------------------------------------------------------
+class _ExpiryRing extends StatelessWidget {
+  const _ExpiryRing({
+    required this.fraction,
+    required this.accent,
+    required this.icon,
+  });
+
+  /// Remaining 0..1 share of the subscription window; null = unknown.
+  final double? fraction;
+  final Color accent;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final target = fraction;
+    if (target == null) {
+      return Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: accent.withValues(alpha: 0.18),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        alignment: Alignment.center,
+        child: Icon(icon, size: 20, color: accent),
+      );
+    }
+    return SizedBox(
+      width: 44,
+      height: 44,
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: target),
+        duration: const Duration(milliseconds: 900),
+        curve: Curves.easeOutCubic,
+        child: Icon(icon, size: 18, color: accent),
+        builder: (context, value, child) => Stack(
+          alignment: Alignment.center,
+          children: [
+            Positioned.fill(
+              child: CircularProgressIndicator(
+                value: value,
+                strokeWidth: 3.5,
+                strokeCap: StrokeCap.round,
+                color: accent,
+                backgroundColor: accent.withValues(alpha: 0.15),
+              ),
+            ),
+            child!,
           ],
         ),
       ),
@@ -571,7 +625,7 @@ class _PlanCard extends StatelessWidget {
               ),
             ],
           ),
-          padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -580,11 +634,11 @@ class _PlanCard extends StatelessWidget {
                 isCurrent: isCurrent,
                 isEnterprise: _isEnterprise,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               _PriceRow(plan: plan, period: period),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               _FeatureList(plan: plan),
-              const SizedBox(height: 18),
+              const SizedBox(height: 14),
               _PlanCta(
                 plan: plan,
                 isCurrent: isCurrent,
@@ -644,10 +698,10 @@ class _PlanHeader extends StatelessWidget {
             plan.name,
             style: TextStyle(
               fontFamily: AppFonts.seller,
-              fontSize: 20,
+              fontSize: 17,
               fontWeight: FontWeight.w700,
               color: c.ink,
-              letterSpacing: -0.4,
+              letterSpacing: -0.3,
               height: 1.1,
             ),
           ),
@@ -769,10 +823,10 @@ class _PriceRow extends StatelessWidget {
         tr('tariff.price_free'),
         style: TextStyle(
           fontFamily: AppFonts.seller,
-          fontSize: 30,
+          fontSize: 24,
           fontWeight: FontWeight.w800,
           color: c.ink,
-          letterSpacing: -0.8,
+          letterSpacing: -0.6,
           height: 1.0,
         ),
       );
@@ -805,35 +859,35 @@ class _PriceRow extends StatelessWidget {
             _formatPrice(price),
             style: TextStyle(
               fontFamily: AppFonts.seller,
-              fontSize: 30,
+              fontSize: 24,
               fontWeight: FontWeight.w800,
               color: c.ink,
-              letterSpacing: -0.8,
+              letterSpacing: -0.6,
               height: 1.0,
             ),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 5),
           Padding(
-            padding: const EdgeInsets.only(bottom: 4),
+            padding: const EdgeInsets.only(bottom: 3),
             child: Text(
               "so'm",
               style: TextStyle(
                 fontFamily: AppFonts.seller,
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: FontWeight.w700,
                 color: c.ink,
                 letterSpacing: -0.1,
               ),
             ),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 5),
           Padding(
-            padding: const EdgeInsets.only(bottom: 5),
+            padding: const EdgeInsets.only(bottom: 4),
             child: Text(
               suffix,
               style: TextStyle(
                 fontFamily: AppFonts.seller,
-                fontSize: 13,
+                fontSize: 12,
                 fontWeight: FontWeight.w500,
                 color: c.grey,
               ),
@@ -893,7 +947,7 @@ class _FeatureRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -901,20 +955,20 @@ class _FeatureRow extends StatelessWidget {
             padding: EdgeInsets.only(top: 1),
             child: Icon(
               Iconsax.tick_circle,
-              size: 18,
+              size: 16,
               color: AppColors.sellerPrimary,
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
               text,
               style: TextStyle(
                 fontFamily: AppFonts.seller,
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: FontWeight.w500,
                 color: SellerColors.of(context).ink,
-                height: 1.35,
+                height: 1.3,
               ),
             ),
           ),
@@ -975,7 +1029,7 @@ class _PlanCta extends StatelessWidget {
 
     return SizedBox(
       width: double.infinity,
-      height: 50,
+      height: 42,
       child: FilledButton(
         onPressed: disabled ? null : onPressed,
         style: FilledButton.styleFrom(
@@ -985,14 +1039,14 @@ class _PlanCta extends StatelessWidget {
           disabledForegroundColor: foreground,
           elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
             fontFamily: AppFonts.seller,
-            fontSize: 14,
+            fontSize: 13.5,
             fontWeight: FontWeight.w700,
             color: foreground,
             letterSpacing: -0.1,

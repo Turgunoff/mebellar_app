@@ -73,7 +73,11 @@ class SellerProductsState extends Equatable {
   const SellerProductsState({
     this.status = SellerProductsStatus.initial,
     this.products = const [],
-    this.filter = const SellerProductFilter(),
+    // Sellers land on the live catalogue ("Tasdiqlangan") by default;
+    // "Barchasi" stays one tap away and search auto-widens to it.
+    this.filter = const SellerProductFilter(
+      statuses: {SellerProductStatus.approved},
+    ),
     this.error,
   });
 
@@ -114,9 +118,16 @@ class SellerProductsBloc
       (e, emit) => emit(state.copyWith(filter: e.filter)),
     );
     on<SellerProductsSearchChanged>((e, emit) {
+      // The first keystroke widens scope to "Barchasi" so an SKU lookup finds
+      // the product whatever its status (archived, rejected, …). Only the
+      // empty→non-empty transition resets it — a chip tapped mid-search keeps
+      // narrowing the results.
+      final startedSearch =
+          e.query.isNotEmpty && (state.filter.search ?? '').isEmpty;
       final filter = state.filter.copyWith(
         search: e.query,
         clearSearch: e.query.isEmpty,
+        statuses: startedSearch ? const {} : null,
       );
       emit(state.copyWith(filter: filter));
     });

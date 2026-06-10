@@ -80,6 +80,7 @@ class SellerDashboardCubit extends Cubit<SellerDashboardState> {
             productsCount: snap.tariff.activeProductsCount,
             plan: snap.tariff.plan,
             productLimit: snap.tariff.plan.maxActiveProducts,
+            tariffDaysLeft: snap.tariff.daysUntilExpiry,
             recentOrders: List<Order>.from(snap.recentOrders),
             weekly: snap.weekly,
             kpiDeltas: snap.kpiDeltas,
@@ -173,6 +174,7 @@ class SellerDashboardData extends Equatable {
     this.productsCount = 0,
     this.plan = TariffPlan.free,
     this.productLimit = 3,
+    this.tariffDaysLeft,
     this.recentOrders = const [],
     this.weekly = const WeeklySales(),
     this.kpiDeltas = const KpiDeltas(),
@@ -194,6 +196,11 @@ class SellerDashboardData extends Equatable {
 
   /// Active-product cap for [plan]. `-1` means unlimited.
   final int productLimit;
+
+  /// Days until the active subscription (trial bonus / paid) expires.
+  /// Null when the plan has no expiry (free) — the tile hides the hint.
+  final int? tariffDaysLeft;
+
   final List<Order> recentOrders;
 
   /// Last-7-days sales series + week total + delta for the hero sparkline.
@@ -228,6 +235,7 @@ class SellerDashboardData extends Equatable {
     int? productsCount,
     TariffPlan? plan,
     int? productLimit,
+    int? tariffDaysLeft,
     List<Order>? recentOrders,
     WeeklySales? weekly,
     KpiDeltas? kpiDeltas,
@@ -244,6 +252,7 @@ class SellerDashboardData extends Equatable {
       productsCount: productsCount ?? this.productsCount,
       plan: plan ?? this.plan,
       productLimit: productLimit ?? this.productLimit,
+      tariffDaysLeft: tariffDaysLeft ?? this.tariffDaysLeft,
       recentOrders: recentOrders ?? this.recentOrders,
       weekly: weekly ?? this.weekly,
       kpiDeltas: kpiDeltas ?? this.kpiDeltas,
@@ -263,6 +272,7 @@ class SellerDashboardData extends Equatable {
     productsCount,
     plan,
     productLimit,
+    tariffDaysLeft,
     recentOrders.length,
     weekly,
     kpiDeltas,

@@ -124,8 +124,10 @@ class TariffBloc extends Bloc<TariffEvent, TariffState> {
               : TariffSnapshot(
                   plan: event.plan,
                   activeProductsCount: snap.activeProductsCount,
-                  // The poll only carries the plan code; the expiry is only
-                  // still valid if the plan didn't change underneath us.
+                  // The poll only carries the plan code; the subscription
+                  // window is only still valid if the plan didn't change
+                  // underneath us.
+                  startedAt: event.plan == snap.plan ? snap.startedAt : null,
                   expiresAt: event.plan == snap.plan ? snap.expiresAt : null,
                 ),
         ),

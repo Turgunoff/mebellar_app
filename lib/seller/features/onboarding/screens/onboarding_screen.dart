@@ -291,13 +291,10 @@ class _BottomBarState extends State<_BottomBar> {
                   onPressed: isBusy || !canAdvance
                       ? null
                       : () => widget.onNextPressed(state),
-                  icon: isBusy
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Icon(icon),
+                  // While submitting the _FullScreenLoader overlay is already
+                  // up — a second spinner inside the button reads as two
+                  // competing loaders, so the button just sits disabled.
+                  icon: Icon(icon),
                   label: FittedBox(
                     fit: BoxFit.scaleDown,
                     child: Text(
