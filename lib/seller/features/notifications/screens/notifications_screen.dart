@@ -126,6 +126,11 @@ class _NotificationsViewState extends State<_NotificationsView> {
             : '/seller/products',
       NotificationKind.sellerLowStock => '/seller/products',
 
+      // ---- Tariff lifecycle ------------------------------------------------
+      NotificationKind.tariffBonusGranted ||
+      NotificationKind.tariffExpiring ||
+      NotificationKind.tariffExpired => '/seller/tariff',
+
       // ---- Broadcasts (also cross-mode from seller) ----------------------
       NotificationKind.promo =>
         _payloadDeepLink(n, const ['promo_id', 'campaign_id'], '/promo/') ??

@@ -135,8 +135,11 @@ void main() {
   group('TariffPlan price helpers', () {
     test('yearly price applies a discount over 12 monthly payments', () {
       // Sanity check the catalog math so the UI doesn't accidentally show
-      // a yearly plan that costs *more* than 12 months.
-      for (final plan in TariffPlan.values.where((p) => !p.isFree)) {
+      // a yearly plan that costs *more* than 12 months. Only paid plans —
+      // free and the backend-granted trial bonus have no price at all.
+      for (final plan in TariffPlan.values.where(
+        (p) => p.monthlyPriceUzs > 0,
+      )) {
         expect(
           plan.yearlyPriceUzs,
           lessThan(plan.monthlyPriceUzs * 12),

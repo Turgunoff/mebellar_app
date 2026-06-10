@@ -357,6 +357,9 @@ class WoodySellerProductRepository implements SellerProductRepository {
       rejectionReason: (row['rejection_reason'] as String?)?.trim().isNotEmpty == true
           ? (row['rejection_reason'] as String).trim()
           : null,
+      archiveReason: (row['archive_reason'] as String?)?.trim().isNotEmpty == true
+          ? (row['archive_reason'] as String).trim()
+          : null,
       createdAt: created,
       // Backend SellerProductRow exposes no updated_at — mirror created_at.
       updatedAt: created,

@@ -154,11 +154,25 @@ class _TariffBody extends StatelessWidget {
     }
   }
 
+  /// Free-plan product cap from the live catalog — feeds the trial warning
+  /// copy ("faqat eng avval qo'shilgan N ta mahsulot aktiv qoladi").
+  int get _freePlanLimit {
+    for (final p in state.plans) {
+      if (p.code == 'free') return p.maxProducts;
+    }
+    return TariffPlan.free.maxActiveProducts;
+  }
+
   @override
   Widget build(BuildContext context) {
     final hasPending = state.hasPending;
     final plans = state.plans;
     final currentPlanCode = state.currentPlan.code;
+    final snapshot = state.snapshot;
+    final showExpiry =
+        snapshot != null &&
+        snapshot.expiresAt != null &&
+        !state.currentPlan.isFree;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
@@ -168,6 +182,10 @@ class _TariffBody extends StatelessWidget {
       children: [
         if (hasPending) ...[
           _PendingBanner(subscription: state.pending!),
+          const SizedBox(height: 18),
+        ],
+        if (showExpiry) ...[
+          _ExpiryBanner(snapshot: snapshot, freePlanLimit: _freePlanLimit),
           const SizedBox(height: 18),
         ],
         _PeriodToggle(
@@ -273,6 +291,111 @@ class _PendingBanner extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// 4b. Expiry banner — active bonus/paid subscription countdown. Indigo gift
+//     treatment while there's time; flips to a fixed amber warning inside the
+//     last 5 days (mirrors the backend's pre-expiry push window). Like the
+//     pending banner it sits on a fixed tint, so the inks stay constant.
+// =============================================================================
+const _warnTint = Color(0xFFFFF3E0);
+const _warnAccent = Color(0xFFB45309);
+
+class _ExpiryBanner extends StatelessWidget {
+  const _ExpiryBanner({required this.snapshot, required this.freePlanLimit});
+
+  final TariffSnapshot snapshot;
+  final int freePlanLimit;
+
+  @override
+  Widget build(BuildContext context) {
+    final plan = snapshot.plan;
+    final daysLeft = snapshot.daysUntilExpiry ?? 0;
+    final expiresAt = snapshot.expiresAt!.toLocal();
+    final dateLabel =
+        '${expiresAt.day.toString().padLeft(2, '0')}.'
+        '${expiresAt.month.toString().padLeft(2, '0')}.'
+        '${expiresAt.year}';
+    final warning = snapshot.isExpiringSoon;
+
+    final String title;
+    final String subtitle;
+    if (warning) {
+      title = tr('tariff.expiry_warning_title', args: ['$daysLeft']);
+      subtitle = plan.isTrial
+          ? tr('tariff.expiry_warning_subtitle_trial', args: ['$freePlanLimit'])
+          : tr('tariff.expiry_warning_subtitle_paid');
+    } else {
+      title = tr(
+        'tariff.expiry_active_title',
+        args: [tr('tariff.plan.${plan.code}_label')],
+      );
+      subtitle = tr('tariff.expiry_active_subtitle', args: [
+        dateLabel,
+        '$daysLeft',
+      ]);
+    }
+
+    final accent = warning ? _warnAccent : AppColors.sellerPrimary;
+    return Material(
+      color: warning ? _warnTint : _accentTint,
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: accent.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              alignment: Alignment.center,
+              child: Icon(
+                warning ? Iconsax.warning_2 : Iconsax.gift,
+                size: 20,
+                color: accent,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontFamily: AppFonts.seller,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      // Fixed tints under both banners — constant dark ink,
+                      // same rationale as _PendingBanner.
+                      color: Color(0xFF1D1D1D),
+                      letterSpacing: -0.1,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontFamily: AppFonts.seller,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF5A5A5A),
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

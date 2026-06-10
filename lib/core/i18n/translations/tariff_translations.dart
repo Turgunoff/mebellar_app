@@ -66,6 +66,16 @@ const Map<String, dynamic> tariffUz = {
       'Iltimos, qayta urinib ko\'ring yoki Telegram support bilan bog\'laning.',
   'try_again': 'Qayta yuborish',
   'expires_at': 'Amal qilish: {}',
+  'expiry_active_title': '{} faol 🎁',
+  'expiry_active_subtitle': '{} gacha amal qiladi · {} kun qoldi',
+  'expiry_warning_title': 'Tarif tugashiga {} kun qoldi',
+  'expiry_warning_subtitle_trial':
+      'Tarif tanlamasangiz, faqat eng avval qo\'shilgan {} ta mahsulot aktiv qoladi, qolganlari arxivlanadi.',
+  'expiry_warning_subtitle_paid':
+      'To\'lovni yangilamasangiz, do\'kon Free tarifga o\'tadi va limitdan ortiq mahsulotlar arxivlanadi.',
+  'archived_banner_title': 'Mahsulotlar tarif tufayli arxivlandi',
+  'archived_banner_subtitle':
+      'Tarif limiti sababli ba\'zi mahsulotlaringiz arxivga o\'tkazildi. Tarifni yangilab, ularni qayta tiklashingiz mumkin.',
   'upgrade_status': {
     'none': '—',
     'pending': 'Kutilmoqda',
@@ -75,6 +85,7 @@ const Map<String, dynamic> tariffUz = {
   },
   'plan': {
     'free_label': 'Free tarif',
+    'trial_label': 'Bonus tarif',
     'basic_label': 'Basic tarif',
     'pro_label': 'Pro tarif',
     'enterprise_label': 'Enterprise tarif',
@@ -144,6 +155,16 @@ const Map<String, dynamic> tariffRu = {
       'Попробуйте ещё раз или свяжитесь с поддержкой в Telegram.',
   'try_again': 'Попробовать снова',
   'expires_at': 'Действует до: {}',
+  'expiry_active_title': '{} активен 🎁',
+  'expiry_active_subtitle': 'Действует до {} · осталось {} дн.',
+  'expiry_warning_title': 'До конца тарифа осталось {} дн.',
+  'expiry_warning_subtitle_trial':
+      'Если не выбрать тариф, активными останутся только {} первых товаров, остальные уйдут в архив.',
+  'expiry_warning_subtitle_paid':
+      'Без продления магазин перейдёт на Free, а товары сверх лимита будут архивированы.',
+  'archived_banner_title': 'Товары архивированы из-за тарифа',
+  'archived_banner_subtitle':
+      'Из-за лимита тарифа часть товаров перенесена в архив. Обновите тариф, чтобы восстановить их.',
   'upgrade_status': {
     'none': '—',
     'pending': 'Ожидает',
@@ -153,6 +174,7 @@ const Map<String, dynamic> tariffRu = {
   },
   'plan': {
     'free_label': 'Free тариф',
+    'trial_label': 'Бонусный тариф',
     'basic_label': 'Basic тариф',
     'pro_label': 'Pro тариф',
     'enterprise_label': 'Enterprise тариф',
@@ -221,6 +243,16 @@ const Map<String, dynamic> tariffEn = {
   'rejected_subtitle': 'Please try again or contact Telegram support.',
   'try_again': 'Try again',
   'expires_at': 'Active until: {}',
+  'expiry_active_title': '{} active 🎁',
+  'expiry_active_subtitle': 'Valid until {} · {} days left',
+  'expiry_warning_title': '{} days left on your plan',
+  'expiry_warning_subtitle_trial':
+      'Pick a plan or only your {} earliest products stay active — the rest get archived.',
+  'expiry_warning_subtitle_paid':
+      'Without renewal your shop drops to Free and over-limit products get archived.',
+  'archived_banner_title': 'Products archived due to tariff',
+  'archived_banner_subtitle':
+      'Some products were archived because of your plan limit. Upgrade to restore them.',
   'upgrade_status': {
     'none': '—',
     'pending': 'Pending',
@@ -230,6 +262,7 @@ const Map<String, dynamic> tariffEn = {
   },
   'plan': {
     'free_label': 'Free plan',
+    'trial_label': 'Bonus plan',
     'basic_label': 'Basic plan',
     'pro_label': 'Pro plan',
     'enterprise_label': 'Enterprise plan',

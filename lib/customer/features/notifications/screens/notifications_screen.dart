@@ -149,6 +149,11 @@ class _NotificationsViewState extends State<_NotificationsView> {
             : '/seller/products',
       NotificationKind.sellerLowStock => '/seller/products',
 
+      // ---- Tariff lifecycle ------------------------------------------------
+      NotificationKind.tariffBonusGranted ||
+      NotificationKind.tariffExpiring ||
+      NotificationKind.tariffExpired => '/seller/tariff',
+
       // ---- Fee adjustment ------------------------------------------------
       // Customer receives 'proposed' → navigates to /orders/{id} to approve.
       // Seller receives 'response' → navigates to /seller/orders/{id}.

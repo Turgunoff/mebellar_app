@@ -117,6 +117,7 @@ class SellerProduct extends Equatable {
     this.warrantyMonths = 0,
     required this.status,
     this.rejectionReason,
+    this.archiveReason,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -183,8 +184,18 @@ class SellerProduct extends Equatable {
   final int warrantyMonths;
   final SellerProductStatus status;
   final String? rejectionReason;
+
+  /// Why an archived product was archived. Null = the seller did it
+  /// themselves; `'tariff_downgrade'` = the backend's tariff-expiry sweep
+  /// did. Drives the explanatory banner on the products screen.
+  final String? archiveReason;
+
   final DateTime createdAt;
   final DateTime updatedAt;
+
+  bool get archivedByTariff =>
+      status == SellerProductStatus.archived &&
+      archiveReason == 'tariff_downgrade';
 
   String? get heroImage {
     if (images.isEmpty) return null;
@@ -248,6 +259,7 @@ class SellerProduct extends Equatable {
       rejectionReason: clearRejectionReason
           ? null
           : (rejectionReason ?? this.rejectionReason),
+      archiveReason: archiveReason,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

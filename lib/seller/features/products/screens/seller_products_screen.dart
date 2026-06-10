@@ -11,6 +11,7 @@ import '../../../../shared/models/seller_product.dart';
 import '../../../../shared/repositories/seller_product_repository.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/error_state.dart';
+import '../../tariff/screens/tariff_screen.dart';
 import '../bloc/seller_products_bloc.dart';
 import '../widgets/product_status_chip.dart';
 import 'product_form_screen.dart';
@@ -143,6 +144,10 @@ class _SellerProductsViewState extends State<_SellerProductsView> {
       },
       builder: (context, state) {
         final visible = state.visibleProducts;
+        // One banner for the whole list (not per tile): the expiry sweep
+        // archives in bulk, so the seller needs a single "nega yo'qoldi?"
+        // explanation with a path back to the tariff screen.
+        final tariffArchived = state.products.any((p) => p.archivedByTariff);
         return Scaffold(
           backgroundColor: c.background,
           appBar: AppBar(
@@ -274,12 +279,19 @@ class _SellerProductsViewState extends State<_SellerProductsView> {
                   : ListView.separated(
                       physics: const AlwaysScrollableScrollPhysics(),
                       padding: const EdgeInsets.fromLTRB(20, 12, 20, 96),
-                      itemCount: visible.length,
+                      itemCount: visible.length + (tariffArchived ? 1 : 0),
                       separatorBuilder: (_, _) => const SizedBox(height: 10),
-                      itemBuilder: (context, i) => _ProductTile(
-                        product: visible[i],
-                        onTap: () => _openPreview(context, visible[i]),
-                      ),
+                      itemBuilder: (context, i) {
+                        if (tariffArchived && i == 0) {
+                          return const _TariffArchiveBanner();
+                        }
+                        final product =
+                            visible[tariffArchived ? i - 1 : i];
+                        return _ProductTile(
+                          product: product,
+                          onTap: () => _openPreview(context, product),
+                        );
+                      },
                     ),
             ),
           },
@@ -886,6 +898,77 @@ class _DeleteButton extends StatelessWidget {
                   height: 1.0,
                 ),
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Tariff-archive explainer — shown once at the top of the list when any
+// product carries archive_reason='tariff_downgrade' (the backend's expiry
+// sweep archived it). Fixed amber tint with constant inks, same treatment as
+// the tariff screen's warning banner; taps through to the tariff screen.
+class _TariffArchiveBanner extends StatelessWidget {
+  const _TariffArchiveBanner();
+
+  static const _tint = Color(0xFFFFF3E0);
+  static const _accent = Color(0xFFB45309);
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: _tint,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const TariffScreen()),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: _accent.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                alignment: Alignment.center,
+                child: const Icon(Iconsax.archive_1, size: 20, color: _accent),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      tr('tariff.archived_banner_title'),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1D1D1D),
+                        letterSpacing: -0.1,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      tr('tariff.archived_banner_subtitle'),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF5A5A5A),
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Iconsax.arrow_right_3, size: 18, color: _accent),
             ],
           ),
         ),

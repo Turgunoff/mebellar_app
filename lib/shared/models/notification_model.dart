@@ -35,6 +35,12 @@ enum NotificationKind {
   sellerProductRejected('seller_product_rejected'),
   sellerLowStock('seller_low_stock'),
 
+  // ---- Tariff lifecycle (seller) ------------------------------------------
+  // Emitted by the backend's first-approval bonus grant + expiry sweep.
+  tariffBonusGranted('tariff_bonus_granted'),
+  tariffExpiring('tariff_expiring'),
+  tariffExpired('tariff_expired'),
+
   // ---- Fee adjustment (bi-directional) ----------------------------------
   feeAdjustmentProposed('fee_adjustment_proposed'),
   feeAdjustmentResponse('fee_adjustment_response'),
@@ -80,6 +86,9 @@ enum NotificationKind {
       NotificationKind.sellerProductApproved => Iconsax.box_tick,
       NotificationKind.sellerProductRejected => Iconsax.box_remove,
       NotificationKind.sellerLowStock => Iconsax.warning_2,
+      NotificationKind.tariffBonusGranted => Iconsax.gift,
+      NotificationKind.tariffExpiring => Iconsax.timer_1,
+      NotificationKind.tariffExpired => Iconsax.timer_pause,
       NotificationKind.systemAlert => Iconsax.danger,
       NotificationKind.feeAdjustmentProposed => Iconsax.truck_fast,
       NotificationKind.feeAdjustmentResponse => Iconsax.tick_circle,
@@ -110,6 +119,9 @@ enum NotificationKind {
       NotificationKind.sellerProductApproved => const Color(0xFF2F9E6E),
       NotificationKind.sellerProductRejected => const Color(0xFFE05A4A),
       NotificationKind.sellerLowStock => const Color(0xFFE5A23B), // honey
+      NotificationKind.tariffBonusGranted => const Color(0xFF2F9E6E), // emerald
+      NotificationKind.tariffExpiring => const Color(0xFFE5A23B), // honey
+      NotificationKind.tariffExpired => const Color(0xFFE05A4A), // alert red
       NotificationKind.systemAlert => const Color(0xFFE05A4A), // alert red
       NotificationKind.feeAdjustmentProposed => const Color(
         0xFFE5A23B,
@@ -159,6 +171,9 @@ extension NotificationKindRouting on NotificationKind {
       NotificationKind.sellerProductApproved ||
       NotificationKind.sellerProductRejected ||
       NotificationKind.sellerLowStock ||
+      NotificationKind.tariffBonusGranted ||
+      NotificationKind.tariffExpiring ||
+      NotificationKind.tariffExpired ||
       NotificationKind.feeAdjustmentResponse => AppMode.seller,
 
       // Global / marketing broadcasts — listed explicitly so a future

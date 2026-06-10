@@ -12,6 +12,17 @@ enum TariffPlan {
     monthlyPriceUzs: 0,
     yearlyPriceUzs: 0,
   ),
+  // The 30-day first-approval bonus. Granted only by the backend (never
+  // purchasable — the plan catalog endpoint filters it out), so it has no
+  // price and never renders as a selectable card.
+  trial(
+    'trial',
+    maxActiveProducts: 200,
+    maxImagesPerProduct: 10,
+    commissionRate: 0.0,
+    monthlyPriceUzs: 0,
+    yearlyPriceUzs: 0,
+  ),
   basic(
     'basic',
     maxActiveProducts: 30,
@@ -73,10 +84,12 @@ enum TariffPlan {
   bool get isUnlimited => maxActiveProducts < 0;
   bool get hasUnlimitedImages => maxImagesPerProduct < 0;
   bool get isFree => this == TariffPlan.free;
+  bool get isTrial => this == TariffPlan.trial;
 
-  /// Display name for the tier ("Free" / "Basic" / "Pro" / "Enterprise").
+  /// Display name for the tier ("Free" / "Bonus" / "Basic" / …).
   String get label => switch (this) {
     TariffPlan.free => 'Free',
+    TariffPlan.trial => 'Bonus',
     TariffPlan.basic => 'Basic',
     TariffPlan.pro => 'Pro',
     TariffPlan.enterprise => 'Enterprise',
@@ -235,18 +248,43 @@ enum BillingPeriod {
 /// Backend would return more — this is enough for the dashboard KPI tile
 /// and the create-product limit guard.
 class TariffSnapshot extends Equatable {
-  const TariffSnapshot({required this.plan, required this.activeProductsCount});
+  const TariffSnapshot({
+    required this.plan,
+    required this.activeProductsCount,
+    this.expiresAt,
+  });
 
   final TariffPlan plan;
   final int activeProductsCount;
+
+  /// When the active subscription (trial bonus or paid plan) runs out and
+  /// the shop falls back to `free`. Null for the free plan — it never
+  /// expires.
+  final DateTime? expiresAt;
 
   bool get reachedLimit =>
       !plan.isUnlimited && activeProductsCount >= plan.maxActiveProducts;
 
   bool get canAddMoreProducts => plan.canAddMoreProducts(activeProductsCount);
 
+  /// Whole days until [expiresAt] (rounded up; never negative). Null when
+  /// the plan has no expiry.
+  int? get daysUntilExpiry {
+    final expires = expiresAt;
+    if (expires == null) return null;
+    final left = expires.difference(DateTime.now()).inHours;
+    return left <= 0 ? 0 : (left / 24).ceil();
+  }
+
+  /// Drives the amber pre-expiry warning banner — mirrors the backend's
+  /// TARIFF_EXPIRY_WARN_DAYS default.
+  bool get isExpiringSoon {
+    final days = daysUntilExpiry;
+    return days != null && days <= 5;
+  }
+
   @override
-  List<Object?> get props => [plan, activeProductsCount];
+  List<Object?> get props => [plan, activeProductsCount, expiresAt];
 }
 
 class TariffLimitException implements Exception {
