@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/logging/talker.dart';
+import '../../../../core/network/api_error.dart';
 import '../../../../shared/constants/product_colors.dart';
 import '../../../../shared/models/attribute_definition.dart';
 import '../../../../shared/models/category_model.dart';
@@ -517,9 +518,10 @@ class AddProductCubit extends Cubit<AddProductState> {
         st,
         '[add-product-cubit] submit failed sku=${state.sku}',
       );
-      emit(
-        state.copyWith(status: AddProductStatus.failure, error: e.toString()),
-      );
+      // The backend sends seller-actionable Uzbek copy in `detail`
+      // (e.g. "Tarif limit: …"); show that, not the ApiError envelope.
+      final message = e is ApiError ? (e.message ?? e.code) : e.toString();
+      emit(state.copyWith(status: AddProductStatus.failure, error: message));
       return false;
     }
   }

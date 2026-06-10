@@ -67,15 +67,22 @@ class _DashboardView extends StatelessWidget {
         bottom: false,
         child: BlocBuilder<SellerDashboardCubit, SellerDashboardState>(
           builder: (context, state) {
+            // No cached greeting yet and the identity fetch is still in
+            // flight — shimmer instead of flashing the "Sotuvchi" default.
+            final identityPending = state.isLoading &&
+                state.data.sellerName == null &&
+                state.data.shopName == null;
             return Column(
               children: [
                 // Fixed header — never scrolls with the content below.
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-                  child: _GreetingHeader(
-                    sellerName: state.data.displaySellerName,
-                    shopName: state.data.shopName,
-                  ),
+                  child: identityPending
+                      ? const _GreetingHeaderShimmer()
+                      : _GreetingHeader(
+                          sellerName: state.data.displaySellerName,
+                          shopName: state.data.shopName,
+                        ),
                 ),
                 Expanded(
                   child: BrandRefreshIndicator(
@@ -290,6 +297,52 @@ class _GreetingHeader extends StatelessWidget {
             height: 1.3,
           ),
         ),
+      ],
+    );
+  }
+}
+
+/// Greeting placeholder while the identity fetch is in flight. The bell stays
+/// live — notifications don't depend on the dashboard snapshot.
+class _GreetingHeaderShimmer extends StatelessWidget {
+  const _GreetingHeaderShimmer();
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: Shimmer.fromColors(
+            baseColor: c.fillSoft,
+            highlightColor: c.surface,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  height: 22,
+                  width: 210,
+                  decoration: BoxDecoration(
+                    color: c.surface,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                ),
+                const SizedBox(height: 9),
+                Container(
+                  height: 13,
+                  width: 160,
+                  decoration: BoxDecoration(
+                    color: c.surface,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        const _NotificationBell(),
       ],
     );
   }

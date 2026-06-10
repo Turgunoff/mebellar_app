@@ -8,6 +8,7 @@ import 'package:woody_app/core/i18n/i18n.dart';
 import '../../../../customer/features/home/widgets/premium/premium_tokens.dart';
 import '../../../../shared/models/business_type.dart';
 import '../bloc/onboarding_bloc.dart';
+import 'onboarding_kit.dart';
 
 /// In-wizard KYC document picker. File paths live in [OnboardingState] so the
 /// wizard's bottom-bar submit button can gate on completeness via canAdvance.
@@ -23,37 +24,19 @@ class DocumentUploadStep extends StatelessWidget {
           a.draft.businessType != b.draft.businessType ||
           a.documentFiles != b.documentFiles,
       builder: (context, state) {
-        final pt = PremiumTokens.of(context);
         final type = state.draft.businessType;
         final requirements = type == null
             ? const <_DocumentRequirement>[]
             : _requirementsFor(type);
 
-        return ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+        return StepReveal(
+          step: OnboardingStep.documentUpload,
           children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    tr('onboarding.step_documents_title'),
-                    style: PremiumTokens.display(size: 26, letterSpacing: -0.3),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    tr('onboarding.step_documents_subtitle'),
-                    style: PremiumTokens.body(
-                      size: 14,
-                      color: pt.grey,
-                      height: 1.5,
-                    ),
-                  ),
-                ],
-              ),
+            StepHeader(
+              title: tr('onboarding.step_documents_title'),
+              subtitle: tr('onboarding.step_documents_subtitle'),
             ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 24),
             for (var i = 0; i < requirements.length; i++) ...[
               _DocumentUploadCard(
                 requirement: requirements[i],

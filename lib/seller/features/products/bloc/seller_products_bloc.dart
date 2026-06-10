@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/analytics/analytics_service.dart';
+import '../../../../core/network/api_error.dart';
 import '../../../../shared/models/seller_product.dart';
 import '../../../../shared/repositories/seller_product_repository.dart';
 
@@ -40,6 +41,13 @@ class SellerProductArchived extends SellerProductsEvent {
 
 class SellerProductRestored extends SellerProductsEvent {
   const SellerProductRestored(this.id);
+  final String id;
+  @override
+  List<Object?> get props => [id];
+}
+
+class SellerProductDeleted extends SellerProductsEvent {
+  const SellerProductDeleted(this.id);
   final String id;
   @override
   List<Object?> get props => [id];
@@ -114,6 +122,7 @@ class SellerProductsBloc
     });
     on<SellerProductArchived>(_onArchived);
     on<SellerProductRestored>(_onRestored);
+    on<SellerProductDeleted>(_onDeleted);
     on<SellerProductSubmitted>(_onSubmitted);
     on<_SellerProductsRefreshed>(
       (e, emit) => emit(state.copyWith(products: e.products)),
@@ -172,7 +181,10 @@ class SellerProductsBloc
       unawaited(_analytics?.productDeleted(productId: event.id));
     } catch (e) {
       emit(
-        state.copyWith(status: SellerProductsStatus.ready, error: e.toString()),
+        state.copyWith(
+          status: SellerProductsStatus.ready,
+          error: _displayError(e),
+        ),
       );
     }
   }
@@ -195,10 +207,46 @@ class SellerProductsBloc
       unawaited(_analytics?.productUpdated(productId: event.id));
     } catch (e) {
       emit(
-        state.copyWith(status: SellerProductsStatus.ready, error: e.toString()),
+        state.copyWith(
+          status: SellerProductsStatus.ready,
+          error: _displayError(e),
+        ),
       );
     }
   }
+
+  Future<void> _onDeleted(
+    SellerProductDeleted event,
+    Emitter<SellerProductsState> emit,
+  ) async {
+    emit(state.copyWith(status: SellerProductsStatus.mutating));
+    try {
+      await _repo.delete(event.id);
+      emit(
+        state.copyWith(
+          status: SellerProductsStatus.ready,
+          products: [
+            for (final p in state.products)
+              if (p.id != event.id) p,
+          ],
+        ),
+      );
+      unawaited(_analytics?.productDeleted(productId: event.id));
+    } catch (e) {
+      emit(
+        state.copyWith(
+          status: SellerProductsStatus.ready,
+          error: _displayError(e),
+        ),
+      );
+    }
+  }
+
+  /// The backend sends seller-actionable Uzbek copy in `detail` (e.g.
+  /// "Tarif limit: …", "Bu mahsulot buyurtmalarda qatnashgan…") — surface
+  /// that, not the ApiError envelope.
+  String _displayError(Object e) =>
+      e is ApiError ? (e.message ?? e.code) : e.toString();
 
   /// Returns a copy of the current product list with [updated] swapped in by
   /// id. If the id isn't present (e.g. archived from a detail screen opened

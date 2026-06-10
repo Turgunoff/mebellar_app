@@ -4,6 +4,7 @@ import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
 
 import '../bloc/onboarding_bloc.dart';
+import 'onboarding_kit.dart';
 
 class PersonalInfoStep extends StatefulWidget {
   const PersonalInfoStep({super.key, required this.formKey});
@@ -83,61 +84,60 @@ class _PersonalInfoStepState extends State<PersonalInfoStep> {
   Widget build(BuildContext context) {
     return Form(
       key: widget.formKey,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
+      child: StepReveal(
+        step: OnboardingStep.personalInfo,
         children: [
-          Text(
-            tr('onboarding.step_personal_title'),
-            style: Theme.of(context).textTheme.titleLarge,
+          StepHeader(
+            title: tr('onboarding.step_personal_title'),
+            subtitle: tr('onboarding.step_personal_subtitle'),
           ),
-          const SizedBox(height: 8),
-          Text(
-            tr('onboarding.step_personal_subtitle'),
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           TextFormField(
             controller: _name,
             textInputAction: TextInputAction.next,
-            decoration: InputDecoration(
-              labelText: tr('onboarding.legal_name'),
-              hintText: tr('onboarding.legal_name_hint'),
-              border: const OutlineInputBorder(),
+            decoration: onboardingFieldDecoration(
+              context,
+              label: tr('onboarding.legal_name'),
+              hint: tr('onboarding.legal_name_hint'),
+              icon: Icons.person_outline_rounded,
             ),
             validator: _nameValidator,
             onChanged: (_) => _emit(),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           TextFormField(
             controller: _phone,
             keyboardType: TextInputType.phone,
             inputFormatters: [_phoneMask],
-            decoration: InputDecoration(
-              labelText: tr('onboarding.contact_phone'),
-              hintText: '+998 ## ### ## ##',
-              border: const OutlineInputBorder(),
+            decoration: onboardingFieldDecoration(
+              context,
+              label: tr('onboarding.contact_phone'),
+              hint: '+998 ## ### ## ##',
+              icon: Icons.phone_outlined,
             ),
             validator: _phoneValidator,
             onChanged: (_) => _emit(),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           TextFormField(
             controller: _email,
             keyboardType: TextInputType.emailAddress,
-            decoration: InputDecoration(
-              labelText: tr('onboarding.contact_email'),
-              border: const OutlineInputBorder(),
+            decoration: onboardingFieldDecoration(
+              context,
+              label: tr('onboarding.contact_email'),
+              icon: Icons.mail_outline_rounded,
             ),
             validator: _emailValidator,
             onChanged: (_) => _emit(),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           TextFormField(
             controller: _telegram,
-            decoration: InputDecoration(
-              labelText: tr('onboarding.telegram_optional'),
-              hintText: '@username',
-              border: const OutlineInputBorder(),
+            decoration: onboardingFieldDecoration(
+              context,
+              label: tr('onboarding.telegram_optional'),
+              hint: '@username',
+              icon: Icons.send_outlined,
             ),
             onChanged: (_) => _emit(),
           ),

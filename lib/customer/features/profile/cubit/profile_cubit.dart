@@ -115,7 +115,15 @@ class ProfileCubit extends Cubit<ProfileState> {
       emit(const ProfileState());
       return;
     }
-    emit(ProfileState(id: id, phone: _auth.currentUserPhone, isLoading: true));
+    // Same user refreshing → keep the loaded fields so a /me failure falls
+    // back to the last-known state instead of blanking the seller banner.
+    if (state.id == id) {
+      emit(state.copyWith(isLoading: true));
+    } else {
+      emit(
+        ProfileState(id: id, phone: _auth.currentUserPhone, isLoading: true),
+      );
+    }
     try {
       emit(_fromMe(await _auth.fetchMe()));
       if (sl.isRegistered<AppModeCubit>()) {

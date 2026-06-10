@@ -4,6 +4,7 @@ import 'package:woody_app/core/i18n/i18n.dart';
 
 import '../../../../customer/features/home/widgets/premium/premium_tokens.dart';
 import '../bloc/onboarding_bloc.dart';
+import 'onboarding_kit.dart';
 
 class ReviewStep extends StatelessWidget {
   const ReviewStep({super.key, required this.onEditStep});
@@ -14,33 +15,16 @@ class ReviewStep extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<OnboardingBloc, OnboardingState>(
       builder: (context, state) {
-        final pt = PremiumTokens.of(context);
         final draft = state.draft;
-        return ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+        return StepReveal(
+          step: OnboardingStep.review,
           children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Ma'lumotlarni tekshiring",
-                    style: PremiumTokens.display(size: 26, letterSpacing: -0.3),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    "Yuborishdan oldin barcha ma'lumotlar to'g'ri ekanligini tekshiring.",
-                    style: PremiumTokens.body(
-                      size: 14,
-                      color: pt.grey,
-                      height: 1.5,
-                    ),
-                  ),
-                ],
-              ),
+            const StepHeader(
+              title: "Ma'lumotlarni tekshiring",
+              subtitle:
+                  "Yuborishdan oldin barcha ma'lumotlar to'g'ri ekanligini tekshiring.",
             ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 24),
             _SummaryCard(
               icon: Icons.business_center_outlined,
               title: tr('onboarding.step_business_type_title'),
@@ -281,7 +265,7 @@ class _AddressCard extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFFF9F6F4),
+                color: PremiumTokens.accent.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: pt.divider),
               ),

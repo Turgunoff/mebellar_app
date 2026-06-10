@@ -15,6 +15,7 @@ import 'package:yandex_mapkit/yandex_mapkit.dart';
 
 import '../../../../customer/features/home/widgets/premium/premium_tokens.dart';
 import '../bloc/onboarding_bloc.dart';
+import 'onboarding_kit.dart';
 
 const _kDefaultCenter = Point(latitude: 41.2995, longitude: 69.2401);
 const _kDefaultZoom = 13.0;
@@ -238,48 +239,58 @@ class _ShopAddressStepState extends State<ShopAddressStep> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            tr('onboarding.step_address_title'),
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            tr('onboarding.step_address_subtitle'),
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 20),
-          Expanded(
-            child: _MapCard(
-              isGeocoding: _isGeocoding,
-              mapKitReady: _mapKitReady,
-              onMapCreated: _onMapCreated,
-              onCameraPositionChanged: _onCameraPositionChanged,
-              onMyLocation: _goToMyLocation,
+    return StepActivation(
+      step: OnboardingStep.shopAddress,
+      builder: (context, animation) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: const Interval(0.0, 0.6, curve: Curves.easeOutCubic),
+        );
+        return FadeTransition(
+          opacity: curved,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                StepHeader(
+                  title: tr('onboarding.step_address_title'),
+                  subtitle: tr('onboarding.step_address_subtitle'),
+                ),
+                const SizedBox(height: 20),
+                Expanded(
+                  child: _MapCard(
+                    isGeocoding: _isGeocoding,
+                    mapKitReady: _mapKitReady,
+                    onMapCreated: _onMapCreated,
+                    onCameraPositionChanged: _onCameraPositionChanged,
+                    onMyLocation: _goToMyLocation,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _AddressField(
+                  address: _geocodedAddress,
+                  isLoading: _isGeocoding,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _landmark,
+                  decoration: onboardingFieldDecoration(
+                    context,
+                    label: 'Mo\'ljal yoki ofis raqami (ixtiyoriy)',
+                    icon: Icons.flag_outlined,
+                  ),
+                  onChanged: (value) {
+                    context.read<OnboardingBloc>().add(
+                      OnboardingShopInfoChanged(landmark: value),
+                    );
+                  },
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 12),
-          _AddressField(address: _geocodedAddress, isLoading: _isGeocoding),
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: _landmark,
-            decoration: const InputDecoration(
-              labelText: 'Mo\'ljal yoki ofis raqami (ixtiyoriy)',
-              hintText: 'Mo\'ljal yoki ofis raqami (ixtiyoriy)',
-              border: OutlineInputBorder(),
-            ),
-            onChanged: (value) {
-              context.read<OnboardingBloc>().add(
-                OnboardingShopInfoChanged(landmark: value),
-              );
-            },
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

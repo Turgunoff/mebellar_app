@@ -95,6 +95,28 @@ void main() {
     );
 
     blocTest<SellerProductsBloc, SellerProductsState>(
+      'delete removes an archived product from the list for good',
+      build: () => SellerProductsBloc(MockSellerProductRepository()),
+      act: (bloc) async {
+        bloc.add(const SellerProductsRequested());
+        await Future<void>.delayed(const Duration(milliseconds: 500));
+        // Archive an approved product first so there's a known archived id.
+        final live = bloc.state.products.firstWhere(
+          (p) => p.status == SellerProductStatus.approved,
+        );
+        bloc.add(SellerProductArchived(live.id));
+        await Future<void>.delayed(const Duration(milliseconds: 500));
+        bloc.add(SellerProductDeleted(live.id));
+        await Future<void>.delayed(const Duration(milliseconds: 500));
+      },
+      verify: (bloc) {
+        expect(bloc.state.status, SellerProductsStatus.ready);
+        expect(bloc.state.error, isNull);
+        expect(bloc.state.products.length, 11);
+      },
+    );
+
+    blocTest<SellerProductsBloc, SellerProductsState>(
       'submit for review transitions draft -> pending',
       build: () => SellerProductsBloc(MockSellerProductRepository()),
       act: (bloc) async {

@@ -61,6 +61,10 @@ const Map<String, dynamic> sellerUz = {
   'product_step_finalize': 'Yakuniy ko\'rinish',
   'product_submit_for_review': 'Tekshiruvga yuborish',
   'product_restore': 'Qaytarish',
+  'product_delete': 'O\'chirish',
+  'product_delete_confirm_title': 'Mahsulotni o\'chirish',
+  'product_delete_confirm_body':
+      'Mahsulot butunlay o\'chiriladi va uni tiklab bo\'lmaydi. Davom etasizmi?',
   'product_has_delivery_short': 'Yetkazib berish',
   'product_has_installation_short': 'O\'rnatish',
   'save_draft': 'Qoralama',
@@ -134,6 +138,10 @@ const Map<String, dynamic> sellerRu = {
   'product_step_finalize': 'Финальный обзор',
   'product_submit_for_review': 'Отправить на проверку',
   'product_restore': 'Вернуть',
+  'product_delete': 'Удалить',
+  'product_delete_confirm_title': 'Удалить товар',
+  'product_delete_confirm_body':
+      'Товар будет удалён навсегда, без возможности восстановления. Продолжить?',
   'product_has_delivery_short': 'Доставка',
   'product_has_installation_short': 'Установка',
   'save_draft': 'Черновик',
@@ -206,6 +214,10 @@ const Map<String, dynamic> sellerEn = {
   'product_step_finalize': 'Final review',
   'product_submit_for_review': 'Submit for review',
   'product_restore': 'Restore',
+  'product_delete': 'Delete',
+  'product_delete_confirm_title': 'Delete product',
+  'product_delete_confirm_body':
+      'The product will be permanently deleted and cannot be restored. Continue?',
   'product_has_delivery_short': 'Delivery',
   'product_has_installation_short': 'Installation',
   'save_draft': 'Draft',

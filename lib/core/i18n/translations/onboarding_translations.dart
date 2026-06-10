@@ -152,6 +152,10 @@ const Map<String, dynamic> onboardingEn = {
 };
 
 const Map<String, dynamic> businessTypeUz = {
+  'coming_soon_badge': 'Tez orada',
+  'coming_soon_hint':
+      'Bu yo\'nalish tez orada ishga tushadi. Hozircha jismoniy shaxs '
+          'sifatida ro\'yxatdan o\'tishingiz mumkin.',
   'individual': 'Jismoniy shaxs',
   'individual_hint': 'Pasport bilan tasdiqlanadi',
   'self_employed': 'O\'z-o\'zini band qilgan (samozanyatiy)',
@@ -163,6 +167,10 @@ const Map<String, dynamic> businessTypeUz = {
 };
 
 const Map<String, dynamic> businessTypeRu = {
+  'coming_soon_badge': 'Скоро',
+  'coming_soon_hint':
+      'Этот вариант скоро станет доступен. Пока вы можете '
+          'зарегистрироваться как физическое лицо.',
   'individual': 'Физическое лицо',
   'individual_hint': 'Подтверждается паспортом',
   'self_employed': 'Самозанятый',
@@ -174,6 +182,10 @@ const Map<String, dynamic> businessTypeRu = {
 };
 
 const Map<String, dynamic> businessTypeEn = {
+  'coming_soon_badge': 'Coming soon',
+  'coming_soon_hint':
+      'This option is coming soon. For now you can register '
+          'as an individual.',
   'individual': 'Individual',
   'individual_hint': 'Verified by passport',
   'self_employed': 'Self-employed',

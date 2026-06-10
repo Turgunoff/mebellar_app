@@ -114,7 +114,10 @@ class SellerKpiCard extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 12),
+          // Flexible so the gap compresses inside the fixed-aspect grid cell
+          // when the optional subtitle line is present (e.g. the products
+          // card's tariff caption) instead of overflowing the card bottom.
+          const Flexible(child: SizedBox(height: 12)),
           Text(
             title,
             maxLines: 1,

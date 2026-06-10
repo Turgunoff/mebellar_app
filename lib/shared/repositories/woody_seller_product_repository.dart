@@ -141,6 +141,11 @@ class WoodySellerProductRepository implements SellerProductRepository {
   }
 
   @override
+  Future<void> delete(String id) async {
+    await _api.delete<dynamic>('/seller/products/$id');
+  }
+
+  @override
   Future<SellerProduct> submitForReview(String id) =>
       _patchStatus(id, SellerProductStatus.pendingReview);
 

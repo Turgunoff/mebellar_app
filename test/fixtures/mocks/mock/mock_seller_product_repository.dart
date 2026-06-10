@@ -142,6 +142,15 @@ class MockSellerProductRepository implements SellerProductRepository {
   }
 
   @override
+  Future<void> delete(String id) async {
+    await Future<void>.delayed(_delay);
+    final idx = _products.indexWhere((p) => p.id == id);
+    if (idx < 0) throw StateError('Mahsulot topilmadi: $id');
+    _products.removeAt(idx);
+    _emit();
+  }
+
+  @override
   Future<SellerProduct> restore(String id) async {
     await Future<void>.delayed(_delay);
     final idx = _products.indexWhere((p) => p.id == id);

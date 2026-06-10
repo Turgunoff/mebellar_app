@@ -303,6 +303,13 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
       }
     }
 
+    // Only individual sellers are accepted at launch; a draft saved before
+    // the restriction may carry another legal type — coerce it back.
+    if (draft.businessType != null &&
+        draft.businessType != BusinessType.individual) {
+      draft = draft.copyWith(businessType: BusinessType.individual);
+    }
+
     final resumeStep = OnboardingStep
         .values[draft.lastStep.clamp(0, OnboardingStep.values.length - 1)];
     emit(state.copyWith(draft: draft, step: resumeStep));

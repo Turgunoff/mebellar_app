@@ -267,6 +267,10 @@ class _BottomBarState extends State<_BottomBar> {
                           ),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      textStyle: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
@@ -304,6 +308,10 @@ class _BottomBarState extends State<_BottomBar> {
                   ),
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    textStyle: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
               ),

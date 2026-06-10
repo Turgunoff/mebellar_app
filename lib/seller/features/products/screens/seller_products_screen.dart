@@ -101,7 +101,29 @@ class _SellerProductsViewState extends State<_SellerProductsView> {
   @override
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
-    return BlocBuilder<SellerProductsBloc, SellerProductsState>(
+    return BlocConsumer<SellerProductsBloc, SellerProductsState>(
+      // Mutation failures (archive/restore/delete) keep the list on screen —
+      // surface them as a snackbar. Empty-list load failures already render
+      // the full-body ErrorState, so skip those here.
+      listenWhen: (prev, next) =>
+          next.error != null &&
+          next.error != prev.error &&
+          next.products.isNotEmpty,
+      listener: (context, state) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.danger,
+            behavior: SnackBarBehavior.floating,
+            content: Text(
+              state.error!,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        );
+      },
       builder: (context, state) {
         final visible = state.visibleProducts;
         return Scaffold(
@@ -402,6 +424,50 @@ class _ProductTile extends StatelessWidget {
   final SellerProduct product;
   final VoidCallback onTap;
 
+  /// Hard delete is irreversible (unlike archive), so it always goes through
+  /// an explicit confirm dialog before the event is dispatched.
+  Future<void> _confirmDelete(BuildContext context, String productId) async {
+    final bloc = context.read<SellerProductsBloc>();
+    final c = SellerColors.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: c.surface,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          tr('seller.product_delete_confirm_title'),
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            color: c.ink,
+          ),
+        ),
+        content: Text(
+          tr('seller.product_delete_confirm_body'),
+          style: TextStyle(fontSize: 14, height: 1.45, color: c.grey),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(
+              tr('common.cancel'),
+              style: TextStyle(fontWeight: FontWeight.w600, color: c.grey),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(
+              tr('seller.product_delete'),
+              style: TextStyle(fontWeight: FontWeight.w700, color: c.negative),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) bloc.add(SellerProductDeleted(productId));
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
@@ -503,12 +569,17 @@ class _ProductTile extends StatelessWidget {
                                   .read<SellerProductsBloc>()
                                   .add(SellerProductSubmitted(product.id)),
                             ),
-                          if (isArchived)
+                          if (isArchived) ...[
                             _RestoreButton(
                               onPressed: () => context
                                   .read<SellerProductsBloc>()
                                   .add(SellerProductRestored(product.id)),
                             ),
+                            _DeleteButton(
+                              onPressed: () =>
+                                  _confirmDelete(context, product.id),
+                            ),
+                          ],
                         ],
                       ),
                       if (product.rejectionReason != null) ...[
@@ -755,6 +826,47 @@ class _RestoreButton extends StatelessWidget {
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   color: primary,
+                  height: 1.0,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Delete pill — the irreversible "remove for good" action, shown only on
+// archived tiles next to the restore pill. Danger-tinted so it can't be
+// mistaken for the affirmative indigo restore action.
+class _DeleteButton extends StatelessWidget {
+  const _DeleteButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    return Material(
+      color: c.negativeBg,
+      borderRadius: BorderRadius.circular(999),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onPressed,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Iconsax.trash, size: 13, color: c.negative),
+              const SizedBox(width: 5),
+              Text(
+                tr('seller.product_delete'),
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: c.negative,
                   height: 1.0,
                 ),
               ),

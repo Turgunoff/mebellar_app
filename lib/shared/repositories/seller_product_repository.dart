@@ -59,8 +59,15 @@ abstract class SellerProductRepository {
   Future<SellerProduct> archive(String id);
 
   /// Un-archive — sends the product back into moderation as `pending_review`.
-  /// Only the admin flow can return it to `approved`.
+  /// Only the admin flow can return it to `approved`. Re-claims a tariff slot,
+  /// so the backend answers 422 ("Tarif limit: …") when the plan is full.
   Future<SellerProduct> restore(String id);
+
+  /// Hard-delete — permanently removes the product row
+  /// (`DELETE /seller/products/{id}`). Unlike [archive] there is no way back.
+  /// The backend answers 409 when the product ever appeared in an order —
+  /// purchase history must survive — so such products can only be archived.
+  Future<void> delete(String id);
 
   Future<SellerProduct> submitForReview(String id);
 

@@ -203,7 +203,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 24),
             const OrdersBlock(),
             const SizedBox(height: 20),
-            if (profileState.isSellerApproved)
+            if (profileState.isLoading)
+              const SellerBannerShimmer()
+            else if (profileState.isSellerApproved)
               SellerApprovedBanner(
                 onOpenDashboard: () {
                   // Defence-in-depth: refresh the cached approval flag before

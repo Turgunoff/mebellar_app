@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
 
 import '../bloc/onboarding_bloc.dart';
+import 'onboarding_kit.dart';
 
 /// Shop name + short description.
 ///
@@ -58,39 +59,34 @@ class _ShopInfoStepState extends State<ShopInfoStep> {
   Widget build(BuildContext context) {
     return Form(
       key: widget.formKey,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
+      child: StepReveal(
+        step: OnboardingStep.shopInfo,
         children: [
-          Text(
-            tr('onboarding.step_shop_title'),
-            style: Theme.of(context).textTheme.titleLarge,
+          StepHeader(
+            title: tr('onboarding.step_shop_title'),
+            subtitle: tr('onboarding.step_shop_subtitle'),
           ),
-          const SizedBox(height: 8),
-          Text(
-            tr('onboarding.step_shop_subtitle'),
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
           TextFormField(
             controller: _name,
             textInputAction: TextInputAction.next,
-            decoration: InputDecoration(
-              labelText: tr('onboarding.shop_name'),
-              border: const OutlineInputBorder(),
+            decoration: onboardingFieldDecoration(
+              context,
+              label: tr('onboarding.shop_name'),
+              icon: Icons.storefront_outlined,
             ),
             validator: _nameValidator,
             onChanged: (_) => _emit(),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           TextFormField(
             controller: _desc,
             maxLines: 4,
             maxLength: 300,
-            decoration: InputDecoration(
-              labelText: tr('onboarding.shop_description'),
-              alignLabelWithHint: true,
-              border: const OutlineInputBorder(),
-            ),
+            decoration: onboardingFieldDecoration(
+              context,
+              label: tr('onboarding.shop_description'),
+            ).copyWith(alignLabelWithHint: true),
             onChanged: (_) => _emit(),
           ),
         ],
