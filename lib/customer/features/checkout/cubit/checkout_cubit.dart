@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/analytics/analytics_service.dart';
+import '../../../../core/network/api_error_messages.dart';
 import '../../../../shared/models/cart_item_model.dart';
 import '../../../../shared/repositories/cart_repository.dart';
 import '../../../../shared/repositories/checkout_repository.dart';
@@ -164,7 +165,7 @@ class CheckoutCubit extends Cubit<CheckoutState> {
         ),
       );
     } catch (e) {
-      emit(state.copyWith(status: CheckoutStatus.failure, error: e.toString()));
+      emit(state.copyWith(status: CheckoutStatus.failure, error: apiErrorMessage(e)));
     }
   }
 

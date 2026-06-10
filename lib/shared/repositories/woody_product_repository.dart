@@ -103,6 +103,7 @@ class WoodyProductRepository extends ProductDataSource {
         if (v is List) return MapEntry(k, v.map((e) => e.toString()).toList());
         return MapEntry(k, v);
       }),
+      retries: 2,
     );
     final rows = body['rows'];
     if (rows is! List) return const [];

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/auth/auth_repository.dart';
+import '../../../../core/network/api_error_messages.dart';
 import '../../../../core/network/token_store.dart';
 import '../../../../core/realtime/woody_realtime_service.dart';
 import '../../../../shared/models/notification_model.dart';
@@ -141,7 +142,7 @@ class NotificationsCubit extends Cubit<NotificationsState> {
         await _repo.markRead(id);
       }
     } catch (e) {
-      emit(state.copyWith(items: previous, error: e.toString()));
+      emit(state.copyWith(items: previous, error: apiErrorMessage(e)));
     }
   }
 

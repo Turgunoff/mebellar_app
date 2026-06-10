@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/network/api_error_messages.dart';
 import '../../../../shared/models/category_model.dart';
 import '../../../../shared/models/product_model.dart';
 import '../../../../shared/repositories/category_data_source.dart';
@@ -152,12 +153,12 @@ class ProductListCubit extends Cubit<ProductListState> {
       // Keep the cached page visible on a refresh failure — surface a hard
       // failure state only when we had nothing to paint to begin with.
       if (hasCache) {
-        emit(state.copyWith(error: e.toString()));
+        emit(state.copyWith(error: apiErrorMessage(e)));
       } else {
         emit(
           state.copyWith(
             status: ProductListStatus.failure,
-            error: e.toString(),
+            error: apiErrorMessage(e),
           ),
         );
       }
@@ -224,7 +225,7 @@ class ProductListCubit extends Cubit<ProductListState> {
         return;
       }
       emit(
-        state.copyWith(status: ProductListStatus.failure, error: e.toString()),
+        state.copyWith(status: ProductListStatus.failure, error: apiErrorMessage(e)),
       );
     }
   }

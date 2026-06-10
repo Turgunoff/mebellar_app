@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/analytics/analytics_service.dart';
+import '../../../../core/network/api_error_messages.dart';
 import '../../../../shared/models/cart_item_model.dart';
 import '../../../../shared/models/product_model.dart';
 import '../../../../shared/repositories/cart_repository.dart';
@@ -145,7 +146,7 @@ class CartBloc extends Bloc<CartEvent, CartState> {
       final items = await _repo.fetchItems();
       emit(state.copyWith(status: CartStatus.ready, items: items));
     } catch (e) {
-      emit(state.copyWith(status: CartStatus.failure, error: e.toString()));
+      emit(state.copyWith(status: CartStatus.failure, error: apiErrorMessage(e)));
     }
   }
 
@@ -202,7 +203,7 @@ class CartBloc extends Bloc<CartEvent, CartState> {
         state.copyWith(
           status: CartStatus.ready,
           items: previous,
-          error: e.toString(),
+          error: apiErrorMessage(e),
         ),
       );
     }
@@ -234,7 +235,7 @@ class CartBloc extends Bloc<CartEvent, CartState> {
         state.copyWith(
           status: CartStatus.ready,
           items: previous,
-          error: e.toString(),
+          error: apiErrorMessage(e),
         ),
       );
     }
@@ -256,7 +257,7 @@ class CartBloc extends Bloc<CartEvent, CartState> {
         state.copyWith(
           status: CartStatus.ready,
           items: previous,
-          error: e.toString(),
+          error: apiErrorMessage(e),
         ),
       );
     }
@@ -273,7 +274,7 @@ class CartBloc extends Bloc<CartEvent, CartState> {
         state.copyWith(
           status: CartStatus.ready,
           items: previous,
-          error: e.toString(),
+          error: apiErrorMessage(e),
         ),
       );
     }

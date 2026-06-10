@@ -36,7 +36,7 @@ class WoodySellerOrderRepository implements SellerOrderRepository {
 
   @override
   Future<Result<List<Order>>> list() => runCatching(() async {
-    final body = await _api.get<Map<String, dynamic>>(_ordersPath);
+    final body = await _api.get<Map<String, dynamic>>(_ordersPath, retries: 2);
     final rows = (body['rows'] as List<dynamic>?) ?? const [];
     return rows
         .whereType<Map<String, dynamic>>()

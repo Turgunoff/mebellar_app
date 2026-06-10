@@ -2,6 +2,7 @@ import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/network/api_error_messages.dart';
 import '../../../../shared/models/order.dart';
 import '../../../../shared/models/order_status.dart';
 import '../../../../shared/repositories/order_repository.dart';
@@ -93,7 +94,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
       final list = await _repo.list();
       emit(state.copyWith(status: OrdersStatus.ready, orders: list));
     } catch (e) {
-      emit(state.copyWith(status: OrdersStatus.failure, error: e.toString()));
+      emit(state.copyWith(status: OrdersStatus.failure, error: apiErrorMessage(e)));
     }
   }
 }

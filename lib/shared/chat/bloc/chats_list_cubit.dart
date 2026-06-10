@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../core/network/api_error_messages.dart';
 import '../../models/chat.dart';
 import '../../repositories/chat_repository.dart';
 
@@ -60,7 +61,7 @@ class ChatsListCubit extends Cubit<ChatsListState> {
       (chats) =>
           emit(state.copyWith(status: ChatsListStatus.ready, chats: chats)),
       onError: (Object e) => emit(
-        state.copyWith(status: ChatsListStatus.failure, error: e.toString()),
+        state.copyWith(status: ChatsListStatus.failure, error: apiErrorMessage(e)),
       ),
     );
   }
@@ -72,7 +73,7 @@ class ChatsListCubit extends Cubit<ChatsListState> {
     } catch (e) {
       emit(state.copyWith(
         status: ChatsListStatus.failure,
-        error: e.toString(),
+        error: apiErrorMessage(e),
       ));
     }
   }

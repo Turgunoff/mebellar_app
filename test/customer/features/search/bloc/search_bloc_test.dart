@@ -81,7 +81,10 @@ void main() {
           .having((s) => s.status, 'status', SearchStatus.loading),
       isA<SearchState>()
           .having((s) => s.status, 'status', SearchStatus.failure)
-          .having((s) => s.error, 'error', isNotNull),
+          // A non-ApiError throwable maps to the generic localized message
+          // (uz bundle is the default singleton in tests), never a raw
+          // `Exception: ...` string surfaced to the user.
+          .having((s) => s.error, 'error', 'Xatolik yuz berdi'),
     ],
   );
 

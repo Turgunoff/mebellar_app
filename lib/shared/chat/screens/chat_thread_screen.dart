@@ -350,12 +350,44 @@ class _MessageList extends StatefulWidget {
   State<_MessageList> createState() => _MessageListState();
 }
 
+/// A precomputed row in the thread: either a message bubble or a day
+/// separator. Building this flat list once (on message change) instead of
+/// on every `build` lets the list render lazily via `ListView.builder` —
+/// only the on-screen rows are materialised, so a thread with hundreds of
+/// messages scrolls without rebuilding every bubble each frame.
+sealed class _ChatRow {
+  const _ChatRow();
+}
+
+class _MessageRow extends _ChatRow {
+  const _MessageRow(this.message);
+  final ChatMessage message;
+}
+
+class _SeparatorRow extends _ChatRow {
+  const _SeparatorRow(this.date);
+  final DateTime date;
+}
+
 class _MessageListState extends State<_MessageList> {
   final _scroll = ScrollController();
+  late List<_ChatRow> _rows;
+
+  @override
+  void initState() {
+    super.initState();
+    _rows = _buildRows(widget.messages);
+  }
 
   @override
   void didUpdateWidget(covariant _MessageList old) {
     super.didUpdateWidget(old);
+    final messagesChanged = !listEquals(widget.messages, old.messages);
+    // Recompute the flat row list only when the messages (or viewer) actually
+    // change — not on unrelated parent rebuilds.
+    if (messagesChanged || widget.viewer != old.viewer) {
+      _rows = _buildRows(widget.messages);
+    }
     if (widget.messages.length != old.messages.length) {
       // New message arrived — scroll to the bottom on next frame so the
       // user sees the freshest content without manual interaction.
@@ -368,6 +400,22 @@ class _MessageListState extends State<_MessageList> {
         );
       });
     }
+  }
+
+  // Flatten messages (newest-first, to match the reversed ListView) into rows,
+  // inserting a day separator whenever the calendar date changes.
+  static List<_ChatRow> _buildRows(List<ChatMessage> messages) {
+    final newestFirst = messages.reversed.toList(growable: false);
+    final rows = <_ChatRow>[];
+    for (var i = 0; i < newestFirst.length; i++) {
+      final m = newestFirst[i];
+      rows.add(_MessageRow(m));
+      final next = i == newestFirst.length - 1 ? null : newestFirst[i + 1];
+      if (next == null || !_sameDay(m.createdAt, next.createdAt)) {
+        rows.add(_SeparatorRow(m.createdAt));
+      }
+    }
+    return rows;
   }
 
   @override
@@ -411,27 +459,23 @@ class _MessageListState extends State<_MessageList> {
       );
     }
 
-    // Build a flat list of items: messages + day separators when the
-    // calendar date changes. Use a reverse ListView so new messages
-    // can append visually-at-the-bottom while we iterate newest-first.
-    final messagesNewestFirst = widget.messages.reversed.toList();
-    final items = <Widget>[];
-    for (var i = 0; i < messagesNewestFirst.length; i++) {
-      final m = messagesNewestFirst[i];
-      items.add(MessageBubble(message: m, viewer: widget.viewer));
-      final isLast = i == messagesNewestFirst.length - 1;
-      final next = isLast ? null : messagesNewestFirst[i + 1];
-      if (next == null || !_sameDay(m.createdAt, next.createdAt)) {
-        items.add(MessageDateSeparator(date: m.createdAt));
-      }
-    }
-
-    return ListView(
+    // Lazy render: `_rows` is precomputed (newest-first) and only the
+    // on-screen rows are built. `reverse: true` keeps new messages pinned
+    // visually at the bottom while we index the newest-first list.
+    return ListView.builder(
       controller: _scroll,
       reverse: true,
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.symmetric(vertical: 8),
-      children: items,
+      itemCount: _rows.length,
+      itemBuilder: (context, i) {
+        final row = _rows[i];
+        return switch (row) {
+          _MessageRow(:final message) =>
+            MessageBubble(message: message, viewer: widget.viewer),
+          _SeparatorRow(:final date) => MessageDateSeparator(date: date),
+        };
+      },
     );
   }
 

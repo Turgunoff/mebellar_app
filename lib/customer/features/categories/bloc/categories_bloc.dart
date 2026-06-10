@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/connectivity/network_cubit.dart';
+import '../../../../core/network/api_error_messages.dart';
 import '../../../../shared/models/category_model.dart';
 import '../../../../shared/repositories/category_data_source.dart';
 
@@ -116,10 +117,10 @@ class CategoriesBloc extends Bloc<CategoriesEvent, CategoriesState> {
       // Keep the cached grid on the screen when the refresh fails; only
       // surface a hard failure when we have nothing at all to show.
       if (hasCache) {
-        emit(state.copyWith(error: e.toString()));
+        emit(state.copyWith(error: apiErrorMessage(e)));
       } else {
         emit(
-          state.copyWith(status: CategoriesStatus.failure, error: e.toString()),
+          state.copyWith(status: CategoriesStatus.failure, error: apiErrorMessage(e)),
         );
       }
     }

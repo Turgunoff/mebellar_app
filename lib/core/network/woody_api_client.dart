@@ -61,12 +61,32 @@ class WoodyApiClient {
     );
   }
 
+  /// GET is the only idempotent verb, so it's the only one that exposes
+  /// [retries]. On a *transient* failure (no network / 5xx / 429) the call is
+  /// re-attempted with exponential backoff (1s, 2s, 4s…), honouring a
+  /// `Retry-After` header when the server sends one. A definitive 4xx
+  /// (404/403/422/…) is never retried — it rethrows immediately. POST/PUT/
+  /// PATCH/DELETE deliberately have no retry path: replaying a non-idempotent
+  /// write could double-charge an order or duplicate a row.
   Future<T> get<T>(
     String path, {
     Map<String, dynamic>? query,
     bool anonymous = false,
-  }) =>
-      _send<T>('GET', path, query: query, anonymous: anonymous);
+    int retries = 0,
+  }) async {
+    var attempt = 0;
+    while (true) {
+      try {
+        return await _send<T>('GET', path, query: query, anonymous: anonymous);
+      } on ApiError catch (e) {
+        final transient = e.status == 0 || e.status >= 500 || e.isRateLimited;
+        if (!transient || attempt >= retries) rethrow;
+        final backoff = e.retryAfterSeconds ?? (1 << attempt);
+        await Future<void>.delayed(Duration(seconds: backoff));
+        attempt++;
+      }
+    }
+  }
 
   Future<T> post<T>(
     String path, {
