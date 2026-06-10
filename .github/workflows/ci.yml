@@ -53,3 +53,33 @@ jobs:
       # stay runnable locally via `flutter test --tags golden`.
       - name: Run tests
         run: flutter test --exclude-tags golden --dart-define-from-file=env/example.json
+
+  # Compile-only smoke build so a broken release build (AGP/Gradle/plugin bump,
+  # a Kotlin/manifest break) is caught in CI instead of at hand-built release
+  # time. No production keystore on CI — build.gradle.kts falls back to debug
+  # signing — and the secret-free env/example.json is enough to compile.
+  smoke-build:
+    name: Release build (smoke)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java (21)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Flutter (stable)
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build app bundle
+        run: flutter build appbundle --dart-define-from-file=env/example.json

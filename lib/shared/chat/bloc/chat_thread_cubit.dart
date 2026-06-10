@@ -5,6 +5,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/analytics/analytics_service.dart';
+import '../../../core/network/api_error_messages.dart';
 import '../../models/chat.dart';
 import '../../models/chat_message.dart';
 import '../../repositories/chat_repository.dart';
@@ -98,7 +99,7 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
     } catch (e) {
       emit(state.copyWith(
         status: ChatThreadStatus.failure,
-        error: e.toString(),
+        error: apiErrorMessage(e),
       ));
     }
   }
@@ -143,7 +144,7 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
         hasImage: false,
       ));
     } catch (e) {
-      emit(state.copyWith(sending: false, error: e.toString()));
+      emit(state.copyWith(sending: false, error: apiErrorMessage(e)));
     }
   }
 
@@ -176,7 +177,7 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
         hasImage: true,
       ));
     } catch (e) {
-      emit(state.copyWith(sending: false, error: e.toString()));
+      emit(state.copyWith(sending: false, error: apiErrorMessage(e)));
     }
   }
 

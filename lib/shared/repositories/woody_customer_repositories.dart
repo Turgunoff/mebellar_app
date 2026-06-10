@@ -294,7 +294,7 @@ class WoodyOrderRepository implements OrderRepository {
 
   @override
   Future<List<Order>> list() async {
-    final body = await _api.get<Map<String, dynamic>>('/orders');
+    final body = await _api.get<Map<String, dynamic>>('/orders', retries: 2);
     final rows = body['rows'];
     if (rows is! List) return const [];
     return rows

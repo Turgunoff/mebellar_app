@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../../../core/analytics/analytics_service.dart';
+import '../../../../core/network/api_error_messages.dart';
 import '../../../../shared/models/product_model.dart';
 import '../../../../shared/repositories/product_data_source.dart';
 
@@ -202,7 +203,7 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
       }
     } catch (e) {
       if (state.query != query || state.filter != filter) return;
-      emit(state.copyWith(status: SearchStatus.failure, error: e.toString()));
+      emit(state.copyWith(status: SearchStatus.failure, error: apiErrorMessage(e)));
     }
   }
 

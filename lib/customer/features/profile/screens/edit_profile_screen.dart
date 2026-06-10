@@ -108,6 +108,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         email: email.isEmpty ? null : email,
         avatarUrl: avatarUrl,
       );
+      if (!mounted) return;
       navigator.pop();
     } catch (e, st) {
       talker.handle(e, st, '[edit-profile] save failed');

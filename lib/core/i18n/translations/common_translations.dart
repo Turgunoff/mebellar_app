@@ -55,6 +55,8 @@ const Map<String, dynamic> errorUz = {
   'server': 'Server xatosi. Birozdan keyin urinib ko\'ring',
   'unknown': 'Xatolik yuz berdi',
   'validation_error': 'Noto\'g\'ri ma\'lumot',
+  'rate_limited': 'Juda ko\'p so\'rov. Birozdan keyin urinib ko\'ring',
+  'forbidden': 'Bu amalga ruxsat yo\'q',
 };
 
 const Map<String, dynamic> errorRu = {
@@ -62,6 +64,8 @@ const Map<String, dynamic> errorRu = {
   'server': 'Ошибка сервера. Попробуйте позже',
   'unknown': 'Произошла ошибка',
   'validation_error': 'Некорректные данные',
+  'rate_limited': 'Слишком много запросов. Попробуйте позже',
+  'forbidden': 'Нет доступа к этому действию',
 };
 
 const Map<String, dynamic> errorEn = {
@@ -69,6 +73,8 @@ const Map<String, dynamic> errorEn = {
   'server': 'Server error. Please try again later',
   'unknown': 'Something went wrong',
   'validation_error': 'Invalid input',
+  'rate_limited': 'Too many requests. Please try again later',
+  'forbidden': 'You don\'t have access to this action',
 };
 
 const Map<String, dynamic> langUz = {

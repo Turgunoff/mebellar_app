@@ -5,6 +5,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/connectivity/network_cubit.dart';
+import '../../../../core/network/api_error_messages.dart';
 import '../../../../shared/models/banner.dart';
 import '../../../../shared/models/product_model.dart';
 import '../../../../shared/repositories/banner_repository.dart';
@@ -139,9 +140,9 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       // only when we have nothing to display, otherwise the user sees a
       // populated screen with a transient banner instead of a blank failure.
       if (hasCache) {
-        emit(state.copyWith(error: e.toString()));
+        emit(state.copyWith(error: apiErrorMessage(e)));
       } else {
-        emit(state.copyWith(status: HomeStatus.failure, error: e.toString()));
+        emit(state.copyWith(status: HomeStatus.failure, error: apiErrorMessage(e)));
       }
     }
   }

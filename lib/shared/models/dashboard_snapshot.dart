@@ -1,7 +1,34 @@
 import 'package:equatable/equatable.dart';
+import 'package:flutter/foundation.dart';
 
+import '../../core/logging/talker.dart';
 import 'order.dart';
 import 'tariff.dart';
+
+/// Debug-only backend-drift guard for the `/seller/dashboard` payload.
+///
+/// Every dashboard `fromJson` reads keys with null-safe defaults, so a backend
+/// rename (e.g. `revenue` → `total_revenue`) degrades *silently* to 0 in
+/// release. In debug we surface it: when a key the app contractually expects is
+/// absent from a non-empty object, log a warning naming the offender so the
+/// drift is caught during development rather than as zeroed-out charts in prod.
+/// No-ops in release and on an empty object (a genuinely empty payload isn't a
+/// rename). Deliberately NOT applied to [KpiDeltas] — its fields are optional
+/// by contract (a `null` delta legitimately hides a trend chip), so a missing
+/// key there is not drift.
+void _dashboardDrift(
+  Map<String, dynamic> json,
+  List<String> expected,
+  String model,
+) {
+  if (!kDebugMode || json.isEmpty) return;
+  final missing = expected.where((k) => !json.containsKey(k)).toList();
+  if (missing.isEmpty) return;
+  talker.warning(
+    'Dashboard drift — $model is missing expected backend key(s): '
+    '${missing.join(', ')}. Did the field get renamed?',
+  );
+}
 
 class DailyRevenuePoint extends Equatable {
   const DailyRevenuePoint({required this.date, required this.amount});
@@ -23,7 +50,15 @@ class WeeklySales extends Equatable {
   final double? deltaPercent;
 
   factory WeeklySales.fromJson(Map<String, dynamic> json) {
+    _dashboardDrift(json, const ['points', 'total'], 'WeeklySales');
     final raw = (json['points'] as List?) ?? const [];
+    if (raw.isNotEmpty && raw.first is Map<String, dynamic>) {
+      _dashboardDrift(
+        raw.first as Map<String, dynamic>,
+        const ['date', 'revenue'],
+        'WeeklySales.point',
+      );
+    }
     return WeeklySales(
       points: raw
           .whereType<Map<String, dynamic>>()
@@ -96,8 +131,13 @@ class AchievementProgress extends Equatable {
   final bool unlocked;
   final DateTime? unlockedAt;
 
-  factory AchievementProgress.fromJson(Map<String, dynamic> json) =>
-      AchievementProgress(
+  factory AchievementProgress.fromJson(Map<String, dynamic> json) {
+    _dashboardDrift(
+      json,
+      const ['code', 'title_uz', 'icon', 'requirement_type', 'threshold'],
+      'AchievementProgress',
+    );
+    return AchievementProgress(
         code: json['code'] as String? ?? '',
         titleUz: json['title_uz'] as String? ?? '',
         titleRu: json['title_ru'] as String? ?? '',
@@ -110,6 +150,7 @@ class AchievementProgress extends Equatable {
         unlocked: (json['unlocked'] as bool?) ?? false,
         unlockedAt: DateTime.tryParse(json['unlocked_at'] as String? ?? ''),
       );
+  }
 
   @override
   List<Object?> get props => [code, progress, unlocked];
@@ -132,14 +173,20 @@ class LeaderboardStanding extends Equatable {
   final double? deltaPercent;
   final bool isMe;
 
-  factory LeaderboardStanding.fromJson(Map<String, dynamic> json) =>
-      LeaderboardStanding(
-        rank: (json['rank'] as num?)?.toInt() ?? 0,
-        shopName: json['shop_name'] as String? ?? '',
-        revenue: (json['revenue'] as num?) ?? 0,
-        deltaPercent: (json['delta_percent'] as num?)?.toDouble(),
-        isMe: (json['is_me'] as bool?) ?? false,
-      );
+  factory LeaderboardStanding.fromJson(Map<String, dynamic> json) {
+    _dashboardDrift(
+      json,
+      const ['rank', 'shop_name', 'revenue'],
+      'LeaderboardStanding',
+    );
+    return LeaderboardStanding(
+      rank: (json['rank'] as num?)?.toInt() ?? 0,
+      shopName: json['shop_name'] as String? ?? '',
+      revenue: (json['revenue'] as num?) ?? 0,
+      deltaPercent: (json['delta_percent'] as num?)?.toDouble(),
+      isMe: (json['is_me'] as bool?) ?? false,
+    );
+  }
 
   @override
   List<Object?> get props => [rank, shopName, revenue, isMe];
@@ -164,14 +211,21 @@ class TopProductStat extends Equatable {
   final num revenue;
   final double? deltaPercent;
 
-  factory TopProductStat.fromJson(Map<String, dynamic> json) => TopProductStat(
-    productId: json['product_id'] as String? ?? '',
-    name: json['name'] as String? ?? '',
-    image: json['image'] as String?,
-    unitsSold: (json['units_sold'] as num?)?.toInt() ?? 0,
-    revenue: (json['revenue'] as num?) ?? 0,
-    deltaPercent: (json['delta_percent'] as num?)?.toDouble(),
-  );
+  factory TopProductStat.fromJson(Map<String, dynamic> json) {
+    _dashboardDrift(
+      json,
+      const ['product_id', 'name', 'units_sold', 'revenue'],
+      'TopProductStat',
+    );
+    return TopProductStat(
+      productId: json['product_id'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+      image: json['image'] as String?,
+      unitsSold: (json['units_sold'] as num?)?.toInt() ?? 0,
+      revenue: (json['revenue'] as num?) ?? 0,
+      deltaPercent: (json['delta_percent'] as num?)?.toDouble(),
+    );
+  }
 
   @override
   List<Object?> get props => [productId, unitsSold, revenue];

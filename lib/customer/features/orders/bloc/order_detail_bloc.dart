@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/network/api_error_messages.dart';
 import '../../../../shared/models/order.dart';
 import '../../../../shared/repositories/order_repository.dart';
 
@@ -105,7 +106,7 @@ class OrderDetailBloc extends Bloc<OrderDetailEvent, OrderDetailState> {
       emit(state.copyWith(realtimeConnected: true));
     } catch (e) {
       emit(state.copyWith(
-          status: OrderDetailStatus.failure, error: e.toString()));
+          status: OrderDetailStatus.failure, error: apiErrorMessage(e)));
     }
   }
 
@@ -121,7 +122,7 @@ class OrderDetailBloc extends Bloc<OrderDetailEvent, OrderDetailState> {
       emit(state.copyWith(status: OrderDetailStatus.ready, order: updated));
     } catch (e) {
       emit(state.copyWith(
-          status: OrderDetailStatus.ready, error: e.toString()));
+          status: OrderDetailStatus.ready, error: apiErrorMessage(e)));
     }
   }
 
@@ -136,7 +137,7 @@ class OrderDetailBloc extends Bloc<OrderDetailEvent, OrderDetailState> {
       final updated = await _repo.approveFeeAdjustment(order.id);
       emit(state.copyWith(status: OrderDetailStatus.ready, order: updated));
     } catch (e) {
-      emit(state.copyWith(status: OrderDetailStatus.ready, error: e.toString()));
+      emit(state.copyWith(status: OrderDetailStatus.ready, error: apiErrorMessage(e)));
     }
   }
 
@@ -151,7 +152,7 @@ class OrderDetailBloc extends Bloc<OrderDetailEvent, OrderDetailState> {
       final updated = await _repo.rejectFeeAdjustment(order.id);
       emit(state.copyWith(status: OrderDetailStatus.ready, order: updated));
     } catch (e) {
-      emit(state.copyWith(status: OrderDetailStatus.ready, error: e.toString()));
+      emit(state.copyWith(status: OrderDetailStatus.ready, error: apiErrorMessage(e)));
     }
   }
 
