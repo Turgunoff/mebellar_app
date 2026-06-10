@@ -1,5 +1,6 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
@@ -245,43 +246,104 @@ GoRouter buildSellerRouter() {
 ///
 /// Provides [SellerOrdersBloc] at the shell level so both the badge and all
 /// child screens share the same singleton instance.
-class SellerRouterShell extends StatelessWidget {
+class SellerRouterShell extends StatefulWidget {
   const SellerRouterShell({super.key, required this.shell});
 
   final StatefulNavigationShell shell;
 
   @override
+  State<SellerRouterShell> createState() => _SellerRouterShellState();
+}
+
+class _SellerRouterShellState extends State<SellerRouterShell> {
+  /// Timestamp of the last system-back press while the Dashboard tab was
+  /// active. Drives the double-back-to-exit gesture; cleared on every tab
+  /// switch so the two presses must be consecutive on Dashboard.
+  DateTime? _lastBackPress;
+
+  /// Full-screen detail/form/settings pages are pushed on
+  /// [sellerRootNavigatorKey] *above* this shell, so the framework pops those
+  /// first and this handler only fires at a branch root. Mirrors the customer
+  /// shell: a non-Dashboard tab returns to Dashboard; on Dashboard the first
+  /// press shows a hint and a second within 2 seconds exits the app.
+  void _handleSystemBack() {
+    final shell = widget.shell;
+    if (shell.currentIndex != 0) {
+      _lastBackPress = null;
+      shell.goBranch(0);
+      return;
+    }
+    final now = DateTime.now();
+    final last = _lastBackPress;
+    if (last != null && now.difference(last) < const Duration(seconds: 2)) {
+      SystemNavigator.pop();
+      return;
+    }
+    _lastBackPress = now;
+    HapticFeedback.lightImpact();
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text('Ilovadan chiqish uchun yana bir marta orqaga bosing'),
+          duration: Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final shell = widget.shell;
     return BlocProvider<SellerOrdersBloc>.value(
       value: sl<SellerOrdersBloc>(),
       child: BlocBuilder<SellerOrdersBloc, SellerOrdersState>(
         buildWhen: (prev, curr) => prev.badgeCount != curr.badgeCount,
-        builder: (context, ordersState) => Scaffold(
-          body: shell,
-          bottomNavigationBar: SellerBottomNav(
-            currentIndex: shell.currentIndex,
-            onChanged: (i) => shell.goBranch(
-              i,
-              initialLocation: i == shell.currentIndex,
+        builder: (context, ordersState) => PopScope(
+          // The shell is the root route — never let the framework pop it
+          // straight to an app exit; `_handleSystemBack` decides what happens.
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) return;
+            _handleSystemBack();
+          },
+          child: Scaffold(
+            body: shell,
+            bottomNavigationBar: SellerBottomNav(
+              currentIndex: shell.currentIndex,
+              onChanged: (i) {
+                // A tap that actually changes tabs resets the exit gesture so
+                // a stale Dashboard back-press can't bleed into the new tab.
+                if (i != shell.currentIndex) _lastBackPress = null;
+                shell.goBranch(
+                  i,
+                  initialLocation: i == shell.currentIndex,
+                );
+              },
+              items: [
+                SellerNavItem(
+                  icon: Iconsax.element_3,
+                  label: tr('seller.tab_dashboard'),
+                ),
+                SellerNavItem(
+                  icon: Iconsax.box,
+                  label: tr('seller.tab_products'),
+                ),
+                SellerNavItem(
+                  icon: Iconsax.shopping_bag,
+                  label: tr('seller.tab_orders'),
+                  badge: ordersState.badgeCount,
+                ),
+                SellerNavItem(
+                  icon: Iconsax.chart_2,
+                  label: tr('seller.tab_analytics'),
+                ),
+                SellerNavItem(
+                  icon: Iconsax.user,
+                  label: tr('profile.title'),
+                ),
+              ],
             ),
-            items: [
-              SellerNavItem(
-                icon: Iconsax.element_3,
-                label: tr('seller.tab_dashboard'),
-              ),
-              SellerNavItem(
-                  icon: Iconsax.box, label: tr('seller.tab_products')),
-              SellerNavItem(
-                icon: Iconsax.shopping_bag,
-                label: tr('seller.tab_orders'),
-                badge: ordersState.badgeCount,
-              ),
-              SellerNavItem(
-                icon: Iconsax.chart_2,
-                label: tr('seller.tab_analytics'),
-              ),
-              SellerNavItem(icon: Iconsax.user, label: tr('profile.title')),
-            ],
           ),
         ),
       ),
