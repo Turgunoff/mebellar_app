@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
@@ -47,12 +48,13 @@ class _ProductRow extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             child: product.imageUrl == null
                 ? _ThumbPlaceholder(color: c.imageBg, icon: c.greyMid)
-                : Image.network(
-                    product.imageUrl!,
+                : CachedNetworkImage(
+                    imageUrl: product.imageUrl!,
                     width: 48,
                     height: 48,
+                    memCacheWidth: 150,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) =>
+                    errorWidget: (_, _, _) =>
                         _ThumbPlaceholder(color: c.imageBg, icon: c.greyMid),
                   ),
           ),

@@ -89,7 +89,7 @@ class AuthSheetController extends ChangeNotifier {
     _errorMessage = null;
     _notify();
     final phone = currentPhone;
-    talker.info('Requesting OTP for: $phone');
+    talker.info('Requesting OTP for: ${_maskPhone(phone)}');
     try {
       final cooldown = await repo.requestOtp(phone);
       _lastCooldown = cooldown > 0 ? cooldown : 60;
@@ -136,7 +136,7 @@ class AuthSheetController extends ChangeNotifier {
     _errorMessage = null;
     _notify();
     final phone = currentPhone;
-    talker.info('Verifying OTP for: $phone');
+    talker.info('Verifying OTP for: ${_maskPhone(phone)}');
     try {
       await repo.verifyOtp(phone, code);
       _resendTimer?.cancel();
@@ -287,6 +287,11 @@ class AuthSheetController extends ChangeNotifier {
   }
 
   void _showInfo(String msg) => onMessage?.call(msg, isError: false);
+
+  // Phone numbers are PII; talker forwards to Crashlytics, so never log the
+  // full E.164 value. Keep the country prefix + last two digits for debugging.
+  String _maskPhone(String p) =>
+      p.length <= 4 ? '***' : '${p.substring(0, 4)}***${p.substring(p.length - 2)}';
 
   void _notify() {
     if (!_disposed) notifyListeners();
