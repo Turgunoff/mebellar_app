@@ -23,6 +23,7 @@ class AppSettings {
   static const String _kDarkMode = 'isDarkMode';
   static const String _kLocaleCode = 'locale_code';
   static const String _kOnboardingSeen = 'onboarding_seen';
+  static const String _kSellerWelcomePrefix = 'has_seen_seller_welcome_';
 
   // --- active app mode -----------------------------------------------------
   /// Persisted [AppMode] name, or `null` before the user has ever chosen one.
@@ -56,6 +57,17 @@ class AppSettings {
       _box.get(_kOnboardingSeen, defaultValue: false) as bool;
   Future<void> setOnboardingSeen(bool value) =>
       _box.put(_kOnboardingSeen, value);
+
+  // --- one-time seller welcome screen --------------------------------------
+  /// Whether the approved seller [sellerId] has already seen the celebratory
+  /// welcome screen. Keyed per seller so the flag survives logout (re-login
+  /// must not replay it) and never bleeds across accounts on a shared device —
+  /// which is also why it's intentionally NOT cleared in
+  /// [clearUserScopedKeys].
+  bool hasSeenSellerWelcome(String sellerId) =>
+      _box.get('$_kSellerWelcomePrefix$sellerId', defaultValue: false) as bool;
+  Future<void> setSellerWelcomeSeen(String sellerId) =>
+      _box.put('$_kSellerWelcomePrefix$sellerId', true);
 
   /// Clears the per-user keys on sign-out (active mode + cached approval) so
   /// the next account on this device cannot inherit them. Device-level
