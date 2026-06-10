@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,10 +8,13 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
+import '../core/auth/auth_cubit.dart';
 import '../core/di/service_locator.dart';
 import '../core/i18n/i18n.dart';
 import '../core/logging/console_nav_observer.dart';
 import '../core/logging/talker.dart';
+import '../core/storage/app_settings.dart';
+import 'features/welcome/screens/seller_welcome_screen.dart';
 import '../shared/models/seller_product.dart';
 import 'features/analytics/screens/analytics_screen.dart';
 import 'features/dashboard/dashboard_screen.dart';
@@ -194,6 +199,28 @@ GoRouter buildSellerRouter() {
       ),
 
       // --- Full-screen routes outside the shell --------------------------
+      // One-time celebratory welcome. Lives on the root navigator (above the
+      // shell), so it covers the bottom nav and the shell's back-button
+      // PopScope never sees these presses. The gate in [SellerRouterShell]
+      // pushes it; tapping "Boshlash" flips the per-seller flag and pops.
+      GoRoute(
+        path: '/seller/welcome',
+        builder: (context, state) {
+          final sellerId = state.extra as String?;
+          return SellerWelcomeScreen(
+            onContinue: () {
+              if (sellerId != null) {
+                unawaited(sl<AppSettings>().setSellerWelcomeSeen(sellerId));
+              }
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/seller/dashboard');
+              }
+            },
+          );
+        },
+      ),
       GoRoute(
         path: '/seller/tariff',
         builder: (_, _) => const TariffScreen(),
@@ -260,6 +287,31 @@ class _SellerRouterShellState extends State<SellerRouterShell> {
   /// active. Drives the double-back-to-exit gesture; cleared on every tab
   /// switch so the two presses must be consecutive on Dashboard.
   DateTime? _lastBackPress;
+
+  @override
+  void initState() {
+    super.initState();
+    // Defer to after first paint: the welcome route is pushed on top of a
+    // fully-built shell, so dismissing it reveals the real dashboard.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowWelcome());
+  }
+
+  /// First-entry gate for the celebratory welcome screen. A freshly-approved
+  /// seller who hasn't seen it is routed to `/seller/welcome` exactly once;
+  /// the per-seller flag flips when they tap "Boshlash". Subsequent entries
+  /// (and every later cold start) fall straight through to the dashboard.
+  void _maybeShowWelcome() {
+    if (!mounted) return;
+    final auth = sl<AuthCubit>().state;
+    if (auth is! AppAuthAuthenticated) return;
+    final settings = sl<AppSettings>();
+    // Reaching the seller shell already implies approval (the boot guard
+    // demotes unapproved sellers to customer); the cached flag is re-checked
+    // so the welcome can never fire for an edge-case unapproved session.
+    if (!settings.sellerApproved) return;
+    if (settings.hasSeenSellerWelcome(auth.userId)) return;
+    GoRouter.of(context).push('/seller/welcome', extra: auth.userId);
+  }
 
   /// Full-screen detail/form/settings pages are pushed on
   /// [sellerRootNavigatorKey] *above* this shell, so the framework pops those
