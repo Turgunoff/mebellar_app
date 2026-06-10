@@ -53,10 +53,7 @@ class WoodySellerProductRepository implements SellerProductRepository {
     int perPage = 20,
   }) async {
     final offset = (page - 1) * perPage;
-    final query = <String, dynamic>{
-      'limit': perPage,
-      'offset': offset,
-    };
+    final query = <String, dynamic>{'limit': perPage, 'offset': offset};
     // Backend takes a single status filter; the interface allows a set. Pass
     // the first selected status — multi-status filtering then narrows the page
     // client-side via [SellerProductFilter.matches].
@@ -156,8 +153,7 @@ class WoodySellerProductRepository implements SellerProductRepository {
     required String fileExtension,
   }) async {
     final ext = fileExtension.toLowerCase();
-    final path =
-        '$productId/${DateTime.now().millisecondsSinceEpoch}.$ext';
+    final path = '$productId/${DateTime.now().millisecondsSinceEpoch}.$ext';
     // R2 client isn't a repo dependency here — the bytes go through the same
     // presigned-PUT plumbing used elsewhere, surfaced via WoodyApiClient.
     final result = await R2UploadClient(api: _api).upload(
@@ -304,10 +300,7 @@ class WoodySellerProductRepository implements SellerProductRepository {
     // doesn't return the plan, so default the snapshot to the free tier.
     if (e.status == 409) {
       return TariffLimitException(
-        const TariffSnapshot(
-          plan: TariffPlan.free,
-          activeProductsCount: 0,
-        ),
+        const TariffSnapshot(plan: TariffPlan.free, activeProductsCount: 0),
       );
     }
     return e;
@@ -354,10 +347,12 @@ class WoodySellerProductRepository implements SellerProductRepository {
       installationPrice: (row['installation_price'] as num?) ?? 0,
       warrantyMonths: (row['warranty_months'] as num?)?.toInt() ?? 0,
       status: SellerProductStatus.fromCode(row['status'] as String?),
-      rejectionReason: (row['rejection_reason'] as String?)?.trim().isNotEmpty == true
+      rejectionReason:
+          (row['rejection_reason'] as String?)?.trim().isNotEmpty == true
           ? (row['rejection_reason'] as String).trim()
           : null,
-      archiveReason: (row['archive_reason'] as String?)?.trim().isNotEmpty == true
+      archiveReason:
+          (row['archive_reason'] as String?)?.trim().isNotEmpty == true
           ? (row['archive_reason'] as String).trim()
           : null,
       createdAt: created,
@@ -388,8 +383,8 @@ class WoodySellerProductRepository implements SellerProductRepository {
   }
 
   String _imageContentType(String ext) => switch (ext) {
-        'png' => 'image/png',
-        'webp' => 'image/webp',
-        _ => 'image/jpeg',
-      };
+    'png' => 'image/png',
+    'webp' => 'image/webp',
+    _ => 'image/jpeg',
+  };
 }

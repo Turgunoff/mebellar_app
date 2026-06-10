@@ -335,10 +335,10 @@ class _ExpiryBanner extends StatelessWidget {
         'tariff.expiry_active_title',
         args: [tr('tariff.plan.${plan.code}_label')],
       );
-      subtitle = tr('tariff.expiry_active_subtitle', args: [
-        dateLabel,
-        '$daysLeft',
-      ]);
+      subtitle = tr(
+        'tariff.expiry_active_subtitle',
+        args: [dateLabel, '$daysLeft'],
+      );
     }
 
     final accent = warning ? _warnAccent : AppColors.sellerPrimary;

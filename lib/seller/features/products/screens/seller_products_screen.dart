@@ -285,8 +285,7 @@ class _SellerProductsViewState extends State<_SellerProductsView> {
                         if (tariffArchived && i == 0) {
                           return const _TariffArchiveBanner();
                         }
-                        final product =
-                            visible[tariffArchived ? i - 1 : i];
+                        final product = visible[tariffArchived ? i - 1 : i];
                         return _ProductTile(
                           product: product,
                           onTap: () => _openPreview(context, product),
@@ -923,9 +922,9 @@ class _TariffArchiveBanner extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const TariffScreen()),
-        ),
+        onTap: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const TariffScreen())),
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Row(
