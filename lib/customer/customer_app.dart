@@ -199,14 +199,19 @@ class CustomerShellScope extends InheritedWidget {
 /// back — flipping Home → Favorites → Home no longer resets the home feed
 /// to the top.
 class CustomerHomeShell extends StatefulWidget {
-  const CustomerHomeShell({super.key});
+  const CustomerHomeShell({super.key, this.initialTab});
+
+  /// Deep-linked tab index (`/?tab=profile` → 4). Null = keep the current
+  /// tab. Re-applied in [State.didUpdateWidget] so navigating to the query
+  /// URL while the shell is already mounted still switches the tab.
+  final int? initialTab;
 
   @override
   State<CustomerHomeShell> createState() => _CustomerHomeShellState();
 }
 
 class _CustomerHomeShellState extends State<CustomerHomeShell> {
-  int _index = 0;
+  late int _index = widget.initialTab ?? 0;
 
   /// Timestamp of the last back press while the Home tab was active. Drives
   /// the double-back-to-exit gesture; reset whenever the tab changes so the
@@ -226,6 +231,15 @@ class _CustomerHomeShellState extends State<CustomerHomeShell> {
         if (!mounted) return;
         sl<PushService>().requestPermissionAndSubscribe();
       });
+    }
+  }
+
+  @override
+  void didUpdateWidget(CustomerHomeShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final requested = widget.initialTab;
+    if (requested != null && requested != _index) {
+      _goToTab(requested);
     }
   }
 

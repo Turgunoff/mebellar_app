@@ -99,15 +99,32 @@ class PushService {
   /// on the next frame. If the target mode differs from the running mode,
   /// the handler also flips `app_mode` for Phoenix-rebirth on next boot.
   void _onMessageTapped(RemoteMessage message) {
-    final route = message.data['route'] as String?;
+    var route = message.data['route'] as String?;
     if (route == null || route.isEmpty) return;
-    final modeName = (message.data['mode'] as String?) ?? AppMode.customer.name;
-    debugPrint('[FCM] push tapped → route: $route (mode: $modeName)');
-    _notificationHandler.savePendingRoute(
-      route,
-      modeName,
-      kind: message.data['kind'] as String?,
+    var modeName = (message.data['mode'] as String?) ?? AppMode.customer.name;
+    final kind = message.data['kind'] as String?;
+    (route, modeName) = _sanitizeDestination(
+      kind: kind,
+      route: route,
+      modeName: modeName,
     );
+    debugPrint('[FCM] push tapped → route: $route (mode: $modeName)');
+    _notificationHandler.savePendingRoute(route, modeName, kind: kind);
+  }
+
+  /// Verification verdicts must always land on the customer profile — the
+  /// payload of pushes sent before backend migration 0019 carries a stale
+  /// `mode: seller` + `/seller/profile` that would drop a rejected applicant
+  /// into the seller shell. Mirrors `NotificationModel.resolveTargetMode`.
+  static (String, String) _sanitizeDestination({
+    required String? kind,
+    required String route,
+    required String modeName,
+  }) {
+    if (kind == 'seller_approved' || kind == 'seller_rejected') {
+      return ('/profile', AppMode.customer.name);
+    }
+    return (route, modeName);
   }
 
   Future<void> _initLocalNotifications() async {
@@ -439,10 +456,15 @@ class PushService {
     } catch (_) {
       return;
     }
-    final route = data['route'] as String?;
+    var route = data['route'] as String?;
     if (route == null || route.isEmpty) return;
-    final modeName = (data['mode'] as String?) ?? AppMode.customer.name;
+    var modeName = (data['mode'] as String?) ?? AppMode.customer.name;
     final kind = data['kind'] as String?;
+    (route, modeName) = _sanitizeDestination(
+      kind: kind,
+      route: route,
+      modeName: modeName,
+    );
 
     final ctx = customerNavigatorKey.currentContext;
     if (modeName == AppMode.customer.name && ctx != null && ctx.mounted) {

@@ -110,8 +110,10 @@ class _NotificationsViewState extends State<_NotificationsView> {
       NotificationKind.supportReply => '/profile',
 
       // ---- Seller --------------------------------------------------------
+      // Verification verdicts always open the CUSTOMER profile (status
+      // banners + resubmit live there) — see the customer-side mapping.
       NotificationKind.sellerApproved ||
-      NotificationKind.sellerRejected => '/seller/profile',
+      NotificationKind.sellerRejected => '/profile',
       NotificationKind.sellerNewOrder ||
       NotificationKind.sellerOrderCancelled =>
         orderId != null && orderId.isNotEmpty

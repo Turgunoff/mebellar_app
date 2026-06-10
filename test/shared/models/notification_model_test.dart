@@ -73,5 +73,26 @@ void main() {
       );
       expect(n.resolveTargetMode(), AppMode.customer);
     });
+
+    test(
+        'verification verdicts always target customer mode — even when a '
+        'stale pre-0019 payload says seller', () {
+      for (final kind in [
+        NotificationKind.sellerApproved,
+        NotificationKind.sellerRejected,
+      ]) {
+        final stale = _make(
+          kind: kind,
+          payload: {'mode': 'seller', 'route': '/seller/profile'},
+        );
+        expect(
+          stale.resolveTargetMode(),
+          AppMode.customer,
+          reason: 'a rejected applicant must never be switched into the '
+              'seller shell',
+        );
+        expect(kind.targetMode, AppMode.customer);
+      }
+    });
   });
 }

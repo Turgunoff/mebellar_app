@@ -145,8 +145,15 @@ enum NotificationKind {
 extension NotificationKindRouting on NotificationKind {
   AppMode get targetMode {
     return switch (this) {
+      // Verification verdicts target CUSTOMER mode: the recipient is not a
+      // working seller yet (rejected/pending) or has just been approved —
+      // either way the destination is the customer profile, where the
+      // status banners (resubmit / "open seller panel") live. Routing a
+      // rejected applicant into the seller shell would bypass the
+      // boot-time approval guard.
       NotificationKind.sellerApproved ||
-      NotificationKind.sellerRejected ||
+      NotificationKind.sellerRejected => AppMode.customer,
+
       NotificationKind.sellerNewOrder ||
       NotificationKind.sellerOrderCancelled ||
       NotificationKind.sellerProductApproved ||
@@ -215,6 +222,14 @@ class NotificationModel extends Equatable {
   /// the FCM push path (`PushService._onMessageTapped`), which already reads
   /// `data['mode']` directly.
   AppMode resolveTargetMode() {
+    // Verification verdicts ignore the payload: rows written before
+    // migration 0019 carry a stale `mode: seller` that would bounce a
+    // rejected applicant into the seller shell. The kind mapping (customer)
+    // is authoritative for these two.
+    if (kind == NotificationKind.sellerApproved ||
+        kind == NotificationKind.sellerRejected) {
+      return kind.targetMode;
+    }
     final raw = payload?['mode'];
     if (raw is String) {
       for (final m in AppMode.values) {

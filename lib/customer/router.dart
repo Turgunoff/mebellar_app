@@ -30,9 +30,12 @@ import 'features/orders/screens/order_detail_screen.dart';
 import 'features/orders/screens/orders_history_screen.dart';
 import 'features/notifications/screens/notifications_screen.dart'
     as customer_notifications;
+import 'features/profile/screens/profile_guest_screen.dart';
+import 'features/profile/screens/profile_screen.dart';
 import 'features/search/screens/search_screen.dart';
 import 'features/shop/screens/shop_profile_screen.dart';
 import 'features/tutorial/tutorial_screen.dart';
+import '../core/auth/auth_cubit.dart';
 import '../seller/features/onboarding/screens/onboarding_screen.dart';
 
 /// Customer-side navigation. The shell hosts the bottom tabs; the rest are
@@ -172,6 +175,18 @@ GoRouter buildCustomerRouter() {
       GoRoute(
         path: '/seller/onboarding',
         builder: (context, state) => const OnboardingScreen(),
+      ),
+      GoRoute(
+        // Routed (pushed) twin of the bottom-nav Profile tab. Notification
+        // deep-links (seller verdicts, support replies) land here so the
+        // status banners are immediately visible; Back returns to wherever
+        // the user was. Auth-gated exactly like the tab.
+        path: '/profile',
+        builder: (context, state) => BlocBuilder<AuthCubit, AppAuthState>(
+          builder: (context, authState) => authState is AppAuthAuthenticated
+              ? const ProfileScreen()
+              : const ProfileGuestScreen(),
+        ),
       ),
       GoRoute(
         // Both the app-bar bell and push-tap deep-links land here. Routed to
