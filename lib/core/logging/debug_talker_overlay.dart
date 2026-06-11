@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
+import '../../config/screenshot_mode.dart';
 import 'talker.dart';
 
 const _bugFabColor = Color(0xFFC27A5F);
@@ -56,7 +57,7 @@ class _DebugTalkerOverlayState extends State<DebugTalkerOverlay> {
   @override
   Widget build(BuildContext context) {
     final body = widget.child ?? const SizedBox.shrink();
-    if (!kDebugMode) return body;
+    if (!kDebugMode || kScreenshotMode) return body;
 
     return LayoutBuilder(
       builder: (ctx, constraints) {

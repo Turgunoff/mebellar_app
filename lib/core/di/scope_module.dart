@@ -28,6 +28,7 @@ import '../../shared/repositories/seller_reviews_repository.dart';
 import '../../shared/repositories/category_data_source.dart';
 import '../../shared/repositories/product_data_source.dart';
 import '../connectivity/network_cubit.dart';
+import '../i18n/app_locale_controller.dart';
 import '../storage/hive_boxes.dart';
 
 /// Customer mode-scope: blocs and services torn down on a switch to seller.
@@ -37,6 +38,7 @@ void registerCustomerScope(GetIt sl) {
       bannerRepo: sl<BannerRepository>(),
       productSource: sl<ProductDataSource>(),
       networkCubit: sl<NetworkCubit>(),
+      localeController: sl<AppLocaleController>(),
     )..add(const HomeRequested()),
     dispose: (bloc) => bloc.close(),
   );
@@ -49,21 +51,25 @@ void registerCustomerScope(GetIt sl) {
     dispose: (svc) => svc.dispose(),
   );
   sl.registerLazySingleton<CartBloc>(
-    () =>
-        CartBloc(sl<CartRepository>(), analytics: sl<AnalyticsService>())
-          ..add(const LoadCart()),
+    () => CartBloc(
+      sl<CartRepository>(),
+      analytics: sl<AnalyticsService>(),
+      localeController: sl<AppLocaleController>(),
+    )..add(const LoadCart()),
     dispose: (bloc) => bloc.close(),
   );
   sl.registerLazySingleton<FavoritesBloc>(
-    () =>
-        FavoritesBloc(sl<FavoritesRepository>())
-          ..add(const FavoritesRequested()),
+    () => FavoritesBloc(
+      sl<FavoritesRepository>(),
+      localeController: sl<AppLocaleController>(),
+    )..add(const FavoritesRequested()),
     dispose: (bloc) => bloc.close(),
   );
   sl.registerLazySingleton<CategoriesBloc>(
     () => CategoriesBloc(
       sl<CategoryDataSource>(),
       networkCubit: sl<NetworkCubit>(),
+      localeController: sl<AppLocaleController>(),
     )..add(const CategoriesRequested()),
     dispose: (bloc) => bloc.close(),
   );

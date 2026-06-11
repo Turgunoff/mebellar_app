@@ -5,6 +5,8 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/connectivity/network_cubit.dart';
+import '../../../../core/i18n/app_locale_controller.dart';
+import '../../../../core/i18n/locale_refetch.dart';
 import '../../../../core/network/api_error_messages.dart';
 import '../../../../shared/models/banner.dart';
 import '../../../../shared/models/product_model.dart';
@@ -58,15 +60,18 @@ class HomeState extends Equatable {
   List<Object?> get props => [status, banners, recommended, error];
 }
 
-class HomeBloc extends Bloc<HomeEvent, HomeState> {
+class HomeBloc extends Bloc<HomeEvent, HomeState>
+    with LocaleRefetch<HomeState> {
   HomeBloc({
     required BannerRepository bannerRepo,
     required ProductDataSource productSource,
     NetworkCubit? networkCubit,
+    AppLocaleController? localeController,
   }) : _bannerRepo = bannerRepo,
        _productSource = productSource,
        _networkCubit = networkCubit,
        super(const HomeState()) {
+    watchLocale(localeController);
     // ROADMAP B.7 — droppable: a refresh fired while a load is already in
     // flight (connectivity retry + manual pull-to-refresh racing) is dropped
     // rather than queued, so the home feed never double-fetches.
@@ -96,6 +101,11 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   final NetworkCubit? _networkCubit;
   StreamSubscription<NetworkStatus>? _netSub;
   NetworkStatus _lastNetwork = NetworkStatus.initial;
+
+  // Banners + recommended products arrive pre-localised; reload them in the
+  // new language without flipping the home feed into a loading state.
+  @override
+  void onLocaleChanged() => add(const HomeRequested(refresh: true));
 
   Future<void> _onRequested(
     HomeRequested event,
@@ -136,10 +146,12 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         ),
       );
     } catch (e) {
-      // Keep showing the cached rails on a network error — surface the error
-      // only when we have nothing to display, otherwise the user sees a
-      // populated screen with a transient banner instead of a blank failure.
-      if (hasCache) {
+      // Keep showing the rails we already have (cached snapshot OR the
+      // currently rendered state — e.g. a locale-switch refetch finds the
+      // new language's cache cold) — surface the error only when there is
+      // nothing to display, otherwise the user sees a populated screen with
+      // a transient banner instead of a blank failure.
+      if (hasCache || state.status == HomeStatus.ready) {
         emit(state.copyWith(error: apiErrorMessage(e)));
       } else {
         emit(state.copyWith(status: HomeStatus.failure, error: apiErrorMessage(e)));

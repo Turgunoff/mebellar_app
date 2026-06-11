@@ -9,24 +9,38 @@ import 'package:woody_app/core/logging/talker.dart';
 /// against when the API is unreachable. Keys are namespaced by repository
 /// so we can selectively invalidate (e.g. clear cart cache on logout).
 class CacheStore {
-  CacheStore(this._box);
+  CacheStore(this._box, {String Function()? localeOf}) : _localeOf = localeOf;
 
   final Box _box;
 
+  /// Every payload cached here arrives pre-localised by the backend
+  /// (`Accept-Language`), so the same logical key holds different bytes per
+  /// language. Scoping the key by the active language is the cache-side
+  /// equivalent of HTTP `Vary: Accept-Language` — without it, a cold start
+  /// right after a language switch would paint the previous language from
+  /// Hive. Null (tests) leaves keys unscoped.
+  final String Function()? _localeOf;
+
   static const _ttlSuffix = '__ts';
+
+  String _scoped(String key) {
+    final lang = _localeOf?.call();
+    return (lang == null || lang.isEmpty) ? key : '$key@$lang';
+  }
 
   void putJson(
     String key,
     Object? value, {
     Duration ttl = const Duration(hours: 6),
   }) {
+    final k = _scoped(key);
     if (value == null) {
-      _box.delete(key);
-      _box.delete('$key$_ttlSuffix');
+      _box.delete(k);
+      _box.delete('$k$_ttlSuffix');
       return;
     }
-    _box.put(key, jsonEncode(value));
-    _box.put('$key$_ttlSuffix',
+    _box.put(k, jsonEncode(value));
+    _box.put('$k$_ttlSuffix',
         DateTime.now().add(ttl).toIso8601String());
   }
 
@@ -34,23 +48,24 @@ class CacheStore {
   /// `null`. We don't throw on parse errors; bad cache lines are silently
   /// dropped so a corrupted box can't brick the screen.
   T? getJson<T>(String key, T Function(dynamic decoded) parse) {
-    final raw = _box.get(key);
+    final k = _scoped(key);
+    final raw = _box.get(k);
     if (raw is! String) return null;
-    final tsRaw = _box.get('$key$_ttlSuffix');
+    final tsRaw = _box.get('$k$_ttlSuffix');
     if (tsRaw is String) {
       final expires = DateTime.tryParse(tsRaw);
       if (expires == null || DateTime.now().isAfter(expires)) {
-        _box.delete(key);
-        _box.delete('$key$_ttlSuffix');
+        _box.delete(k);
+        _box.delete('$k$_ttlSuffix');
         return null;
       }
     }
     try {
       return parse(jsonDecode(raw));
     } catch (e, st) {
-      talker.handle(e, st, 'CacheStore: corrupt entry "$key"');
-      _box.delete(key);
-      _box.delete('$key$_ttlSuffix');
+      talker.handle(e, st, 'CacheStore: corrupt entry "$k"');
+      _box.delete(k);
+      _box.delete('$k$_ttlSuffix');
       return null;
     }
   }

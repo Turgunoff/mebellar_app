@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/i18n/app_locale_controller.dart';
+import '../../../../core/i18n/locale_refetch.dart';
 import '../../../../shared/models/product.dart';
 import '../../../../shared/repositories/favorites_repository.dart';
 
@@ -13,7 +15,14 @@ sealed class FavoritesEvent extends Equatable {
 }
 
 class FavoritesRequested extends FavoritesEvent {
-  const FavoritesRequested();
+  const FavoritesRequested({this.refresh = false});
+
+  /// Re-fetch without flipping into `loading` — the rendered list stays
+  /// until fresh data lands. Used by the locale-switch silent refetch.
+  final bool refresh;
+
+  @override
+  List<Object?> get props => [refresh];
 }
 
 class FavoriteToggled extends FavoritesEvent {
@@ -73,24 +82,35 @@ class FavoritesState extends Equatable {
   List<Object?> get props => [status, products, ids, error];
 }
 
-class FavoritesBloc extends Bloc<FavoritesEvent, FavoritesState> {
-  FavoritesBloc(this._repo) : super(const FavoritesState()) {
+class FavoritesBloc extends Bloc<FavoritesEvent, FavoritesState>
+    with LocaleRefetch<FavoritesState> {
+  FavoritesBloc(this._repo, {AppLocaleController? localeController})
+    : super(const FavoritesState()) {
     on<FavoritesRequested>(_onRequested);
     on<FavoriteToggled>(_onToggled);
     on<FavoriteRemoved>(_onRemoved);
     on<_FavoritesIdsChanged>(_onIdsChanged);
 
     _sub = _repo.watchIds().listen((ids) => add(_FavoritesIdsChanged(ids)));
+    watchLocale(localeController);
   }
 
   final FavoritesRepository _repo;
   StreamSubscription<Set<String>>? _sub;
 
+  // Favourite products carry backend-localised names; reload them in the
+  // new language without blanking the rendered list.
+  @override
+  void onLocaleChanged() => add(const FavoritesRequested(refresh: true));
+
   Future<void> _onRequested(
     FavoritesRequested event,
     Emitter<FavoritesState> emit,
   ) async {
-    emit(state.copyWith(status: FavoritesStatus.loading, clearError: true));
+    final silent = event.refresh && state.products.isNotEmpty;
+    if (!silent) {
+      emit(state.copyWith(status: FavoritesStatus.loading, clearError: true));
+    }
     try {
       final list = await _repo.list();
       emit(state.copyWith(
@@ -99,6 +119,8 @@ class FavoritesBloc extends Bloc<FavoritesEvent, FavoritesState> {
         ids: list.map((p) => p.id).toSet(),
       ));
     } catch (e) {
+      // A failed silent refetch keeps the old-language list on screen.
+      if (silent) return;
       emit(state.copyWith(status: FavoritesStatus.failure, error: e.toString()));
     }
   }

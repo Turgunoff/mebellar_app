@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../config/app_mode.dart';
+import '../config/screenshot_mode.dart';
 import '../core/deep_links/deep_link_service.dart';
 import '../core/di/service_locator.dart';
 import '../core/i18n/i18n.dart';
@@ -251,7 +252,7 @@ class _CustomerHomeShellState extends State<CustomerHomeShell> {
   @override
   void initState() {
     super.initState();
-    if (sl.isRegistered<PushService>()) {
+    if (sl.isRegistered<PushService>() && !kScreenshotMode) {
       Future<void>.delayed(_permissionPromptDelay, () {
         if (!mounted) return;
         sl<PushService>().requestPermissionAndSubscribe();

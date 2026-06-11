@@ -23,8 +23,10 @@ import 'token_store.dart';
 class WoodyApiClient {
   WoodyApiClient({
     required this.tokens,
+    String Function()? locale,
     Dio? dio,
-  }) : _dio = dio ?? _defaultDio() {
+  })  : _locale = locale,
+        _dio = dio ?? _defaultDio() {
     _dio.interceptors.add(_AuthInterceptor(this));
   }
 
@@ -34,6 +36,13 @@ class WoodyApiClient {
 
   final Dio _dio;
   final TokenStore tokens;
+
+  /// Resolves the language code stamped onto every request as
+  /// `Accept-Language`. A closure — not a fixed string — so a language
+  /// switch in Settings applies to the very next call without rebuilding
+  /// the client. Null (tests, tooling) sends no header and the backend
+  /// falls back to `uz`.
+  final String Function()? _locale;
 
   /// Stream of forced sign-outs caused by refresh-token failure. The auth
   /// layer listens to this and transitions the cubit into a signed-out
@@ -276,6 +285,14 @@ class _AuthInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
+    // Dynamic content (catalog, cart, orders) comes back pre-localised by
+    // the backend, so every request — including refresh and replays —
+    // declares the active UI language.
+    final lang = _client._locale?.call();
+    if (lang != null && lang.isNotEmpty) {
+      options.headers['Accept-Language'] = lang;
+    }
+
     final anonymous = options.extra[WoodyApiClient._anonymousKey] == true;
     final skipRefresh = options.extra[WoodyApiClient._skipRefreshKey] == true;
     if (!anonymous) {

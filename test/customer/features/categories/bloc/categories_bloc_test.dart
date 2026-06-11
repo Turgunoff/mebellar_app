@@ -1,6 +1,8 @@
 import 'package:bloc_test/bloc_test.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:woody_app/core/i18n/app_locale_controller.dart';
 import 'package:woody_app/customer/features/categories/bloc/categories_bloc.dart';
 import 'package:woody_app/shared/models/category_model.dart';
 import 'package:woody_app/shared/repositories/category_data_source.dart';
@@ -47,6 +49,55 @@ void main() {
           .having((s) => s.error, 'error', isNotNull),
     ],
   );
+
+  group('locale refetch', () {
+    late AppLocaleController controller;
+
+    blocTest<CategoriesBloc, CategoriesState>(
+      'setLocale triggers a refresh that keeps the grid until data lands',
+      setUp: () => controller = AppLocaleController.inMemory(
+        initial: const Locale('uz'),
+      ),
+      build: () {
+        when(source.list).thenAnswer((_) async => [_cat('ru-a')]);
+        return CategoriesBloc(source, localeController: controller);
+      },
+      seed: () => CategoriesState(
+        status: CategoriesStatus.ready,
+        categories: [_cat('uz-a'), _cat('uz-b')],
+      ),
+      act: (_) => controller.setLocale(const Locale('ru')),
+      expect: () => [
+        // Single emit: straight to the re-localised list — no loading state.
+        isA<CategoriesState>()
+            .having((s) => s.status, 'status', CategoriesStatus.ready)
+            .having((s) => s.categories.length, 'count', 1)
+            .having((s) => s.categories.first.id, 'first id', 'ru-a'),
+      ],
+    );
+
+    blocTest<CategoriesBloc, CategoriesState>(
+      'a failed locale refetch keeps the old-language grid',
+      setUp: () => controller = AppLocaleController.inMemory(
+        initial: const Locale('uz'),
+      ),
+      build: () {
+        when(source.list).thenThrow(Exception('network down'));
+        return CategoriesBloc(source, localeController: controller);
+      },
+      seed: () => CategoriesState(
+        status: CategoriesStatus.ready,
+        categories: [_cat('uz-a')],
+      ),
+      act: (_) => controller.setLocale(const Locale('ru')),
+      expect: () => [
+        isA<CategoriesState>()
+            .having((s) => s.status, 'status', CategoriesStatus.ready)
+            .having((s) => s.categories.length, 'count', 1)
+            .having((s) => s.error, 'error', isNotNull),
+      ],
+    );
+  });
 
   blocTest<CategoriesBloc, CategoriesState>(
     'a failed load followed by a successful retry recovers to ready',

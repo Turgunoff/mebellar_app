@@ -19,6 +19,7 @@ export 'package:intl/intl.dart' show NumberFormat, DateFormat;
 export 'app_locale_controller.dart';
 export 'app_translations.dart';
 export 'app_translations_delegate.dart';
+export 'locale_refetch.dart';
 
 /// Translate [key]. Mirrors `easy_localization`'s top-level `tr()` so
 /// existing call sites resolve unchanged. Honours the singleton bundle the

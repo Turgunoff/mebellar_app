@@ -4,6 +4,8 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/connectivity/network_cubit.dart';
+import '../../../../core/i18n/app_locale_controller.dart';
+import '../../../../core/i18n/locale_refetch.dart';
 import '../../../../core/network/api_error_messages.dart';
 import '../../../../shared/models/category_model.dart';
 import '../../../../shared/repositories/category_data_source.dart';
@@ -15,7 +17,15 @@ sealed class CategoriesEvent extends Equatable {
 }
 
 class CategoriesRequested extends CategoriesEvent {
-  const CategoriesRequested();
+  const CategoriesRequested({this.refresh = false});
+
+  /// Skip the cache-first paint and fetch from the network, keeping the
+  /// currently rendered grid until fresh data lands. Used by
+  /// pull-to-refresh-style flows and the locale-switch silent refetch.
+  final bool refresh;
+
+  @override
+  List<Object?> get props => [refresh];
 }
 
 enum CategoriesStatus { initial, loading, ready, failure }
@@ -48,11 +58,16 @@ class CategoriesState extends Equatable {
   List<Object?> get props => [status, categories, error];
 }
 
-class CategoriesBloc extends Bloc<CategoriesEvent, CategoriesState> {
-  CategoriesBloc(this._source, {NetworkCubit? networkCubit})
-    : _networkCubit = networkCubit,
-      super(const CategoriesState()) {
+class CategoriesBloc extends Bloc<CategoriesEvent, CategoriesState>
+    with LocaleRefetch<CategoriesState> {
+  CategoriesBloc(
+    this._source, {
+    NetworkCubit? networkCubit,
+    AppLocaleController? localeController,
+  }) : _networkCubit = networkCubit,
+       super(const CategoriesState()) {
     on<CategoriesRequested>(_onRequested);
+    watchLocale(localeController);
 
     // Auto-retry on reconnect. Mirrors the HomeBloc pattern so the offline
     // UX is consistent across the customer shell. We only refire when the
@@ -82,6 +97,11 @@ class CategoriesBloc extends Bloc<CategoriesEvent, CategoriesState> {
   StreamSubscription<NetworkStatus>? _netSub;
   NetworkStatus _lastNetwork = NetworkStatus.initial;
 
+  // Category names arrive pre-localised; reload them in the new language
+  // while the old-language grid stays on screen.
+  @override
+  void onLocaleChanged() => add(const CategoriesRequested(refresh: true));
+
   Future<void> _onRequested(
     CategoriesRequested event,
     Emitter<CategoriesState> emit,
@@ -89,8 +109,9 @@ class CategoriesBloc extends Bloc<CategoriesEvent, CategoriesState> {
     // Cache-first paint: categories are static reference data with a 24h
     // TTL, so on a warm boot we render the grid at 0 ms and refresh
     // silently in the background. The loading spinner only shows on a true
-    // cold start (no cache, never fetched).
-    final cached = _source.peek();
+    // cold start (no cache, never fetched). A `refresh` skips the cache
+    // paint — the currently rendered grid stands in for it.
+    final cached = event.refresh ? null : _source.peek();
     final hasCache = cached != null && cached.isNotEmpty;
     if (hasCache) {
       emit(
@@ -100,7 +121,7 @@ class CategoriesBloc extends Bloc<CategoriesEvent, CategoriesState> {
           clearError: true,
         ),
       );
-    } else {
+    } else if (!event.refresh || state.categories.isEmpty) {
       emit(state.copyWith(status: CategoriesStatus.loading, clearError: true));
     }
 
@@ -114,9 +135,10 @@ class CategoriesBloc extends Bloc<CategoriesEvent, CategoriesState> {
         ),
       );
     } catch (e) {
-      // Keep the cached grid on the screen when the refresh fails; only
-      // surface a hard failure when we have nothing at all to show.
-      if (hasCache) {
+      // Keep the grid we already have (cached or currently rendered) when
+      // the refresh fails; only surface a hard failure when we have nothing
+      // at all to show.
+      if (hasCache || state.categories.isNotEmpty) {
         emit(state.copyWith(error: apiErrorMessage(e)));
       } else {
         emit(

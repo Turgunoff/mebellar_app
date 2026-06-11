@@ -8,6 +8,7 @@ import '../cache/cache_service.dart';
 import '../connectivity/connectivity_service.dart';
 import '../connectivity/network_cubit.dart';
 import '../deep_links/deep_link_service.dart';
+import '../i18n/app_locale_controller.dart';
 import '../network/token_store.dart';
 import '../network/woody_api_client.dart';
 import '../platform/location_facade.dart';
@@ -45,6 +46,16 @@ Future<void> registerCoreModule(GetIt sl) async {
   // magic-string Hive keys. Cubits migrate onto it incrementally.
   sl.registerSingleton<AppSettings>(AppSettings(boxes.settings));
 
+  // The active-locale source of truth. Root-scoped (instead of a main.dart
+  // local) so the API client can stamp `Accept-Language` on every request,
+  // catalog caches can key snapshots per language, and long-lived blocs can
+  // silently re-fetch on a language switch (see LocaleRefetch). main.dart
+  // resolves this same instance for the MaterialApps.
+  sl.registerSingleton<AppLocaleController>(
+    AppLocaleController.fromBox(boxes.settings),
+    dispose: (c) => c.dispose(),
+  );
+
   sl.registerSingleton<ThemeCubit>(
     ThemeCubit(sl<AppSettings>()),
     dispose: (c) => c.close(),
@@ -78,7 +89,10 @@ Future<void> registerCoreModule(GetIt sl) async {
   // root-scoped so they survive customer<->seller mode swaps.
   sl.registerSingleton<TokenStore>(TokenStore(), dispose: (s) => s.dispose());
   sl.registerSingleton<WoodyApiClient>(
-    WoodyApiClient(tokens: sl<TokenStore>()),
+    WoodyApiClient(
+      tokens: sl<TokenStore>(),
+      locale: () => sl<AppLocaleController>().value.languageCode,
+    ),
     dispose: (c) => c.dispose(),
   );
 
@@ -114,7 +128,10 @@ Future<void> registerCoreModule(GetIt sl) async {
   );
 
   sl.registerLazySingleton<CacheStore>(
-    () => CacheStore(sl<Box>(instanceName: HiveBoxes.cache)),
+    () => CacheStore(
+      sl<Box>(instanceName: HiveBoxes.cache),
+      localeOf: () => sl<AppLocaleController>().value.languageCode,
+    ),
   );
 
   // Woody WebSocket realtime (Phase 6). Lazy — only opens when the auth

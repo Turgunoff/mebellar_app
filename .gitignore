@@ -77,3 +77,6 @@ serviceAccountKey.json
 # managed by the user's CLI, not the repo.
 .claude/settings.local.json
 .claude/skills/
+
+# Marketing screenshot artifacts (integration_test/screenshot_generator_test.dart)
+screenshots/

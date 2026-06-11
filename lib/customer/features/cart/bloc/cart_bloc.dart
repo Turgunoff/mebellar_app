@@ -4,6 +4,8 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/analytics/analytics_service.dart';
+import '../../../../core/i18n/app_locale_controller.dart';
+import '../../../../core/i18n/locale_refetch.dart';
 import '../../../../core/network/api_error_messages.dart';
 import '../../../../shared/models/cart_item_model.dart';
 import '../../../../shared/models/product_model.dart';
@@ -21,7 +23,15 @@ sealed class CartEvent extends Equatable {
 /// in its constructor so subsequent updates from the repository flow in
 /// without an explicit reload.
 class LoadCart extends CartEvent {
-  const LoadCart();
+  const LoadCart({this.silent = false});
+
+  /// Re-fetch without flipping into `loading` — the rendered lines stay
+  /// until fresh data lands. Used by the locale-switch refetch, where the
+  /// item names need re-localising but the cart is already on screen.
+  final bool silent;
+
+  @override
+  List<Object?> get props => [silent];
 }
 
 class AddToCart extends CartEvent {
@@ -112,10 +122,15 @@ class CartState extends Equatable {
 /// All mutating handlers run optimistically: the predicted next state is
 /// emitted immediately, then the repository is called and the resulting
 /// snapshot replaces the optimistic state. On failure we roll back.
-class CartBloc extends Bloc<CartEvent, CartState> {
-  CartBloc(this._repo, {AnalyticsService? analytics})
-    : _analytics = analytics,
-      super(const CartState()) {
+class CartBloc extends Bloc<CartEvent, CartState>
+    with LocaleRefetch<CartState> {
+  CartBloc(
+    this._repo, {
+    AnalyticsService? analytics,
+    AppLocaleController? localeController,
+  }) : _analytics = analytics,
+       super(const CartState()) {
+    watchLocale(localeController);
     on<LoadCart>(_onLoad);
     on<AddToCart>(_onAdd);
     on<UpdateQuantity>(_onUpdate);
@@ -140,12 +155,23 @@ class CartBloc extends Bloc<CartEvent, CartState> {
   final AnalyticsService? _analytics;
   StreamSubscription<List<CartItemModel>>? _sub;
 
+  // Cart lines carry backend-localised product names; reload them in the
+  // new language without blanking the rendered cart.
+  @override
+  void onLocaleChanged() => add(const LoadCart(silent: true));
+
   Future<void> _onLoad(LoadCart event, Emitter<CartState> emit) async {
-    emit(state.copyWith(status: CartStatus.loading, clearError: true));
+    final silent = event.silent && state.items.isNotEmpty;
+    if (!silent) {
+      emit(state.copyWith(status: CartStatus.loading, clearError: true));
+    }
     try {
       final items = await _repo.fetchItems();
       emit(state.copyWith(status: CartStatus.ready, items: items));
     } catch (e) {
+      // A failed silent refetch keeps the old-language lines on screen —
+      // strictly better than swapping a populated cart for an error view.
+      if (silent) return;
       emit(state.copyWith(status: CartStatus.failure, error: apiErrorMessage(e)));
     }
   }

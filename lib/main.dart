@@ -174,7 +174,9 @@ Future<void> _bootstrapAndRun() async {
   RemoteConfig.instance.hydrateFromCache(settingsBox);
   unawaited(RemoteConfig.instance.refresh(sl<WoodyApiClient>(), settingsBox));
 
-  final localeController = AppLocaleController.fromBox(settingsBox);
+  // Root-scoped in core_module so the API client (Accept-Language), the
+  // catalog caches, and the locale-refetch blocs all share this instance.
+  final localeController = sl<AppLocaleController>();
   // Seed the singleton so any `tr(...)` invoked before the first
   // `Localizations.load` (e.g. boot logging) resolves correctly.
   AppTranslations.setInstance(
