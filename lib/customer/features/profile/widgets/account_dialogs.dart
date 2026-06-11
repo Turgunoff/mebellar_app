@@ -169,8 +169,10 @@ Future<void> confirmAccountDeletion(BuildContext context) async {
               ),
               const SizedBox(height: 10),
               Text(
-                "Bu amalni bekor qilib bo'lmaydi. Barcha "
-                "ma'lumotlaringiz o'chiriladi.",
+                "Haqiqatan ham hisobingizni o'chirmoqchimisiz? Barcha "
+                "ma'lumotlaringiz, buyurtmalar tarixi va agar mavjud "
+                "bo'lsa, do'koningiz hamda mahsulotlaringiz butunlay "
+                "o'chiriladi. Bu amalni ortga qaytarib bo'lmaydi.",
                 style: PremiumTokens.body(
                   size: 13,
                   color: pt.grey,

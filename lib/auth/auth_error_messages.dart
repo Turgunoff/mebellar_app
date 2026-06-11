@@ -27,6 +27,8 @@ String authErrorMessageFromApi(ApiError error) {
       return tr('auth.err_otp_expired');
     case 'otp_attempts_exhausted':
       return tr('auth.err_otp_attempts');
+    case 'account_blocked':
+      return tr('auth.err_account_blocked');
     case 'invalid_refresh_token':
       return tr('auth.invalid_credentials');
     case 'not_authenticated':

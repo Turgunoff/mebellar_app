@@ -235,11 +235,13 @@ class WoodyApiClient {
           return true;
         }
       }
-      // Only a definitive 401 (invalid_refresh_token) means the refresh
-      // token is genuinely dead — then, and only then, sign out. A 429 /
-      // 5xx / malformed body is transient: keep the session so a later
-      // request can recover instead of dumping the user at the login screen.
-      if (status == 401) {
+      // Only a definitive verdict kills the session: 401
+      // (invalid_refresh_token — the token is genuinely dead) or 403
+      // (account_blocked — the backend revoked the whole chain; retrying
+      // can never succeed until an admin unblocks). A 429 / 5xx / malformed
+      // body is transient: keep the session so a later request can recover
+      // instead of dumping the user at the login screen.
+      if (status == 401 || status == 403) {
         await _forceSignOut();
       }
       return false;

@@ -9,6 +9,8 @@ const Map<String, dynamic> authUz = {
   'err_otp_expired': "Kodning muddati o'tgan. Qayta yuborishni so'rang",
   'err_otp_attempts':
       "Juda ko'p noto'g'ri urinish. Kodni qayta yuborishni so'rang",
+  'err_account_blocked':
+      "Hisobingiz bloklangan. Ma'lumot uchun qo'llab-quvvatlash xizmatiga murojaat qiling",
   'err_validation': "Ma'lumotlar noto'g'ri kiritilgan",
   'register': 'Ro\'yxatdan o\'tish',
   'logout': 'Chiqish',
@@ -50,6 +52,8 @@ const Map<String, dynamic> authRu = {
   'err_otp_expired': 'Срок действия кода истёк. Запросите новый',
   'err_otp_attempts':
       'Слишком много неверных попыток. Запросите код повторно',
+  'err_account_blocked':
+      'Ваш аккаунт заблокирован. Обратитесь в службу поддержки',
   'err_validation': 'Данные введены неверно',
   'register': 'Регистрация',
   'logout': 'Выйти',
@@ -88,6 +92,8 @@ const Map<String, dynamic> authEn = {
   'err_invalid_code': 'Invalid code',
   'err_otp_expired': 'The code has expired. Request a new one',
   'err_otp_attempts': 'Too many incorrect attempts. Request the code again',
+  'err_account_blocked':
+      'Your account has been blocked. Please contact support',
   'err_validation': 'The data is invalid',
   'register': 'Sign up',
   'logout': 'Sign out',

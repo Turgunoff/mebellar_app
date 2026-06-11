@@ -170,6 +170,29 @@ void main() {
     await sub.cancel();
   });
 
+  test('a 403 (account_blocked) on refresh DOES force a sign-out', () async {
+    // An admin block revokes the whole refresh chain server-side and the
+    // refresh endpoint answers 403 account_blocked — retrying can never
+    // succeed, so keeping the session would strand the user in a loop of
+    // failing requests instead of bouncing them to login.
+    final adapter = _FakeAdapter()..refreshStatus = 403;
+    final client = _client(adapter, store);
+
+    final forced = <void>[];
+    final sub = client.forcedSignOuts.listen(forced.add);
+
+    await expectLater(
+      client.get<Map<String, dynamic>>('/me'),
+      throwsA(isA<ApiError>()),
+    );
+
+    expect(forced, hasLength(1));
+    final pair = await store.read();
+    expect(pair, isNull, reason: 'blocked account clears the session');
+
+    await sub.cancel();
+  });
+
   test(
     'an already-expired access token refreshes PROACTIVELY — the burst never '
     '401s and the rotating refresh token is presented exactly once',
