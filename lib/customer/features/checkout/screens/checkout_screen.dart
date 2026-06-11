@@ -6,6 +6,7 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/auth/auth_cubit.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/i18n/i18n.dart';
 import '../../orders/cubit/profile_orders_cubit.dart';
 import '../../../../shared/models/cart_item_model.dart';
 import '../../../../shared/repositories/cart_repository.dart';
@@ -795,7 +796,7 @@ class _ConfirmBar extends StatelessWidget {
     if (!state.hasAddress) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Iltimos, yetkazib berish manzilini kiriting'),
+          content: Text(tr('checkout.address_required')),
           behavior: SnackBarBehavior.floating,
           backgroundColor: const Color(0xFFEF4444),
           shape: RoundedRectangleBorder(

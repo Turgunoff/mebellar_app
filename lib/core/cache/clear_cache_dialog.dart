@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../i18n/i18n.dart';
 import 'app_cache_cubit.dart';
 
 /// Shared confirm-then-clear flow used by both the customer and seller settings
-/// screens. Shows the Uzbek confirmation dialog and, on confirm, triggers the
+/// screens. Shows a localized confirmation dialog and, on confirm, triggers the
 /// scoped cache wipe via [AppCacheCubit]. The [AlertDialog] inherits the ambient
 /// Material theme, so it renders correctly in either mode and in light/dark.
 Future<void> confirmAndClearCache(BuildContext context) async {
@@ -14,19 +15,16 @@ Future<void> confirmAndClearCache(BuildContext context) async {
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('Keshni tozalash'),
-      content: const Text(
-        'Haqiqatan ham barcha vaqtinchalik fayllar va rasmlar keshini '
-        'tozalamoqchimisiz?',
-      ),
+      title: Text(tr('settings.clear_cache')),
+      content: Text(tr('settings.clear_cache_message')),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(ctx).pop(false),
-          child: const Text('Bekor qilish'),
+          child: Text(tr('common.cancel')),
         ),
         TextButton(
           onPressed: () => Navigator.of(ctx).pop(true),
-          child: const Text('Tozalash'),
+          child: Text(tr('settings.clear_cache_confirm')),
         ),
       ],
     ),

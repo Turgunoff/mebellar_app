@@ -2,6 +2,14 @@
 
 const Map<String, dynamic> authUz = {
   'login': 'Kirish',
+  'err_invalid_phone': "Telefon raqam noto'g'ri formatda",
+  'err_rate_limited_retry':
+      "Juda ko'p urinish. {seconds} soniyadan keyin qayta urining",
+  'err_invalid_code': "Kod noto'g'ri",
+  'err_otp_expired': "Kodning muddati o'tgan. Qayta yuborishni so'rang",
+  'err_otp_attempts':
+      "Juda ko'p noto'g'ri urinish. Kodni qayta yuborishni so'rang",
+  'err_validation': "Ma'lumotlar noto'g'ri kiritilgan",
   'register': 'Ro\'yxatdan o\'tish',
   'logout': 'Chiqish',
   'email': 'Elektron pochta',
@@ -35,6 +43,14 @@ const Map<String, dynamic> authUz = {
 
 const Map<String, dynamic> authRu = {
   'login': 'Вход',
+  'err_invalid_phone': 'Неверный формат номера телефона',
+  'err_rate_limited_retry':
+      'Слишком много попыток. Повторите через {seconds} с',
+  'err_invalid_code': 'Неверный код',
+  'err_otp_expired': 'Срок действия кода истёк. Запросите новый',
+  'err_otp_attempts':
+      'Слишком много неверных попыток. Запросите код повторно',
+  'err_validation': 'Данные введены неверно',
   'register': 'Регистрация',
   'logout': 'Выйти',
   'email': 'Электронная почта',
@@ -67,6 +83,12 @@ const Map<String, dynamic> authRu = {
 
 const Map<String, dynamic> authEn = {
   'login': 'Sign in',
+  'err_invalid_phone': 'Invalid phone number format',
+  'err_rate_limited_retry': 'Too many attempts. Try again in {seconds}s',
+  'err_invalid_code': 'Invalid code',
+  'err_otp_expired': 'The code has expired. Request a new one',
+  'err_otp_attempts': 'Too many incorrect attempts. Request the code again',
+  'err_validation': 'The data is invalid',
   'register': 'Sign up',
   'logout': 'Sign out',
   'email': 'Email',

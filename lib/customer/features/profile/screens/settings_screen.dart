@@ -7,6 +7,8 @@ import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/cache/app_cache_cubit.dart';
 import '../../../../core/cache/clear_cache_dialog.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/i18n/i18n.dart';
+import '../../../../core/i18n/language_picker.dart';
 import '../../../../core/storage/hive_boxes.dart';
 import '../../../../core/theme/theme_cubit.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
@@ -52,91 +54,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final box = sl<Box>(instanceName: HiveBoxes.settings);
     await box.put(_analyticsBoxKey, value);
     await sl<AnalyticsService>().setAnalyticsEnabled(value);
-  }
-
-  void _showComingSoon(BuildContext context, String feature) {
-    final pt = PremiumTokens.of(context);
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withValues(alpha: 0.45),
-      builder: (ctx) => Container(
-        decoration: BoxDecoration(
-          color: pt.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        padding: EdgeInsets.fromLTRB(
-          28,
-          0,
-          28,
-          MediaQuery.paddingOf(ctx).bottom + 28,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Center(
-              child: Container(
-                margin: const EdgeInsets.only(top: 12, bottom: 28),
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: pt.divider,
-                  borderRadius: BorderRadius.circular(99),
-                ),
-              ),
-            ),
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                color: PremiumTokens.accent.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              alignment: Alignment.center,
-              child: const Icon(
-                Icons.hourglass_top_rounded,
-                size: 30,
-                color: PremiumTokens.accent,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              feature,
-              style: PremiumTokens.display(size: 20, letterSpacing: -0.3),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 10),
-            Text(
-              "Ushbu funksiya keyingi versiyada qo'shiladi.\nBiz bilan qoling!",
-              textAlign: TextAlign.center,
-              style: PremiumTokens.body(size: 14, color: pt.grey, height: 1.55),
-            ),
-            const SizedBox(height: 28),
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: FilledButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                style: FilledButton.styleFrom(
-                  backgroundColor: PremiumTokens.accent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                child: Text(
-                  'Tushunarli',
-                  style: PremiumTokens.body(
-                    size: 15,
-                    weight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   void _showAnalyticsInfo(BuildContext context) {
@@ -191,7 +108,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Foydalanish statistikasi',
+                    tr('settings.analytics_usage'),
                     style: PremiumTokens.display(size: 18, letterSpacing: -0.2),
                   ),
                 ),
@@ -199,19 +116,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: 18),
             Text(
-              "Ilova qaysi qismlari faol ishlatilayotganini tushunish va xatolarni tezroq topish uchun anonim statistik signallar yig'amiz.",
+              tr('settings.analytics_intro'),
               style: PremiumTokens.body(size: 14, color: pt.grey, height: 1.55),
             ),
             const SizedBox(height: 20),
             Text(
-              "Nimalar yig'iladi",
+              tr('settings.analytics_collected_label'),
               style: PremiumTokens.body(size: 13, weight: FontWeight.w600),
             ),
             const SizedBox(height: 10),
-            _InfoBullet(text: "Qaysi mahsulot va kategoriyalar ko'rilgani"),
-            _InfoBullet(text: 'Savatga qo\'shish va xarid voronkasi'),
-            _InfoBullet(text: "Qidiruv so'rovlari va natijalar soni"),
-            _InfoBullet(text: 'Chat va sotuvchi onboardingi bosqichlari'),
+            _InfoBullet(text: tr('settings.analytics_b1')),
+            _InfoBullet(text: tr('settings.analytics_b2')),
+            _InfoBullet(text: tr('settings.analytics_b3')),
+            _InfoBullet(text: tr('settings.analytics_b4')),
             const SizedBox(height: 20),
             Container(
               padding: const EdgeInsets.all(14),
@@ -230,7 +147,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      "Ism, telefon, email yoki to'lov ma'lumotlari yig'ilmaydi. Eventlar Firebase Analytics'ga shifrlangan kanal orqali yuboriladi.",
+                      tr('settings.analytics_privacy_note'),
                       style: PremiumTokens.body(
                         size: 12.5,
                         color: pt.dark,
@@ -252,8 +169,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Navigator.of(ctx).pop();
                         Navigator.of(context).push(
                           MaterialPageRoute<void>(
-                            builder: (_) => const StaticContentScreen(
-                              title: 'Maxfiylik siyosati',
+                            builder: (_) => StaticContentScreen(
+                              title: tr('settings.privacy_policy'),
                               type: StaticContentType.privacy,
                             ),
                           ),
@@ -266,7 +183,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ),
                       child: Text(
-                        'Maxfiylik siyosati',
+                        tr('settings.privacy_policy'),
                         style: PremiumTokens.body(
                           size: 13.5,
                           weight: FontWeight.w600,
@@ -289,7 +206,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ),
                       child: Text(
-                        'Tushunarli',
+                        tr('settings.understood'),
                         style: PremiumTokens.body(
                           size: 14,
                           weight: FontWeight.w700,
@@ -318,7 +235,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         icon: Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: pt.dark),
       ),
       title: Text(
-        'Sozlamalar',
+        tr('settings.title'),
         style: PremiumTokens.body(size: 17, weight: FontWeight.w600),
       ),
       centerTitle: true,
@@ -340,6 +257,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         themeMode == ThemeMode.dark ||
         (themeMode == ThemeMode.system &&
             MediaQuery.platformBrightnessOf(context) == Brightness.dark);
+    final languageLabel = tr('lang.${context.locale.languageCode}');
     return Scaffold(
       backgroundColor: pt.background,
       appBar: _buildAppBar(),
@@ -347,60 +265,60 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
         physics: const BouncingScrollPhysics(),
         children: [
-          const _SectionLabel('Til'),
+          _SectionLabel(tr('settings.section_language')),
           const SizedBox(height: 8),
           _Card(
             children: [
               _NavRow(
                 icon: Iconsax.language_square,
-                title: 'Ilova tili',
-                trailingLabel: "O'zbekcha",
-                onTap: () => _showComingSoon(context, 'Ilova tili'),
+                title: tr('settings.language_row'),
+                trailingLabel: languageLabel,
+                onTap: () => showLanguagePicker(context),
               ),
             ],
           ),
           const SizedBox(height: 24),
-          const _SectionLabel('Bildirishnomalar'),
+          _SectionLabel(tr('settings.section_notifications')),
           const SizedBox(height: 8),
           _Card(
             children: [
               _SwitchRow(
                 icon: Iconsax.notification,
-                title: 'Push bildirishnomalar',
+                title: tr('settings.push_notifications'),
                 value: _pushNotifications,
                 onChanged: (v) => setState(() => _pushNotifications = v),
               ),
               const _RowDivider(),
               _SwitchRow(
                 icon: Iconsax.box,
-                title: 'Buyurtma yangilanishlari',
+                title: tr('settings.order_updates'),
                 value: _orderUpdates,
                 onChanged: (v) => setState(() => _orderUpdates = v),
               ),
             ],
           ),
           const SizedBox(height: 24),
-          const _SectionLabel("Ko'rinish"),
+          _SectionLabel(tr('settings.section_appearance')),
           const SizedBox(height: 8),
           _Card(
             children: [
               _SwitchRow(
                 icon: Iconsax.moon,
-                title: "Qorong'i rejim",
+                title: tr('settings.dark_mode'),
                 value: isDark,
                 onChanged: (v) => context.read<ThemeCubit>().toggleDark(v),
               ),
             ],
           ),
           const SizedBox(height: 24),
-          const _SectionLabel('Maxfiylik'),
+          _SectionLabel(tr('settings.section_privacy')),
           const SizedBox(height: 8),
           _Card(
             children: [
               _SwitchRow(
                 icon: Iconsax.chart_2,
-                title: "Foydalanish statistikasi",
-                subtitle: "Anonim event'lar ilovani yaxshilashga yordam beradi",
+                title: tr('settings.analytics_usage'),
+                subtitle: tr('settings.analytics_subtitle'),
                 value: _analyticsEnabled,
                 onChanged: _setAnalyticsEnabled,
                 onInfoTap: () => _showAnalyticsInfo(context),
@@ -408,17 +326,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ],
           ),
           const SizedBox(height: 24),
-          const _SectionLabel('Xotira'),
+          _SectionLabel(tr('settings.section_storage')),
           const SizedBox(height: 8),
           _Card(
             children: [
               BlocBuilder<AppCacheCubit, AppCacheState>(
                 builder: (context, cache) => _NavRow(
                   icon: Iconsax.trash,
-                  title: 'Keshni tozalash',
+                  title: tr('settings.clear_cache'),
                   trailingLabel: cache.isBusy
-                      ? 'Hisoblanmoqda...'
-                      : (cache.sizeLabel ?? 'Hisoblanmoqda...'),
+                      ? tr('settings.calculating')
+                      : (cache.sizeLabel ?? tr('settings.calculating')),
                   onTap: () {
                     if (!cache.isBusy) confirmAndClearCache(context);
                   },

@@ -2,6 +2,7 @@
 
 const Map<String, dynamic> checkoutUz = {
   'title': 'Buyurtmani rasmiylashtirish',
+  'address_required': 'Iltimos, yetkazib berish manzilini kiriting',
   'step_review': 'Buyurtmani tekshiring',
   'step_address': 'Yetkazib berish manzili',
   'step_delivery': 'Yetkazib berish usuli',
@@ -23,6 +24,7 @@ const Map<String, dynamic> checkoutUz = {
 
 const Map<String, dynamic> checkoutRu = {
   'title': 'Оформление заказа',
+  'address_required': 'Пожалуйста, укажите адрес доставки',
   'step_review': 'Проверьте заказ',
   'step_address': 'Адрес доставки',
   'step_delivery': 'Способ доставки',
@@ -44,6 +46,7 @@ const Map<String, dynamic> checkoutRu = {
 
 const Map<String, dynamic> checkoutEn = {
   'title': 'Checkout',
+  'address_required': 'Please enter a delivery address',
   'step_review': 'Review your order',
   'step_address': 'Delivery address',
   'step_delivery': 'Delivery method',
