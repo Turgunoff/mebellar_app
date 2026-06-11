@@ -117,8 +117,8 @@ class ProfileState extends Equatable {
 /// identity stays on screen rather than blanking the card.
 class ProfileCubit extends Cubit<ProfileState> {
   ProfileCubit(this._auth, {Box? cacheBox})
-      : _cacheBox = cacheBox,
-        super(const ProfileState(isLoading: true));
+    : _cacheBox = cacheBox,
+      super(const ProfileState(isLoading: true));
 
   final AuthRepository _auth;
 
@@ -168,7 +168,9 @@ class ProfileCubit extends Cubit<ProfileState> {
       );
     }
     try {
-      emit(_fromMe(await _auth.fetchMe()));
+      final me = await _auth.fetchMe();
+      if (isClosed) return;
+      emit(_fromMe(me));
       if (sl.isRegistered<AppModeCubit>()) {
         unawaited(
           sl<AppModeCubit>().recordSellerApproval(state.isSellerApproved),
@@ -176,9 +178,11 @@ class ProfileCubit extends Cubit<ProfileState> {
       }
     } on ApiError catch (e, st) {
       talker.handle(e, st, 'ProfileCubit.fetch /me failed');
+      if (isClosed) return;
       emit(state.copyWith(isLoading: false));
     } catch (e, st) {
       talker.handle(e, st, 'ProfileCubit.fetch failed');
+      if (isClosed) return;
       emit(state.copyWith(isLoading: false));
     }
   }
@@ -209,6 +213,7 @@ class ProfileCubit extends Cubit<ProfileState> {
       email: email,
       avatarUrl: avatarUrl,
     );
+    if (isClosed) return;
     emit(_fromMe(me));
   }
 

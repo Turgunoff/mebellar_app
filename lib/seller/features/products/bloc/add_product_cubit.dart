@@ -274,6 +274,7 @@ class AddProductCubit extends Cubit<AddProductState> {
     );
     try {
       final ctx = await _repository.loadShopContext();
+      if (isClosed) return;
       if (!ctx.canAddMoreProducts) {
         emit(
           state.copyWith(status: AddProductStatus.tariffBlocked, context: ctx),
@@ -282,6 +283,7 @@ class AddProductCubit extends Cubit<AddProductState> {
       }
       emit(state.copyWith(status: AddProductStatus.ready, context: ctx));
     } catch (e) {
+      if (isClosed) return;
       emit(
         state.copyWith(status: AddProductStatus.failure, error: e.toString()),
       );
@@ -306,6 +308,7 @@ class AddProductCubit extends Cubit<AddProductState> {
     );
     try {
       final ctx = await _repository.loadShopContext();
+      if (isClosed) return;
       final hasDiscount =
           product.discountPrice != null &&
           product.discountPrice! > 0 &&
@@ -348,6 +351,7 @@ class AddProductCubit extends Cubit<AddProductState> {
           selectSubcategory(sub);
         }
         await _awaitSchema();
+        if (isClosed) return;
         final validKeys = {for (final d in state.attributeSchema) d.key};
         for (final entry in product.attributes.entries) {
           if (validKeys.contains(entry.key) && entry.value != null) {
@@ -358,6 +362,7 @@ class AddProductCubit extends Cubit<AddProductState> {
 
       emit(state.copyWith(status: AddProductStatus.ready));
     } catch (e) {
+      if (isClosed) return;
       emit(
         state.copyWith(status: AddProductStatus.failure, error: e.toString()),
       );
@@ -447,10 +452,10 @@ class AddProductCubit extends Cubit<AddProductState> {
         categoryId: categoryId,
         subcategoryId: state.subcategoryId,
       );
-      if (token != _schemaRequestId) return; // stale response
+      if (isClosed || token != _schemaRequestId) return; // stale response
       emit(state.copyWith(attributeSchema: schema, isLoadingSchema: false));
     } catch (e) {
-      if (token != _schemaRequestId) return;
+      if (isClosed || token != _schemaRequestId) return;
       emit(state.copyWith(isLoadingSchema: false, error: e.toString()));
     }
   }
@@ -617,7 +622,9 @@ class AddProductCubit extends Cubit<AddProductState> {
         final result = await _repository.createProduct(input);
         unawaited(_analytics?.productCreated(productId: result.productId));
       }
-      emit(state.copyWith(status: AddProductStatus.success));
+      if (!isClosed) {
+        emit(state.copyWith(status: AddProductStatus.success));
+      }
       talker.info('[add-product-cubit] submit ok sku=${state.sku}');
       return true;
     } catch (e, st) {
@@ -629,7 +636,9 @@ class AddProductCubit extends Cubit<AddProductState> {
       // The backend sends seller-actionable Uzbek copy in `detail`
       // (e.g. "Tarif limit: …"); show that, not the ApiError envelope.
       final message = e is ApiError ? (e.message ?? e.code) : e.toString();
-      emit(state.copyWith(status: AddProductStatus.failure, error: message));
+      if (!isClosed) {
+        emit(state.copyWith(status: AddProductStatus.failure, error: message));
+      }
       return false;
     }
   }
@@ -661,9 +670,11 @@ class AddProductCubit extends Cubit<AddProductState> {
         sellerId: ctx.sellerId,
         images: images,
       );
+      if (isClosed) return (available: false, sameProduct: true);
       final s = result.suggestion;
       if (s.hasAnything) {
         await _applySuggestion(s);
+        if (isClosed) return (available: false, sameProduct: true);
       }
       unawaited(_analytics?.aiSuggestApplied(available: s.available));
       emit(state.copyWith(isAiBusy: false));
@@ -674,7 +685,9 @@ class AddProductCubit extends Cubit<AddProductState> {
       return (available: s.available, sameProduct: s.sameProduct);
     } catch (e, st) {
       talker.handle(e, st, '[add-product-cubit] ai-suggest failed');
-      emit(state.copyWith(isAiBusy: false));
+      if (!isClosed) {
+        emit(state.copyWith(isAiBusy: false));
+      }
       return (available: false, sameProduct: true);
     }
   }
@@ -705,6 +718,7 @@ class AddProductCubit extends Cubit<AddProductState> {
       // for it to settle so the attributes below are validated against the
       // real schema rather than an empty one.
       await _awaitSchema();
+      if (isClosed) return;
     }
 
     if (s.attributes.isNotEmpty && state.attributeSchema.isNotEmpty) {
@@ -739,10 +753,10 @@ class AddProductCubit extends Cubit<AddProductState> {
         categoryId: categoryId,
         subcategoryId: state.subcategoryId,
       );
-      if (token != _schemaRequestId) return;
+      if (isClosed || token != _schemaRequestId) return;
       emit(state.copyWith(attributeSchema: schema, isLoadingSchema: false));
     } catch (e) {
-      if (token != _schemaRequestId) return;
+      if (isClosed || token != _schemaRequestId) return;
       emit(state.copyWith(isLoadingSchema: false, error: e.toString()));
     }
   }

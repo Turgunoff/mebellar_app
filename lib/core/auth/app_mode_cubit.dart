@@ -80,6 +80,7 @@ class AppModeCubit extends Cubit<AppMode> {
   Future<void> switchMode(AppMode mode) async {
     if (state == mode) return;
     await _settings.put(modeKey, mode.name);
+    if (isClosed) return;
     emit(mode);
     // Funnel signal — track only the customer→seller flip; entering
     // customer mode is the implicit default and would be noise.
@@ -115,6 +116,7 @@ class AppModeCubit extends Cubit<AppMode> {
     await _settings.put(sellerApprovedCacheKey, isApproved);
     if (state == AppMode.seller && !isApproved) {
       await _settings.put(modeKey, AppMode.customer.name);
+      if (isClosed) return;
       emit(AppMode.customer);
     }
   }
@@ -131,6 +133,7 @@ class AppModeCubit extends Cubit<AppMode> {
   /// silently leaving an approved seller on customer.
   Future<void> markSessionActive() async {
     await _settings.put(sessionActiveKey, true);
+    if (isClosed) return;
     final persisted = AppMode.fromName(_settings.get(modeKey) as String?);
     if (state == AppMode.customer &&
         persisted == AppMode.seller &&
@@ -152,6 +155,7 @@ class AppModeCubit extends Cubit<AppMode> {
     await _settings.put(sessionActiveKey, false);
     if (state == AppMode.seller) {
       await _settings.put(modeKey, AppMode.customer.name);
+      if (isClosed) return;
       emit(AppMode.customer);
     }
   }

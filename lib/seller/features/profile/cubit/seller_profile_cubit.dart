@@ -62,6 +62,7 @@ class SellerProfileCubit extends Cubit<SellerProfileState> {
       _fetch(_repo.fetchShop(), label: 'shop'),
       _fetch(_repo.fetchTariffCurrent(), label: 'tariff'),
     ]);
+    if (isClosed) return;
     final meRes = results[0];
     final shopRes = results[1];
     final tariffRes = results[2];
@@ -69,8 +70,8 @@ class SellerProfileCubit extends Cubit<SellerProfileState> {
     // /seller/me — verification status + legal name (+ shop_name fallback).
     final verification = switch (meRes.outcome) {
       _Outcome.ok => VerificationStatus.fromCode(
-          meRes.data?['verification_status'] as String?,
-        ),
+        meRes.data?['verification_status'] as String?,
+      ),
       _Outcome.absent => VerificationStatus.none,
       _Outcome.failed => base.verificationStatus,
     };
@@ -85,7 +86,8 @@ class SellerProfileCubit extends Cubit<SellerProfileState> {
 
     // /seller/shop — shop name + logo.
     final shopName = switch (shopRes.outcome) {
-      _Outcome.ok => _trimOrNull(shopRes.data?['name'] as String?) ?? meShopName,
+      _Outcome.ok =>
+        _trimOrNull(shopRes.data?['name'] as String?) ?? meShopName,
       _Outcome.absent => meShopName,
       _Outcome.failed => meShopName ?? base.shopName,
     };
@@ -102,7 +104,9 @@ class SellerProfileCubit extends Cubit<SellerProfileState> {
 
     // /seller/tariff/current — active plan.
     final plan = switch (tariffRes.outcome) {
-      _Outcome.ok => TariffPlan.fromCode(tariffRes.data?['plan_code'] as String?),
+      _Outcome.ok => TariffPlan.fromCode(
+        tariffRes.data?['plan_code'] as String?,
+      ),
       _Outcome.absent => TariffPlan.free,
       _Outcome.failed => base.plan,
     };

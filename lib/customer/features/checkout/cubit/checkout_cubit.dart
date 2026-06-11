@@ -106,7 +106,9 @@ class CheckoutCubit extends Cubit<CheckoutState> {
       0,
       (sum, g) => sum + g.subtotal.toDouble(),
     );
-    unawaited(_analytics?.beginCheckout(value: total, itemsCount: items.length));
+    unawaited(
+      _analytics?.beginCheckout(value: total, itemsCount: items.length),
+    );
   }
 
   final CheckoutRepository _checkout;
@@ -150,14 +152,17 @@ class CheckoutCubit extends Cubit<CheckoutState> {
         // Per-shop purchase event — Firebase counts each as one conversion
         // so a 2-shop cart shows up as 2 rows in the dashboard, matching
         // how the shops are billed and fulfilled separately.
-        unawaited(_analytics?.purchased(
-          transactionId: orderId,
-          value: group.subtotal.toDouble(),
-          itemsCount: group.items.length,
-        ));
+        unawaited(
+          _analytics?.purchased(
+            transactionId: orderId,
+            value: group.subtotal.toDouble(),
+            itemsCount: group.items.length,
+          ),
+        );
       }
 
       await _cartRepo.clear();
+      if (isClosed) return;
       emit(
         state.copyWith(
           status: CheckoutStatus.success,
@@ -165,7 +170,13 @@ class CheckoutCubit extends Cubit<CheckoutState> {
         ),
       );
     } catch (e) {
-      emit(state.copyWith(status: CheckoutStatus.failure, error: apiErrorMessage(e)));
+      if (isClosed) return;
+      emit(
+        state.copyWith(
+          status: CheckoutStatus.failure,
+          error: apiErrorMessage(e),
+        ),
+      );
     }
   }
 

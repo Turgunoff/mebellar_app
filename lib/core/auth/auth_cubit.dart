@@ -35,11 +35,8 @@ class AppAuthAuthenticated extends AppAuthState {
 /// sign-out fires `logout`. Fresh sign-ups are emitted by the controller
 /// itself so the `sign_up` event carries the chosen method.
 class AuthCubit extends Cubit<AppAuthState> {
-  AuthCubit({
-    required this.tokens,
-    this.analytics,
-    this.realtime,
-  }) : super(const AppAuthUnauthenticated()) {
+  AuthCubit({required this.tokens, this.analytics, this.realtime})
+    : super(const AppAuthUnauthenticated()) {
     _init();
   }
 
@@ -59,6 +56,7 @@ class AuthCubit extends Cubit<AppAuthState> {
     // replay events to late subscribers.
     _sub = tokens.changes.listen((pair) => _apply(pair, emitLogin: true));
     final initial = await tokens.read();
+    if (isClosed) return;
     _apply(initial, emitLogin: false);
   }
 

@@ -133,6 +133,7 @@ class ProductListCubit extends Cubit<ProductListState> {
         ),
         _categorySource.list(),
       ]);
+      if (isClosed) return;
       final products = results[0] as List<ProductModel>;
       final categories = results[1] as List<CategoryModel>;
       // Locate the current category's subcategories without throwing when
@@ -150,6 +151,7 @@ class ProductListCubit extends Cubit<ProductListState> {
         ),
       );
     } catch (e) {
+      if (isClosed) return;
       // Keep the cached page visible on a refresh failure — surface a hard
       // failure state only when we had nothing to paint to begin with.
       if (hasCache) {
@@ -212,7 +214,8 @@ class ProductListCubit extends Cubit<ProductListState> {
       // The user may have tapped another chip or tweaked the filter while
       // this request was in flight — drop the result if so, otherwise the
       // grid would briefly show stale data from the wrong selection.
-      if (state.selectedSubcategoryId != subcategoryId ||
+      if (isClosed ||
+          state.selectedSubcategoryId != subcategoryId ||
           state.filter != filter) {
         return;
       }
@@ -220,12 +223,16 @@ class ProductListCubit extends Cubit<ProductListState> {
         state.copyWith(status: ProductListStatus.loaded, products: products),
       );
     } catch (e) {
-      if (state.selectedSubcategoryId != subcategoryId ||
+      if (isClosed ||
+          state.selectedSubcategoryId != subcategoryId ||
           state.filter != filter) {
         return;
       }
       emit(
-        state.copyWith(status: ProductListStatus.failure, error: apiErrorMessage(e)),
+        state.copyWith(
+          status: ProductListStatus.failure,
+          error: apiErrorMessage(e),
+        ),
       );
     }
   }

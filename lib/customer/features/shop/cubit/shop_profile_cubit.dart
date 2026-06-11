@@ -36,6 +36,7 @@ class ShopProfileCubit extends Cubit<ShopProfileState> {
       _repo.shopById(shopId),
       _repo.productsByShop(shopId),
     ).wait;
+    if (isClosed) return;
 
     shopResult.fold(
       ok: (shop) => emit(

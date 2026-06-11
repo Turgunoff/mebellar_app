@@ -62,6 +62,7 @@ class SellerDashboardCubit extends Cubit<SellerDashboardState> {
   }) async {
     try {
       final snap = await _repo.snapshot();
+      if (isClosed) return;
       emit(
         SellerDashboardState(
           isLoading: false,
@@ -97,6 +98,7 @@ class SellerDashboardCubit extends Cubit<SellerDashboardState> {
         ),
       );
     } catch (e) {
+      if (isClosed) return;
       emit(
         SellerDashboardState(
           isLoading: false,
@@ -123,6 +125,7 @@ class SellerDashboardCubit extends Cubit<SellerDashboardState> {
   Future<void> _refreshIdentity() async {
     try {
       final ident = await _repo.identity();
+      if (isClosed) return;
       final name = (ident.sellerName?.isNotEmpty ?? false)
           ? ident.sellerName
           : state.data.sellerName;

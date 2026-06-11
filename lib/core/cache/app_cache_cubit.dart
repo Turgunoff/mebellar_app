@@ -25,10 +25,11 @@ class AppCacheState extends Equatable {
     return formatCacheBytes(b);
   }
 
-  AppCacheState copyWith({CacheStatus? status, int? sizeBytes}) => AppCacheState(
-    status: status ?? this.status,
-    sizeBytes: sizeBytes ?? this.sizeBytes,
-  );
+  AppCacheState copyWith({CacheStatus? status, int? sizeBytes}) =>
+      AppCacheState(
+        status: status ?? this.status,
+        sizeBytes: sizeBytes ?? this.sizeBytes,
+      );
 
   @override
   List<Object?> get props => [status, sizeBytes];
@@ -61,8 +62,10 @@ class AppCacheCubit extends Cubit<AppCacheState> {
     emit(state.copyWith(status: CacheStatus.calculating));
     try {
       final bytes = await _service.sizeBytes();
+      if (isClosed) return;
       emit(AppCacheState(status: CacheStatus.ready, sizeBytes: bytes));
     } catch (_) {
+      if (isClosed) return;
       // Keep the previous size on screen rather than flashing an error.
       emit(state.copyWith(status: CacheStatus.ready));
     }
@@ -79,6 +82,7 @@ class AppCacheCubit extends Cubit<AppCacheState> {
       // Best-effort — fall through to recompute whatever remains.
     }
     final bytes = await _service.sizeBytes();
+    if (isClosed) return;
     emit(AppCacheState(status: CacheStatus.ready, sizeBytes: bytes));
   }
 }
