@@ -3,33 +3,74 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
+import '../../bloc/add_product_cubit.dart';
 import 'form_kit.dart';
 import 'thousands_formatter.dart';
 
-/// Base price, discount-percent chips and the discounted-price summary.
+/// Base price (with a UZS|USD currency toggle), discount-percent chips and
+/// the discounted-price summary. USD is an input convenience only — every
+/// derived figure shown here is UZS, converted with the CBU [usdRate].
 class PricingSection extends StatelessWidget {
   const PricingSection({
     super.key,
     required this.priceController,
+    required this.currency,
+    required this.usdRate,
     required this.discountPercent,
     required this.priceValue,
-    required this.discountedPrice,
+    required this.uzsPrice,
+    required this.discountedUzsPrice,
     required this.onPriceChanged,
+    required this.onCurrencyChanged,
     required this.onDiscountSelected,
     required this.onCustomTapped,
   });
 
   final TextEditingController priceController;
+  final PriceCurrency currency;
+
+  /// CBU USD→UZS rate; null while loading/unavailable — the USD segment is
+  /// rendered dimmed (tapping it retries the fetch via the cubit).
+  final double? usdRate;
   final int discountPercent;
+
+  /// Raw typed number, in [currency].
   final int priceValue;
-  final int discountedPrice;
+
+  /// Base price converted to UZS (equals [priceValue] for UZS input).
+  final int uzsPrice;
+
+  /// Discounted price in UZS — what the summary box leads with.
+  final int discountedUzsPrice;
   final ValueChanged<num> onPriceChanged;
+  final ValueChanged<PriceCurrency> onCurrencyChanged;
   final ValueChanged<int> onDiscountSelected;
   final VoidCallback onCustomTapped;
+
+  bool get _isUsd => currency == PriceCurrency.usd;
+
+  String? _helperText() {
+    final rate = usdRate;
+    if (!_isUsd || rate == null) return null;
+    final rateLabel = '1 USD = ${formatThousands(rate.round())} UZS';
+    if (priceValue <= 0) return '$rateLabel (MB kursi)';
+    return '≈ ${formatThousands(uzsPrice)} UZS · $rateLabel';
+  }
+
+  /// Discounted total back in USD for the summary's secondary line, so the
+  /// seller can sanity-check the UZS figure against what they typed.
+  String? _usdSecondary() {
+    if (!_isUsd || priceValue <= 0) return null;
+    final discounted = discountPercent > 0
+        ? priceValue * (100 - discountPercent) / 100
+        : priceValue.toDouble();
+    return '≈ ${formatThousands(discounted.round())} USD';
+  }
 
   @override
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
+    final primary = Theme.of(context).colorScheme.primary;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -42,9 +83,15 @@ class PricingSection extends StatelessWidget {
                 controller: priceController,
                 label: 'Asosiy narx',
                 hint: '0',
-                suffix: 'UZS',
+                suffixWidget: _CurrencyToggle(
+                  value: currency,
+                  usdEnabled: usdRate != null,
+                  onChanged: onCurrencyChanged,
+                ),
                 keyboardType: TextInputType.number,
                 inputFormatters: const [ThousandsSpaceFormatter()],
+                helper: _helperText(),
+                helperColor: priceValue > 0 ? primary : null,
                 onChanged: (v) {
                   final digits = v.replaceAll(RegExp(r'[^\d]'), '');
                   onPriceChanged(int.tryParse(digits) ?? 0);
@@ -71,14 +118,112 @@ class PricingSection extends StatelessWidget {
               ),
               const SizedBox(height: 14),
               _DiscountSummary(
-                priceValue: priceValue,
+                hasPrice: priceValue > 0 && uzsPrice > 0,
                 discountPercent: discountPercent,
-                discountedPrice: discountedPrice,
+                discountedUzsPrice: discountedUzsPrice,
+                secondary: _usdSecondary(),
               ),
             ],
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Compact two-segment UZS|USD pill living in the price field's suffix.
+class _CurrencyToggle extends StatelessWidget {
+  const _CurrencyToggle({
+    required this.value,
+    required this.usdEnabled,
+    required this.onChanged,
+  });
+
+  final PriceCurrency value;
+
+  /// False until the CBU rate loads — the USD segment renders dimmed, but
+  /// stays tappable so the tap can retry the fetch (the cubit won't switch
+  /// without a rate).
+  final bool usdEnabled;
+  final ValueChanged<PriceCurrency> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: c.fillFaint,
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(color: c.outline, width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _CurrencySegment(
+            label: 'UZS',
+            selected: value == PriceCurrency.uzs,
+            dimmed: false,
+            onTap: () => onChanged(PriceCurrency.uzs),
+          ),
+          _CurrencySegment(
+            label: 'USD',
+            selected: value == PriceCurrency.usd,
+            dimmed: !usdEnabled,
+            onTap: () => onChanged(PriceCurrency.usd),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CurrencySegment extends StatelessWidget {
+  const _CurrencySegment({
+    required this.label,
+    required this.selected,
+    required this.dimmed,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final bool dimmed;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    final primary = Theme.of(context).colorScheme.primary;
+    final Color textColor;
+    if (selected) {
+      textColor = Colors.white;
+    } else if (dimmed) {
+      textColor = c.greyMid.withValues(alpha: 0.45);
+    } else {
+      textColor = c.grey;
+    }
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: selected ? primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(7),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontFamily: AppFonts.seller,
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            color: textColor,
+            letterSpacing: 0.3,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -164,20 +309,26 @@ class _DiscountChip extends StatelessWidget {
 
 class _DiscountSummary extends StatelessWidget {
   const _DiscountSummary({
-    required this.priceValue,
+    required this.hasPrice,
     required this.discountPercent,
-    required this.discountedPrice,
+    required this.discountedUzsPrice,
+    this.secondary,
   });
 
-  final int priceValue;
+  final bool hasPrice;
   final int discountPercent;
-  final int discountedPrice;
+
+  /// Final (discounted) price in UZS — always the primary figure, whatever
+  /// currency the seller typed in.
+  final int discountedUzsPrice;
+
+  /// Optional USD echo of the same total when the input currency is USD.
+  final String? secondary;
 
   @override
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
     final primary = Theme.of(context).colorScheme.primary;
-    final hasPrice = priceValue > 0;
     final hasDiscount = discountPercent > 0;
 
     return Container(
@@ -219,7 +370,7 @@ class _DiscountSummary extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   hasPrice
-                      ? '${formatThousands(discountedPrice)} UZS'
+                      ? '${formatThousands(discountedUzsPrice)} UZS'
                       : '— UZS',
                   style: TextStyle(
                     fontFamily: AppFonts.seller,
@@ -230,6 +381,19 @@ class _DiscountSummary extends StatelessWidget {
                     height: 1.1,
                   ),
                 ),
+                if (hasPrice && secondary != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    secondary!,
+                    style: TextStyle(
+                      fontFamily: AppFonts.seller,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: c.grey,
+                      letterSpacing: 0.1,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

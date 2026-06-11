@@ -60,42 +60,16 @@ Future<void> showSignOutDialog(BuildContext context) async {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () => Navigator.of(ctx).pop(false),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(0, 48),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      side: BorderSide(color: pt.divider),
-                    ),
-                    child: Text(
-                      'Bekor qilish',
-                      style: PremiumTokens.body(
-                        size: 14,
-                        weight: FontWeight.w600,
-                        color: pt.dark,
-                      ),
-                    ),
+                    style: _cancelButtonStyle(pt),
+                    child: _buttonLabel('Bekor qilish', color: pt.dark),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 Expanded(
                   child: FilledButton(
                     onPressed: () => Navigator.of(ctx).pop(true),
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size(0, 48),
-                      backgroundColor: const Color(0xFFE05A4A),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    child: Text(
-                      'Chiqish',
-                      style: PremiumTokens.body(
-                        size: 14,
-                        weight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
+                    style: _dangerButtonStyle(),
+                    child: _buttonLabel('Chiqish', color: Colors.white),
                   ),
                 ),
               ],
@@ -226,24 +200,11 @@ Future<void> confirmAccountDeletion(BuildContext context) async {
                   Expanded(
                     child: OutlinedButton(
                       onPressed: isLoading ? null : rootNav.pop,
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(0, 48),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        side: BorderSide(color: pt.divider),
-                      ),
-                      child: Text(
-                        'Bekor qilish',
-                        style: PremiumTokens.body(
-                          size: 14,
-                          weight: FontWeight.w600,
-                          color: pt.dark,
-                        ),
-                      ),
+                      style: _cancelButtonStyle(pt),
+                      child: _buttonLabel('Bekor qilish', color: pt.dark),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: ValueListenableBuilder<TextEditingValue>(
                       valueListenable: ctrl,
@@ -285,20 +246,11 @@ Future<void> confirmAccountDeletion(BuildContext context) async {
                                 }
                               }
                             : null,
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size(0, 48),
-                          backgroundColor: const Color(0xFFE05A4A),
-                          disabledBackgroundColor: const Color(
-                            0xFFE05A4A,
-                          ).withValues(alpha: 0.3),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                        ),
+                        style: _dangerButtonStyle(),
                         child: isLoading
                             ? const SizedBox(
-                                width: 20,
-                                height: 20,
+                                width: 18,
+                                height: 18,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
                                   valueColor: AlwaysStoppedAnimation(
@@ -306,14 +258,7 @@ Future<void> confirmAccountDeletion(BuildContext context) async {
                                   ),
                                 ),
                               )
-                            : Text(
-                                'Tasdiqlash',
-                                style: PremiumTokens.body(
-                                  size: 14,
-                                  weight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
+                            : _buttonLabel('Tasdiqlash', color: Colors.white),
                       ),
                     ),
                   ),
@@ -413,6 +358,34 @@ void _showActiveOrdersWarning(BuildContext context) {
     ),
   );
 }
+
+// Default M3 button padding (24px) wraps "Tasdiqlash" onto two lines inside
+// the narrow dialog — compact padding + a scale-down label keep one line.
+ButtonStyle _cancelButtonStyle(PremiumTokens pt) => OutlinedButton.styleFrom(
+  minimumSize: const Size(0, 44),
+  padding: const EdgeInsets.symmetric(horizontal: 10),
+  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+  side: BorderSide(color: pt.divider),
+);
+
+ButtonStyle _dangerButtonStyle() => FilledButton.styleFrom(
+  minimumSize: const Size(0, 44),
+  padding: const EdgeInsets.symmetric(horizontal: 10),
+  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+  backgroundColor: const Color(0xFFE05A4A),
+  disabledBackgroundColor: const Color(0xFFE05A4A).withValues(alpha: 0.3),
+  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+);
+
+Widget _buttonLabel(String text, {required Color color}) => FittedBox(
+  fit: BoxFit.scaleDown,
+  child: Text(
+    text,
+    maxLines: 1,
+    style: PremiumTokens.body(size: 14, weight: FontWeight.w600, color: color),
+  ),
+);
 
 /// Best-effort local cleanup after a successful server-side account delete.
 Future<void> _clearLocalAfterDelete() async {

@@ -12,6 +12,7 @@ import '../bloc/add_product_cubit.dart';
 import '../controller/product_form_controllers.dart';
 import '../data/add_product_repository.dart';
 import '../data/attributes_repository.dart';
+import '../data/exchange_rate_service.dart';
 import '../widgets/product_form/ai_loading_overlay.dart';
 import '../widgets/product_form/product_form_app_bar.dart';
 import '../widgets/product_form/product_form_body.dart';
@@ -44,6 +45,7 @@ class ProductFormScreen extends StatelessWidget {
         final cubit = AddProductCubit(
           repository: sl<AddProductRepository>(),
           attributesRepository: sl<AttributesRepository>(),
+          exchangeRates: sl<ExchangeRateService>(),
           analytics: sl<AnalyticsService>(),
         );
         product == null ? cubit.loadContext() : cubit.loadForEdit(product);

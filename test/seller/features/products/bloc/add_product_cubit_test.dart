@@ -6,6 +6,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:woody_app/seller/features/products/bloc/add_product_cubit.dart';
 import 'package:woody_app/seller/features/products/data/add_product_repository.dart';
 import 'package:woody_app/seller/features/products/data/attributes_repository.dart';
+import 'package:woody_app/seller/features/products/data/exchange_rate_service.dart';
 import 'package:woody_app/shared/models/attribute_definition.dart';
 import 'package:woody_app/shared/models/category_model.dart';
 import 'package:woody_app/shared/models/multilingual_text.dart';
@@ -14,6 +15,8 @@ import 'package:woody_app/shared/models/seller_product.dart';
 class _MockAddProductRepo extends Mock implements AddProductRepository {}
 
 class _MockAttributesRepo extends Mock implements AttributesRepository {}
+
+class _MockExchangeRates extends Mock implements ExchangeRateService {}
 
 class _MockShopContext extends Mock implements AddProductShopContext {}
 
@@ -50,10 +53,12 @@ AttributeDefinition _def(
 AddProductCubit _cubit(
   _MockAddProductRepo repo, {
   _MockAttributesRepo? attrsRepo,
+  ExchangeRateService? rates,
 }) {
   return AddProductCubit(
     repository: repo,
     attributesRepository: attrsRepo ?? _MockAttributesRepo(),
+    exchangeRates: rates,
   );
 }
 
@@ -448,6 +453,147 @@ void main() {
         isTrue,
         reason: 'all required attrs filled',
       );
+    });
+  });
+
+  group('price currency (UZS|USD)', () {
+    const usdRate = 12650.43;
+
+    blocTest<AddProductCubit, AddProductState>(
+      'loadContext resolves the CBU rate in the background',
+      build: () {
+        final rates = _MockExchangeRates();
+        when(rates.getUsdRate).thenAnswer((_) async => usdRate);
+        when(
+          repo.loadShopContext,
+        ).thenAnswer((_) async => _context(canAddMore: true));
+        return _cubit(repo, rates: rates);
+      },
+      act: (cubit) => cubit.loadContext(),
+      expect: () => [
+        isA<AddProductState>().having(
+          (s) => s.status,
+          'status',
+          AddProductStatus.loadingContext,
+        ),
+        isA<AddProductState>().having((s) => s.usdRate, 'usdRate', usdRate),
+        isA<AddProductState>()
+            .having((s) => s.status, 'status', AddProductStatus.ready)
+            .having((s) => s.usdRate, 'usdRate', usdRate),
+      ],
+    );
+
+    blocTest<AddProductCubit, AddProductState>(
+      'rate fetch failure leaves usdRate null and the form usable in UZS',
+      build: () {
+        final rates = _MockExchangeRates();
+        when(rates.getUsdRate).thenAnswer((_) async => null);
+        when(
+          repo.loadShopContext,
+        ).thenAnswer((_) async => _context(canAddMore: true));
+        return _cubit(repo, rates: rates);
+      },
+      act: (cubit) => cubit.loadContext(),
+      expect: () => [
+        isA<AddProductState>().having(
+          (s) => s.status,
+          'status',
+          AddProductStatus.loadingContext,
+        ),
+        isA<AddProductState>()
+            .having((s) => s.status, 'status', AddProductStatus.ready)
+            .having((s) => s.usdRate, 'usdRate', isNull),
+      ],
+    );
+
+    blocTest<AddProductCubit, AddProductState>(
+      'setPriceCurrency(usd) refuses to switch while the rate is unknown',
+      build: () {
+        final rates = _MockExchangeRates();
+        when(rates.getUsdRate).thenAnswer((_) async => null);
+        return _cubit(repo, rates: rates);
+      },
+      seed: () => const AddProductState(status: AddProductStatus.ready),
+      act: (cubit) => cubit.setPriceCurrency(PriceCurrency.usd),
+      expect: () => <AddProductState>[],
+    );
+
+    blocTest<AddProductCubit, AddProductState>(
+      'setPriceCurrency keeps the typed number and flips interpretation',
+      build: () => _cubit(repo),
+      seed: () => const AddProductState(
+        status: AddProductStatus.ready,
+        price: 500,
+        usdRate: usdRate,
+      ),
+      act: (cubit) => cubit.setPriceCurrency(PriceCurrency.usd),
+      expect: () => [
+        isA<AddProductState>()
+            .having((s) => s.priceCurrency, 'priceCurrency', PriceCurrency.usd)
+            .having((s) => s.price, 'price', 500)
+            .having((s) => s.priceInUzs, 'priceInUzs', (500 * usdRate).round()),
+      ],
+    );
+
+    test('priceInUzs and discountedPriceUzs convert with rounding', () {
+      const usd = AddProductState(
+        price: 100,
+        priceCurrency: PriceCurrency.usd,
+        usdRate: usdRate,
+        discountPercent: 30,
+      );
+      expect(usd.priceInUzs, 1265043);
+      // 1 265 043 × 0.7 = 885 530.1 → whole som.
+      expect(usd.discountedPriceUzs, 885530);
+
+      const uzs = AddProductState(price: 750000, discountPercent: 10);
+      expect(uzs.priceInUzs, 750000);
+      expect(uzs.discountedPriceUzs, 675000);
+    });
+
+    test('canSubmit blocks USD input until a rate exists', () {
+      final base = AddProductState(
+        status: AddProductStatus.ready,
+        context: _context(canAddMore: true),
+        name: 'Divan',
+        categoryId: 'cat-1',
+        price: 100,
+        priceCurrency: PriceCurrency.usd,
+        images: [FormImage.local(File('/tmp/a.jpg'))],
+      );
+      expect(base.canSubmit, isFalse, reason: 'no rate to convert with');
+      expect(base.copyWith(usdRate: usdRate).canSubmit, isTrue);
+    });
+
+    test('submit converts USD to whole-som UZS for the backend', () async {
+      final ctx = _context(canAddMore: true);
+      when(() => ctx.sellerId).thenReturn('seller-1');
+      when(() => repo.createProduct(any())).thenAnswer(
+        (_) async => const AddProductResult(productId: 'p-1', imageUrls: []),
+      );
+
+      final cubit = _cubit(repo);
+      cubit.emit(
+        AddProductState(
+          status: AddProductStatus.ready,
+          context: ctx,
+          name: 'Divan',
+          categoryId: 'cat-1',
+          price: 100,
+          priceCurrency: PriceCurrency.usd,
+          usdRate: usdRate,
+          discountPercent: 30,
+          images: [FormImage.local(File('/tmp/a.jpg'))],
+        ),
+      );
+
+      expect(await cubit.submit(), isTrue);
+
+      final input =
+          verify(() => repo.createProduct(captureAny())).captured.single
+              as AddProductInput;
+      expect(input.price, 1265043, reason: 'backend receives integer UZS');
+      expect(input.discountPercent, 30);
     });
   });
 

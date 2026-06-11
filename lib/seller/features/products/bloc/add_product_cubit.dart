@@ -15,6 +15,12 @@ import '../../../../shared/models/seller_product.dart';
 import '../../../../shared/models/tariff.dart';
 import '../data/add_product_repository.dart';
 import '../data/attributes_repository.dart';
+import '../data/exchange_rate_service.dart';
+
+/// Currency the seller types the base price in. Input convenience only —
+/// the backend speaks UZS exclusively, so USD is converted with the cached
+/// CBU rate before `submit` builds the request.
+enum PriceCurrency { uzs, usd }
 
 enum AddProductStatus {
   /// Loading the shop + plan + product count.
@@ -54,6 +60,8 @@ class AddProductState extends Equatable {
     this.isLoadingSchema = false,
     this.colorSlugs = const <String>{},
     this.price = 0,
+    this.priceCurrency = PriceCurrency.uzs,
+    this.usdRate,
     this.discountPercent = 0,
     this.productionTimeDays = '3-5',
     this.hasDelivery = false,
@@ -83,7 +91,15 @@ class AddProductState extends Equatable {
   final Map<String, dynamic> attributes;
   final bool isLoadingSchema;
   final Set<String> colorSlugs;
+
+  /// Raw value as typed, in [priceCurrency]. Switching currency keeps the
+  /// number and reinterprets it — the UZS view of it is [priceInUzs].
   final num price;
+  final PriceCurrency priceCurrency;
+
+  /// Cached CBU USD→UZS rate; null until the background fetch lands (or if
+  /// it failed). The USD toggle stays disabled while null.
+  final double? usdRate;
   final int discountPercent;
   final String productionTimeDays;
   final bool hasDelivery;
@@ -140,13 +156,32 @@ class AddProductState extends Equatable {
     if (name.trim().isEmpty) return false;
     if (categoryId == null) return false;
     if (price <= 0) return false;
+    // USD input is only submittable once a rate exists to convert it with —
+    // the toggle is gated on the rate, but a fetch failure after a switch
+    // must not let a zero-UZS price through.
+    if (isUsdInput && priceInUzs <= 0) return false;
     if (hasDelivery && deliveryPrice < 0) return false;
     if (!hasAllRequiredAttributes) return false;
     return true;
   }
 
-  num get effectivePrice =>
-      discountPercent > 0 ? price * (100 - discountPercent) / 100 : price;
+  bool get isUsdInput => priceCurrency == PriceCurrency.usd;
+
+  /// Base price in UZS — the only currency the backend ever receives. USD
+  /// input is converted with the CBU rate and rounded to a whole som.
+  int get priceInUzs {
+    if (!isUsdInput) return price.round();
+    final rate = usdRate;
+    if (rate == null) return 0;
+    return (price * rate).round();
+  }
+
+  /// Discounted price in UZS — what the buyer pays and what the summary box
+  /// shows. The discount applies to the converted [priceInUzs], so UZS and
+  /// USD input go through the exact same discount math.
+  int get discountedPriceUzs => discountPercent > 0
+      ? (priceInUzs * (100 - discountPercent) / 100).round()
+      : priceInUzs;
 
   AddProductState copyWith({
     AddProductStatus? status,
@@ -164,6 +199,8 @@ class AddProductState extends Equatable {
     bool? isLoadingSchema,
     Set<String>? colorSlugs,
     num? price,
+    PriceCurrency? priceCurrency,
+    double? usdRate,
     int? discountPercent,
     String? productionTimeDays,
     bool? hasDelivery,
@@ -192,6 +229,8 @@ class AddProductState extends Equatable {
       isLoadingSchema: isLoadingSchema ?? this.isLoadingSchema,
       colorSlugs: colorSlugs ?? this.colorSlugs,
       price: price ?? this.price,
+      priceCurrency: priceCurrency ?? this.priceCurrency,
+      usdRate: usdRate ?? this.usdRate,
       discountPercent: discountPercent ?? this.discountPercent,
       productionTimeDays: productionTimeDays ?? this.productionTimeDays,
       hasDelivery: hasDelivery ?? this.hasDelivery,
@@ -221,6 +260,8 @@ class AddProductState extends Equatable {
     isLoadingSchema,
     colorSlugs,
     price,
+    priceCurrency,
+    usdRate,
     discountPercent,
     productionTimeDays,
     hasDelivery,
@@ -240,14 +281,17 @@ class AddProductCubit extends Cubit<AddProductState> {
   AddProductCubit({
     required AddProductRepository repository,
     required AttributesRepository attributesRepository,
+    ExchangeRateService? exchangeRates,
     AnalyticsService? analytics,
   }) : _repository = repository,
        _attributesRepository = attributesRepository,
+       _exchangeRates = exchangeRates,
        _analytics = analytics,
        super(AddProductState(sku: _generateSku()));
 
   final AddProductRepository _repository;
   final AttributesRepository _attributesRepository;
+  final ExchangeRateService? _exchangeRates;
   final AnalyticsService? _analytics;
 
   /// Max photos sent to the AI endpoint. The backend caps `image_urls` at 4
@@ -272,6 +316,7 @@ class AddProductCubit extends Cubit<AddProductState> {
     emit(
       state.copyWith(status: AddProductStatus.loadingContext, clearError: true),
     );
+    unawaited(_loadUsdRate());
     try {
       final ctx = await _repository.loadShopContext();
       if (isClosed) return;
@@ -306,6 +351,7 @@ class AddProductCubit extends Cubit<AddProductState> {
         clearError: true,
       ),
     );
+    unawaited(_loadUsdRate());
     try {
       final ctx = await _repository.loadShopContext();
       if (isClosed) return;
@@ -482,6 +528,35 @@ class AddProductCubit extends Cubit<AddProductState> {
   }
 
   void setPrice(num value) => emit(state.copyWith(price: value));
+
+  /// Switches the currency the price field is interpreted in. The typed
+  /// number is kept as-is ("500" stays "500", now meaning the other
+  /// currency) — the helper line under the field shows the live UZS
+  /// equivalent, so the seller sees the effect immediately. Switching to USD
+  /// requires a loaded rate; the UI disables the USD segment until then, and
+  /// this guard is the cubit-side belt to that suspender.
+  void setPriceCurrency(PriceCurrency currency) {
+    if (currency == state.priceCurrency) return;
+    if (currency == PriceCurrency.usd && state.usdRate == null) {
+      // Retry — e.g. the boot fetch raced a dead network and the seller taps
+      // the segment once connectivity is back.
+      unawaited(_loadUsdRate());
+      return;
+    }
+    emit(state.copyWith(priceCurrency: currency));
+  }
+
+  /// Background CBU rate fetch. Failure simply leaves [AddProductState.usdRate]
+  /// null — the USD toggle stays disabled and the form remains fully usable
+  /// in UZS. Never throws.
+  Future<void> _loadUsdRate() async {
+    final service = _exchangeRates;
+    if (service == null || state.usdRate != null) return;
+    final rate = await service.getUsdRate();
+    if (isClosed || rate == null || rate <= 0) return;
+    emit(state.copyWith(usdRate: rate));
+  }
+
   void setDiscountPercent(int value) =>
       emit(state.copyWith(discountPercent: value.clamp(0, 100)));
 
@@ -585,7 +660,8 @@ class AddProductCubit extends Cubit<AddProductState> {
       '[add-product-cubit] submit start sku=${state.sku} '
       'editing=${state.editingProductId ?? '-'} '
       'category=${state.categoryId} sub=${state.subcategoryId} '
-      'images=${state.images.length} attributes=${state.attributes.length}',
+      'images=${state.images.length} attributes=${state.attributes.length} '
+      'currency=${state.priceCurrency.name} priceUzs=${state.priceInUzs}',
     );
     emit(state.copyWith(status: AddProductStatus.saving, clearError: true));
     try {
@@ -596,7 +672,10 @@ class AddProductCubit extends Cubit<AddProductState> {
         description: state.description.trim(),
         categoryId: state.categoryId!,
         subcategoryId: state.subcategoryId,
-        price: state.price,
+        // The backend is UZS-only and must stay unaware of the currency
+        // toggle — USD input is converted with the CBU rate and rounded to a
+        // whole som here, at the last client-side moment.
+        price: state.priceInUzs,
         discountPercent: state.discountPercent,
         sku: state.sku,
         colorSlugs: state.colorSlugs.toList(),

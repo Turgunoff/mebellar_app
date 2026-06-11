@@ -73,11 +73,13 @@ class FormTextField extends StatelessWidget {
     required this.label,
     this.hint,
     this.suffix,
+    this.suffixWidget,
     this.keyboardType,
     this.inputFormatters,
     this.minLines,
     this.maxLines = 1,
     this.helper,
+    this.helperColor,
     this.onChanged,
   });
 
@@ -85,11 +87,18 @@ class FormTextField extends StatelessWidget {
   final String label;
   final String? hint;
   final String? suffix;
+
+  /// Interactive suffix (e.g. the currency toggle). Wins over [suffix].
+  final Widget? suffixWidget;
   final TextInputType? keyboardType;
   final List<TextInputFormatter>? inputFormatters;
   final int? minLines;
   final int? maxLines;
   final String? helper;
+
+  /// Overrides the default grey helper colour (e.g. to echo the brand
+  /// primary for the live USD→UZS conversion line).
+  final Color? helperColor;
   final ValueChanged<String>? onChanged;
 
   @override
@@ -145,13 +154,23 @@ class FormTextField extends StatelessWidget {
               fontWeight: FontWeight.w500,
               color: c.greyMid,
             ),
-            suffixText: suffix,
+            suffixText: suffixWidget == null ? suffix : null,
             suffixStyle: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 12,
               fontWeight: FontWeight.w700,
               color: c.greyMid,
               letterSpacing: 0.2,
+            ),
+            suffixIcon: suffixWidget == null
+                ? null
+                : Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: suffixWidget,
+                  ),
+            suffixIconConstraints: const BoxConstraints(
+              minWidth: 0,
+              minHeight: 0,
             ),
             filled: true,
             fillColor: c.surface,
@@ -171,8 +190,10 @@ class FormTextField extends StatelessWidget {
               style: TextStyle(
                 fontFamily: AppFonts.seller,
                 fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: c.grey,
+                fontWeight: helperColor == null
+                    ? FontWeight.w500
+                    : FontWeight.w600,
+                color: helperColor ?? c.grey,
                 height: 1.3,
               ),
             ),

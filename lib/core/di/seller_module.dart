@@ -3,6 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../seller/features/products/data/add_product_repository.dart';
 import '../../seller/features/products/data/attributes_repository.dart';
+import '../../seller/features/products/data/exchange_rate_service.dart';
 import '../../shared/repositories/seller_analytics_repository.dart';
 import '../../shared/repositories/seller_dashboard_repository.dart';
 import '../../shared/repositories/seller_onboarding_repository.dart';
@@ -67,6 +68,10 @@ void registerSellerModule(GetIt sl) {
   sl.registerLazySingleton<AttributesRepository>(
     () => WoodyAttributesRepository(api: sl<WoodyApiClient>()),
   );
+
+  // CBU daily USD→UZS rate for the price field's currency toggle. External
+  // public feed (not woody_backend) — the backend only ever receives UZS.
+  sl.registerLazySingleton<ExchangeRateService>(() => CbuExchangeRateService());
 
   // Dashboard — Woody REST (`/seller/dashboard`).
   sl.registerLazySingleton<SellerDashboardRepository>(
