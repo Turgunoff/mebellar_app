@@ -133,14 +133,17 @@ class HybridCartRepository implements CartRepository {
   @override
   Future<Cart> clear() => _active.clear();
 
-  /// Minimal [ProductModel] for the merge replay — only `id`, `quantity`, and
-  /// `selectedColor` reach the backend, so the other fields are placeholders.
+  /// [ProductModel] for the merge replay. Carries everything the Hive row
+  /// kept (name/image/price/shop) so the server snapshot built from it stays
+  /// as complete as the guest's local one — checkout groups lines by shopId.
   ProductModel _toProduct(CartItemModel it) => ProductModel(
     id: it.productId,
     categoryId: '',
     name: it.productName,
     price: it.productPrice,
     images: it.productImage.isEmpty ? const [] : [it.productImage],
+    shopId: it.shopId,
+    shopName: it.shopName,
     stock: 0,
     createdAt: DateTime.now(),
   );

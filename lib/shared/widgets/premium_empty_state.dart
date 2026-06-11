@@ -47,11 +47,7 @@ class PremiumEmptyState extends StatelessWidget {
                       color: PremiumTokens.accent.withValues(alpha: 0.10),
                     ),
                     alignment: Alignment.center,
-                    child: Icon(
-                      icon,
-                      size: 44,
-                      color: PremiumTokens.accent,
-                    ),
+                    child: Icon(icon, size: 44, color: PremiumTokens.accent),
                   ),
                   const SizedBox(height: 28),
                   Text(
@@ -63,7 +59,9 @@ class PremiumEmptyState extends StatelessWidget {
                   Text(
                     subtitle,
                     textAlign: TextAlign.center,
-                    maxLines: 2,
+                    // 3 lines — uz copy regularly needs the third; a mid-word
+                    // "…" cut reads broken on the customer's main tabs.
+                    maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                     style: PremiumTokens.body(
                       size: 14,
@@ -74,14 +72,14 @@ class PremiumEmptyState extends StatelessWidget {
                   if (buttonText != null && onButtonPressed != null) ...[
                     const SizedBox(height: 32),
                     SizedBox(
-                      width: double.infinity,
-                      height: 56,
+                      height: 52,
                       child: FilledButton(
                         onPressed: onButtonPressed,
                         style: FilledButton.styleFrom(
                           backgroundColor: PremiumTokens.accent,
                           foregroundColor: Colors.white,
                           shape: const StadiumBorder(),
+                          padding: const EdgeInsets.symmetric(horizontal: 36),
                           textStyle: PremiumTokens.body(
                             size: 15,
                             weight: FontWeight.w600,

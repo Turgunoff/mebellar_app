@@ -16,6 +16,7 @@ import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/premium_empty_state.dart';
 import '../../../../shared/widgets/product_color_chip.dart';
 import '../../../widgets/glass_bottom_nav.dart';
+import '../../../widgets/top_toast.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../bloc/cart_bloc.dart';
 
@@ -37,12 +38,37 @@ class CartScreen extends StatelessWidget {
     // this screen has no Scaffold of its own.
     return Material(
       color: pt.background,
-      child: BlocBuilder<CartBloc, CartState>(
+      child: BlocConsumer<CartBloc, CartState>(
+        // A failed remove/update rolls the rows back optimistically — without
+        // this toast the row just "resurrects" with zero explanation.
+        listenWhen: (prev, next) =>
+            next.error != null && prev.error != next.error,
+        listener: (context, state) => showTopToast(
+          context,
+          message: state.error!,
+          icon: Iconsax.warning_2,
+        ),
         builder: (context, state) {
           if (state.status == CartStatus.loading && state.items.isEmpty) {
             return const SafeArea(
               bottom: false,
               child: Center(child: BrandLoadingIndicator()),
+            );
+          }
+          // A first-load failure must not masquerade as an empty cart with a
+          // confident "go to catalog" CTA — offer a retry instead.
+          if (state.status == CartStatus.failure && state.items.isEmpty) {
+            return SafeArea(
+              bottom: false,
+              child: PremiumEmptyState(
+                icon: Iconsax.warning_2,
+                title: tr('error.unknown'),
+                subtitle: state.error ?? tr('error.server'),
+                buttonText: tr('common.retry'),
+                onButtonPressed: () =>
+                    context.read<CartBloc>().add(const LoadCart()),
+                bottomPadding: GlassBottomNav.reservedHeight(context) + 24,
+              ),
             );
           }
           if (state.isEmpty) {
@@ -52,6 +78,8 @@ class CartScreen extends StatelessWidget {
                 icon: Iconsax.shopping_bag,
                 title: tr('cart.empty'),
                 subtitle: tr('cart.empty_hint'),
+                buttonText: tr('cart.empty_cta'),
+                onButtonPressed: () => context.go('/?tab=categories'),
                 bottomPadding: GlassBottomNav.reservedHeight(context) + 24,
               ),
             );

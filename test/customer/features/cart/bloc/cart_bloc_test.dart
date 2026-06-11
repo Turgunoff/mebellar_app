@@ -1,9 +1,38 @@
-﻿import 'package:bloc_test/bloc_test.dart';
+import 'dart:async';
+
+import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:woody_app/customer/features/cart/bloc/cart_bloc.dart';
+import 'package:woody_app/shared/models/cart.dart';
+import 'package:woody_app/shared/models/cart_item_model.dart';
+import 'package:woody_app/shared/repositories/cart_repository.dart';
 import '../../../../fixtures/mocks/mock/mock_cart_repository.dart';
 import '../../../../fixtures/mocks/mock/mock_data.dart';
 import 'package:woody_app/shared/models/product_model.dart';
+
+/// Snapshot-API repo whose fetch always fails — exercises the refresh
+/// completer's failure path without a network.
+class _FailingFetchCartRepo extends CartRepository {
+  @override
+  Stream<Cart> watch() => const Stream<Cart>.empty();
+  @override
+  Cart get current => const Cart();
+  @override
+  Future<Cart> fetch() async => const Cart();
+  @override
+  Future<Cart> addItem(String productId, {int quantity = 1}) async =>
+      const Cart();
+  @override
+  Future<Cart> updateQuantity(String itemId, int quantity) async =>
+      const Cart();
+  @override
+  Future<Cart> removeItem(String itemId) async => const Cart();
+  @override
+  Future<Cart> clear() async => const Cart();
+  @override
+  Future<List<CartItemModel>> fetchItems() async =>
+      throw Exception('network down');
+}
 
 /// Minimal smoke tests for the Sprint 12 cart bloc. Multi-shop grouping is
 /// handled at checkout, not here — the cart bloc operates on snapshot
@@ -71,10 +100,36 @@ void main() {
         await Future<void>.delayed(const Duration(milliseconds: 400));
       },
       verify: (bloc) {
-        expect(
-          bloc.state.totalPrice,
-          firstSnapshot.price * 2,
-        );
+        expect(bloc.state.totalPrice, firstSnapshot.price * 2);
+      },
+    );
+
+    test(
+      'pull-to-refresh completer completes on a successful reload',
+      () async {
+        final bloc = CartBloc(MockCartRepository());
+        bloc.add(const LoadCart());
+        await Future<void>.delayed(const Duration(milliseconds: 400));
+
+        // An unchanged snapshot is deduped by Equatable — the completer must
+        // still settle or the RefreshIndicator spins forever.
+        final done = Completer<void>();
+        bloc.add(LoadCart(silent: true, completer: done));
+        await done.future.timeout(const Duration(seconds: 2));
+
+        await bloc.close();
+      },
+    );
+
+    test(
+      'pull-to-refresh completer completes even when the fetch fails',
+      () async {
+        final bloc = CartBloc(_FailingFetchCartRepo());
+        final done = Completer<void>();
+        bloc.add(LoadCart(silent: true, completer: done));
+        await done.future.timeout(const Duration(seconds: 2));
+
+        await bloc.close();
       },
     );
   });

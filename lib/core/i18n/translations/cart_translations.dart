@@ -9,6 +9,7 @@ const Map<String, dynamic> cartUz = {
   'clear_subtitle': 'Barcha mahsulotlar savatchadan olib tashlanadi.',
   'empty': 'Savatcha bo\'sh',
   'empty_hint': 'Sevimli mebellaringizni qidiring',
+  'empty_cta': 'Katalogga o\'tish',
   'item_added': 'Savatchaga qo\'shildi',
   'go_to_cart': 'Savatchaga o\'tish',
   'shop_subtotal': 'Do\'kon bo\'yicha',
@@ -28,6 +29,7 @@ const Map<String, dynamic> cartRu = {
   'clear_subtitle': 'Все товары будут удалены из корзины.',
   'empty': 'Корзина пуста',
   'empty_hint': 'Найдите свою любимую мебель',
+  'empty_cta': 'Перейти в каталог',
   'item_added': 'Добавлено в корзину',
   'go_to_cart': 'Перейти в корзину',
   'shop_subtotal': 'По магазину',
@@ -47,6 +49,7 @@ const Map<String, dynamic> cartEn = {
   'clear_subtitle': 'All items will be removed from your cart.',
   'empty': 'Your cart is empty',
   'empty_hint': 'Browse products to find your favorites',
+  'empty_cta': 'Browse catalog',
   'item_added': 'Added to cart',
   'go_to_cart': 'Go to cart',
   'shop_subtotal': 'Shop subtotal',
@@ -62,6 +65,7 @@ const Map<String, dynamic> favoritesUz = {
   'empty': 'Sevimlilar ro\'yxati bo\'sh',
   'empty_hint': 'Yurakcha tugmasi orqali mahsulotlarni saqlab qo\'ying',
   'saved_count': '{} saqlangan mahsulot',
+  'empty_cta': 'Mahsulotlarni ko\'rish',
 };
 
 const Map<String, dynamic> favoritesRu = {
@@ -69,6 +73,7 @@ const Map<String, dynamic> favoritesRu = {
   'empty': 'В избранном пусто',
   'empty_hint': 'Сохраняйте товары через значок сердечка',
   'saved_count': 'Сохранено: {}',
+  'empty_cta': 'Смотреть товары',
 };
 
 const Map<String, dynamic> favoritesEn = {
@@ -76,4 +81,5 @@ const Map<String, dynamic> favoritesEn = {
   'empty': 'No favorites yet',
   'empty_hint': 'Tap the heart icon to save products',
   'saved_count': '{} saved items',
+  'empty_cta': 'Browse products',
 };

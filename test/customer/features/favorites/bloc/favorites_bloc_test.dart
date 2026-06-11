@@ -1,8 +1,42 @@
-﻿import 'package:bloc_test/bloc_test.dart';
+import 'dart:async';
+
+import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:woody_app/customer/features/favorites/bloc/favorites_bloc.dart';
+import 'package:woody_app/shared/models/product.dart';
+import 'package:woody_app/shared/repositories/favorites_repository.dart';
 import '../../../../fixtures/mocks/mock/mock_data.dart';
 import '../../../../fixtures/mocks/mock/mock_favorites_repository.dart';
+
+/// Counts `list()` calls and fails every `toggle()` — exercises the
+/// optimistic-rollback and auth-refetch paths without a network.
+class _FailingToggleRepo implements FavoritesRepository {
+  final _controller = StreamController<Set<String>>.broadcast();
+  int listCalls = 0;
+
+  Future<void> close() => _controller.close();
+
+  @override
+  Stream<Set<String>> watchIds() => _controller.stream;
+
+  @override
+  Set<String> get currentIds => const {};
+
+  @override
+  bool isFavorite(String productId) => false;
+
+  @override
+  Future<List<Product>> list() async {
+    listCalls++;
+    return const [];
+  }
+
+  @override
+  Future<void> toggle(Product product) async => throw Exception('network down');
+
+  @override
+  Future<void> remove(String productId) async {}
+}
 
 void main() {
   group('FavoritesBloc (mock repository)', () {
@@ -56,5 +90,48 @@ void main() {
         expect(bloc.state.products, isEmpty);
       },
     );
+
+    test('a failed toggle rolls the optimistic heart back', () async {
+      final repo = _FailingToggleRepo();
+      final bloc = FavoritesBloc(repo);
+      final p = MockData.products.first;
+
+      bloc.add(FavoriteToggled(p));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(
+        bloc.state.ids.contains(p.id),
+        isFalse,
+        reason: 'the heart must not stay filled after a failed save',
+      );
+      expect(bloc.state.error, isNotNull);
+
+      await bloc.close();
+      await repo.close();
+    });
+
+    test('an auth flip triggers a refetch; repeats are deduped', () async {
+      final repo = _FailingToggleRepo();
+      final auth = StreamController<bool>.broadcast();
+      final bloc = FavoritesBloc(repo, authChanges: auth.stream);
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      final before = repo.listCalls;
+
+      auth.add(true); // login
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(repo.listCalls, before + 1);
+
+      auth.add(true); // token refresh — same state, must be deduped
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(repo.listCalls, before + 1);
+
+      auth.add(false); // logout — the tab must empty via a refetch
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(repo.listCalls, before + 2);
+
+      await bloc.close();
+      await auth.close();
+      await repo.close();
+    });
   });
 }

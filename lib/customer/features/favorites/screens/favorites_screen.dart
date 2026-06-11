@@ -10,6 +10,7 @@ import '../../../../shared/models/product.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/premium_empty_state.dart';
 import '../../../widgets/glass_bottom_nav.dart';
+import '../../../widgets/top_toast.dart';
 import '../../home/widgets/premium/premium_product_card.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../bloc/favorites_bloc.dart';
@@ -46,7 +47,16 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
     return ColoredBox(
       color: pt.background,
-      child: BlocBuilder<FavoritesBloc, FavoritesState>(
+      child: BlocConsumer<FavoritesBloc, FavoritesState>(
+        // This tab stays mounted in the shell's IndexedStack, so the toast
+        // also covers a failed heart-toggle rollback fired from any screen.
+        listenWhen: (prev, next) =>
+            next.error != null && prev.error != next.error,
+        listener: (context, state) => showTopToast(
+          context,
+          message: state.error!,
+          icon: Iconsax.warning_2,
+        ),
         buildWhen: (a, b) => a.status != b.status || a.products != b.products,
         builder: (context, state) {
           if (state.status == FavoritesStatus.loading ||
@@ -58,6 +68,23 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               ),
             );
           }
+          // A first-load failure must not masquerade as "no favourites yet".
+          if (state.status == FavoritesStatus.failure &&
+              state.products.isEmpty) {
+            return SafeArea(
+              bottom: false,
+              child: PremiumEmptyState(
+                icon: Iconsax.warning_2,
+                title: tr('error.unknown'),
+                subtitle: state.error ?? tr('error.server'),
+                buttonText: tr('common.retry'),
+                onButtonPressed: () => context.read<FavoritesBloc>().add(
+                  const FavoritesRequested(),
+                ),
+                bottomPadding: bottomPad,
+              ),
+            );
+          }
           if (state.products.isEmpty) {
             return SafeArea(
               bottom: false,
@@ -65,6 +92,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 icon: Iconsax.heart,
                 title: tr('favorites.empty'),
                 subtitle: tr('favorites.empty_hint'),
+                buttonText: tr('favorites.empty_cta'),
+                onButtonPressed: () => context.go('/?tab=categories'),
                 bottomPadding: bottomPad,
               ),
             );

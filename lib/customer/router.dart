@@ -41,8 +41,15 @@ import '../seller/features/onboarding/screens/onboarding_screen.dart';
 /// the real tab with the nav bar visible, not a pushed standalone copy.
 /// Everything else is pushed so Back returns to where the user was.
 void navigateCustomerRoute(GoRouter router, String route) {
-  if (route == '/profile') {
-    router.go('/?tab=profile');
+  const tabRoutes = {
+    '/categories': 'categories',
+    '/cart': 'cart',
+    '/favorites': 'favorites',
+    '/profile': 'profile',
+  };
+  final tab = tabRoutes[route];
+  if (tab != null) {
+    router.go('/?tab=$tab');
     return;
   }
   router.push(route);

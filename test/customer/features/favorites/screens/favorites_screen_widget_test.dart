@@ -19,16 +19,17 @@ void main() {
   setUp(() => bloc = _MockFavoritesBloc());
 
   Widget harness() => MaterialApp(
-        home: Scaffold(
-          body: BlocProvider<FavoritesBloc>.value(
-            value: bloc,
-            child: const FavoritesScreen(),
-          ),
-        ),
-      );
+    home: Scaffold(
+      body: BlocProvider<FavoritesBloc>.value(
+        value: bloc,
+        child: const FavoritesScreen(),
+      ),
+    ),
+  );
 
-  testWidgets('shows the brand loading indicator while loading',
-      (tester) async {
+  testWidgets('shows the brand loading indicator while loading', (
+    tester,
+  ) async {
     whenListen(
       bloc,
       const Stream<FavoritesState>.empty(),
@@ -41,8 +42,9 @@ void main() {
     expect(find.byType(BrandLoadingIndicator), findsOneWidget);
   });
 
-  testWidgets('shows the empty state when there are no favourites',
-      (tester) async {
+  testWidgets('shows the empty state when there are no favourites', (
+    tester,
+  ) async {
     whenListen(
       bloc,
       const Stream<FavoritesState>.empty(),
@@ -52,6 +54,8 @@ void main() {
     await tester.pumpWidget(harness());
     await tester.pump();
 
-    expect(find.text("Sizda hozircha sevimlilar yo'q"), findsOneWidget);
+    expect(find.text("Sevimlilar ro'yxati bo'sh"), findsOneWidget);
+    // CTA back to the catalog is part of the empty state.
+    expect(find.text("Mahsulotlarni ko'rish"), findsOneWidget);
   });
 }

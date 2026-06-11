@@ -19,13 +19,13 @@ void main() {
   setUp(() => bloc = _MockCartBloc());
 
   Widget harness() => MaterialApp(
-        home: Scaffold(
-          body: BlocProvider<CartBloc>.value(
-            value: bloc,
-            child: const CartScreen(),
-          ),
-        ),
-      );
+    home: Scaffold(
+      body: BlocProvider<CartBloc>.value(
+        value: bloc,
+        child: const CartScreen(),
+      ),
+    ),
+  );
 
   testWidgets('shows a spinner while the cart is loading', (tester) async {
     whenListen(
@@ -40,8 +40,9 @@ void main() {
     expect(find.byType(BrandLoadingIndicator), findsOneWidget);
   });
 
-  testWidgets('shows the empty state when the cart has no items',
-      (tester) async {
+  testWidgets('shows the empty state when the cart has no items', (
+    tester,
+  ) async {
     whenListen(
       bloc,
       const Stream<CartState>.empty(),
@@ -49,7 +50,9 @@ void main() {
     );
     await tester.pumpWidget(harness());
     await tester.pump();
-    expect(find.text("Savatchangiz bo'sh"), findsOneWidget);
+    expect(find.text("Savatcha bo'sh"), findsOneWidget);
+    // CTA back to the catalog is part of the empty state.
+    expect(find.text("Katalogga o'tish"), findsOneWidget);
   });
 
   testWidgets('renders a row for each loaded cart item', (tester) async {
@@ -64,10 +67,7 @@ void main() {
     whenListen(
       bloc,
       const Stream<CartState>.empty(),
-      initialState: const CartState(
-        status: CartStatus.ready,
-        items: [item],
-      ),
+      initialState: const CartState(status: CartStatus.ready, items: [item]),
     );
     await tester.pumpWidget(harness());
     await tester.pump();

@@ -34,70 +34,74 @@ void main() {
     // Shop + tariff are not the subject here — let them be "absent" (404) so
     // they never interfere with the verification assertions. The fetch is
     // async, so a failure surfaces as a rejected future (not a sync throw).
-    when(() => repo.fetchShop())
-        .thenAnswer((_) async => throw ApiError(status: 404, code: 'shop_not_found'));
-    when(() => repo.fetchTariffCurrent())
-        .thenAnswer((_) async => throw ApiError(status: 404, code: 'not_found'));
+    when(() => repo.fetchShop()).thenAnswer(
+      (_) async => throw ApiError(status: 404, code: 'shop_not_found'),
+    );
+    when(
+      () => repo.fetchTariffCurrent(),
+    ).thenAnswer((_) async => throw ApiError(status: 404, code: 'not_found'));
+    when(
+      () => repo.fetchWallet(),
+    ).thenAnswer((_) async => throw ApiError(status: 404, code: 'not_found'));
   });
 
   SellerIdentitySnapshot lastWritten() =>
       verify(() => cache.write(uid, captureAny())).captured.last
           as SellerIdentitySnapshot;
 
-  test('a successful /seller/me surfaces the real verification status',
-      () async {
-    when(() => cache.read(uid)).thenReturn(null);
-    when(() => repo.fetchMe()).thenAnswer(
-      (_) async => {
-        'verification_status': 'approved',
-        'legal_name': 'Eldor',
-        'shop_name': 'Mebel Shop',
-      },
-    );
-
-    final cubit = SellerProfileCubit(repo, auth, cache);
-    await cubit.load();
-
-    expect(cubit.state.verificationStatus, VerificationStatus.approved);
-    expect(cubit.state.isLoading, isFalse);
-  });
-
   test(
-    'a transient /seller/me failure (401) does NOT downgrade an approved '
-    'seller, and does NOT poison the cache',
+    'a successful /seller/me surfaces the real verification status',
     () async {
-      const cached = SellerIdentitySnapshot(
-        shopName: 'Mebel Shop',
-        sellerName: 'Eldor',
-        verificationStatus: VerificationStatus.approved,
-        plan: TariffPlan.free,
-      );
-      when(() => cache.read(uid)).thenReturn(cached);
+      when(() => cache.read(uid)).thenReturn(null);
       when(() => repo.fetchMe()).thenAnswer(
-        (_) async => throw ApiError(status: 401, code: 'not_authenticated'),
+        (_) async => {
+          'verification_status': 'approved',
+          'legal_name': 'Eldor',
+          'shop_name': 'Mebel Shop',
+        },
       );
 
       final cubit = SellerProfileCubit(repo, auth, cache);
       await cubit.load();
 
-      expect(
-        cubit.state.verificationStatus,
-        VerificationStatus.approved,
-        reason: 'a transient 401 must keep the last-known approved status',
-      );
-      expect(
-        lastWritten().verificationStatus,
-        VerificationStatus.approved,
-        reason: 'the cache must not be overwritten with none on a hiccup',
-      );
+      expect(cubit.state.verificationStatus, VerificationStatus.approved);
+      expect(cubit.state.isLoading, isFalse);
     },
   );
 
-  test('a 404 on /seller/me means there is no seller row yet → none',
-      () async {
+  test('a transient /seller/me failure (401) does NOT downgrade an approved '
+      'seller, and does NOT poison the cache', () async {
+    const cached = SellerIdentitySnapshot(
+      shopName: 'Mebel Shop',
+      sellerName: 'Eldor',
+      verificationStatus: VerificationStatus.approved,
+      plan: TariffPlan.free,
+    );
+    when(() => cache.read(uid)).thenReturn(cached);
+    when(() => repo.fetchMe()).thenAnswer(
+      (_) async => throw ApiError(status: 401, code: 'not_authenticated'),
+    );
+
+    final cubit = SellerProfileCubit(repo, auth, cache);
+    await cubit.load();
+
+    expect(
+      cubit.state.verificationStatus,
+      VerificationStatus.approved,
+      reason: 'a transient 401 must keep the last-known approved status',
+    );
+    expect(
+      lastWritten().verificationStatus,
+      VerificationStatus.approved,
+      reason: 'the cache must not be overwritten with none on a hiccup',
+    );
+  });
+
+  test('a 404 on /seller/me means there is no seller row yet → none', () async {
     when(() => cache.read(uid)).thenReturn(null);
     when(() => repo.fetchMe()).thenAnswer(
-      (_) async => throw ApiError(status: 404, code: 'seller_profile_not_found'),
+      (_) async =>
+          throw ApiError(status: 404, code: 'seller_profile_not_found'),
     );
 
     final cubit = SellerProfileCubit(repo, auth, cache);
@@ -106,56 +110,58 @@ void main() {
     expect(cubit.state.verificationStatus, VerificationStatus.none);
   });
 
-  test('applyShopSettings updates the card instantly and rewrites the cache',
-      () async {
-    when(() => cache.read(uid)).thenReturn(
-      const SellerIdentitySnapshot(
-        shopName: 'Old Shop',
-        logoUrl: 'https://cdn/logo.png',
-        coverUrl: 'https://cdn/cover.png',
-        sellerName: 'Eldor',
-        verificationStatus: VerificationStatus.approved,
-        plan: TariffPlan.free,
-      ),
-    );
-    when(() => repo.fetchMe()).thenAnswer(
-      (_) async => {
-        'verification_status': 'approved',
-        'legal_name': 'Eldor',
-        'shop_name': 'Old Shop',
-      },
-    );
+  test(
+    'applyShopSettings updates the card instantly and rewrites the cache',
+    () async {
+      when(() => cache.read(uid)).thenReturn(
+        const SellerIdentitySnapshot(
+          shopName: 'Old Shop',
+          logoUrl: 'https://cdn/logo.png',
+          coverUrl: 'https://cdn/cover.png',
+          sellerName: 'Eldor',
+          verificationStatus: VerificationStatus.approved,
+          plan: TariffPlan.free,
+        ),
+      );
+      when(() => repo.fetchMe()).thenAnswer(
+        (_) async => {
+          'verification_status': 'approved',
+          'legal_name': 'Eldor',
+          'shop_name': 'Old Shop',
+        },
+      );
 
-    final cubit = SellerProfileCubit(repo, auth, cache);
-    await cubit.load();
+      final cubit = SellerProfileCubit(repo, auth, cache);
+      await cubit.load();
 
-    // The seller saved settings with both images removed and a new name.
-    cubit.applyShopSettings(
-      const ShopSettings(
-        id: 'shop-1',
-        name: 'New Shop',
-        description: '',
-        address: '',
-        workingHours: WeeklyHours(byDay: {}),
-      ),
-    );
+      // The seller saved settings with both images removed and a new name.
+      cubit.applyShopSettings(
+        const ShopSettings(
+          id: 'shop-1',
+          name: 'New Shop',
+          description: '',
+          address: '',
+          workingHours: WeeklyHours(byDay: {}),
+        ),
+      );
 
-    expect(cubit.state.shopName, 'New Shop');
-    expect(cubit.state.logoUrl, isNull, reason: 'removed logo must vanish');
-    expect(cubit.state.coverUrl, isNull, reason: 'removed cover must vanish');
-    expect(
-      cubit.state.verificationStatus,
-      VerificationStatus.approved,
-      reason: 'identity fields untouched by shop settings stay put',
-    );
+      expect(cubit.state.shopName, 'New Shop');
+      expect(cubit.state.logoUrl, isNull, reason: 'removed logo must vanish');
+      expect(cubit.state.coverUrl, isNull, reason: 'removed cover must vanish');
+      expect(
+        cubit.state.verificationStatus,
+        VerificationStatus.approved,
+        reason: 'identity fields untouched by shop settings stay put',
+      );
 
-    final written = lastWritten();
-    expect(
-      written.logoUrl,
-      isNull,
-      reason: 'cache must not resurrect a deleted image on next start',
-    );
-    expect(written.coverUrl, isNull);
-    expect(written.shopName, 'New Shop');
-  });
+      final written = lastWritten();
+      expect(
+        written.logoUrl,
+        isNull,
+        reason: 'cache must not resurrect a deleted image on next start',
+      );
+      expect(written.coverUrl, isNull);
+      expect(written.shopName, 'New Shop');
+    },
+  );
 }

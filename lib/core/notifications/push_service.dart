@@ -471,8 +471,15 @@ class PushService {
       // Tab destinations switch the home-shell tab (mirrors
       // `navigateCustomerRoute` in customer/router.dart — kept inline so the
       // core layer doesn't import the customer router).
-      if (route == '/profile') {
-        GoRouter.of(ctx).go('/?tab=profile');
+      const tabRoutes = {
+        '/categories': 'categories',
+        '/cart': 'cart',
+        '/favorites': 'favorites',
+        '/profile': 'profile',
+      };
+      final tab = tabRoutes[route];
+      if (tab != null) {
+        GoRouter.of(ctx).go('/?tab=$tab');
         return;
       }
       // push, not go — keep home underneath so Back returns to it.
