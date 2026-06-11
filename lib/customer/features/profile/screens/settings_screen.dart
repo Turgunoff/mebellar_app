@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/storage/hive_boxes.dart';
+import '../../../../core/theme/theme_cubit.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import 'about_screen.dart';
 
@@ -324,6 +326,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
+    // Resolve the boolean switch state from the global theme preference.
+    // `system` reflects the device brightness so the toggle reads correctly
+    // before the user makes an explicit choice.
+    final themeMode = context.watch<ThemeCubit>().state.themeMode;
+    final isDark =
+        themeMode == ThemeMode.dark ||
+        (themeMode == ThemeMode.system &&
+            MediaQuery.platformBrightnessOf(context) == Brightness.dark);
     return Scaffold(
       backgroundColor: pt.background,
       appBar: _buildAppBar(),
@@ -368,11 +378,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 8),
           _Card(
             children: [
-              _NavRow(
+              _SwitchRow(
                 icon: Iconsax.moon,
                 title: "Qorong'i rejim",
-                trailingWidget: const _ComingSoonBadge(),
-                onTap: () => _showComingSoon(context, "Qorong'i rejim"),
+                value: isDark,
+                onChanged: (v) => context.read<ThemeCubit>().toggleDark(v),
               ),
             ],
           ),
@@ -461,14 +471,12 @@ class _NavRow extends StatelessWidget {
     required this.icon,
     required this.title,
     this.trailingLabel,
-    this.trailingWidget,
     required this.onTap,
   });
 
   final IconData icon;
   final String title;
   final String? trailingLabel;
-  final Widget? trailingWidget;
   final VoidCallback onTap;
 
   @override
@@ -501,9 +509,7 @@ class _NavRow extends StatelessWidget {
                   style: PremiumTokens.body(size: 14, weight: FontWeight.w500),
                 ),
               ),
-              if (trailingWidget != null)
-                trailingWidget!
-              else if (trailingLabel != null) ...[
+              if (trailingLabel != null) ...[
                 Text(
                   trailingLabel!,
                   style: PremiumTokens.body(
@@ -605,29 +611,6 @@ class _SwitchRow extends StatelessWidget {
             activeTrackColor: PremiumTokens.accent,
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ComingSoonBadge extends StatelessWidget {
-  const _ComingSoonBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: PremiumTokens.accent.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        'Tez orada',
-        style: PremiumTokens.body(
-          size: 11,
-          weight: FontWeight.w600,
-          color: PremiumTokens.accent,
-        ),
       ),
     );
   }

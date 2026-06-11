@@ -44,7 +44,7 @@ Future<void> registerCoreModule(GetIt sl) async {
   sl.registerSingleton<AppSettings>(AppSettings(boxes.settings));
 
   sl.registerSingleton<ThemeCubit>(
-    ThemeCubit(boxes.settings),
+    ThemeCubit(sl<AppSettings>()),
     dispose: (c) => c.close(),
   );
 

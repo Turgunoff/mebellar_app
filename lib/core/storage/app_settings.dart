@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart' show ThemeMode;
 import 'package:hive/hive.dart';
 
 /// Strongly-typed facade over the `settings` Hive box.
@@ -21,6 +22,7 @@ class AppSettings {
   static const String _kAppMode = 'app_mode';
   static const String _kSellerApproved = 'seller_approval_cached';
   static const String _kDarkMode = 'isDarkMode';
+  static const String _kThemeMode = 'theme_mode';
   static const String _kLocaleCode = 'locale_code';
   static const String _kOnboardingSeen = 'onboarding_seen';
   static const String _kSellerWelcomePrefix = 'has_seen_seller_welcome_';
@@ -45,6 +47,35 @@ class AppSettings {
   // --- theme ---------------------------------------------------------------
   bool get isDarkMode => _box.get(_kDarkMode, defaultValue: false) as bool;
   Future<void> setDarkMode(bool value) => _box.put(_kDarkMode, value);
+
+  /// The user's global theme preference, shared by the customer and seller
+  /// surfaces. Defaults to [ThemeMode.system] when never chosen, so a fresh
+  /// install follows the device setting. Upgrading users who toggled the
+  /// legacy `isDarkMode` bool are migrated to the matching explicit mode.
+  ///
+  /// A device-level preference: intentionally NOT cleared on logout
+  /// ([clearUserScopedKeys]).
+  ThemeMode get themeMode {
+    switch (_box.get(_kThemeMode) as String?) {
+      case 'light':
+        return ThemeMode.light;
+      case 'dark':
+        return ThemeMode.dark;
+      case 'system':
+        return ThemeMode.system;
+    }
+    // No explicit choice yet — honour the legacy bool only when it was set
+    // to true; anything else (including unset) follows the system default.
+    return (_box.get(_kDarkMode) as bool?) == true
+        ? ThemeMode.dark
+        : ThemeMode.system;
+  }
+
+  Future<void> setThemeMode(ThemeMode mode) async {
+    await _box.put(_kThemeMode, mode.name);
+    // Keep the legacy mirror coherent for any older code path still reading it.
+    await _box.put(_kDarkMode, mode == ThemeMode.dark);
+  }
 
   // --- locale --------------------------------------------------------------
   /// Overridden locale code (`uz` / `ru` / `en`); `null` follows the device.
