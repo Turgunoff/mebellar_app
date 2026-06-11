@@ -19,6 +19,7 @@ import 'orders_translations.dart';
 import 'product_translations.dart';
 import 'seller_orders_translations.dart';
 import 'seller_translations.dart';
+import 'settings_translations.dart';
 import 'shop_settings_translations.dart';
 import 'shop_translations.dart';
 import 'system_translations.dart';
@@ -66,6 +67,7 @@ const Map<String, dynamic> uzTranslations = {
   'tutorial': tutorialUz,
   'error': errorUz,
   'lang': langUz,
+  'settings': settingsUz,
 };
 
 const Map<String, dynamic> ruTranslations = {
@@ -109,6 +111,7 @@ const Map<String, dynamic> ruTranslations = {
   'tutorial': tutorialRu,
   'error': errorRu,
   'lang': langRu,
+  'settings': settingsRu,
 };
 
 const Map<String, dynamic> enTranslations = {
@@ -152,4 +155,5 @@ const Map<String, dynamic> enTranslations = {
   'tutorial': tutorialEn,
   'error': errorEn,
   'lang': langEn,
+  'settings': settingsEn,
 };

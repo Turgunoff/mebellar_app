@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_fonts.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../core/i18n/i18n.dart';
+import '../../../../core/i18n/language_picker.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/theme_cubit.dart';
 
@@ -26,16 +28,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _customerMessages = true;
   bool _systemAlerts = true;
 
-  String get _languageLabel => "O'zbekcha";
-
-  void _openLanguagePicker() {
-    // Language modal lands in a follow-up — leave the row tappable so
-    // the affordance is visible to test users today.
-  }
-
   @override
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
+    // Native name of the active language for the trailing label; rebuilds with
+    // the rest of the tree when the locale changes.
+    final languageLabel = tr('lang.${context.locale.languageCode}');
     // Dark mode is global — read it from the shared ThemeCubit. `system`
     // resolves against the device brightness so the switch reads correctly.
     final themeMode = context.watch<ThemeCubit>().state.themeMode;
@@ -52,71 +50,71 @@ class _SettingsScreenState extends State<SettingsScreen> {
           parent: AlwaysScrollableScrollPhysics(),
         ),
         children: [
-          const _SectionLabel(text: 'Tizim'),
+          _SectionLabel(text: tr('settings.section_system')),
           const SizedBox(height: 8),
           _SettingsCard(
             children: [
               _NavRow(
                 icon: Iconsax.language_square,
-                title: 'Ilova tili',
-                trailingText: _languageLabel,
-                onTap: _openLanguagePicker,
+                title: tr('settings.language_row'),
+                trailingText: languageLabel,
+                onTap: () => showLanguagePicker(context),
               ),
               const _RowDivider(),
               _SwitchRow(
                 icon: Iconsax.moon,
-                title: 'Tungi rejim',
+                title: tr('settings.dark_mode'),
                 value: isDark,
                 onChanged: (v) => context.read<ThemeCubit>().toggleDark(v),
               ),
             ],
           ),
           const SizedBox(height: 20),
-          const _SectionLabel(text: 'Bildirishnomalar'),
+          _SectionLabel(text: tr('settings.section_notifications')),
           const SizedBox(height: 8),
           _SettingsCard(
             children: [
               _SwitchRow(
                 icon: Iconsax.shopping_bag,
-                title: 'Yangi buyurtmalar',
-                subtitle: 'Push xabarlari',
+                title: tr('settings.new_orders'),
+                subtitle: tr('settings.push_messages'),
                 value: _newOrders,
                 onChanged: (v) => setState(() => _newOrders = v),
               ),
               const _RowDivider(),
               _SwitchRow(
                 icon: Iconsax.message,
-                title: 'Mijoz xabarlari va sharhlar',
-                subtitle: 'Push xabarlari',
+                title: tr('settings.customer_messages'),
+                subtitle: tr('settings.push_messages'),
                 value: _customerMessages,
                 onChanged: (v) => setState(() => _customerMessages = v),
               ),
               const _RowDivider(),
               _SwitchRow(
                 icon: Iconsax.warning_2,
-                title: 'Tizim xabarlari',
-                subtitle: 'Yangilanishlar va ogohlantirishlar',
+                title: tr('settings.system_alerts'),
+                subtitle: tr('settings.system_alerts_subtitle'),
                 value: _systemAlerts,
                 onChanged: (v) => setState(() => _systemAlerts = v),
               ),
             ],
           ),
           const SizedBox(height: 20),
-          const _SectionLabel(text: 'Boshqa'),
+          _SectionLabel(text: tr('settings.section_other')),
           const SizedBox(height: 8),
           _SettingsCard(
             children: [
               _NavRow(
                 icon: Iconsax.trash,
                 iconColor: c.grey,
-                title: 'Keshni tozalash',
+                title: tr('settings.clear_cache'),
                 trailingText: '24 MB',
                 onTap: () {},
               ),
               const _RowDivider(),
               _NavRow(
                 icon: Iconsax.info_circle,
-                title: 'Ilova haqida',
+                title: tr('settings.about'),
                 trailingText: 'v1.0.0 (Beta)',
                 showChevron: false,
                 onTap: () {},
@@ -152,7 +150,7 @@ class _SettingsAppBar extends StatelessWidget implements PreferredSizeWidget {
         onPressed: () => Navigator.of(context).maybePop(),
       ),
       title: Text(
-        'Sozlamalar',
+        tr('settings.title'),
         style: TextStyle(
           fontFamily: AppFonts.seller,
           fontSize: 18,

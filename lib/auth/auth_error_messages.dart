@@ -11,25 +11,28 @@ import '../core/network/api_error.dart';
 String authErrorMessageFromApi(ApiError error) {
   switch (error.code) {
     case 'invalid_phone':
-      return "Telefon raqam noto'g'ri formatda";
+      return tr('auth.err_invalid_phone');
     case 'rate_limited':
       final retry = error.retryAfterSeconds;
       if (retry != null) {
-        return "Juda ko'p urinish. $retry soniyadan keyin qayta urining";
+        return tr(
+          'auth.err_rate_limited_retry',
+          namedArgs: {'seconds': '$retry'},
+        );
       }
       return tr('auth.too_many_requests');
     case 'invalid_code':
-      return "Kod noto'g'ri";
+      return tr('auth.err_invalid_code');
     case 'otp_expired':
-      return "Kodning muddati o'tgan. Qayta yuborishni so'rang";
+      return tr('auth.err_otp_expired');
     case 'otp_attempts_exhausted':
-      return "Juda ko'p noto'g'ri urinish. Kodni qayta yuborishni so'rang";
+      return tr('auth.err_otp_attempts');
     case 'invalid_refresh_token':
       return tr('auth.invalid_credentials');
     case 'not_authenticated':
       return tr('auth.invalid_credentials');
     case 'validation_error':
-      return "Ma'lumotlar noto'g'ri kiritilgan";
+      return tr('auth.err_validation');
     case 'network_error':
       return tr('error.network');
   }
