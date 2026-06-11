@@ -20,7 +20,7 @@ import '../widgets/orders_block.dart';
 import '../widgets/profile_menu_card.dart';
 import '../widgets/seller_banners.dart';
 import '../widgets/user_card.dart';
-import 'about_screen.dart';
+import '../../../../shared/about/about_screen.dart';
 import 'edit_profile_screen.dart';
 import 'help_screen.dart';
 import 'settings_screen.dart';

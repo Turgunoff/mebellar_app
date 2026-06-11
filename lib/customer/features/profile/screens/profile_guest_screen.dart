@@ -5,7 +5,7 @@ import '../../../../auth/auth_bottom_sheet.dart';
 import '../../../../seller/features/onboarding/screens/onboarding_screen.dart';
 import '../../../widgets/glass_bottom_nav.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
-import 'about_screen.dart';
+import '../../../../shared/about/about_screen.dart';
 import 'help_screen.dart';
 import 'settings_screen.dart';
 

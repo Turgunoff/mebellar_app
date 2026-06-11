@@ -22,12 +22,18 @@ class PreviewAppBar extends StatelessWidget {
     required this.heroTagPrefix,
     required this.productName,
     this.titleOpacity = 0,
+    this.extraActions = const [],
   });
 
   final List<String> images;
   final String heroTagPrefix;
   final String productName;
   final double titleOpacity;
+
+  /// Toolbar actions rendered to the left of the built-in share button
+  /// (e.g. the customer detail screen's favourite toggle). Use
+  /// [PreviewGlassIconButton] so they match the glass style.
+  final List<Widget> extraActions;
 
   @override
   Widget build(BuildContext context) {
@@ -65,15 +71,16 @@ class PreviewAppBar extends StatelessWidget {
       ),
       leading: Padding(
         padding: const EdgeInsets.all(8),
-        child: _GlassIconButton(
+        child: PreviewGlassIconButton(
           icon: Iconsax.arrow_left_2,
           onTap: () => Navigator.of(context).maybePop(),
         ),
       ),
       actions: [
+        ...extraActions,
         Padding(
           padding: const EdgeInsets.all(8),
-          child: _GlassIconButton(icon: Iconsax.share, onTap: () {}),
+          child: PreviewGlassIconButton(icon: Iconsax.share, onTap: () {}),
         ),
       ],
       flexibleSpace: FlexibleSpaceBar(
@@ -83,17 +90,29 @@ class PreviewAppBar extends StatelessWidget {
   }
 }
 
-class _GlassIconButton extends StatelessWidget {
-  const _GlassIconButton({required this.icon, required this.onTap});
+/// Circular frosted toolbar button used by [PreviewAppBar] (back, share)
+/// and exposed for callers that pass [PreviewAppBar.extraActions].
+class PreviewGlassIconButton extends StatelessWidget {
+  const PreviewGlassIconButton({
+    super.key,
+    required this.icon,
+    required this.onTap,
+    this.color,
+  });
 
   final IconData icon;
   final VoidCallback onTap;
+
+  /// Icon ink. Defaults to the fixed dark value that reads on the white
+  /// glass — pass an accent (e.g. terracotta) for an active toggle state.
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
     // Frosted-white glass over the photo gallery in both modes, so the ink
     // icon stays the fixed dark value (it must read on the white glass, not
     // flip to a light ink in dark mode).
+    final ink = color ?? AppColors.sellerInk;
     return Material(
       color: Colors.white.withValues(alpha: 0.92),
       shape: const CircleBorder(),
@@ -103,7 +122,25 @@ class _GlassIconButton extends StatelessWidget {
         child: SizedBox(
           width: 40,
           height: 40,
-          child: Icon(icon, size: 20, color: AppColors.sellerInk),
+          // Toggle buttons (favourite) swap icon + ink on tap; the scale-pop
+          // switcher makes that swap read as a deliberate state change.
+          // Static icons (back, share) never change keys, so this is inert
+          // for them.
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            switchInCurve: Curves.easeOutBack,
+            switchOutCurve: Curves.easeIn,
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: animation,
+              child: ScaleTransition(scale: animation, child: child),
+            ),
+            child: Icon(
+              icon,
+              key: ValueKey('${icon.codePoint}-${ink.toARGB32()}'),
+              size: 20,
+              color: ink,
+            ),
+          ),
         ),
       ),
     );

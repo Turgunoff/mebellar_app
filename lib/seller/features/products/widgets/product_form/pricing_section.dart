@@ -67,6 +67,34 @@ class PricingSection extends StatelessWidget {
     return '≈ ${formatThousands(discounted.round())} USD';
   }
 
+  /// The cubit refuses to switch to USD until a rate exists (and retries the
+  /// fetch on that tap) — without feedback the dimmed segment would feel
+  /// dead, so explain why nothing switched.
+  void _handleCurrencyTap(BuildContext context, PriceCurrency next) {
+    if (next == PriceCurrency.usd && usdRate == null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            backgroundColor: AppColors.warning,
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 3),
+            content: Text(
+              "Dollar kursi hali yuklanmadi — birozdan so'ng qayta urinib "
+              "ko'ring.",
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+                height: 1.3,
+              ),
+            ),
+          ),
+        );
+    }
+    onCurrencyChanged(next);
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
@@ -86,7 +114,7 @@ class PricingSection extends StatelessWidget {
                 suffixWidget: _CurrencyToggle(
                   value: currency,
                   usdEnabled: usdRate != null,
-                  onChanged: onCurrencyChanged,
+                  onChanged: (next) => _handleCurrencyTap(context, next),
                 ),
                 keyboardType: TextInputType.number,
                 inputFormatters: const [ThousandsSpaceFormatter()],

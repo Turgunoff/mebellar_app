@@ -115,6 +115,27 @@ void main() {
       );
     });
 
+    test('refetches after TTL expiry and serves the fresh rate', () async {
+      when(
+        () => dio.get<dynamic>(any()),
+      ).thenAnswer((_) async => _response(_cbuPayload));
+      final service = CbuExchangeRateService(dio: dio, ttl: Duration.zero);
+
+      expect(await service.getUsdRate(), 12650.43);
+
+      when(() => dio.get<dynamic>(any())).thenAnswer(
+        (_) async => _response(const [
+          {'Ccy': 'USD', 'Rate': '12700.00'},
+        ]),
+      );
+      expect(
+        await service.getUsdRate(),
+        12700.00,
+        reason: 'an expired TTL must force a fresh network fetch',
+      );
+      verify(() => dio.get<dynamic>(any())).called(2);
+    });
+
     test(
       'keeps the cache when a refresh returns an unusable payload',
       () async {

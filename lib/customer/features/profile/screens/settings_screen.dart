@@ -12,7 +12,7 @@ import '../../../../core/i18n/language_picker.dart';
 import '../../../../core/storage/hive_boxes.dart';
 import '../../../../core/theme/theme_cubit.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
-import 'about_screen.dart';
+import '../../../../shared/about/about_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});

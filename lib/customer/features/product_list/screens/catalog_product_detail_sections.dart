@@ -152,14 +152,25 @@ class _SimilarSkeleton extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Bottom action bar — customer (favourite + add to cart)
+// Bottom action bar — smart add-to-cart CTA
 // ═══════════════════════════════════════════════════════════════════════════
 
+/// Cart-aware bottom bar. While the product is not in the cart it shows the
+/// primary "add" CTA; once a line exists it morphs into a quantity stepper +
+/// "go to cart" pair so repeat adds never leave the screen. The favourite
+/// toggle lives in the app bar, not here.
 class _BottomBar extends StatelessWidget {
   const _BottomBar({required this.product, required this.onAddToCart});
 
   final ProductModel product;
   final VoidCallback onAddToCart;
+
+  int _quantityOf(CartState state) {
+    for (final item in state.items) {
+      if (item.productId == product.id) return item.quantity;
+    }
+    return 0;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -181,73 +192,197 @@ class _BottomBar extends StatelessWidget {
           ),
         ],
       ),
+      child: BlocBuilder<CartBloc, CartState>(
+        buildWhen: (prev, curr) => _quantityOf(prev) != _quantityOf(curr),
+        builder: (context, state) {
+          final quantity = _quantityOf(state);
+          return AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: animation,
+              child: ScaleTransition(
+                scale: Tween<double>(begin: 0.96, end: 1).animate(animation),
+                child: child,
+              ),
+            ),
+            child: quantity == 0
+                ? _AddToCartCta(
+                    key: const ValueKey('cta-add'),
+                    onPressed: onAddToCart,
+                  )
+                : _InCartControls(
+                    key: const ValueKey('cta-in-cart'),
+                    productId: product.id,
+                    quantity: quantity,
+                  ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _AddToCartCta extends StatelessWidget {
+  const _AddToCartCta({super.key, required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton(
+      onPressed: onPressed,
+      style: FilledButton.styleFrom(
+        backgroundColor: AppColors.terracotta,
+        minimumSize: const Size.fromHeight(54),
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      ),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          BlocSelector<FavoritesBloc, FavoritesState, bool>(
-            selector: (state) => state.isFavorite(product.id),
-            builder: (context, isFav) {
-              return GestureDetector(
-                onTap: () => context.read<FavoritesBloc>().add(
-                  FavoriteToggled(Product.fromModel(product)),
-                ),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: 54,
-                  height: 54,
-                  decoration: BoxDecoration(
-                    color: isFav
-                        ? AppColors.terracotta.withValues(alpha: 0.12)
-                        : pt.imageBg,
-                    borderRadius: BorderRadius.circular(15),
-                    border: Border.all(
-                      color: isFav
-                          ? AppColors.terracotta.withValues(alpha: 0.4)
-                          : pt.divider,
+          const Icon(Iconsax.shopping_bag, size: 19, color: Colors.white),
+          const SizedBox(width: 9),
+          Text(
+            tr('cart.add'),
+            style: _ts(size: 15, weight: FontWeight.w700, color: Colors.white),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Post-add state: `[− qty +]` stepper + "go to cart". Decrementing at
+/// quantity 1 removes the line (the bloc maps `newQuantity ≤ 0` to a
+/// remove), which animates the bar back to the add CTA.
+class _InCartControls extends StatelessWidget {
+  const _InCartControls({
+    super.key,
+    required this.productId,
+    required this.quantity,
+  });
+
+  final String productId;
+  final int quantity;
+
+  void _setQuantity(BuildContext context, int next) {
+    context.read<CartBloc>().add(
+      UpdateQuantity(productId: productId, newQuantity: next),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
+    return Row(
+      children: [
+        Container(
+          height: 54,
+          decoration: BoxDecoration(
+            color: pt.imageBg,
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: pt.divider),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _QtyButton(
+                icon: quantity == 1 ? Iconsax.trash : Iconsax.minus,
+                onTap: () => _setQuantity(context, quantity - 1),
+              ),
+              SizedBox(
+                width: 34,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 180),
+                  transitionBuilder: (child, animation) => FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0, 0.4),
+                        end: Offset.zero,
+                      ).animate(animation),
+                      child: child,
                     ),
                   ),
-                  child: Icon(
-                    isFav ? Iconsax.heart_copy : Iconsax.heart,
-                    size: 23,
-                    color: isFav ? AppColors.terracotta : pt.grey,
+                  child: Text(
+                    '$quantity',
+                    key: ValueKey(quantity),
+                    textAlign: TextAlign.center,
+                    style: _ts(
+                      size: 16,
+                      weight: FontWeight.w800,
+                      color: pt.dark,
+                      height: 1.0,
+                    ),
                   ),
-                ),
-              );
-            },
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: FilledButton(
-              onPressed: onAddToCart,
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.terracotta,
-                minimumSize: const Size.fromHeight(54),
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
                 ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Iconsax.shopping_bag,
-                    size: 19,
-                    color: Colors.white,
-                  ),
-                  const SizedBox(width: 9),
-                  Text(
-                    tr('cart.add'),
+              _QtyButton(
+                icon: Iconsax.add,
+                onTap: quantity >= 99
+                    ? null
+                    : () => _setQuantity(context, quantity + 1),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: FilledButton(
+            onPressed: () => context.push('/cart'),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.terracotta,
+              minimumSize: const Size.fromHeight(54),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Iconsax.bag_tick, size: 19, color: Colors.white),
+                const SizedBox(width: 9),
+                Flexible(
+                  child: Text(
+                    tr('cart.go_to_cart'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: _ts(
                       size: 15,
                       weight: FontWeight.w700,
                       color: Colors.white,
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
+      ],
+    );
+  }
+}
+
+class _QtyButton extends StatelessWidget {
+  const _QtyButton({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
+    final disabled = onTap == null;
+    return InkResponse(
+      onTap: onTap,
+      radius: 24,
+      child: SizedBox(
+        width: 44,
+        height: 54,
+        child: Icon(icon, size: 18, color: disabled ? pt.greyLight : pt.dark),
       ),
     );
   }

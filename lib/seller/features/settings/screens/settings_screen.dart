@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../../../../core/theme/app_fonts.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
@@ -9,6 +10,7 @@ import '../../../../core/i18n/i18n.dart';
 import '../../../../core/i18n/language_picker.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/theme_cubit.dart';
+import '../../../../shared/about/about_screen.dart';
 
 // All neutral colours now come from `SellerColors.of(context)` so the surface
 // flips with the theme. Plus Jakarta Sans is applied to every `Text` explicitly
@@ -130,12 +132,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
               const _RowDivider(),
-              _NavRow(
-                icon: Iconsax.info_circle,
-                title: tr('settings.about'),
-                trailingText: 'v1.0.0 (Beta)',
-                showChevron: false,
-                onTap: () {},
+              FutureBuilder<PackageInfo>(
+                future: appPackageInfo(),
+                builder: (context, snap) => _NavRow(
+                  icon: Iconsax.info_circle,
+                  title: tr('settings.about'),
+                  trailingText: snap.hasData
+                      ? 'v${snap.data!.version} (${snap.data!.buildNumber})'
+                      : null,
+                  // Root navigator so the About page covers the seller tab
+                  // bar — it is a full-screen detail, not a tab-scoped view.
+                  onTap: () => Navigator.of(context, rootNavigator: true).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const AboutScreen(),
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -263,7 +275,6 @@ class _NavRow extends StatelessWidget {
     required this.onTap,
     this.trailingText,
     this.iconColor,
-    this.showChevron = true,
   });
 
   final IconData icon;
@@ -271,7 +282,6 @@ class _NavRow extends StatelessWidget {
   final String? trailingText;
   final VoidCallback onTap;
   final Color? iconColor;
-  final bool showChevron;
 
   @override
   Widget build(BuildContext context) {
@@ -312,10 +322,8 @@ class _NavRow extends StatelessWidget {
                   ),
                 ),
               ],
-              if (showChevron) ...[
-                const SizedBox(width: 8),
-                Icon(Iconsax.arrow_right_3, size: 18, color: c.greyMid),
-              ],
+              const SizedBox(width: 8),
+              Icon(Iconsax.arrow_right_3, size: 18, color: c.greyMid),
             ],
           ),
         ),

@@ -36,6 +36,7 @@ import '../../../../seller/features/products/widgets/product_preview/preview_app
 import '../../../../seller/features/products/widgets/product_preview/spec_cards.dart';
 import '../../../features/cart/bloc/cart_bloc.dart';
 import '../../../features/favorites/bloc/favorites_bloc.dart';
+import '../../../widgets/top_toast.dart';
 import '../../home/widgets/premium/premium_product_card.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 
@@ -229,14 +230,14 @@ class _CatalogProductDetailScreenState
     context.read<CartBloc>().add(
       AddToCart(widget.product, selectedColor: _selectedColor),
     );
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(tr('cart.item_added')),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-      ),
+    // The toast lives in the root overlay and can outlive this screen, so
+    // its action captures the router — not this soon-to-be-defunct context.
+    final router = GoRouter.of(context);
+    showTopToast(
+      context,
+      message: tr('cart.item_added'),
+      actionLabel: tr('cart.go_to_cart'),
+      onAction: () => router.push('/cart'),
     );
   }
 
@@ -279,6 +280,21 @@ class _CatalogProductDetailScreenState
                 heroTagPrefix: 'product-${product.id}',
                 productName: product.name,
                 titleOpacity: _titleOpacity,
+                extraActions: [
+                  Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: BlocSelector<FavoritesBloc, FavoritesState, bool>(
+                      selector: (state) => state.isFavorite(product.id),
+                      builder: (context, isFav) => PreviewGlassIconButton(
+                        icon: isFav ? Icons.favorite : Icons.favorite_border,
+                        color: isFav ? AppColors.terracotta : null,
+                        onTap: () => context.read<FavoritesBloc>().add(
+                          FavoriteToggled(Product.fromModel(product)),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
               SliverToBoxAdapter(
                 child: Padding(

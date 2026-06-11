@@ -1,16 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
-import '../../home/widgets/premium/premium_tokens.dart';
+import '../../customer/features/home/widgets/premium/premium_tokens.dart';
 
-class AboutScreen extends StatelessWidget {
+Future<PackageInfo>? _packageInfo;
+
+/// Memoised platform lookup so every caller (About screen, seller settings
+/// row) shares one channel round-trip per app session.
+Future<PackageInfo> appPackageInfo() =>
+    _packageInfo ??= PackageInfo.fromPlatform();
+
+class AboutScreen extends StatefulWidget {
   const AboutScreen({super.key});
 
-  static const _version = '1.0.0';
+  @override
+  State<AboutScreen> createState() => _AboutScreenState();
+}
+
+class _AboutScreenState extends State<AboutScreen> {
+  PackageInfo? _info;
+
+  @override
+  void initState() {
+    super.initState();
+    appPackageInfo().then((info) {
+      if (mounted) setState(() => _info = info);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
+    final version = _info == null
+        ? ' '
+        : 'Versiya ${_info!.version} (${_info!.buildNumber})';
     return Scaffold(
       backgroundColor: pt.background,
       appBar: _buildAppBar(context),
@@ -55,7 +79,7 @@ class AboutScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Versiya $_version',
+                  version,
                   style: PremiumTokens.body(size: 13, color: pt.grey),
                 ),
                 const SizedBox(height: 16),

@@ -535,6 +535,44 @@ void main() {
       ],
     );
 
+    test(
+      'USD tap retries the fetch; the next tap switches once the rate lands',
+      () async {
+        final rates = _MockExchangeRates();
+        var calls = 0;
+        when(rates.getUsdRate).thenAnswer((_) async {
+          calls++;
+          return calls == 1 ? null : usdRate;
+        });
+
+        final cubit = _cubit(repo, rates: rates);
+        cubit.emit(const AddProductState(status: AddProductStatus.ready));
+
+        // First tap: no rate yet — refuses to switch, kicks off a fetch
+        // that also fails (returns null).
+        cubit.setPriceCurrency(PriceCurrency.usd);
+        await Future<void>.delayed(Duration.zero);
+        expect(cubit.state.priceCurrency, PriceCurrency.uzs);
+        expect(cubit.state.usdRate, isNull);
+
+        // Second tap: still no rate — refuses again, but this retry fetch
+        // succeeds and stores the rate.
+        cubit.setPriceCurrency(PriceCurrency.usd);
+        await Future<void>.delayed(Duration.zero);
+        expect(
+          cubit.state.usdRate,
+          usdRate,
+          reason: 'the retry stored the freshly-loaded rate',
+        );
+        expect(cubit.state.priceCurrency, PriceCurrency.uzs);
+
+        // Third tap passes the guard and actually switches.
+        cubit.setPriceCurrency(PriceCurrency.usd);
+        expect(cubit.state.priceCurrency, PriceCurrency.usd);
+        verify(rates.getUsdRate).called(2);
+      },
+    );
+
     test('priceInUzs and discountedPriceUzs convert with rounding', () {
       const usd = AddProductState(
         price: 100,

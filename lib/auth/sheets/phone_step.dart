@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/theme/app_fonts.dart';
-import '../../customer/features/profile/screens/about_screen.dart'
+import '../../shared/about/about_screen.dart'
     show StaticContentScreen, StaticContentType;
 import 'auth_sheet_kit.dart';
 import 'profile_step.dart' show UzPhoneFormatter;
@@ -43,11 +43,11 @@ class _PhoneStepState extends State<PhoneStep> {
     super.initState();
     _focus.addListener(_onFocusChange);
     _termsTap = TapGestureRecognizer()
-      ..onTap =
-          () => _openStatic(StaticContentType.terms, 'Foydalanish shartlari');
+      ..onTap = () =>
+          _openStatic(StaticContentType.terms, 'Foydalanish shartlari');
     _privacyTap = TapGestureRecognizer()
-      ..onTap =
-          () => _openStatic(StaticContentType.privacy, 'Maxfiylik siyosati');
+      ..onTap = () =>
+          _openStatic(StaticContentType.privacy, 'Maxfiylik siyosati');
   }
 
   void _onFocusChange() {
