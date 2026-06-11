@@ -23,6 +23,7 @@ class PreviewAppBar extends StatelessWidget {
     required this.productName,
     this.titleOpacity = 0,
     this.extraActions = const [],
+    this.onShare,
   });
 
   final List<String> images;
@@ -34,6 +35,11 @@ class PreviewAppBar extends StatelessWidget {
   /// (e.g. the customer detail screen's favourite toggle). Use
   /// [PreviewGlassIconButton] so they match the glass style.
   final List<Widget> extraActions;
+
+  /// Tapped when the user hits the built-in share button. Null on surfaces
+  /// where sharing is meaningless (e.g. the seller's pre-publish preview),
+  /// which keeps the button inert.
+  final VoidCallback? onShare;
 
   @override
   Widget build(BuildContext context) {
@@ -80,7 +86,10 @@ class PreviewAppBar extends StatelessWidget {
         ...extraActions,
         Padding(
           padding: const EdgeInsets.all(8),
-          child: PreviewGlassIconButton(icon: Iconsax.share, onTap: () {}),
+          child: PreviewGlassIconButton(
+            icon: Iconsax.share,
+            onTap: onShare ?? () {},
+          ),
         ),
       ],
       flexibleSpace: FlexibleSpaceBar(

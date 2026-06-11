@@ -19,6 +19,7 @@ import 'config/remote_config.dart';
 import 'core/auth/app_mode_cubit.dart';
 import 'core/auth/auth_cubit.dart';
 import 'core/cache/app_cache_cubit.dart';
+import 'core/deeplink/deferred_deep_link_service.dart';
 import 'core/di/service_locator.dart';
 import 'core/i18n/i18n.dart';
 import 'core/logging/talker.dart';
@@ -182,6 +183,29 @@ Future<void> _bootstrapAndRun() async {
   AppTranslations.setInstance(
     AppTranslations.forLocale(localeController.value),
   );
+
+  // Deferred deep link — the "clipboard" half of our zero-cost deep-link
+  // scheme. On the first launch after install only, read any
+  // `woody_product_<id>` magic string the web download CTA left on the
+  // clipboard, resolve it to a customer route, and stash it. The customer
+  // router (`buildCustomerRouter`) consumes it once the first-launch tutorial
+  // gate clears, or uses it as its initial location. Awaited (not
+  // fire-and-forget) so the pending location is set before the router is built
+  // inside `runApp`; the clipboard read self-times-out, so it never stalls
+  // boot.
+  //
+  // Guard on customer mode: a fresh install always boots into customer mode
+  // (the only launch where this read is relevant), so a returning seller
+  // never triggers a clipboard read whose customer-route result the seller
+  // router couldn't consume anyway.
+  if (initialMode == AppMode.customer) {
+    try {
+      DeferredDeepLink.pendingLocation =
+          await DeferredDeepLinkService().resolveInitialDeepLink();
+    } catch (e, st) {
+      talker.handle(e, st, 'Deferred deep link resolution failed');
+    }
+  }
 
   runApp(
     MultiBlocProvider(

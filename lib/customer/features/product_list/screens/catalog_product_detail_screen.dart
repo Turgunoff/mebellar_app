@@ -19,6 +19,7 @@ import '../../../../shared/models/review.dart';
 import '../../../../shared/models/product_model.dart';
 import '../../../../shared/repositories/customer_reviews_repository.dart';
 import '../../../../shared/repositories/product_data_source.dart';
+import '../../../../shared/sharing/product_share.dart';
 import '../../../../shared/widgets/star_rating.dart';
 // `AttributesRepository` is registered at root scope, so it resolves fine
 // from the customer surface too.
@@ -283,6 +284,7 @@ class _CatalogProductDetailScreenState
                 heroTagPrefix: 'product-${product.id}',
                 productName: product.name,
                 titleOpacity: _titleOpacity,
+                onShare: () => shareProduct(product),
                 extraActions: [
                   Padding(
                     padding: const EdgeInsets.all(8),

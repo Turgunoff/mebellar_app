@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -15,13 +16,41 @@ import '../../../../shared/repositories/seller_wallet_repository.dart';
 import '../../../../shared/repositories/tariff_repository.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../bloc/seller_wallet_cubit.dart';
+import '../widgets/wallet_info_bottom_sheet.dart';
 
 /// Seller wallet — balance, debt state, top-up by card + screenshot, ledger.
 /// The top-up trust model mirrors the tariff flow: pay to the Woody card,
 /// upload the receipt, an admin approves and the balance is credited (a
 /// clearing balance also lifts the debt freeze automatically).
-class WalletScreen extends StatelessWidget {
+class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
+
+  @override
+  State<WalletScreen> createState() => _WalletScreenState();
+}
+
+class _WalletScreenState extends State<WalletScreen> {
+  /// Persisted flag — the explainer auto-opens only on the seller's first
+  /// visit; afterwards it stays reachable via the "Hamyon qanday ishlaydi?"
+  /// link under the balance.
+  static const _seenInfoKey = 'has_seen_wallet_info';
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeAutoShowInfo());
+  }
+
+  Future<void> _maybeAutoShowInfo() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool(_seenInfoKey) ?? false) return;
+    if (!mounted) return;
+    // Persist before awaiting dismissal so killing the app mid-sheet can't
+    // make it auto-open a second time.
+    await prefs.setBool(_seenInfoKey, true);
+    if (!mounted) return;
+    await showWalletInfoBottomSheet(context);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -112,10 +141,7 @@ class _WalletView extends StatelessWidget {
                   _PendingTopUpCard(topUp: wallet.pendingTopUp!),
                 ],
                 const SizedBox(height: 20),
-                _TopUpSection(
-                  state: state,
-                  suggestedAmount: wallet.debtAmount,
-                ),
+                _TopUpSection(state: state, suggestedAmount: wallet.debtAmount),
                 if (wallet.transactions.isNotEmpty) ...[
                   const SizedBox(height: 24),
                   Text(
@@ -191,6 +217,31 @@ class _BalanceCard extends StatelessWidget {
               ),
             ),
           ],
+          const SizedBox(height: 4),
+          // Flush-left, compact link — manual entry point to the same explainer
+          // that auto-opens on first visit.
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () => showWalletInfoBottomSheet(context),
+              style: TextButton.styleFrom(
+                foregroundColor: c.primary,
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                visualDensity: VisualDensity.compact,
+              ),
+              icon: const Icon(Icons.info_outline, size: 16),
+              label: const Text(
+                'Hamyon qanday ishlaydi?',
+                style: TextStyle(
+                  fontFamily: AppFonts.seller,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -224,7 +275,11 @@ class _DebtNotice extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(suspended ? Iconsax.lock : Iconsax.warning_2, color: fg, size: 20),
+          Icon(
+            suspended ? Iconsax.lock : Iconsax.warning_2,
+            color: fg,
+            size: 20,
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -388,10 +443,7 @@ class _TopUpSectionState extends State<_TopUpSection> {
             ),
             decoration: InputDecoration(
               labelText: "Summa (so'm)",
-              labelStyle: TextStyle(
-                fontFamily: AppFonts.seller,
-                color: c.grey,
-              ),
+              labelStyle: TextStyle(fontFamily: AppFonts.seller, color: c.grey),
               filled: true,
               fillColor: c.fillSoft,
               border: OutlineInputBorder(
@@ -458,10 +510,7 @@ class _TransactionsCard extends StatelessWidget {
           for (var i = 0; i < transactions.length; i++) ...[
             if (i > 0) Divider(height: 1, color: c.divider),
             Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 12,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
                 children: [
                   Expanded(

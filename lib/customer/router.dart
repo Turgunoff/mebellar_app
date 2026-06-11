@@ -5,7 +5,9 @@ import 'package:go_router/go_router.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
 import '../config/app_mode.dart';
+import '../core/deeplink/deferred_deep_link_service.dart';
 import '../core/di/service_locator.dart';
+import '../core/i18n/i18n.dart';
 import '../shared/models/product_model.dart';
 import '../shared/chat/screens/chat_thread_screen.dart';
 import '../shared/chat/screens/chats_list_screen.dart';
@@ -61,7 +63,10 @@ void navigateCustomerRoute(GoRouter router, String route) {
 /// state.
 GoRouter buildCustomerRouter() {
   return GoRouter(
-    initialLocation: '/',
+    // A deferred deep link resolved at boot (see DeferredDeepLinkService)
+    // becomes the initial location; the tutorial gate below still runs first
+    // on a fresh install, then `onDone` replays it.
+    initialLocation: DeferredDeepLink.pendingLocation ?? '/',
     navigatorKey: customerNavigatorKey,
     observers: [
       TalkerRouteObserver(talker),
@@ -100,8 +105,12 @@ GoRouter buildCustomerRouter() {
       ),
       GoRoute(
         path: '/tutorial',
-        builder: (context, state) =>
-            CustomerTutorialScreen(onDone: () => context.go('/')),
+        // On completion, replay any deferred deep link captured at boot (a
+        // shared product the user installed the app to see) instead of just
+        // dropping them on home. `take()` clears it so it can't fire twice.
+        builder: (context, state) => CustomerTutorialScreen(
+          onDone: () => context.go(DeferredDeepLink.take() ?? '/'),
+        ),
       ),
       GoRoute(
         path: '/categories',
@@ -136,6 +145,15 @@ GoRouter buildCustomerRouter() {
           }
           return _ProductDetailLoader(id: state.pathParameters['id']!);
         },
+      ),
+      // Inbound web deep-link path. The public share URL and the native
+      // Universal Link / App Link is `woody.uz/product/:id`; Flutter's
+      // platform deep linking delivers that path here. Redirect to the in-app
+      // canonical detail route so there's a single product screen.
+      GoRoute(
+        path: '/product/:id',
+        redirect: (context, state) =>
+            '/product-detail/${state.pathParameters['id']}',
       ),
       GoRoute(
         path: '/shop/:id',
@@ -287,9 +305,30 @@ class _ProductDetailLoader extends StatelessWidget {
           return CatalogProductDetailScreen(product: snap.data!);
         }
         if (snap.hasError) {
+          // Reachable via deep links (a shared link to a deleted/invalid
+          // product, or an offline fetch) — show a friendly message + a way
+          // home instead of leaking a raw backend error string.
           return Scaffold(
             appBar: AppBar(),
-            body: Center(child: Text(snap.error.toString())),
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      tr('product.not_found'),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    TextButton(
+                      onPressed: () => context.go('/'),
+                      child: Text(tr('product.back_home')),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           );
         }
         return const Scaffold(body: Center(child: BrandLoadingIndicator()));

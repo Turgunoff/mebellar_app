@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+		Universal Links. iOS fetches https://woody.uz/.well-known/apple-app-site-association
+		and, if the appID matches, opens https://woody.uz/product/* directly in
+		the app instead of Safari. The path matching lives in the AASA file, not
+		here. Add this capability in Xcode (Signing & Capabilities → + Capability
+		→ Associated Domains) so CODE_SIGN_ENTITLEMENTS points at this file.
+	-->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:woody.uz</string>
+		<string>applinks:www.woody.uz</string>
+	</array>
+</dict>
+</plist>

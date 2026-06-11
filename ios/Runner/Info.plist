@@ -4,6 +4,12 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<!-- Hand inbound Universal Links (https://woody.uz/product/*) to the
+	     Flutter engine so go_router receives the path. Pairs with the
+	     Associated Domains entitlement in Runner.entitlements and the hosted
+	     apple-app-site-association file. -->
+	<key>FlutterDeepLinkingEnabled</key>
+	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Manzilingizni xaritada belgilash uchun joriy joylashuvingiz kerak.</string>
 	<key>CFBundleDevelopmentRegion</key>

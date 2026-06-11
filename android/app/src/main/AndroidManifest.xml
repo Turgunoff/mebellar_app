@@ -55,12 +55,34 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- App Links: open https://woody.uz/product/* directly in the
+                 app when installed. autoVerify makes Android fetch
+                 https://woody.uz/.well-known/assetlinks.json and, if the
+                 signing-cert fingerprint matches, skip the disambiguation
+                 chooser. The flutter_deeplinking_enabled meta-data below hands
+                 the inbound path to go_router. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="woody.uz" android:pathPrefix="/product" />
+                <data android:scheme="https" android:host="www.woody.uz" android:pathPrefix="/product" />
+            </intent-filter>
         </activity>
 
         <!-- Flutter plugin registry -->
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- Hand verified App Links (and any custom-scheme deep links) to the
+             Flutter engine so go_router's route-information parser receives
+             the path (e.g. /product/123). Without this Android opens the app
+             but Flutter ignores the inbound URL. -->
+        <meta-data
+            android:name="flutter_deeplinking_enabled"
+            android:value="true" />
 
         <!-- Default notification channel for FCM. Without this, foreground
              pushes on Android 8+ fall back to the catch-all channel and the

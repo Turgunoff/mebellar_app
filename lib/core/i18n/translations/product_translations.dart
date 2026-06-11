@@ -14,6 +14,9 @@ const Map<String, dynamic> productUz = {
   'list_error_title': 'Mahsulotlarni yuklab bo\'lmadi',
   'retry': 'Qayta urinish',
   'you_might_like': 'Sizga yoqishi mumkin',
+  'share_text': 'Bu mebelni Woody’da ko‘ring 👇',
+  'not_found': 'Mahsulot topilmadi yoki olib tashlangan.',
+  'back_home': 'Bosh sahifaga',
 };
 
 const Map<String, dynamic> productRu = {
@@ -30,6 +33,9 @@ const Map<String, dynamic> productRu = {
   'list_error_title': 'Не удалось загрузить товары',
   'retry': 'Повторить',
   'you_might_like': 'Вам также понравится',
+  'share_text': 'Посмотрите эту мебель в Woody 👇',
+  'not_found': 'Товар не найден или был удалён.',
+  'back_home': 'На главную',
 };
 
 const Map<String, dynamic> productEn = {
@@ -46,6 +52,9 @@ const Map<String, dynamic> productEn = {
   'list_error_title': 'Could not load products',
   'retry': 'Retry',
   'you_might_like': 'You might also like',
+  'share_text': 'Check out this furniture on Woody 👇',
+  'not_found': 'Product not found or removed.',
+  'back_home': 'Back to home',
 };
 
 const Map<String, dynamic> attributesUz = {
