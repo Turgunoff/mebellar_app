@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_fonts.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../core/cache/app_cache_cubit.dart';
+import '../../../../core/cache/clear_cache_dialog.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../core/i18n/language_picker.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -27,6 +29,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _newOrders = true;
   bool _customerMessages = true;
   bool _systemAlerts = true;
+
+  @override
+  void initState() {
+    super.initState();
+    // Compute the real cache size when the screen opens (shared cubit, so a
+    // value computed on the customer side is reused if still fresh).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<AppCacheCubit>().calculate();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -104,12 +116,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 8),
           _SettingsCard(
             children: [
-              _NavRow(
-                icon: Iconsax.trash,
-                iconColor: c.grey,
-                title: tr('settings.clear_cache'),
-                trailingText: '24 MB',
-                onTap: () {},
+              BlocBuilder<AppCacheCubit, AppCacheState>(
+                builder: (context, cache) => _NavRow(
+                  icon: Iconsax.trash,
+                  iconColor: c.grey,
+                  title: tr('settings.clear_cache'),
+                  trailingText: cache.isBusy
+                      ? tr('settings.calculating')
+                      : (cache.sizeLabel ?? tr('settings.calculating')),
+                  onTap: cache.isBusy
+                      ? () {}
+                      : () => confirmAndClearCache(context),
+                ),
               ),
               const _RowDivider(),
               _NavRow(

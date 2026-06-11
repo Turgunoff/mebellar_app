@@ -11,6 +11,7 @@ const Map<String, dynamic> settingsUz = {
   'section_notifications': 'Bildirishnomalar',
   'section_appearance': "Ko'rinish",
   'section_privacy': 'Maxfiylik',
+  'section_storage': 'Xotira',
   'section_other': 'Boshqa',
 
   // Language
@@ -33,6 +34,11 @@ const Map<String, dynamic> settingsUz = {
 
   // Other
   'clear_cache': 'Keshni tozalash',
+  'calculating': 'Hisoblanmoqda...',
+  'clear_cache_message':
+      'Haqiqatan ham barcha vaqtinchalik fayllar va rasmlar keshini '
+          'tozalamoqchimisiz?',
+  'clear_cache_confirm': 'Tozalash',
   'about': 'Ilova haqida',
 
   // Privacy / analytics
@@ -61,6 +67,7 @@ const Map<String, dynamic> settingsRu = {
   'section_notifications': 'Уведомления',
   'section_appearance': 'Оформление',
   'section_privacy': 'Конфиденциальность',
+  'section_storage': 'Память',
   'section_other': 'Прочее',
 
   'language_row': 'Язык приложения',
@@ -78,6 +85,10 @@ const Map<String, dynamic> settingsRu = {
   'system_alerts_subtitle': 'Обновления и предупреждения',
 
   'clear_cache': 'Очистить кэш',
+  'calculating': 'Вычисляется...',
+  'clear_cache_message':
+      'Действительно удалить все временные файлы и кэш изображений?',
+  'clear_cache_confirm': 'Очистить',
   'about': 'О приложении',
 
   'analytics_usage': 'Статистика использования',
@@ -106,6 +117,7 @@ const Map<String, dynamic> settingsEn = {
   'section_notifications': 'Notifications',
   'section_appearance': 'Appearance',
   'section_privacy': 'Privacy',
+  'section_storage': 'Storage',
   'section_other': 'Other',
 
   'language_row': 'App language',
@@ -123,6 +135,10 @@ const Map<String, dynamic> settingsEn = {
   'system_alerts_subtitle': 'Updates and warnings',
 
   'clear_cache': 'Clear cache',
+  'calculating': 'Calculating...',
+  'clear_cache_message':
+      'Really clear all temporary files and the image cache?',
+  'clear_cache_confirm': 'Clear',
   'about': 'About',
 
   'analytics_usage': 'Usage statistics',

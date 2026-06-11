@@ -18,6 +18,7 @@ import 'config/app_mode.dart';
 import 'config/remote_config.dart';
 import 'core/auth/app_mode_cubit.dart';
 import 'core/auth/auth_cubit.dart';
+import 'core/cache/app_cache_cubit.dart';
 import 'core/di/service_locator.dart';
 import 'core/i18n/i18n.dart';
 import 'core/logging/talker.dart';
@@ -182,6 +183,9 @@ Future<void> _bootstrapAndRun() async {
     MultiBlocProvider(
       providers: [
         BlocProvider<ThemeCubit>.value(value: sl<ThemeCubit>()),
+        // Shared cache cubit lives above Phoenix so both the customer and
+        // seller settings screens read/drive the same instance.
+        BlocProvider<AppCacheCubit>.value(value: sl<AppCacheCubit>()),
         BlocProvider<AuthCubit>.value(value: sl<AuthCubit>()),
         // AppModeCubit sits above Phoenix so customer↔seller surfaces can read
         // the active mode without going through `getInitialMode()` and so a
