@@ -4,6 +4,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../../core/analytics/analytics_service.dart';
+import '../../../../core/cache/app_cache_cubit.dart';
+import '../../../../core/cache/clear_cache_dialog.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/storage/hive_boxes.dart';
 import '../../../../core/theme/theme_cubit.dart';
@@ -30,6 +32,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     _hydrate();
+    // Compute the real cache size when the screen opens (shared cubit).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<AppCacheCubit>().calculate();
+    });
   }
 
   Future<void> _hydrate() async {
@@ -398,6 +404,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 value: _analyticsEnabled,
                 onChanged: _setAnalyticsEnabled,
                 onInfoTap: () => _showAnalyticsInfo(context),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          const _SectionLabel('Xotira'),
+          const SizedBox(height: 8),
+          _Card(
+            children: [
+              BlocBuilder<AppCacheCubit, AppCacheState>(
+                builder: (context, cache) => _NavRow(
+                  icon: Iconsax.trash,
+                  title: 'Keshni tozalash',
+                  trailingLabel: cache.isBusy
+                      ? 'Hisoblanmoqda...'
+                      : (cache.sizeLabel ?? 'Hisoblanmoqda...'),
+                  onTap: () {
+                    if (!cache.isBusy) confirmAndClearCache(context);
+                  },
+                ),
               ),
             ],
           ),

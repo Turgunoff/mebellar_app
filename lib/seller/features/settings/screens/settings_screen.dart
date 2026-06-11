@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_fonts.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../core/cache/app_cache_cubit.dart';
+import '../../../../core/cache/clear_cache_dialog.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/theme_cubit.dart';
 
@@ -25,6 +27,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _newOrders = true;
   bool _customerMessages = true;
   bool _systemAlerts = true;
+
+  @override
+  void initState() {
+    super.initState();
+    // Compute the real cache size when the screen opens (shared cubit, so a
+    // value computed on the customer side is reused if still fresh).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<AppCacheCubit>().calculate();
+    });
+  }
 
   String get _languageLabel => "O'zbekcha";
 
@@ -106,12 +118,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 8),
           _SettingsCard(
             children: [
-              _NavRow(
-                icon: Iconsax.trash,
-                iconColor: c.grey,
-                title: 'Keshni tozalash',
-                trailingText: '24 MB',
-                onTap: () {},
+              BlocBuilder<AppCacheCubit, AppCacheState>(
+                builder: (context, cache) => _NavRow(
+                  icon: Iconsax.trash,
+                  iconColor: c.grey,
+                  title: 'Keshni tozalash',
+                  trailingText: cache.isBusy
+                      ? 'Hisoblanmoqda...'
+                      : (cache.sizeLabel ?? 'Hisoblanmoqda...'),
+                  onTap: cache.isBusy
+                      ? () {}
+                      : () => confirmAndClearCache(context),
+                ),
               ),
               const _RowDivider(),
               _NavRow(
