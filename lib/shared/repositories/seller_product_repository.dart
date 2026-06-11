@@ -1,14 +1,10 @@
 import 'dart:io';
 
-
 import '../models/paginated.dart';
 import '../models/seller_product.dart';
 
 class SellerProductFilter {
-  const SellerProductFilter({
-    this.statuses = const {},
-    this.search,
-  });
+  const SellerProductFilter({this.statuses = const {}, this.search});
 
   final Set<SellerProductStatus> statuses;
   final String? search;
@@ -37,10 +33,27 @@ class SellerProductFilter {
   }
 }
 
+/// One page of the seller catalogue plus whole-catalogue per-status totals.
+/// [statusCounts] ignores the active filter and pagination — it backs the
+/// filter-chip badges ("Barchasi 11", "Tasdiqlangan 4"), so it must reflect
+/// the entire DB catalogue, not the fetched page.
+class SellerProductPage extends Paginated<SellerProduct> {
+  const SellerProductPage({
+    required super.items,
+    required super.page,
+    required super.perPage,
+    required super.total,
+    required super.hasNext,
+    this.statusCounts = const {},
+  });
+
+  final Map<SellerProductStatus, int> statusCounts;
+}
+
 abstract class SellerProductRepository {
   Stream<List<SellerProduct>> watch();
 
-  Future<Paginated<SellerProduct>> list({
+  Future<SellerProductPage> list({
     SellerProductFilter filter = const SellerProductFilter(),
     int page = 1,
     int perPage = 20,

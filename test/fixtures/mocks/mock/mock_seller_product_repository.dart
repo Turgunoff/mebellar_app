@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:woody_app/shared/models/multilingual_text.dart';
-import 'package:woody_app/shared/models/paginated.dart';
 import 'package:woody_app/shared/models/seller_product.dart';
 import 'package:woody_app/shared/models/tariff.dart';
 import 'package:woody_app/shared/repositories/seller_product_repository.dart';
@@ -34,7 +33,7 @@ class MockSellerProductRepository implements SellerProductRepository {
   Stream<List<SellerProduct>> watch() => _controller.stream;
 
   @override
-  Future<Paginated<SellerProduct>> list({
+  Future<SellerProductPage> list({
     SellerProductFilter filter = const SellerProductFilter(),
     int page = 1,
     int perPage = 20,
@@ -45,14 +44,22 @@ class MockSellerProductRepository implements SellerProductRepository {
     final total = filtered.length;
     final start = (page - 1) * perPage;
     final end = (start + perPage).clamp(0, total);
-    final pageItems =
-        start >= total ? <SellerProduct>[] : filtered.sublist(start, end);
-    return Paginated(
+    final pageItems = start >= total
+        ? <SellerProduct>[]
+        : filtered.sublist(start, end);
+    // Mirrors the backend's status_counts: whole-catalogue bucket sizes,
+    // ignoring the filter and pagination.
+    final counts = <SellerProductStatus, int>{};
+    for (final p in _products) {
+      counts[p.status] = (counts[p.status] ?? 0) + 1;
+    }
+    return SellerProductPage(
       items: pageItems,
       page: page,
       perPage: perPage,
       total: total,
       hasNext: end < total,
+      statusCounts: counts,
     );
   }
 
@@ -71,7 +78,8 @@ class MockSellerProductRepository implements SellerProductRepository {
       plan: TariffPlan.free,
       activeProductsCount: _activeCount,
     );
-    final wouldBeActive = _activeStatuses.contains(input.status) ||
+    final wouldBeActive =
+        _activeStatuses.contains(input.status) ||
         input.status == SellerProductStatus.draft;
     if (wouldBeActive && tariff.reachedLimit) {
       throw TariffLimitException(tariff);
@@ -262,8 +270,9 @@ class MockSellerProductRepository implements SellerProductRepository {
     await Future<void>.delayed(_delay);
     final idx = _products.indexWhere((p) => p.id == productId);
     if (idx < 0) return;
-    final remaining =
-        _products[idx].images.where((i) => i.id != imageId).toList();
+    final remaining = _products[idx].images
+        .where((i) => i.id != imageId)
+        .toList();
     final newPrimary = _products[idx].primaryImageId == imageId
         ? (remaining.isEmpty ? null : remaining.first.id)
         : _products[idx].primaryImageId;

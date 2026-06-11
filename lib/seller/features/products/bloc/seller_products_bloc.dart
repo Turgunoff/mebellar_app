@@ -78,21 +78,38 @@ class SellerProductsState extends Equatable {
     this.filter = const SellerProductFilter(
       statuses: {SellerProductStatus.approved},
     ),
+    this.statusCounts = const {},
     this.error,
   });
 
   final SellerProductsStatus status;
   final List<SellerProduct> products;
   final SellerProductFilter filter;
+
+  /// Whole-catalogue per-status totals from the backend (not the fetched
+  /// page), kept in step locally on archive/restore/delete. Backs the
+  /// filter-chip badges. Empty until the first fetch lands.
+  final Map<SellerProductStatus, int> statusCounts;
   final String? error;
 
   List<SellerProduct> get visibleProducts =>
       products.where(filter.matches).toList();
 
+  /// Badge value for a chip — null (hidden) until counts arrive; [status]
+  /// null means "Barchasi" (the sum of every bucket).
+  int? countFor(SellerProductStatus? status) {
+    if (statusCounts.isEmpty) return null;
+    if (status == null) {
+      return statusCounts.values.fold<int>(0, (sum, n) => sum + n);
+    }
+    return statusCounts[status] ?? 0;
+  }
+
   SellerProductsState copyWith({
     SellerProductsStatus? status,
     List<SellerProduct>? products,
     SellerProductFilter? filter,
+    Map<SellerProductStatus, int>? statusCounts,
     String? error,
     bool clearError = false,
   }) {
@@ -100,12 +117,13 @@ class SellerProductsState extends Equatable {
       status: status ?? this.status,
       products: products ?? this.products,
       filter: filter ?? this.filter,
+      statusCounts: statusCounts ?? this.statusCounts,
       error: clearError ? null : (error ?? this.error),
     );
   }
 
   @override
-  List<Object?> get props => [status, products, filter, error];
+  List<Object?> get props => [status, products, filter, statusCounts, error];
 }
 
 class SellerProductsBloc
@@ -135,8 +153,15 @@ class SellerProductsBloc
     on<SellerProductRestored>(_onRestored);
     on<SellerProductDeleted>(_onDeleted);
     on<SellerProductSubmitted>(_onSubmitted);
+    // watch() emits the full (unfiltered) catalogue — mock only, the Woody
+    // stream is empty — so the chip badges can be recomputed from it directly.
     on<_SellerProductsRefreshed>(
-      (e, emit) => emit(state.copyWith(products: e.products)),
+      (e, emit) => emit(
+        state.copyWith(
+          products: e.products,
+          statusCounts: _countedByStatus(e.products),
+        ),
+      ),
     );
 
     _sub = _repo.watch().listen((products) {
@@ -159,7 +184,11 @@ class SellerProductsBloc
       // Pull a generous first page; further pagination lands in Sprint 8.
       final res = await _repo.list(perPage: 50);
       emit(
-        state.copyWith(status: SellerProductsStatus.ready, products: res.items),
+        state.copyWith(
+          status: SellerProductsStatus.ready,
+          products: res.items,
+          statusCounts: res.statusCounts,
+        ),
       );
     } catch (e) {
       emit(
@@ -177,6 +206,7 @@ class SellerProductsBloc
   ) async {
     emit(state.copyWith(status: SellerProductsStatus.mutating));
     try {
+      final previous = _statusOf(event.id);
       final updated = await _repo.archive(event.id);
       // The Woody repo's watch() is empty, so patch the returned row into the
       // list directly rather than relying on a stream refresh (the mock's
@@ -185,6 +215,7 @@ class SellerProductsBloc
         state.copyWith(
           status: SellerProductsStatus.ready,
           products: _replaced(updated),
+          statusCounts: _shiftedCounts(from: previous, to: updated.status),
         ),
       );
       // Archive is our soft-delete — track it as productDeleted so the
@@ -206,11 +237,13 @@ class SellerProductsBloc
   ) async {
     emit(state.copyWith(status: SellerProductsStatus.mutating));
     try {
+      final previous = _statusOf(event.id);
       final updated = await _repo.restore(event.id);
       emit(
         state.copyWith(
           status: SellerProductsStatus.ready,
           products: _replaced(updated),
+          statusCounts: _shiftedCounts(from: previous, to: updated.status),
         ),
       );
       // Restore puts the product back into the review queue — the closest
@@ -232,6 +265,7 @@ class SellerProductsBloc
   ) async {
     emit(state.copyWith(status: SellerProductsStatus.mutating));
     try {
+      final previous = _statusOf(event.id);
       await _repo.delete(event.id);
       emit(
         state.copyWith(
@@ -240,6 +274,7 @@ class SellerProductsBloc
             for (final p in state.products)
               if (p.id != event.id) p,
           ],
+          statusCounts: _shiftedCounts(from: previous),
         ),
       );
       unawaited(_analytics?.productDeleted(productId: event.id));
@@ -266,6 +301,42 @@ class SellerProductsBloc
     for (final p in state.products)
       if (p.id == updated.id) updated else p,
   ];
+
+  SellerProductStatus? _statusOf(String id) =>
+      state.products.where((p) => p.id == id).firstOrNull?.status;
+
+  static Map<SellerProductStatus, int> _countedByStatus(
+    List<SellerProduct> products,
+  ) {
+    final counts = <SellerProductStatus, int>{};
+    for (final p in products) {
+      counts[p.status] = (counts[p.status] ?? 0) + 1;
+    }
+    return counts;
+  }
+
+  /// Moves one product between chip-badge buckets so the counts stay true to
+  /// the DB without a refetch — mirrors how mutations patch the list locally.
+  /// A null [from]/[to] means the product entered/left the catalogue.
+  Map<SellerProductStatus, int> _shiftedCounts({
+    SellerProductStatus? from,
+    SellerProductStatus? to,
+  }) {
+    if (state.statusCounts.isEmpty || from == to) return state.statusCounts;
+    final counts = Map<SellerProductStatus, int>.from(state.statusCounts);
+    if (from != null) {
+      final current = counts[from] ?? 0;
+      if (current > 1) {
+        counts[from] = current - 1;
+      } else {
+        counts.remove(from);
+      }
+    }
+    if (to != null) {
+      counts[to] = (counts[to] ?? 0) + 1;
+    }
+    return counts;
+  }
 
   Future<void> _onSubmitted(
     SellerProductSubmitted event,

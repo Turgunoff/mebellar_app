@@ -197,6 +197,7 @@ class _SellerProductsViewState extends State<_SellerProductsView> {
                       children: [
                         _StatusFilterChip(
                           label: tr('seller.filter_all'),
+                          count: state.countFor(null),
                           selected: state.filter.statuses.isEmpty,
                           onTap: () => context.read<SellerProductsBloc>().add(
                             SellerProductsFilterChanged(
@@ -218,6 +219,7 @@ class _SellerProductsViewState extends State<_SellerProductsView> {
                           const SizedBox(width: 8),
                           _StatusFilterChip(
                             label: tr('seller_product_status.${s.code}'),
+                            count: state.countFor(s),
                             selected: state.filter.statuses.contains(s),
                             onTap: () {
                               final next = Set<SellerProductStatus>.from(
@@ -414,11 +416,16 @@ class _StatusFilterChip extends StatelessWidget {
     required this.label,
     required this.selected,
     required this.onTap,
+    this.count,
   });
 
   final String label;
   final bool selected;
   final VoidCallback onTap;
+
+  /// Whole-catalogue bucket size shown after the label ("Barchasi 11").
+  /// Null while counts haven't loaded yet — the chip renders label-only.
+  final int? count;
 
   @override
   Widget build(BuildContext context) {
@@ -443,14 +450,31 @@ class _StatusFilterChip extends StatelessWidget {
             border: Border.all(color: borderColor),
           ),
           alignment: Alignment.center,
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-              color: fg,
-              height: 1.0,
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  color: fg,
+                  height: 1.0,
+                ),
+              ),
+              if (count != null) ...[
+                const SizedBox(width: 6),
+                Text(
+                  '$count',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: fg.withValues(alpha: selected ? 0.75 : 0.65),
+                    height: 1.0,
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
       ),

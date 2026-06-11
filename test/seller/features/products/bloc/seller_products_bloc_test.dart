@@ -89,6 +89,50 @@ void main() {
     );
 
     blocTest<SellerProductsBloc, SellerProductsState>(
+      'fetch populates whole-catalogue status counts for the filter chips',
+      build: () => SellerProductsBloc(MockSellerProductRepository()),
+      act: (bloc) => bloc.add(const SellerProductsRequested()),
+      wait: const Duration(milliseconds: 500),
+      verify: (bloc) {
+        // "Barchasi" badge = sum of every bucket = the 12 seeded products.
+        expect(bloc.state.countFor(null), 12);
+        final summed = SellerProductStatus.values
+            .map((s) => bloc.state.countFor(s) ?? 0)
+            .fold<int>(0, (a, b) => a + b);
+        expect(summed, 12);
+      },
+    );
+
+    blocTest<SellerProductsBloc, SellerProductsState>(
+      'archive moves one product between chip-count buckets',
+      build: () => SellerProductsBloc(MockSellerProductRepository()),
+      act: (bloc) async {
+        bloc.add(const SellerProductsRequested());
+        await Future<void>.delayed(const Duration(milliseconds: 500));
+        final approvedBefore = bloc.state.countFor(
+          SellerProductStatus.approved,
+        )!;
+        final archivedBefore = bloc.state.countFor(
+          SellerProductStatus.archived,
+        )!;
+        final live = bloc.state.products.firstWhere(
+          (p) => p.status == SellerProductStatus.approved,
+        );
+        bloc.add(SellerProductArchived(live.id));
+        await Future<void>.delayed(const Duration(milliseconds: 500));
+        expect(
+          bloc.state.countFor(SellerProductStatus.approved),
+          approvedBefore - 1,
+        );
+        expect(
+          bloc.state.countFor(SellerProductStatus.archived),
+          archivedBefore + 1,
+        );
+        expect(bloc.state.countFor(null), 12);
+      },
+    );
+
+    blocTest<SellerProductsBloc, SellerProductsState>(
       'archive transitions an approved product -> archived in the list',
       build: () => SellerProductsBloc(MockSellerProductRepository()),
       act: (bloc) async {

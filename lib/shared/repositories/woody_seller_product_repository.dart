@@ -5,7 +5,6 @@ import '../../core/network/api_error.dart';
 import '../../core/network/woody_api_client.dart';
 import '../../core/storage/r2_upload_client.dart';
 import '../models/multilingual_text.dart';
-import '../models/paginated.dart';
 import '../models/seller_product.dart';
 import '../models/tariff.dart';
 import 'seller_product_repository.dart';
@@ -47,7 +46,7 @@ class WoodySellerProductRepository implements SellerProductRepository {
   Stream<List<SellerProduct>> watch() => const Stream.empty();
 
   @override
-  Future<Paginated<SellerProduct>> list({
+  Future<SellerProductPage> list({
     SellerProductFilter filter = const SellerProductFilter(),
     int page = 1,
     int perPage = 20,
@@ -80,13 +79,28 @@ class WoodySellerProductRepository implements SellerProductRepository {
       items = items.where(filter.matches).toList(growable: false);
     }
 
-    return Paginated(
+    return SellerProductPage(
       items: items,
       page: page,
       perPage: perPage,
       total: total,
       hasNext: offset + rows.length < total,
+      statusCounts: _statusCounts(body['status_counts']),
     );
+  }
+
+  /// Whole-catalogue per-status totals from the list response. Unknown codes
+  /// fold into [SellerProductStatus.pendingReview] (same rule as `fromCode`),
+  /// summing rather than overwriting so no product goes uncounted.
+  Map<SellerProductStatus, int> _statusCounts(dynamic raw) {
+    if (raw is! Map) return const {};
+    final counts = <SellerProductStatus, int>{};
+    raw.forEach((key, value) {
+      if (value is! num) return;
+      final status = SellerProductStatus.fromCode(key as String?);
+      counts[status] = (counts[status] ?? 0) + value.toInt();
+    });
+    return counts;
   }
 
   @override
