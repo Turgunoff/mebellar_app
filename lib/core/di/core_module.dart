@@ -3,6 +3,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import '../analytics/analytics_service.dart';
 import '../auth/app_mode_cubit.dart';
+import '../cache/app_cache_cubit.dart';
+import '../cache/cache_service.dart';
 import '../connectivity/connectivity_service.dart';
 import '../connectivity/network_cubit.dart';
 import '../deep_links/deep_link_service.dart';
@@ -45,6 +47,16 @@ Future<void> registerCoreModule(GetIt sl) async {
 
   sl.registerSingleton<ThemeCubit>(
     ThemeCubit(sl<AppSettings>()),
+    dispose: (c) => c.close(),
+  );
+
+  // Shared, root-scoped owner of the disposable-cache size/clear flow. One
+  // instance drives both the customer and seller settings screens. The
+  // service it wraps only touches the temp dir + image caches — never secure
+  // storage, tokens, or Hive boxes.
+  sl.registerLazySingleton<CacheService>(() => const DefaultCacheService());
+  sl.registerSingleton<AppCacheCubit>(
+    AppCacheCubit(sl<CacheService>()),
     dispose: (c) => c.close(),
   );
 
