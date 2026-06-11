@@ -14,11 +14,20 @@ class MultilingualText {
     );
   }
 
+  /// Accepts both shapes the backend emits: the canonical `{uz,ru,en}` map
+  /// and a plain pre-localised string (the favorites/cart snapshot splice
+  /// rewrites `name` to the caller's language server-side). A string is
+  /// mirrored into every slot so `get()` resolves regardless of locale.
+  factory MultilingualText.fromDynamic(Object? raw) {
+    if (raw is String) return MultilingualText(uz: raw, ru: raw, en: raw);
+    return MultilingualText.fromJson(raw is Map<String, dynamic> ? raw : null);
+  }
+
   Map<String, dynamic> toJson() => {
-        if (uz != null) 'uz': uz,
-        if (ru != null) 'ru': ru,
-        if (en != null) 'en': en,
-      };
+    if (uz != null) 'uz': uz,
+    if (ru != null) 'ru': ru,
+    if (en != null) 'en': en,
+  };
 
   String get(String lang) {
     return switch (lang) {

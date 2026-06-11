@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,6 +10,7 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import '../../../../auth/auth_bottom_sheet.dart';
 import '../../../../core/auth/auth_cubit.dart';
 import '../../../../core/i18n/i18n.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/models/cart_item_model.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/premium_empty_state.dart';
@@ -29,7 +32,10 @@ class CartScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
-    return ColoredBox(
+    // Material (not ColoredBox) — the item rows use InkResponse (remove
+    // button, quantity stepper), which asserts without a Material ancestor;
+    // this screen has no Scaffold of its own.
+    return Material(
       color: pt.background,
       child: BlocBuilder<CartBloc, CartState>(
         builder: (context, state) {
@@ -44,82 +50,112 @@ class CartScreen extends StatelessWidget {
               bottom: false,
               child: PremiumEmptyState(
                 icon: Iconsax.shopping_bag,
-                title: "Savatchangiz bo'sh",
-                subtitle:
-                    "Katalogga o'tib, o'zingizga yoqqan premium mebellarni xarid qiling.",
+                title: tr('cart.empty'),
+                subtitle: tr('cart.empty_hint'),
                 bottomPadding: GlassBottomNav.reservedHeight(context) + 24,
               ),
             );
           }
           return Stack(
             children: [
-              CustomScrollView(
-                physics: const BouncingScrollPhysics(),
-                slivers: [
-                  SliverAppBar(
-                    pinned: true,
-                    expandedHeight: 120.0,
-                    backgroundColor: pt.surface,
-                    surfaceTintColor: Colors.transparent,
-                    elevation: 0,
-                    scrolledUnderElevation: 0,
-                    automaticallyImplyLeading: false,
-                    flexibleSpace: FlexibleSpaceBar(
-                      centerTitle: false,
-                      expandedTitleScale: 1.6,
-                      titlePadding: const EdgeInsetsDirectional.only(
-                        start: 20,
-                        bottom: 14,
-                      ),
-                      title: Text(
-                        tr('cart.title'),
-                        style: PremiumTokens.display(
-                          size: 20,
-                          letterSpacing: -0.4,
+              BrandRefreshIndicator(
+                onRefresh: () {
+                  final done = Completer<void>();
+                  context.read<CartBloc>().add(
+                    LoadCart(silent: true, completer: done),
+                  );
+                  return done.future;
+                },
+                child: CustomScrollView(
+                  physics: const BouncingScrollPhysics(
+                    parent: AlwaysScrollableScrollPhysics(),
+                  ),
+                  slivers: [
+                    SliverAppBar(
+                      pinned: true,
+                      expandedHeight: 120.0,
+                      backgroundColor: pt.surface,
+                      surfaceTintColor: Colors.transparent,
+                      elevation: 0,
+                      scrolledUnderElevation: 0,
+                      automaticallyImplyLeading: false,
+                      flexibleSpace: FlexibleSpaceBar(
+                        centerTitle: false,
+                        expandedTitleScale: 1.6,
+                        titlePadding: const EdgeInsetsDirectional.only(
+                          start: 20,
+                          bottom: 14,
                         ),
-                      ),
-                      background: Container(
-                        alignment: Alignment.bottomLeft,
-                        padding: const EdgeInsets.only(left: 20, bottom: 52),
-                        child: Text(
-                          tr('cart.units_count', args: ['${state.totalUnits}']),
-                          style: PremiumTokens.body(size: 13, color: pt.grey),
+                        title: Text(
+                          tr('cart.title'),
+                          style: PremiumTokens.display(
+                            size: 20,
+                            letterSpacing: -0.4,
+                          ),
+                        ),
+                        background: Container(
+                          alignment: Alignment.bottomLeft,
+                          padding: const EdgeInsets.only(left: 20, bottom: 52),
+                          child: Text(
+                            tr(
+                              'cart.units_count',
+                              args: ['${state.totalUnits}'],
+                            ),
+                            style: PremiumTokens.body(size: 13, color: pt.grey),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 160),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate((context, i) {
-                        final item = state.items[i];
-                        return Padding(
-                          padding: EdgeInsets.only(
-                            bottom: i < state.items.length - 1 ? 12 : 0,
-                          ),
-                          child: _CartItemRow(
-                            item: item,
-                            onIncrement: () => context.read<CartBloc>().add(
-                              UpdateQuantity(
-                                productId: item.productId,
-                                newQuantity: item.quantity + 1,
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 160),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate((context, i) {
+                          final item = state.items[i];
+                          return Padding(
+                            padding: EdgeInsets.only(
+                              bottom: i < state.items.length - 1 ? 12 : 0,
+                            ),
+                            child: Dismissible(
+                              key: ValueKey(item.productId),
+                              direction: DismissDirection.endToStart,
+                              background: const _DismissDeleteBackground(),
+                              onDismissed: (_) {
+                                HapticFeedback.mediumImpact();
+                                context.read<CartBloc>().add(
+                                  RemoveFromCart(item.productId),
+                                );
+                              },
+                              child: _CartItemRow(
+                                item: item,
+                                // Id-only push — the route's loader fetches
+                                // the canonical product (same pattern as the
+                                // favorites tiles).
+                                onTap: () => context.push(
+                                  '/product-detail/${item.productId}',
+                                ),
+                                onIncrement: () => context.read<CartBloc>().add(
+                                  UpdateQuantity(
+                                    productId: item.productId,
+                                    newQuantity: item.quantity + 1,
+                                  ),
+                                ),
+                                onDecrement: () => context.read<CartBloc>().add(
+                                  UpdateQuantity(
+                                    productId: item.productId,
+                                    newQuantity: item.quantity - 1,
+                                  ),
+                                ),
+                                onRemove: () => context.read<CartBloc>().add(
+                                  RemoveFromCart(item.productId),
+                                ),
                               ),
                             ),
-                            onDecrement: () => context.read<CartBloc>().add(
-                              UpdateQuantity(
-                                productId: item.productId,
-                                newQuantity: item.quantity - 1,
-                              ),
-                            ),
-                            onRemove: () => context.read<CartBloc>().add(
-                              RemoveFromCart(item.productId),
-                            ),
-                          ),
-                        );
-                      }, childCount: state.items.length),
+                          );
+                        }, childCount: state.items.length),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               Positioned(
                 left: 0,
@@ -127,6 +163,7 @@ class CartScreen extends StatelessWidget {
                 bottom: 0,
                 child: _StickyCheckout(
                   totalPrice: state.totalPrice,
+                  enabled: state.totalPrice > 0,
                   onCheckout: () => _onCheckout(context, state.items),
                 ),
               ),
@@ -163,12 +200,16 @@ class CartScreen extends StatelessWidget {
 class _CartItemRow extends StatelessWidget {
   const _CartItemRow({
     required this.item,
+    required this.onTap,
     required this.onIncrement,
     required this.onDecrement,
     required this.onRemove,
   });
 
   final CartItemModel item;
+
+  /// Opens the product detail so the item can be reviewed before checkout.
+  final VoidCallback onTap;
   final VoidCallback onIncrement;
   final VoidCallback onDecrement;
   final VoidCallback onRemove;
@@ -178,108 +219,124 @@ class _CartItemRow extends StatelessWidget {
     final pt = PremiumTokens.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: pt.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: PremiumTokens.softShadow,
       ),
-      padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              width: 80,
-              height: 80,
-              color: pt.imageBg,
-              child: item.productImage.isEmpty
-                  ? Icon(Iconsax.gallery_slash, color: pt.greyLight)
-                  : CachedNetworkImage(
-                      imageUrl: item.productImage,
-                      // ROADMAP B.7 — 80px cart-item thumbnail.
-                      memCacheWidth: 250,
-                      fit: BoxFit.cover,
-                      placeholder: (_, _) => ColoredBox(color: pt.imageBg),
-                      errorWidget: (_, _, _) =>
-                          Icon(Iconsax.gallery_slash, color: pt.greyLight),
-                    ),
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
+      child: Material(
+        color: pt.surface,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        item.productName,
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    width: 80,
+                    height: 80,
+                    color: pt.imageBg,
+                    child: item.productImage.isEmpty
+                        ? Icon(Iconsax.gallery_slash, color: pt.greyLight)
+                        : CachedNetworkImage(
+                            imageUrl: item.productImage,
+                            // ROADMAP B.7 — 80px cart-item thumbnail.
+                            memCacheWidth: 250,
+                            fit: BoxFit.cover,
+                            placeholder: (_, _) =>
+                                ColoredBox(color: pt.imageBg),
+                            errorWidget: (_, _, _) => Icon(
+                              Iconsax.gallery_slash,
+                              color: pt.greyLight,
+                            ),
+                          ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              item.productName,
+                              style: PremiumTokens.body(
+                                size: 14,
+                                weight: FontWeight.w600,
+                                height: 1.3,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          InkResponse(
+                            onTap: onRemove,
+                            radius: 18,
+                            child: Padding(
+                              padding: const EdgeInsets.all(6),
+                              child: Icon(
+                                Iconsax.trash,
+                                size: 18,
+                                color: pt.grey,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (item.selectedColor != null) ...[
+                        const SizedBox(height: 5),
+                        ProductColorChip(
+                          slug: item.selectedColor,
+                          swatchSize: 13,
+                          labelStyle: PremiumTokens.body(
+                            size: 12,
+                            weight: FontWeight.w500,
+                            color: pt.grey,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 6),
+                      Text(
+                        '${_formatPrice(item.productPrice)} UZS',
                         style: PremiumTokens.body(
                           size: 14,
-                          weight: FontWeight.w600,
-                          height: 1.3,
+                          weight: FontWeight.w700,
+                          color: PremiumTokens.accent,
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    InkResponse(
-                      onTap: onRemove,
-                      radius: 18,
-                      child: Padding(
-                        padding: const EdgeInsets.all(6),
-                        child: Icon(Iconsax.trash, size: 18, color: pt.grey),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          _QuantityStepper(
+                            value: item.quantity,
+                            onIncrement: onIncrement,
+                            onDecrement: onDecrement,
+                          ),
+                          const Spacer(),
+                          Text(
+                            '${_formatPrice(item.lineTotal)} UZS',
+                            style: PremiumTokens.body(
+                              size: 13,
+                              weight: FontWeight.w600,
+                              color: pt.dark,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
-                if (item.selectedColor != null) ...[
-                  const SizedBox(height: 5),
-                  ProductColorChip(
-                    slug: item.selectedColor,
-                    swatchSize: 13,
-                    labelStyle: PremiumTokens.body(
-                      size: 12,
-                      weight: FontWeight.w500,
-                      color: pt.grey,
-                    ),
+                    ],
                   ),
-                ],
-                const SizedBox(height: 6),
-                Text(
-                  '${_formatPrice(item.productPrice)} UZS',
-                  style: PremiumTokens.body(
-                    size: 14,
-                    weight: FontWeight.w700,
-                    color: PremiumTokens.accent,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    _QuantityStepper(
-                      value: item.quantity,
-                      onIncrement: onIncrement,
-                      onDecrement: onDecrement,
-                    ),
-                    const Spacer(),
-                    Text(
-                      '${_formatPrice(item.lineTotal)} UZS',
-                      style: PremiumTokens.body(
-                        size: 13,
-                        weight: FontWeight.w600,
-                        color: pt.dark,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                  ],
                 ),
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -348,12 +405,38 @@ class _StepperButton extends StatelessWidget {
   }
 }
 
+/// Red underlay revealed while a cart row is swiped towards delete.
+class _DismissDeleteBackground extends StatelessWidget {
+  const _DismissDeleteBackground();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      alignment: AlignmentDirectional.centerEnd,
+      padding: const EdgeInsetsDirectional.only(end: 24),
+      decoration: BoxDecoration(
+        color: AppColors.danger,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: const Icon(Iconsax.trash, color: Colors.white, size: 22),
+    );
+  }
+}
+
 // ── Sticky checkout ────────────────────────────────────────────────────────
 
 class _StickyCheckout extends StatelessWidget {
-  const _StickyCheckout({required this.totalPrice, required this.onCheckout});
+  const _StickyCheckout({
+    required this.totalPrice,
+    required this.enabled,
+    required this.onCheckout,
+  });
 
   final double totalPrice;
+
+  /// False while the cart is empty or sums to zero — the button greys out
+  /// and stops responding so a broken total can't reach checkout.
+  final bool enabled;
   final VoidCallback onCheckout;
 
   @override
@@ -398,33 +481,37 @@ class _StickyCheckout extends StatelessWidget {
           const SizedBox(width: 16),
           SizedBox(
             height: 52,
-            child: Material(
-              color: PremiumTokens.accent,
-              borderRadius: BorderRadius.circular(14),
-              child: InkWell(
-                onTap: onCheckout,
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 200),
+              opacity: enabled ? 1 : 0.45,
+              child: Material(
+                color: PremiumTokens.accent,
                 borderRadius: BorderRadius.circular(14),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 22),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        tr('cart.checkout'),
-                        style: PremiumTokens.body(
-                          size: 14,
-                          weight: FontWeight.w700,
-                          color: Colors.white,
-                          letterSpacing: 0.3,
+                child: InkWell(
+                  onTap: enabled ? onCheckout : null,
+                  borderRadius: BorderRadius.circular(14),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 22),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          tr('cart.checkout'),
+                          style: PremiumTokens.body(
+                            size: 14,
+                            weight: FontWeight.w700,
+                            color: Colors.white,
+                            letterSpacing: 0.3,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 10),
-                      const Icon(
-                        Iconsax.arrow_right_1,
-                        color: Colors.white,
-                        size: 18,
-                      ),
-                    ],
+                        const SizedBox(width: 10),
+                        const Icon(
+                          Iconsax.arrow_right_1,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

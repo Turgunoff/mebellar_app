@@ -23,12 +23,17 @@ sealed class CartEvent extends Equatable {
 /// in its constructor so subsequent updates from the repository flow in
 /// without an explicit reload.
 class LoadCart extends CartEvent {
-  const LoadCart({this.silent = false});
+  const LoadCart({this.silent = false, this.completer});
 
   /// Re-fetch without flipping into `loading` — the rendered lines stay
   /// until fresh data lands. Used by the locale-switch refetch, where the
   /// item names need re-localising but the cart is already on screen.
   final bool silent;
+
+  /// Completed when the fetch settles (success or failure). Pull-to-refresh
+  /// awaits this instead of the bloc stream — an unchanged snapshot is
+  /// deduped by Equatable, so a state emission may never come.
+  final Completer<void>? completer;
 
   @override
   List<Object?> get props => [silent];
@@ -172,7 +177,12 @@ class CartBloc extends Bloc<CartEvent, CartState>
       // A failed silent refetch keeps the old-language lines on screen —
       // strictly better than swapping a populated cart for an error view.
       if (silent) return;
-      emit(state.copyWith(status: CartStatus.failure, error: apiErrorMessage(e)));
+      emit(
+        state.copyWith(status: CartStatus.failure, error: apiErrorMessage(e)),
+      );
+    } finally {
+      final completer = event.completer;
+      if (completer != null && !completer.isCompleted) completer.complete();
     }
   }
 

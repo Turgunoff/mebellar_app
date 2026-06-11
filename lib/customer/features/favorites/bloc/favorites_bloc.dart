@@ -15,11 +15,16 @@ sealed class FavoritesEvent extends Equatable {
 }
 
 class FavoritesRequested extends FavoritesEvent {
-  const FavoritesRequested({this.refresh = false});
+  const FavoritesRequested({this.refresh = false, this.completer});
 
   /// Re-fetch without flipping into `loading` — the rendered list stays
   /// until fresh data lands. Used by the locale-switch silent refetch.
   final bool refresh;
+
+  /// Completed when the fetch settles (success or failure). Pull-to-refresh
+  /// awaits this instead of the bloc stream — an unchanged list is deduped
+  /// by Equatable, so a state emission may never come.
+  final Completer<void>? completer;
 
   @override
   List<Object?> get props => [refresh];
@@ -84,19 +89,29 @@ class FavoritesState extends Equatable {
 
 class FavoritesBloc extends Bloc<FavoritesEvent, FavoritesState>
     with LocaleRefetch<FavoritesState> {
-  FavoritesBloc(this._repo, {AppLocaleController? localeController})
-    : super(const FavoritesState()) {
+  FavoritesBloc(
+    this._repo, {
+    AppLocaleController? localeController,
+    Stream<bool>? authChanges,
+  }) : super(const FavoritesState()) {
     on<FavoritesRequested>(_onRequested);
     on<FavoriteToggled>(_onToggled);
     on<FavoriteRemoved>(_onRemoved);
     on<_FavoritesIdsChanged>(_onIdsChanged);
 
     _sub = _repo.watchIds().listen((ids) => add(_FavoritesIdsChanged(ids)));
+    // Server favorites are invisible to a signed-out session (401 → empty),
+    // so refetch on every real signed-in/out flip: login pulls the account's
+    // list, logout clears it. `distinct` drops token-refresh repeats.
+    _authSub = authChanges?.distinct().listen(
+      (_) => add(const FavoritesRequested(refresh: true)),
+    );
     watchLocale(localeController);
   }
 
   final FavoritesRepository _repo;
   StreamSubscription<Set<String>>? _sub;
+  StreamSubscription<bool>? _authSub;
 
   // Favourite products carry backend-localised names; reload them in the
   // new language without blanking the rendered list.
@@ -113,15 +128,22 @@ class FavoritesBloc extends Bloc<FavoritesEvent, FavoritesState>
     }
     try {
       final list = await _repo.list();
-      emit(state.copyWith(
-        status: FavoritesStatus.ready,
-        products: list,
-        ids: list.map((p) => p.id).toSet(),
-      ));
+      emit(
+        state.copyWith(
+          status: FavoritesStatus.ready,
+          products: list,
+          ids: list.map((p) => p.id).toSet(),
+        ),
+      );
     } catch (e) {
       // A failed silent refetch keeps the old-language list on screen.
       if (silent) return;
-      emit(state.copyWith(status: FavoritesStatus.failure, error: e.toString()));
+      emit(
+        state.copyWith(status: FavoritesStatus.failure, error: e.toString()),
+      );
+    } finally {
+      final completer = event.completer;
+      if (completer != null && !completer.isCompleted) completer.complete();
     }
   }
 
@@ -142,14 +164,22 @@ class FavoritesBloc extends Bloc<FavoritesEvent, FavoritesState>
       // Re-fetch list so the favorites screen stays in sync after a toggle.
       if (state.status == FavoritesStatus.ready) {
         final list = await _repo.list();
-        emit(state.copyWith(
-          products: list,
-          ids: list.map((p) => p.id).toSet(),
-        ));
+        emit(
+          state.copyWith(products: list, ids: list.map((p) => p.id).toSet()),
+        );
       }
     } catch (e) {
-      // Roll back the optimistic toggle on failure.
-      emit(state.copyWith(ids: state.ids, error: e.toString()));
+      // Roll back only this product against the CURRENT ids — `state.ids`
+      // was re-emitted unchanged before (a no-op "rollback" that left a
+      // failed toggle looking saved), and a full pre-toggle snapshot could
+      // clobber ids updated mid-flight by a concurrent refetch.
+      final rolledBack = Set<String>.from(state.ids);
+      if (wasFav) {
+        rolledBack.add(event.product.id);
+      } else {
+        rolledBack.remove(event.product.id);
+      }
+      emit(state.copyWith(ids: rolledBack, error: e.toString()));
     }
   }
 
@@ -159,33 +189,35 @@ class FavoritesBloc extends Bloc<FavoritesEvent, FavoritesState>
   ) async {
     final previousProducts = state.products;
     final previousIds = state.ids;
-    emit(state.copyWith(
-      products: previousProducts
-          .where((p) => p.id != event.productId)
-          .toList(),
-      ids: Set<String>.from(previousIds)..remove(event.productId),
-    ));
+    emit(
+      state.copyWith(
+        products: previousProducts
+            .where((p) => p.id != event.productId)
+            .toList(),
+        ids: Set<String>.from(previousIds)..remove(event.productId),
+      ),
+    );
     try {
       await _repo.remove(event.productId);
     } catch (e) {
-      emit(state.copyWith(
-        products: previousProducts,
-        ids: previousIds,
-        error: e.toString(),
-      ));
+      emit(
+        state.copyWith(
+          products: previousProducts,
+          ids: previousIds,
+          error: e.toString(),
+        ),
+      );
     }
   }
 
-  void _onIdsChanged(
-    _FavoritesIdsChanged event,
-    Emitter<FavoritesState> emit,
-  ) {
+  void _onIdsChanged(_FavoritesIdsChanged event, Emitter<FavoritesState> emit) {
     emit(state.copyWith(ids: event.ids));
   }
 
   @override
   Future<void> close() async {
     await _sub?.cancel();
+    await _authSub?.cancel();
     return super.close();
   }
 }

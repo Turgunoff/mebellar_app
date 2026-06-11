@@ -18,6 +18,7 @@ import '../widgets/product_form/product_form_app_bar.dart';
 import '../widgets/product_form/product_form_body.dart';
 import '../widgets/product_form/save_bottom_bar.dart';
 import '../widgets/product_form/tariff_blocked_view.dart';
+import '../widgets/product_form/wallet_suspended_view.dart';
 import '../widgets/tariff_limit_dialog.dart';
 
 /// "Add product" screen — also serves as the edit screen when [initial] is
@@ -188,6 +189,8 @@ class _ProductFormViewState extends State<_ProductFormView> {
               // background. A thin progress line above the body signals the
               // load; the save CTA stays disabled via `canSubmit` until ready.
               body: switch (state.status) {
+                AddProductStatus.walletSuspended =>
+                  const WalletSuspendedView(),
                 AddProductStatus.tariffBlocked => TariffBlockedView(
                   snapshot: context.read<AddProductCubit>().tariffSnapshot,
                 ),
@@ -216,7 +219,8 @@ class _ProductFormViewState extends State<_ProductFormView> {
                 ),
               },
               bottomNavigationBar:
-                  state.status == AddProductStatus.tariffBlocked
+                  state.status == AddProductStatus.tariffBlocked ||
+                      state.status == AddProductStatus.walletSuspended
                   ? null
                   : SaveBottomBar(
                       enabled:

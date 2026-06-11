@@ -28,16 +28,16 @@ class Product extends Equatable {
   /// copies. `ProductModel.thumbnail` is `images.first`, so `heroImage`
   /// resolves identically whether or not `primaryImage` is set.
   factory Product.fromModel(ProductModel m) => Product(
-        id: m.id,
-        slug: m.id,
-        name: MultilingualText(uz: m.name, ru: m.name, en: m.name),
-        price: m.effectivePrice,
-        oldPrice: m.hasDiscount ? m.price : null,
-        images: m.images,
-        primaryImage: m.thumbnail,
-        attributes: m.attributes,
-        stock: m.stock,
-      );
+    id: m.id,
+    slug: m.id,
+    name: MultilingualText(uz: m.name, ru: m.name, en: m.name),
+    price: m.effectivePrice,
+    oldPrice: m.hasDiscount ? m.price : null,
+    images: m.images,
+    primaryImage: m.thumbnail,
+    attributes: m.attributes,
+    stock: m.stock,
+  );
 
   final String id;
   final String slug;
@@ -102,20 +102,21 @@ class Product extends Equatable {
     final servicesRaw = json['shop_services'];
     final services = servicesRaw is List
         ? servicesRaw
-            .whereType<String>()
-            .map(ShopService.fromCode)
-            .whereType<ShopService>()
-            .toList(growable: false)
+              .whereType<String>()
+              .map(ShopService.fromCode)
+              .whereType<ShopService>()
+              .toList(growable: false)
         : const <ShopService>[];
     return Product(
       id: json['id'] as String,
       slug: json['slug'] as String? ?? json['id'] as String,
-      name: MultilingualText.fromJson(json['name'] as Map<String, dynamic>?),
+      // fromDynamic, not fromJson — favorites snapshots come back with
+      // `name` rewritten to a plain localised string by the backend splice;
+      // a hard map cast here used to throw and silently empty the tab.
+      name: MultilingualText.fromDynamic(json['name']),
       price: (json['price'] as num?) ?? 0,
       oldPrice: json['old_price'] as num?,
-      description: MultilingualText.fromJson(
-        json['description'] as Map<String, dynamic>?,
-      ),
+      description: MultilingualText.fromDynamic(json['description']),
       images: images,
       primaryImage: json['primary_image'] as String?,
       categorySlug: json['category_slug'] as String?,

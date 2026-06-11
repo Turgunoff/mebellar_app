@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import '../../core/error/failure.dart';
+import '../../core/logging/talker.dart';
 import '../../core/network/api_error.dart';
 import '../../core/network/woody_api_client.dart';
 import '../../core/result/result.dart';
@@ -99,6 +100,12 @@ class WoodyCartRepository implements CartRepository {
         'product_id': product.id,
         'quantity': quantity.clamp(1, 99),
         if (selectedColor != null) 'selected_color': selectedColor,
+        // Display snapshot (name/image/price) — without it the server row
+        // has nothing to render and the cart shows a grey thumbnail + 0 UZS.
+        'product_snapshot': CartItemModel.fromProduct(
+          product,
+          selectedColor: selectedColor,
+        ).toSnapshotJson(),
       },
     );
     await fetchItems();
@@ -218,17 +225,17 @@ class WoodyFavoritesRepository implements FavoritesRepository {
   Stream<Set<String>> watchIds() => _controller.stream;
 
   Map<String, dynamic> _snapshot(Product p) => {
-        'id': p.id,
-        'slug': p.slug,
-        'name': p.name.toJson(),
-        'price': p.price,
-        'old_price': p.oldPrice,
-        'images': p.images,
-        'primary_image': p.primaryImage,
-        'category_slug': p.categorySlug,
-        'stock': p.stock,
-        'is_favorite': true,
-      };
+    'id': p.id,
+    'slug': p.slug,
+    'name': p.name.toJson(),
+    'price': p.price,
+    'old_price': p.oldPrice,
+    'images': p.images,
+    'primary_image': p.primaryImage,
+    'category_slug': p.categorySlug,
+    'stock': p.stock,
+    'is_favorite': true,
+  };
 
   @override
   Future<List<Product>> list() async {
@@ -244,8 +251,11 @@ class WoodyFavoritesRepository implements FavoritesRepository {
         if (snap is! Map<String, dynamic>) continue;
         try {
           products.add(Product.fromJson({...snap, 'is_favorite': true}));
-        } catch (_) {
-          // Corrupt snapshot — skip silently rather than blowing up the list.
+        } catch (e, st) {
+          // Skip the corrupt row rather than blowing up the list, but log
+          // it — a snapshot-shape drift here once silently emptied the
+          // whole favorites tab.
+          talker.handle(e, st, 'favorites: skipped corrupt snapshot $id');
         }
       }
       _ids = ids;
@@ -325,7 +335,7 @@ class WoodyOrderRepository implements OrderRepository {
               'product_id': it.product.id,
               'quantity': it.quantity,
               'price': it.product.price,
-            }
+            },
         ],
         'delivery_address': input.address.formatted('uz'),
       },
@@ -338,14 +348,16 @@ class WoodyOrderRepository implements OrderRepository {
       orderNumber: created.orderNumber,
       shop: input.shop,
       items: input.items
-          .map((it) => OrderItem(
-                productId: it.product.id,
-                productSlug: it.product.slug,
-                productName: it.product.name,
-                thumbnail: it.product.heroImage,
-                unitPrice: it.product.price,
-                quantity: it.quantity,
-              ))
+          .map(
+            (it) => OrderItem(
+              productId: it.product.id,
+              productSlug: it.product.slug,
+              productName: it.product.name,
+              thumbnail: it.product.heroImage,
+              unitPrice: it.product.price,
+              quantity: it.quantity,
+            ),
+          )
           .toList(),
       address: input.address,
       deliveryMethod: input.deliveryMethod,
@@ -408,8 +420,7 @@ class WoodyOrderRepository implements OrderRepository {
     final itemRows = (row['items'] as List<dynamic>?) ?? const [];
     final items = itemRows.map<OrderItem>(_rowToOrderItem).toList();
     final itemsTotal = items.fold<num>(0, (s, it) => s + it.lineTotal);
-    final deliveryFee =
-        totalAmount > itemsTotal ? totalAmount - itemsTotal : 0;
+    final deliveryFee = totalAmount > itemsTotal ? totalAmount - itemsTotal : 0;
 
     return Order(
       id: id,
@@ -456,20 +467,20 @@ class WoodyOrderRepository implements OrderRepository {
       'WD-${id.substring(0, 8).toUpperCase()}';
 
   static num _deliveryFee(OrderDeliveryMethod method) => switch (method) {
-        OrderDeliveryMethod.pickup => 0,
-        OrderDeliveryMethod.expressDelivery => 80000,
-        OrderDeliveryMethod.delivery => 50000,
-      };
+    OrderDeliveryMethod.pickup => 0,
+    OrderDeliveryMethod.expressDelivery => 80000,
+    OrderDeliveryMethod.delivery => 50000,
+  };
 
   static Address _addressFromText(String? text, String orderId) => Address(
-        id: 'addr-${orderId.substring(0, 8)}',
-        label: 'Yetkazish manzili',
-        recipientName: '',
-        phone: '',
-        region: _blankRegion,
-        city: _blankRegion,
-        streetLine: text ?? '',
-      );
+    id: 'addr-${orderId.substring(0, 8)}',
+    label: 'Yetkazish manzili',
+    recipientName: '',
+    phone: '',
+    region: _blankRegion,
+    city: _blankRegion,
+    streetLine: text ?? '',
+  );
 
   static List<OrderStatusEvent> _syntheticTimeline(
     OrderStatus status,
@@ -520,15 +531,16 @@ class WoodyCustomerReviewsRepository implements CustomerReviewsRepository {
   final WoodyApiClient _api;
 
   @override
-  Future<Result<Map<String, Review>>> reviewsForOrder(String orderId) =>
-      runCatching(() async {
-        // Backend doesn't yet expose a "my reviews for order X" view. We rebuild
-        // it client-side by listing reviews for each product in the order and
-        // filtering by the caller; for now return empty — the order detail
-        // screen will show the "leave a review" CTA on every line, and an
-        // already-reviewed product will 409 on submit.
-        return <String, Review>{};
-      });
+  Future<Result<Map<String, Review>>> reviewsForOrder(
+    String orderId,
+  ) => runCatching(() async {
+    // Backend doesn't yet expose a "my reviews for order X" view. We rebuild
+    // it client-side by listing reviews for each product in the order and
+    // filtering by the caller; for now return empty — the order detail
+    // screen will show the "leave a review" CTA on every line, and an
+    // already-reviewed product will 409 on submit.
+    return <String, Review>{};
+  });
 
   @override
   Future<Result<Review>> submitReview({
@@ -537,34 +549,32 @@ class WoodyCustomerReviewsRepository implements CustomerReviewsRepository {
     required String productId,
     required int rating,
     String? comment,
-  }) =>
-      runCatching(() async {
-        final body = await _api.post<Map<String, dynamic>>(
-          '/reviews',
-          body: {
-            'order_item_id': orderItemId,
-            'rating': rating,
-            if (comment != null && comment.trim().isNotEmpty)
-              'comment': comment.trim(),
-          },
-        );
-        return Review.fromRow(body);
-      });
+  }) => runCatching(() async {
+    final body = await _api.post<Map<String, dynamic>>(
+      '/reviews',
+      body: {
+        'order_item_id': orderItemId,
+        'rating': rating,
+        if (comment != null && comment.trim().isNotEmpty)
+          'comment': comment.trim(),
+      },
+    );
+    return Review.fromRow(body);
+  });
 
   @override
   Future<Result<Review>> updateReview({
     required String reviewId,
     required int rating,
     String? comment,
-  }) =>
-      runCatching(() async {
-        // Backend doesn't expose review edits yet — surface a clear failure
-        // so the UI can show "feature unavailable" rather than silently
-        // hanging.
-        throw const ServerFailure(
-          message: 'Sharhlarni tahrirlash hozircha qo\'llab-quvvatlanmaydi',
-        );
-      });
+  }) => runCatching(() async {
+    // Backend doesn't expose review edits yet — surface a clear failure
+    // so the UI can show "feature unavailable" rather than silently
+    // hanging.
+    throw const ServerFailure(
+      message: 'Sharhlarni tahrirlash hozircha qo\'llab-quvvatlanmaydi',
+    );
+  });
 
   @override
   Future<Result<ProductReviewSummary>> reviewsForProduct(String productId) =>

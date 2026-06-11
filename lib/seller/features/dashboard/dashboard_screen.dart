@@ -23,6 +23,7 @@ import 'widgets/hero_sales_card.dart';
 import 'widgets/kpi_card.dart';
 import 'widgets/seller_leaderboard.dart';
 import 'widgets/top_products_card.dart';
+import 'widgets/wallet_debt_banner.dart';
 
 // Typography note for this screen:
 //
@@ -62,19 +63,29 @@ class _DashboardView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
-    return ColoredBox(
-      color: c.background,
-      child: SafeArea(
-        bottom: false,
-        child: BlocBuilder<SellerDashboardCubit, SellerDashboardState>(
-          builder: (context, state) {
-            // No cached greeting yet and the identity fetch is still in
-            // flight — shimmer instead of flashing the "Sotuvchi" default.
-            final identityPending =
-                state.isLoading &&
-                state.data.sellerName == null &&
-                state.data.shopName == null;
-            return Column(
+    return BlocBuilder<SellerDashboardCubit, SellerDashboardState>(
+      builder: (context, state) {
+        // Debt freeze paints the whole dashboard with a red wash so the
+        // critical state is unmissable even before the banner scrolls in.
+        final suspended =
+            state.data.wallet?.isSuspendedDueToDebt ?? false;
+        final background = suspended
+            ? Color.alphaBlend(
+                AppColors.danger.withValues(alpha: 0.07),
+                c.background,
+              )
+            : c.background;
+        // No cached greeting yet and the identity fetch is still in
+        // flight — shimmer instead of flashing the "Sotuvchi" default.
+        final identityPending =
+            state.isLoading &&
+            state.data.sellerName == null &&
+            state.data.shopName == null;
+        return ColoredBox(
+          color: background,
+          child: SafeArea(
+            bottom: false,
+            child: Column(
               children: [
                 // Fixed header — never scrolls with the content below.
                 Padding(
@@ -97,10 +108,10 @@ class _DashboardView extends StatelessWidget {
                   ),
                 ),
               ],
-            );
-          },
-        ),
-      ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -125,6 +136,12 @@ class _DashboardContent extends StatelessWidget {
         parent: AlwaysScrollableScrollPhysics(),
       ),
       children: [
+        // ---- Wallet: balance row / debt-grace warning / freeze alert ------
+        if (data.wallet != null) ...[
+          _h(WalletDebtBanner(wallet: data.wallet!)),
+          const SizedBox(height: 14),
+        ],
+
         // ---- Hero: this-week revenue + sparkline --------------------------
         _h(
           HeroSalesCard(

@@ -331,7 +331,8 @@ class _InCartControls extends StatelessWidget {
         const SizedBox(width: 12),
         Expanded(
           child: FilledButton(
-            onPressed: () => context.push('/cart'),
+            // Tab deep-link, not push — see _handleAddToCart's toast action.
+            onPressed: () => context.go('/?tab=cart'),
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.terracotta,
               minimumSize: const Size.fromHeight(54),

@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/auth/auth_repository.dart';
 import '../../../../core/logging/talker.dart';
 import '../../../../core/network/api_error.dart';
+import '../../../../shared/models/seller_wallet.dart';
 import '../../../../shared/models/shop_settings.dart';
 import '../../../../shared/models/tariff.dart';
 import '../../../../shared/models/verification_status.dart';
@@ -61,11 +62,13 @@ class SellerProfileCubit extends Cubit<SellerProfileState> {
       _fetch(_repo.fetchMe(), label: 'me'),
       _fetch(_repo.fetchShop(), label: 'shop'),
       _fetch(_repo.fetchTariffCurrent(), label: 'tariff'),
+      _fetch(_repo.fetchWallet(), label: 'wallet'),
     ]);
     if (isClosed) return;
     final meRes = results[0];
     final shopRes = results[1];
     final tariffRes = results[2];
+    final walletRes = results[3];
 
     // /seller/me — verification status + legal name (+ shop_name fallback).
     final verification = switch (meRes.outcome) {
@@ -111,6 +114,12 @@ class SellerProfileCubit extends Cubit<SellerProfileState> {
       _Outcome.failed => base.plan,
     };
 
+    // /seller/wallet — balance + debt state. Volatile money is never cached:
+    // a failed read just hides the row instead of showing a stale figure.
+    final wallet = walletRes.outcome == _Outcome.ok && walletRes.data != null
+        ? SellerWallet.fromJson(walletRes.data!)
+        : null;
+
     final snapshot = SellerIdentitySnapshot(
       shopName: shopName,
       logoUrl: logoUrl,
@@ -120,7 +129,12 @@ class SellerProfileCubit extends Cubit<SellerProfileState> {
       plan: plan,
     );
 
-    emit(SellerProfileState.fromSnapshot(snapshot, isLoading: false));
+    emit(
+      SellerProfileState.fromSnapshot(
+        snapshot,
+        isLoading: false,
+      ).copyWith(wallet: wallet),
+    );
     // Persist after emit so a slow disk write never blocks the UI render.
     unawaited(_cache.write(userId, snapshot));
   }
@@ -139,6 +153,7 @@ class SellerProfileCubit extends Cubit<SellerProfileState> {
         sellerName: state.sellerName,
         verificationStatus: state.verificationStatus,
         plan: state.plan,
+        wallet: state.wallet,
       ),
     );
     final userId = _auth.currentUserId;
@@ -200,6 +215,7 @@ class SellerProfileState extends Equatable {
     this.sellerName,
     this.verificationStatus = VerificationStatus.none,
     this.plan = TariffPlan.free,
+    this.wallet,
     this.error,
   });
 
@@ -225,6 +241,11 @@ class SellerProfileState extends Equatable {
   final String? sellerName;
   final VerificationStatus verificationStatus;
   final TariffPlan plan;
+
+  /// Live wallet snapshot (`recent=0` — no ledger rows). Null while loading
+  /// or when the read failed; the wallet row hides rather than lying.
+  final SellerWallet? wallet;
+
   final String? error;
 
   /// Fallback chain: shop name → seller's legal name → generic.
@@ -252,6 +273,7 @@ class SellerProfileState extends Equatable {
     String? sellerName,
     VerificationStatus? verificationStatus,
     TariffPlan? plan,
+    SellerWallet? wallet,
     String? error,
     bool clearError = false,
   }) {
@@ -263,6 +285,7 @@ class SellerProfileState extends Equatable {
       sellerName: sellerName ?? this.sellerName,
       verificationStatus: verificationStatus ?? this.verificationStatus,
       plan: plan ?? this.plan,
+      wallet: wallet ?? this.wallet,
       error: clearError ? null : (error ?? this.error),
     );
   }
@@ -276,6 +299,7 @@ class SellerProfileState extends Equatable {
     sellerName,
     verificationStatus,
     plan,
+    wallet,
     error,
   ];
 }

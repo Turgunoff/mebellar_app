@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/auth/auth_repository.dart';
 import '../../../../shared/models/dashboard_snapshot.dart';
 import '../../../../shared/models/order.dart';
+import '../../../../shared/models/seller_wallet.dart';
 import '../../../../shared/models/tariff.dart';
 import '../../../../shared/repositories/seller_dashboard_repository.dart';
 import '../../profile/data/seller_identity_cache.dart';
@@ -82,6 +83,7 @@ class SellerDashboardCubit extends Cubit<SellerDashboardState> {
             plan: snap.tariff.plan,
             productLimit: snap.tariff.plan.maxActiveProducts,
             tariffDaysLeft: snap.tariff.daysUntilExpiry,
+            wallet: snap.wallet,
             recentOrders: List<Order>.from(snap.recentOrders),
             weekly: snap.weekly,
             kpiDeltas: snap.kpiDeltas,
@@ -178,6 +180,7 @@ class SellerDashboardData extends Equatable {
     this.plan = TariffPlan.free,
     this.productLimit = 3,
     this.tariffDaysLeft,
+    this.wallet,
     this.recentOrders = const [],
     this.weekly = const WeeklySales(),
     this.kpiDeltas = const KpiDeltas(),
@@ -203,6 +206,10 @@ class SellerDashboardData extends Equatable {
   /// Days until the active subscription (trial bonus / paid) expires.
   /// Null when the plan has no expiry (free) — the tile hides the hint.
   final int? tariffDaysLeft;
+
+  /// Wallet/debt state — drives the balance card plus the grace-warning and
+  /// debt-freeze banners. Null while the snapshot hasn't loaded.
+  final SellerWallet? wallet;
 
   final List<Order> recentOrders;
 
@@ -239,6 +246,7 @@ class SellerDashboardData extends Equatable {
     TariffPlan? plan,
     int? productLimit,
     int? tariffDaysLeft,
+    SellerWallet? wallet,
     List<Order>? recentOrders,
     WeeklySales? weekly,
     KpiDeltas? kpiDeltas,
@@ -256,6 +264,7 @@ class SellerDashboardData extends Equatable {
       plan: plan ?? this.plan,
       productLimit: productLimit ?? this.productLimit,
       tariffDaysLeft: tariffDaysLeft ?? this.tariffDaysLeft,
+      wallet: wallet ?? this.wallet,
       recentOrders: recentOrders ?? this.recentOrders,
       weekly: weekly ?? this.weekly,
       kpiDeltas: kpiDeltas ?? this.kpiDeltas,
@@ -276,6 +285,7 @@ class SellerDashboardData extends Equatable {
     plan,
     productLimit,
     tariffDaysLeft,
+    wallet,
     recentOrders.length,
     weekly,
     kpiDeltas,

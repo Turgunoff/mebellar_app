@@ -29,6 +29,7 @@ import '../../shared/repositories/category_data_source.dart';
 import '../../shared/repositories/product_data_source.dart';
 import '../connectivity/network_cubit.dart';
 import '../i18n/app_locale_controller.dart';
+import '../network/token_store.dart';
 import '../storage/hive_boxes.dart';
 
 /// Customer mode-scope: blocs and services torn down on a switch to seller.
@@ -62,6 +63,9 @@ void registerCustomerScope(GetIt sl) {
     () => FavoritesBloc(
       sl<FavoritesRepository>(),
       localeController: sl<AppLocaleController>(),
+      // Same signed-in/out signal the hybrid cart uses — login pulls the
+      // account's favorites, logout empties the tab.
+      authChanges: sl<TokenStore>().changes.map((pair) => pair != null),
     )..add(const FavoritesRequested()),
     dispose: (bloc) => bloc.close(),
   );
@@ -74,10 +78,8 @@ void registerCustomerScope(GetIt sl) {
     dispose: (bloc) => bloc.close(),
   );
   sl.registerLazySingleton<ProfileOrdersCubit>(
-    () => ProfileOrdersCubit(
-      sl<ProfileOrdersRepository>(),
-      sl<AuthRepository>(),
-    ),
+    () =>
+        ProfileOrdersCubit(sl<ProfileOrdersRepository>(), sl<AuthRepository>()),
     dispose: (c) => c.close(),
   );
   sl.registerLazySingleton<ProfileCubit>(

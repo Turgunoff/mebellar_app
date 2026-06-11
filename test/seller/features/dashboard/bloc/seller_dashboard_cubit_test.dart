@@ -4,6 +4,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:woody_app/seller/features/dashboard/bloc/seller_dashboard_cubit.dart';
 import 'package:woody_app/shared/models/dashboard_snapshot.dart';
 import 'package:woody_app/shared/models/order.dart';
+import 'package:woody_app/shared/models/seller_wallet.dart';
 import 'package:woody_app/shared/models/tariff.dart';
 import 'package:woody_app/shared/repositories/seller_dashboard_repository.dart';
 
@@ -17,6 +18,11 @@ DashboardSnapshot _snapshot() => const DashboardSnapshot(
       tariff: TariffSnapshot(plan: TariffPlan.free, activeProductsCount: 7),
       recentOrders: [],
       last30Days: [],
+      wallet: SellerWallet(
+        balance: -120000,
+        creditLimit: 500000,
+        debtFloor: -500000,
+      ),
     );
 
 void main() {
@@ -50,6 +56,12 @@ void main() {
           .having((s) => s.isLoading, 'isLoading', false)
           .having((s) => s.data.todaysOrders, 'todaysOrders', 3)
           .having((s) => s.data.productsCount, 'productsCount', 7)
+          .having((s) => s.data.wallet?.balance, 'wallet balance', -120000)
+          .having(
+            (s) => s.data.wallet?.isInGrace,
+            'no grace clock running',
+            false,
+          )
           .having((s) => s.error, 'error', isNull),
     ],
   );

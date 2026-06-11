@@ -32,6 +32,10 @@ enum AddProductStatus {
   /// Plan quota reached — UI shows the upgrade prompt.
   tariffBlocked,
 
+  /// Shop frozen for unpaid debt — adding products is disabled until the
+  /// seller clears the balance (the backend 403s the create anyway).
+  walletSuspended,
+
   /// Saving in flight (image upload + DB inserts).
   saving,
 
@@ -320,6 +324,17 @@ class AddProductCubit extends Cubit<AddProductState> {
     try {
       final ctx = await _repository.loadShopContext();
       if (isClosed) return;
+      // Debt freeze outranks the quota gate — upgrading the plan wouldn't
+      // help a frozen shop, so don't show the upgrade prompt.
+      if (ctx.isSuspendedDueToDebt) {
+        emit(
+          state.copyWith(
+            status: AddProductStatus.walletSuspended,
+            context: ctx,
+          ),
+        );
+        return;
+      }
       if (!ctx.canAddMoreProducts) {
         emit(
           state.copyWith(status: AddProductStatus.tariffBlocked, context: ctx),

@@ -13,12 +13,14 @@ import '../../shared/repositories/seller_profile_repository.dart';
 import '../../shared/repositories/seller_reviews_repository.dart';
 import '../../shared/repositories/seller_services_repository.dart';
 import '../../shared/repositories/seller_verification_repository.dart';
+import '../../shared/repositories/seller_wallet_repository.dart';
 import '../../shared/repositories/shop_settings_repository.dart';
 import '../../shared/repositories/tariff_repository.dart';
 import '../../shared/repositories/woody_seller_order_repository.dart';
 import '../../shared/repositories/woody_seller_product_repository.dart';
 import '../../shared/repositories/woody_seller_repositories.dart';
 import '../../shared/repositories/woody_seller_services_repository.dart';
+import '../../shared/repositories/woody_seller_wallet_repository.dart';
 import '../../shared/repositories/woody_tariff_repository.dart';
 import '../auth/auth_repository.dart';
 import '../network/woody_api_client.dart';
@@ -106,6 +108,15 @@ void registerSellerModule(GetIt sl) {
 
   sl.registerLazySingleton<TariffRepository>(
     () => WoodyTariffRepository(
+      api: sl<WoodyApiClient>(),
+      auth: sl<AuthRepository>(),
+      uploads: sl<R2UploadClient>(),
+    ),
+  );
+
+  // Wallet — balance/debt state + top-up requests (`/seller/wallet*`).
+  sl.registerLazySingleton<SellerWalletRepository>(
+    () => WoodySellerWalletRepository(
       api: sl<WoodyApiClient>(),
       auth: sl<AuthRepository>(),
       uploads: sl<R2UploadClient>(),

@@ -61,16 +61,19 @@ const Map<String, dynamic> favoritesUz = {
   'title': 'Sevimlilar',
   'empty': 'Sevimlilar ro\'yxati bo\'sh',
   'empty_hint': 'Yurakcha tugmasi orqali mahsulotlarni saqlab qo\'ying',
+  'saved_count': '{} saqlangan mahsulot',
 };
 
 const Map<String, dynamic> favoritesRu = {
   'title': 'Избранное',
   'empty': 'В избранном пусто',
   'empty_hint': 'Сохраняйте товары через значок сердечка',
+  'saved_count': 'Сохранено: {}',
 };
 
 const Map<String, dynamic> favoritesEn = {
   'title': 'Favorites',
   'empty': 'No favorites yet',
   'empty_hint': 'Tap the heart icon to save products',
+  'saved_count': '{} saved items',
 };

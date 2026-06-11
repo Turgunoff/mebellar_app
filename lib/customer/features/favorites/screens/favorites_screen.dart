@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -61,61 +63,78 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               bottom: false,
               child: PremiumEmptyState(
                 icon: Iconsax.heart,
-                title: 'Sizda hozircha sevimlilar yo\'q',
-                subtitle:
-                    'Sizga yoqqan har qanday mahsulotni yurakcha tugmasi orqali saqlang — keyin osongina topib oling.',
+                title: tr('favorites.empty'),
+                subtitle: tr('favorites.empty_hint'),
                 bottomPadding: bottomPad,
               ),
             );
           }
-          return CustomScrollView(
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              SliverAppBar(
-                pinned: true,
-                expandedHeight: 130.0,
-                backgroundColor: pt.surface,
-                surfaceTintColor: Colors.transparent,
-                elevation: 0,
-                scrolledUnderElevation: 0,
-                automaticallyImplyLeading: false,
-                flexibleSpace: FlexibleSpaceBar(
-                  centerTitle: false,
-                  expandedTitleScale: 1.6,
-                  titlePadding: const EdgeInsetsDirectional.only(
-                    start: 20,
-                    bottom: 14,
-                  ),
-                  title: Text(
-                    'Sevimlilar',
-                    style: PremiumTokens.display(size: 20, letterSpacing: -0.4),
-                  ),
-                  background: Container(
-                    alignment: Alignment.bottomLeft,
-                    padding: const EdgeInsets.only(left: 20, bottom: 52),
-                    child: Text(
-                      '${state.products.length} saqlangan mahsulot',
-                      style: PremiumTokens.body(size: 13, color: pt.grey),
+          return BrandRefreshIndicator(
+            onRefresh: () {
+              final done = Completer<void>();
+              context.read<FavoritesBloc>().add(
+                FavoritesRequested(refresh: true, completer: done),
+              );
+              return done.future;
+            },
+            child: CustomScrollView(
+              physics: const BouncingScrollPhysics(
+                parent: AlwaysScrollableScrollPhysics(),
+              ),
+              slivers: [
+                SliverAppBar(
+                  pinned: true,
+                  expandedHeight: 130.0,
+                  backgroundColor: pt.surface,
+                  surfaceTintColor: Colors.transparent,
+                  elevation: 0,
+                  scrolledUnderElevation: 0,
+                  automaticallyImplyLeading: false,
+                  flexibleSpace: FlexibleSpaceBar(
+                    centerTitle: false,
+                    expandedTitleScale: 1.6,
+                    titlePadding: const EdgeInsetsDirectional.only(
+                      start: 20,
+                      bottom: 14,
+                    ),
+                    title: Text(
+                      tr('favorites.title'),
+                      style: PremiumTokens.display(
+                        size: 20,
+                        letterSpacing: -0.4,
+                      ),
+                    ),
+                    background: Container(
+                      alignment: Alignment.bottomLeft,
+                      padding: const EdgeInsets.only(left: 20, bottom: 52),
+                      child: Text(
+                        tr(
+                          'favorites.saved_count',
+                          args: ['${state.products.length}'],
+                        ),
+                        style: PremiumTokens.body(size: 13, color: pt.grey),
+                      ),
                     ),
                   ),
                 ),
-              ),
-              SliverPadding(
-                padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPad),
-                sliver: SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 14,
-                    crossAxisSpacing: 14,
-                    childAspectRatio: 0.65,
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPad),
+                  sliver: SliverGrid(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 14,
+                          crossAxisSpacing: 14,
+                          childAspectRatio: 0.65,
+                        ),
+                    delegate: SliverChildBuilderDelegate((context, i) {
+                      final product = state.products[i];
+                      return _FavoriteProductTile(product: product);
+                    }, childCount: state.products.length),
                   ),
-                  delegate: SliverChildBuilderDelegate((context, i) {
-                    final product = state.products[i];
-                    return _FavoriteProductTile(product: product);
-                  }, childCount: state.products.length),
                 ),
-              ),
-            ],
+              ],
+            ),
           );
         },
       ),

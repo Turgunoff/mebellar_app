@@ -20,9 +20,10 @@ class _MockExchangeRates extends Mock implements ExchangeRateService {}
 
 class _MockShopContext extends Mock implements AddProductShopContext {}
 
-_MockShopContext _context({required bool canAddMore}) {
+_MockShopContext _context({required bool canAddMore, bool suspended = false}) {
   final ctx = _MockShopContext();
   when(() => ctx.canAddMoreProducts).thenReturn(canAddMore);
+  when(() => ctx.isSuspendedDueToDebt).thenReturn(suspended);
   when(() => ctx.shopId).thenReturn('shop-1');
   when(() => ctx.activeProductsCount).thenReturn(2);
   when(() => ctx.maxImages).thenReturn(5);
@@ -136,6 +137,30 @@ void main() {
         (s) => s.status,
         'status',
         AddProductStatus.tariffBlocked,
+      ),
+    ],
+  );
+
+  blocTest<AddProductCubit, AddProductState>(
+    'loadContext emits walletSuspended for a debt-frozen shop — even when '
+    'the quota would allow more products',
+    build: () {
+      when(repo.loadShopContext).thenAnswer(
+        (_) async => _context(canAddMore: true, suspended: true),
+      );
+      return _cubit(repo);
+    },
+    act: (cubit) => cubit.loadContext(),
+    expect: () => [
+      isA<AddProductState>().having(
+        (s) => s.status,
+        'status',
+        AddProductStatus.loadingContext,
+      ),
+      isA<AddProductState>().having(
+        (s) => s.status,
+        'status',
+        AddProductStatus.walletSuspended,
       ),
     ],
   );

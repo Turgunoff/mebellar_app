@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../core/logging/talker.dart';
 import 'order.dart';
+import 'seller_wallet.dart';
 import 'tariff.dart';
 
 /// Debug-only backend-drift guard for the `/seller/dashboard` payload.
@@ -247,6 +248,7 @@ class DashboardSnapshot extends Equatable {
     this.achievements = const [],
     this.leaderboard = const [],
     this.topProducts = const [],
+    this.wallet,
   });
 
   final int todaysOrders;
@@ -262,6 +264,10 @@ class DashboardSnapshot extends Equatable {
   final List<LeaderboardStanding> leaderboard;
   final List<TopProductStat> topProducts;
 
+  /// Wallet/debt state — drives the dashboard's grace-warning and
+  /// suspension banners. Null when the payload predates the wallet rollout.
+  final SellerWallet? wallet;
+
   @override
   List<Object?> get props => [
         todaysOrders,
@@ -276,5 +282,6 @@ class DashboardSnapshot extends Equatable {
         achievements.length,
         leaderboard.length,
         topProducts.length,
+        wallet,
       ];
 }

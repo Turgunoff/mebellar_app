@@ -119,8 +119,12 @@ class CartItemModel extends Equatable {
       shopId: snapshot['shop_id'] as String? ?? json['shop_id'] as String?,
       shopName:
           snapshot['shop_name'] as String? ?? json['shop_name'] as String?,
+      // 'selected_color' inside the snapshot covers rows written by app
+      // versions that POSTed the colour without a full snapshot.
       selectedColor:
-          snapshot['color'] as String? ?? json['selected_color'] as String?,
+          snapshot['color'] as String? ??
+          snapshot['selected_color'] as String? ??
+          json['selected_color'] as String?,
       createdAt: json['created_at'] is String
           ? DateTime.tryParse(json['created_at'] as String)
           : null,

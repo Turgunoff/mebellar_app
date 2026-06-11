@@ -1,6 +1,6 @@
 import '../../core/network/woody_api_client.dart';
 
-/// The three seller-profile reads the profile header needs. Each returns the
+/// The seller-profile reads the profile header needs. Each returns the
 /// raw woody_backend row (or throws [ApiError]); the cubit classifies the
 /// outcome (ok / 404-absent / failed) and decides the fallback, so this is a
 /// thin seam over [WoodyApiClient] purely to keep [SellerProfileCubit]
@@ -9,6 +9,7 @@ abstract class SellerProfileRepository {
   Future<Map<String, dynamic>> fetchMe(); // GET /seller/me
   Future<Map<String, dynamic>> fetchShop(); // GET /seller/shop
   Future<Map<String, dynamic>> fetchTariffCurrent(); // GET /seller/tariff/current
+  Future<Map<String, dynamic>> fetchWallet(); // GET /seller/wallet?recent=0
 }
 
 class WoodySellerProfileRepository implements SellerProfileRepository {
@@ -27,4 +28,10 @@ class WoodySellerProfileRepository implements SellerProfileRepository {
   @override
   Future<Map<String, dynamic>> fetchTariffCurrent() =>
       _api.get<Map<String, dynamic>>('/seller/tariff/current');
+
+  @override
+  Future<Map<String, dynamic>> fetchWallet() => _api.get<Map<String, dynamic>>(
+    '/seller/wallet',
+    query: const {'recent': 0},
+  );
 }

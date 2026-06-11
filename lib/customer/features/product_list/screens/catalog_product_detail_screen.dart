@@ -237,7 +237,10 @@ class _CatalogProductDetailScreenState
       context,
       message: tr('cart.item_added'),
       actionLabel: tr('cart.go_to_cart'),
-      onAction: () => router.push('/cart'),
+      // `go` to the shell with ?tab=cart (not push('/cart')): lands on the
+      // real cart TAB with the bottom nav visible, instead of stacking a
+      // full-screen copy on top of this screen.
+      onAction: () => router.go('/?tab=cart'),
     );
   }
 

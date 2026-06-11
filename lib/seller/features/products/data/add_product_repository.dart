@@ -23,6 +23,7 @@ class AddProductShopContext {
     required this.plan,
     required this.activeProductsCount,
     required this.categories,
+    this.isSuspendedDueToDebt = false,
   });
 
   final String shopId;
@@ -30,6 +31,12 @@ class AddProductShopContext {
   final SubscriptionPlan plan;
   final int activeProductsCount;
   final List<CategoryModel> categories;
+
+  /// Debt freeze (`sellers.is_suspended_due_to_debt`) — a frozen shop can't
+  /// grow its catalogue. The backend enforces this with a 403; the form
+  /// shows the blocked view instead of letting the seller fill it for
+  /// nothing.
+  final bool isSuspendedDueToDebt;
 
   /// Honours the tariff master switch: when tariff mode is off the gate is
   /// open regardless of the plan's product quota.
@@ -221,10 +228,12 @@ class AddProductRepository {
       _api.get<Map<String, dynamic>>('/seller/shop'),
       _api.get<Map<String, dynamic>>('/seller/tariff/current'),
       _fetchCategories(),
+      _fetchDebtSuspended(),
     ]);
     final shop = results[0] as Map<String, dynamic>;
     final snap = results[1] as Map<String, dynamic>;
     final categories = results[2] as List<CategoryModel>;
+    final suspended = results[3] as bool? ?? false;
 
     final code = snap['plan_code'] as String? ?? TariffPlan.free.code;
     final plan = SubscriptionPlan(
@@ -248,7 +257,23 @@ class AddProductRepository {
       activeProductsCount:
           (snap['active_products_count'] as num?)?.toInt() ?? 0,
       categories: categories,
+      isSuspendedDueToDebt: suspended,
     );
+  }
+
+  /// Best-effort wallet read for the freeze gate. A transient failure must
+  /// not lock the seller out of the form — the backend's 403 on save is the
+  /// real boundary; this just spares them filling a doomed form.
+  Future<bool> _fetchDebtSuspended() async {
+    try {
+      final body = await _api.get<Map<String, dynamic>>(
+        '/seller/wallet',
+        query: const {'recent': 0},
+      );
+      return body['is_suspended_due_to_debt'] as bool? ?? false;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<List<CategoryModel>> _fetchCategories() async {

@@ -19,6 +19,7 @@ import '../models/order.dart' as order_models;
 import '../models/order_status.dart';
 import '../models/region.dart';
 import '../models/review.dart';
+import '../models/seller_wallet.dart';
 import '../models/shop.dart';
 import '../models/shop_settings.dart';
 import '../models/tariff.dart';
@@ -95,6 +96,9 @@ class WoodySellerDashboardRepository implements SellerDashboardRepository {
           .whereType<Map<String, dynamic>>()
           .map(TopProductStat.fromJson)
           .toList(growable: false),
+      wallet: body['wallet'] is Map<String, dynamic>
+          ? SellerWallet.fromJson(body['wallet'] as Map<String, dynamic>)
+          : null,
     );
   }
 

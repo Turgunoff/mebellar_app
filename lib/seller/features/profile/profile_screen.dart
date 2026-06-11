@@ -17,10 +17,12 @@ import '../../../shared/models/verification_status.dart';
 import '../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../shared/widgets/fullscreen_image_viewer.dart';
 import '../reviews/screens/reviews_screen.dart';
+import '../../../shared/models/seller_wallet.dart';
 import '../settings/screens/services_screen.dart';
 import '../settings/screens/settings_screen.dart';
 import '../settings/screens/shop_settings_screen.dart';
 import '../tariff/screens/tariff_screen.dart';
+import '../wallet/screens/wallet_screen.dart';
 import 'cubit/seller_profile_cubit.dart';
 
 // Fixed (brightness-independent) local tokens — the verification-status
@@ -100,6 +102,16 @@ class _SellerProfileView extends StatelessWidget {
                               onTap: () =>
                                   _push(context, const ReviewsScreen()),
                             ),
+                            _SettingsItem(
+                              icon: Iconsax.wallet_3,
+                              iconColor: state.wallet?.isHealthy == false
+                                  ? AppColors.danger
+                                  : null,
+                              title: 'Hamyon',
+                              subtitle: _walletSubtitle(state),
+                              onTap: () =>
+                                  _push(context, const WalletScreen()),
+                            ),
                             // Tariff is hidden while the tariff system is
                             // switched off (RemoteConfig.tariffEnabled).
                             if (RemoteConfig.instance.tariffEnabled)
@@ -178,6 +190,19 @@ class _SellerProfileView extends StatelessWidget {
   static String _planSubtitle(SellerProfileState state) {
     if (state.isInitialLoading) return 'Yuklanmoqda…';
     return 'Joriy tarif: ${state.plan.label}';
+  }
+
+  static String _walletSubtitle(SellerProfileState state) {
+    final wallet = state.wallet;
+    if (wallet == null) return "Balans va to'lovlar";
+    if (wallet.isSuspendedDueToDebt) {
+      return "Do'kon muzlatilgan — qarzdorlikni uzing";
+    }
+    if (wallet.isInGrace) {
+      return "Balans: ${formatSom(wallet.balance)} so'm · "
+          '${wallet.graceHoursLeft()} soat qoldi';
+    }
+    return "Balans: ${formatSom(wallet.balance)} so'm";
   }
 }
 
