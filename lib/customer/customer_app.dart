@@ -22,6 +22,7 @@ import '../core/theme/theme_cubit.dart';
 import '../core/updates/app_update_gate.dart';
 import 'features/categories/bloc/categories_bloc.dart';
 import '../main.dart' show AppLocaleScope;
+import '../shared/models/notification_model.dart';
 import '../shared/repositories/notifications_repository.dart';
 import '../shared/widgets/network_overlay_wrapper.dart';
 import 'features/cart/bloc/cart_bloc.dart';
@@ -95,7 +96,11 @@ class _CustomerAppState extends State<CustomerApp> with WidgetsBindingObserver {
       route = sl<DeepLinkService>().consumePendingRoute();
     }
     if (route == null && sl.isRegistered<NotificationHandler>()) {
-      route = sl<NotificationHandler>().consumeFor(AppMode.customer.name);
+      final pending = sl<NotificationHandler>().consumeFor(
+        AppMode.customer.name,
+      );
+      route = pending?.route;
+      _refreshStateForNotificationKind(pending?.kind);
     }
     // push (not go) so the deep-link target sits ON TOP of home — the router's
     // initialLocation is '/', so the stack becomes [home, target] and Back
@@ -103,6 +108,19 @@ class _CustomerAppState extends State<CustomerApp> with WidgetsBindingObserver {
     // destinations (e.g. /profile) are the exception: the helper switches
     // the shell tab instead.
     if (route != null) navigateCustomerRoute(_router, route);
+  }
+
+  /// A consumed seller-verdict notification means the cached `/me` seller
+  /// status (the "Ko'rib chiqilmoqda" / "Tasdiqlandi" banner) is stale —
+  /// refetch it so the profile the user lands on already shows the verdict,
+  /// without a manual pull-to-refresh. The profile tab lives in an
+  /// IndexedStack, so its initState fired at shell mount and won't refire on
+  /// tab switch. Looked up via the service locator (not context) so it's
+  /// safe before the first frame; ProfileCubit.fetch swallows its own errors.
+  void _refreshStateForNotificationKind(String? kind) {
+    if (!NotificationKind.fromString(kind).isSellerVerdict) return;
+    if (!sl.isRegistered<ProfileCubit>()) return;
+    unawaited(sl<ProfileCubit>().fetch());
   }
 
   /// Listens for incoming app/universal links. Sprint 11 mock: the simulator

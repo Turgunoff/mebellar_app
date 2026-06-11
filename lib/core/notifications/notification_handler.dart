@@ -32,12 +32,16 @@ class NotificationHandler {
     if (kind != null) _pendingRoute.put(_kindKey, kind);
   }
 
-  /// Returns the route to navigate to once, or `null` if there is none or it
-  /// is stale. Always clears the saved value.
-  String? consumeFor(String mode) {
+  /// Returns the pending destination once — the route plus the notification
+  /// `kind` that produced it (so the consuming shell can refresh any state
+  /// the notification invalidated, e.g. a seller verdict → `/me` refetch) —
+  /// or `null` if there is none or it is stale. Always clears the saved
+  /// value.
+  ({String route, String? kind})? consumeFor(String mode) {
     final route = _pendingRoute.get(_routeKey) as String?;
     final savedMode = _pendingRoute.get(_modeKey) as String?;
     final tsRaw = _pendingRoute.get(_tsKey) as String?;
+    final kind = _pendingRoute.get(_kindKey) as String?;
     _pendingRoute.delete(_routeKey);
     _pendingRoute.delete(_modeKey);
     _pendingRoute.delete(_tsKey);
@@ -48,7 +52,7 @@ class NotificationHandler {
     if (ts == null || DateTime.now().difference(ts) > _staleAfter) {
       return null;
     }
-    return route;
+    return (route: route, kind: kind);
   }
 
   /// Inspects the pending payload without consuming it — used by cold-start

@@ -86,9 +86,28 @@ void main() {
         () {
       final h = NotificationHandler(box);
       h.savePendingRoute('/orders/abc', AppMode.customer.name);
-      expect(h.consumeFor(AppMode.customer.name), '/orders/abc');
+      expect(h.consumeFor(AppMode.customer.name)?.route, '/orders/abc');
       // Second call drains to null since the consume cleared the stash.
       expect(h.consumeFor(AppMode.customer.name), isNull);
+    });
+
+    test('consume surfaces the kind so the shell can refresh stale state',
+        () {
+      final h = NotificationHandler(box);
+      h.savePendingRoute(
+        '/profile',
+        AppMode.customer.name,
+        kind: 'seller_approved',
+      );
+      final pending = h.consumeFor(AppMode.customer.name);
+      expect(pending?.route, '/profile');
+      expect(pending?.kind, 'seller_approved');
+    });
+
+    test('consume without a kind yields a null kind', () {
+      final h = NotificationHandler(box);
+      h.savePendingRoute('/cart', AppMode.customer.name);
+      expect(h.consumeFor(AppMode.customer.name)?.kind, isNull);
     });
 
     test('consume from a different mode discards (returns null)', () {
@@ -113,7 +132,7 @@ void main() {
       expect(h.peek()?.route, '/cart');
       expect(h.peek()?.mode, 'customer');
       // Still consumable after peek.
-      expect(h.consumeFor(AppMode.customer.name), '/cart');
+      expect(h.consumeFor(AppMode.customer.name)?.route, '/cart');
     });
   });
 

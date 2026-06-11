@@ -88,7 +88,7 @@ class _SellerAppState extends State<SellerApp> with WidgetsBindingObserver {
       route = sl<DeepLinkService>().consumePendingRoute();
     }
     if (route == null && sl.isRegistered<NotificationHandler>()) {
-      route = sl<NotificationHandler>().consumeFor(AppMode.seller.name);
+      route = sl<NotificationHandler>().consumeFor(AppMode.seller.name)?.route;
     }
     if (route == null) return;
     final router = _router;

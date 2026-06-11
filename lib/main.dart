@@ -24,6 +24,8 @@ import 'core/i18n/i18n.dart';
 import 'core/logging/talker.dart';
 import 'core/notifications/push_service.dart';
 import 'customer/features/notifications/cubit/notifications_cubit.dart';
+import 'customer/features/profile/cubit/profile_cubit.dart';
+import 'shared/models/notification_model.dart';
 import 'core/storage/hive_boxes.dart';
 import 'core/theme/theme_cubit.dart';
 import 'core/widgets/app_splash_screen.dart';
@@ -198,15 +200,24 @@ Future<void> _bootstrapAndRun() async {
   );
 }
 
-/// Tells [PushService] how to nudge the inbox when a foreground push lands.
-/// Resolution is lazy — the [NotificationsCubit] is customer-scoped and
-/// not yet registered at app boot, so we look it up at fire time and
-/// silently skip if the user is currently in seller mode (where the
-/// customer cubit isn't installed).
+/// Tells [PushService] how to nudge app state when a foreground push lands.
+/// Resolution is lazy — the cubits are customer-scoped and not yet
+/// registered at app boot, so we look them up at fire time and silently
+/// skip if the user is currently in seller mode (where the customer cubits
+/// aren't installed).
 void _wirePushToInboxRefresh() {
-  sl<PushService>().onForegroundPush = (_) {
+  sl<PushService>().onForegroundPush = (message) {
     if (sl.isRegistered<NotificationsCubit>()) {
       sl<NotificationsCubit>().load();
+    }
+    // A seller verdict invalidates the cached /me seller status the profile
+    // banner renders. Refetch at ARRIVAL (not tap) so by the time the user
+    // opens the profile — via the push, the inbox, or the tab bar — the
+    // banner already says approved/rejected instead of the stale
+    // "Ko'rib chiqilmoqda". fetch() catches its own errors.
+    final kind = NotificationKind.fromString(message.data['kind'] as String?);
+    if (kind.isSellerVerdict && sl.isRegistered<ProfileCubit>()) {
+      unawaited(sl<ProfileCubit>().fetch());
     }
   };
 }

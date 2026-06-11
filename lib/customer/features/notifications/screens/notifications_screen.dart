@@ -18,6 +18,7 @@ import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/error_state.dart';
 import '../../../router.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
+import '../../profile/cubit/profile_cubit.dart';
 import '../cubit/notifications_cubit.dart';
 
 class NotificationsScreen extends StatelessWidget {
@@ -67,6 +68,15 @@ class _NotificationsViewState extends State<_NotificationsView> {
       ),
     );
     if (route == null) return;
+
+    // A seller verdict invalidates the cached /me seller status behind the
+    // profile banner ("Ko'rib chiqilmoqda" → "Tasdiqlandi"). Refetch BEFORE
+    // navigating so the profile the user lands on already shows the verdict
+    // — the profile tab lives in an IndexedStack, so nothing else would
+    // refresh it without a manual pull. fetch() catches its own errors.
+    if (notification.kind.isSellerVerdict && sl.isRegistered<ProfileCubit>()) {
+      unawaited(sl<ProfileCubit>().fetch());
+    }
 
     // Prefer the recipient mode carried in the payload (authoritative for
     // bi-directional kinds like chat) over the static per-kind mapping.

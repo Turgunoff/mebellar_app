@@ -121,7 +121,7 @@ class PushService {
     required String route,
     required String modeName,
   }) {
-    if (kind == 'seller_approved' || kind == 'seller_rejected') {
+    if (NotificationKind.fromString(kind).isSellerVerdict) {
       return ('/profile', AppMode.customer.name);
     }
     return (route, modeName);

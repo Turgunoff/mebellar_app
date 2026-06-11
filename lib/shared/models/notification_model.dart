@@ -67,6 +67,15 @@ enum NotificationKind {
     return NotificationKind.general;
   }
 
+  /// Seller-verification verdicts (approved / rejected). These are the kinds
+  /// that invalidate the cached `/me` seller status the customer profile
+  /// renders — every consumer that reacts to a verdict (destination
+  /// sanitising, profile refresh) must go through this getter, not compare
+  /// raw codes.
+  bool get isSellerVerdict =>
+      this == NotificationKind.sellerApproved ||
+      this == NotificationKind.sellerRejected;
+
   /// Icon shown in the inbox tile. Kept in this layer (not in the widget)
   /// because the same mapping is reused by the simulator screen and tests.
   IconData get icon {
@@ -241,8 +250,7 @@ class NotificationModel extends Equatable {
     // migration 0019 carry a stale `mode: seller` that would bounce a
     // rejected applicant into the seller shell. The kind mapping (customer)
     // is authoritative for these two.
-    if (kind == NotificationKind.sellerApproved ||
-        kind == NotificationKind.sellerRejected) {
+    if (kind.isSellerVerdict) {
       return kind.targetMode;
     }
     final raw = payload?['mode'];
