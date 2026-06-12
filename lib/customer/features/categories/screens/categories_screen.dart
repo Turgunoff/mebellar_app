@@ -10,7 +10,9 @@ import 'package:shimmer/shimmer.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../shared/models/category_model.dart';
 import '../../../../shared/widgets/image_error_placeholder.dart';
+import '../../../customer_app.dart';
 import '../../../widgets/glass_bottom_nav.dart';
+import '../../../widgets/network_error_gate.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../bloc/categories_bloc.dart';
 
@@ -32,8 +34,21 @@ class CategoriesScreen extends StatelessWidget {
               child: _CategoriesAppBar(),
             ),
             Expanded(
-              child: BlocBuilder<CategoriesBloc, CategoriesState>(
-                builder: (context, state) {
+              child: NetworkErrorGate<CategoriesBloc, CategoriesState>(
+                isActive: (ctx) => CustomerShellScope.of(ctx).index == 1,
+                isCritical: (s) =>
+                    s.status == CategoriesStatus.failure &&
+                    s.categories.isEmpty,
+                isRecovered: (s) => s.status == CategoriesStatus.ready,
+                isRetrying: (s) => s.status == CategoriesStatus.loading,
+                onRetry: (bloc) =>
+                    bloc.add(const CategoriesRequested(refresh: true)),
+                backgroundError: (s) =>
+                    s.status == CategoriesStatus.ready && s.error != null
+                    ? s.error
+                    : null,
+                child: BlocBuilder<CategoriesBloc, CategoriesState>(
+                  builder: (context, state) {
                   // First-load failure with nothing cached → premium error
                   // state. Subsequent failures while we still have stale items
                   // keep the list visible (the global red banner already tells
@@ -71,6 +86,7 @@ class CategoriesScreen extends StatelessWidget {
                     },
                   );
                 },
+                ),
               ),
             ),
           ],

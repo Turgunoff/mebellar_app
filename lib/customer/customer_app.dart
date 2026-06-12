@@ -203,10 +203,18 @@ class CustomerShellScope extends InheritedWidget {
   const CustomerShellScope({
     super.key,
     required this.goToTab,
+    required this.index,
     required super.child,
   });
 
   final void Function(int index) goToTab;
+
+  /// The active tab index. Exposed so a tab-resident widget can tell whether
+  /// it is the *visible* tab — the tabs live in an [IndexedStack], so a hidden
+  /// tab's listeners keep firing, and e.g. a blocking network-error modal must
+  /// not pop over a different tab. Reading this in `build` makes the reader
+  /// rebuild when the tab changes.
+  final int index;
 
   static CustomerShellScope of(BuildContext context) {
     final scope = context
@@ -217,7 +225,7 @@ class CustomerShellScope extends InheritedWidget {
 
   @override
   bool updateShouldNotify(CustomerShellScope oldWidget) =>
-      oldWidget.goToTab != goToTab;
+      oldWidget.goToTab != goToTab || oldWidget.index != index;
 }
 
 /// Bottom-tab shell. All five tabs are mounted in an [IndexedStack] so each
@@ -331,6 +339,7 @@ class _CustomerHomeShellState extends State<CustomerHomeShell> {
     ];
     return CustomerShellScope(
       goToTab: _goToTab,
+      index: _index,
       child: PopScope(
         // The shell is the root route — never let the framework pop it
         // straight to an app exit; `_handleSystemBack` decides what happens.

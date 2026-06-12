@@ -10,6 +10,7 @@ import '../../../../shared/repositories/order_repository.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/error_state.dart';
+import '../../../widgets/network_error_gate.dart';
 import '../bloc/orders_bloc.dart';
 import '../widgets/order_status_badge.dart';
 
@@ -48,9 +49,17 @@ class _OrdersView extends StatelessWidget {
             ],
           ),
         ),
-        body: BlocBuilder<OrdersBloc, OrdersState>(
-          builder: (context, state) {
-            return switch (state.status) {
+        body: NetworkErrorGate<OrdersBloc, OrdersState>(
+          isCritical: (s) =>
+              s.status == OrdersStatus.failure && s.orders.isEmpty,
+          isRecovered: (s) => s.status == OrdersStatus.ready,
+          isRetrying: (s) => s.status == OrdersStatus.loading,
+          onRetry: (bloc) => bloc.add(const OrdersRequested()),
+          backgroundError: (s) =>
+              s.status == OrdersStatus.ready && s.error != null ? s.error : null,
+          child: BlocBuilder<OrdersBloc, OrdersState>(
+            builder: (context, state) {
+              return switch (state.status) {
               OrdersStatus.initial ||
               OrdersStatus.loading =>
                 const Center(child: BrandLoadingIndicator()),

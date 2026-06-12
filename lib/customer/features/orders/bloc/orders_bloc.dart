@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -85,16 +87,43 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
 
   final OrderRepository _repo;
 
+  // Hard 5s ceiling — mirrors HomeBloc so a dead connection surfaces the
+  // blocking modal fast instead of waiting out Dio's 30s receive timeout.
+  static const Duration _loadTimeout = Duration(seconds: 5);
+
   Future<void> _onRequested(
     OrdersRequested event,
     Emitter<OrdersState> emit,
   ) async {
-    emit(state.copyWith(status: OrdersStatus.loading, clearError: true));
+    // Only flash the shimmer when there's nothing on screen. A refresh over an
+    // existing list stays put — and because we transition through `loading`
+    // whenever the list is empty, a repeated failure still re-emits
+    // (failure → loading → failure) so the retry modal's spinner can't hang on
+    // a de-duped state.
+    if (state.orders.isEmpty) {
+      emit(state.copyWith(status: OrdersStatus.loading, clearError: true));
+    }
     try {
-      final list = await _repo.list();
-      emit(state.copyWith(status: OrdersStatus.ready, orders: list));
+      final list = await _repo.list().timeout(_loadTimeout);
+      emit(
+        state.copyWith(
+          status: OrdersStatus.ready,
+          orders: list,
+          clearError: true,
+        ),
+      );
     } catch (e) {
-      emit(state.copyWith(status: OrdersStatus.failure, error: apiErrorMessage(e)));
+      if (state.orders.isNotEmpty) {
+        // Graceful: keep the list visible, surface the error as a top-toast.
+        emit(state.copyWith(error: apiErrorMessage(e)));
+      } else {
+        emit(
+          state.copyWith(
+            status: OrdersStatus.failure,
+            error: apiErrorMessage(e),
+          ),
+        );
+      }
     }
   }
 }

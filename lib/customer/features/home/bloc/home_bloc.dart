@@ -107,6 +107,14 @@ class HomeBloc extends Bloc<HomeEvent, HomeState>
   @override
   void onLocaleChanged() => add(const HomeRequested(refresh: true));
 
+  // Tier 3 of the network-UX flow: a hard 5s ceiling on the load. Shorter than
+  // Dio's 15s connect / 30s receive timeouts so a dead connection surfaces the
+  // blocking modal fast instead of spinning for 30s. This *races* the request —
+  // it does not cancel the underlying Dio call, which runs to completion in the
+  // background (its late result is discarded, though CachedProductDataSource
+  // still writes it to the cache for next time).
+  static const Duration _loadTimeout = Duration(seconds: 5);
+
   Future<void> _onRequested(
     HomeRequested event,
     Emitter<HomeState> emit,
@@ -118,6 +126,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState>
     final cachedBanners = _bannerRepo.peek();
     final cachedRecommended = _productSource.peekRecommended();
     final hasCache = cachedBanners != null && cachedRecommended != null;
+    final hasData = state.banners.isNotEmpty || state.recommended.isNotEmpty;
     if (hasCache && !event.refresh) {
       emit(
         state.copyWith(
@@ -127,7 +136,13 @@ class HomeBloc extends Bloc<HomeEvent, HomeState>
           clearError: true,
         ),
       );
-    } else if (!event.refresh) {
+    } else if (!hasData) {
+      // Tier 2 — nothing on screen: show the shimmer. We emit `loading` even on
+      // a refresh (e.g. the retry fired from the blocking modal) so the attempt
+      // is observable: it drives the modal's button spinner, and — because Bloc
+      // de-dupes identical states via Equatable — it guarantees a *repeated*
+      // failure still re-emits (failure → loading → failure) instead of being
+      // swallowed, which would otherwise hang the spinner forever.
       emit(state.copyWith(status: HomeStatus.loading, clearError: true));
     }
 
@@ -135,7 +150,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState>
       final results = await Future.wait([
         _bannerRepo.list(),
         _productSource.listAll(limit: 10),
-      ]);
+      ]).timeout(_loadTimeout);
 
       emit(
         state.copyWith(
@@ -154,7 +169,9 @@ class HomeBloc extends Bloc<HomeEvent, HomeState>
       if (hasCache || state.status == HomeStatus.ready) {
         emit(state.copyWith(error: apiErrorMessage(e)));
       } else {
-        emit(state.copyWith(status: HomeStatus.failure, error: apiErrorMessage(e)));
+        emit(
+          state.copyWith(status: HomeStatus.failure, error: apiErrorMessage(e)),
+        );
       }
     }
   }

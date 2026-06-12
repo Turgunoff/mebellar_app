@@ -138,19 +138,62 @@ void main() {
   });
 
   blocTest<HomeBloc, HomeState>(
-    'a refresh HomeRequested does NOT re-emit the loading state',
+    'a refresh on a POPULATED feed does NOT re-emit the loading state',
     build: () {
       when(bannerRepo.list).thenAnswer((_) async => [_banner('b1')]);
       when(() => productSource.listAll(limit: any(named: 'limit')))
           .thenAnswer((_) async => [_sp('p1')]);
       return build();
     },
-    seed: () => const HomeState(status: HomeStatus.ready),
+    seed: () => HomeState(
+      status: HomeStatus.ready,
+      banners: [_banner('b0')],
+      recommended: [_sp('p0')],
+    ),
     act: (bloc) => bloc.add(const HomeRequested(refresh: true)),
     expect: () => [
       isA<HomeState>()
           .having((s) => s.status, 'status', HomeStatus.ready)
           .having((s) => s.banners.length, 'banners', 1),
+    ],
+  );
+
+  // Tier 3 — the blocking modal's "Try Again". With nothing on screen, a
+  // refresh re-emits `loading` so the modal's button can show its spinner.
+  blocTest<HomeBloc, HomeState>(
+    'a retry with nothing on screen re-emits loading (drives the modal spinner)',
+    build: () {
+      when(bannerRepo.list).thenAnswer((_) async => [_banner('b1')]);
+      when(() => productSource.listAll(limit: any(named: 'limit')))
+          .thenAnswer((_) async => [_sp('p1')]);
+      return build();
+    },
+    seed: () => const HomeState(status: HomeStatus.failure),
+    act: (bloc) => bloc.add(const HomeRequested(refresh: true)),
+    expect: () => [
+      isA<HomeState>().having((s) => s.status, 'status', HomeStatus.loading),
+      isA<HomeState>()
+          .having((s) => s.status, 'status', HomeStatus.ready)
+          .having((s) => s.banners.length, 'banners', 1),
+    ],
+  );
+
+  // The Equatable-dedup guard: a retry that fails again must still surface a
+  // state transition (failure → loading → failure) so the modal's spinner
+  // resets instead of hanging on a swallowed duplicate `failure`.
+  blocTest<HomeBloc, HomeState>(
+    'a retry that fails again re-emits via loading so the spinner resets',
+    build: () {
+      when(bannerRepo.list).thenThrow(Exception('still down'));
+      when(() => productSource.listAll(limit: any(named: 'limit')))
+          .thenAnswer((_) async => const <ProductModel>[]);
+      return build();
+    },
+    seed: () => const HomeState(status: HomeStatus.failure, error: 'err'),
+    act: (bloc) => bloc.add(const HomeRequested(refresh: true)),
+    expect: () => [
+      isA<HomeState>().having((s) => s.status, 'status', HomeStatus.loading),
+      isA<HomeState>().having((s) => s.status, 'status', HomeStatus.failure),
     ],
   );
 }

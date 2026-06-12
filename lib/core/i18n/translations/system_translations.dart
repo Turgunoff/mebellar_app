@@ -56,6 +56,30 @@ const Map<String, dynamic> offlineEn = {
   'toggle_offline': 'Offline — the banner shows, cache fallback is used',
 };
 
+// Blocking "no connection" gate (FlashscoreNetworkModal) — shown only when a
+// critical fetch fails AND there is no cached data to fall back on. The retry
+// button reuses `common.retry`.
+const Map<String, dynamic> networkModalUz = {
+  'title': 'Internetga ulanib bo\'lmadi',
+  'message':
+      'Ma\'lumotlarni yuklab bo\'lmadi. Internet aloqangizni tekshirib, '
+      'qayta urinib ko\'ring.',
+};
+
+const Map<String, dynamic> networkModalRu = {
+  'title': 'Нет подключения к интернету',
+  'message':
+      'Не удалось загрузить данные. Проверьте подключение к интернету и '
+      'попробуйте снова.',
+};
+
+const Map<String, dynamic> networkModalEn = {
+  'title': 'No internet connection',
+  'message':
+      'We couldn\'t load the latest data. Check your internet connection and '
+      'try again.',
+};
+
 const Map<String, dynamic> deepLinksUz = {
   'tester_title': 'Deep link tekshiruvi',
   'tester_hint':

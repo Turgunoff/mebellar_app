@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import '../i18n/i18n.dart';
 import 'api_error.dart';
 
@@ -16,5 +18,8 @@ String apiErrorMessage(Object error) {
     if (error.status >= 500) return tr('error.server');
     return tr('error.unknown');
   }
+  // A bloc-level `.timeout(...)` (e.g. the home feed's 5s ceiling) throws this;
+  // treat it as a connectivity problem, not a generic crash.
+  if (error is TimeoutException) return tr('error.network');
   return tr('error.unknown');
 }

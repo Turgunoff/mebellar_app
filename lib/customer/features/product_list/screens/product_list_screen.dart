@@ -15,6 +15,7 @@ import '../../../features/favorites/bloc/favorites_bloc.dart';
 import '../../../widgets/filter/active_filters_bar.dart';
 import '../../../widgets/filter/filter_button.dart';
 import '../../../widgets/glass_bottom_nav.dart';
+import '../../../widgets/network_error_gate.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../../search/widgets/search_filter_sheet.dart';
 import '../cubit/product_list_cubit.dart';
@@ -67,9 +68,16 @@ class ProductListScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: pt.background,
-      body: BlocBuilder<ProductListCubit, ProductListState>(
-        builder: (context, state) {
-          if (state.status == ProductListStatus.failure) {
+      body: NetworkErrorGate<ProductListCubit, ProductListState>(
+        isCritical: (s) =>
+            s.status == ProductListStatus.failure && s.products.isEmpty,
+        isRecovered: (s) => s.status == ProductListStatus.loaded,
+        isRetrying: (s) => s.status == ProductListStatus.loading,
+        onRetry: (cubit) =>
+            cubit.load(categoryId: categoryId, subcategoryId: subcategoryId),
+        child: BlocBuilder<ProductListCubit, ProductListState>(
+          builder: (context, state) {
+            if (state.status == ProductListStatus.failure) {
             return _ErrorView(
               message: state.error ?? '',
               onRetry: () => context.read<ProductListCubit>().load(
@@ -124,6 +132,7 @@ class ProductListScreen extends StatelessWidget {
             ],
           );
         },
+        ),
       ),
     );
   }

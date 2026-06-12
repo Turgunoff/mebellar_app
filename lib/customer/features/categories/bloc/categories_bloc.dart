@@ -102,6 +102,10 @@ class CategoriesBloc extends Bloc<CategoriesEvent, CategoriesState>
   @override
   void onLocaleChanged() => add(const CategoriesRequested(refresh: true));
 
+  // Hard 5s ceiling — mirrors HomeBloc so a dead connection surfaces the
+  // blocking modal fast instead of waiting out Dio's 30s receive timeout.
+  static const Duration _loadTimeout = Duration(seconds: 5);
+
   Future<void> _onRequested(
     CategoriesRequested event,
     Emitter<CategoriesState> emit,
@@ -126,7 +130,7 @@ class CategoriesBloc extends Bloc<CategoriesEvent, CategoriesState>
     }
 
     try {
-      final categories = await _source.list();
+      final categories = await _source.list().timeout(_loadTimeout);
       emit(
         state.copyWith(
           status: CategoriesStatus.ready,

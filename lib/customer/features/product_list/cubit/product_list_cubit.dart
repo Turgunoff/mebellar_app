@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -79,6 +81,10 @@ class ProductListCubit extends Cubit<ProductListState> {
 
   String _categoryId = '';
 
+  // Hard 5s ceiling — mirrors HomeBloc so a dead connection surfaces the
+  // blocking modal fast instead of waiting out Dio's 30s receive timeout.
+  static const Duration _loadTimeout = Duration(seconds: 5);
+
   /// First-load entry point. Pulls both the category list (to discover the
   /// current category's subcategories) and the product list in parallel so
   /// the chip bar and grid arrive together — avoiding a flash of "no chips"
@@ -132,7 +138,7 @@ class ProductListCubit extends Cubit<ProductListState> {
           filter: state.filter,
         ),
         _categorySource.list(),
-      ]);
+      ]).timeout(_loadTimeout);
       if (isClosed) return;
       final products = results[0] as List<ProductModel>;
       final categories = results[1] as List<CategoryModel>;
@@ -206,11 +212,13 @@ class ProductListCubit extends Cubit<ProductListState> {
       ),
     );
     try {
-      final products = await _productSource.listByCategory(
-        categoryId: _categoryId,
-        subcategoryId: subcategoryId,
-        filter: filter,
-      );
+      final products = await _productSource
+          .listByCategory(
+            categoryId: _categoryId,
+            subcategoryId: subcategoryId,
+            filter: filter,
+          )
+          .timeout(_loadTimeout);
       // The user may have tapped another chip or tweaked the filter while
       // this request was in flight — drop the result if so, otherwise the
       // grid would briefly show stale data from the wrong selection.

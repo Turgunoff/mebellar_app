@@ -12,6 +12,7 @@ import '../../../../shared/models/multilingual_text.dart';
 import '../../../../shared/models/product.dart';
 import '../../../customer_app.dart';
 import '../../../widgets/glass_bottom_nav.dart';
+import '../../../widgets/network_error_gate.dart';
 import '../../categories/bloc/categories_bloc.dart';
 import '../../favorites/bloc/favorites_bloc.dart';
 import '../../notifications/cubit/notifications_cubit.dart';
@@ -34,86 +35,98 @@ class HomeScreen extends StatelessWidget {
       value: sl<NotificationsCubit>(),
       child: ColoredBox(
         color: pt.background,
-        child: BlocBuilder<HomeBloc, HomeState>(
-          buildWhen: (a, b) => a.status != b.status,
-          builder: (context, state) {
-            final showError =
-                state.status == HomeStatus.failure &&
-                state.banners.isEmpty &&
-                state.recommended.isEmpty;
+        child: NetworkErrorGate<HomeBloc, HomeState>(
+          isActive: (ctx) => CustomerShellScope.of(ctx).index == 0,
+          isCritical: (s) =>
+              s.status == HomeStatus.failure &&
+              s.banners.isEmpty &&
+              s.recommended.isEmpty,
+          isRecovered: (s) => s.status == HomeStatus.ready,
+          isRetrying: (s) => s.status == HomeStatus.loading,
+          onRetry: (bloc) => bloc.add(const HomeRequested(refresh: true)),
+          backgroundError: (s) =>
+              s.status == HomeStatus.ready && s.error != null ? s.error : null,
+          child: BlocBuilder<HomeBloc, HomeState>(
+            buildWhen: (a, b) => a.status != b.status,
+            builder: (context, state) {
+              final showError =
+                  state.status == HomeStatus.failure &&
+                  state.banners.isEmpty &&
+                  state.recommended.isEmpty;
 
-            if (showError) {
+              if (showError) {
+                return CustomScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  slivers: [
+                    const _HomeAppBar(),
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(0, 20, 0, 0),
+                        child: const _PremiumSearchBar(),
+                      ),
+                    ),
+                    SliverFillRemaining(
+                      child: _HomeErrorState(
+                        onRetry: () => context.read<HomeBloc>().add(
+                          const HomeRequested(refresh: true),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              }
+
               return CustomScrollView(
                 physics: const BouncingScrollPhysics(),
                 slivers: [
                   const _HomeAppBar(),
                   SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(0, 20, 0, 0),
-                      child: const _PremiumSearchBar(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 20),
+                        const _PremiumSearchBar(),
+                        const SizedBox(height: 28),
+                        BlocBuilder<HomeBloc, HomeState>(
+                          buildWhen: (prev, curr) =>
+                              prev.status != curr.status ||
+                              prev.banners != curr.banners,
+                          builder: (context, s) {
+                            if (s.status == HomeStatus.loading ||
+                                s.status == HomeStatus.initial) {
+                              return const GlassBannerShimmer();
+                            }
+                            final banners = s.banners.isNotEmpty
+                                ? s.banners
+                                : _fallbackBanners;
+                            return GlassBanner(banners: banners);
+                          },
+                        ),
+                        const SizedBox(height: 32),
+                        _SectionHeader(
+                          title: tr('home.categories'),
+                          actionLabel: tr('home.see_all'),
+                          onAction: () =>
+                              CustomerShellScope.of(context).goToTab(1),
+                        ),
+                        const SizedBox(height: 16),
+                        const _CategoriesRow(),
+                        const SizedBox(height: 32),
+                        _SectionHeader(title: tr('home.recommended')),
+                        const SizedBox(height: 16),
+                      ],
                     ),
                   ),
-                  SliverFillRemaining(
-                    child: _HomeErrorState(
-                      onRetry: () => context.read<HomeBloc>().add(
-                        const HomeRequested(refresh: true),
-                      ),
+                  const _RecommendedGrid(),
+                  SliverToBoxAdapter(
+                    child: SizedBox(
+                      height: GlassBottomNav.reservedHeight(context) + 24,
                     ),
                   ),
                 ],
               );
-            }
-
-            return CustomScrollView(
-              physics: const BouncingScrollPhysics(),
-              slivers: [
-                const _HomeAppBar(),
-                SliverToBoxAdapter(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 20),
-                      const _PremiumSearchBar(),
-                      const SizedBox(height: 28),
-                      BlocBuilder<HomeBloc, HomeState>(
-                        buildWhen: (prev, curr) =>
-                            prev.status != curr.status ||
-                            prev.banners != curr.banners,
-                        builder: (context, s) {
-                          if (s.status == HomeStatus.loading ||
-                              s.status == HomeStatus.initial) {
-                            return const GlassBannerShimmer();
-                          }
-                          final banners = s.banners.isNotEmpty
-                              ? s.banners
-                              : _fallbackBanners;
-                          return GlassBanner(banners: banners);
-                        },
-                      ),
-                      const SizedBox(height: 32),
-                      _SectionHeader(
-                        title: tr('home.categories'),
-                        actionLabel: tr('home.see_all'),
-                        onAction: () =>
-                            CustomerShellScope.of(context).goToTab(1),
-                      ),
-                      const SizedBox(height: 16),
-                      const _CategoriesRow(),
-                      const SizedBox(height: 32),
-                      _SectionHeader(title: tr('home.recommended')),
-                      const SizedBox(height: 16),
-                    ],
-                  ),
-                ),
-                const _RecommendedGrid(),
-                SliverToBoxAdapter(
-                  child: SizedBox(
-                    height: GlassBottomNav.reservedHeight(context) + 24,
-                  ),
-                ),
-              ],
-            );
-          },
+            },
+          ),
         ),
       ),
     );
@@ -602,7 +615,6 @@ class _RecommendedGrid extends StatelessWidget {
     final formatted = NumberFormat('#,##0', 'en_US').format(price);
     return '$formatted UZS';
   }
-
 
   @override
   Widget build(BuildContext context) {
