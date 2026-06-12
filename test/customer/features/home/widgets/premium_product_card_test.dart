@@ -12,10 +12,9 @@ void main() {
     home: Scaffold(body: Center(child: child)),
   );
 
-  testWidgets('fixed-aspect cell: discount + quick-add render, no overflow', (
+  testWidgets('fixed-aspect cell: discount + full price render, no overflow', (
     tester,
   ) async {
-    var added = 0;
     await tester.pumpWidget(
       wrap(
         SizedBox(
@@ -28,7 +27,6 @@ void main() {
             price: '6,292,203 UZS',
             oldPrice: '6,991,337 UZS',
             discountPercent: 10,
-            onAddToCart: () => added++,
           ),
         ),
       ),
@@ -36,19 +34,20 @@ void main() {
     await tester.pump();
 
     expect(tester.takeException(), isNull);
+    // Both prices render in full — the FittedBox scales them down to fit the
+    // freed-up width instead of clipping to "6,292,203 …".
     expect(find.text('6,292,203 UZS'), findsOneWidget);
     expect(
       find.text('6,991,337 UZS'),
       findsOneWidget,
     ); // strikethrough original
     expect(find.text('-10%'), findsOneWidget);
-
-    await tester.tap(find.byIcon(Icons.add_rounded));
-    expect(added, 1);
+    // Quick-add was removed; tapping the card opens the detail screen instead.
+    expect(find.byIcon(Icons.add_rounded), findsNothing);
   });
 
-  testWidgets('masonry mode: renders, hides empty subtitle and the + when '
-      'no add callback', (tester) async {
+  testWidgets('masonry mode: renders, hides empty subtitle and shows no '
+      'quick-add', (tester) async {
     await tester.pumpWidget(
       wrap(
         SizedBox(

@@ -52,9 +52,39 @@ class WoodyProductRepository extends ProductDataSource {
   }
 
   @override
-  Future<List<ProductModel>> listAll({int limit = 10}) {
-    return _listRequest({'sort': 'newest', 'limit': limit});
+  Future<ProductFeedPage> listFeed({
+    int limit = kHomeFeedPageSize,
+    int offset = 0,
+    HomeFeedSort sort = HomeFeedSort.recommended,
+  }) async {
+    final body = await _api.get<Map<String, dynamic>>(
+      _basePath,
+      query: {
+        'sort': _feedSortParam(sort),
+        'limit': limit,
+        'offset': offset,
+      },
+      retries: 2,
+    );
+    final rows = body['rows'];
+    final items = rows is List
+        ? rows
+              .whereType<Map<String, dynamic>>()
+              .map(ProductModel.fromJson)
+              .toList(growable: false)
+        : const <ProductModel>[];
+    // Fall back to `items.length` when the backend omits the total so the
+    // feed treats a short page as the last one rather than looping forever.
+    final total = (body['total'] as num?)?.toInt() ?? items.length;
+    return ProductFeedPage(items: items, total: total);
   }
+
+  String _feedSortParam(HomeFeedSort sort) => switch (sort) {
+    HomeFeedSort.recommended => 'recommended',
+    HomeFeedSort.popular => 'popular',
+    HomeFeedSort.discount => 'discount',
+    HomeFeedSort.newest => 'newest',
+  };
 
   @override
   Future<List<ProductModel>> search(

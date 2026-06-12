@@ -1,4 +1,43 @@
+import 'package:equatable/equatable.dart';
+
 import '../models/product_model.dart';
+
+/// Page size for the home feed's infinite scroll. The first page and every
+/// subsequent [ProductDataSource.listFeed] fetch pull this many rows.
+const int kHomeFeedPageSize = 15;
+
+/// Ordering strategies the home "Siz uchun tavsiya" feed can request. These map
+/// to the backend `sort` values added for the curated feed — distinct from the
+/// in-category [ProductSearchSort] facet so the feed's options (recommended /
+/// popular / discount) don't leak into the filter sheet.
+enum HomeFeedSort {
+  /// Curated default — in-stock, then discounted, then most-ordered, then new.
+  recommended,
+
+  /// Highest all-time order volume first ("Eng ommabop").
+  popular,
+
+  /// Deepest discount first ("Chegirmalilar oldin").
+  discount,
+
+  /// Newest products first.
+  newest,
+}
+
+/// One page of the catalog feed plus the catalog-wide [total], so the caller
+/// can tell whether more pages remain (`offset + items.length < total`).
+class ProductFeedPage extends Equatable {
+  const ProductFeedPage({required this.items, required this.total});
+
+  /// Empty page — the canonical "nothing here" result.
+  static const empty = ProductFeedPage(items: [], total: 0);
+
+  final List<ProductModel> items;
+  final int total;
+
+  @override
+  List<Object?> get props => [items, total];
+}
 
 /// Ordering options accepted by [ProductDataSource.search]. The search
 /// feature renders one of these by default and lets the user pick a different
@@ -135,9 +174,14 @@ abstract class ProductDataSource {
   });
   Future<ProductModel> getById(String id);
 
-  /// Newest-first products across the catalog. Used by the Home screen's
-  /// "Recommended for you" rail until we have a real recs engine.
-  Future<List<ProductModel>> listAll({int limit = 10});
+  /// A page of the home "Siz uchun tavsiya" feed, ordered by [sort]. Drives
+  /// the feed's infinite scroll: page N is `offset = N * limit`. Returns the
+  /// catalog-wide [ProductFeedPage.total] so the caller knows when to stop.
+  Future<ProductFeedPage> listFeed({
+    int limit = kHomeFeedPageSize,
+    int offset = 0,
+    HomeFeedSort sort = HomeFeedSort.recommended,
+  });
 
   /// Case-insensitive `ilike` over name + description, narrowed by [filter].
   /// An empty [query] is allowed when [filter] is non-empty, so the user can
@@ -156,11 +200,11 @@ abstract class ProductDataSource {
     int limit = 10,
   });
 
-  /// Synchronous read of the cached recommended-products rail (same shape
-  /// `listAll(limit: 10)` returns). Returns `null` on cache miss or for
-  /// non-caching implementations. The home bloc uses this to paint the rail
+  /// Synchronous read of the cached first feed page (offset 0, default
+  /// [HomeFeedSort.recommended] sort). Returns `null` on cache miss or for
+  /// non-caching implementations. The home bloc uses this to paint the feed
   /// at 0 ms on cold start before the backend RTT lands.
-  List<ProductModel>? peekRecommended() => null;
+  ProductFeedPage? peekFeed() => null;
 
   /// Synchronous read of a previously-fetched single product. Returns null
   /// on cache miss. The product-detail bloc uses this to render the page
@@ -326,11 +370,25 @@ class MockProductDataSource extends ProductDataSource {
   }
 
   @override
-  Future<List<ProductModel>> listAll({int limit = 10}) async {
+  Future<ProductFeedPage> listFeed({
+    int limit = kHomeFeedPageSize,
+    int offset = 0,
+    HomeFeedSort sort = HomeFeedSort.recommended,
+  }) async {
     await Future<void>.delayed(_delay);
-    final sorted = [..._all]
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    return sorted.take(limit).toList(growable: false);
+    final sorted = [..._all];
+    switch (sort) {
+      case HomeFeedSort.recommended:
+      case HomeFeedSort.newest:
+        sorted.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      case HomeFeedSort.popular:
+        // No order history in the mock — proxy popularity by stock depth.
+        sorted.sort((a, b) => b.stock.compareTo(a.stock));
+      case HomeFeedSort.discount:
+        sorted.sort((a, b) => b.discountPercent.compareTo(a.discountPercent));
+    }
+    final page = sorted.skip(offset).take(limit).toList(growable: false);
+    return ProductFeedPage(items: page, total: sorted.length);
   }
 
   @override

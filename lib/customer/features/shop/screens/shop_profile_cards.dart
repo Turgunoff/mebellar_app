@@ -25,7 +25,6 @@ class _ShopProductCard extends StatelessWidget {
         onFavoriteToggle: () => context.read<FavoritesBloc>().add(
           FavoriteToggled(Product.fromModel(product)),
         ),
-        onAddToCart: () => quickAddToCart(context, product),
       ),
     );
   }

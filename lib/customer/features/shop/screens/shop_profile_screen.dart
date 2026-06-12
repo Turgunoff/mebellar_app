@@ -19,7 +19,6 @@ import '../../../../shared/repositories/shop_repository.dart';
 import '../../../../shared/sharing/shop_share.dart';
 import '../../home/widgets/premium/premium_product_card.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
-import '../../cart/quick_add.dart';
 import '../../favorites/bloc/favorites_bloc.dart';
 import '../cubit/shop_profile_cubit.dart';
 

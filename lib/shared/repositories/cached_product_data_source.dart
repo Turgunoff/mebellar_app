@@ -8,8 +8,9 @@ import 'product_data_source.dart';
 /// Caches a deliberately narrow set of the read methods — only the calls
 /// where the cache key space is bounded and re-visit probability is high:
 ///
-///   * [listAll] — the home recommended rail. One key, fixed limit. High
-///     re-visit on every cold start.
+///   * [listFeed] — the home feed's first page (offset 0, default sort). One
+///     key, fixed page size. High re-visit on every cold start. Deeper pages
+///     and non-default sorts skip the cache.
 ///   * [getById] — single product detail. Bounded by product count. Hit on
 ///     deep-link, cart→detail navigation, favourites→detail.
 ///   * [listSimilar] — sibling carousel on the detail page. Bounded by
@@ -68,13 +69,25 @@ class CachedProductDataSource extends ProductDataSource {
         .toList(growable: false);
   }
 
+  ProductFeedPage? _decodeFeed(dynamic decoded) {
+    if (decoded is! Map) return null;
+    final items = decoded['items'];
+    if (items is! List) return null;
+    final products = items
+        .whereType<Map>()
+        .map((m) => ProductModel.fromJson(Map<String, dynamic>.from(m)))
+        .toList(growable: false);
+    final total = (decoded['total'] as num?)?.toInt() ?? products.length;
+    return ProductFeedPage(items: products, total: total);
+  }
+
   @override
-  List<ProductModel>? peekRecommended() {
-    // The bloc only ever requests the default limit (10), so we don't bother
-    // varying the key by limit — saves duplicating identical pages.
-    return _cache.getJson<List<ProductModel>>(
-      '${_kRecommended}10',
-      _decodeList,
+  ProductFeedPage? peekFeed() {
+    // Keyed by the fixed page size — the bloc always requests the first page
+    // at [kHomeFeedPageSize], so one entry covers the cold-start paint.
+    return _cache.getJson<ProductFeedPage?>(
+      '$_kRecommended$kHomeFeedPageSize',
+      _decodeFeed,
     );
   }
 
@@ -100,27 +113,43 @@ class CachedProductDataSource extends ProductDataSource {
   }
 
   @override
-  Future<List<ProductModel>> listAll({int limit = 10}) async {
+  Future<ProductFeedPage> listFeed({
+    int limit = kHomeFeedPageSize,
+    int offset = 0,
+    HomeFeedSort sort = HomeFeedSort.recommended,
+  }) async {
+    // Only the first page of the default curated feed is cacheable — that's the
+    // cold-start paint. Deeper pages (infinite scroll) and non-default sorts
+    // fall through to the network so the cache stays a single entry.
+    final cacheable = offset == 0 && sort == HomeFeedSort.recommended;
+    if (!cacheable) {
+      return _inner.listFeed(limit: limit, offset: offset, sort: sort);
+    }
+
     final key = '$_kRecommended$limit';
     try {
-      final fresh = await _inner.listAll(limit: limit);
+      final fresh = await _inner.listFeed(
+        limit: limit,
+        offset: offset,
+        sort: sort,
+      );
       _cache.putJson(
         key,
-        fresh.map((p) => p.toJson()).toList(),
+        {
+          'items': fresh.items.map((p) => p.toJson()).toList(),
+          'total': fresh.total,
+        },
         ttl: _ttlRecommended,
       );
       return fresh;
     } catch (e, st) {
-      final cached = _cache.getJson<List<ProductModel>>(
-        key,
-        _decodeList,
-      );
-      if (cached != null && cached.isNotEmpty) {
+      final cached = _cache.getJson<ProductFeedPage?>(key, _decodeFeed);
+      if (cached != null && cached.items.isNotEmpty) {
         talker.handle(
           e,
           st,
-          'CachedProductDataSource.listAll: network '
-          'failed, serving ${cached.length} cached items',
+          'CachedProductDataSource.listFeed: network '
+          'failed, serving ${cached.items.length} cached items',
         );
         return cached;
       }

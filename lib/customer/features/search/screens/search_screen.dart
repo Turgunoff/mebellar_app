@@ -18,7 +18,6 @@ import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/error_state.dart';
 import '../../../widgets/filter/active_filters_bar.dart';
 import '../../../widgets/filter/filter_button.dart';
-import '../../cart/quick_add.dart';
 import '../../favorites/bloc/favorites_bloc.dart';
 import '../../home/widgets/premium/premium_product_card.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
@@ -872,7 +871,6 @@ class _ResultsGrid extends StatelessWidget {
             onFavoriteToggle: () => context.read<FavoritesBloc>().add(
               FavoriteToggled(Product.fromModel(p)),
             ),
-            onAddToCart: () => quickAddToCart(context, p),
           ),
         );
       },

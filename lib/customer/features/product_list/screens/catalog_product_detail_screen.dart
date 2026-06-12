@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -17,8 +18,10 @@ import '../../../../shared/models/attribute_definition.dart';
 import '../../../../shared/models/product.dart';
 import '../../../../shared/models/review.dart';
 import '../../../../shared/models/product_model.dart';
+import '../../../../shared/models/shop_profile.dart';
 import '../../../../shared/repositories/customer_reviews_repository.dart';
 import '../../../../shared/repositories/product_data_source.dart';
+import '../../../../shared/repositories/shop_repository.dart';
 import '../../../../shared/sharing/product_share.dart';
 import '../../../../shared/widgets/star_rating.dart';
 // `AttributesRepository` is registered at root scope, so it resolves fine
@@ -37,6 +40,7 @@ import '../../../../seller/features/products/widgets/product_preview/preview_app
 import '../../../../seller/features/products/widgets/product_preview/spec_cards.dart';
 import '../../../features/cart/bloc/cart_bloc.dart';
 import '../../../features/favorites/bloc/favorites_bloc.dart';
+import '../../../navigation/product_escape_hatch.dart';
 import '../../../widgets/top_toast.dart';
 import '../../home/widgets/premium/premium_product_card.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
@@ -126,6 +130,12 @@ class _CatalogProductDetailScreenState
     extends State<CatalogProductDetailScreen> {
   final ScrollController _scrollController = ScrollController();
   double _titleOpacity = 0;
+
+  /// Context-aware escape-hatch decision, resolved once from the nav stack as
+  /// this screen mounts (the screens beneath it can't change while it's on top,
+  /// so the plan is stable for this instance). Drives the AppBar button's
+  /// icon + visibility; the tap re-resolves against the live stack.
+  ProductEscapePlan? _escapePlan;
 
   /// Attribute schema for this product's category — resolves raw JSONB keys
   /// into human labels. Empty while loading / on failure; the attributes
@@ -248,6 +258,12 @@ class _CatalogProductDetailScreenState
   @override
   Widget build(BuildContext context) {
     final product = widget.product;
+    final escapePlan = _escapePlan ??= resolveProductEscapePlan(
+      currentStackPaths(context),
+    );
+    final escapeLook = escapePlan.showHatch
+        ? escapeHatchLook(escapePlan)
+        : null;
     final description = product.description?.trim() ?? '';
     final attributes = product.attributes ?? const {};
     final attributeRows = _attributeRows(attributes);
@@ -286,6 +302,20 @@ class _CatalogProductDetailScreenState
                 titleOpacity: _titleOpacity,
                 onShare: () => shareProduct(product),
                 extraActions: [
+                  // Context-aware escape hatch — collapses a deep recommendation
+                  // rabbit hole straight back to the browsing surface the user
+                  // started from. Hidden until it earns its place (≥2 deep).
+                  if (escapeLook != null)
+                    Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: Tooltip(
+                        message: tr(escapeLook.tooltipKey),
+                        child: PreviewGlassIconButton(
+                          icon: escapeLook.icon,
+                          onTap: () => escapeProductRabbitHole(context),
+                        ),
+                      ),
+                    ),
                   Padding(
                     padding: const EdgeInsets.all(8),
                     child: BlocSelector<FavoritesBloc, FavoritesState, bool>(
@@ -324,7 +354,10 @@ class _CatalogProductDetailScreenState
                             }),
                           ),
                         if (shopName.isNotEmpty)
-                          _ShopCard(name: shopName, shopId: product.shopId),
+                          PremiumProductSellerCard(
+                            fallbackName: shopName,
+                            shopId: product.shopId,
+                          ),
                         if (hasMeta)
                           MetaCard(
                             category: categoryName.isEmpty ? '—' : categoryName,
@@ -593,79 +626,295 @@ class _TitlePriceCard extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Shop card
+// Seller card — premium, aligned with ShopProfileScreen
 // ═══════════════════════════════════════════════════════════════════════════
 
-class _ShopCard extends StatelessWidget {
-  const _ShopCard({required this.name, this.shopId});
+/// Verified-green and rating-gold status tints. Constant in both light & dark
+/// (a verified badge stays green everywhere) — these mirror the `_kVerified`
+/// green and rating gold used by `ShopProfileScreen`, kept local so this
+/// customer card never reaches into the seller colour tokens.
+const Color _kVerifiedGreen = Color(0xFF1F6B49);
+const Color _kRatingGold = Color(0xFFE8A33D);
 
-  final String name;
+/// Parses a `#RRGGBB` brand colour, falling back to the customer terracotta on
+/// null/blank/unparseable. Mirrors `shop_profile_cards._brandColor` so tapping
+/// from a product into a shop carries the same accent the shop header shows.
+Color _sellerBrandColor(String? hex) {
+  final raw = (hex ?? '').trim().replaceFirst('#', '');
+  if (raw.length == 6) {
+    final value = int.tryParse(raw, radix: 16);
+    if (value != null) return Color(0xFF000000 | value);
+  }
+  return AppColors.terracotta;
+}
 
-  /// Seller's shop id. When present, the card opens the public shop profile;
-  /// null (a dangling shop reference) leaves the card static.
+/// A legible on-surface variant of [brand]: very light brands (amber/lime) are
+/// darkened on a light card, near-black brands lifted in dark mode, so the
+/// chevron accent never washes out. Mirrors `shop_profile_cards._brandAccent`.
+Color _sellerBrandAccent(BuildContext context, Color brand) {
+  final isDark = Theme.of(context).brightness == Brightness.dark;
+  final lum = brand.computeLuminance();
+  if (!isDark && lum > 0.5) {
+    return Color.alphaBlend(Colors.black.withValues(alpha: 0.42), brand);
+  }
+  if (isDark && lum < 0.12) {
+    return Color.alphaBlend(Colors.white.withValues(alpha: 0.40), brand);
+  }
+  return brand;
+}
+
+/// Premium seller card on the product detail page. Paints instantly from the
+/// product's embedded shop name, then enriches itself with the full public
+/// profile (logo, verified badge, rating, bio, brand accent) fetched by
+/// [shopId]. Every enrichment degrades gracefully: a null/blank [shopId] or a
+/// failed fetch simply leaves the compact name-only card — never an error,
+/// never a spinner.
+class PremiumProductSellerCard extends StatefulWidget {
+  const PremiumProductSellerCard({
+    super.key,
+    required this.fallbackName,
+    this.shopId,
+  });
+
+  /// Shop name embedded in the product payload — shown immediately so the card
+  /// never flashes empty while the profile loads.
+  final String fallbackName;
+
+  /// Seller's shop id. When present the card is tappable (opens `/shop/:id`)
+  /// and fetches the public profile; a null/blank id (a dangling shop
+  /// reference) leaves a static, name-only card.
   final String? shopId;
 
   @override
+  State<PremiumProductSellerCard> createState() =>
+      _PremiumProductSellerCardState();
+}
+
+class _PremiumProductSellerCardState extends State<PremiumProductSellerCard> {
+  /// Full public profile once fetched. Null while loading OR after a failed
+  /// fetch — every read treats null as "show the compact card", so a transport
+  /// error degrades silently rather than surfacing.
+  ShopProfile? _profile;
+
+  bool get _tappable => (widget.shopId ?? '').trim().isNotEmpty;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_tappable) _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    final result = await sl<ShopRepository>().shopById(widget.shopId!.trim());
+    if (!mounted) return;
+    // Best-effort: an Err leaves _profile null and the card stays compact.
+    final profile = result.valueOrNull;
+    if (profile != null) setState(() => _profile = profile);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final pt = PremiumTokens.of(context);
-    final tappable = (shopId ?? '').isNotEmpty;
+    final profile = _profile;
+    final brand = _sellerBrandColor(profile?.brandColor);
+    final name = (profile?.name ?? '').trim().isNotEmpty
+        ? profile!.name
+        : widget.fallbackName;
+
     final row = Row(
       children: [
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: AppColors.terracotta.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Icon(
-            Iconsax.shop,
-            size: 21,
-            color: AppColors.terracotta,
-          ),
-        ),
-        const SizedBox(width: 12),
+        _SellerAvatar(logoUrl: profile?.logoUrl, brand: brand),
+        const SizedBox(width: 13),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Sotuvchi', style: _ts(size: 12, color: pt.grey)),
-              const SizedBox(height: 2),
-              Text(
-                name,
-                style: _ts(size: 14.5, weight: FontWeight.w600, color: pt.dark),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
+          child: _SellerInfo(profile: profile, name: name),
         ),
-        if (tappable) ...[
-          const SizedBox(width: 8),
-          Text(
-            'Profil',
-            style: _ts(
-              size: 12.5,
-              weight: FontWeight.w600,
-              color: AppColors.terracotta,
-            ),
-          ),
-          const Icon(
-            Iconsax.arrow_right_3,
-            size: 16,
-            color: AppColors.terracotta,
-          ),
+        if (_tappable) ...[
+          const SizedBox(width: 10),
+          _BrandChevron(accent: _sellerBrandAccent(context, brand)),
         ],
       ],
     );
 
-    if (!tappable) return _SectionCard(child: row);
+    if (!_tappable) return _SectionCard(child: row);
     return _SectionCard(
       child: InkWell(
-        onTap: () => context.push('/shop/$shopId'),
-        borderRadius: BorderRadius.circular(8),
+        onTap: () => context.push('/shop/${widget.shopId!.trim()}'),
+        borderRadius: BorderRadius.circular(12),
         child: row,
       ),
+    );
+  }
+}
+
+/// Logo plate — white circle + fine white border + soft circular drop shadow,
+/// scaled down from `ShopProfileScreen`'s hero `_Logo`. Falls back to a
+/// brand-tinted shop glyph when the seller set no logo (or it fails to load).
+class _SellerAvatar extends StatelessWidget {
+  const _SellerAvatar({required this.logoUrl, required this.brand});
+
+  final String? logoUrl;
+  final Color brand;
+
+  static const double _size = 52;
+
+  @override
+  Widget build(BuildContext context) {
+    final url = (logoUrl ?? '').trim();
+    return Container(
+      width: _size,
+      height: _size,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 3),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipOval(
+        child: url.isNotEmpty
+            ? CachedNetworkImage(
+                imageUrl: url,
+                fit: BoxFit.cover,
+                memCacheWidth: 160,
+                placeholder: (_, _) =>
+                    Container(color: brand.withValues(alpha: 0.12)),
+                errorWidget: (_, _, _) => _placeholder(),
+              )
+            : _placeholder(),
+      ),
+    );
+  }
+
+  Widget _placeholder() {
+    return Container(
+      color: brand.withValues(alpha: 0.12),
+      alignment: Alignment.center,
+      child: Icon(Iconsax.shop, size: _size * 0.42, color: brand),
+    );
+  }
+}
+
+/// Name + trust signals (verified badge, rating) + one-line bio. Each row is
+/// rendered only when its data is present, so an unenriched / sparse profile
+/// collapses cleanly instead of leaving empty gaps. The trust signals sit in a
+/// [Wrap] so a long verified+rating pair can never overflow on a narrow phone.
+class _SellerInfo extends StatelessWidget {
+  const _SellerInfo({required this.profile, required this.name});
+
+  final ShopProfile? profile;
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
+    final bio = profile?.description?.trim() ?? '';
+    final verified = profile?.isVerified ?? false;
+    final hasRating = profile?.hasRating ?? false;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text('Sotuvchi', style: _ts(size: 11.5, color: pt.grey, height: 1.1)),
+        const SizedBox(height: 3),
+        Text(
+          name,
+          style: _ts(
+            size: 15.5,
+            weight: FontWeight.w700,
+            color: pt.dark,
+            letterSpacing: -0.2,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        if (verified || hasRating) ...[
+          const SizedBox(height: 6),
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 9,
+            runSpacing: 4,
+            children: [
+              if (verified)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Iconsax.verify,
+                      size: 14,
+                      color: _kVerifiedGreen,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Tasdiqlangan',
+                      style: _ts(
+                        size: 12,
+                        weight: FontWeight.w600,
+                        color: _kVerifiedGreen,
+                      ),
+                    ),
+                  ],
+                ),
+              if (hasRating)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Iconsax.star_1, size: 14, color: _kRatingGold),
+                    const SizedBox(width: 4),
+                    Text(
+                      profile!.rating!.toStringAsFixed(1),
+                      style: _ts(
+                        size: 12.5,
+                        weight: FontWeight.w700,
+                        color: pt.dark,
+                      ),
+                    ),
+                    const SizedBox(width: 3),
+                    Text(
+                      '(${profile!.reviewCount})',
+                      style: _ts(size: 11.5, color: pt.grey),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+        ],
+        if (bio.isNotEmpty) ...[
+          const SizedBox(height: 5),
+          Text(
+            bio,
+            style: _ts(size: 12.5, color: pt.grey, height: 1.25),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Brand-tinted circular chevron — the modern trailing action that ties the
+/// product context into the seller's own brand ecosystem. [accent] is the
+/// contrast-adjusted brand colour from [_sellerBrandAccent].
+class _BrandChevron extends StatelessWidget {
+  const _BrandChevron({required this.accent});
+
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 34,
+      height: 34,
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.12),
+        shape: BoxShape.circle,
+      ),
+      child: Icon(Iconsax.arrow_right_3, size: 17, color: accent),
     );
   }
 }

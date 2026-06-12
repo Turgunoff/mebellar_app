@@ -18,6 +18,13 @@ const Map<String, dynamic> homeUz = {
       'Internet aloqasini tekshiring va qayta urinib ko\'ring.',
   'error_retry': 'Qayta urinish',
   'categories_error_title': 'Kategoriyalarni yuklab bo\'lmadi',
+  'view_grid': 'Katak ko\'rinish',
+  'view_list': 'Ro\'yxat ko\'rinish',
+  'sort_title': 'Saralash',
+  'sort_recommended': 'Tavsiya etilgan',
+  'sort_popular': 'Eng ommabop',
+  'sort_discount': 'Chegirmalilar oldin',
+  'sort_newest': 'Eng yangi',
 };
 
 const Map<String, dynamic> homeRu = {
@@ -37,6 +44,13 @@ const Map<String, dynamic> homeRu = {
   'error_subtitle': 'Проверьте подключение к интернету и попробуйте снова.',
   'error_retry': 'Повторить',
   'categories_error_title': 'Не удалось загрузить категории',
+  'view_grid': 'Сетка',
+  'view_list': 'Список',
+  'sort_title': 'Сортировка',
+  'sort_recommended': 'Рекомендуемые',
+  'sort_popular': 'Популярные',
+  'sort_discount': 'Сначала со скидкой',
+  'sort_newest': 'Сначала новые',
 };
 
 const Map<String, dynamic> homeEn = {
@@ -56,4 +70,11 @@ const Map<String, dynamic> homeEn = {
   'error_subtitle': 'Check your internet connection and try again.',
   'error_retry': 'Retry',
   'categories_error_title': 'Failed to load categories',
+  'view_grid': 'Grid view',
+  'view_list': 'List view',
+  'sort_title': 'Sort',
+  'sort_recommended': 'Recommended',
+  'sort_popular': 'Most popular',
+  'sort_discount': 'Biggest discount',
+  'sort_newest': 'Newest first',
 };

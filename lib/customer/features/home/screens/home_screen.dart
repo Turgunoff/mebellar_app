@@ -10,20 +10,41 @@ import '../../../../core/i18n/i18n.dart';
 import '../../../../shared/models/banner.dart';
 import '../../../../shared/models/multilingual_text.dart';
 import '../../../../shared/models/product.dart';
+import '../../../../shared/repositories/product_data_source.dart';
 import '../../../customer_app.dart';
 import '../../../widgets/glass_bottom_nav.dart';
 import '../../../widgets/network_error_gate.dart';
 import '../../categories/bloc/categories_bloc.dart';
-import '../../cart/quick_add.dart';
 import '../../favorites/bloc/favorites_bloc.dart';
 import '../../notifications/cubit/notifications_cubit.dart';
 import '../bloc/home_bloc.dart';
 import '../widgets/premium/glass_banner.dart';
 import '../widgets/premium/premium_product_card.dart';
+import '../widgets/premium/premium_product_list_card.dart';
 import '../widgets/premium/premium_tokens.dart';
 
-class HomeScreen extends StatelessWidget {
+/// Feed layout the user picks via the header toggle. Ephemeral UI state held in
+/// a [ValueNotifier] on [_HomeScreenState] — it resets on cold restart, which is
+/// fine for a presentation preference.
+enum HomeViewMode { grid, list }
+
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final ValueNotifier<HomeViewMode> _viewMode = ValueNotifier(
+    HomeViewMode.grid,
+  );
+
+  @override
+  void dispose() {
+    _viewMode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -77,54 +98,67 @@ class HomeScreen extends StatelessWidget {
                 );
               }
 
-              return CustomScrollView(
-                physics: const BouncingScrollPhysics(),
-                slivers: [
-                  const _HomeAppBar(),
-                  SliverToBoxAdapter(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 20),
-                        const _PremiumSearchBar(),
-                        const SizedBox(height: 28),
-                        BlocBuilder<HomeBloc, HomeState>(
-                          buildWhen: (prev, curr) =>
-                              prev.status != curr.status ||
-                              prev.banners != curr.banners,
-                          builder: (context, s) {
-                            if (s.status == HomeStatus.loading ||
-                                s.status == HomeStatus.initial) {
-                              return const GlassBannerShimmer();
-                            }
-                            final banners = s.banners.isNotEmpty
-                                ? s.banners
-                                : _fallbackBanners;
-                            return GlassBanner(banners: banners);
-                          },
+              // Rebuild the scroll view when the view mode flips so the feed
+              // sliver swaps between masonry grid and full-width list. Toggling
+              // is rare; banners/categories ride their own cached BlocBuilders,
+              // so the rebuild is cheap.
+              return ValueListenableBuilder<HomeViewMode>(
+                valueListenable: _viewMode,
+                builder: (context, viewMode, _) {
+                  return CustomScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    slivers: [
+                      const _HomeAppBar(),
+                      SliverToBoxAdapter(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 20),
+                            const _PremiumSearchBar(),
+                            const SizedBox(height: 28),
+                            BlocBuilder<HomeBloc, HomeState>(
+                              buildWhen: (prev, curr) =>
+                                  prev.status != curr.status ||
+                                  prev.banners != curr.banners,
+                              builder: (context, s) {
+                                if (s.status == HomeStatus.loading ||
+                                    s.status == HomeStatus.initial) {
+                                  return const GlassBannerShimmer();
+                                }
+                                final banners = s.banners.isNotEmpty
+                                    ? s.banners
+                                    : _fallbackBanners;
+                                return GlassBanner(banners: banners);
+                              },
+                            ),
+                            const SizedBox(height: 32),
+                            _SectionHeader(
+                              title: tr('home.categories'),
+                              actionLabel: tr('home.see_all'),
+                              onAction: () =>
+                                  CustomerShellScope.of(context).goToTab(1),
+                            ),
+                            const SizedBox(height: 16),
+                            const _CategoriesRow(),
+                            const SizedBox(height: 32),
+                            _RecommendedHeader(
+                              viewMode: viewMode,
+                              onViewModeChanged: (m) => _viewMode.value = m,
+                            ),
+                            const SizedBox(height: 16),
+                          ],
                         ),
-                        const SizedBox(height: 32),
-                        _SectionHeader(
-                          title: tr('home.categories'),
-                          actionLabel: tr('home.see_all'),
-                          onAction: () =>
-                              CustomerShellScope.of(context).goToTab(1),
+                      ),
+                      _RecommendedFeed(viewMode: viewMode),
+                      const _RecommendedFeedFooter(),
+                      SliverToBoxAdapter(
+                        child: SizedBox(
+                          height: GlassBottomNav.reservedHeight(context) + 24,
                         ),
-                        const SizedBox(height: 16),
-                        const _CategoriesRow(),
-                        const SizedBox(height: 32),
-                        _SectionHeader(title: tr('home.recommended')),
-                        const SizedBox(height: 16),
-                      ],
-                    ),
-                  ),
-                  const _RecommendedGrid(),
-                  SliverToBoxAdapter(
-                    child: SizedBox(
-                      height: GlassBottomNav.reservedHeight(context) + 24,
-                    ),
-                  ),
-                ],
+                      ),
+                    ],
+                  );
+                },
               );
             },
           ),
@@ -609,8 +643,161 @@ class _CategoriesRowSkeleton extends StatelessWidget {
 
 // ─────────────────────────── Recommended grid ───────────────────────────
 
-class _RecommendedGrid extends StatelessWidget {
-  const _RecommendedGrid();
+/// Section header for "Siz uchun tavsiya" — title + sort trigger + grid/list
+/// toggle. The toggle writes the parent's [ValueNotifier]; the sort trigger
+/// opens a bottom sheet that dispatches [HomeSortChanged].
+class _RecommendedHeader extends StatelessWidget {
+  const _RecommendedHeader({
+    required this.viewMode,
+    required this.onViewModeChanged,
+  });
+
+  final HomeViewMode viewMode;
+  final ValueChanged<HomeViewMode> onViewModeChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 16, 0),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              tr('home.recommended'),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: PremiumTokens.display(size: 22, letterSpacing: -0.3),
+            ),
+          ),
+          const SizedBox(width: 8),
+          const _SortButton(),
+          const SizedBox(width: 8),
+          _ViewModeToggle(viewMode: viewMode, onChanged: onViewModeChanged),
+        ],
+      ),
+    );
+  }
+}
+
+/// Subtle icon trigger that opens the sort bottom sheet. Shows a spinner in
+/// place of the icon while the feed is being re-sorted.
+class _SortButton extends StatelessWidget {
+  const _SortButton();
+
+  @override
+  Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
+    return BlocSelector<HomeBloc, HomeState, (HomeFeedSort, bool)>(
+      selector: (s) => (s.sort, s.feedReloading),
+      builder: (context, data) {
+        final (sort, reloading) = data;
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => _openSortSheet(context, sort),
+          child: Container(
+            width: 40,
+            height: 38,
+            decoration: BoxDecoration(
+              color: pt.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: pt.dark.withValues(alpha: 0.08)),
+            ),
+            child: Center(
+              child: reloading
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: PremiumTokens.accent,
+                      ),
+                    )
+                  : Icon(Icons.sort_rounded, size: 20, color: pt.dark),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Two-segment grid/list switch. The active segment lifts onto a surface chip;
+/// tapping the inactive one fires [onChanged].
+class _ViewModeToggle extends StatelessWidget {
+  const _ViewModeToggle({required this.viewMode, required this.onChanged});
+
+  final HomeViewMode viewMode;
+  final ValueChanged<HomeViewMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
+    return Container(
+      height: 38,
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: pt.imageBg,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _segment(
+            pt,
+            HomeViewMode.grid,
+            Icons.grid_view_rounded,
+            tr('home.view_grid'),
+          ),
+          _segment(
+            pt,
+            HomeViewMode.list,
+            Icons.view_agenda_rounded,
+            tr('home.view_list'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _segment(
+    PremiumTokens pt,
+    HomeViewMode mode,
+    IconData icon,
+    String tooltip,
+  ) {
+    final selected = viewMode == mode;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => onChanged(mode),
+      child: Tooltip(
+        message: tooltip,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          width: 38,
+          height: 32,
+          decoration: BoxDecoration(
+            color: selected ? pt.surface : Colors.transparent,
+            borderRadius: BorderRadius.circular(9),
+            boxShadow: selected ? PremiumTokens.softShadow : null,
+          ),
+          child: Icon(
+            icon,
+            size: 18,
+            color: selected ? PremiumTokens.accent : pt.grey,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The recommended feed — masonry grid or full-width list depending on
+/// [viewMode]. Both layouts share the favourite wiring, the detail-tap, and the
+/// near-end load-more trigger; only the card widget + sliver differ.
+class _RecommendedFeed extends StatelessWidget {
+  const _RecommendedFeed({required this.viewMode});
+
+  final HomeViewMode viewMode;
 
   static String _formatPrice(double price) {
     final formatted = NumberFormat('#,##0', 'en_US').format(price);
@@ -632,38 +819,226 @@ class _RecommendedGrid extends StatelessWidget {
         if (state.recommended.isEmpty) {
           return const SliverToBoxAdapter(child: _RecommendedEmpty());
         }
-        return SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
-          sliver: SliverMasonryGrid.count(
-            crossAxisCount: 2,
-            mainAxisSpacing: 16,
-            crossAxisSpacing: 16,
-            childCount: state.recommended.length,
-            itemBuilder: (context, i) {
-              final p = state.recommended[i];
-              return BlocSelector<FavoritesBloc, FavoritesState, bool>(
-                selector: (s) => s.isFavorite(p.id),
-                builder: (context, isFav) => PremiumProductCard(
-                  imageUrl: p.thumbnail ?? '',
-                  name: p.name,
-                  subtitle: p.description ?? '',
-                  price: _formatPrice(p.effectivePrice),
-                  oldPrice: p.hasDiscount ? _formatPrice(p.price) : null,
-                  discountPercent: p.discountPercent,
-                  isFavorite: isFav,
-                  customImageHeight: i.isEven ? 180.0 : 240.0,
-                  onTap: () =>
-                      context.push('/product-detail/${p.id}', extra: p),
-                  onFavoriteToggle: () => context.read<FavoritesBloc>().add(
-                    FavoriteToggled(Product.fromModel(p)),
-                  ),
-                  onAddToCart: () => quickAddToCart(context, p),
-                ),
-              );
-            },
-          ),
-        );
+        return viewMode == HomeViewMode.grid
+            ? _grid(state)
+            : _list(state);
       },
+    );
+  }
+
+  Widget _grid(HomeState state) {
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+      sliver: SliverMasonryGrid.count(
+        crossAxisCount: 2,
+        mainAxisSpacing: 16,
+        crossAxisSpacing: 16,
+        childCount: state.recommended.length,
+        itemBuilder: (context, i) {
+          _maybeLoadMore(context, state, i);
+          final p = state.recommended[i];
+          return BlocSelector<FavoritesBloc, FavoritesState, bool>(
+            selector: (s) => s.isFavorite(p.id),
+            builder: (context, isFav) => PremiumProductCard(
+              imageUrl: p.thumbnail ?? '',
+              name: p.name,
+              subtitle: p.description ?? '',
+              price: _formatPrice(p.effectivePrice),
+              oldPrice: p.hasDiscount ? _formatPrice(p.price) : null,
+              discountPercent: p.discountPercent,
+              isFavorite: isFav,
+              customImageHeight: i.isEven ? 180.0 : 240.0,
+              onTap: () => context.push('/product-detail/${p.id}', extra: p),
+              onFavoriteToggle: () => context.read<FavoritesBloc>().add(
+                FavoriteToggled(Product.fromModel(p)),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _list(HomeState state) {
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+      sliver: SliverList.separated(
+        itemCount: state.recommended.length,
+        separatorBuilder: (_, _) => const SizedBox(height: 14),
+        itemBuilder: (context, i) {
+          _maybeLoadMore(context, state, i);
+          final p = state.recommended[i];
+          return BlocSelector<FavoritesBloc, FavoritesState, bool>(
+            selector: (s) => s.isFavorite(p.id),
+            builder: (context, isFav) => PremiumProductListCard(
+              imageUrl: p.thumbnail ?? '',
+              name: p.name,
+              subtitle: p.description ?? '',
+              price: _formatPrice(p.effectivePrice),
+              oldPrice: p.hasDiscount ? _formatPrice(p.price) : null,
+              discountPercent: p.discountPercent,
+              isFavorite: isFav,
+              onTap: () => context.push('/product-detail/${p.id}', extra: p),
+              onFavoriteToggle: () => context.read<FavoritesBloc>().add(
+                FavoriteToggled(Product.fromModel(p)),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Spinner shown under the feed while the next page appends. Collapses to a
+/// hairline gap when idle.
+class _RecommendedFeedFooter extends StatelessWidget {
+  const _RecommendedFeedFooter();
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverToBoxAdapter(
+      child: BlocSelector<HomeBloc, HomeState, bool>(
+        selector: (s) => s.loadingMore,
+        builder: (context, loadingMore) {
+          if (!loadingMore) return const SizedBox(height: 4);
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 20),
+            child: Center(
+              child: SizedBox(
+                width: 26,
+                height: 26,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.4,
+                  color: PremiumTokens.accent,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Smart pre-fetch: as the user nears the end of the loaded page (within the
+/// last 5 items), enqueue the next page so a spinner rarely appears. The bloc
+/// guards `hasMore` / `loadingMore`, and the droppable transformer collapses the
+/// repeated triggers a fast scroll fires, so calling this every build is safe.
+void _maybeLoadMore(BuildContext context, HomeState state, int index) {
+  if (state.hasMore &&
+      !state.loadingMore &&
+      index >= state.recommended.length - 5) {
+    context.read<HomeBloc>().add(const HomeLoadMoreProducts());
+  }
+}
+
+String _sortLabel(HomeFeedSort sort) => switch (sort) {
+  HomeFeedSort.recommended => tr('home.sort_recommended'),
+  HomeFeedSort.popular => tr('home.sort_popular'),
+  HomeFeedSort.discount => tr('home.sort_discount'),
+  HomeFeedSort.newest => tr('home.sort_newest'),
+};
+
+Future<void> _openSortSheet(BuildContext context, HomeFeedSort current) async {
+  final pt = PremiumTokens.of(context);
+  final bloc = context.read<HomeBloc>();
+  final selected = await showModalBottomSheet<HomeFeedSort>(
+    context: context,
+    backgroundColor: pt.surface,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (_) => _SortSheet(current: current),
+  );
+  if (selected != null && selected != current) {
+    bloc.add(HomeSortChanged(selected));
+  }
+}
+
+class _SortSheet extends StatelessWidget {
+  const _SortSheet({required this.current});
+
+  final HomeFeedSort current;
+
+  @override
+  Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
+    return SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            margin: const EdgeInsets.only(top: 12, bottom: 8),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: pt.greyLight,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                tr('home.sort_title'),
+                style: PremiumTokens.display(size: 18, letterSpacing: -0.2),
+              ),
+            ),
+          ),
+          for (final option in HomeFeedSort.values)
+            _SortOption(
+              label: _sortLabel(option),
+              selected: option == current,
+              onTap: () => Navigator.of(context).pop(option),
+            ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+}
+
+class _SortOption extends StatelessWidget {
+  const _SortOption({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                style: PremiumTokens.body(
+                  size: 15,
+                  weight: selected ? FontWeight.w700 : FontWeight.w500,
+                  color: selected ? PremiumTokens.accent : pt.dark,
+                ),
+              ),
+            ),
+            if (selected)
+              const Icon(
+                Icons.check_rounded,
+                size: 20,
+                color: PremiumTokens.accent,
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -17,6 +17,11 @@ const Map<String, dynamic> productUz = {
   'share_text': 'Bu mebelni Woody’da ko‘ring 👇',
   'not_found': 'Mahsulot topilmadi yoki olib tashlangan.',
   'back_home': 'Bosh sahifaga',
+  'back_to_list': 'Ro\'yxatga qaytish',
+  'back_to_shop': 'Do\'konga qaytish',
+  'back_to_results': 'Qidiruvga qaytish',
+  'back_to_favorites': 'Sevimlilarga qaytish',
+  'back_to_browsing': 'Ko\'rib chiqishga qaytish',
 };
 
 const Map<String, dynamic> productRu = {
@@ -36,6 +41,11 @@ const Map<String, dynamic> productRu = {
   'share_text': 'Посмотрите эту мебель в Woody 👇',
   'not_found': 'Товар не найден или был удалён.',
   'back_home': 'На главную',
+  'back_to_list': 'Вернуться к списку',
+  'back_to_shop': 'Вернуться в магазин',
+  'back_to_results': 'Вернуться к поиску',
+  'back_to_favorites': 'Вернуться в избранное',
+  'back_to_browsing': 'Вернуться к просмотру',
 };
 
 const Map<String, dynamic> productEn = {
@@ -55,6 +65,11 @@ const Map<String, dynamic> productEn = {
   'share_text': 'Check out this furniture on Woody 👇',
   'not_found': 'Product not found or removed.',
   'back_home': 'Back to home',
+  'back_to_list': 'Back to list',
+  'back_to_shop': 'Back to shop',
+  'back_to_results': 'Back to results',
+  'back_to_favorites': 'Back to favorites',
+  'back_to_browsing': 'Back to browsing',
 };
 
 const Map<String, dynamic> attributesUz = {
