@@ -68,18 +68,22 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- App Links: open https://woody.uz/product/* directly in the
-                 app when installed. autoVerify makes Android fetch
-                 https://woody.uz/.well-known/assetlinks.json and, if the
+            <!-- App Links: open https://woody.uz/product/* and /shop/*
+                 directly in the app when installed. autoVerify makes Android
+                 fetch https://woody.uz/.well-known/assetlinks.json and, if the
                  signing-cert fingerprint matches, skip the disambiguation
                  chooser. The flutter_deeplinking_enabled meta-data below hands
-                 the inbound path to go_router. -->
+                 the inbound path to go_router. Within one intent-filter Android
+                 cross-products every host × pathPrefix, so all four combos
+                 (woody.uz|www.woody.uz × /product|/shop) match. -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="woody.uz" android:pathPrefix="/product" />
                 <data android:scheme="https" android:host="www.woody.uz" android:pathPrefix="/product" />
+                <data android:scheme="https" android:host="woody.uz" android:pathPrefix="/shop" />
+                <data android:scheme="https" android:host="www.woody.uz" android:pathPrefix="/shop" />
             </intent-filter>
         </activity>
 
