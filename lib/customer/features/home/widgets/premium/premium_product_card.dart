@@ -7,40 +7,64 @@ import 'package:shimmer/shimmer.dart';
 import '../../../../../shared/widgets/image_error_placeholder.dart';
 import 'premium_tokens.dart';
 
+/// Premium, conversion-optimised product card used across the customer browse
+/// surfaces (home masonry feed, search / shop / catalog grids, similar-products
+/// rail). Two layout modes share one content block:
+///
+/// - **Masonry** (`customImageHeight` set): the image is a fixed-height box and
+///   the card sizes to its intrinsic height — for `SliverMasonryGrid`.
+/// - **Fixed** (`customImageHeight` null): the image `Expanded`s to fill a
+///   bounded aspect-ratio cell; the content sizes to its natural height.
 class PremiumProductCard extends StatelessWidget {
   const PremiumProductCard({
     super.key,
     required this.imageUrl,
     required this.name,
-    required this.shop,
     required this.price,
+    this.subtitle = '',
+    this.oldPrice,
     this.discountPercent = 0,
+    this.rating,
+    this.reviewCount,
     this.isFavorite = false,
     this.onTap,
     this.onFavoriteToggle,
+    this.onAddToCart,
     this.customImageHeight,
   });
 
   final String imageUrl;
   final String name;
-  final String shop;
 
-  /// Effective (already discounted) price string shown prominently. The
-  /// struck-through original is intentionally not shown on the narrow card —
-  /// the corner `-X%` badge conveys the discount; the detail page shows both.
+  /// Effective (already-discounted) price string, shown prominently in the
+  /// brand accent colour.
   final String price;
 
-  /// Whole-percent discount for the corner badge; 0 hides the badge.
+  /// Thin grey secondary line (description / shop name). Hidden when empty.
+  final String subtitle;
+
+  /// Original list price, rendered struck-through above [price]. Pass it only
+  /// for a discounted product; null hides the strikethrough.
+  final String? oldPrice;
+
+  /// Whole-percent discount for the corner pill; 0 hides it.
   final int discountPercent;
+
+  /// Optional social proof. The rating row only renders when [rating] is
+  /// non-null — the product-feed payload carries no per-product rating yet, so
+  /// today it stays hidden until the backend supplies it.
+  final double? rating;
+  final int? reviewCount;
 
   final bool isFavorite;
   final VoidCallback? onTap;
   final VoidCallback? onFavoriteToggle;
 
-  /// When set, the image area is a fixed-height [SizedBox] and the card
-  /// sizes to its intrinsic height — required for masonry / staggered grids.
-  /// When null the card uses the original [Expanded]-based layout and expects
-  /// a fixed-height parent (e.g. a standard aspect-ratio grid cell).
+  /// When set, a circular brand-coloured "+" quick-add CTA appears in the price
+  /// row. Null hides it (e.g. the favourites grid / similar rail).
+  final VoidCallback? onAddToCart;
+
+  /// Fixed image height that switches the card into masonry mode.
   final double? customImageHeight;
 
   @override
@@ -92,115 +116,122 @@ class PremiumProductCard extends StatelessWidget {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(20),
           child: customImageHeight != null
-              ? _buildMasonryLayout(pt, imageStack)
-              : _buildFixedLayout(pt, imageStack),
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(height: customImageHeight, child: imageStack),
+                    _content(pt),
+                  ],
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(child: imageStack),
+                    _content(pt),
+                  ],
+                ),
         ),
       ),
     );
   }
 
-  /// Variable-height layout for masonry grids. The Column has no [Expanded]
-  /// children so it sizes to its natural content height.
-  Widget _buildMasonryLayout(PremiumTokens pt, Widget imageStack) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(height: customImageHeight, child: imageStack),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
+  /// The text/price block under the image — identical in both layout modes.
+  Widget _content(PremiumTokens pt) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            name,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: PremiumTokens.body(
+              size: 15,
+              weight: FontWeight.w700,
+              color: pt.dark,
+              height: 1.25,
+              letterSpacing: -0.2,
+            ),
+          ),
+          if (rating != null) ...[
+            const SizedBox(height: 5),
+            _RatingRow(rating: rating!, reviewCount: reviewCount, pt: pt),
+          ],
+          if (subtitle.isNotEmpty) ...[
+            const SizedBox(height: 3),
+            Text(
+              subtitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: PremiumTokens.body(size: 12, color: pt.grey),
+            ),
+          ],
+          const SizedBox(height: 9),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
-                name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: PremiumTokens.body(
-                  size: 15,
-                  weight: FontWeight.w700,
-                  color: pt.dark,
-                  letterSpacing: -0.2,
-                ),
+              Expanded(
+                child: _PriceBlock(price: price, oldPrice: oldPrice, pt: pt),
               ),
-              const SizedBox(height: 2),
-              Text(
-                shop,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: PremiumTokens.body(size: 12, color: pt.grey),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                price,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: PremiumTokens.body(
-                  size: 15,
-                  weight: FontWeight.w700,
-                  color: PremiumTokens.accent,
-                  letterSpacing: -0.2,
-                ),
-              ),
+              if (onAddToCart != null) ...[
+                const SizedBox(width: 8),
+                _QuickAddButton(onTap: onAddToCart),
+              ],
             ],
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
+}
 
-  /// Fixed-height layout for standard aspect-ratio grid cells (Favorites,
-  /// Catalog, etc.). Uses [Expanded] to fill the parent's bounded height.
-  Widget _buildFixedLayout(PremiumTokens pt, Widget imageStack) {
+/// Strikethrough original (when discounted) stacked above the bold accent
+/// effective price — stacked, not inline, so two long furniture prices never
+/// fight for one narrow line.
+class _PriceBlock extends StatelessWidget {
+  const _PriceBlock({
+    required this.price,
+    required this.oldPrice,
+    required this.pt,
+  });
+
+  final String price;
+  final String? oldPrice;
+  final PremiumTokens pt;
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Expanded(flex: 65, child: imageStack),
-        Expanded(
-          flex: 35,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: PremiumTokens.body(
-                        size: 15,
-                        weight: FontWeight.w700,
-                        color: pt.dark,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      shop,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: PremiumTokens.body(size: 12, color: pt.grey),
-                    ),
-                  ],
+        if (oldPrice != null)
+          Text(
+            oldPrice!,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style:
+                PremiumTokens.body(
+                  size: 11.5,
+                  weight: FontWeight.w500,
+                  color: pt.grey,
+                ).copyWith(
+                  decoration: TextDecoration.lineThrough,
+                  decorationColor: pt.grey,
                 ),
-                Text(
-                  price,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: PremiumTokens.body(
-                    size: 15,
-                    weight: FontWeight.w700,
-                    color: PremiumTokens.accent,
-                    letterSpacing: -0.2,
-                  ),
-                ),
-              ],
-            ),
+          ),
+        Text(
+          price,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: PremiumTokens.body(
+            size: 15.5,
+            weight: FontWeight.w800,
+            color: PremiumTokens.accent,
+            letterSpacing: -0.3,
           ),
         ),
       ],
@@ -208,7 +239,72 @@ class PremiumProductCard extends StatelessWidget {
   }
 }
 
-/// Solid corner badge showing the discount percentage over the image.
+class _RatingRow extends StatelessWidget {
+  const _RatingRow({
+    required this.rating,
+    required this.reviewCount,
+    required this.pt,
+  });
+
+  final double rating;
+  final int? reviewCount;
+  final PremiumTokens pt;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = reviewCount != null
+        ? '${rating.toStringAsFixed(1)} ($reviewCount)'
+        : rating.toStringAsFixed(1);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.star_rounded, size: 14, color: Color(0xFFE8A33D)),
+        const SizedBox(width: 3),
+        Text(
+          label,
+          style: PremiumTokens.body(
+            size: 11.5,
+            weight: FontWeight.w600,
+            color: pt.grey,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Circular brand-terracotta quick-add CTA.
+class _QuickAddButton extends StatelessWidget {
+  const _QuickAddButton({this.onTap});
+
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          color: PremiumTokens.accent,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: PremiumTokens.accent.withValues(alpha: 0.35),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+              spreadRadius: -2,
+            ),
+          ],
+        ),
+        child: const Icon(Icons.add_rounded, color: Colors.white, size: 22),
+      ),
+    );
+  }
+}
+
+/// Pill-shaped, vivid gradient discount badge over the image.
 class _DiscountBadge extends StatelessWidget {
   const _DiscountBadge({required this.percent});
 
@@ -217,15 +313,19 @@ class _DiscountBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
       decoration: BoxDecoration(
-        color: const Color(0xFFC0392B),
-        borderRadius: BorderRadius.circular(8),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFE9573F), Color(0xFFC0392B)],
+        ),
+        borderRadius: BorderRadius.circular(100),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.18),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: const Color(0xFFC0392B).withValues(alpha: 0.30),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -242,6 +342,8 @@ class _DiscountBadge extends StatelessWidget {
   }
 }
 
+/// Circular frosted-glass favourite toggle — a real `BackdropFilter` blur so it
+/// reads as premium glassmorphism over any image.
 class _FrostedHeartButton extends StatelessWidget {
   const _FrostedHeartButton({required this.isFavorite, this.onTap});
 

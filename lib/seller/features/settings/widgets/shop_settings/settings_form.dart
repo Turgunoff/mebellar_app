@@ -11,6 +11,7 @@ import '../../../../../shared/models/shop_settings.dart';
 import '../../../../../shared/models/working_hours.dart';
 import '../../../../../shared/utils/image_upload.dart';
 import '../../../../../shared/widgets/image_crop_screen.dart';
+import '../../../../../customer/features/checkout/screens/map_address_picker_screen.dart';
 import '../../bloc/shop_settings_bloc.dart';
 import '../brand_color_picker.dart';
 import 'basic_info_card.dart';
@@ -36,7 +37,6 @@ class _SettingsFormState extends State<SettingsForm> {
   late final TextEditingController _phone;
   late final TextEditingController _email;
   late final TextEditingController _telegram;
-  late final TextEditingController _address;
 
   @override
   void initState() {
@@ -47,7 +47,6 @@ class _SettingsFormState extends State<SettingsForm> {
     _phone = TextEditingController(text: s.contactPhone ?? '');
     _email = TextEditingController(text: s.contactEmail ?? '');
     _telegram = TextEditingController(text: s.telegramUsername ?? '');
-    _address = TextEditingController(text: s.address);
   }
 
   @override
@@ -57,24 +56,46 @@ class _SettingsFormState extends State<SettingsForm> {
     _phone.dispose();
     _email.dispose();
     _telegram.dispose();
-    _address.dispose();
     super.dispose();
   }
 
   void _emitBasics() {
-    context.read<ShopSettingsBloc>().add(ShopSettingsBasicsChanged(
-          name: _name.text,
-          description: _description.text,
-          contactPhone: _phone.text,
-          contactEmail: _email.text,
-          telegramUsername: _telegram.text,
-        ));
+    context.read<ShopSettingsBloc>().add(
+      ShopSettingsBasicsChanged(
+        name: _name.text,
+        description: _description.text,
+        contactPhone: _phone.text,
+        contactEmail: _email.text,
+        telegramUsername: _telegram.text,
+      ),
+    );
   }
 
-  void _emitAddress() {
+  /// Opens the shared Yandex map picker (the same one the onboarding flow and
+  /// checkout use) and writes the chosen address + coordinates back in one
+  /// `ShopSettingsAddressChanged` — so the persisted `latitude`/`longitude`
+  /// always match the displayed address.
+  Future<void> _pickAddress() async {
+    final s = widget.state.settings;
+    if (s == null) return;
+    final picked = await Navigator.of(context).push<PickedLocation>(
+      MaterialPageRoute(
+        builder: (_) => MapAddressPickerScreen(
+          initialAddress: s.address,
+          initialLatitude: s.lat,
+          initialLongitude: s.lng,
+          accent: AppColors.sellerPrimary,
+        ),
+      ),
+    );
+    if (picked == null || !mounted) return;
     context.read<ShopSettingsBloc>().add(
-          ShopSettingsAddressChanged(address: _address.text),
-        );
+      ShopSettingsAddressChanged(
+        address: picked.address,
+        lat: picked.latitude,
+        lng: picked.longitude,
+      ),
+    );
   }
 
   /// Entry point for a logo/cover tap: with no image yet it goes straight to
@@ -189,12 +210,12 @@ class _SettingsFormState extends State<SettingsForm> {
       }
       if (!mounted) return;
       context.read<ShopSettingsBloc>().add(
-            ShopSettingsAssetUploaded(
-              kind: kind,
-              file: cropped,
-              fileExtension: 'png',
-            ),
-          );
+        ShopSettingsAssetUploaded(
+          kind: kind,
+          file: cropped,
+          fileExtension: 'png',
+        ),
+      );
     } on ImagePickError catch (e, st) {
       talker.handle(e, st, '[shop-settings] image pick error kind=$kind');
       messenger.showSnackBar(SnackBar(content: Text(e.message)));
@@ -213,16 +234,16 @@ class _SettingsFormState extends State<SettingsForm> {
 
   void _changeDayHours(DayOfWeek day, DayHours hours) {
     context.read<ShopSettingsBloc>().add(
-          ShopSettingsHoursChanged(day: day, hours: hours),
-        );
+      ShopSettingsHoursChanged(day: day, hours: hours),
+    );
   }
 
   void _changeVisibility(bool isPublic) {
     context.read<ShopSettingsBloc>().add(
-          ShopSettingsVisibilityChanged(
-            isPublic ? ShopVisibility.public : ShopVisibility.hidden,
-          ),
-        );
+      ShopSettingsVisibilityChanged(
+        isPublic ? ShopVisibility.public : ShopVisibility.hidden,
+      ),
+    );
   }
 
   @override
@@ -257,19 +278,13 @@ class _SettingsFormState extends State<SettingsForm> {
           brandHex: s.brandColor,
           brandColor: s.brandColorValue,
           onPickColor: _pickColor,
-          addressController: _address,
-          onAddressChanged: _emitAddress,
+          address: s.address,
+          onPickAddress: _pickAddress,
         ),
         const SizedBox(height: 20),
-        WorkingHoursCard(
-          hours: s.workingHours,
-          onDayChanged: _changeDayHours,
-        ),
+        WorkingHoursCard(hours: s.workingHours, onDayChanged: _changeDayHours),
         const SizedBox(height: 20),
-        VisibilityCard(
-          isPublic: s.isPublic,
-          onChanged: _changeVisibility,
-        ),
+        VisibilityCard(isPublic: s.isPublic, onChanged: _changeVisibility),
       ],
     );
   }

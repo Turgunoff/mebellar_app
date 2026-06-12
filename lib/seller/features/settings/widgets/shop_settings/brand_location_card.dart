@@ -6,31 +6,32 @@ import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import 'settings_form_kit.dart';
 
-/// Brand colour swatch + address text field.
+/// Brand colour swatch + map-picked shop address.
 ///
-/// The region/city/district picker was removed when the `shops` schema
-/// rolled back to a flat `address text` column — the picker had no
-/// destination columns to write to. Restore it once the schema gains
-/// structured region columns.
+/// The free-text address field (and the older region/city/district picker)
+/// were replaced by a map trigger: tapping the address row opens the same
+/// Yandex map picker the onboarding flow uses, so the seller drops a pin and
+/// the geocoded address + lat/lng are written together.
 class BrandLocationCard extends StatelessWidget {
   const BrandLocationCard({
     super.key,
     required this.brandHex,
     required this.brandColor,
     required this.onPickColor,
-    required this.addressController,
-    required this.onAddressChanged,
+    required this.address,
+    required this.onPickAddress,
   });
 
   final String? brandHex;
   final Color? brandColor;
   final VoidCallback onPickColor;
-  final TextEditingController addressController;
-  final VoidCallback onAddressChanged;
+  final String address;
+  final VoidCallback onPickAddress;
 
   @override
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
+    final hasAddress = address.trim().isNotEmpty;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -57,11 +58,14 @@ class BrandLocationCard extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 child: Divider(height: 1, thickness: 1, color: c.divider),
               ),
-              SettingsTextField(
-                controller: addressController,
-                label: tr('address.street'),
-                hint: "Shahar, ko'cha, uy raqami yoki mo'ljal",
-                onChanged: (_) => onAddressChanged(),
+              _ListRow(
+                onTap: onPickAddress,
+                leading: const IconTile(icon: Iconsax.location),
+                title: tr('shop_settings.address_title'),
+                subtitle: hasAddress
+                    ? address.trim()
+                    : tr('shop_settings.address_empty'),
+                trailing: Icon(Iconsax.map_1, size: 18, color: c.greyMid),
               ),
             ],
           ),
@@ -116,6 +120,8 @@ class _ListRow extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontFamily: AppFonts.seller,
                       fontSize: 12,

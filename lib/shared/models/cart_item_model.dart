@@ -24,6 +24,10 @@ class CartItemModel extends Equatable {
     this.shopName,
     this.selectedColor,
     this.createdAt,
+    this.hasDelivery = false,
+    this.deliveryPrice = 0,
+    this.hasInstallation = false,
+    this.installationPrice = 0,
   });
 
   final String id;
@@ -43,7 +47,26 @@ class CartItemModel extends Equatable {
 
   final DateTime? createdAt;
 
+  // ── Per-item delivery / installation pricing ─────────────────────────────
+  // Carried from the product so the checkout invoice can compute the delivery
+  // and (opt-in) installation fees instantly, before the authoritative
+  // `POST /orders/quote` returns. Persisted in the snapshot for guest carts;
+  // an order ultimately re-prices these server-side, so a stale snapshot only
+  // affects the first paint, never what the customer is charged.
+  final bool hasDelivery;
+  final num deliveryPrice;
+  final bool hasInstallation;
+  final num installationPrice;
+
   double get lineTotal => productPrice * quantity;
+
+  /// Delivery contribution for this line (0 when the product offers none).
+  double get deliveryFee => hasDelivery ? (deliveryPrice * quantity).toDouble() : 0;
+
+  /// Full installation cost for this line if the customer opts in (0 when the
+  /// product offers none). The toggle decides whether it's added to the total.
+  double get installationFee =>
+      hasInstallation ? (installationPrice * quantity).toDouble() : 0;
 
   CartItemModel copyWith({
     String? id,
@@ -56,6 +79,10 @@ class CartItemModel extends Equatable {
     String? shopName,
     String? selectedColor,
     DateTime? createdAt,
+    bool? hasDelivery,
+    num? deliveryPrice,
+    bool? hasInstallation,
+    num? installationPrice,
   }) {
     return CartItemModel(
       id: id ?? this.id,
@@ -68,6 +95,10 @@ class CartItemModel extends Equatable {
       shopName: shopName ?? this.shopName,
       selectedColor: selectedColor ?? this.selectedColor,
       createdAt: createdAt ?? this.createdAt,
+      hasDelivery: hasDelivery ?? this.hasDelivery,
+      deliveryPrice: deliveryPrice ?? this.deliveryPrice,
+      hasInstallation: hasInstallation ?? this.hasInstallation,
+      installationPrice: installationPrice ?? this.installationPrice,
     );
   }
 
@@ -91,6 +122,10 @@ class CartItemModel extends Equatable {
       shopId: product.shopId,
       shopName: product.shopName,
       selectedColor: selectedColor,
+      hasDelivery: product.hasDelivery,
+      deliveryPrice: product.deliveryPrice,
+      hasInstallation: product.hasInstallation,
+      installationPrice: product.installationPrice,
     );
   }
 
@@ -128,6 +163,12 @@ class CartItemModel extends Equatable {
       createdAt: json['created_at'] is String
           ? DateTime.tryParse(json['created_at'] as String)
           : null,
+      // Fee fields default off for snapshots written before this feature —
+      // the order quote re-derives the authoritative amounts from the catalog.
+      hasDelivery: snapshot['has_delivery'] as bool? ?? false,
+      deliveryPrice: (snapshot['delivery_price'] as num?) ?? 0,
+      hasInstallation: snapshot['has_installation'] as bool? ?? false,
+      installationPrice: (snapshot['installation_price'] as num?) ?? 0,
     );
   }
 
@@ -141,6 +182,10 @@ class CartItemModel extends Equatable {
     if (shopId != null) 'shop_id': shopId,
     if (shopName != null) 'shop_name': shopName,
     if (selectedColor != null) 'color': selectedColor,
+    if (hasDelivery) 'has_delivery': hasDelivery,
+    if (deliveryPrice != 0) 'delivery_price': deliveryPrice,
+    if (hasInstallation) 'has_installation': hasInstallation,
+    if (installationPrice != 0) 'installation_price': installationPrice,
   };
 
   Map<String, dynamic> toHiveJson() => <String, dynamic>{
@@ -159,5 +204,11 @@ class CartItemModel extends Equatable {
     productPrice,
     shopId,
     selectedColor,
+    // Fee fields participate in value identity so a fee change re-emits the
+    // cart/checkout state instead of being swallowed as "unchanged".
+    hasDelivery,
+    deliveryPrice,
+    hasInstallation,
+    installationPrice,
   ];
 }

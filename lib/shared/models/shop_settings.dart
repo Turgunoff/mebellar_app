@@ -93,9 +93,11 @@ class ShopSettings extends Equatable {
     );
   }
 
-  /// Serialises the seller-editable columns of a `shops` row. Null fields
-  /// are written explicitly so clearing a value (e.g. removing a logo)
-  /// persists. Contact fields are NOT included — those go to `sellers`.
+  /// The full `PATCH /seller/shop` payload: the seller-editable `shops`
+  /// columns plus the contact channels (phone / email / telegram). The backend
+  /// fans the contact fields out to the `sellers` row — so this single payload
+  /// updates both tables. Null fields are written explicitly so clearing a
+  /// value (e.g. removing a logo or a telegram handle) persists.
   Map<String, dynamic> toShopJson() => {
         'name': name,
         'description': description,
@@ -107,10 +109,6 @@ class ShopSettings extends Equatable {
         'longitude': lng,
         'working_hours': workingHours.toJson(),
         'visibility': visibility.name,
-      };
-
-  /// Contact-info slice destined for `public.sellers`.
-  Map<String, dynamic> toSellerContactJson() => {
         'contact_phone': contactPhone,
         'contact_email': contactEmail,
         'telegram_username': telegramUsername,

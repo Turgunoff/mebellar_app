@@ -18,12 +18,38 @@ const _kDefaultCenter = Point(latitude: 41.2995, longitude: 69.2401);
 const _kDefaultZoom = 13.0;
 const _kPickZoom = 16.0;
 
-/// Full-screen map picker that returns the selected address string via
-/// `Navigator.pop(context, address)`.
+/// Result of [MapAddressPickerScreen]: the geocoded address plus the exact
+/// map-pin coordinates the user confirmed.
+class PickedLocation {
+  const PickedLocation({
+    required this.address,
+    required this.latitude,
+    required this.longitude,
+  });
+
+  final String address;
+  final double latitude;
+  final double longitude;
+}
+
+/// Full-screen map picker that returns the selected [PickedLocation] (address +
+/// coordinates) via `Navigator.pop(context, pickedLocation)`.
 class MapAddressPickerScreen extends StatefulWidget {
-  const MapAddressPickerScreen({super.key, this.initialAddress});
+  const MapAddressPickerScreen({
+    super.key,
+    this.initialAddress,
+    this.initialLatitude,
+    this.initialLongitude,
+    this.accent = PremiumTokens.accent,
+  });
 
   final String? initialAddress;
+  final double? initialLatitude;
+  final double? initialLongitude;
+
+  /// Accent for the pin, confirm button and progress affordances. Defaults to
+  /// the customer terracotta; seller surfaces pass `AppColors.sellerPrimary`.
+  final Color accent;
 
   @override
   State<MapAddressPickerScreen> createState() => _MapAddressPickerScreenState();
@@ -38,12 +64,24 @@ class _MapAddressPickerScreenState extends State<MapAddressPickerScreen> {
   int _latestGeocodeRequestId = 0;
   late final Future<void> _mapKitReady;
 
+  /// The current map-pin target — the coordinates returned on confirm. Seeded
+  /// from the initial lat/lng (an existing shop location) or the default city
+  /// centre, then tracked as the camera moves.
+  late Point _pickedPoint;
+
   @override
   void initState() {
     super.initState();
     _geocodedAddress = widget.initialAddress?.isEmpty == true
         ? null
         : widget.initialAddress;
+    _pickedPoint =
+        widget.initialLatitude != null && widget.initialLongitude != null
+        ? Point(
+            latitude: widget.initialLatitude!,
+            longitude: widget.initialLongitude!,
+          )
+        : _kDefaultCenter;
     _mapKitReady = YandexMapKitInitializer.ensureInitialized();
   }
 
@@ -57,13 +95,18 @@ class _MapAddressPickerScreenState extends State<MapAddressPickerScreen> {
 
   void _onMapCreated(YandexMapController controller) {
     _mapController = controller;
+    final hasInitial =
+        widget.initialLatitude != null && widget.initialLongitude != null;
     controller.moveCamera(
       CameraUpdate.newCameraPosition(
-        const CameraPosition(target: _kDefaultCenter, zoom: _kDefaultZoom),
+        CameraPosition(
+          target: _pickedPoint,
+          zoom: hasInitial ? _kPickZoom : _kDefaultZoom,
+        ),
       ),
     );
     if (_geocodedAddress == null) {
-      _reverseGeocode(_kDefaultCenter);
+      _reverseGeocode(_pickedPoint);
     }
   }
 
@@ -73,6 +116,7 @@ class _MapAddressPickerScreenState extends State<MapAddressPickerScreen> {
     bool finished,
   ) {
     if (!finished) return;
+    _pickedPoint = position.target;
     _geocodeDebounce?.cancel();
     _geocodeDebounce = Timer(const Duration(milliseconds: 600), () {
       _reverseGeocode(position.target);
@@ -84,7 +128,8 @@ class _MapAddressPickerScreenState extends State<MapAddressPickerScreen> {
     final requestId = ++_latestGeocodeRequestId;
     setState(() => _isGeocoding = true);
 
-    final address = await _reverseGeocodeViaYandex(point) ??
+    final address =
+        await _reverseGeocodeViaYandex(point) ??
         await _reverseGeocodeViaNominatim(point);
 
     if (!mounted || requestId != _latestGeocodeRequestId) return;
@@ -105,8 +150,7 @@ class _MapAddressPickerScreenState extends State<MapAddressPickerScreen> {
         'results': '1',
         'kind': 'house',
       });
-      final response =
-          await http.get(uri).timeout(const Duration(seconds: 8));
+      final response = await http.get(uri).timeout(const Duration(seconds: 8));
 
       developer.log(
         'map-picker reverse-geocode-yandex: lat=${point.latitude}, '
@@ -199,8 +243,9 @@ class _MapAddressPickerScreenState extends State<MapAddressPickerScreen> {
 
     try {
       final pos = await _location.getCurrentPosition(
-        locationSettings:
-            const LocationSettings(accuracy: LocationAccuracy.high),
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
       );
       if (!mounted) return;
       await _mapController?.moveCamera(
@@ -232,12 +277,12 @@ class _MapAddressPickerScreenState extends State<MapAddressPickerScreen> {
                 return Container(
                   color: pt.surface,
                   alignment: Alignment.center,
-                  child: const SizedBox(
+                  child: SizedBox(
                     width: 28,
                     height: 28,
                     child: CircularProgressIndicator(
                       strokeWidth: 2.5,
-                      color: PremiumTokens.accent,
+                      color: widget.accent,
                     ),
                   ),
                 );
@@ -260,11 +305,11 @@ class _MapAddressPickerScreenState extends State<MapAddressPickerScreen> {
             child: Center(
               child: Transform.translate(
                 offset: const Offset(0, -20),
-                child: const Icon(
+                child: Icon(
                   Icons.location_on,
                   size: 42,
-                  color: PremiumTokens.accent,
-                  shadows: [
+                  color: widget.accent,
+                  shadows: const [
                     Shadow(
                       color: Colors.black26,
                       blurRadius: 10,
@@ -301,12 +346,12 @@ class _MapAddressPickerScreenState extends State<MapAddressPickerScreen> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const SizedBox(
+                      SizedBox(
                         width: 13,
                         height: 13,
                         child: CircularProgressIndicator(
                           strokeWidth: 1.5,
-                          color: PremiumTokens.accent,
+                          color: widget.accent,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -327,8 +372,10 @@ class _MapAddressPickerScreenState extends State<MapAddressPickerScreen> {
             right: 0,
             child: SafeArea(
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 child: Row(
                   children: [
                     _GlassButton(
@@ -378,11 +425,7 @@ class _MapAddressPickerScreenState extends State<MapAddressPickerScreen> {
             bottom: 180,
             child: _GlassButton(
               onTap: _goToMyLocation,
-              child: const Icon(
-                Icons.my_location,
-                size: 22,
-                color: PremiumTokens.accent,
-              ),
+              child: Icon(Icons.my_location, size: 22, color: widget.accent),
             ),
           ),
 
@@ -397,10 +440,17 @@ class _MapAddressPickerScreenState extends State<MapAddressPickerScreen> {
               onConfirm: () {
                 final address = _geocodedAddress;
                 if (address != null && address.trim().isNotEmpty) {
-                  Navigator.of(context).pop(address.trim());
+                  Navigator.of(context).pop(
+                    PickedLocation(
+                      address: address.trim(),
+                      latitude: _pickedPoint.latitude,
+                      longitude: _pickedPoint.longitude,
+                    ),
+                  );
                 }
               },
               pt: pt,
+              accent: widget.accent,
             ),
           ),
         ],
@@ -419,12 +469,14 @@ class _BottomPanel extends StatelessWidget {
     required this.isGeocoding,
     required this.onConfirm,
     required this.pt,
+    required this.accent,
   });
 
   final String? address;
   final bool isGeocoding;
   final VoidCallback onConfirm;
   final PremiumTokens pt;
+  final Color accent;
 
   @override
   Widget build(BuildContext context) {
@@ -453,11 +505,7 @@ class _BottomPanel extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(
-                Iconsax.location,
-                size: 16,
-                color: PremiumTokens.accent,
-              ),
+              Icon(Iconsax.location, size: 16, color: accent),
               const SizedBox(width: 8),
               Text(
                 'TANLANGAN MANZIL',
@@ -477,12 +525,12 @@ class _BottomPanel extends StatelessWidget {
                 ? Row(
                     key: const ValueKey('loading'),
                     children: [
-                      const SizedBox(
+                      SizedBox(
                         width: 14,
                         height: 14,
                         child: CircularProgressIndicator(
                           strokeWidth: 1.5,
-                          color: PremiumTokens.accent,
+                          color: accent,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -514,9 +562,8 @@ class _BottomPanel extends StatelessWidget {
             child: FilledButton(
               onPressed: hasAddress && !isGeocoding ? onConfirm : null,
               style: FilledButton.styleFrom(
-                backgroundColor: PremiumTokens.accent,
-                disabledBackgroundColor:
-                    PremiumTokens.accent.withValues(alpha: 0.4),
+                backgroundColor: accent,
+                disabledBackgroundColor: accent.withValues(alpha: 0.4),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
@@ -568,11 +615,7 @@ class _GlassButton extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
-        child: SizedBox(
-          width: 44,
-          height: 44,
-          child: Center(child: child),
-        ),
+        child: SizedBox(width: 44, height: 44, child: Center(child: child)),
       ),
     );
   }

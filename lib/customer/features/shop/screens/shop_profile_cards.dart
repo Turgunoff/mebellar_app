@@ -16,8 +16,8 @@ class _ShopProductCard extends StatelessWidget {
       builder: (context, isFav) => PremiumProductCard(
         imageUrl: product.thumbnail ?? '',
         name: product.name,
-        shop: '',
         price: '${_money(product.effectivePrice)} UZS',
+        oldPrice: product.hasDiscount ? '${_money(product.price)} UZS' : null,
         discountPercent: product.discountPercent,
         isFavorite: isFav,
         onTap: () =>
@@ -25,6 +25,7 @@ class _ShopProductCard extends StatelessWidget {
         onFavoriteToggle: () => context.read<FavoritesBloc>().add(
           FavoriteToggled(Product.fromModel(product)),
         ),
+        onAddToCart: () => quickAddToCart(context, product),
       ),
     );
   }
@@ -167,8 +168,13 @@ class _ErrorState extends StatelessWidget {
 /// while the header is expanded, fading to a white bar with the shop-name
 /// title as [collapse] goes 0 → 1.
 class _TopBar extends StatelessWidget {
-  const _TopBar({required this.name, required this.collapse});
+  const _TopBar({
+    required this.shopId,
+    required this.name,
+    required this.collapse,
+  });
 
+  final String shopId;
   final String name;
   final double collapse;
 
@@ -221,6 +227,11 @@ class _TopBar extends StatelessWidget {
               ),
             ),
             Positioned(top: topPad + 12, left: 12, child: const _BackCircle()),
+            Positioned(
+              top: topPad + 12,
+              right: 12,
+              child: _ShareCircle(shopId: shopId, name: name),
+            ),
           ],
         ),
       ),
@@ -268,6 +279,38 @@ class _BackCircle extends StatelessWidget {
   }
 }
 
+/// White circular share affordance — opens the OS share sheet with the shop's
+/// public link. Mirrors [_BackCircle], pinned top-right of the [_TopBar].
+class _ShareCircle extends StatelessWidget {
+  const _ShareCircle({required this.shopId, required this.name});
+
+  final String shopId;
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      shape: const CircleBorder(),
+      elevation: 2,
+      shadowColor: Colors.black.withValues(alpha: 0.2),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: () => shareShop(id: shopId, name: name),
+        child: SizedBox(
+          width: 40,
+          height: 40,
+          child: Icon(
+            Iconsax.share,
+            size: 19,
+            color: PremiumTokens.of(context).dark,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // Helpers
 // ═══════════════════════════════════════════════════════════════════════════
@@ -281,6 +324,29 @@ Color _brandColor(String? hex) {
     if (value != null) return Color(0xFF000000 | value);
   }
   return AppColors.terracotta;
+}
+
+/// Foreground (text/icon) colour for content placed ON a [brand] fill — black
+/// on light brands (e.g. amber `#FBC02D`), white on dark ones — so a filled
+/// brand button always stays legible.
+Color _onBrand(Color brand) =>
+    brand.computeLuminance() > 0.55 ? const Color(0xFF1C1C1C) : Colors.white;
+
+/// A legible variant of [brand] for use as a tint/accent ON the card surface.
+/// Very light brands (amber, lime) are darkened so a thin accent bar or icon
+/// doesn't wash out on a white card; near-black brands are lifted in dark mode.
+/// Mid/dark brands (e.g. the terracotta fallback) pass through unchanged, so a
+/// seller with no brand colour set keeps the original look.
+Color _brandAccent(BuildContext context, Color brand) {
+  final isDark = Theme.of(context).brightness == Brightness.dark;
+  final lum = brand.computeLuminance();
+  if (!isDark && lum > 0.5) {
+    return Color.alphaBlend(Colors.black.withValues(alpha: 0.42), brand);
+  }
+  if (isDark && lum < 0.12) {
+    return Color.alphaBlend(Colors.white.withValues(alpha: 0.40), brand);
+  }
+  return brand;
 }
 
 /// True when [now] falls inside the shop's window for the current weekday.

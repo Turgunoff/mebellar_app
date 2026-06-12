@@ -90,6 +90,8 @@ class _CheckoutView extends StatelessWidget {
                         _PaymentCard(state: state, pt: pt),
                         const SizedBox(height: 16),
                         _OrderGroupsCard(state: state, pt: pt),
+                        const SizedBox(height: 16),
+                        _OrderSummaryCard(state: state, pt: pt),
                       ]),
                     ),
                   ),
@@ -223,16 +225,16 @@ class _DeliveryCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         onTap: () async {
-          final address = await Navigator.of(context, rootNavigator: true)
-              .push<String>(
+          final picked = await Navigator.of(context, rootNavigator: true)
+              .push<PickedLocation>(
                 MaterialPageRoute(
                   builder: (_) => MapAddressPickerScreen(
                     initialAddress: state.deliveryAddress,
                   ),
                 ),
               );
-          if (address != null && context.mounted) {
-            context.read<CheckoutCubit>().updateAddress(address);
+          if (picked != null && context.mounted) {
+            context.read<CheckoutCubit>().updateAddress(picked.address);
           }
         },
         borderRadius: BorderRadius.circular(20),
@@ -589,16 +591,37 @@ class _OrderGroupsCard extends StatelessWidget {
               const SizedBox(height: 12),
             ],
           ],
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            child: Divider(color: pt.divider, height: 1),
-          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Section 4: Invoice summary (subtotal · delivery · installation · total) ───
+
+class _OrderSummaryCard extends StatelessWidget {
+  const _OrderSummaryCard({required this.state, required this.pt});
+  final CheckoutState state;
+  final PremiumTokens pt;
+
+  @override
+  Widget build(BuildContext context) {
+    final deliveryFee = state.deliveryFee;
+    return _SectionCard(
+      pt: pt,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SectionHeader(icon: Iconsax.receipt, label: 'Buyurtma jami', pt: pt),
+          const SizedBox(height: 16),
           _SummaryRow(
             label: 'Mahsulotlar',
             value: '${_fmt(state.subtotal)} UZS',
             pt: pt,
           ),
           const SizedBox(height: 10),
+          // Delivery is fetched from the backend (per address); when no product
+          // pre-prices it, the seller proposes it after placement.
           Row(
             children: [
               Expanded(
@@ -607,16 +630,27 @@ class _OrderGroupsCard extends StatelessWidget {
                   style: PremiumTokens.body(size: 14, color: pt.grey),
                 ),
               ),
-              Text(
-                'Sotuvchi belgilaydi',
-                style: PremiumTokens.body(
-                  size: 13,
-                  weight: FontWeight.w500,
-                  color: const Color(0xFFE5A23B),
+              if (deliveryFee > 0)
+                Text(
+                  '${_fmt(deliveryFee)} UZS',
+                  style: PremiumTokens.body(
+                    size: 14,
+                    weight: FontWeight.w600,
+                    color: pt.dark,
+                  ),
+                )
+              else
+                Text(
+                  'Sotuvchi belgilaydi',
+                  style: PremiumTokens.body(
+                    size: 13,
+                    weight: FontWeight.w500,
+                    color: const Color(0xFFE5A23B),
+                  ),
                 ),
-              ),
             ],
           ),
+          if (state.installationAvailable) _InstallationTile(state: state, pt: pt),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 14),
             child: Divider(color: pt.divider, height: 1),
@@ -628,6 +662,33 @@ class _OrderGroupsCard extends StatelessWidget {
             pt: pt,
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Opt-in installation row. Flipping it recomputes the grand total instantly —
+/// the fee is already known from the quote, so no refetch happens.
+class _InstallationTile extends StatelessWidget {
+  const _InstallationTile({required this.state, required this.pt});
+  final CheckoutState state;
+  final PremiumTokens pt;
+
+  @override
+  Widget build(BuildContext context) {
+    return SwitchListTile.adaptive(
+      value: state.wantsInstallation,
+      onChanged: (v) => context.read<CheckoutCubit>().toggleInstallation(v),
+      activeThumbColor: PremiumTokens.accent,
+      contentPadding: EdgeInsets.zero,
+      visualDensity: VisualDensity.compact,
+      title: Text(
+        "Ustamiz o'rnatib berishini xohlaysizmi?",
+        style: PremiumTokens.body(size: 14, weight: FontWeight.w600),
+      ),
+      subtitle: Text(
+        '+${_fmt(state.installationFee)} UZS',
+        style: PremiumTokens.body(size: 13, color: pt.grey),
       ),
     );
   }

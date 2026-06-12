@@ -16,15 +16,18 @@ import '../../../../shared/models/product_model.dart';
 import '../../../../shared/models/shop_profile.dart';
 import '../../../../shared/models/working_hours.dart';
 import '../../../../shared/repositories/shop_repository.dart';
+import '../../../../shared/sharing/shop_share.dart';
 import '../../home/widgets/premium/premium_product_card.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
+import '../../cart/quick_add.dart';
 import '../../favorites/bloc/favorites_bloc.dart';
 import '../cubit/shop_profile_cubit.dart';
 
 part 'shop_profile_cards.dart';
 
-/// Telegram brand blue — used for the Telegram quick-contact button.
-const Color _kTelegram = Color(0xFF229ED9);
+/// Telegram brand blue — the Telegram CTA keeps its native colour (not the
+/// seller's brand) so customers recognise it instantly.
+const Color _kTelegram = Color(0xFF24A1DE);
 const Color _kVerified = Color(0xFF1F6B49);
 
 /// `color` is nullable: pass an adaptive `PremiumTokens.of(context).dark` from
@@ -75,13 +78,17 @@ class _SectionCard extends StatelessWidget {
 }
 
 class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({required this.text});
+  const _SectionTitle({required this.text, this.accent});
 
   final String text;
 
+  /// Optional brand accent — draws a small leading bar so each section header
+  /// subtly echoes the seller's brand colour.
+  final Color? accent;
+
   @override
   Widget build(BuildContext context) {
-    return Text(
+    final title = Text(
       text,
       style: TextStyle(
         fontSize: 14,
@@ -90,6 +97,22 @@ class _SectionTitle extends StatelessWidget {
         letterSpacing: -0.2,
         height: 1.2,
       ),
+    );
+    if (accent == null) return title;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 3,
+          height: 15,
+          margin: const EdgeInsets.only(right: 9),
+          decoration: BoxDecoration(
+            color: accent,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        title,
+      ],
     );
   }
 }
@@ -212,13 +235,22 @@ class _ReadyContentState extends State<_ReadyContent> {
     final pt = PremiumTokens.of(context);
     final shop = widget.shop;
     final products = widget.products;
+    // The seller's brand colour drives the accents on this screen: `brand` is
+    // the raw fill (contact buttons), `brandInk` a legible-on-surface variant
+    // for tints (section bars, stat icons, the today marker). With no brand
+    // set both resolve to the terracotta fallback, so the look is unchanged.
+    final brand = _brandColor(shop.brandColor);
+    final brandInk = _brandAccent(context, brand);
     final cards = <Widget>[
-      _StatsCard(shop: shop),
-      if (shop.hasPhone || shop.hasTelegram) _ContactCard(shop: shop),
+      _StatsCard(shop: shop, accent: brandInk),
       if ((shop.description ?? '').isNotEmpty)
-        _AboutCard(text: shop.description!),
-      if (shop.hasAddress || shop.hasLocation) _LocationCard(shop: shop),
-      if (shop.workingHours.hasAnyOpenDay) _HoursCard(hours: shop.workingHours),
+        _AboutCard(text: shop.description!, accent: brandInk),
+      if (shop.hasPhone || shop.hasTelegram)
+        _ContactCard(shop: shop, brand: brand),
+      if (shop.hasAddress || shop.hasLocation)
+        _LocationCard(shop: shop, accent: brandInk),
+      if (shop.workingHours.hasAnyOpenDay)
+        _HoursCard(hours: shop.workingHours, accent: brandInk),
     ];
 
     return Stack(
@@ -260,9 +292,7 @@ class _ReadyContentState extends State<_ReadyContent> {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColors.terracotta.withValues(
-                                alpha: 0.1,
-                              ),
+                              color: brandInk.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
@@ -270,7 +300,7 @@ class _ReadyContentState extends State<_ReadyContent> {
                               style: _ts(
                                 size: 12.5,
                                 weight: FontWeight.w800,
-                                color: AppColors.terracotta,
+                                color: brandInk,
                               ),
                             ),
                           ),
@@ -308,7 +338,7 @@ class _ReadyContentState extends State<_ReadyContent> {
             const SliverToBoxAdapter(child: SizedBox(height: 32)),
           ],
         ),
-        _TopBar(name: shop.name, collapse: _collapse),
+        _TopBar(shopId: shop.id, name: shop.name, collapse: _collapse),
       ],
     );
   }
@@ -510,9 +540,10 @@ class _Logo extends StatelessWidget {
 // ═══════════════════════════════════════════════════════════════════════════
 
 class _StatsCard extends StatelessWidget {
-  const _StatsCard({required this.shop});
+  const _StatsCard({required this.shop, required this.accent});
 
   final ShopProfile shop;
+  final Color accent;
 
   @override
   Widget build(BuildContext context) {
@@ -523,6 +554,7 @@ class _StatsCard extends StatelessWidget {
             value: '${shop.productCount}',
             label: 'Mahsulot',
             icon: Iconsax.box,
+            accent: accent,
           ),
           const _StatDivider(),
           _Stat(
@@ -536,6 +568,7 @@ class _StatsCard extends StatelessWidget {
             value: '${shop.reviewCount}',
             label: 'Sharh',
             icon: Iconsax.message_text_1,
+            accent: accent,
           ),
         ],
       ),
@@ -599,9 +632,10 @@ class _StatDivider extends StatelessWidget {
 // ═══════════════════════════════════════════════════════════════════════════
 
 class _ContactCard extends StatelessWidget {
-  const _ContactCard({required this.shop});
+  const _ContactCard({required this.shop, required this.brand});
 
   final ShopProfile shop;
+  final Color brand;
 
   Future<void> _call(BuildContext context) async {
     final phone = shop.contactPhone;
@@ -642,6 +676,9 @@ class _ContactCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The Call button is the brand-coloured primary CTA (contrast-aware label).
+    // Telegram keeps its native blue + white so it stays instantly recognisable
+    // rather than blending into the seller's brand.
     return _SectionCard(
       child: Row(
         children: [
@@ -650,7 +687,8 @@ class _ContactCard extends StatelessWidget {
               child: _ContactButton(
                 icon: Iconsax.call,
                 label: 'Qo\'ng\'iroq',
-                color: AppColors.terracotta,
+                background: brand,
+                foreground: _onBrand(brand),
                 onTap: () => _call(context),
               ),
             ),
@@ -660,7 +698,8 @@ class _ContactCard extends StatelessWidget {
               child: _ContactButton(
                 icon: Iconsax.send_2,
                 label: 'Telegram',
-                color: _kTelegram,
+                background: _kTelegram,
+                foreground: Colors.white,
                 onTap: () => _telegram(context),
               ),
             ),
@@ -674,33 +713,41 @@ class _ContactButton extends StatelessWidget {
   const _ContactButton({
     required this.icon,
     required this.label,
-    required this.color,
+    required this.background,
+    required this.foreground,
     required this.onTap,
   });
 
   final IconData icon;
   final String label;
-  final Color color;
+  final Color background;
+  final Color foreground;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: color.withValues(alpha: 0.1),
+      color: background,
       borderRadius: BorderRadius.circular(13),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(13),
+        splashColor: foreground.withValues(alpha: 0.12),
+        highlightColor: foreground.withValues(alpha: 0.06),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 13),
+          padding: const EdgeInsets.symmetric(vertical: 14),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 18, color: color),
+              Icon(icon, size: 18, color: foreground),
               const SizedBox(width: 8),
               Text(
                 label,
-                style: _ts(size: 14, weight: FontWeight.w700, color: color),
+                style: _ts(
+                  size: 14,
+                  weight: FontWeight.w700,
+                  color: foreground,
+                ),
               ),
             ],
           ),
@@ -715,9 +762,10 @@ class _ContactButton extends StatelessWidget {
 // ═══════════════════════════════════════════════════════════════════════════
 
 class _AboutCard extends StatelessWidget {
-  const _AboutCard({required this.text});
+  const _AboutCard({required this.text, required this.accent});
 
   final String text;
+  final Color accent;
 
   @override
   Widget build(BuildContext context) {
@@ -726,7 +774,7 @@ class _AboutCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _SectionTitle(text: 'Do\'kon haqida'),
+          _SectionTitle(text: 'Do\'kon haqida', accent: accent),
           const SizedBox(height: 12),
           Text(text, style: _ts(size: 13.5, color: pt.dark, height: 1.5)),
         ],
@@ -740,9 +788,10 @@ class _AboutCard extends StatelessWidget {
 // ═══════════════════════════════════════════════════════════════════════════
 
 class _LocationCard extends StatelessWidget {
-  const _LocationCard({required this.shop});
+  const _LocationCard({required this.shop, required this.accent});
 
   final ShopProfile shop;
+  final Color accent;
 
   Future<void> _openMap(BuildContext context) async {
     final lat = shop.latitude, lon = shop.longitude;
@@ -777,16 +826,12 @@ class _LocationCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _SectionTitle(text: 'Manzil'),
+          _SectionTitle(text: 'Manzil', accent: accent),
           const SizedBox(height: 12),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(
-                Iconsax.location,
-                size: 18,
-                color: AppColors.terracotta,
-              ),
+              Icon(Iconsax.location, size: 18, color: accent),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -846,9 +891,10 @@ const Map<DayOfWeek, String> _dayNamesUz = {
 };
 
 class _HoursCard extends StatelessWidget {
-  const _HoursCard({required this.hours});
+  const _HoursCard({required this.hours, required this.accent});
 
   final WeeklyHours hours;
+  final Color accent;
 
   @override
   Widget build(BuildContext context) {
@@ -863,7 +909,7 @@ class _HoursCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const _SectionTitle(text: 'Ish vaqti'),
+              _SectionTitle(text: 'Ish vaqti', accent: accent),
               const Spacer(),
               _OpenPill(openNow: openNow),
             ],
@@ -874,6 +920,7 @@ class _HoursCard extends StatelessWidget {
               name: _dayNamesUz[day]!,
               hours: hours[day],
               isToday: day == today,
+              accent: accent,
             ),
             if (day != DayOfWeek.sunday)
               Padding(
@@ -925,11 +972,13 @@ class _HoursRow extends StatelessWidget {
     required this.name,
     required this.hours,
     required this.isToday,
+    required this.accent,
   });
 
   final String name;
   final DayHours hours;
   final bool isToday;
+  final Color accent;
 
   @override
   Widget build(BuildContext context) {
@@ -950,10 +999,7 @@ class _HoursRow extends StatelessWidget {
           Container(
             width: 6,
             height: 6,
-            decoration: const BoxDecoration(
-              color: AppColors.terracotta,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: accent, shape: BoxShape.circle),
           ),
           const SizedBox(width: 8),
         ],
@@ -962,7 +1008,7 @@ class _HoursRow extends StatelessWidget {
           style: _ts(
             size: 13,
             weight: weight,
-            color: isToday ? AppColors.terracotta : pt.dark,
+            color: isToday ? accent : pt.dark,
           ),
         ),
         const Spacer(),

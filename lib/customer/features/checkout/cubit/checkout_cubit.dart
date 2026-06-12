@@ -29,6 +29,13 @@ class ShopOrderGroup extends Equatable {
 
   double get subtotal => items.fold(0.0, (s, it) => s + it.lineTotal);
 
+  /// Delivery fee for this shop group (sum of per-line delivery fees).
+  double get deliveryFee => items.fold(0.0, (s, it) => s + it.deliveryFee);
+
+  /// Full installation fee for this shop group if the customer opts in.
+  double get installationFee =>
+      items.fold(0.0, (s, it) => s + it.installationFee);
+
   @override
   List<Object?> get props => [shopId, items];
 }
@@ -40,6 +47,8 @@ class CheckoutState extends Equatable {
     this.payment = CheckoutPayment.cash,
     this.deliveryAddress = '',
     this.placedOrderIds = const [],
+    this.wantsInstallation = false,
+    this.quote,
     this.error,
   });
 
@@ -50,15 +59,41 @@ class CheckoutState extends Equatable {
 
   /// Order IDs created during [submit] — populated on success.
   final List<String> placedOrderIds;
+
+  /// Whether the customer toggled "Ustamiz o'rnatib berishini xohlaysizmi?".
+  final bool wantsInstallation;
+
+  /// The latest server invoice (`POST /orders/quote`). Null until it returns —
+  /// the getters fall back to a local estimate computed from the cart items so
+  /// the card paints instantly.
+  final CheckoutQuote? quote;
+
   final String? error;
 
   bool get hasAddress => deliveryAddress.trim().isNotEmpty;
 
   double get subtotal => groups.fold(0.0, (s, g) => s + g.subtotal);
 
-  /// Delivery fee is determined by each seller after placement — no upfront
-  /// charge. Grand total at this stage equals items subtotal only.
-  double get grandTotal => subtotal;
+  // Local fallbacks from the cart-item snapshots, used until the server quote
+  // arrives (and if it never does — graceful degrade).
+  double get _deliveryFeeLocal => groups.fold(0.0, (s, g) => s + g.deliveryFee);
+  double get _installationFeeLocal =>
+      groups.fold(0.0, (s, g) => s + g.installationFee);
+
+  /// Authoritative delivery fee (server quote) or the local estimate.
+  double get deliveryFee => quote?.deliveryFee ?? _deliveryFeeLocal;
+
+  /// Full installation fee available for the cart — independent of the toggle,
+  /// so flipping the switch adds/removes it with no refetch.
+  double get installationFee => quote?.installationFee ?? _installationFeeLocal;
+
+  /// Whether any item offers installation (so the switch should be shown).
+  bool get installationAvailable =>
+      quote?.installationAvailable ?? (_installationFeeLocal > 0);
+
+  /// Instantly recomputed: subtotal + delivery + (installation if opted in).
+  double get grandTotal =>
+      subtotal + deliveryFee + (wantsInstallation ? installationFee : 0);
 
   List<CartItemModel> get allItems => [for (final g in groups) ...g.items];
 
@@ -68,6 +103,8 @@ class CheckoutState extends Equatable {
     CheckoutPayment? payment,
     String? deliveryAddress,
     List<String>? placedOrderIds,
+    bool? wantsInstallation,
+    CheckoutQuote? quote,
     String? error,
     bool clearError = false,
   }) => CheckoutState(
@@ -76,6 +113,8 @@ class CheckoutState extends Equatable {
     payment: payment ?? this.payment,
     deliveryAddress: deliveryAddress ?? this.deliveryAddress,
     placedOrderIds: placedOrderIds ?? this.placedOrderIds,
+    wantsInstallation: wantsInstallation ?? this.wantsInstallation,
+    quote: quote ?? this.quote,
     error: clearError ? null : (error ?? this.error),
   );
 
@@ -86,6 +125,8 @@ class CheckoutState extends Equatable {
     payment,
     deliveryAddress,
     placedOrderIds,
+    wantsInstallation,
+    quote,
     error,
   ];
 }
@@ -109,6 +150,10 @@ class CheckoutCubit extends Cubit<CheckoutState> {
     unawaited(
       _analytics?.beginCheckout(value: total, itemsCount: items.length),
     );
+    // Pull the authoritative invoice (delivery + installation) from the server.
+    // The card already shows a local estimate from the cart snapshots, so this
+    // only refines the numbers when it returns.
+    unawaited(_refreshQuote());
   }
 
   final CheckoutRepository _checkout;
@@ -125,6 +170,37 @@ class CheckoutCubit extends Cubit<CheckoutState> {
     emit(state.copyWith(deliveryAddress: trimmed));
     if (trimmed.isNotEmpty) {
       unawaited(_analytics?.shippingInfoAdded());
+    }
+    // Delivery fee may depend on the address server-side — re-quote.
+    unawaited(_refreshQuote());
+  }
+
+  /// Toggles the installation opt-in. The grand total recomputes instantly via
+  /// [CheckoutState.grandTotal] (the installation fee is already known), so no
+  /// network round-trip is needed.
+  void toggleInstallation(bool value) {
+    emit(state.copyWith(wantsInstallation: value));
+  }
+
+  /// Fetches the server-computed invoice and merges it into the state. Failures
+  /// are swallowed: the local estimate stays on screen and the order is priced
+  /// server-side at submit time regardless.
+  Future<void> _refreshQuote() async {
+    final items = state.allItems;
+    if (items.isEmpty) return;
+    try {
+      final quote = await _checkout.quote(
+        lines: [
+          for (final it in items)
+            CheckoutOrderLine(productId: it.productId, quantity: it.quantity),
+        ],
+        deliveryAddress: state.deliveryAddress,
+        wantInstallation: state.wantsInstallation,
+      );
+      if (isClosed) return;
+      emit(state.copyWith(quote: quote));
+    } catch (_) {
+      // Keep the local estimate; nothing to surface to the customer here.
     }
   }
 
@@ -146,6 +222,7 @@ class CheckoutCubit extends Cubit<CheckoutState> {
               CheckoutOrderLine(productId: it.productId, quantity: it.quantity),
           ],
           deliveryAddress: state.deliveryAddress,
+          wantInstallation: state.wantsInstallation,
         );
         placedIds.add(orderId);
 

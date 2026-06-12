@@ -92,7 +92,6 @@ class _SimilarSectionState extends State<_SimilarSection> {
                         builder: (ctx, isFav) => PremiumProductCard(
                           imageUrl: p.thumbnail ?? '',
                           name: p.name,
-                          shop: '',
                           price: '${_money(p.effectivePrice)} UZS',
                           discountPercent: p.discountPercent,
                           isFavorite: isFav,
@@ -120,7 +119,8 @@ class _SimilarSectionState extends State<_SimilarSection> {
 // both reserve exactly the same height.
 const double _kSimilarCardWidth = 160;
 const double _kSimilarImageHeight = 150;
-const double _kSimilarCardHeight = 240;
+// Card height leaves room for the now-2-line title + price under the image.
+const double _kSimilarCardHeight = 252;
 
 class _SimilarSkeleton extends StatelessWidget {
   const _SimilarSkeleton();

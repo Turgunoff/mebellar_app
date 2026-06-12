@@ -18,6 +18,7 @@ import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/error_state.dart';
 import '../../../widgets/filter/active_filters_bar.dart';
 import '../../../widgets/filter/filter_button.dart';
+import '../../cart/quick_add.dart';
 import '../../favorites/bloc/favorites_bloc.dart';
 import '../../home/widgets/premium/premium_product_card.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
@@ -121,10 +122,8 @@ class _SearchViewState extends State<_SearchView> {
         actions: [
           BlocSelector<SearchBloc, SearchState, int>(
             selector: (s) => s.filter.activeCount,
-            builder: (context, count) => FilterButton(
-              count: count,
-              onTap: () => _openFilter(context),
-            ),
+            builder: (context, count) =>
+                FilterButton(count: count, onTap: () => _openFilter(context)),
           ),
           const SizedBox(width: 8),
         ],
@@ -144,25 +143,25 @@ class _SearchViewState extends State<_SearchView> {
                   count: state.results.length,
                   sort: state.filter.sort,
                   onChangeSort: (s) => context.read<SearchBloc>().add(
-                        SearchFilterChanged(state.filter.copyWith(sort: s)),
-                      ),
+                    SearchFilterChanged(state.filter.copyWith(sort: s)),
+                  ),
                 ),
               Expanded(
                 child: _Body(
                   state: state,
                   onRecentTap: _setQuery,
-                  onClearRecent: () => context
-                      .read<SearchBloc>()
-                      .add(const SearchHistoryCleared()),
+                  onClearRecent: () => context.read<SearchBloc>().add(
+                    const SearchHistoryCleared(),
+                  ),
                   onProductTap: (p) {
-                    context
-                        .read<SearchBloc>()
-                        .add(SearchSubmitted(state.query));
+                    context.read<SearchBloc>().add(
+                      SearchSubmitted(state.query),
+                    );
                     context.push('/product-detail/${p.id}', extra: p);
                   },
-                  onRetry: () => context
-                      .read<SearchBloc>()
-                      .add(SearchQueryChanged(state.query)),
+                  onRetry: () => context.read<SearchBloc>().add(
+                    SearchQueryChanged(state.query),
+                  ),
                   onOpenFilter: () => _openFilter(context),
                 ),
               ),
@@ -264,11 +263,7 @@ class _SearchField extends StatelessWidget {
                     color: pt.imageBg,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(
-                    Icons.close_rounded,
-                    color: pt.grey,
-                    size: 12,
-                  ),
+                  child: Icon(Icons.close_rounded, color: pt.grey, size: 12),
                 ),
               ),
             )
@@ -337,22 +332,16 @@ class _ResultsHeader extends StatelessWidget {
                   child: Row(
                     children: [
                       Icon(
-                        sort == s
-                            ? Iconsax.tick_circle
-                            : Iconsax.arrow_right_3,
+                        sort == s ? Iconsax.tick_circle : Iconsax.arrow_right_3,
                         size: 15,
-                        color: sort == s
-                            ? PremiumTokens.accent
-                            : pt.grey,
+                        color: sort == s ? PremiumTokens.accent : pt.grey,
                       ),
                       const SizedBox(width: 10),
                       Text(
                         _label(s),
                         style: PremiumTokens.body(
                           size: 13,
-                          weight: sort == s
-                              ? FontWeight.w700
-                              : FontWeight.w500,
+                          weight: sort == s ? FontWeight.w700 : FontWeight.w500,
                           color: pt.dark,
                         ),
                       ),
@@ -365,11 +354,7 @@ class _ResultsHeader extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Iconsax.sort,
-                    size: 14,
-                    color: PremiumTokens.accent,
-                  ),
+                  Icon(Iconsax.sort, size: 14, color: PremiumTokens.accent),
                   const SizedBox(width: 6),
                   Text(
                     _label(sort),
@@ -391,10 +376,10 @@ class _ResultsHeader extends StatelessWidget {
   }
 
   static String _label(ProductSearchSort s) => switch (s) {
-        ProductSearchSort.newest => tr('search.filter.sort_newest'),
-        ProductSearchSort.priceAsc => tr('search.filter.sort_price_asc'),
-        ProductSearchSort.priceDesc => tr('search.filter.sort_price_desc'),
-      };
+    ProductSearchSort.newest => tr('search.filter.sort_newest'),
+    ProductSearchSort.priceAsc => tr('search.filter.sort_price_asc'),
+    ProductSearchSort.priceDesc => tr('search.filter.sort_price_desc'),
+  };
 }
 
 // ── Body switcher ─────────────────────────────────────────────────────────
@@ -426,22 +411,18 @@ class _Body extends StatelessWidget {
       );
     }
     return switch (state.status) {
-      SearchStatus.idle ||
-      SearchStatus.loading =>
-        const _SearchSkeleton(),
+      SearchStatus.idle || SearchStatus.loading => const _SearchSkeleton(),
       SearchStatus.failure => ErrorState(
-          message: state.error,
-          onRetry: onRetry,
-        ),
-      SearchStatus.ready => state.results.isEmpty
-          ? _NoResultsView(
-              hasFilters: state.filter.isNotEmpty,
-              onOpenFilter: onOpenFilter,
-            )
-          : _ResultsGrid(
-              results: state.results,
-              onItemTap: onProductTap,
-            ),
+        message: state.error,
+        onRetry: onRetry,
+      ),
+      SearchStatus.ready =>
+        state.results.isEmpty
+            ? _NoResultsView(
+                hasFilters: state.filter.isNotEmpty,
+                onOpenFilter: onOpenFilter,
+              )
+            : _ResultsGrid(results: state.results, onItemTap: onProductTap),
     };
   }
 }
@@ -699,18 +680,14 @@ class _PopularCategoriesSectionState extends State<_PopularCategoriesSection> {
                 for (final c in cats)
                   _PopularCategoryChip(
                     category: c,
-                    onTap: () => context
-                        .read<SearchBloc>()
-                        .add(SearchFilterChanged(
-                          ProductSearchFilter(
-                            categoryIds: {c.id},
-                            sort: context
-                                .read<SearchBloc>()
-                                .state
-                                .filter
-                                .sort,
-                          ),
-                        )),
+                    onTap: () => context.read<SearchBloc>().add(
+                      SearchFilterChanged(
+                        ProductSearchFilter(
+                          categoryIds: {c.id},
+                          sort: context.read<SearchBloc>().state.filter.sort,
+                        ),
+                      ),
+                    ),
                   ),
               ],
             );
@@ -867,7 +844,6 @@ class _ResultsGrid extends StatelessWidget {
     return '$formatted UZS';
   }
 
-
   @override
   Widget build(BuildContext context) {
     return GridView.builder(
@@ -887,14 +863,16 @@ class _ResultsGrid extends StatelessWidget {
           builder: (context, isFav) => PremiumProductCard(
             imageUrl: p.thumbnail ?? '',
             name: p.name,
-            shop: p.description ?? '',
+            subtitle: p.description ?? '',
             price: _formatPrice(p.effectivePrice),
+            oldPrice: p.hasDiscount ? _formatPrice(p.price) : null,
             discountPercent: p.discountPercent,
             isFavorite: isFav,
             onTap: () => onItemTap(p),
             onFavoriteToggle: () => context.read<FavoritesBloc>().add(
-                  FavoriteToggled(Product.fromModel(p)),
-                ),
+              FavoriteToggled(Product.fromModel(p)),
+            ),
+            onAddToCart: () => quickAddToCart(context, p),
           ),
         );
       },

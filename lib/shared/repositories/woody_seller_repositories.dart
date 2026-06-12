@@ -502,9 +502,11 @@ class WoodySellerVerificationRepository
 }
 
 /// REST-backed shop settings — shop columns via `GET/PATCH /seller/shop`,
-/// contact channels read from `GET /seller/me`. Logo/cover assets upload to the
-/// public `shop-assets` R2 bucket. Editing seller contact channels isn't wired
-/// to a settings endpoint yet (they're captured during onboarding).
+/// `GET`/`PATCH /seller/shop` now return the seller's contact channels
+/// (phone / email / telegram) alongside the shop columns, and the PATCH
+/// persists them back to the `sellers` row — so the settings screen owns
+/// contact editing end-to-end. Logo/cover assets upload to the public
+/// `shop-assets` R2 bucket.
 class WoodyShopSettingsRepository implements ShopSettingsRepository {
   WoodyShopSettingsRepository({
     required WoodyApiClient api,
@@ -520,18 +522,18 @@ class WoodyShopSettingsRepository implements ShopSettingsRepository {
 
   @override
   Future<Result<ShopSettings>> get() => runCatching(() async {
+    // The shop payload now carries the contact slice too, so it doubles as the
+    // seller row for `fromRow` — no separate `GET /seller/me` round-trip.
     final shop = await _api.get<Map<String, dynamic>>('/seller/shop');
-    return ShopSettings.fromRow(
-      shopRow: shop,
-      sellerRow: await _contactSlice(),
-    );
+    return ShopSettings.fromRow(shopRow: shop, sellerRow: shop);
   });
 
   @override
   Future<Result<ShopSettings>> save(ShopSettings settings) =>
       runCatching(() async {
-        // PATCH accepts shop columns only (ShopUpdateBody); contact channels
-        // live on the seller row and aren't editable through this endpoint yet.
+        // PATCH /seller/shop persists the shop columns AND the contact channels
+        // (phone/email/telegram) — the backend fans them out to the sellers
+        // row. The response echoes the merged result, so it seeds both halves.
         final payload = settings.toShopJson();
         talker.info('[shop-settings] PATCH /seller/shop → request: $payload');
         final shop = await _api.patch<Map<String, dynamic>>(
@@ -539,10 +541,7 @@ class WoodyShopSettingsRepository implements ShopSettingsRepository {
           body: payload,
         );
         talker.info('[shop-settings] PATCH /seller/shop ← response: $shop');
-        return ShopSettings.fromRow(
-          shopRow: shop,
-          sellerRow: await _contactSlice(),
-        );
+        return ShopSettings.fromRow(shopRow: shop, sellerRow: shop);
       });
 
   @override
@@ -570,15 +569,6 @@ class WoodyShopSettingsRepository implements ShopSettingsRepository {
     }
     return url;
   });
-
-  Future<Map<String, dynamic>> _contactSlice() async {
-    final me = await _api.get<Map<String, dynamic>>('/seller/me');
-    return {
-      'contact_phone': me['contact_phone'],
-      'contact_email': me['contact_email'],
-      'telegram_username': me['telegram_username'],
-    };
-  }
 
   String _shopAssetContentType(String ext) => switch (ext) {
     'png' => 'image/png',

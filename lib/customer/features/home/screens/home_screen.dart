@@ -14,6 +14,7 @@ import '../../../customer_app.dart';
 import '../../../widgets/glass_bottom_nav.dart';
 import '../../../widgets/network_error_gate.dart';
 import '../../categories/bloc/categories_bloc.dart';
+import '../../cart/quick_add.dart';
 import '../../favorites/bloc/favorites_bloc.dart';
 import '../../notifications/cubit/notifications_cubit.dart';
 import '../bloc/home_bloc.dart';
@@ -645,8 +646,9 @@ class _RecommendedGrid extends StatelessWidget {
                 builder: (context, isFav) => PremiumProductCard(
                   imageUrl: p.thumbnail ?? '',
                   name: p.name,
-                  shop: p.description ?? '',
+                  subtitle: p.description ?? '',
                   price: _formatPrice(p.effectivePrice),
+                  oldPrice: p.hasDiscount ? _formatPrice(p.price) : null,
                   discountPercent: p.discountPercent,
                   isFavorite: isFav,
                   customImageHeight: i.isEven ? 180.0 : 240.0,
@@ -655,6 +657,7 @@ class _RecommendedGrid extends StatelessWidget {
                   onFavoriteToggle: () => context.read<FavoritesBloc>().add(
                     FavoriteToggled(Product.fromModel(p)),
                   ),
+                  onAddToCart: () => quickAddToCart(context, p),
                 ),
               );
             },
