@@ -43,8 +43,12 @@ class PremiumProductListCard extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onFavoriteToggle;
 
-  static const double _height = 132;
   static const double _imageWidth = 124;
+  // Floor for the content column (excludes the 28px vertical padding), giving a
+  // ~132px resting card height. The card grows past this — and the left image
+  // follows via IntrinsicHeight — when the name wraps or the OS font scale is
+  // large, so it never overflows.
+  static const double _minContentHeight = 104;
 
   @override
   Widget build(BuildContext context) {
@@ -60,7 +64,9 @@ class PremiumProductListCard extends StatelessWidget {
           memCacheWidth: 400,
           placeholder: (_, _) => Shimmer.fromColors(
             baseColor: pt.imageBg,
-            highlightColor: const Color(0xFFFAFAFA),
+            // Token, not a hardcoded near-white — keeps the sweep subtle on the
+            // dark imageBg in dark mode.
+            highlightColor: pt.surface,
             child: Container(color: Colors.white),
           ),
           errorWidget: (_, _, _) => const ImageErrorPlaceholder(iconSize: 28),
@@ -77,7 +83,6 @@ class PremiumProductListCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: _height,
         decoration: BoxDecoration(
           color: pt.surface,
           borderRadius: BorderRadius.circular(20),
@@ -85,69 +90,87 @@ class PremiumProductListCard extends StatelessWidget {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(20),
-          child: Stack(
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  SizedBox(width: _imageWidth, child: image),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            name,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: PremiumTokens.body(
-                              size: 15,
-                              weight: FontWeight.w700,
-                              color: pt.dark,
-                              height: 1.25,
-                              letterSpacing: -0.2,
-                            ),
+          // IntrinsicHeight lets the left image match a content-driven height —
+          // so the card can grow when text wraps or the font scale is large
+          // instead of pinning a fixed box that would overflow.
+          child: IntrinsicHeight(
+            child: Stack(
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(width: _imageWidth, child: image),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(
+                            minHeight: _minContentHeight,
                           ),
-                          if (subtitle.isNotEmpty) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              subtitle,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: PremiumTokens.body(
-                                size: 12,
-                                color: pt.grey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    name,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: PremiumTokens.body(
+                                      size: 15,
+                                      weight: FontWeight.w700,
+                                      color: pt.dark,
+                                      height: 1.25,
+                                      letterSpacing: -0.2,
+                                    ),
+                                  ),
+                                  if (subtitle.isNotEmpty) ...[
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      subtitle,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: PremiumTokens.body(
+                                        size: 12,
+                                        color: pt.grey,
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
-                            ),
-                          ],
-                          const Spacer(),
-                          // `_imageWidth` is reserved by the heart's hit area on
-                          // the right, but the price is on the left of the
-                          // content column, so it gets the full text width and
-                          // scales down rather than truncating.
-                          PremiumPriceBlock(
-                            price: price,
-                            oldPrice: oldPrice,
-                            pt: pt,
-                            priceSize: 17,
+                              // Price sits on the left of the content column, so
+                              // it gets the full text width and scales down
+                              // rather than truncating.
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: PremiumPriceBlock(
+                                  price: price,
+                                  oldPrice: oldPrice,
+                                  pt: pt,
+                                  priceSize: 17,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-              Positioned(
-                top: 10,
-                right: 10,
-                child: PremiumFrostedHeartButton(
-                  isFavorite: isFavorite,
-                  onTap: onFavoriteToggle,
-                  size: 34,
+                  ],
                 ),
-              ),
-            ],
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: PremiumFrostedHeartButton(
+                    isFavorite: isFavorite,
+                    onTap: onFavoriteToggle,
+                    size: 34,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

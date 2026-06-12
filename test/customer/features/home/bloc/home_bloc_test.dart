@@ -25,6 +25,8 @@ ProductModel _sp(String id) => ProductModel(
       createdAt: DateTime.utc(2026, 5, 16),
     );
 
+List<ProductModel> _sps(int n) => [for (var i = 0; i < n; i++) _sp('p$i')];
+
 ProductFeedPage _page(List<ProductModel> items, {int? total}) =>
     ProductFeedPage(items: items, total: total ?? items.length);
 
@@ -76,7 +78,8 @@ void main() {
     'HomeRequested sets hasMore when a full page leaves more in the catalog',
     build: () {
       when(bannerRepo.list).thenAnswer((_) async => [_banner('b1')]);
-      stubFeed(_page([_sp('p1'), _sp('p2')], total: 40));
+      // A full page (>= page size) with a larger catalog total ⇒ more to load.
+      stubFeed(_page(_sps(15), total: 40));
       return build();
     },
     act: (bloc) => bloc.add(const HomeRequested()),
@@ -85,6 +88,24 @@ void main() {
       isA<HomeState>()
           .having((s) => s.status, 'status', HomeStatus.ready)
           .having((s) => s.hasMore, 'hasMore', true),
+    ],
+  );
+
+  blocTest<HomeBloc, HomeState>(
+    'HomeRequested treats a short first page as the last page (hasMore false)',
+    build: () {
+      when(bannerRepo.list).thenAnswer((_) async => [_banner('b1')]);
+      // Short page (< page size) even though total claims more ⇒ stop. The
+      // short page is the dedup-immune "last page" signal.
+      stubFeed(_page([_sp('p1'), _sp('p2')], total: 40));
+      return build();
+    },
+    act: (bloc) => bloc.add(const HomeRequested()),
+    expect: () => [
+      isA<HomeState>().having((s) => s.status, 'status', HomeStatus.loading),
+      isA<HomeState>()
+          .having((s) => s.status, 'status', HomeStatus.ready)
+          .having((s) => s.hasMore, 'hasMore', false),
     ],
   );
 
@@ -173,6 +194,54 @@ void main() {
             .having((s) => s.recommended.length, 'len kept', 1)
             .having((s) => s.hasMore, 'hasMore kept', true),
       ],
+    );
+
+    // Regression: the server offset must advance by the RAW page size, not the
+    // deduped list length — otherwise a catalog re-order that returns an
+    // all-duplicate page would re-request the same offset forever and the feed
+    // would stall before reaching the tail.
+    blocTest<HomeBloc, HomeState>(
+      'load-more advances the offset past an all-duplicate page (no stall)',
+      build: () {
+        when(bannerRepo.list).thenAnswer((_) async => const <HomeBanner>[]);
+        // Every page returns the SAME 15 ids — page 2+ is pure overlap.
+        stubFeed(_page(_sps(15), total: 100));
+        return build();
+      },
+      act: (bloc) async {
+        bloc.add(const HomeRequested());
+        await bloc.stream.firstWhere((s) => s.status == HomeStatus.ready);
+        bloc.add(const HomeLoadMoreProducts());
+        await bloc.stream.firstWhere(
+          (s) => !s.loadingMore && s.recommended.length == 15,
+        );
+        bloc.add(const HomeLoadMoreProducts());
+        await bloc.stream.firstWhere((s) => !s.loadingMore);
+      },
+      verify: (_) {
+        // Three distinct windows requested — the cursor never stuck at 15.
+        verify(
+          () => productSource.listFeed(
+            limit: any(named: 'limit'),
+            offset: 0,
+            sort: any(named: 'sort'),
+          ),
+        ).called(1);
+        verify(
+          () => productSource.listFeed(
+            limit: any(named: 'limit'),
+            offset: 15,
+            sort: any(named: 'sort'),
+          ),
+        ).called(1);
+        verify(
+          () => productSource.listFeed(
+            limit: any(named: 'limit'),
+            offset: 30,
+            sort: any(named: 'sort'),
+          ),
+        ).called(1);
+      },
     );
   });
 

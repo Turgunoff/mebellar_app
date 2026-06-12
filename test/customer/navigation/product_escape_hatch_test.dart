@@ -87,16 +87,27 @@ void main() {
       expect(plan.isHomeFallback, isFalse);
     });
 
-    test('search and favorites origins resolve correctly', () {
+    test('search origin (a real standalone push) resolves correctly', () {
       expect(
         resolveProductEscapePlan(['/', '/search', pd, pd]).originPath,
         '/search',
       );
-      expect(
-        resolveProductEscapePlan(['/', '/favorites', pd, pd]).originPath,
-        '/favorites',
-      );
     });
+
+    test(
+      'in-shell-tab dive (Home/Favorites/Cart) resolves to the / shell origin',
+      () {
+        // The bottom-nav tabs live inside the single `/` shell, so a rabbit
+        // hole started from any of them sits directly on `/` — there is no
+        // `/favorites` (etc.) entry in the real stack.
+        final plan = resolveProductEscapePlan(['/', pd, pd]);
+
+        expect(plan.originPath, '/');
+        expect(plan.popCount, 2);
+        expect(plan.isHomeFallback, isFalse);
+        expect(plan.showHatch, isTrue);
+      },
+    );
   });
 
   group('escapeHatchLook', () {
@@ -116,17 +127,20 @@ void main() {
         'product.back_to_shop',
       );
 
-      expect(lookFrom(['/', pd, pd]).icon, Iconsax.home_2);
-      expect(lookFrom(['/', pd, pd]).tooltipKey, 'product.back_home');
-
       expect(lookFrom(['/', '/search', pd, pd]).icon, Iconsax.search_normal);
-      expect(lookFrom(['/', '/favorites', pd, pd]).icon, Iconsax.heart);
     });
 
-    test('home fallback wears the Home affordance', () {
+    test('home fallback (deep-link only) wears the Home affordance', () {
       final look = lookFrom([pd, pd]);
       expect(look.icon, Iconsax.home_2);
       expect(look.tooltipKey, 'product.back_home');
+    });
+
+    test('in-shell-tab origin (/) gets the neutral browsing affordance, '
+        'not a (possibly-wrong) tab-specific one', () {
+      final look = lookFrom(['/', pd, pd]);
+      expect(look.icon, Iconsax.element_3);
+      expect(look.tooltipKey, 'product.back_to_browsing');
     });
 
     test('unknown origin gets the generic browsing affordance', () {

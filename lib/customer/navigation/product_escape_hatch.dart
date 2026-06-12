@@ -19,8 +19,9 @@ const int _minRabbitHoleDepth = 2;
 /// The rabbit hole is the contiguous run of `/product-detail/:id` pages at the
 /// top of the navigation stack (the user tapping recommendation after
 /// recommendation). [popCount] is how many of them to pop to surface the first
-/// *non-product* screen they came from ([originPath]) — the Category list, the
-/// Shop profile, Search, Favorites or Home.
+/// *non-product* screen they came from ([originPath]) — the Category list
+/// (`/product-list`), a Shop (`/shop/:id`), Search (`/search`), or the home shell
+/// (`/`, which hosts the Home/Categories/Cart/Favorites/Profile tabs).
 ///
 /// When the entire stack is product details (a cold deep-link straight into a
 /// shared product, then a recommendation chain) there is no browsing origin to
@@ -94,8 +95,16 @@ ProductEscapePlan resolveProductEscapePlan(List<String> stackPaths) {
 }
 
 /// The icon + i18n tooltip key the hatch wears, chosen from where it will land
-/// so the affordance reads correctly whether the user came from a Category, a
-/// Shop, Search, Favorites or Home.
+/// so the affordance reads correctly.
+///
+/// Only screens reached by a real `push` carry a route pattern we can name — the
+/// Category list (`/product-list`), a Shop (`/shop/:id`) and Search (`/search`).
+/// The five bottom-nav tabs (Home, Categories, Cart, Favorites, Profile) all live
+/// inside the single `/` shell as an `IndexedStack`, so a rabbit hole started
+/// from any of them resolves to origin `/` — we can't tell *which* tab without
+/// coupling to the shell's state, so it gets a neutral "back to browsing" look
+/// rather than a tab-specific (and possibly wrong) one. The pop still lands the
+/// user on the exact tab they left (the IndexedStack keeps it alive).
 @immutable
 class EscapeHatchLook {
   const EscapeHatchLook(this.icon, this.tooltipKey);
@@ -112,7 +121,6 @@ EscapeHatchLook escapeHatchLook(ProductEscapePlan plan) {
     return const EscapeHatchLook(Iconsax.home_2, 'product.back_home');
   }
   return switch (plan.originPath) {
-    '/' => const EscapeHatchLook(Iconsax.home_2, 'product.back_home'),
     '/product-list' => const EscapeHatchLook(
       Iconsax.category,
       'product.back_to_list',
@@ -122,10 +130,8 @@ EscapeHatchLook escapeHatchLook(ProductEscapePlan plan) {
       Iconsax.search_normal,
       'product.back_to_results',
     ),
-    '/favorites' => const EscapeHatchLook(
-      Iconsax.heart,
-      'product.back_to_favorites',
-    ),
+    // '/' (any home-shell tab) and any other origin: a neutral, never-wrong
+    // "back to browsing" affordance.
     _ => const EscapeHatchLook(Iconsax.element_3, 'product.back_to_browsing'),
   };
 }

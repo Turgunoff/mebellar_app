@@ -376,7 +376,7 @@ class _PremiumSearchBar extends StatelessWidget {
         child: Container(
           height: 56,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: pt.surface,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(

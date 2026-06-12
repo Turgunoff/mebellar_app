@@ -160,7 +160,22 @@ class HomeBloc extends Bloc<HomeEvent, HomeState>
   StreamSubscription<NetworkStatus>? _netSub;
   NetworkStatus _lastNetwork = NetworkStatus.initial;
 
+  // Server-side pagination cursor — the count of *raw* rows fetched so far,
+  // tracked separately from `recommended.length` (which is deduped). Coupling
+  // the next offset to the deduped list stalls the feed whenever a catalog
+  // re-order returns an overlapping page: dedup keeps the list short, so the
+  // offset would stop advancing and re-request the same window forever. Reset
+  // to the first page's size on every full (re)load.
+  int _feedOffset = 0;
+
   static const int _pageSize = kHomeFeedPageSize;
+
+  // More rows remain when the last page came back full AND the cursor hasn't
+  // reached the catalog total. Keyed off the *raw* page size (not the deduped
+  // merge), so overlap dedup can never make the feed think it's exhausted —
+  // a short page is the only "last page" signal.
+  bool _moreAfter(ProductFeedPage page) =>
+      page.items.length >= _pageSize && _feedOffset < page.total;
 
   // Banners + recommended products arrive pre-localised; reload them in the
   // new language without flipping the home feed into a loading state.
@@ -191,12 +206,13 @@ class HomeBloc extends Bloc<HomeEvent, HomeState>
     final hasCache = cachedBanners != null && cachedFeed != null;
     final hasData = state.banners.isNotEmpty || state.recommended.isNotEmpty;
     if (hasCache && !event.refresh) {
+      _feedOffset = cachedFeed.items.length;
       emit(
         state.copyWith(
           status: HomeStatus.ready,
           banners: cachedBanners,
           recommended: cachedFeed.items,
-          hasMore: cachedFeed.items.length < cachedFeed.total,
+          hasMore: _moreAfter(cachedFeed),
           loadingMore: false,
           feedReloading: false,
           clearError: true,
@@ -212,20 +228,27 @@ class HomeBloc extends Bloc<HomeEvent, HomeState>
       emit(state.copyWith(status: HomeStatus.loading, clearError: true));
     }
 
+    // Capture the sort this fetch was built for. A `HomeSortChanged` runs on a
+    // *separate* handler that restartable() can't reach, so without this guard a
+    // slow first-page fetch could land its old-sort items after the chip already
+    // moved on — leaving the label and the list out of sync.
+    final requestedSort = state.sort;
     try {
       final results = await Future.wait([
         _bannerRepo.list(),
-        _productSource.listFeed(limit: _pageSize, offset: 0, sort: state.sort),
+        _productSource.listFeed(limit: _pageSize, offset: 0, sort: requestedSort),
       ]).timeout(_loadTimeout);
+      if (emit.isDone || state.sort != requestedSort) return;
 
       final banners = results[0] as List<HomeBanner>;
       final page = results[1] as ProductFeedPage;
+      _feedOffset = page.items.length;
       emit(
         state.copyWith(
           status: HomeStatus.ready,
           banners: banners,
           recommended: page.items,
-          hasMore: page.items.length < page.total,
+          hasMore: _moreAfter(page),
           loadingMore: false,
           feedReloading: false,
           clearError: true,
@@ -261,12 +284,12 @@ class HomeBloc extends Bloc<HomeEvent, HomeState>
     emit(state.copyWith(loadingMore: true));
     try {
       final page = await _productSource
-          .listFeed(
-            limit: _pageSize,
-            offset: state.recommended.length,
-            sort: state.sort,
-          )
+          .listFeed(limit: _pageSize, offset: _feedOffset, sort: state.sort)
           .timeout(_loadTimeout);
+      // Advance the raw cursor by what the server actually returned, BEFORE the
+      // dedup — so a fully-overlapping page still moves the window forward
+      // instead of re-requesting the same offset.
+      _feedOffset += page.items.length;
       // Dedup by id so a catalog shift between pages can't double-render a
       // product; `seen.add` returns false for ids already loaded.
       final seen = state.recommended.map((p) => p.id).toSet();
@@ -275,9 +298,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState>
       emit(
         state.copyWith(
           recommended: merged,
-          // An empty page (offset past the end) or reaching the total stops
-          // the trigger; never loop on a stale/short total.
-          hasMore: page.items.isNotEmpty && merged.length < page.total,
+          hasMore: _moreAfter(page),
           loadingMore: false,
         ),
       );
@@ -301,15 +322,21 @@ class HomeBloc extends Bloc<HomeEvent, HomeState>
       final page = await _productSource
           .listFeed(limit: _pageSize, offset: 0, sort: event.sort)
           .timeout(_loadTimeout);
+      // restartable() cancels this handler if a newer sort arrives mid-fetch —
+      // emitting on the dead emitter would throw, and the new handler owns the
+      // state now, so bail.
+      if (emit.isDone) return;
+      _feedOffset = page.items.length;
       emit(
         state.copyWith(
           recommended: page.items,
-          hasMore: page.items.isNotEmpty && page.items.length < page.total,
+          hasMore: _moreAfter(page),
           loadingMore: false,
           feedReloading: false,
         ),
       );
     } catch (e) {
+      if (emit.isDone) return;
       // Revert the chip to the previous sort so the label matches the items
       // still on screen; surface a soft error.
       emit(

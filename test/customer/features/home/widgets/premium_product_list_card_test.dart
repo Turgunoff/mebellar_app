@@ -37,6 +37,35 @@ void main() {
     expect(find.byIcon(Icons.add_rounded), findsNothing);
   });
 
+  testWidgets('survives a 1.3x OS text scale without overflow', (tester) async {
+    await tester.pumpWidget(
+      wrap(
+        Builder(
+          builder: (context) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: const TextScaler.linear(1.3)),
+            child: const SizedBox(
+              width: 360,
+              child: PremiumProductListCard(
+                imageUrl: 'https://example.com/x.jpg',
+                name: "SAFIA yotoq to'plami (krovat + shkaf + tumba + oyna)",
+                subtitle: 'Oq rangli klassik yotoq toʻplami zamonaviy',
+                price: '6,292,203 UZS',
+                oldPrice: '6,991,337 UZS',
+                discountPercent: 10,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    // Enlarged system fonts must grow the card, not overflow its box.
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('heart toggle and card tap fire their callbacks', (tester) async {
     var fav = 0;
     var tapped = 0;
