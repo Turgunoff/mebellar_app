@@ -20,8 +20,8 @@ class OrdersScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => OrdersBloc(sl<OrderRepository>())
-        ..add(const OrdersRequested()),
+      create: (_) =>
+          OrdersBloc(sl<OrderRepository>())..add(const OrdersRequested()),
       child: const _OrdersView(),
     );
   }
@@ -40,9 +40,9 @@ class _OrdersView extends StatelessWidget {
           bottom: TabBar(
             isScrollable: true,
             tabAlignment: TabAlignment.start,
-            onTap: (i) => context
-                .read<OrdersBloc>()
-                .add(OrdersTabChanged(OrdersTab.values[i])),
+            onTap: (i) => context.read<OrdersBloc>().add(
+              OrdersTabChanged(OrdersTab.values[i]),
+            ),
             tabs: [
               for (final t in OrdersTab.values)
                 Tab(text: tr('orders.tab_${t.name}')),
@@ -56,23 +56,23 @@ class _OrdersView extends StatelessWidget {
           isRetrying: (s) => s.status == OrdersStatus.loading,
           onRetry: (bloc) => bloc.add(const OrdersRequested()),
           backgroundError: (s) =>
-              s.status == OrdersStatus.ready && s.error != null ? s.error : null,
+              s.status == OrdersStatus.ready && s.error != null
+              ? s.error
+              : null,
           child: BlocBuilder<OrdersBloc, OrdersState>(
             builder: (context, state) {
               return switch (state.status) {
-              OrdersStatus.initial ||
-              OrdersStatus.loading =>
-                const Center(child: BrandLoadingIndicator()),
-              OrdersStatus.failure => ErrorState(
-                  message: state.error,
-                  onRetry: () => context
-                      .read<OrdersBloc>()
-                      .add(const OrdersRequested()),
+                OrdersStatus.initial || OrdersStatus.loading => const Center(
+                  child: BrandLoadingIndicator(),
                 ),
-              OrdersStatus.ready => BrandRefreshIndicator(
-                  onRefresh: () async => context
-                      .read<OrdersBloc>()
-                      .add(const OrdersRequested()),
+                OrdersStatus.failure => ErrorState(
+                  message: state.error,
+                  onRetry: () =>
+                      context.read<OrdersBloc>().add(const OrdersRequested()),
+                ),
+                OrdersStatus.ready => BrandRefreshIndicator(
+                  onRefresh: () async =>
+                      context.read<OrdersBloc>().add(const OrdersRequested()),
                   child: state.visibleOrders.isEmpty
                       ? Stack(
                           children: [
@@ -94,8 +94,9 @@ class _OrdersView extends StatelessWidget {
                               _OrderTile(order: state.visibleOrders[i]),
                         ),
                 ),
-            };
-          },
+              };
+            },
+          ),
         ),
       ),
     );
@@ -139,8 +140,11 @@ class _OrderTile extends StatelessWidget {
               const SizedBox(height: 4),
               Row(
                 children: [
-                  Icon(Icons.storefront_outlined,
-                      size: 14, color: scheme.outline),
+                  Icon(
+                    Icons.storefront_outlined,
+                    size: 14,
+                    color: scheme.outline,
+                  ),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
@@ -152,9 +156,9 @@ class _OrderTile extends StatelessWidget {
                   ),
                   Text(
                     dateFmt.format(order.createdAt),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: scheme.outline,
-                        ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: scheme.outline),
                   ),
                 ],
               ),
@@ -170,8 +174,10 @@ class _OrderTile extends StatelessWidget {
                         child: order.items[i].thumbnail.isEmpty
                             ? ColoredBox(
                                 color: scheme.surfaceContainerHighest,
-                                child: const Icon(Icons.image_outlined,
-                                    size: 18),
+                                child: const Icon(
+                                  Icons.image_outlined,
+                                  size: 18,
+                                ),
                               )
                             : CachedNetworkImage(
                                 imageUrl: order.items[i].thumbnail,
@@ -196,8 +202,8 @@ class _OrderTile extends StatelessWidget {
                   Text(
                     '${priceFormat.format(order.grandTotal)} so\'m',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ],
               ),
