@@ -26,6 +26,17 @@
     <uses-feature android:name="android.hardware.camera.front"  android:required="false" />
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
 
+    <!--
+        Auto Backup is fully disabled (allowBackup + fullBackupContent=false)
+        and the data-extraction rules exclude everything from cloud backup AND
+        device-to-device transfer. Rationale: Hive boxes live under
+        getApplicationDocumentsDirectory() (…/app_flutter), NOT …/files/hive,
+        so the old path-scoped excludes never matched — a Play Store
+        reinstall restored the `settings` box and replayed `tutorial_seen_v1`,
+        skipping onboarding. Restoring stale auth tokens / flags onto a fresh
+        install is also a security/UX hazard for an e-commerce app, so we opt
+        out of backup entirely rather than chase per-path excludes.
+    -->
     <application
         android:name=".MainApplication"
         android:label="Woody"
@@ -34,7 +45,8 @@
         android:supportsRtl="true"
         android:hardwareAccelerated="true"
         android:enableOnBackInvokedCallback="true"
-        android:fullBackupContent="@xml/backup_rules"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
         android:dataExtractionRules="@xml/data_extraction_rules">
 
         <activity

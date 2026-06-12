@@ -1,18 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     Android 12+ (API 31+) cloud-backup and device-transfer rules.
-    Sensitive local data (auth tokens, Hive boxes) is excluded so a
-    restored device cannot replay another user's session.
+
+    `android:allowBackup="false"` already opts the app out of cloud Auto
+    Backup on every API level, but on Android 12+ the OS still consults these
+    rules for device-to-device (D2D) transfer during new-phone setup. We
+    exclude the whole `root` domain (the app's private data dir — which holds
+    Hive's `app_flutter` boxes, shared_prefs and databases) from BOTH channels
+    so no stale auth token / onboarding flag can ride a backup or a phone
+    migration onto a fresh install.
+
+    NOTE: the earlier rules excluded `domain="file" path="hive"` (= …/files/hive),
+    but Hive stores under getApplicationDocumentsDirectory() (…/app_flutter),
+    so that exclude never matched. An omitted `path` excludes the whole domain.
 -->
 <data-extraction-rules>
     <cloud-backup>
-        <exclude domain="sharedpref" path="FlutterSecureStorage" />
-        <exclude domain="database" />
-        <exclude domain="file" path="hive" />
+        <exclude domain="root" />
+        <exclude domain="external" />
     </cloud-backup>
     <device-transfer>
-        <exclude domain="sharedpref" path="FlutterSecureStorage" />
-        <exclude domain="database" />
-        <exclude domain="file" path="hive" />
+        <exclude domain="root" />
+        <exclude domain="external" />
     </device-transfer>
 </data-extraction-rules>
