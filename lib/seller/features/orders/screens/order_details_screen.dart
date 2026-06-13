@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/i18n/i18n.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/models/order.dart' as model;
@@ -13,6 +14,7 @@ import '../../../../shared/models/order.dart' show FeeAdjustmentStatus;
 import '../../../../shared/models/order_status.dart';
 import '../../../../shared/repositories/seller_order_repository.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
+import '../../../../shared/widgets/cancel_reason_sheet.dart';
 import '../bloc/seller_order_detail_bloc.dart';
 import '../bloc/seller_orders_bloc.dart';
 import '../widgets/order_details/delivery_address_card.dart';
@@ -119,15 +121,34 @@ class _OrderDetailView extends StatelessWidget {
 
   Future<void> _promptCancel(BuildContext context) async {
     final bloc = context.read<SellerOrderDetailBloc>();
-    final reason = await showDialog<String>(
+    final c = SellerColors.of(context);
+    final selection = await showCancelReasonSheet(
       context: context,
-      builder: (_) => const _CancelReasonDialog(),
+      loadReasons: sl<SellerOrderRepository>().fetchCancelReasons,
+      style: CancelReasonStyle(
+        surface: c.surface,
+        ink: c.ink,
+        muted: c.grey,
+        border: c.outline,
+        field: c.fillSoft,
+        accent: AppColors.sellerPrimary,
+        danger: const Color(0xFF9A3434),
+        fontFamily: AppFonts.seller,
+      ),
+      labels: CancelReasonLabels(
+        title: tr('orders.cancel_title'),
+        subtitle: tr('orders.cancel_pick_subtitle'),
+        otherHint: tr('orders.cancel_other_hint'),
+        confirm: tr('orders.cancel'),
+        otherRequired: tr('orders.cancel_other_required'),
+        loadError: tr('orders.cancel_load_error'),
+      ),
     );
-    if (reason == null) return; // Dialog dismissed.
-    final trimmed = reason.trim();
+    if (selection == null) return; // Sheet dismissed.
     bloc.add(
       SellerOrderActionCancelled(
-        trimmed.isEmpty ? 'Sotuvchi tomonidan bekor qilindi' : trimmed,
+        reasonCode: selection.code,
+        reasonText: selection.text,
       ),
     );
   }
@@ -511,92 +532,6 @@ class _CustomerContactSheet extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-/// Cancel-reason capture dialog — returns the entered reason, or `null` when
-/// dismissed.
-class _CancelReasonDialog extends StatefulWidget {
-  const _CancelReasonDialog();
-
-  @override
-  State<_CancelReasonDialog> createState() => _CancelReasonDialogState();
-}
-
-class _CancelReasonDialogState extends State<_CancelReasonDialog> {
-  final _controller = TextEditingController();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final c = SellerColors.of(context);
-    return AlertDialog(
-      backgroundColor: c.surface,
-      title: Text(
-        'Buyurtmani bekor qilish',
-        style: TextStyle(
-          fontFamily: AppFonts.seller,
-          fontSize: 16,
-          fontWeight: FontWeight.w700,
-          color: c.ink,
-        ),
-      ),
-      content: TextField(
-        controller: _controller,
-        autofocus: true,
-        minLines: 1,
-        maxLines: 3,
-        style: TextStyle(
-          fontFamily: AppFonts.seller,
-          fontSize: 14,
-          color: c.ink,
-        ),
-        decoration: InputDecoration(
-          hintText: 'Bekor qilish sababi',
-          hintStyle: TextStyle(fontFamily: AppFonts.seller, color: c.grey),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: c.outline),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.sellerPrimary),
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(
-            'Yopish',
-            style: TextStyle(
-              fontFamily: AppFonts.seller,
-              fontWeight: FontWeight.w600,
-              color: c.grey,
-            ),
-          ),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(_controller.text),
-          style: FilledButton.styleFrom(
-            backgroundColor: AppColors.sellerPrimary,
-            foregroundColor: Colors.white,
-          ),
-          child: const Text(
-            'Tasdiqlash',
-            style: TextStyle(
-              fontFamily: AppFonts.seller,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

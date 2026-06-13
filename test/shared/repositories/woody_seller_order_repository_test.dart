@@ -38,11 +38,11 @@ class _FakeAdapter implements HttpClientAdapter {
 }
 
 Map<String, dynamic> _order(String id, {String status = 'pending'}) => {
-      'id': id,
-      'status': status,
-      'total_amount': 100000,
-      'created_at': '2026-01-01T00:00:00Z',
-    };
+  'id': id,
+  'status': status,
+  'total_amount': 100000,
+  'created_at': '2026-01-01T00:00:00Z',
+};
 
 void main() {
   late TokenStore store;
@@ -50,10 +50,15 @@ void main() {
   setUp(() async {
     final storage = _MockSecureStorage();
     final mem = <String, String>{};
-    when(() => storage.read(key: any(named: 'key')))
-        .thenAnswer((i) async => mem[i.namedArguments[#key] as String]);
-    when(() => storage.write(key: any(named: 'key'), value: any(named: 'value')))
-        .thenAnswer((i) async {
+    when(
+      () => storage.read(key: any(named: 'key')),
+    ).thenAnswer((i) async => mem[i.namedArguments[#key] as String]);
+    when(
+      () => storage.write(
+        key: any(named: 'key'),
+        value: any(named: 'value'),
+      ),
+    ).thenAnswer((i) async {
       mem[i.namedArguments[#key] as String] =
           i.namedArguments[#value] as String;
     });
@@ -80,7 +85,12 @@ void main() {
 
   test('list returns Ok with the mapped seller orders', () async {
     final h = make(
-      (_) => (200, jsonEncode({'rows': [_order('o1')]})),
+      (_) => (
+        200,
+        jsonEncode({
+          'rows': [_order('o1')],
+        }),
+      ),
     );
 
     final result = await h.repo.list();
@@ -96,9 +106,7 @@ void main() {
   });
 
   test('confirm PATCHes the status endpoint with confirmed', () async {
-    final h = make(
-      (_) => (200, jsonEncode(_order('o1', status: 'confirmed'))),
-    );
+    final h = make((_) => (200, jsonEncode(_order('o1', status: 'confirmed'))));
 
     final result = await h.repo.confirm('o1');
 
@@ -111,18 +119,18 @@ void main() {
   });
 
   test('cancel sends the reason alongside the cancelled status', () async {
-    final h = make(
-      (_) => (
-        200,
-        jsonEncode(_order('o1', status: 'cancelled')),
-      ),
-    );
+    final h = make((_) => (200, jsonEncode(_order('o1', status: 'cancelled'))));
 
-    final result = await h.repo.cancel('o1', reason: 'out of stock');
+    final result = await h.repo.cancel(
+      'o1',
+      reasonCode: 'out_of_stock',
+      reasonText: 'out of stock',
+    );
 
     expect(result.isOk, isTrue);
     final body = h.adapter.calls.single.data as Map;
     expect(body['status'], 'cancelled');
-    expect(body['cancellation_reason'], 'out of stock');
+    expect(body['cancel_reason_code'], 'out_of_stock');
+    expect(body['cancel_reason_text'], 'out of stock');
   });
 }

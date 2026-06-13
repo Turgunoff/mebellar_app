@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:woody_app/shared/models/cancel_reason.dart';
 import 'package:woody_app/shared/models/order.dart';
 import 'package:woody_app/shared/models/order_status.dart';
 import 'package:woody_app/shared/repositories/order_repository.dart';
@@ -45,21 +46,23 @@ class MockOrderRepository implements OrderRepository {
     }
 
     final items = input.items
-        .map((it) => OrderItem(
-              productId: it.product.id,
-              productSlug: it.product.slug,
-              productName: it.product.name,
-              thumbnail: it.product.heroImage,
-              unitPrice: it.product.price,
-              quantity: it.quantity,
-            ))
+        .map(
+          (it) => OrderItem(
+            productId: it.product.id,
+            productSlug: it.product.slug,
+            productName: it.product.name,
+            thumbnail: it.product.heroImage,
+            unitPrice: it.product.price,
+            quantity: it.quantity,
+          ),
+        )
         .toList();
     final itemsTotal = items.fold<num>(0, (sum, it) => sum + it.lineTotal);
     final delivery = input.deliveryMethod == OrderDeliveryMethod.pickup
         ? 0
         : (input.deliveryMethod == OrderDeliveryMethod.expressDelivery
-            ? 80000
-            : 50000);
+              ? 80000
+              : 50000);
     final now = DateTime.now();
     _idCounter += 1;
     _orderNumberCounter += 1;
@@ -80,9 +83,7 @@ class MockOrderRepository implements OrderRepository {
       expectedDeliveryAt: input.deliveryMethod == OrderDeliveryMethod.pickup
           ? null
           : now.add(const Duration(days: 3)),
-      timeline: [
-        OrderStatusEvent(status: OrderStatus.pending, timestamp: now),
-      ],
+      timeline: [OrderStatusEvent(status: OrderStatus.pending, timestamp: now)],
     );
     _orders.insert(0, order);
     _scheduleProgression(order.id);
@@ -98,26 +99,41 @@ class MockOrderRepository implements OrderRepository {
       throw UnimplementedError();
 
   @override
-  Future<Order> cancel(String id, {required String reason}) async {
+  Future<Order> cancel(
+    String id, {
+    required String reasonCode,
+    String? reasonText,
+  }) async {
     await Future<void>.delayed(_delay);
     final idx = _orders.indexWhere((o) => o.id == id);
     if (idx < 0) throw StateError('Buyurtma topilmadi: $id');
     final order = _orders[idx];
     final updated = order.copyWith(
       status: OrderStatus.cancelled,
-      cancelReason: reason,
+      cancelReason: reasonText,
+      cancelReasonCode: reasonCode,
+      cancelReasonText: reasonText,
       timeline: [
         ...order.timeline,
         OrderStatusEvent(
           status: OrderStatus.cancelled,
           timestamp: DateTime.now(),
-          note: reason,
+          note: reasonText,
         ),
       ],
     );
     _orders[idx] = updated;
     _watchers[id]?.add(updated);
     return updated;
+  }
+
+  @override
+  Future<List<CancelReason>> fetchCancelReasons() async {
+    await Future<void>.delayed(_delay);
+    return const [
+      CancelReason(code: 'changed_mind', title: 'Fikrimdan qaytdim'),
+      CancelReason(code: 'other', title: 'Boshqa sabab'),
+    ];
   }
 
   @override

@@ -13,14 +13,19 @@ import '../order_fixtures.dart';
 void main() {
   group('SellerOrderTransitions', () {
     test('forward transitions match the spec', () {
-      expect(OrderStatus.pending.sellerForwardTransitions,
-          [OrderStatus.confirmed]);
-      expect(OrderStatus.confirmed.sellerForwardTransitions,
-          [OrderStatus.preparing, OrderStatus.shipped]);
-      expect(OrderStatus.preparing.sellerForwardTransitions,
-          [OrderStatus.shipped]);
-      expect(OrderStatus.shipped.sellerForwardTransitions,
-          [OrderStatus.delivered]);
+      expect(OrderStatus.pending.sellerForwardTransitions, [
+        OrderStatus.confirmed,
+      ]);
+      expect(OrderStatus.confirmed.sellerForwardTransitions, [
+        OrderStatus.preparing,
+        OrderStatus.shipped,
+      ]);
+      expect(OrderStatus.preparing.sellerForwardTransitions, [
+        OrderStatus.shipped,
+      ]);
+      expect(OrderStatus.shipped.sellerForwardTransitions, [
+        OrderStatus.delivered,
+      ]);
       expect(OrderStatus.delivered.sellerForwardTransitions, isEmpty);
       expect(OrderStatus.cancelled.sellerForwardTransitions, isEmpty);
     });
@@ -52,8 +57,8 @@ void main() {
     blocTest<SellerOrderDetailBloc, SellerOrderDetailState>(
       'load failure surfaces the failure message',
       build: () {
-        repo.getByIdResult =
-            (_) => const Err(ServerFailure(message: 'not found'));
+        repo.getByIdResult = (_) =>
+            const Err(ServerFailure(message: 'not found'));
         return SellerOrderDetailBloc(repo);
       },
       act: (bloc) => bloc.add(const SellerOrderDetailRequested('missing')),
@@ -93,7 +98,12 @@ void main() {
       act: (bloc) async {
         bloc.add(const SellerOrderDetailRequested('c1'));
         await Future<void>.delayed(const Duration(milliseconds: 10));
-        bloc.add(const SellerOrderActionCancelled('Mahsulot tugadi'));
+        bloc.add(
+          const SellerOrderActionCancelled(
+            reasonCode: 'other',
+            reasonText: 'Mahsulot tugadi',
+          ),
+        );
       },
       wait: const Duration(milliseconds: 30),
       verify: (bloc) {
@@ -122,8 +132,8 @@ void main() {
     blocTest<SellerOrderDetailBloc, SellerOrderDetailState>(
       'setting the delivery fee on an accepted order is rejected (invoice locked)',
       build: () {
-        repo.getByIdResult =
-            (id) => Ok(makeOrder(id: id, status: OrderStatus.confirmed));
+        repo.getByIdResult = (id) =>
+            Ok(makeOrder(id: id, status: OrderStatus.confirmed));
         return SellerOrderDetailBloc(repo);
       },
       act: (bloc) async {
@@ -149,9 +159,7 @@ void main() {
         await Future<void>.delayed(const Duration(milliseconds: 10));
         // Push a realtime update — bloc subscribes to repo.watch(id) when
         // the load resolves.
-        repo.emitOrderUpdate(
-          makeOrder(id: 'w1', status: OrderStatus.shipped),
-        );
+        repo.emitOrderUpdate(makeOrder(id: 'w1', status: OrderStatus.shipped));
       },
       wait: const Duration(milliseconds: 30),
       verify: (bloc) {
@@ -166,8 +174,7 @@ void main() {
         bloc.add(const SellerOrderDetailRequested('f1'));
         await Future<void>.delayed(const Duration(milliseconds: 10));
         // Swap in a builder that always rejects, then attempt to confirm.
-        repo.getByIdResult =
-            (_) => const Err(ServerFailure(message: 'denied'));
+        repo.getByIdResult = (_) => const Err(ServerFailure(message: 'denied'));
         bloc.add(const SellerOrderActionConfirmed());
       },
       wait: const Duration(milliseconds: 30),

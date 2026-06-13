@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:woody_app/core/error/failure.dart';
 import 'package:woody_app/core/result/result.dart';
+import 'package:woody_app/shared/models/cancel_reason.dart';
 import 'package:woody_app/shared/models/order.dart';
 import 'package:woody_app/shared/models/order_status.dart';
 import 'package:woody_app/shared/repositories/seller_order_repository.dart';
@@ -16,8 +17,8 @@ class FakeSellerOrderRepository implements SellerOrderRepository {
   FakeSellerOrderRepository({
     Result<List<Order>>? listResult,
     Result<Order> Function(String id)? getByIdResult,
-  })  : _listResult = listResult ?? const Ok<List<Order>>(<Order>[]),
-        _getByIdResult = getByIdResult;
+  }) : _listResult = listResult ?? const Ok<List<Order>>(<Order>[]),
+       _getByIdResult = getByIdResult;
 
   Result<List<Order>> _listResult;
   Result<Order> Function(String id)? _getByIdResult;
@@ -78,10 +79,14 @@ class FakeSellerOrderRepository implements SellerOrderRepository {
   }
 
   @override
-  Future<Result<Order>> confirm(String id) =>
-      _transition(id, OrderStatus.confirmed, label: 'confirm', counter: () {
-        confirmCalls += 1;
-      });
+  Future<Result<Order>> confirm(String id) => _transition(
+    id,
+    OrderStatus.confirmed,
+    label: 'confirm',
+    counter: () {
+      confirmCalls += 1;
+    },
+  );
 
   @override
   Future<Result<Order>> markPreparing(String id) =>
@@ -114,17 +119,32 @@ class FakeSellerOrderRepository implements SellerOrderRepository {
   }
 
   @override
-  Future<Result<Order>> cancel(String id, {required String reason}) async {
+  Future<Result<Order>> cancel(
+    String id, {
+    required String reasonCode,
+    String? reasonText,
+  }) async {
     cancelCalls += 1;
-    transitionLog.add('cancel:$id:$reason');
+    transitionLog.add('cancel:$id:$reasonCode:${reasonText ?? ''}');
     final builder = _getByIdResult;
     if (builder == null) {
       return const Err(ServerFailure(message: 'cancel: no stub'));
     }
     return builder(id).map(
-      (order) => order.copyWith(status: OrderStatus.cancelled, cancelReason: reason),
+      (order) => order.copyWith(
+        status: OrderStatus.cancelled,
+        cancelReason: reasonText,
+        cancelReasonCode: reasonCode,
+        cancelReasonText: reasonText,
+      ),
     );
   }
+
+  @override
+  Future<List<CancelReason>> fetchCancelReasons() async => const [
+    CancelReason(code: 'out_of_stock', title: 'Mahsulot qolmagan'),
+    CancelReason(code: 'other', title: 'Boshqa sabab'),
+  ];
 
   Future<Result<Order>> _transition(
     String id,

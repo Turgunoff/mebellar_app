@@ -75,21 +75,22 @@ void sellerOrderRepositoryContract(
       expect(result.isErr, isTrue);
     });
 
-    test('an illegal status transition resolves to Err (not a throw)',
-        () async {
-      // A terminal order (delivered / cancelled) can never be confirmed.
-      final terminal = (await repo.list())
-          .valueOrNull!
-          .firstWhere((o) => o.status.isTerminal);
-      final result = await repo.confirm(terminal.id);
-      expect(result.isErr, isTrue);
-    });
+    test(
+      'an illegal status transition resolves to Err (not a throw)',
+      () async {
+        // A terminal order (delivered / cancelled) can never be confirmed.
+        final terminal = (await repo.list()).valueOrNull!.firstWhere(
+          (o) => o.status.isTerminal,
+        );
+        final result = await repo.confirm(terminal.id);
+        expect(result.isErr, isTrue);
+      },
+    );
 
     test('a legal transition resolves Ok and stamps the timeline with '
         'clock.now()', () async {
       final fixed = DateTime.utc(2026, 5, 16, 12);
-      final shipped = (await repo.list())
-          .valueOrNull!
+      final shipped = (await repo.list()).valueOrNull!
           .where((o) => o.status == OrderStatus.shipped)
           .toList();
       // Backend-agnostic guard: only assert when the implementation actually
@@ -108,12 +109,15 @@ void sellerOrderRepositoryContract(
     });
 
     test('cancel() records the reason and resolves Ok', () async {
-      final open = (await repo.list())
-          .valueOrNull!
+      final open = (await repo.list()).valueOrNull!
           .where((o) => !o.status.isTerminal)
           .toList();
       if (open.isEmpty) return;
-      final result = await repo.cancel(open.first.id, reason: 'contract test');
+      final result = await repo.cancel(
+        open.first.id,
+        reasonCode: 'other',
+        reasonText: 'contract test',
+      );
       expect(result.valueOrNull?.status, OrderStatus.cancelled);
       expect(result.valueOrNull?.cancelReason, 'contract test');
     });
@@ -134,14 +138,17 @@ void shopSettingsRepositoryContract(
       expect((await repo.get()).isOk, isTrue);
     });
 
-    test('save() persists; the change is observable on the next get()',
-        () async {
-      final current = (await repo.get()).valueOrNull!;
-      final saved =
-          await repo.save(current.copyWith(contactPhone: '+998900000000'));
-      expect(saved.valueOrNull?.contactPhone, '+998900000000');
-      expect((await repo.get()).valueOrNull?.contactPhone, '+998900000000');
-    });
+    test(
+      'save() persists; the change is observable on the next get()',
+      () async {
+        final current = (await repo.get()).valueOrNull!;
+        final saved = await repo.save(
+          current.copyWith(contactPhone: '+998900000000'),
+        );
+        expect(saved.valueOrNull?.contactPhone, '+998900000000');
+        expect((await repo.get()).valueOrNull?.contactPhone, '+998900000000');
+      },
+    );
 
     test('save() emits the new settings on watch()', () async {
       final current = (await repo.get()).valueOrNull!;
@@ -155,18 +162,20 @@ void shopSettingsRepositoryContract(
       await emitted;
     });
 
-    test('uploadAsset() resolves Ok with a path carrying kind + extension',
-        () async {
-      final file = _tempFile('contract_logo.png');
-      addTearDown(() => _deleteIfExists(file));
-      final result = await repo.uploadAsset(
-        kind: 'logo',
-        file: file,
-        fileExtension: 'png',
-      );
-      expect(result.valueOrNull, contains('logo'));
-      expect(result.valueOrNull, endsWith('.png'));
-    });
+    test(
+      'uploadAsset() resolves Ok with a path carrying kind + extension',
+      () async {
+        final file = _tempFile('contract_logo.png');
+        addTearDown(() => _deleteIfExists(file));
+        final result = await repo.uploadAsset(
+          kind: 'logo',
+          file: file,
+          fileExtension: 'png',
+        );
+        expect(result.valueOrNull, contains('logo'));
+        expect(result.valueOrNull, endsWith('.png'));
+      },
+    );
   });
 }
 
@@ -186,19 +195,22 @@ void sellerServicesRepositoryContract(
       expect(result.valueOrNull, isNotEmpty);
     });
 
-    test('save() round-trips the config and the change survives a reload',
-        () async {
-      final current = (await repo.list()).valueOrNull!;
-      final toggled = [
-        for (final config in current) config.copyWith(enabled: !config.enabled),
-      ];
-      expect((await repo.save(toggled)).isOk, isTrue);
-      final reloaded = (await repo.list()).valueOrNull!;
-      expect(
-        reloaded.map((c) => c.enabled).toList(),
-        toggled.map((c) => c.enabled).toList(),
-      );
-    });
+    test(
+      'save() round-trips the config and the change survives a reload',
+      () async {
+        final current = (await repo.list()).valueOrNull!;
+        final toggled = [
+          for (final config in current)
+            config.copyWith(enabled: !config.enabled),
+        ];
+        expect((await repo.save(toggled)).isOk, isTrue);
+        final reloaded = (await repo.list()).valueOrNull!;
+        expect(
+          reloaded.map((c) => c.enabled).toList(),
+          toggled.map((c) => c.enabled).toList(),
+        );
+      },
+    );
   });
 }
 
@@ -221,24 +233,26 @@ void sellerVerificationRepositoryContract(
       expect(repo.documents, isEmpty);
     });
 
-    test('uploadDocument() resolves Ok and the doc gains a remote path',
-        () async {
-      final file = _tempFile('contract_passport_front.jpg');
-      addTearDown(() => _deleteIfExists(file));
-      final result = await repo.uploadDocument(
-        type: VerificationDocumentType.passportFront,
-        file: file,
-        fileExtension: 'jpg',
-      );
-      expect(result.isOk, isTrue);
-      expect(result.valueOrNull?.remoteUrl, isNotNull);
-      expect(
-        repo.documents.any(
-          (d) => d.type == VerificationDocumentType.passportFront,
-        ),
-        isTrue,
-      );
-    });
+    test(
+      'uploadDocument() resolves Ok and the doc gains a remote path',
+      () async {
+        final file = _tempFile('contract_passport_front.jpg');
+        addTearDown(() => _deleteIfExists(file));
+        final result = await repo.uploadDocument(
+          type: VerificationDocumentType.passportFront,
+          file: file,
+          fileExtension: 'jpg',
+        );
+        expect(result.isOk, isTrue);
+        expect(result.valueOrNull?.remoteUrl, isNotNull);
+        expect(
+          repo.documents.any(
+            (d) => d.type == VerificationDocumentType.passportFront,
+          ),
+          isTrue,
+        );
+      },
+    );
 
     test('removeDocument() resolves Ok and drops the doc', () async {
       final file = _tempFile('contract_passport_back.jpg');
@@ -248,8 +262,9 @@ void sellerVerificationRepositoryContract(
         file: file,
         fileExtension: 'jpg',
       );
-      final removed =
-          await repo.removeDocument(VerificationDocumentType.passportBack);
+      final removed = await repo.removeDocument(
+        VerificationDocumentType.passportBack,
+      );
       expect(removed.isOk, isTrue);
       expect(
         repo.documents.any(
@@ -268,10 +283,7 @@ void sellerVerificationRepositoryContract(
 
 // ─────────────────────────────── TariffRepository ───────────────────────────
 
-void tariffRepositoryContract(
-  String label,
-  TariffRepository Function() build,
-) {
+void tariffRepositoryContract(String label, TariffRepository Function() build) {
   group('TariffRepository contract [$label]', () {
     late TariffRepository repo;
     setUp(() {
@@ -298,30 +310,36 @@ void tariffRepositoryContract(
     });
 
     test('paymentInstructions() resolves Ok with card details', () async {
-      expect((await repo.paymentInstructions()).valueOrNull?.cardNumber,
-          isNotEmpty);
+      expect(
+        (await repo.paymentInstructions()).valueOrNull?.cardNumber,
+        isNotEmpty,
+      );
     });
 
-    test('upgrade() stamps submittedAt with clock.now() and becomes pending',
-        () async {
-      final fixed = DateTime.utc(2026, 5, 16, 9, 30);
-      final input = TariffUpgradeInput(
-        plan: TariffPlan.pro,
-        period: BillingPeriod.monthly,
-        amount: TariffPlan.pro.monthlyPriceUzs,
-        paymentScreenshotUrl: 'payments/contract.jpg',
-      );
-      final result =
-          await withClock(Clock.fixed(fixed), () => repo.upgrade(input));
-      final sub = result.valueOrNull;
-      expect(sub, isNotNull);
-      expect(sub!.status, TariffUpgradeStatus.pending);
-      expect(sub.submittedAt, fixed);
-      // The pending request is now observable through currentPending().
-      expect((await repo.currentPending()).valueOrNull?.id, sub.id);
-      // Cancel so the mock's delayed admin-resolution timer becomes a no-op.
-      await repo.cancelPending(sub.id);
-    });
+    test(
+      'upgrade() stamps submittedAt with clock.now() and becomes pending',
+      () async {
+        final fixed = DateTime.utc(2026, 5, 16, 9, 30);
+        final input = TariffUpgradeInput(
+          plan: TariffPlan.pro,
+          period: BillingPeriod.monthly,
+          amount: TariffPlan.pro.monthlyPriceUzs,
+          paymentScreenshotUrl: 'payments/contract.jpg',
+        );
+        final result = await withClock(
+          Clock.fixed(fixed),
+          () => repo.upgrade(input),
+        );
+        final sub = result.valueOrNull;
+        expect(sub, isNotNull);
+        expect(sub!.status, TariffUpgradeStatus.pending);
+        expect(sub.submittedAt, fixed);
+        // The pending request is now observable through currentPending().
+        expect((await repo.currentPending()).valueOrNull?.id, sub.id);
+        // Cancel so the mock's delayed admin-resolution timer becomes a no-op.
+        await repo.cancelPending(sub.id);
+      },
+    );
 
     test('a second upgrade while one is pending resolves Err', () async {
       final input = TariffUpgradeInput(
@@ -341,7 +359,8 @@ void tariffRepositoryContract(
 // ──────────────────────────────── helpers ───────────────────────────────────
 
 File _tempFile(String name) =>
-    File('${Directory.systemTemp.path}/$name')..writeAsBytesSync(const [1, 2, 3]);
+    File('${Directory.systemTemp.path}/$name')
+      ..writeAsBytesSync(const [1, 2, 3]);
 
 void _deleteIfExists(File file) {
   if (file.existsSync()) file.deleteSync();

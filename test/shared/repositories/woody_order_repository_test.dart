@@ -42,27 +42,26 @@ class _FakeAdapter implements HttpClientAdapter {
 Map<String, dynamic> _orderRow({
   String status = 'pending',
   String? cancelReason,
-}) =>
+}) => {
+  'id': 'abcd1234-aaaa-bbbb-cccc',
+  'status': status,
+  'created_at': '2026-01-01T00:00:00Z',
+  'total_amount': 250000,
+  'delivery_address': 'Toshkent, Chilonzor',
+  if (cancelReason != null) 'cancellation_reason': cancelReason,
+  'items': [
     {
-      'id': 'abcd1234-aaaa-bbbb-cccc',
-      'status': status,
-      'created_at': '2026-01-01T00:00:00Z',
-      'total_amount': 250000,
-      'delivery_address': 'Toshkent, Chilonzor',
-      if (cancelReason != null) 'cancellation_reason': cancelReason,
-      'items': [
-        {
-          'id': 'i1',
-          'product_id': 'p1',
-          'price': 100000,
-          'quantity': 2,
-          'product': {
-            'name': 'Divan',
-            'images': ['a.jpg'],
-          },
-        },
-      ],
-    };
+      'id': 'i1',
+      'product_id': 'p1',
+      'price': 100000,
+      'quantity': 2,
+      'product': {
+        'name': 'Divan',
+        'images': ['a.jpg'],
+      },
+    },
+  ],
+};
 
 void main() {
   late _MockSecureStorage storage;
@@ -71,10 +70,15 @@ void main() {
   setUp(() async {
     storage = _MockSecureStorage();
     final mem = <String, String>{};
-    when(() => storage.read(key: any(named: 'key')))
-        .thenAnswer((i) async => mem[i.namedArguments[#key] as String]);
-    when(() => storage.write(key: any(named: 'key'), value: any(named: 'value')))
-        .thenAnswer((i) async {
+    when(
+      () => storage.read(key: any(named: 'key')),
+    ).thenAnswer((i) async => mem[i.namedArguments[#key] as String]);
+    when(
+      () => storage.write(
+        key: any(named: 'key'),
+        value: any(named: 'value'),
+      ),
+    ).thenAnswer((i) async {
       mem[i.namedArguments[#key] as String] =
           i.namedArguments[#value] as String;
     });
@@ -100,7 +104,14 @@ void main() {
   }
 
   test('list maps rows and derives order number, totals and fee', () async {
-    final h = makeRepo((_) => (200, jsonEncode({'rows': [_orderRow()]})));
+    final h = makeRepo(
+      (_) => (
+        200,
+        jsonEncode({
+          'rows': [_orderRow()],
+        }),
+      ),
+    );
 
     final orders = await h.repo.list();
 
@@ -132,8 +143,10 @@ void main() {
 
     expect(o.status, OrderStatus.shipped);
     expect(o.orderNumber, 'WD-ABCD1234');
-    expect(h.adapter.calls.single.uri.path,
-        endsWith('/orders/abcd1234-aaaa-bbbb-cccc'));
+    expect(
+      h.adapter.calls.single.uri.path,
+      endsWith('/orders/abcd1234-aaaa-bbbb-cccc'),
+    );
   });
 
   test('cancel posts the reason and maps the cancelled order', () async {
@@ -151,7 +164,8 @@ void main() {
 
     final o = await h.repo.cancel(
       'abcd1234-aaaa-bbbb-cccc',
-      reason: 'no longer needed',
+      reasonCode: 'other',
+      reasonText: 'no longer needed',
     );
 
     expect(o.status, OrderStatus.cancelled);
@@ -159,6 +173,7 @@ void main() {
     final call = h.adapter.calls.single;
     expect(call.method, 'POST');
     expect(call.uri.path, endsWith('/orders/abcd1234-aaaa-bbbb-cccc/cancel'));
-    expect((call.data as Map)['reason'], 'no longer needed');
+    expect((call.data as Map)['cancel_reason_code'], 'other');
+    expect((call.data as Map)['cancel_reason_text'], 'no longer needed');
   });
 }

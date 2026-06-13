@@ -4,6 +4,7 @@ import 'package:clock/clock.dart';
 
 import 'package:woody_app/core/error/failure.dart';
 import 'package:woody_app/core/result/result.dart';
+import 'package:woody_app/shared/models/cancel_reason.dart';
 import 'package:woody_app/shared/models/order.dart';
 import 'package:woody_app/shared/models/order_status.dart';
 import 'package:woody_app/shared/repositories/seller_order_repository.dart';
@@ -64,25 +65,19 @@ class MockSellerOrderRepository implements SellerOrderRepository {
       _transition(id, from: {OrderStatus.pending}, to: OrderStatus.confirmed);
 
   @override
-  Future<Result<Order>> markPreparing(String id) => _transition(
-        id,
-        from: {OrderStatus.confirmed},
-        to: OrderStatus.preparing,
-      );
+  Future<Result<Order>> markPreparing(String id) =>
+      _transition(id, from: {OrderStatus.confirmed}, to: OrderStatus.preparing);
 
   @override
   Future<Result<Order>> markShipped(String id) => _transition(
-        id,
-        from: {OrderStatus.confirmed, OrderStatus.preparing},
-        to: OrderStatus.shipped,
-      );
+    id,
+    from: {OrderStatus.confirmed, OrderStatus.preparing},
+    to: OrderStatus.shipped,
+  );
 
   @override
-  Future<Result<Order>> markDelivered(String id) => _transition(
-        id,
-        from: {OrderStatus.shipped},
-        to: OrderStatus.delivered,
-      );
+  Future<Result<Order>> markDelivered(String id) =>
+      _transition(id, from: {OrderStatus.shipped}, to: OrderStatus.delivered);
 
   @override
   Future<Result<Order>> setDeliveryFee(String id, {required num fee}) async {
@@ -94,10 +89,12 @@ class MockSellerOrderRepository implements SellerOrderRepository {
     final order = _orders[idx];
     if (order.status != OrderStatus.pending) {
       // Invoice locked after acceptance — mirrors the backend 409 gate.
-      return Err(ServerFailure(
-        message:
-            "Buyurtma qabul qilingach yetkazish narxini o'zgartirib bo'lmaydi",
-      ));
+      return Err(
+        ServerFailure(
+          message:
+              "Buyurtma qabul qilingach yetkazish narxini o'zgartirib bo'lmaydi",
+        ),
+      );
     }
     final updated = order.copyWith(
       grandTotal: order.grandTotal - order.deliveryFee + fee,
@@ -109,7 +106,11 @@ class MockSellerOrderRepository implements SellerOrderRepository {
   }
 
   @override
-  Future<Result<Order>> cancel(String id, {required String reason}) async {
+  Future<Result<Order>> cancel(
+    String id, {
+    required String reasonCode,
+    String? reasonText,
+  }) async {
     await Future<void>.delayed(_delay);
     final idx = _orders.indexWhere((o) => o.id == id);
     if (idx < 0) {
@@ -117,19 +118,23 @@ class MockSellerOrderRepository implements SellerOrderRepository {
     }
     final order = _orders[idx];
     if (order.status.isTerminal) {
-      return Err(ServerFailure(
-        message: "Bu buyurtmani bekor qilib bo'lmaydi (${order.status.code})",
-      ));
+      return Err(
+        ServerFailure(
+          message: "Bu buyurtmani bekor qilib bo'lmaydi (${order.status.code})",
+        ),
+      );
     }
     final updated = order.copyWith(
       status: OrderStatus.cancelled,
-      cancelReason: reason,
+      cancelReason: reasonText,
+      cancelReasonCode: reasonCode,
+      cancelReasonText: reasonText,
       timeline: [
         ...order.timeline,
         OrderStatusEvent(
           status: OrderStatus.cancelled,
           timestamp: clock.now(),
-          note: reason,
+          note: reasonText,
         ),
       ],
     );
@@ -137,6 +142,15 @@ class MockSellerOrderRepository implements SellerOrderRepository {
     _watchers[id]?.add(updated);
     if (!_orderUpdates.isClosed) _orderUpdates.add(updated);
     return Ok(updated);
+  }
+
+  @override
+  Future<List<CancelReason>> fetchCancelReasons() async {
+    await Future<void>.delayed(_delay);
+    return const [
+      CancelReason(code: 'out_of_stock', title: 'Mahsulot qolmagan'),
+      CancelReason(code: 'other', title: 'Boshqa sabab'),
+    ];
   }
 
   @override
@@ -160,10 +174,12 @@ class MockSellerOrderRepository implements SellerOrderRepository {
     }
     final order = _orders[idx];
     if (!from.contains(order.status)) {
-      return Err(ServerFailure(
-        message:
-            "Joriy holatdan o'tib bo'lmaydi (${order.status.code} → ${to.code})",
-      ));
+      return Err(
+        ServerFailure(
+          message:
+              "Joriy holatdan o'tib bo'lmaydi (${order.status.code} → ${to.code})",
+        ),
+      );
     }
     final updated = order.copyWith(
       status: to,
@@ -202,10 +218,7 @@ class MockSellerOrderRepository implements SellerOrderRepository {
       grandTotal: template.grandTotal,
       createdAt: clock.now(),
       timeline: [
-        OrderStatusEvent(
-          status: OrderStatus.pending,
-          timestamp: clock.now(),
-        ),
+        OrderStatusEvent(status: OrderStatus.pending, timestamp: clock.now()),
       ],
     );
     _orders.insert(0, fake);

@@ -39,10 +39,11 @@ class SellerOrderActionMarkDelivered extends SellerOrderDetailEvent {
 }
 
 class SellerOrderActionCancelled extends SellerOrderDetailEvent {
-  const SellerOrderActionCancelled(this.reason);
-  final String reason;
+  const SellerOrderActionCancelled({required this.reasonCode, this.reasonText});
+  final String reasonCode;
+  final String? reasonText;
   @override
-  List<Object?> get props => [reason];
+  List<Object?> get props => [reasonCode, reasonText];
 }
 
 class SellerOrderDeliveryFeeSet extends SellerOrderDetailEvent {
@@ -59,7 +60,14 @@ class _SellerOrderRealtimeUpdated extends SellerOrderDetailEvent {
   List<Object?> get props => [order];
 }
 
-enum SellerOrderDetailStatus { initial, loading, ready, mutating, failure, settingFee }
+enum SellerOrderDetailStatus {
+  initial,
+  loading,
+  ready,
+  mutating,
+  failure,
+  settingFee,
+}
 
 class SellerOrderDetailState extends Equatable {
   const SellerOrderDetailState({
@@ -73,10 +81,11 @@ class SellerOrderDetailState extends Equatable {
   final String? error;
 
   /// Forward transitions the seller can trigger from the current status.
-  /// Cancellation is always shown alongside as long as `status.cancellable`.
+  /// Cancellation is shown alongside while the order is non-terminal
+  /// (`status.sellerCancellable`).
   List<OrderStatus> get availableForward =>
       order?.status.sellerForwardTransitions ?? const [];
-  bool get canCancel => order?.status.cancellable ?? false;
+  bool get canCancel => order?.status.sellerCancellable ?? false;
 
   SellerOrderDetailState copyWith({
     SellerOrderDetailStatus? status,
@@ -97,24 +106,34 @@ class SellerOrderDetailState extends Equatable {
 
 class SellerOrderDetailBloc
     extends Bloc<SellerOrderDetailEvent, SellerOrderDetailState> {
-  SellerOrderDetailBloc(this._repo, {this.onUpdated, AnalyticsService? analytics})
-      : _analytics = analytics,
-        super(const SellerOrderDetailState()) {
+  SellerOrderDetailBloc(
+    this._repo, {
+    this.onUpdated,
+    AnalyticsService? analytics,
+  }) : _analytics = analytics,
+       super(const SellerOrderDetailState()) {
     on<SellerOrderDetailRequested>(_onRequested);
     on<SellerOrderActionConfirmed>(_runAction((id) => _repo.confirm(id)));
     on<SellerOrderActionMarkPreparing>(
-        _runAction((id) => _repo.markPreparing(id)));
-    on<SellerOrderActionMarkShipped>(
-        _runAction((id) => _repo.markShipped(id)));
+      _runAction((id) => _repo.markPreparing(id)),
+    );
+    on<SellerOrderActionMarkShipped>(_runAction((id) => _repo.markShipped(id)));
     on<SellerOrderActionMarkDelivered>(
-        _runAction((id) => _repo.markDelivered(id)));
+      _runAction((id) => _repo.markDelivered(id)),
+    );
     on<SellerOrderActionCancelled>((event, emit) async {
-      await _runAction((id) => _repo.cancel(id, reason: event.reason)).call(
-          event, emit);
+      await _runAction(
+        (id) => _repo.cancel(
+          id,
+          reasonCode: event.reasonCode,
+          reasonText: event.reasonText,
+        ),
+      ).call(event, emit);
     });
     on<SellerOrderDeliveryFeeSet>(_onDeliveryFeeSet);
     on<_SellerOrderRealtimeUpdated>(
-        (e, emit) => emit(state.copyWith(order: e.order)));
+      (e, emit) => emit(state.copyWith(order: e.order)),
+    );
   }
 
   final SellerOrderRepository _repo;
@@ -128,21 +147,26 @@ class SellerOrderDetailBloc
     SellerOrderDetailRequested event,
     Emitter<SellerOrderDetailState> emit,
   ) async {
-    emit(state.copyWith(
-        status: SellerOrderDetailStatus.loading, clearError: true));
+    emit(
+      state.copyWith(status: SellerOrderDetailStatus.loading, clearError: true),
+    );
     final result = await _repo.getById(event.id);
     switch (result) {
       case Ok(:final value):
-        emit(state.copyWith(
-            status: SellerOrderDetailStatus.ready, order: value));
+        emit(
+          state.copyWith(status: SellerOrderDetailStatus.ready, order: value),
+        );
         await _sub?.cancel();
         _sub = _repo
             .watch(event.id)
             .listen((u) => add(_SellerOrderRealtimeUpdated(u)));
       case Err(:final failure):
-        emit(state.copyWith(
+        emit(
+          state.copyWith(
             status: SellerOrderDetailStatus.failure,
-            error: failure.message));
+            error: failure.message,
+          ),
+        );
     }
   }
 
@@ -156,13 +180,17 @@ class SellerOrderDetailBloc
     final result = await _repo.setDeliveryFee(order.id, fee: event.fee);
     switch (result) {
       case Ok(:final value):
-        emit(state.copyWith(status: SellerOrderDetailStatus.ready, order: value));
+        emit(
+          state.copyWith(status: SellerOrderDetailStatus.ready, order: value),
+        );
         onUpdated?.call(value);
       case Err(:final failure):
-        emit(state.copyWith(
-          status: SellerOrderDetailStatus.ready,
-          error: failure.message,
-        ));
+        emit(
+          state.copyWith(
+            status: SellerOrderDetailStatus.ready,
+            error: failure.message,
+          ),
+        );
     }
   }
 
@@ -177,21 +205,26 @@ class SellerOrderDetailBloc
       final result = await op(order.id);
       switch (result) {
         case Ok(:final value):
-          emit(state.copyWith(
-              status: SellerOrderDetailStatus.ready, order: value));
+          emit(
+            state.copyWith(status: SellerOrderDetailStatus.ready, order: value),
+          );
           onUpdated?.call(value);
           if (value.status.code != fromStatus) {
-            unawaited(_analytics?.sellerOrderStatusChanged(
-              orderId: order.id,
-              fromStatus: fromStatus,
-              toStatus: value.status.code,
-            ));
+            unawaited(
+              _analytics?.sellerOrderStatusChanged(
+                orderId: order.id,
+                fromStatus: fromStatus,
+                toStatus: value.status.code,
+              ),
+            );
           }
         case Err(:final failure):
-          emit(state.copyWith(
-            status: SellerOrderDetailStatus.ready,
-            error: failure.message,
-          ));
+          emit(
+            state.copyWith(
+              status: SellerOrderDetailStatus.ready,
+              error: failure.message,
+            ),
+          );
       }
     };
   }

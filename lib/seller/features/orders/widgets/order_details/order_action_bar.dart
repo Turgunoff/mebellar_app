@@ -45,13 +45,13 @@ class OrderActionBar extends StatelessWidget {
 
     if (feePendingCustomer) {
       return _WaitingForCustomerBar(
-        canCancel: status.cancellable,
+        canCancel: status.sellerCancellable,
         onCancel: onCancel,
       );
     }
 
     final target = forward.first;
-    final canCancel = status.cancellable;
+    final canCancel = status.sellerCancellable;
 
     return Container(
       decoration: BoxDecoration(

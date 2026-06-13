@@ -21,10 +21,11 @@ class OrderDetailRequested extends OrderDetailEvent {
 }
 
 class OrderDetailCancelled extends OrderDetailEvent {
-  const OrderDetailCancelled(this.reason);
-  final String reason;
+  const OrderDetailCancelled({required this.reasonCode, this.reasonText});
+  final String reasonCode;
+  final String? reasonText;
   @override
-  List<Object?> get props => [reason];
+  List<Object?> get props => [reasonCode, reasonText];
 }
 
 class OrderFeeAdjustmentApproved extends OrderDetailEvent {
@@ -83,7 +84,8 @@ class OrderDetailBloc extends Bloc<OrderDetailEvent, OrderDetailState> {
     on<OrderFeeAdjustmentApproved>(_onFeeApproved);
     on<OrderFeeAdjustmentRejected>(_onFeeRejected);
     on<_OrderRealtimeUpdated>(
-        (event, emit) => emit(state.copyWith(order: event.order)));
+      (event, emit) => emit(state.copyWith(order: event.order)),
+    );
   }
 
   final OrderRepository _repo;
@@ -105,8 +107,12 @@ class OrderDetailBloc extends Bloc<OrderDetailEvent, OrderDetailState> {
       });
       emit(state.copyWith(realtimeConnected: true));
     } catch (e) {
-      emit(state.copyWith(
-          status: OrderDetailStatus.failure, error: apiErrorMessage(e)));
+      emit(
+        state.copyWith(
+          status: OrderDetailStatus.failure,
+          error: apiErrorMessage(e),
+        ),
+      );
     }
   }
 
@@ -118,11 +124,19 @@ class OrderDetailBloc extends Bloc<OrderDetailEvent, OrderDetailState> {
     if (order == null) return;
     emit(state.copyWith(status: OrderDetailStatus.mutating));
     try {
-      final updated = await _repo.cancel(order.id, reason: event.reason);
+      final updated = await _repo.cancel(
+        order.id,
+        reasonCode: event.reasonCode,
+        reasonText: event.reasonText,
+      );
       emit(state.copyWith(status: OrderDetailStatus.ready, order: updated));
     } catch (e) {
-      emit(state.copyWith(
-          status: OrderDetailStatus.ready, error: apiErrorMessage(e)));
+      emit(
+        state.copyWith(
+          status: OrderDetailStatus.ready,
+          error: apiErrorMessage(e),
+        ),
+      );
     }
   }
 
@@ -137,7 +151,12 @@ class OrderDetailBloc extends Bloc<OrderDetailEvent, OrderDetailState> {
       final updated = await _repo.approveFeeAdjustment(order.id);
       emit(state.copyWith(status: OrderDetailStatus.ready, order: updated));
     } catch (e) {
-      emit(state.copyWith(status: OrderDetailStatus.ready, error: apiErrorMessage(e)));
+      emit(
+        state.copyWith(
+          status: OrderDetailStatus.ready,
+          error: apiErrorMessage(e),
+        ),
+      );
     }
   }
 
@@ -152,7 +171,12 @@ class OrderDetailBloc extends Bloc<OrderDetailEvent, OrderDetailState> {
       final updated = await _repo.rejectFeeAdjustment(order.id);
       emit(state.copyWith(status: OrderDetailStatus.ready, order: updated));
     } catch (e) {
-      emit(state.copyWith(status: OrderDetailStatus.ready, error: apiErrorMessage(e)));
+      emit(
+        state.copyWith(
+          status: OrderDetailStatus.ready,
+          error: apiErrorMessage(e),
+        ),
+      );
     }
   }
 

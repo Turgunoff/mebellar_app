@@ -4,7 +4,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../core/i18n/i18n.dart';
+import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
+import '../../../../shared/widgets/cancel_reason_sheet.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../cubit/profile_orders_cubit.dart';
 
@@ -137,11 +140,12 @@ class _OrdersHistoryScreenState extends State<OrdersHistoryScreen> {
                                   return _OrderCard(
                                     order: order,
                                     pt: pt,
-                                    onCancel: (reason) => ctx
+                                    onCancel: (selection) => ctx
                                         .read<ProfileOrdersCubit>()
                                         .cancelOrder(
                                           order['id'] as String,
-                                          reason,
+                                          reasonCode: selection.code,
+                                          reasonText: selection.text,
                                         ),
                                   );
                                 },
@@ -409,11 +413,12 @@ class _OrderCard extends StatelessWidget {
 
   final Map<String, dynamic> order;
   final PremiumTokens pt;
-  final Future<void> Function(String reason) onCancel;
+  final Future<void> Function(CancelReasonSelection selection) onCancel;
 
   /// Statuses the customer is still allowed to cancel — mirrors
-  /// `OrderStatus.cancellable` (pending · confirmed).
-  static const _cancellableStatuses = {'pending', 'confirmed'};
+  /// `OrderStatus.customerCancellable` (pending only). Once the seller
+  /// confirms, cancellation is the seller's call (protects logistics costs).
+  static const _cancellableStatuses = {'pending'};
 
   @override
   Widget build(BuildContext context) {
@@ -793,7 +798,7 @@ class _CancelButton extends StatefulWidget {
   const _CancelButton({required this.pt, required this.onConfirm});
 
   final PremiumTokens pt;
-  final Future<void> Function(String reason) onConfirm;
+  final Future<void> Function(CancelReasonSelection selection) onConfirm;
 
   @override
   State<_CancelButton> createState() => _CancelButtonState();
@@ -803,16 +808,17 @@ class _CancelButtonState extends State<_CancelButton> {
   bool _busy = false;
 
   Future<void> _open() async {
-    final reason = await showModalBottomSheet<String>(
+    final cubit = context.read<ProfileOrdersCubit>();
+    final selection = await showCancelReasonSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _CancellationSheet(pt: widget.pt),
+      loadReasons: cubit.cancelReasons,
+      style: _customerCancelStyle(widget.pt),
+      labels: _cancelReasonLabels(),
     );
-    if (reason == null || !mounted) return;
+    if (selection == null || !mounted) return;
     setState(() => _busy = true);
     try {
-      await widget.onConfirm(reason);
+      await widget.onConfirm(selection);
     } finally {
       if (mounted) setState(() => _busy = false);
     }

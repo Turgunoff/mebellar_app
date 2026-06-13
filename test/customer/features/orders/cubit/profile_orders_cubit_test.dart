@@ -13,20 +13,20 @@ class _MockAuth extends Mock implements AuthRepository {}
 
 // A raw woody_backend order row, the shape `fetchOrders()` returns.
 Map<String, dynamic> _row(String id, String status) => {
-      'id': id,
-      'status': status,
-      'total_amount': 100000,
-      'created_at': '2026-01-01T00:00:00Z',
-      'items': [
-        {
-          'quantity': 2,
-          'product': {
-            'name': 'Divan',
-            'images': ['a.jpg'],
-          },
-        },
-      ],
-    };
+  'id': id,
+  'status': status,
+  'total_amount': 100000,
+  'created_at': '2026-01-01T00:00:00Z',
+  'items': [
+    {
+      'quantity': 2,
+      'product': {
+        'name': 'Divan',
+        'images': ['a.jpg'],
+      },
+    },
+  ],
+};
 
 void main() {
   late _MockRepo repo;
@@ -80,9 +80,9 @@ void main() {
     'fetch maps backend rows to card shape and exposes derived counts',
     build: () {
       when(() => auth.isAuthenticated).thenReturn(true);
-      when(() => repo.fetchOrders()).thenAnswer(
-        (_) async => [_row('o1', 'pending'), _row('o2', 'shipped')],
-      );
+      when(
+        () => repo.fetchOrders(),
+      ).thenAnswer((_) async => [_row('o1', 'pending'), _row('o2', 'shipped')]);
       return build();
     },
     act: (c) => c.fetch(),
@@ -116,7 +116,13 @@ void main() {
   blocTest<ProfileOrdersCubit, ProfileOrdersState>(
     'cancelOrder calls the repo and patches the row to cancelled in place',
     build: () {
-      when(() => repo.cancel(any(), any())).thenAnswer((_) async {});
+      when(
+        () => repo.cancel(
+          any(),
+          reasonCode: any(named: 'reasonCode'),
+          reasonText: any(named: 'reasonText'),
+        ),
+      ).thenAnswer((_) async {});
       return build();
     },
     seed: () => const ProfileOrdersState(
@@ -124,16 +130,20 @@ void main() {
         {'id': 'o1', 'status': 'pending'},
       ],
     ),
-    act: (c) => c.cancelOrder('o1', 'changed mind'),
+    act: (c) =>
+        c.cancelOrder('o1', reasonCode: 'other', reasonText: 'changed mind'),
     expect: () => [
       isA<ProfileOrdersState>()
           .having((s) => s.orders.first['status'], 'status', 'cancelled')
+          .having((s) => s.orders.first['cancel_reason_code'], 'code', 'other')
           .having(
-            (s) => s.orders.first['cancellation_reason'],
-            'reason',
+            (s) => s.orders.first['cancel_reason_text'],
+            'text',
             'changed mind',
           ),
     ],
-    verify: (_) => verify(() => repo.cancel('o1', 'changed mind')).called(1),
+    verify: (_) => verify(
+      () => repo.cancel('o1', reasonCode: 'other', reasonText: 'changed mind'),
+    ).called(1),
   );
 }

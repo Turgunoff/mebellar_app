@@ -12,6 +12,7 @@ import '../../../../shared/models/review.dart';
 import '../../../../shared/repositories/customer_reviews_repository.dart';
 import '../../../../shared/repositories/order_repository.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
+import '../../../../shared/widgets/cancel_reason_sheet.dart';
 import '../../../../shared/widgets/error_state.dart';
 import '../../../../shared/widgets/product_color_chip.dart';
 import '../../../../shared/widgets/star_rating.dart';
@@ -109,6 +110,9 @@ class _Body extends StatelessWidget {
             ),
         ],
       ),
+      bottomNavigationBar: order.status.customerCancellable
+          ? _CancelOrderBar(state: state)
+          : null,
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -211,7 +215,9 @@ class _Body extends StatelessWidget {
                                   ),
                                   Text(
                                     '${item.quantity} Г— ${priceFormat.format(item.unitPrice)}',
-                                    style: Theme.of(context).textTheme.bodySmall,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodySmall,
                                   ),
                                   if (item.colorSlug.isNotEmpty) ...[
                                     const SizedBox(height: 3),
@@ -757,6 +763,82 @@ class _DeliveredReviewsCardState extends State<_DeliveredReviewsCard> {
                 ),
               ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Bottom bar shown only while the order is still `pending` (customer
+/// pending-only cancel rule). Opens the localized reason picker; on confirm it
+/// dispatches [OrderDetailCancelled] with the structured code + free text. The
+/// reasons list comes straight from the repo (reference data, no bloc state).
+class _CancelOrderBar extends StatelessWidget {
+  const _CancelOrderBar({required this.state});
+
+  final OrderDetailState state;
+
+  Future<void> _open(BuildContext context) async {
+    final scheme = Theme.of(context).colorScheme;
+    final bloc = context.read<OrderDetailBloc>();
+    final selection = await showCancelReasonSheet(
+      context: context,
+      loadReasons: sl<OrderRepository>().fetchCancelReasons,
+      style: CancelReasonStyle(
+        surface: scheme.surface,
+        ink: scheme.onSurface,
+        muted: scheme.onSurfaceVariant,
+        border: scheme.outlineVariant,
+        field: scheme.surfaceContainerHighest,
+        accent: scheme.error,
+        danger: scheme.error,
+      ),
+      labels: CancelReasonLabels(
+        title: tr('orders.cancel_title'),
+        subtitle: tr('orders.cancel_pick_subtitle'),
+        otherHint: tr('orders.cancel_other_hint'),
+        confirm: tr('orders.cancel'),
+        otherRequired: tr('orders.cancel_other_required'),
+        loadError: tr('orders.cancel_load_error'),
+      ),
+    );
+    if (selection == null) return;
+    bloc.add(
+      OrderDetailCancelled(
+        reasonCode: selection.code,
+        reasonText: selection.text,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final busy = state.status == OrderDetailStatus.mutating;
+    return SafeArea(
+      minimum: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      child: SizedBox(
+        height: 50,
+        child: OutlinedButton.icon(
+          onPressed: busy ? null : () => _open(context),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: scheme.error,
+            side: BorderSide(color: scheme.error.withValues(alpha: 0.5)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+          icon: busy
+              ? SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.4,
+                    color: scheme.error,
+                  ),
+                )
+              : const Icon(Iconsax.close_circle, size: 18),
+          label: Text(tr('orders.cancel')),
         ),
       ),
     );

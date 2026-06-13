@@ -72,24 +72,55 @@ class WoodySellerOrderRepository implements SellerOrderRepository {
       _transition(id, OrderStatus.delivered);
 
   @override
-  Future<Result<Order>> cancel(String id, {required String reason}) =>
-      _transition(id, OrderStatus.cancelled, cancelReason: reason);
+  Future<Result<Order>> cancel(
+    String id, {
+    required String reasonCode,
+    String? reasonText,
+  }) => _transition(
+    id,
+    OrderStatus.cancelled,
+    reasonCode: reasonCode,
+    reasonText: reasonText,
+  );
+
+  @override
+  Future<List<CancelReason>> fetchCancelReasons() async {
+    try {
+      final rows = await _api.get<List<dynamic>>(
+        '/orders/cancel-reasons',
+        query: const {'role': 'seller'},
+        retries: 2,
+      );
+      return rows
+          .whereType<Map<String, dynamic>>()
+          .map(CancelReason.fromJson)
+          .toList(growable: false);
+    } on Object {
+      // Reference data — degrade to an empty list so the picker still offers
+      // the free-text path instead of blocking the cancel.
+      return const <CancelReason>[];
+    }
+  }
 
   /// `PATCH /seller/orders/{id}/status` with a [SetOrderStatusBody] payload.
-  /// The backend enforces the legal transition table and the accepted status
-  /// set (`confirmed|preparing|shipped|delivered|cancelled`); an illegal
-  /// transition or a missing order resolves to an [Err] via [runCatching].
-  /// The endpoint returns the refreshed [SellerOrder], so no re-read is needed.
+  /// The backend enforces the legal transition table (state machine in
+  /// `order_policy.py`); an illegal transition or a missing order resolves to
+  /// an [Err] via [runCatching]. On cancel it carries the structured
+  /// `cancel_reason_code` + `cancel_reason_text`. The endpoint returns the
+  /// refreshed [SellerOrder], so no re-read is needed.
   Future<Result<Order>> _transition(
     String id,
     OrderStatus next, {
-    String? cancelReason,
+    String? reasonCode,
+    String? reasonText,
   }) => runCatching(() async {
     final row = await _api.patch<Map<String, dynamic>>(
       '$_ordersPath/$id/status',
       body: {
         'status': next.code,
-        if (cancelReason != null) 'cancellation_reason': cancelReason,
+        if (reasonCode != null) 'cancel_reason_code': reasonCode,
+        if (reasonText != null && reasonText.isNotEmpty)
+          'cancel_reason_text': reasonText,
       },
     );
     return _toOrder(row);

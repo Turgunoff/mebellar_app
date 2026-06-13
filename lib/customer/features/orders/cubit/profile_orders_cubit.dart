@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/auth/auth_repository.dart';
 import '../../../../core/logging/talker.dart';
+import '../../../../shared/models/cancel_reason.dart';
 import '../../../../shared/repositories/profile_orders_repository.dart';
 
 class ProfileOrdersState extends Equatable {
@@ -68,15 +69,21 @@ class ProfileOrdersCubit extends Cubit<ProfileOrdersState> {
   /// Cancels via the backend, then patches the in-memory list so every
   /// listener (OrdersHistoryScreen, ProfileScreen badges, delete-account
   /// guard) immediately reflects the cancellation without a full re-fetch.
-  Future<void> cancelOrder(String orderId, String reason) async {
-    await _repo.cancel(orderId, reason);
+  Future<void> cancelOrder(
+    String orderId, {
+    required String reasonCode,
+    String? reasonText,
+  }) async {
+    await _repo.cancel(orderId, reasonCode: reasonCode, reasonText: reasonText);
 
     final updated = state.orders.map((o) {
       if (o['id'] == orderId) {
         return <String, dynamic>{
           ...o,
           'status': 'cancelled',
-          'cancellation_reason': reason,
+          'cancel_reason_code': reasonCode,
+          if (reasonText != null && reasonText.isNotEmpty)
+            'cancel_reason_text': reasonText,
         };
       }
       return o;
@@ -84,6 +91,9 @@ class ProfileOrdersCubit extends Cubit<ProfileOrdersState> {
 
     emit(state.copyWith(orders: updated));
   }
+
+  /// Predefined cancel reasons for the picker (delegates to the repo).
+  Future<List<CancelReason>> cancelReasons() => _repo.fetchCancelReasons();
 
   /// Maps a woody_backend `CustomerOrder` JSON row to the legacy
   /// PostgREST-shaped map the order-history UI consumes: `items`→`order_items`,
