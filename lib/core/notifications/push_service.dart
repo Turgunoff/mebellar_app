@@ -160,6 +160,59 @@ class PushService {
     return null;
   }
 
+  /// The Android tray `tag` (and iOS thread) every notification for [chatId]
+  /// carries. Deterministic so repeat messages collapse to one entry and
+  /// [dismissChatNotifications] can find them. MUST match the backend's
+  /// `android_tag` (`chat:<chat_id>` in `ChatRepository._push_chat_message`).
+  static String chatNotificationTag(String chatId) => 'chat:$chatId';
+
+  /// A stable 31-bit notification id for [chatId]. `String.hashCode` isn't
+  /// guaranteed stable across launches, and a chat push must reuse the same
+  /// id every time so the OS replaces (not stacks) the chat's tray entry and
+  /// so we can cancel it by id. FNV-1a keeps it cheap + deterministic; masked
+  /// into the positive half of Android's signed 32-bit id space.
+  static int chatNotificationId(String chatId) {
+    var hash = 0x811c9dc5;
+    for (final unit in chatId.codeUnits) {
+      hash ^= unit;
+      hash = (hash * 0x01000193) & 0xFFFFFFFF;
+    }
+    return hash & 0x7FFFFFFF;
+  }
+
+  /// Clears every tray notification for [chatId] — the foreground re-posts we
+  /// showed plus the OS-shown background pushes (both tagged
+  /// `chat:<id>` via [chatNotificationTag] / the backend). Call when the
+  /// thread is opened/read so a notification the user has already acted on
+  /// doesn't linger in the tray.
+  ///
+  /// Android: cancel our deterministic (id, tag), then sweep
+  /// `getActiveNotifications()` for any sibling carrying the same tag — an
+  /// FCM-posted entry uses its *own* id, so a blind `cancel(id)` would miss
+  /// it; matching on the shared tag catches it regardless of who posted it.
+  /// iOS: cancel our id and rely on `apns-collapse-id` (set backend-side)
+  /// keeping a chat to a single entry — the plugin can't enumerate remote
+  /// pushes by chat there, so background ones clear on tap.
+  Future<void> dismissChatNotifications(String chatId) async {
+    if (chatId.isEmpty) return;
+    final tag = chatNotificationTag(chatId);
+    try {
+      await _localNotifications.cancel(chatNotificationId(chatId), tag: tag);
+      if (!kIsWeb && Platform.isAndroid) {
+        final active = await _localNotifications.getActiveNotifications();
+        for (final n in active) {
+          if (n.tag == tag && n.id != null) {
+            await _localNotifications.cancel(n.id!, tag: n.tag);
+          }
+        }
+      }
+    } catch (e, st) {
+      // Best-effort — a failed clear just leaves a stale tray entry, never
+      // worth bubbling up if a platform-channel call happens to throw.
+      talker.handle(e, st, 'PushService.dismissChatNotifications failed');
+    }
+  }
+
   Future<void> _initLocalNotifications() async {
     // Android side wants an icon resource that exists in the launcher
     // mipmaps; @mipmap/ic_launcher always exists since flutter_launcher_icons
@@ -453,6 +506,21 @@ class PushService {
   Future<void> _showLocalNotification(RemoteMessage message) async {
     final n = message.notification;
     if (n == null) return;
+    // A chat push reuses a per-chat id + tag so repeat messages from the same
+    // conversation collapse to one tray entry (matching the background push,
+    // tagged the same way backend-side) and dismissChatNotifications can
+    // target them on read. Everything else keeps its own slot via the counter
+    // + message-id tag so distinct pings stack instead of replacing.
+    final isChat =
+        NotificationKind.fromString(message.data['kind'] as String?) ==
+        NotificationKind.chatMessage;
+    final chatId =
+        (message.data['chat_id'] as String?) ??
+        _chatIdFromRoute(message.data['route'] as String?);
+    final useChatSlot = isChat && chatId != null && chatId.isNotEmpty;
+    final tag = useChatSlot
+        ? chatNotificationTag(chatId)
+        : (message.messageId ?? '${DateTime.now().microsecondsSinceEpoch}');
     final androidDetails = AndroidNotificationDetails(
       _kNewsChannelId,
       'Yangiliklar',
@@ -463,14 +531,16 @@ class PushService {
       // Tag forces every notification to occupy its own tray slot even when
       // bodies are identical (e.g. 3 rapid order-update pings) — without
       // this, Android's auto-grouping replaces older entries on some OEM
-      // skins.
-      tag: message.messageId ?? '${DateTime.now().microsecondsSinceEpoch}',
+      // skins. A chat reuses the per-chat tag so its entries DO collapse.
+      tag: tag,
     );
     final details = NotificationDetails(android: androidDetails);
     // Wrap to stay inside Android's 32-bit signed int id range. The counter
     // pattern guarantees uniqueness within a process; the tag above
     // provides cross-process uniqueness once the channel is reused.
-    final id = (_localNotificationCounter++) & 0x7FFFFFFF;
+    final id = useChatSlot
+        ? chatNotificationId(chatId)
+        : ((_localNotificationCounter++) & 0x7FFFFFFF);
     // Carry the FCM data payload so a tap can resolve route + mode.
     await _localNotifications.show(
       id,

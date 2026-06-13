@@ -273,4 +273,79 @@ void main() {
       verify(() => repo.getChat('chat-1')).called(greaterThanOrEqualTo(2));
     },
   );
+
+  // Resume-from-background path: a message the WS missed (delivered only as a
+  // push) is surfaced by the refetch, and markAsRead re-zeroes the server
+  // unread to match the tray notification the screen just cleared.
+  blocTest<ChatThreadCubit, ChatThreadState>(
+    'refresh swaps in the server messages and re-asserts markAsRead',
+    build: () {
+      stubLoad(initial: [_msg('a')]);
+      return build();
+    },
+    act: (cubit) async {
+      await cubit.load();
+      when(
+        () => repo.listMessages(any()),
+      ).thenAnswer((_) async => [_msg('a'), _msg('b')]);
+      await cubit.refresh();
+    },
+    skip: 2, // load loading/ready
+    expect: () => [
+      isA<ChatThreadState>()
+          .having((s) => s.messages.length, 'messages', 2)
+          .having((s) => s.messages.last.id, 'last', 'b'),
+    ],
+    verify: (_) {
+      // load() fired markAsRead once, refresh() once more.
+      verify(() => repo.markAsRead('chat-1')).called(greaterThanOrEqualTo(2));
+    },
+  );
+
+  blocTest<ChatThreadCubit, ChatThreadState>(
+    'refresh is a no-op before the thread is ready',
+    build: () {
+      stubLoad();
+      return build();
+    },
+    act: (cubit) => cubit.refresh(), // never loaded → status initial
+    expect: () => const <ChatThreadState>[],
+    verify: (_) {
+      verifyNever(() => repo.listMessages(any()));
+      verifyNever(() => repo.markAsRead(any()));
+    },
+  );
+
+  blocTest<ChatThreadCubit, ChatThreadState>(
+    'refresh preserves a still-pending optimistic bubble',
+    build: () {
+      stubLoad();
+      when(
+        () => repo.sendText(
+          chatId: any(named: 'chatId'),
+          body: any(named: 'body'),
+          as: any(named: 'as'),
+        ),
+      ).thenAnswer((_) => Completer<ChatMessage>().future); // never resolves
+      return build();
+    },
+    act: (cubit) async {
+      await cubit.load();
+      unawaited(cubit.sendText('pending')); // optimistic bubble, stays sending
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      when(
+        () => repo.listMessages(any()),
+      ).thenAnswer((_) async => [_msg('server-a')]);
+      await cubit.refresh();
+    },
+    verify: (cubit) {
+      expect(cubit.state.messages.map((m) => m.id), contains('server-a'));
+      expect(
+        cubit.state.messages.any(
+          (m) => m.localId != null && m.status == ChatMessageStatus.sending,
+        ),
+        isTrue,
+      );
+    },
+  );
 }

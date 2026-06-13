@@ -303,6 +303,29 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
     }
   }
 
+  /// Re-fetch the thread without the loading flicker — used when the screen
+  /// resumes from background. While backgrounded the realtime socket may have
+  /// missed a message delivered only as a push (and `messagesStream` has no
+  /// reconnect backfill), so a bare resume could leave the thread missing a
+  /// message AND the server unread counter out of sync with the now-cleared
+  /// tray notification. Swapping in the server list + re-asserting the read
+  /// marker reconciles both; pending optimistic bubbles are preserved.
+  Future<void> refresh() async {
+    if (state.status != ChatThreadStatus.ready) return;
+    try {
+      final server = await _repo.listMessages(chatId);
+      if (isClosed) return;
+      final serverIds = server.map((m) => m.id).toSet();
+      final pending = state.messages.where(
+        (m) => m.localId != null && !serverIds.contains(m.id),
+      );
+      emit(state.copyWith(messages: [...server, ...pending]));
+      unawaited(markAsRead());
+    } catch (_) {
+      // Transient refetch failure — leave the thread as-is.
+    }
+  }
+
   @override
   Future<void> close() async {
     await _sub?.cancel();

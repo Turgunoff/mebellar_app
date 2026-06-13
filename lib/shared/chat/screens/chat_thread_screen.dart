@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -8,6 +10,7 @@ import '../../../core/analytics/analytics_service.dart';
 import '../../../core/di/service_locator.dart';
 import '../../../core/i18n/i18n.dart';
 import '../../../core/notifications/active_chat_tracker.dart';
+import '../../../core/notifications/push_service.dart';
 import '../../../customer/features/home/widgets/premium/premium_tokens.dart';
 import '../../models/chat.dart';
 import '../../models/chat_message.dart';
@@ -155,30 +158,60 @@ class _ChatThreadView extends StatefulWidget {
   State<_ChatThreadView> createState() => _ChatThreadViewState();
 }
 
-class _ChatThreadViewState extends State<_ChatThreadView> {
+class _ChatThreadViewState extends State<_ChatThreadView>
+    with WidgetsBindingObserver {
+  // Owned here (not via BlocProvider's `create`) so the lifecycle callback can
+  // reach it on resume; closed in dispose since `BlocProvider.value` won't.
+  late final ChatThreadCubit _cubit;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // Tell PushService we're on this thread so it suppresses a foreground
     // push for the same conversation (the WS already updates the UI live).
     ActiveChatTracker.instance.enter(widget.chat.id);
+    _cubit = ChatThreadCubit(
+      repo: sl<ChatRepository>(),
+      chatId: widget.chat.id,
+      viewer: widget.viewer,
+      analytics: sl<AnalyticsService>(),
+    )..load();
+    // Opening the thread == reading it (the cubit fires markAsRead on load),
+    // so clear any tray notifications this chat already accumulated while the
+    // user was away.
+    _dismissChatNotifications();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Returning to an already-open thread (a push landed while the app was
+    // backgrounded) doesn't re-run initState. Re-clear the tray AND refresh
+    // the thread so a message the WS missed (delivered only as a push) is
+    // surfaced and the server unread counter is re-zeroed to match.
+    if (state == AppLifecycleState.resumed) {
+      _dismissChatNotifications();
+      unawaited(_cubit.refresh());
+    }
+  }
+
+  void _dismissChatNotifications() {
+    if (!sl.isRegistered<PushService>()) return;
+    unawaited(sl<PushService>().dismissChatNotifications(widget.chat.id));
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     ActiveChatTracker.instance.leave(widget.chat.id);
+    unawaited(_cubit.close());
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => ChatThreadCubit(
-        repo: sl<ChatRepository>(),
-        chatId: widget.chat.id,
-        viewer: widget.viewer,
-        analytics: sl<AnalyticsService>(),
-      )..load(),
+    return BlocProvider.value(
+      value: _cubit,
       child: BlocListener<ChatThreadCubit, ChatThreadState>(
         // Surface a send failure (text or image) as a transient snackbar —
         // the optimistic bubble also flips to a "failed" glyph, but the
