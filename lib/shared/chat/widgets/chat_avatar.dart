@@ -59,15 +59,18 @@ class _Initials extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Follows the active theme so the initials tint matches the mode
+    // (terracotta for customer, Deep Indigo for seller).
+    final accent = Theme.of(context).colorScheme.primary;
     return Container(
-      color: PremiumTokens.accent.withValues(alpha: 0.12),
+      color: accent.withValues(alpha: 0.12),
       alignment: Alignment.center,
       child: Text(
         _initials,
         style: PremiumTokens.body(
           size: size * 0.38,
           weight: FontWeight.w700,
-          color: PremiumTokens.accent,
+          color: accent,
         ),
       ),
     );

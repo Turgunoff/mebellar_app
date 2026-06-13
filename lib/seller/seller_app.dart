@@ -20,6 +20,9 @@ import '../core/theme/seller_theme.dart';
 import '../core/theme/theme_cubit.dart';
 import '../core/updates/app_update_gate.dart';
 import '../main.dart' show AppLocaleScope;
+import '../shared/chat/bloc/total_unread_chats_cubit.dart';
+import '../shared/models/chat.dart';
+import '../shared/repositories/chat_repository.dart';
 import '../shared/widgets/network_overlay_wrapper.dart';
 import 'features/analytics/screens/analytics_screen.dart';
 import 'features/dashboard/dashboard_screen.dart';
@@ -202,28 +205,43 @@ class _SellerHomeShellState extends State<SellerHomeShell> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: null,
-      body: Column(children: [Expanded(child: _bodyForTab(_index))]),
-      bottomNavigationBar: SellerBottomNav(
-        currentIndex: _index,
-        onChanged: (i) => setState(() => _index = i),
-        items: [
-          SellerNavItem(
-            icon: Iconsax.element_3,
-            label: tr('seller.tab_dashboard'),
+    // Provides the unread-chats count to both the profile screen's "Suhbatlar"
+    // row and the Profile-tab nav badge below — mirrors the go_router shell.
+    return BlocProvider<TotalUnreadChatsCubit>(
+      create: (_) =>
+          TotalUnreadChatsCubit(sl<ChatRepository>(), ChatSenderRole.seller),
+      child: Scaffold(
+        appBar: null,
+        body: Column(children: [Expanded(child: _bodyForTab(_index))]),
+        bottomNavigationBar: BlocBuilder<TotalUnreadChatsCubit, int>(
+          builder: (context, unreadChats) => SellerBottomNav(
+            currentIndex: _index,
+            onChanged: (i) => setState(() => _index = i),
+            items: [
+              SellerNavItem(
+                icon: Iconsax.element_3,
+                label: tr('seller.tab_dashboard'),
+              ),
+              SellerNavItem(
+                icon: Iconsax.box,
+                label: tr('seller.tab_products'),
+              ),
+              SellerNavItem(
+                icon: Iconsax.shopping_bag,
+                label: tr('seller.tab_orders'),
+              ),
+              SellerNavItem(
+                icon: Iconsax.chart_2,
+                label: tr('seller.tab_analytics'),
+              ),
+              SellerNavItem(
+                icon: Iconsax.user,
+                label: tr('profile.title'),
+                badge: unreadChats,
+              ),
+            ],
           ),
-          SellerNavItem(icon: Iconsax.box, label: tr('seller.tab_products')),
-          SellerNavItem(
-            icon: Iconsax.shopping_bag,
-            label: tr('seller.tab_orders'),
-          ),
-          SellerNavItem(
-            icon: Iconsax.chart_2,
-            label: tr('seller.tab_analytics'),
-          ),
-          SellerNavItem(icon: Iconsax.user, label: tr('profile.title')),
-        ],
+        ),
       ),
     );
   }

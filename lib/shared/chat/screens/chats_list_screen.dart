@@ -73,7 +73,7 @@ class ChatsListScreen extends StatelessWidget {
               );
             }
             return RefreshIndicator(
-              color: PremiumTokens.accent,
+              color: Theme.of(context).colorScheme.primary,
               onRefresh: context.read<ChatsListCubit>().refresh,
               child: ListView.separated(
                 physics: const AlwaysScrollableScrollPhysics(

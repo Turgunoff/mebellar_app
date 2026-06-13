@@ -117,9 +117,30 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
   void _subscribe() {
     _sub?.cancel();
     _sub = _repo.messagesStream(chatId).listen((msg) {
-      // Realtime can deliver our own insert too — dedupe by id so the
-      // optimistic add doesn't show twice.
+      // Already holding this exact server row (it arrived twice) — ignore.
       if (state.messages.any((m) => m.id == msg.id)) return;
+
+      // The realtime echo of a message we just sent carries a fresh server
+      // id, NOT our optimistic local id, so an id check alone would let it
+      // append as a twin while the POST is still in flight. Match it to the
+      // oldest still-"sending" placeholder with the same sender + content and
+      // swap it in place instead, so the bubble never shows twice. `_reconcile`
+      // then no-ops when the POST finally returns the same row.
+      final pendingIdx = state.messages.indexWhere(
+        (m) =>
+            m.status == ChatMessageStatus.sending &&
+            m.localId != null &&
+            m.senderRole == msg.senderRole &&
+            m.body == msg.body &&
+            m.attachmentUrl == msg.attachmentUrl,
+      );
+      if (pendingIdx != -1) {
+        final next = [...state.messages];
+        next[pendingIdx] = msg;
+        emit(state.copyWith(messages: next));
+        return;
+      }
+
       emit(state.copyWith(messages: [...state.messages, msg]));
       // Auto-mark-read for messages from the other side while the
       // thread is on screen.

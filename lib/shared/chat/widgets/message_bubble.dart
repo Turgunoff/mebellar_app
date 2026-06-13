@@ -28,7 +28,10 @@ class MessageBubble extends StatelessWidget {
     final pt = PremiumTokens.of(context);
     final mine = message.isMine(viewer);
 
-    final bg = mine ? PremiumTokens.accent : pt.surface;
+    // The outgoing-bubble fill is the active theme's primary, so the shared
+    // chat adopts terracotta in customer mode and Deep Indigo in seller mode
+    // instead of a hardcoded customer accent.
+    final bg = mine ? Theme.of(context).colorScheme.primary : pt.surface;
     final fg = mine ? Colors.white : pt.dark;
     final timeColor = mine ? Colors.white.withValues(alpha: 0.75) : pt.grey;
 
@@ -125,10 +128,13 @@ class MessageBubble extends StatelessWidget {
   }
 
   static String _formatTime(DateTime dt) {
+    // Timestamps arrive in UTC (Postgres timestamptz) — render in the device
+    // zone (UTC+5 in UZ) so the stamp matches the user's wall clock.
     // Locale-independent HH:mm — chat time stamps live next to the
     // message, the date headers handle the relative-day context.
-    final h = dt.hour.toString().padLeft(2, '0');
-    final m = dt.minute.toString().padLeft(2, '0');
+    final local = dt.toLocal();
+    final h = local.hour.toString().padLeft(2, '0');
+    final m = local.minute.toString().padLeft(2, '0');
     return '$h:$m';
   }
 }
@@ -150,12 +156,14 @@ class _StatusGlyph extends StatelessWidget {
         Iconsax.info_circle,
         const Color(0xFFFFC9BC), // soft red — legible on the accent bubble
       ),
+      // Telegram standard: a single check once the server has the message
+      // (read_at still null), a double check once the recipient has read it.
       ChatMessageStatus.sent => (
-        message.isRead ? Iconsax.tick_circle : Iconsax.tick_square,
+        message.isRead ? Icons.done_all : Icons.check,
         baseColor,
       ),
     };
-    return Icon(icon, size: 12, color: color);
+    return Icon(icon, size: 13, color: color);
   }
 }
 
@@ -228,19 +236,22 @@ class MessageDateSeparator extends StatelessWidget {
   }
 
   static String _label(DateTime date) {
+    // Compare against the device's local calendar — `date` is UTC, so a
+    // message just after local midnight must still read "Bugun".
+    final local = date.toLocal();
     final today = DateTime.now();
     final isToday =
-        date.year == today.year &&
-        date.month == today.month &&
-        date.day == today.day;
+        local.year == today.year &&
+        local.month == today.month &&
+        local.day == today.day;
     if (isToday) return tr('chat.today');
     final yesterday = today.subtract(const Duration(days: 1));
-    if (date.year == yesterday.year &&
-        date.month == yesterday.month &&
-        date.day == yesterday.day) {
+    if (local.year == yesterday.year &&
+        local.month == yesterday.month &&
+        local.day == yesterday.day) {
       return tr('chat.yesterday');
     }
-    return '${date.day.toString().padLeft(2, '0')}.'
-        '${date.month.toString().padLeft(2, '0')}.${date.year}';
+    return '${local.day.toString().padLeft(2, '0')}.'
+        '${local.month.toString().padLeft(2, '0')}.${local.year}';
   }
 }

@@ -81,4 +81,21 @@ void main() {
       expect(settings.themeMode, ThemeMode.dark);
     });
   });
+
+  group('product view mode', () {
+    test('is null before the user has ever toggled', () {
+      expect(settings.productViewModeName, isNull);
+    });
+
+    test('round-trips the persisted name', () async {
+      await settings.setProductViewModeName('list');
+      expect(settings.productViewModeName, 'list');
+    });
+
+    test('survives clearUserScopedKeys (device-level preference)', () async {
+      await settings.setProductViewModeName('list');
+      await settings.clearUserScopedKeys();
+      expect(settings.productViewModeName, 'list');
+    });
+  });
 }

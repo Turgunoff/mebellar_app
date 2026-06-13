@@ -33,15 +33,10 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final ValueNotifier<ProductViewMode> _viewMode = ValueNotifier(
-    ProductViewMode.grid,
-  );
-
-  @override
-  void dispose() {
-    _viewMode.dispose();
-    super.dispose();
-  }
+  // Shared, app-wide grid/list preference (see ProductViewModeController) so a
+  // toggle here or on any category list applies everywhere — including this tab
+  // when it's kept alive in the shell. Not disposed: it's a DI singleton.
+  final ProductViewModeController _viewMode = sl<ProductViewModeController>();
 
   @override
   Widget build(BuildContext context) {
@@ -140,7 +135,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             const SizedBox(height: 32),
                             _RecommendedHeader(
                               viewMode: viewMode,
-                              onViewModeChanged: (m) => _viewMode.value = m,
+                              onViewModeChanged: _viewMode.set,
                             ),
                             const SizedBox(height: 16),
                           ],

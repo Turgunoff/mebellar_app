@@ -18,6 +18,8 @@ class ProductListState extends Equatable {
     this.subcategories = const [],
     this.selectedSubcategoryId,
     this.filter = const ProductSearchFilter(),
+    this.hasMore = false,
+    this.loadingMore = false,
     this.error,
   });
 
@@ -37,6 +39,13 @@ class ProductListState extends Equatable {
   /// with search — see [ProductSearchFilter].
   final ProductSearchFilter filter;
 
+  /// Whether another page remains to fetch. Drives the scroll trigger + footer.
+  final bool hasMore;
+
+  /// A next-page append is in flight (footer spinner). Also guards against
+  /// re-entrant [ProductListCubit.loadMore] calls a fast scroll fires.
+  final bool loadingMore;
+
   final String? error;
 
   ProductListState copyWith({
@@ -45,6 +54,8 @@ class ProductListState extends Equatable {
     List<SubcategoryModel>? subcategories,
     String? selectedSubcategoryId,
     ProductSearchFilter? filter,
+    bool? hasMore,
+    bool? loadingMore,
     String? error,
     bool clearSelectedSubcategory = false,
     bool clearError = false,
@@ -57,6 +68,8 @@ class ProductListState extends Equatable {
           ? null
           : (selectedSubcategoryId ?? this.selectedSubcategoryId),
       filter: filter ?? this.filter,
+      hasMore: hasMore ?? this.hasMore,
+      loadingMore: loadingMore ?? this.loadingMore,
       error: clearError ? null : (error ?? this.error),
     );
   }
@@ -68,6 +81,8 @@ class ProductListState extends Equatable {
     subcategories,
     selectedSubcategoryId,
     filter,
+    hasMore,
+    loadingMore,
     error,
   ];
 }
@@ -81,9 +96,23 @@ class ProductListCubit extends Cubit<ProductListState> {
 
   String _categoryId = '';
 
+  static const int _pageSize = kCategoryPageSize;
+
+  // Server-side pagination cursor — the count of *raw* rows fetched so far for
+  // the current selection. Advanced by the raw page size (before any dedup) so
+  // a catalog shift between pages can never stall the window. Reset to the
+  // first page's size on every full (re)load / subcategory / filter change.
+  int _categoryOffset = 0;
+
   // Hard 5s ceiling — mirrors HomeBloc so a dead connection surfaces the
   // blocking modal fast instead of waiting out Dio's 30s receive timeout.
   static const Duration _loadTimeout = Duration(seconds: 5);
+
+  // More rows remain when the last page came back full AND the cursor hasn't
+  // reached the catalog-wide total for the active filter. Keyed off the raw
+  // page size so a short page is the only "last page" signal.
+  bool _moreAfter(ProductFeedPage page) =>
+      page.items.length >= _pageSize && _categoryOffset < page.total;
 
   /// First-load entry point. Pulls both the category list (to discover the
   /// current category's subcategories) and the product list in parallel so
@@ -92,13 +121,23 @@ class ProductListCubit extends Cubit<ProductListState> {
   Future<void> load({required String categoryId, String? subcategoryId}) async {
     _categoryId = categoryId;
 
+    // The selection this background fetch is built for. The cache-paint below
+    // renders an interactive screen *before* the network lands, so the user can
+    // tap a subcategory chip, apply a filter, or scroll into a `loadMore` while
+    // the refresh is still in flight. We snapshot here and re-check after the
+    // await so a stale first-page result can't clobber a newer selection or the
+    // pages `loadMore` has already appended (mirrors the guards in
+    // [loadMore] / [_refetch]).
+    final requestedSubcategoryId = subcategoryId;
+    final requestedFilter = state.filter;
+
     // Cache-first paint: when the user taps "all" of a category from the
     // home grid (no subcategory, default filter) we hit the cached listing
     // and emit `loaded` synchronously. Subcategories piggyback on the
     // categories cache. Filtered/subcategory entries skip this — the cache
     // only stores the default view.
     final canPeek = subcategoryId == null && state.filter.isDefault;
-    final cachedProducts = canPeek
+    final cachedPage = canPeek
         ? _productSource.peekByCategory(categoryId)
         : null;
     final cachedCategories = _categorySource.peek();
@@ -107,15 +146,18 @@ class ProductListCubit extends Cubit<ProductListState> {
         .cast<CategoryModel?>()
         .firstWhere((_) => true, orElse: () => null)
         ?.subcategories;
-    final hasCache = cachedProducts != null && cachedSubs != null;
+    final hasCache = cachedPage != null && cachedSubs != null;
     if (hasCache) {
+      _categoryOffset = cachedPage.items.length;
       emit(
         state.copyWith(
           status: ProductListStatus.loaded,
-          products: cachedProducts,
+          products: cachedPage.items,
           subcategories: cachedSubs,
           selectedSubcategoryId: subcategoryId,
           clearSelectedSubcategory: subcategoryId == null,
+          hasMore: _moreAfter(cachedPage),
+          loadingMore: false,
           clearError: true,
         ),
       );
@@ -125,6 +167,7 @@ class ProductListCubit extends Cubit<ProductListState> {
           status: ProductListStatus.loading,
           selectedSubcategoryId: subcategoryId,
           clearSelectedSubcategory: subcategoryId == null,
+          loadingMore: false,
           clearError: true,
         ),
       );
@@ -136,11 +179,13 @@ class ProductListCubit extends Cubit<ProductListState> {
           categoryId: categoryId,
           subcategoryId: subcategoryId,
           filter: state.filter,
+          limit: _pageSize,
+          offset: 0,
         ),
         _categorySource.list(),
       ]).timeout(_loadTimeout);
       if (isClosed) return;
-      final products = results[0] as List<ProductModel>;
+      final page = results[0] as ProductFeedPage;
       final categories = results[1] as List<CategoryModel>;
       // Locate the current category's subcategories without throwing when
       // it isn't found — defensive against a stale categoryId from a deep
@@ -149,15 +194,37 @@ class ProductListCubit extends Cubit<ProductListState> {
           .where((c) => c.id == categoryId)
           .cast<CategoryModel?>()
           .firstWhere((_) => true, orElse: () => null);
+      // If the user narrowed the selection or paginated further while this
+      // refresh was in flight, its first-page result is stale: keep the live
+      // products + cursor (owned now by [_refetch] / [loadMore]) and refresh
+      // only the category-level subcategory chips. `products.length > page
+      // length` catches an already-appended next page; `loadingMore` catches an
+      // append still in flight.
+      final selectionChanged =
+          state.selectedSubcategoryId != requestedSubcategoryId ||
+          state.filter != requestedFilter;
+      final listGrew =
+          state.loadingMore || state.products.length > page.items.length;
+      if (selectionChanged || listGrew) {
+        emit(state.copyWith(subcategories: match?.subcategories ?? const []));
+        return;
+      }
+      _categoryOffset = page.items.length;
       emit(
         state.copyWith(
           status: ProductListStatus.loaded,
-          products: products,
+          products: page.items,
           subcategories: match?.subcategories ?? const [],
+          hasMore: _moreAfter(page),
+          loadingMore: false,
         ),
       );
     } catch (e) {
-      if (isClosed) return;
+      if (isClosed ||
+          state.selectedSubcategoryId != requestedSubcategoryId ||
+          state.filter != requestedFilter) {
+        return;
+      }
       // Keep the cached page visible on a refresh failure — surface a hard
       // failure state only when we had nothing to paint to begin with.
       if (hasCache) {
@@ -197,6 +264,63 @@ class ProductListCubit extends Cubit<ProductListState> {
     );
   }
 
+  /// Append the next page to the bottom of the current list. No-op unless the
+  /// list is a healthy, settled page with more rows left; the synchronous
+  /// `loadingMore` flip makes a burst of scroll-triggered calls collapse to a
+  /// single fetch (the cubit has no event-transformer to dedupe for it).
+  Future<void> loadMore() async {
+    if (state.status != ProductListStatus.loaded ||
+        !state.hasMore ||
+        state.loadingMore) {
+      return;
+    }
+    // Snapshot the selection this page belongs to — a subcategory/filter swap
+    // mid-fetch must discard the stale append rather than splice it under the
+    // wrong selection.
+    final subcategoryId = state.selectedSubcategoryId;
+    final filter = state.filter;
+    emit(state.copyWith(loadingMore: true));
+    try {
+      final page = await _productSource
+          .listByCategory(
+            categoryId: _categoryId,
+            subcategoryId: subcategoryId,
+            filter: filter,
+            limit: _pageSize,
+            offset: _categoryOffset,
+          )
+          .timeout(_loadTimeout);
+      if (isClosed ||
+          state.selectedSubcategoryId != subcategoryId ||
+          state.filter != filter) {
+        return;
+      }
+      // Advance the raw cursor by what the server returned BEFORE the dedup, so
+      // a fully-overlapping page still moves the window forward.
+      _categoryOffset += page.items.length;
+      // Dedup by id so a catalog shift between pages can't double-render a
+      // product; `seen.add` returns false for ids already loaded.
+      final seen = state.products.map((p) => p.id).toSet();
+      final fresh = page.items.where((p) => seen.add(p.id)).toList();
+      emit(
+        state.copyWith(
+          products: [...state.products, ...fresh],
+          hasMore: _moreAfter(page),
+          loadingMore: false,
+        ),
+      );
+    } catch (e) {
+      if (isClosed ||
+          state.selectedSubcategoryId != subcategoryId ||
+          state.filter != filter) {
+        return;
+      }
+      // Soft-fail: keep what we have and clear the spinner. The next scroll
+      // re-arms the trigger, letting the user retry by simply scrolling again.
+      emit(state.copyWith(loadingMore: false));
+    }
+  }
+
   Future<void> _refetch({
     required String? subcategoryId,
     required ProductSearchFilter filter,
@@ -208,15 +332,18 @@ class ProductListCubit extends Cubit<ProductListState> {
         selectedSubcategoryId: subcategoryId,
         clearSelectedSubcategory: clearSubcategory,
         filter: filter,
+        loadingMore: false,
         clearError: true,
       ),
     );
     try {
-      final products = await _productSource
+      final page = await _productSource
           .listByCategory(
             categoryId: _categoryId,
             subcategoryId: subcategoryId,
             filter: filter,
+            limit: _pageSize,
+            offset: 0,
           )
           .timeout(_loadTimeout);
       // The user may have tapped another chip or tweaked the filter while
@@ -227,8 +354,14 @@ class ProductListCubit extends Cubit<ProductListState> {
           state.filter != filter) {
         return;
       }
+      _categoryOffset = page.items.length;
       emit(
-        state.copyWith(status: ProductListStatus.loaded, products: products),
+        state.copyWith(
+          status: ProductListStatus.loaded,
+          products: page.items,
+          hasMore: _moreAfter(page),
+          loadingMore: false,
+        ),
       );
     } catch (e) {
       if (isClosed ||

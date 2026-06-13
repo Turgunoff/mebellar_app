@@ -17,21 +17,24 @@ class WoodyProductRepository extends ProductDataSource {
   static const _basePath = '/catalog/products';
 
   @override
-  Future<List<ProductModel>> listByCategory({
+  Future<ProductFeedPage> listByCategory({
     required String categoryId,
     String? subcategoryId,
     ProductSearchFilter filter = const ProductSearchFilter(),
+    int limit = kCategoryPageSize,
+    int offset = 0,
   }) async {
     final query = <String, dynamic>{
       'category_id': categoryId,
       ..._sortQuery(filter.sort),
       ..._facetQuery(filter),
-      'limit': 200,
+      'limit': limit,
+      'offset': offset,
     };
     if (subcategoryId != null) {
       query['subcategory_id'] = subcategoryId;
     }
-    return _postFilter(await _listRequest(query), filter);
+    return _pageRequest(query);
   }
 
   @override
@@ -56,27 +59,12 @@ class WoodyProductRepository extends ProductDataSource {
     int limit = kHomeFeedPageSize,
     int offset = 0,
     HomeFeedSort sort = HomeFeedSort.recommended,
-  }) async {
-    final body = await _api.get<Map<String, dynamic>>(
-      _basePath,
-      query: {
-        'sort': _feedSortParam(sort),
-        'limit': limit,
-        'offset': offset,
-      },
-      retries: 2,
-    );
-    final rows = body['rows'];
-    final items = rows is List
-        ? rows
-              .whereType<Map<String, dynamic>>()
-              .map(ProductModel.fromJson)
-              .toList(growable: false)
-        : const <ProductModel>[];
-    // Fall back to `items.length` when the backend omits the total so the
-    // feed treats a short page as the last one rather than looping forever.
-    final total = (body['total'] as num?)?.toInt() ?? items.length;
-    return ProductFeedPage(items: items, total: total);
+  }) {
+    return _pageRequest({
+      'sort': _feedSortParam(sort),
+      'limit': limit,
+      'offset': offset,
+    });
   }
 
   String _feedSortParam(HomeFeedSort sort) => switch (sort) {
@@ -94,19 +82,13 @@ class WoodyProductRepository extends ProductDataSource {
   }) async {
     final term = query.trim();
     if (term.isEmpty && filter.isDefault) return const [];
-    // `discountedOnly` is post-filtered in Dart (the discount lives on a
-    // variant row, not the product), so we over-fetch slightly when active
-    // to keep the visible page size stable.
-    final fetchLimit = filter.discountedOnly ? limit * 2 : limit;
     final q = <String, dynamic>{
       if (term.isNotEmpty) 'search': term,
       ..._sortQuery(filter.sort),
       ..._facetQuery(filter),
-      'limit': fetchLimit,
+      'limit': limit,
     };
-    final rows = await _listRequest(q);
-    final filtered = _postFilter(rows, filter);
-    return filtered.length > limit ? filtered.sublist(0, limit) : filtered;
+    return _listRequest(q);
   }
 
   @override
@@ -129,10 +111,7 @@ class WoodyProductRepository extends ProductDataSource {
   ) async {
     final body = await _api.get<Map<String, dynamic>>(
       _basePath,
-      query: query.map((k, v) {
-        if (v is List) return MapEntry(k, v.map((e) => e.toString()).toList());
-        return MapEntry(k, v);
-      }),
+      query: _stringifyLists(query),
       retries: 2,
     );
     final rows = body['rows'];
@@ -141,6 +120,38 @@ class WoodyProductRepository extends ProductDataSource {
         .whereType<Map<String, dynamic>>()
         .map(ProductModel.fromJson)
         .toList(growable: false);
+  }
+
+  /// Paginated variant of [_listRequest] that also surfaces the catalog-wide
+  /// `total`, so callers (home feed + category list infinite scroll) know when
+  /// the last page has been reached. Falls back to `items.length` when the
+  /// backend omits the total, treating a short page as the last one rather than
+  /// looping forever.
+  Future<ProductFeedPage> _pageRequest(Map<String, dynamic> query) async {
+    final body = await _api.get<Map<String, dynamic>>(
+      _basePath,
+      query: _stringifyLists(query),
+      retries: 2,
+    );
+    final rows = body['rows'];
+    final items = rows is List
+        ? rows
+              .whereType<Map<String, dynamic>>()
+              .map(ProductModel.fromJson)
+              .toList(growable: false)
+        : const <ProductModel>[];
+    final total = (body['total'] as num?)?.toInt() ?? items.length;
+    return ProductFeedPage(items: items, total: total);
+  }
+
+  /// Dio renders a `List` query value as repeated `?k=a&k=b` params only when
+  /// the entries are strings, so coerce list values (e.g. multi-colour facet)
+  /// before handing them over.
+  Map<String, dynamic> _stringifyLists(Map<String, dynamic> query) {
+    return query.map((k, v) {
+      if (v is List) return MapEntry(k, v.map((e) => e.toString()).toList());
+      return MapEntry(k, v);
+    });
   }
 
   Map<String, dynamic> _sortQuery(ProductSearchSort sort) {
@@ -160,17 +171,8 @@ class WoodyProductRepository extends ProductDataSource {
       if (filter.maxPrice != null) 'max_price': filter.maxPrice,
       if (filter.inStockOnly) 'in_stock': true,
       if (filter.deliveryOnly) 'has_delivery': true,
+      if (filter.discountedOnly) 'discounted': true,
     };
-  }
-
-  /// `discountedOnly` lives on a variant row; the API can't filter on it
-  /// without re-shaping the embed, so we drop non-discounted rows here.
-  List<ProductModel> _postFilter(
-    List<ProductModel> rows,
-    ProductSearchFilter filter,
-  ) {
-    if (!filter.discountedOnly) return rows;
-    return rows.where((p) => p.hasDiscount).toList(growable: false);
   }
 }
 

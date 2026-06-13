@@ -196,6 +196,65 @@ void main() {
     verify: (cubit) => expect(cubit.state.messages.length, 1),
   );
 
+  // Regression: the WS echo of a message we just sent carries a fresh server
+  // id (not our optimistic local id). If it lands before the POST resolves it
+  // must REPLACE the optimistic bubble, not append a twin.
+  late StreamController<ChatMessage> echoCtrl;
+  late Completer<ChatMessage> sendCompleter;
+  blocTest<ChatThreadCubit, ChatThreadState>(
+    'realtime echo of my own send replaces the optimistic bubble, no duplicate',
+    build: () {
+      echoCtrl = StreamController<ChatMessage>();
+      sendCompleter = Completer<ChatMessage>();
+      stubLoad(messages: echoCtrl.stream);
+      when(
+        () => repo.sendText(
+          chatId: any(named: 'chatId'),
+          body: any(named: 'body'),
+          as: any(named: 'as'),
+        ),
+      ).thenAnswer((_) => sendCompleter.future);
+      return build();
+    },
+    act: (cubit) async {
+      await cubit.load();
+      final sending = cubit.sendText('hi'); // optimistic placeholder inserted
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      // Sanity: exactly the optimistic "sending" bubble is on screen.
+      expect(cubit.state.messages.length, 1);
+      expect(cubit.state.messages.single.status, ChatMessageStatus.sending);
+
+      final serverRow = ChatMessage(
+        id: 'server-echo',
+        chatId: 'chat-1',
+        senderId: 'me',
+        senderRole: ChatSenderRole.customer,
+        body: 'hi',
+        createdAt: DateTime.utc(2026, 5, 22, 10, 5),
+      );
+      echoCtrl.add(serverRow); // echo lands BEFORE the POST resolves
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      // The assertion that actually guards fix #4: in the transient window
+      // after the echo but before the POST resolves there must still be
+      // exactly ONE message (the placeholder was replaced in place). A naive
+      // append would hold TWO here — the duplicate the user reported — even
+      // though _reconcile would later collapse it back to one.
+      expect(cubit.state.messages.length, 1);
+      expect(cubit.state.messages.single.id, 'server-echo');
+      expect(cubit.state.messages.single.status, ChatMessageStatus.sent);
+
+      sendCompleter.complete(serverRow); // POST returns the same row
+      await sending;
+    },
+    verify: (cubit) {
+      expect(cubit.state.messages.length, 1);
+      expect(cubit.state.messages.single.id, 'server-echo');
+      expect(cubit.state.messages.single.status, ChatMessageStatus.sent);
+      expect(cubit.state.sending, isFalse);
+    },
+  );
+
   blocTest<ChatThreadCubit, ChatThreadState>(
     'an order realtime event re-fetches the chat so the banner can refresh',
     build: () {

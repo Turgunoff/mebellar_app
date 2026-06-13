@@ -6,6 +6,11 @@ import '../models/product_model.dart';
 /// subsequent [ProductDataSource.listFeed] fetch pull this many rows.
 const int kHomeFeedPageSize = 15;
 
+/// Page size for the per-category product list's infinite scroll. The first
+/// page and every subsequent [ProductDataSource.listByCategory] fetch pull this
+/// many rows — mirrors [kHomeFeedPageSize] so both feeds page identically.
+const int kCategoryPageSize = 15;
+
 /// Ordering strategies the home "Siz uchun tavsiya" feed can request. These map
 /// to the backend `sort` values added for the curated feed — distinct from the
 /// in-category [ProductSearchSort] facet so the feed's options (recommended /
@@ -164,10 +169,16 @@ class ProductSearchFilter {
 }
 
 abstract class ProductDataSource {
-  Future<List<ProductModel>> listByCategory({
+  /// One page of a category's products, ordered + narrowed by [filter]. Drives
+  /// the category screen's infinite scroll: page N is `offset = N * limit`.
+  /// Returns the catalog-wide [ProductFeedPage.total] for the active filter so
+  /// the caller knows when to stop (`offset + items.length < total`).
+  Future<ProductFeedPage> listByCategory({
     required String categoryId,
     String? subcategoryId,
     ProductSearchFilter filter,
+    int limit = kCategoryPageSize,
+    int offset = 0,
   });
   Future<List<ProductModel>> listBySubcategory({
     required String subcategoryId,
@@ -213,10 +224,10 @@ abstract class ProductDataSource {
   ProductModel? peekById(String id) => null;
 
   /// Synchronous read of a previously-fetched default-filtered category
-  /// listing. Only returns a hit when no facets / sort / subcategory are
-  /// applied — filtered listings are not cached because the parameter
-  /// space is too large to be worth the Hive churn.
-  List<ProductModel>? peekByCategory(String categoryId) => null;
+  /// listing's FIRST page. Only returns a hit when no facets / sort /
+  /// subcategory are applied — filtered listings are not cached because the
+  /// parameter space is too large to be worth the Hive churn.
+  ProductFeedPage? peekByCategory(String categoryId) => null;
 
   /// Synchronous read of a previously-fetched "similar products" carousel.
   /// Returns null on cache miss.
@@ -313,10 +324,12 @@ class MockProductDataSource extends ProductDataSource {
   ];
 
   @override
-  Future<List<ProductModel>> listByCategory({
+  Future<ProductFeedPage> listByCategory({
     required String categoryId,
     String? subcategoryId,
     ProductSearchFilter filter = const ProductSearchFilter(),
+    int limit = kCategoryPageSize,
+    int offset = 0,
   }) async {
     await Future<void>.delayed(_delay);
     var results = _all.where((p) {
@@ -347,7 +360,8 @@ class MockProductDataSource extends ProductDataSource {
       case ProductSearchSort.priceDesc:
         results.sort((a, b) => b.effectivePrice.compareTo(a.effectivePrice));
     }
-    return List.unmodifiable(results);
+    final page = results.skip(offset).take(limit).toList(growable: false);
+    return ProductFeedPage(items: page, total: results.length);
   }
 
   @override

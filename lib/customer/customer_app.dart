@@ -23,7 +23,10 @@ import '../core/theme/theme_cubit.dart';
 import '../core/updates/app_update_gate.dart';
 import 'features/categories/bloc/categories_bloc.dart';
 import '../main.dart' show AppLocaleScope;
+import '../shared/chat/bloc/total_unread_chats_cubit.dart';
+import '../shared/models/chat.dart';
 import '../shared/models/notification_model.dart';
+import '../shared/repositories/chat_repository.dart';
 import '../shared/repositories/notifications_repository.dart';
 import '../shared/widgets/network_overlay_wrapper.dart';
 import 'features/cart/bloc/cart_bloc.dart';
@@ -160,6 +163,14 @@ class _CustomerAppState extends State<CustomerApp> with WidgetsBindingObserver {
             value: sl<ProfileOrdersCubit>(),
           ),
           BlocProvider<ProfileCubit>.value(value: sl<ProfileCubit>()),
+          // Hoisted to the shell root so both the Profile-tab nav badge and
+          // the in-profile "Suhbatlar" row read the same live unread count.
+          BlocProvider<TotalUnreadChatsCubit>(
+            create: (_) => TotalUnreadChatsCubit(
+              sl<ChatRepository>(),
+              ChatSenderRole.customer,
+            ),
+          ),
         ],
         child: MaterialApp.router(
           title: 'Woody',
@@ -403,8 +414,17 @@ class _CustomerHomeShellState extends State<CustomerHomeShell> {
               ),
               GlassNavItem(
                 label: tr('profile.title'),
-                iconBuilder: (_, active) =>
-                    _NavIcon(icon: Iconsax.profile_circle, isActive: active),
+                iconBuilder: (context, active) {
+                  final icon = _NavIcon(
+                    icon: Iconsax.profile_circle,
+                    isActive: active,
+                  );
+                  return BlocBuilder<TotalUnreadChatsCubit, int>(
+                    builder: (context, unread) => unread > 0
+                        ? Badge.count(count: unread, child: icon)
+                        : icon,
+                  );
+                },
               ),
             ],
           ),

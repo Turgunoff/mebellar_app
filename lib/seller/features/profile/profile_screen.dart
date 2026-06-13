@@ -13,11 +13,9 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_fonts.dart';
 import '../../../shared/chat/bloc/total_unread_chats_cubit.dart';
 import '../../../shared/chat/widgets/unread_count_badge.dart';
-import '../../../shared/models/chat.dart';
 import '../../../shared/models/shop_settings.dart';
 import '../../../shared/models/tariff.dart';
 import '../../../shared/models/verification_status.dart';
-import '../../../shared/repositories/chat_repository.dart';
 import '../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../shared/widgets/fullscreen_image_viewer.dart';
 import '../reviews/screens/reviews_screen.dart';
@@ -49,19 +47,11 @@ class SellerProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiBlocProvider(
-      providers: [
-        BlocProvider<SellerProfileCubit>(
-          create: (_) => sl<SellerProfileCubit>()..load(),
-        ),
-        // Drives the live unread badge on the "Suhbatlar" row.
-        BlocProvider<TotalUnreadChatsCubit>(
-          create: (_) => TotalUnreadChatsCubit(
-            sl<ChatRepository>(),
-            ChatSenderRole.seller,
-          ),
-        ),
-      ],
+    // TotalUnreadChatsCubit is provided by the seller shell, so the
+    // "Suhbatlar" row badge here and the bottom-nav Profile badge share one
+    // live unread count off a single subscription.
+    return BlocProvider<SellerProfileCubit>(
+      create: (_) => sl<SellerProfileCubit>()..load(),
       child: const _SellerProfileView(),
     );
   }

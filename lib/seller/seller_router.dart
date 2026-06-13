@@ -23,9 +23,11 @@ import 'features/orders/bloc/seller_orders_bloc.dart';
 import 'features/orders/screens/order_details_screen.dart';
 import 'features/orders/screens/seller_orders_screen.dart';
 import 'features/products/screens/product_form_screen.dart';
+import '../shared/chat/bloc/total_unread_chats_cubit.dart';
 import '../shared/chat/screens/chat_thread_screen.dart';
 import '../shared/chat/screens/chats_list_screen.dart';
 import '../shared/models/chat.dart';
+import '../shared/repositories/chat_repository.dart';
 import 'features/products/screens/seller_product_detail_screen.dart';
 import 'features/products/screens/seller_products_screen.dart';
 import 'features/profile/profile_screen.dart';
@@ -347,8 +349,18 @@ class _SellerRouterShellState extends State<SellerRouterShell> {
   @override
   Widget build(BuildContext context) {
     final shell = widget.shell;
-    return BlocProvider<SellerOrdersBloc>.value(
-      value: sl<SellerOrdersBloc>(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<SellerOrdersBloc>.value(value: sl<SellerOrdersBloc>()),
+        // Shell-level so the Profile-tab nav badge and the in-profile
+        // "Suhbatlar" row share one live unread count.
+        BlocProvider<TotalUnreadChatsCubit>(
+          create: (_) => TotalUnreadChatsCubit(
+            sl<ChatRepository>(),
+            ChatSenderRole.seller,
+          ),
+        ),
+      ],
       child: BlocBuilder<SellerOrdersBloc, SellerOrdersState>(
         buildWhen: (prev, curr) => prev.badgeCount != curr.badgeCount,
         builder: (context, ordersState) => PopScope(
@@ -361,40 +373,43 @@ class _SellerRouterShellState extends State<SellerRouterShell> {
           },
           child: Scaffold(
             body: shell,
-            bottomNavigationBar: SellerBottomNav(
-              currentIndex: shell.currentIndex,
-              onChanged: (i) {
-                // A tap that actually changes tabs resets the exit gesture so
-                // a stale Dashboard back-press can't bleed into the new tab.
-                if (i != shell.currentIndex) _lastBackPress = null;
-                shell.goBranch(
-                  i,
-                  initialLocation: i == shell.currentIndex,
-                );
-              },
-              items: [
-                SellerNavItem(
-                  icon: Iconsax.element_3,
-                  label: tr('seller.tab_dashboard'),
-                ),
-                SellerNavItem(
-                  icon: Iconsax.box,
-                  label: tr('seller.tab_products'),
-                ),
-                SellerNavItem(
-                  icon: Iconsax.shopping_bag,
-                  label: tr('seller.tab_orders'),
-                  badge: ordersState.badgeCount,
-                ),
-                SellerNavItem(
-                  icon: Iconsax.chart_2,
-                  label: tr('seller.tab_analytics'),
-                ),
-                SellerNavItem(
-                  icon: Iconsax.user,
-                  label: tr('profile.title'),
-                ),
-              ],
+            bottomNavigationBar: BlocBuilder<TotalUnreadChatsCubit, int>(
+              builder: (context, unreadChats) => SellerBottomNav(
+                currentIndex: shell.currentIndex,
+                onChanged: (i) {
+                  // A tap that actually changes tabs resets the exit gesture so
+                  // a stale Dashboard back-press can't bleed into the new tab.
+                  if (i != shell.currentIndex) _lastBackPress = null;
+                  shell.goBranch(
+                    i,
+                    initialLocation: i == shell.currentIndex,
+                  );
+                },
+                items: [
+                  SellerNavItem(
+                    icon: Iconsax.element_3,
+                    label: tr('seller.tab_dashboard'),
+                  ),
+                  SellerNavItem(
+                    icon: Iconsax.box,
+                    label: tr('seller.tab_products'),
+                  ),
+                  SellerNavItem(
+                    icon: Iconsax.shopping_bag,
+                    label: tr('seller.tab_orders'),
+                    badge: ordersState.badgeCount,
+                  ),
+                  SellerNavItem(
+                    icon: Iconsax.chart_2,
+                    label: tr('seller.tab_analytics'),
+                  ),
+                  SellerNavItem(
+                    icon: Iconsax.user,
+                    label: tr('profile.title'),
+                    badge: unreadChats,
+                  ),
+                ],
+              ),
             ),
           ),
         ),

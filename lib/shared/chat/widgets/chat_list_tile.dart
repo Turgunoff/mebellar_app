@@ -74,7 +74,7 @@ class ChatListTile extends StatelessWidget {
                               size: 11,
                               weight: FontWeight.w500,
                               color: unread > 0
-                                  ? PremiumTokens.accent
+                                  ? Theme.of(context).colorScheme.primary
                                   : pt.grey,
                             ),
                           ),
@@ -120,26 +120,33 @@ class ChatListTile extends StatelessWidget {
       id.length <= 8 ? id : id.substring(0, 8).toUpperCase();
 
   static String _formatTime(DateTime dt) {
+    // `last_message_at` is UTC (timestamptz) — render in the device zone so
+    // the list time matches the thread and the user's wall clock.
+    final local = dt.toLocal();
     final now = DateTime.now();
-    final isToday = dt.year == now.year && dt.month == now.month && dt.day == now.day;
+    final isToday =
+        local.year == now.year &&
+        local.month == now.month &&
+        local.day == now.day;
     if (isToday) {
-      return '${dt.hour.toString().padLeft(2, '0')}:'
-          '${dt.minute.toString().padLeft(2, '0')}';
+      return '${local.hour.toString().padLeft(2, '0')}:'
+          '${local.minute.toString().padLeft(2, '0')}';
     }
     final yesterday = now.subtract(const Duration(days: 1));
-    if (dt.year == yesterday.year &&
-        dt.month == yesterday.month &&
-        dt.day == yesterday.day) {
+    if (local.year == yesterday.year &&
+        local.month == yesterday.month &&
+        local.day == yesterday.day) {
       return tr('chat.yesterday');
     }
-    return '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}';
+    return '${local.day.toString().padLeft(2, '0')}.${local.month.toString().padLeft(2, '0')}';
   }
 }
 
 /// Telegram-style delivery tick for the viewer's own last message: a single
 /// check once it's stored (delivered) and a filled double-check once the
-/// other party has read it. The read state uses the brand accent — the app's
-/// "primary" — rather than a hardcoded blue, per the theming rules.
+/// other party has read it. The read state uses the active theme's primary —
+/// terracotta in customer mode, Deep Indigo in seller mode — rather than a
+/// hardcoded customer accent, per the theming rules.
 class _ReadReceipt extends StatelessWidget {
   const _ReadReceipt({required this.read});
   final bool read;
@@ -150,7 +157,7 @@ class _ReadReceipt extends StatelessWidget {
     return Icon(
       read ? Icons.done_all : Icons.check,
       size: 15,
-      color: read ? PremiumTokens.accent : pt.grey,
+      color: read ? Theme.of(context).colorScheme.primary : pt.grey,
     );
   }
 }
@@ -165,9 +172,11 @@ class _UnreadBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       constraints: const BoxConstraints(minWidth: 22),
       alignment: Alignment.center,
-      decoration: const BoxDecoration(
-        color: PremiumTokens.accent,
-        borderRadius: BorderRadius.all(Radius.circular(12)),
+      decoration: BoxDecoration(
+        // Follows the active theme so the unread pill turns Deep Indigo in
+        // seller mode instead of the customer terracotta.
+        color: Theme.of(context).colorScheme.primary,
+        borderRadius: const BorderRadius.all(Radius.circular(12)),
       ),
       child: Text(
         count > 99 ? '99+' : '$count',

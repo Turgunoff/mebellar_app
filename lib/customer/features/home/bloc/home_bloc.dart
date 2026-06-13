@@ -242,6 +242,26 @@ class HomeBloc extends Bloc<HomeEvent, HomeState>
 
       final banners = results[0] as List<HomeBanner>;
       final page = results[1] as ProductFeedPage;
+      // The cache-paint emit above leaves the feed scrollable while this
+      // refresh is in flight, so the user can scroll into a `HomeLoadMoreProducts`
+      // that appends a page before we land. Detect that (`loadingMore`, or a
+      // feed already longer than this first page) and keep the grown feed +
+      // cursor — refresh only the banners — instead of clobbering it back to
+      // page one. droppable() only dedupes within a handler; it can't see the
+      // separate load-more handler.
+      final feedGrew =
+          state.loadingMore || state.recommended.length > page.items.length;
+      if (feedGrew) {
+        emit(
+          state.copyWith(
+            status: HomeStatus.ready,
+            banners: banners,
+            feedReloading: false,
+            clearError: true,
+          ),
+        );
+        return;
+      }
       _feedOffset = page.items.length;
       emit(
         state.copyWith(

@@ -9,8 +9,6 @@ import '../../../../core/auth/app_mode_cubit.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../shared/chat/bloc/total_unread_chats_cubit.dart';
-import '../../../../shared/models/chat.dart';
-import '../../../../shared/repositories/chat_repository.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/fullscreen_image_viewer.dart';
 import '../../../widgets/glass_bottom_nav.dart';
@@ -168,13 +166,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Scoped to the profile screen: one lightweight chat-list subscription
-    // that drives the live "Suhbatlar" unread badge.
-    return BlocProvider(
-      create: (_) =>
-          TotalUnreadChatsCubit(sl<ChatRepository>(), ChatSenderRole.customer),
-      child: Builder(builder: _buildScaffold),
-    );
+    // The unread count comes from the shell-level TotalUnreadChatsCubit
+    // (provided in customer_app.dart) so the in-profile "Suhbatlar" badge and
+    // the bottom-nav Profile badge stay in lock-step off one subscription.
+    return _buildScaffold(context);
   }
 
   Widget _buildScaffold(BuildContext context) {

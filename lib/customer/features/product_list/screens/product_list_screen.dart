@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:shimmer/shimmer.dart';
 
+import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../shared/models/category_model.dart';
 import '../../../../shared/models/product.dart';
@@ -40,17 +41,11 @@ class ProductListScreen extends StatefulWidget {
 }
 
 class _ProductListScreenState extends State<ProductListScreen> {
-  // Grid/list preference, mirroring the home feed's toggle. Held locally (and
-  // reset per visit) since it's a presentation choice, not browse state.
-  final ValueNotifier<ProductViewMode> _viewMode = ValueNotifier(
-    ProductViewMode.grid,
-  );
-
-  @override
-  void dispose() {
-    _viewMode.dispose();
-    super.dispose();
-  }
+  // Shared, app-wide grid/list preference (see ProductViewModeController) so the
+  // choice stays in lock-step with the home feed and survives navigation +
+  // restart. Not disposed here — it's a DI singleton owned by the locator, not
+  // this screen.
+  final ProductViewModeController _viewMode = sl<ProductViewModeController>();
 
   Future<void> _openFilter(
     BuildContext context,
@@ -124,7 +119,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                       filterCount: state.filter.activeCount,
                       onFilterTap: () => _openFilter(context, state),
                       viewMode: viewMode,
-                      onViewModeChanged: (m) => _viewMode.value = m,
+                      onViewModeChanged: _viewMode.set,
                     ),
                     if (state.subcategories.isNotEmpty)
                       SliverToBoxAdapter(
@@ -146,12 +141,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                         ),
                       ),
                     SliverPadding(
-                      padding: EdgeInsets.fromLTRB(
-                        16,
-                        8,
-                        16,
-                        GlassBottomNav.reservedHeight(context) + 24,
-                      ),
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                       sliver: isLoading
                           ? (viewMode == ProductViewMode.grid
                                 ? const _SkeletonGrid()
@@ -159,8 +149,23 @@ class _ProductListScreenState extends State<ProductListScreen> {
                           : state.products.isEmpty
                           ? const _EmptySliver()
                           : (viewMode == ProductViewMode.grid
-                                ? _ProductGrid(products: state.products)
-                                : _ProductListView(products: state.products)),
+                                ? _ProductGrid(
+                                    products: state.products,
+                                    onIndexBuilt: (i) =>
+                                        _maybeLoadMore(context, state, i),
+                                  )
+                                : _ProductListView(
+                                    products: state.products,
+                                    onIndexBuilt: (i) =>
+                                        _maybeLoadMore(context, state, i),
+                                  )),
+                    ),
+                    SliverToBoxAdapter(
+                      child: _LoadMoreFooter(
+                        loadingMore: state.loadingMore,
+                        bottomInset:
+                            GlassBottomNav.reservedHeight(context) + 24,
+                      ),
                     ),
                   ],
                 );
@@ -389,9 +394,13 @@ class _SubcategoryChip extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _ProductGrid extends StatelessWidget {
-  const _ProductGrid({required this.products});
+  const _ProductGrid({required this.products, required this.onIndexBuilt});
 
   final List<ProductModel> products;
+
+  /// Invoked with each item index as it builds, so the parent can arm the
+  /// next-page fetch as the user nears the end of the loaded window.
+  final ValueChanged<int> onIndexBuilt;
 
   @override
   Widget build(BuildContext context) {
@@ -403,7 +412,10 @@ class _ProductGrid extends StatelessWidget {
         childAspectRatio: 0.72,
       ),
       itemCount: products.length,
-      itemBuilder: (context, i) => _ProductCard(product: products[i]),
+      itemBuilder: (context, i) {
+        onIndexBuilt(i);
+        return _ProductCard(product: products[i]);
+      },
     );
   }
 }
@@ -415,9 +427,13 @@ class _ProductGrid extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _ProductListView extends StatelessWidget {
-  const _ProductListView({required this.products});
+  const _ProductListView({required this.products, required this.onIndexBuilt});
 
   final List<ProductModel> products;
+
+  /// Invoked with each item index as it builds, so the parent can arm the
+  /// next-page fetch as the user nears the end of the loaded window.
+  final ValueChanged<int> onIndexBuilt;
 
   @override
   Widget build(BuildContext context) {
@@ -425,6 +441,7 @@ class _ProductListView extends StatelessWidget {
       itemCount: products.length,
       separatorBuilder: (_, _) => const SizedBox(height: 14),
       itemBuilder: (context, i) {
+        onIndexBuilt(i);
         final product = products[i];
         return BlocSelector<FavoritesBloc, FavoritesState, bool>(
           selector: (state) => state.isFavorite(product.id),
@@ -611,6 +628,58 @@ class _FavHeart extends StatelessWidget {
   }
 }
 
+
+// ---------------------------------------------------------------------------
+// Infinite-scroll trigger + footer
+// ---------------------------------------------------------------------------
+
+/// Smart pre-fetch: as the user nears the end of the loaded page (within the
+/// last 5 items — i.e. the 10th of a 15-item batch), enqueue the next page so a
+/// spinner rarely appears. The cubit guards `hasMore` / `loadingMore` and flips
+/// `loadingMore` synchronously, so calling this for every trailing item on each
+/// build collapses to a single fetch per batch.
+void _maybeLoadMore(BuildContext context, ProductListState state, int index) {
+  if (state.hasMore &&
+      !state.loadingMore &&
+      index >= state.products.length - 5) {
+    context.read<ProductListCubit>().loadMore();
+  }
+}
+
+/// Footer below the grid/list: a centred spinner while the next page appends,
+/// collapsing to a hairline gap when idle. Always reserves [bottomInset] so the
+/// final row clears the floating bottom nav.
+class _LoadMoreFooter extends StatelessWidget {
+  const _LoadMoreFooter({
+    required this.loadingMore,
+    required this.bottomInset,
+  });
+
+  final bool loadingMore;
+  final double bottomInset;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: bottomInset),
+      child: loadingMore
+          ? const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Center(
+                child: SizedBox(
+                  width: 26,
+                  height: 26,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.4,
+                    color: PremiumTokens.accent,
+                  ),
+                ),
+              ),
+            )
+          : const SizedBox(height: 4),
+    );
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Skeleton + empty + error

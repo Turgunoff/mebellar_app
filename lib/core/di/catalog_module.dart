@@ -3,6 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../config/app_config.dart';
 import '../../customer/features/notifications/cubit/notifications_cubit.dart';
+import '../../customer/widgets/view_mode_toggle.dart';
 import '../analytics/analytics_service.dart';
 import '../analytics/firebase_analytics_service.dart';
 import '../analytics/noop_analytics_service.dart';
@@ -35,6 +36,7 @@ import '../auth/auth_repository.dart';
 import '../network/token_store.dart';
 import '../network/woody_api_client.dart';
 import '../realtime/woody_realtime_service.dart';
+import '../storage/app_settings.dart';
 import '../storage/cache_store.dart';
 import '../storage/hive_boxes.dart';
 import '../storage/r2_upload_client.dart';
@@ -45,6 +47,14 @@ import '../storage/r2_upload_client.dart';
 /// via `WoodyApiClient`. There is no other backend.
 void registerCatalogModule(GetIt sl) {
   final useWoody = AppConfig.hasWoodyApi;
+
+  // Single source of truth for the grid/list view-mode toggle, shared live by
+  // the home feed and every category list so a toggle on one surface applies
+  // everywhere (including a tab kept alive in the shell). Backed by AppSettings
+  // for cross-restart persistence.
+  sl.registerLazySingleton<ProductViewModeController>(
+    () => ProductViewModeController(sl<AppSettings>()),
+  );
 
   CategoryDataSource buildCategoryDs() =>
       WoodyCategoryRepository(api: sl<WoodyApiClient>());

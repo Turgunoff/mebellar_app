@@ -234,7 +234,7 @@ class _ChatComposerState extends State<ChatComposer> {
                       textInputAction: TextInputAction.newline,
                       textCapitalization: TextCapitalization.sentences,
                       inputFormatters: [LengthLimitingTextInputFormatter(4000)],
-                      cursorColor: PremiumTokens.accent,
+                      cursorColor: Theme.of(context).colorScheme.primary,
                       style: PremiumTokens.body(size: 14.5, color: pt.dark),
                       decoration: InputDecoration(
                         hintText: _hasAttachment
@@ -289,7 +289,9 @@ class _RoundButton extends StatelessWidget {
             child: Icon(
               icon,
               size: 20,
-              color: enabled ? PremiumTokens.accent : pt.greyLight,
+              color: enabled
+                  ? Theme.of(context).colorScheme.primary
+                  : pt.greyLight,
             ),
           ),
         ),
@@ -306,12 +308,11 @@ class _SendButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accent = Theme.of(context).colorScheme.primary;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 160),
       child: Material(
-        color: enabled
-            ? PremiumTokens.accent
-            : PremiumTokens.accent.withValues(alpha: 0.4),
+        color: enabled ? accent : accent.withValues(alpha: 0.4),
         shape: const CircleBorder(),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -341,15 +342,16 @@ class _SheetItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
+    final accent = Theme.of(context).colorScheme.primary;
     return ListTile(
       leading: Container(
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: PremiumTokens.accent.withValues(alpha: 0.10),
+          color: accent.withValues(alpha: 0.10),
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Icon(icon, color: PremiumTokens.accent, size: 20),
+        child: Icon(icon, color: accent, size: 20),
       ),
       title: Text(
         label,

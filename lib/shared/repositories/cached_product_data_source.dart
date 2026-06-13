@@ -97,10 +97,12 @@ class CachedProductDataSource extends ProductDataSource {
   }
 
   @override
-  List<ProductModel>? peekByCategory(String categoryId) {
-    return _cache.getJson<List<ProductModel>>(
+  ProductFeedPage? peekByCategory(String categoryId) {
+    // One entry per category covers the cold-start paint — the cubit always
+    // requests the first page at [kCategoryPageSize] for the default view.
+    return _cache.getJson<ProductFeedPage?>(
       '$_kByCategory$categoryId',
-      _decodeList,
+      _decodeFeed,
     );
   }
 
@@ -212,21 +214,27 @@ class CachedProductDataSource extends ProductDataSource {
   }
 
   @override
-  Future<List<ProductModel>> listByCategory({
+  Future<ProductFeedPage> listByCategory({
     required String categoryId,
     String? subcategoryId,
     ProductSearchFilter filter = const ProductSearchFilter(),
+    int limit = kCategoryPageSize,
+    int offset = 0,
   }) async {
-    // Only the "tap-and-browse" entry point is cacheable — once the user
-    // narrows by subcategory chip or any filter facet, we fall through to
-    // the network. That keeps cache keys to one per category instead of one
-    // per (category × subcategory × filter × sort) combination.
-    final cacheable = subcategoryId == null && filter.isDefault;
+    // Only the FIRST page of the "tap-and-browse" entry point is cacheable —
+    // that's the cold-start paint. Once the user narrows by subcategory chip
+    // or any filter facet, OR scrolls past page one, we fall through to the
+    // network. That keeps cache keys to one per category instead of one per
+    // (category × subcategory × filter × sort × page).
+    final cacheable =
+        subcategoryId == null && filter.isDefault && offset == 0;
     if (!cacheable) {
       return _inner.listByCategory(
         categoryId: categoryId,
         subcategoryId: subcategoryId,
         filter: filter,
+        limit: limit,
+        offset: offset,
       );
     }
 
@@ -236,24 +244,26 @@ class CachedProductDataSource extends ProductDataSource {
         categoryId: categoryId,
         subcategoryId: subcategoryId,
         filter: filter,
+        limit: limit,
+        offset: offset,
       );
       _cache.putJson(
         key,
-        fresh.map((p) => p.toJson()).toList(),
+        {
+          'items': fresh.items.map((p) => p.toJson()).toList(),
+          'total': fresh.total,
+        },
         ttl: _ttlByCategory,
       );
       return fresh;
     } catch (e, st) {
-      final cached = _cache.getJson<List<ProductModel>>(
-        key,
-        _decodeList,
-      );
-      if (cached != null && cached.isNotEmpty) {
+      final cached = _cache.getJson<ProductFeedPage?>(key, _decodeFeed);
+      if (cached != null && cached.items.isNotEmpty) {
         talker.handle(
           e,
           st,
           'CachedProductDataSource.listByCategory($categoryId): network '
-          'failed, serving ${cached.length} cached items',
+          'failed, serving ${cached.items.length} cached items',
         );
         return cached;
       }

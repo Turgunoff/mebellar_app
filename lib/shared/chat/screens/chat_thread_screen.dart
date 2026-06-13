@@ -130,9 +130,11 @@ class _BootstrapLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const SafeArea(
+    return SafeArea(
       child: Center(
-        child: CircularProgressIndicator(color: PremiumTokens.accent),
+        child: CircularProgressIndicator(
+          color: Theme.of(context).colorScheme.primary,
+        ),
       ),
     );
   }
@@ -346,7 +348,7 @@ class _ThreadAppBar extends StatelessWidget implements PreferredSizeWidget {
             tooltip: tr('chat.view_order'),
             icon: Icon(
               Iconsax.receipt_2_1,
-              color: PremiumTokens.accent,
+              color: Theme.of(context).colorScheme.primary,
               size: 22,
             ),
             onPressed: () => onOpenOrder!(chat.orderId),
@@ -365,8 +367,10 @@ class _LoadingBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: CircularProgressIndicator(color: PremiumTokens.accent),
+    return Center(
+      child: CircularProgressIndicator(
+        color: Theme.of(context).colorScheme.primary,
+      ),
     );
   }
 }
@@ -469,13 +473,15 @@ class _MessageListState extends State<_MessageList> {
                 width: 88,
                 height: 88,
                 decoration: BoxDecoration(
-                  color: PremiumTokens.accent.withValues(alpha: 0.10),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.10),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Iconsax.message_text,
                   size: 36,
-                  color: PremiumTokens.accent,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
               ),
               const SizedBox(height: 16),
@@ -512,6 +518,12 @@ class _MessageListState extends State<_MessageList> {
     );
   }
 
-  static bool _sameDay(DateTime a, DateTime b) =>
-      a.year == b.year && a.month == b.month && a.day == b.day;
+  static bool _sameDay(DateTime a, DateTime b) {
+    // Group by the viewer's local calendar day, not UTC — otherwise the day
+    // boundary splits where UTC rolls over instead of where the user's day
+    // does, and disagrees with the (local) separator label.
+    final la = a.toLocal();
+    final lb = b.toLocal();
+    return la.year == lb.year && la.month == lb.month && la.day == lb.day;
+  }
 }

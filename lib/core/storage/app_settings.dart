@@ -26,6 +26,7 @@ class AppSettings {
   static const String _kLocaleCode = 'locale_code';
   static const String _kOnboardingSeen = 'onboarding_seen';
   static const String _kSellerWelcomePrefix = 'has_seen_seller_welcome_';
+  static const String _kProductViewMode = 'product_view_mode';
 
   // --- active app mode -----------------------------------------------------
   /// Persisted [AppMode] name, or `null` before the user has ever chosen one.
@@ -82,6 +83,19 @@ class AppSettings {
   String? get localeCode => _box.get(_kLocaleCode) as String?;
   Future<void> setLocaleCode(String code) => _box.put(_kLocaleCode, code);
   Future<void> clearLocaleCode() => _box.delete(_kLocaleCode);
+
+  // --- product feed view mode ----------------------------------------------
+  /// Persisted grid/list toggle for the home feed and per-category product
+  /// lists, shared so the choice applies everywhere the catalogue is browsed.
+  /// Kept as a raw `String?` (the `ProductViewMode.name`) so this class need
+  /// not depend on the customer-layer enum — mirrors [appModeName]. `null`
+  /// before the user has ever toggled; callers default to grid.
+  ///
+  /// A device-level presentation preference: intentionally NOT cleared on
+  /// logout ([clearUserScopedKeys]).
+  String? get productViewModeName => _box.get(_kProductViewMode) as String?;
+  Future<void> setProductViewModeName(String name) =>
+      _box.put(_kProductViewMode, name);
 
   // --- onboarding ----------------------------------------------------------
   bool get onboardingSeen =>

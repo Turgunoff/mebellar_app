@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
+import 'package:woody_app/core/theme/app_colors.dart';
+import 'package:woody_app/core/theme/app_theme.dart';
 import 'package:woody_app/customer/features/home/widgets/premium/premium_tokens.dart';
 import 'package:woody_app/shared/chat/widgets/chat_list_tile.dart';
 import 'package:woody_app/shared/models/chat.dart';
@@ -29,9 +31,17 @@ Chat _chat({
   );
 }
 
-Future<void> _pump(WidgetTester tester, Chat chat, ChatSenderRole viewer) {
+Future<void> _pump(
+  WidgetTester tester,
+  Chat chat,
+  ChatSenderRole viewer, {
+  ThemeData? theme,
+}) {
   return tester.pumpWidget(
     MaterialApp(
+      // Default to the real customer theme so colorScheme.primary resolves to
+      // the brand terracotta the read-receipt/badge now key off.
+      theme: theme ?? AppTheme.lightTheme,
       home: Scaffold(
         body: ChatListTile(chat: chat, viewer: viewer, onTap: () {}),
       ),
@@ -57,8 +67,37 @@ void main() {
     expect(find.byIcon(Icons.check), findsNothing);
 
     final icon = tester.widget<Icon>(find.byIcon(Icons.done_all));
-    expect(icon.color, PremiumTokens.accent); // read = brand primary
+    // Customer theme primary == brand terracotta == PremiumTokens.accent.
+    expect(icon.color, PremiumTokens.accent);
+    expect(icon.color, AppColors.terracotta);
   });
+
+  testWidgets(
+    'read receipt follows the active theme primary — Deep Indigo in seller '
+    'mode, not the customer terracotta',
+    (tester) async {
+      final sellerTheme = ThemeData(
+        colorScheme:
+            ColorScheme.fromSeed(
+              seedColor: AppColors.sellerPrimary,
+            ).copyWith(primary: AppColors.sellerPrimary),
+      );
+      // Seller is the viewer; their own last message has been read → done_all.
+      await _pump(
+        tester,
+        _chat(
+          lastSender: ChatSenderRole.seller,
+          readAt: DateTime(2026, 6, 13),
+        ),
+        ChatSenderRole.seller,
+        theme: sellerTheme,
+      );
+
+      final icon = tester.widget<Icon>(find.byIcon(Icons.done_all));
+      expect(icon.color, AppColors.sellerPrimary);
+      expect(icon.color, isNot(PremiumTokens.accent));
+    },
+  );
 
   testWidgets('shows a single check when my last message is unread', (
     tester,
