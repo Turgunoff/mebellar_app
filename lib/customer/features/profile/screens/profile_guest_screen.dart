@@ -3,7 +3,6 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../../auth/auth_bottom_sheet.dart';
 import '../../../../seller/features/onboarding/screens/onboarding_screen.dart';
-import '../../../widgets/glass_bottom_nav.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../../../../shared/about/about_screen.dart';
 import 'help_screen.dart';
@@ -28,12 +27,7 @@ class ProfileGuestScreen extends StatelessWidget {
         bottom: false,
         child: ListView(
           physics: const BouncingScrollPhysics(),
-          padding: EdgeInsets.fromLTRB(
-            16,
-            8,
-            16,
-            GlassBottomNav.reservedHeight(context) + 24,
-          ),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
           children: [
             const _GuestHeader(),
             const SizedBox(height: 24),

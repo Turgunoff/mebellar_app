@@ -11,7 +11,6 @@ import '../../../../core/i18n/i18n.dart';
 import '../../../../shared/models/category_model.dart';
 import '../../../../shared/widgets/image_error_placeholder.dart';
 import '../../../customer_app.dart';
-import '../../../widgets/glass_bottom_nav.dart';
 import '../../../widgets/network_error_gate.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../bloc/categories_bloc.dart';
@@ -71,12 +70,7 @@ class CategoriesScreen extends StatelessWidget {
                   final items = state.categories;
 
                   return ListView.separated(
-                    padding: EdgeInsets.fromLTRB(
-                      16,
-                      4,
-                      16,
-                      GlassBottomNav.reservedHeight(context) + 48,
-                    ),
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 48),
                     physics: const BouncingScrollPhysics(),
                     itemCount: isLoading ? 5 : items.length,
                     separatorBuilder: (_, _) => const SizedBox(height: 14),

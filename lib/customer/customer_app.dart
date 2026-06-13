@@ -360,7 +360,8 @@ class _CustomerHomeShellState extends State<CustomerHomeShell> {
           _handleSystemBack();
         },
         child: Scaffold(
-          extendBody: true,
+          // The bottom nav is now flush (not floating), so the body lays out
+          // directly above it — no extendBody.
           // Every premium tab renders its own header — suppress the shell AppBar
           // to avoid double titles.
           appBar:
@@ -383,17 +384,17 @@ class _CustomerHomeShellState extends State<CustomerHomeShell> {
             onTap: _goToTab,
             items: [
               GlassNavItem(
-                label: tr('home.title'),
+                label: tr('nav.home'),
                 iconBuilder: (_, active) =>
                     _NavIcon(icon: Iconsax.home_2, isActive: active),
               ),
               GlassNavItem(
-                label: tr('home.categories'),
+                label: tr('nav.catalog'),
                 iconBuilder: (_, active) =>
                     _NavIcon(icon: Iconsax.element_3, isActive: active),
               ),
               GlassNavItem(
-                label: tr('cart.title'),
+                label: tr('nav.cart'),
                 iconBuilder: (_, active) => BlocBuilder<CartBloc, CartState>(
                   buildWhen: (a, b) => a.totalUnits != b.totalUnits,
                   builder: (context, state) {
@@ -408,12 +409,12 @@ class _CustomerHomeShellState extends State<CustomerHomeShell> {
                 ),
               ),
               GlassNavItem(
-                label: 'Sevimlilar',
+                label: tr('nav.favorites'),
                 iconBuilder: (_, active) =>
                     _NavIcon(icon: Iconsax.heart, isActive: active),
               ),
               GlassNavItem(
-                label: tr('profile.title'),
+                label: tr('nav.profile'),
                 iconBuilder: (context, active) {
                   final icon = _NavIcon(
                     icon: Iconsax.profile_circle,
@@ -445,8 +446,10 @@ class _NavIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     return Icon(
       icon,
-      size: 26,
-      color: isActive ? PremiumTokens.accent : const Color(0xFF9E9E9E),
+      size: 24,
+      color: isActive
+          ? PremiumTokens.accent
+          : PremiumTokens.of(context).grey,
     );
   }
 }

@@ -15,7 +15,6 @@ import '../../../../shared/models/cart_item_model.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/premium_empty_state.dart';
 import '../../../../shared/widgets/product_color_chip.dart';
-import '../../../widgets/glass_bottom_nav.dart';
 import '../../../widgets/top_toast.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../bloc/cart_bloc.dart';
@@ -67,7 +66,7 @@ class CartScreen extends StatelessWidget {
                 buttonText: tr('common.retry'),
                 onButtonPressed: () =>
                     context.read<CartBloc>().add(const LoadCart()),
-                bottomPadding: GlassBottomNav.reservedHeight(context) + 24,
+                bottomPadding: 24,
               ),
             );
           }
@@ -80,7 +79,7 @@ class CartScreen extends StatelessWidget {
                 subtitle: tr('cart.empty_hint'),
                 buttonText: tr('cart.empty_cta'),
                 onButtonPressed: () => context.go('/?tab=categories'),
-                bottomPadding: GlassBottomNav.reservedHeight(context) + 24,
+                bottomPadding: 24,
               ),
             );
           }
@@ -482,12 +481,7 @@ class _StickyCheckout extends StatelessWidget {
           ),
         ],
       ),
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 18,
-        bottom: GlassBottomNav.reservedHeight(context) + 12,
-      ),
+      padding: const EdgeInsets.only(left: 20, right: 20, top: 18, bottom: 12),
       child: Row(
         children: [
           Expanded(

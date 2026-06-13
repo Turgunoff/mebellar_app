@@ -9,7 +9,6 @@ import '../../../../core/i18n/i18n.dart';
 import '../../../../shared/models/product.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/premium_empty_state.dart';
-import '../../../widgets/glass_bottom_nav.dart';
 import '../../../widgets/top_toast.dart';
 import '../../home/widgets/premium/premium_product_card.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
@@ -43,7 +42,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
-    final bottomPad = GlassBottomNav.reservedHeight(context) + 24;
+    const bottomPad = 24.0;
 
     return ColoredBox(
       color: pt.background,

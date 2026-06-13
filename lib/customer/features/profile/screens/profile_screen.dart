@@ -11,7 +11,6 @@ import '../../../../core/i18n/i18n.dart';
 import '../../../../shared/chat/bloc/total_unread_chats_cubit.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/fullscreen_image_viewer.dart';
-import '../../../widgets/glass_bottom_nav.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../../orders/cubit/profile_orders_cubit.dart';
 import '../cubit/profile_cubit.dart';
@@ -195,12 +194,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           physics: const AlwaysScrollableScrollPhysics(
             parent: BouncingScrollPhysics(),
           ),
-          padding: EdgeInsets.fromLTRB(
-            16,
-            8,
-            16,
-            GlassBottomNav.reservedHeight(context) + 24,
-          ),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
           children: [
             if (profileState.isLoading)
               const UserCardShimmer()

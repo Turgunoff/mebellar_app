@@ -12,7 +12,6 @@ import '../../../../shared/models/multilingual_text.dart';
 import '../../../../shared/models/product.dart';
 import '../../../../shared/repositories/product_data_source.dart';
 import '../../../customer_app.dart';
-import '../../../widgets/glass_bottom_nav.dart';
 import '../../../widgets/network_error_gate.dart';
 import '../../../widgets/price_format.dart';
 import '../../../widgets/view_mode_toggle.dart';
@@ -107,7 +106,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           children: [
                             const SizedBox(height: 20),
                             const _PremiumSearchBar(),
-                            const SizedBox(height: 28),
+                            const SizedBox(height: 12),
                             BlocBuilder<HomeBloc, HomeState>(
                               buildWhen: (prev, curr) =>
                                   prev.status != curr.status ||
@@ -120,10 +119,17 @@ class _HomeScreenState extends State<HomeScreen> {
                                 final banners = s.banners.isNotEmpty
                                     ? s.banners
                                     : _fallbackBanners;
-                                return GlassBanner(banners: banners);
+                                // The seller-promo slide rides ahead of the
+                                // editorial banners on every load.
+                                return GlassBanner(
+                                  banners: [
+                                    GlassBanner.sellerPromoBanner,
+                                    ...banners,
+                                  ],
+                                );
                               },
                             ),
-                            const SizedBox(height: 32),
+                            const SizedBox(height: 16),
                             _SectionHeader(
                               title: tr('home.categories'),
                               actionLabel: tr('home.see_all'),
@@ -143,11 +149,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       _RecommendedFeed(viewMode: viewMode),
                       const _RecommendedFeedFooter(),
-                      SliverToBoxAdapter(
-                        child: SizedBox(
-                          height: GlassBottomNav.reservedHeight(context) + 24,
-                        ),
-                      ),
+                      const SliverToBoxAdapter(child: SizedBox(height: 24)),
                     ],
                   );
                 },

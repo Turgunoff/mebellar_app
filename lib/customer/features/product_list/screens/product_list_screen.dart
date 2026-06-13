@@ -15,7 +15,6 @@ import '../../../../shared/models/product_model.dart';
 import '../../../features/favorites/bloc/favorites_bloc.dart';
 import '../../../widgets/filter/active_filters_bar.dart';
 import '../../../widgets/filter/filter_button.dart';
-import '../../../widgets/glass_bottom_nav.dart';
 import '../../../widgets/network_error_gate.dart';
 import '../../../widgets/price_format.dart';
 import '../../../widgets/view_mode_toggle.dart';
@@ -163,8 +162,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
                     SliverToBoxAdapter(
                       child: _LoadMoreFooter(
                         loadingMore: state.loadingMore,
+                        // Pushed full-screen route (no bottom nav) — clear only
+                        // the device safe-area inset.
                         bottomInset:
-                            GlassBottomNav.reservedHeight(context) + 24,
+                            MediaQuery.viewPaddingOf(context).bottom + 24,
                       ),
                     ),
                   ],

@@ -13,6 +13,7 @@ import 'checkout_translations.dart';
 import 'common_translations.dart';
 import 'home_translations.dart';
 import 'mode_translations.dart';
+import 'nav_translations.dart';
 import 'notifications_translations.dart';
 import 'onboarding_translations.dart';
 import 'orders_translations.dart';
@@ -31,6 +32,7 @@ const Map<String, dynamic> uzTranslations = {
   'auth': authUz,
   'beta': betaUz,
   'mode': modeUz,
+  'nav': navUz,
   'home': homeUz,
   'catalog': catalogUz,
   'search': searchUz,
@@ -76,6 +78,7 @@ const Map<String, dynamic> ruTranslations = {
   'auth': authRu,
   'beta': betaRu,
   'mode': modeRu,
+  'nav': navRu,
   'home': homeRu,
   'catalog': catalogRu,
   'search': searchRu,
@@ -121,6 +124,7 @@ const Map<String, dynamic> enTranslations = {
   'auth': authEn,
   'beta': betaEn,
   'mode': modeEn,
+  'nav': navEn,
   'home': homeEn,
   'catalog': catalogEn,
   'search': searchEn,
