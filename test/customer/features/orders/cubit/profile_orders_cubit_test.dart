@@ -98,6 +98,50 @@ void main() {
   );
 
   blocTest<ProfileOrdersCubit, ProfileOrdersState>(
+    'maps the backend reviewed flag into a non-null reviews marker',
+    build: () {
+      when(() => auth.isAuthenticated).thenReturn(true);
+      when(() => repo.fetchOrders()).thenAnswer(
+        (_) async => [
+          {
+            'id': 'o1',
+            'status': 'delivered',
+            'total_amount': 100,
+            'created_at': '2026-01-01T00:00:00Z',
+            'items': [
+              {
+                'quantity': 1,
+                'reviewed': true,
+                'review_rating': 5,
+                'product': {
+                  'name': 'Divan',
+                  'images': ['a.jpg'],
+                },
+              },
+              {
+                'quantity': 1,
+                'reviewed': false,
+                'product': {
+                  'name': 'Stul',
+                  'images': ['b.jpg'],
+                },
+              },
+            ],
+          },
+        ],
+      );
+      return build();
+    },
+    act: (c) => c.fetch(),
+    verify: (c) {
+      final items = c.state.orders.first['order_items'] as List;
+      // Reviewed line ⇒ non-null marker (locks the CTA); unreviewed ⇒ null.
+      expect((items[0] as Map)['reviews'], isNotNull);
+      expect((items[1] as Map)['reviews'], isNull);
+    },
+  );
+
+  blocTest<ProfileOrdersCubit, ProfileOrdersState>(
     'fetch failure clears the spinner and keeps the list empty',
     build: () {
       when(() => auth.isAuthenticated).thenReturn(true);

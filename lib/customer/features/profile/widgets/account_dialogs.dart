@@ -7,6 +7,7 @@ import '../../../../core/auth/auth_repository.dart';
 import '../../../../core/auth/sign_out.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/logging/talker.dart';
+import '../../../../core/network/api_error.dart';
 import '../../../../core/network/woody_api_client.dart';
 import '../../../../core/storage/hive_boxes.dart';
 import '../../../../core/storage/secure_storage.dart';
@@ -97,7 +98,10 @@ Future<void> confirmAccountDeletion(BuildContext context) async {
   final s = context.read<ProfileOrdersCubit>().state;
   final activeCount = s.pendingCount + s.processingCount + s.deliveringCount;
   if (activeCount > 0) {
-    _showActiveOrdersWarning(context);
+    _showDeletionBlockedSheet(
+      context,
+      message: _deletionBlockedMessage('has_active_orders')!,
+    );
     return;
   }
 
@@ -225,6 +229,28 @@ Future<void> confirmAccountDeletion(BuildContext context) async {
                                     'Account soft-deleted successfully',
                                   );
                                 } catch (e, st) {
+                                  // The server has the final say — an order
+                                  // went active, or a seller's wallet isn't
+                                  // settled, between the local checks and this
+                                  // call. Map the known 409 block codes to a
+                                  // sheet and crucially DO NOT sign out.
+                                  if (e is ApiError) {
+                                    final blockedMessage =
+                                        _deletionBlockedMessage(e.code);
+                                    if (blockedMessage != null) {
+                                      talker.info(
+                                        'Account deletion blocked: ${e.code}',
+                                      );
+                                      rootNav.pop();
+                                      if (context.mounted) {
+                                        _showDeletionBlockedSheet(
+                                          context,
+                                          message: blockedMessage,
+                                        );
+                                      }
+                                      return;
+                                    }
+                                  }
                                   talker.error(
                                     'Account deletion failed',
                                     e,
@@ -272,8 +298,26 @@ Future<void> confirmAccountDeletion(BuildContext context) async {
   );
 }
 
-/// Modal explaining why account deletion is blocked while orders are active.
-void _showActiveOrdersWarning(BuildContext context) {
+/// Localized reason for each `DELETE /me` 409 block code, or null when the
+/// code isn't a deletion-block reason (caller falls back to the generic error
+/// snackbar). Hardcoded Uzbek to match the rest of this account flow.
+String? _deletionBlockedMessage(String code) => switch (code) {
+  'has_active_orders' =>
+    "Hisobni o'chirish uchun avval barcha faol buyurtmalarni yakunlang "
+        "yoki bekor qiling.",
+  'has_debt' => "Hisobni o'chirish uchun avval qarzdorlikni to'lang.",
+  'has_unwithdrawn_funds' =>
+    "Hisobni o'chirish uchun avval hamyoningizdagi mablag'ni yechib oling.",
+  _ => null,
+};
+
+/// Modal explaining why account deletion is blocked (active orders, wallet
+/// debt, or unwithdrawn funds). The title is generic; [message] carries the
+/// specific reason.
+void _showDeletionBlockedSheet(
+  BuildContext context, {
+  required String message,
+}) {
   final pt = PremiumTokens.of(context);
   showModalBottomSheet<void>(
     context: context,
@@ -326,8 +370,7 @@ void _showActiveOrdersWarning(BuildContext context) {
           ),
           const SizedBox(height: 10),
           Text(
-            "Sizda faol buyurtmalar mavjud. Akkauntni o'chirish uchun "
-            "avval ularni qabul qiling yoki bekor qiling.",
+            message,
             textAlign: TextAlign.center,
             style: PremiumTokens.body(size: 14, color: pt.grey, height: 1.55),
           ),

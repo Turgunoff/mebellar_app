@@ -25,6 +25,9 @@ class ChatListTile extends StatelessWidget {
     final unread = chat.unreadFor(viewer);
     final name = chat.displayNameFor(viewer);
     final preview = chat.lastMessagePreview ?? '';
+    // Read receipt rides next to the timestamp, but only for an outgoing
+    // last message — Telegram never shows a tick on a message you received.
+    final showReceipt = chat.lastMessageAt != null && chat.lastMessageIsMine(viewer);
 
     return Material(
       color: Colors.transparent,
@@ -60,6 +63,10 @@ class ChatListTile extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 8),
+                        if (showReceipt) ...[
+                          _ReadReceipt(read: chat.lastMessageRead),
+                          const SizedBox(width: 4),
+                        ],
                         if (chat.lastMessageAt != null)
                           Text(
                             _formatTime(chat.lastMessageAt!),
@@ -126,6 +133,25 @@ class ChatListTile extends StatelessWidget {
       return tr('chat.yesterday');
     }
     return '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}';
+  }
+}
+
+/// Telegram-style delivery tick for the viewer's own last message: a single
+/// check once it's stored (delivered) and a filled double-check once the
+/// other party has read it. The read state uses the brand accent — the app's
+/// "primary" — rather than a hardcoded blue, per the theming rules.
+class _ReadReceipt extends StatelessWidget {
+  const _ReadReceipt({required this.read});
+  final bool read;
+
+  @override
+  Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
+    return Icon(
+      read ? Icons.done_all : Icons.check,
+      size: 15,
+      color: read ? PremiumTokens.accent : pt.grey,
+    );
   }
 }
 

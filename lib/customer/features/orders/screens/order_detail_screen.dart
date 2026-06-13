@@ -9,7 +9,6 @@ import '../../../../shared/models/order.dart'
     show FeeAdjustmentStatus, Order, OrderItem;
 import '../../../../shared/models/order_status.dart';
 import '../../../../shared/models/review.dart';
-import '../../../../shared/repositories/customer_reviews_repository.dart';
 import '../../../../shared/repositories/order_repository.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/cancel_reason_sheet.dart';
@@ -542,28 +541,13 @@ class _DeliveredReviewsCard extends StatefulWidget {
 }
 
 class _DeliveredReviewsCardState extends State<_DeliveredReviewsCard> {
-  Map<String, Review> _reviews = const {};
-  bool _loading = true;
+  /// Reviews the customer submitted in THIS session, keyed by order_item_id.
+  /// Lines rated in a previous session arrive already flagged via
+  /// `item.reviewed` (backend), so the lock survives a re-open without a fetch.
+  final Map<String, Review> _session = {};
 
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    final result = await sl<CustomerReviewsRepository>().reviewsForOrder(
-      widget.order.id,
-    );
-    if (!mounted) return;
-    result.fold(
-      ok: (map) => setState(() {
-        _reviews = map;
-        _loading = false;
-      }),
-      err: (_) => setState(() => _loading = false),
-    );
-  }
+  bool _isRated(OrderItem item) =>
+      item.reviewed || _session.containsKey(item.id);
 
   Future<void> _openComposer(OrderItem item) async {
     final review = await showReviewComposer(
@@ -573,11 +557,10 @@ class _DeliveredReviewsCardState extends State<_DeliveredReviewsCard> {
       productId: item.productId,
       productName: item.productName.get(context.locale.languageCode),
       thumbnail: item.thumbnail,
-      existing: _reviews[item.id],
     );
     final itemId = review?.orderItemId;
     if (itemId != null && mounted) {
-      setState(() => _reviews = {..._reviews, itemId: review!});
+      setState(() => _session[itemId] = review!);
     }
   }
 
@@ -586,6 +569,7 @@ class _DeliveredReviewsCardState extends State<_DeliveredReviewsCard> {
     final items = widget.order.items.where((it) => it.id != null).toList();
     if (items.isEmpty) return const SizedBox.shrink();
     final theme = Theme.of(context);
+    final allRated = items.every(_isRated);
 
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -610,7 +594,9 @@ class _DeliveredReviewsCardState extends State<_DeliveredReviewsCard> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Fikringiz boshqa xaridorlarga tanlovda yordam beradi.',
+              allRated
+                  ? 'Barcha mahsulotlar baholandi. Rahmat!'
+                  : 'Fikringiz boshqa xaridorlarga tanlovda yordam beradi.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.outline,
               ),
@@ -624,11 +610,15 @@ class _DeliveredReviewsCardState extends State<_DeliveredReviewsCard> {
   }
 
   Widget _itemRow(OrderItem item, ThemeData theme) {
-    final review = _reviews[item.id];
+    final sessionReview = _session[item.id];
+    final rated = _isRated(item);
+    final rating = sessionReview?.rating ?? item.reviewRating ?? 0;
     final fallback = theme.colorScheme.surfaceContainerHighest;
-    final comment = review?.comment.trim() ?? '';
+    final comment = sessionReview?.comment.trim() ?? '';
     return InkWell(
-      onTap: _loading ? null : () => _openComposer(item),
+      // Rated lines are locked — no re-rating; only un-rated lines open the
+      // composer.
+      onTap: rated ? null : () => _openComposer(item),
       borderRadius: BorderRadius.circular(8),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
@@ -668,8 +658,8 @@ class _DeliveredReviewsCardState extends State<_DeliveredReviewsCard> {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      if (review != null)
-                        StarRating(rating: review.rating.toDouble(), size: 15)
+                      if (rated)
+                        StarRating(rating: rating.toDouble(), size: 15)
                       else
                         Text(
                           'Hali baholanmagan',
@@ -681,18 +671,25 @@ class _DeliveredReviewsCardState extends State<_DeliveredReviewsCard> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                if (_loading)
-                  const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: BrandLoadingIndicator(radius: 8),
-                  )
-                else if (review != null)
-                  Text(
-                    'Tahrirlash',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: theme.colorScheme.primary,
-                    ),
+                if (rated)
+                  // Locked rated state — disabled, non-tappable "Baholangan".
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.check_circle_rounded,
+                        size: 16,
+                        color: theme.colorScheme.primary,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Baholangan',
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                   )
                 else
                   Container(
@@ -714,52 +711,13 @@ class _DeliveredReviewsCardState extends State<_DeliveredReviewsCard> {
                   ),
               ],
             ),
-            // Customer's own comment.
+            // Customer's own comment from this session's submission.
             if (comment.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(left: 60, top: 8),
                 child: Text(
                   comment,
                   style: theme.textTheme.bodySmall?.copyWith(height: 1.4),
-                ),
-              ),
-            // Seller's reply, when the shop has answered.
-            if (review?.hasReply ?? false)
-              Padding(
-                padding: const EdgeInsets.only(left: 60, top: 8),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: fallback,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.storefront_outlined,
-                            size: 13,
-                            color: theme.colorScheme.outline,
-                          ),
-                          const SizedBox(width: 5),
-                          Text(
-                            'Sotuvchi javobi',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        review!.sellerReply!.trim(),
-                        style: theme.textTheme.bodySmall?.copyWith(height: 1.4),
-                      ),
-                    ],
-                  ),
                 ),
               ),
           ],

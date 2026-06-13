@@ -168,6 +168,52 @@ void main() {
     expect(h.adapter.calls.single.uri.path, endsWith('/chats'));
   });
 
+  test('listMyChats maps the last-message read-receipt fields', () async {
+    final row = {
+      ..._chat('ch1'),
+      'last_message_at': '2026-06-13T11:10:00Z',
+      'last_message_preview': 'salom',
+      'last_message_sender_role': 'customer',
+      'last_message_read_at': '2026-06-13T11:12:00Z',
+    };
+    final h = make((_) => (200, jsonEncode([row])));
+
+    final chat = (await h.repo.listMyChats()).single;
+
+    expect(chat.lastMessageSenderRole, ChatSenderRole.customer);
+    expect(chat.lastMessageRead, isTrue);
+    expect(chat.lastMessageIsMine(ChatSenderRole.customer), isTrue);
+    expect(chat.lastMessageIsMine(ChatSenderRole.seller), isFalse);
+  });
+
+  test('listMyChats leaves receipt fields null when absent / unread', () async {
+    final row = {
+      ..._chat('ch1'),
+      'last_message_sender_role': 'seller',
+      // last_message_read_at omitted → not yet read
+    };
+    final h = make((_) => (200, jsonEncode([row])));
+
+    final chat = (await h.repo.listMyChats()).single;
+
+    expect(chat.lastMessageSenderRole, ChatSenderRole.seller);
+    expect(chat.lastMessageRead, isFalse);
+  });
+
+  test('listMyChats degrades an unknown sender_role to null (no throw)', () async {
+    // Production only ever writes customer/seller, but a legacy/garbage value
+    // must degrade to null — the tile then shows no receipt — never throw and
+    // tear down the whole list. Locks the documented degrade-not-throw contract.
+    final row = {..._chat('ch1'), 'last_message_sender_role': 'admin'};
+    final h = make((_) => (200, jsonEncode([row])));
+
+    final chat = (await h.repo.listMyChats()).single;
+
+    expect(chat.lastMessageSenderRole, isNull);
+    expect(chat.lastMessageIsMine(ChatSenderRole.customer), isFalse);
+    expect(chat.lastMessageIsMine(ChatSenderRole.seller), isFalse);
+  });
+
   test('openChatForOrder POSTs the order id and maps the chat', () async {
     final h = make((_) => (200, jsonEncode(_chat('ch1'))));
 
@@ -263,6 +309,13 @@ void main() {
     void emitChat(_FakeConnection conn, Map<String, dynamic> data) =>
         conn.emit(jsonEncode({'type': 'chat_message', 'data': data}));
 
+    void emitRead(_FakeConnection conn, String chatId) => conn.emit(
+      jsonEncode({
+        'type': 'chat_read',
+        'data': {'chat_id': chatId, 'reader_role': 'seller'},
+      }),
+    );
+
     test('messagesStream lifts a chat_message frame for THIS chat', () async {
       final h = await makeRealtime((_) => (200, '[]'));
       addTearDown(() => h.rt.stop());
@@ -305,6 +358,27 @@ void main() {
 
       expect(calls, 2); // the frame triggered a second GET
       expect(emissions, hasLength(2));
+      await sub.cancel();
+    });
+
+    test('myChatsStream re-fetches on a chat_read frame (live receipt)', () async {
+      var calls = 0;
+      final h = await makeRealtime((_) {
+        calls++;
+        return (200, jsonEncode([_chat('ch1')]));
+      });
+      addTearDown(() => h.rt.stop());
+
+      final sub = h.repo.myChatsStream().listen((_) {});
+      await pumpEventQueue(); // initial snapshot fetch
+      expect(calls, 1);
+
+      // The other party opened the thread → our outgoing tick must flip, so
+      // the list refetches and re-reads last_message_read_at.
+      emitRead(h.conn, 'ch1');
+      await pumpEventQueue();
+
+      expect(calls, 2);
       await sub.cancel();
     });
 

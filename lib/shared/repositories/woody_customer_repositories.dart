@@ -500,6 +500,8 @@ class WoodyOrderRepository implements OrderRepository {
       unitPrice: (row['price'] as num?) ?? 0,
       quantity: (row['quantity'] as num?)?.toInt() ?? 1,
       colorSlug: row['color_slug'] as String? ?? '',
+      reviewed: row['reviewed'] as bool? ?? false,
+      reviewRating: (row['review_rating'] as num?)?.toInt(),
     );
   }
 

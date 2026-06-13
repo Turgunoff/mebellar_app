@@ -25,8 +25,10 @@ import 'notifications_repository.dart';
 /// over the Woody WebSocket the instant a message is inserted, carrying the
 /// full row. [messagesStream] lifts that frame into a [ChatMessage] for the
 /// open thread; [myChatsStream] re-fetches the list on each frame so unread
-/// badges + ordering + last-message previews update live. Order status moves
-/// arrive over the `notification` feed and drive [orderEventsStream]. When no
+/// badges + ordering + last-message previews update live. A `chat_read` frame
+/// (the other party opened the thread) likewise refetches so the sender's
+/// outgoing read-receipt flips ✓ → ✓✓. Order status moves arrive over the
+/// `notification` feed and drive [orderEventsStream]. When no
 /// realtime service is wired (tests / no-backend builds) the streams degrade
 /// to a single on-demand snapshot, exactly as before.
 class WoodyChatRepository implements ChatRepository {
@@ -246,9 +248,15 @@ class WoodyChatRepository implements ChatRepository {
   void _wireListRefresh() {
     final realtime = _realtime;
     if (realtime == null || _wsListSub != null) return;
-    _wsListSub = realtime.eventsOfType('chat_message').listen((_) {
-      if (!_listDirty.isClosed) _listDirty.add(null);
-    });
+    // Two frames can change what the list renders: a new message
+    // (`chat_message` → unread badge, ordering, preview) and the other party
+    // reading our messages (`chat_read` → the outgoing read-receipt tick flips
+    // ✓ → ✓✓). Refetch on either.
+    _wsListSub = realtime.events
+        .where((e) => e.type == 'chat_message' || e.type == 'chat_read')
+        .listen((_) {
+          if (!_listDirty.isClosed) _listDirty.add(null);
+        });
   }
 
   ChatMessage? _messageFromEvent(Map<String, dynamic> data) {
@@ -282,6 +290,14 @@ class WoodyChatRepository implements ChatRepository {
           ? DateTime.parse(row['last_message_at'] as String)
           : null,
       lastMessagePreview: row['last_message_preview'] as String?,
+      lastMessageSenderRole: switch (row['last_message_sender_role']) {
+        'customer' => ChatSenderRole.customer,
+        'seller' => ChatSenderRole.seller,
+        _ => null,
+      },
+      lastMessageReadAt: row['last_message_read_at'] is String
+          ? DateTime.parse(row['last_message_read_at'] as String)
+          : null,
       customerUnreadCount: (row['customer_unread_count'] as num?)?.toInt() ?? 0,
       sellerUnreadCount: (row['seller_unread_count'] as num?)?.toInt() ?? 0,
       orderStatus: row['order_status'] is String

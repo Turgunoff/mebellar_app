@@ -97,9 +97,9 @@ class ProfileOrdersCubit extends Cubit<ProfileOrdersState> {
 
   /// Maps a woody_backend `CustomerOrder` JSON row to the legacy
   /// PostgREST-shaped map the order-history UI consumes: `items`→`order_items`,
-  /// `product`→`products`. `reviews` is always null because the backend has no
-  /// per-item "already reviewed?" view yet — so a delivered order keeps
-  /// showing the review CTA, and a re-submit is rejected with 409.
+  /// `product`→`products`. `reviews` is a non-null marker when the backend's
+  /// per-item `reviewed` flag is set (else null) — so the "rate products" CTA
+  /// disappears once every delivered line has been reviewed.
   Map<String, dynamic> _toCardMap(Map<String, dynamic> row) {
     final items = (row['items'] as List?) ?? const [];
     return {
@@ -116,7 +116,11 @@ class ProfileOrdersCubit extends Cubit<ProfileOrdersState> {
           if (raw is Map<String, dynamic>)
             {
               'quantity': raw['quantity'],
-              'reviews': null,
+              // Non-null ⇒ this line is already reviewed (backend `reviewed`
+              // flag). The history card treats a null `reviews` as unreviewed.
+              'reviews': raw['reviewed'] == true
+                  ? {'rating': raw['review_rating']}
+                  : null,
               'products': {
                 'images': _itemImages(raw),
                 'name':

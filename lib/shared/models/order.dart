@@ -18,6 +18,8 @@ class OrderItem extends Equatable {
     this.id,
     this.colorSlug = '',
     this.selectedServices = const [],
+    this.reviewed = false,
+    this.reviewRating,
   });
 
   /// The `order_items` row id. Needed to anchor a product review to its
@@ -35,6 +37,12 @@ class OrderItem extends Equatable {
   final String colorSlug;
 
   final List<ShopService> selectedServices;
+
+  /// Whether the customer has already reviewed this line (a `reviews` row
+  /// exists for it). Backend-derived; drives the "Baholangan" lock so a rated
+  /// product can't be re-rated. [reviewRating] carries the stars when reviewed.
+  final bool reviewed;
+  final int? reviewRating;
 
   num get lineTotal => unitPrice * quantity;
 
@@ -55,6 +63,8 @@ class OrderItem extends Equatable {
       unitPrice: (json['price'] as num?) ?? (json['unit_price'] as num?) ?? 0,
       quantity: (json['quantity'] as num?)?.toInt() ?? 0,
       colorSlug: json['color_slug'] as String? ?? '',
+      reviewed: json['reviewed'] as bool? ?? false,
+      reviewRating: (json['review_rating'] as num?)?.toInt(),
     );
   }
 
@@ -76,6 +86,8 @@ class OrderItem extends Equatable {
     quantity,
     colorSlug,
     selectedServices.length,
+    reviewed,
+    reviewRating,
   ];
 }
 

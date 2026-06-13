@@ -35,6 +35,8 @@ class Chat extends Equatable {
     this.customerAvatarUrl,
     this.lastMessageAt,
     this.lastMessagePreview,
+    this.lastMessageSenderRole,
+    this.lastMessageReadAt,
     this.customerUnreadCount = 0,
     this.sellerUnreadCount = 0,
     this.orderStatus,
@@ -69,10 +71,25 @@ class Chat extends Equatable {
   final DateTime? lastMessageAt;
   final String? lastMessagePreview;
 
+  /// Who sent the most recent message + when it was read — joined from the
+  /// latest `chat_messages` row. Together they drive the chat-list read
+  /// receipt: a tick shows only on a message the viewer sent, filled when
+  /// [lastMessageReadAt] is non-null. Null when the thread has no messages.
+  final ChatSenderRole? lastMessageSenderRole;
+  final DateTime? lastMessageReadAt;
+
   final int customerUnreadCount;
   final int sellerUnreadCount;
 
   final DateTime createdAt;
+
+  /// True when the most recent message was sent by [viewer] — gates the
+  /// read-receipt tick (receipts only render on outgoing messages).
+  bool lastMessageIsMine(ChatSenderRole viewer) =>
+      lastMessageSenderRole == viewer;
+
+  /// Whether the most recent message has been read by the other party.
+  bool get lastMessageRead => lastMessageReadAt != null;
 
   /// Pick the right unread counter for the viewer. Centralised so screens
   /// don't have to remember which column belongs to which side.
@@ -114,6 +131,8 @@ class Chat extends Equatable {
       customerAvatarUrl: customer?['avatar_url'] as String?,
       lastMessageAt: _parseDate(json['last_message_at']),
       lastMessagePreview: json['last_message_preview'] as String?,
+      lastMessageSenderRole: _parseSenderRole(json['last_message_sender_role']),
+      lastMessageReadAt: _parseDate(json['last_message_read_at']),
       customerUnreadCount: (json['customer_unread_count'] as num?)?.toInt() ?? 0,
       sellerUnreadCount: (json['seller_unread_count'] as num?)?.toInt() ?? 0,
       orderStatus: order?['status'] is String
@@ -127,6 +146,8 @@ class Chat extends Equatable {
   Chat copyWith({
     DateTime? lastMessageAt,
     String? lastMessagePreview,
+    ChatSenderRole? lastMessageSenderRole,
+    DateTime? lastMessageReadAt,
     int? customerUnreadCount,
     int? sellerUnreadCount,
     OrderStatus? orderStatus,
@@ -143,6 +164,9 @@ class Chat extends Equatable {
       customerAvatarUrl: customerAvatarUrl,
       lastMessageAt: lastMessageAt ?? this.lastMessageAt,
       lastMessagePreview: lastMessagePreview ?? this.lastMessagePreview,
+      lastMessageSenderRole:
+          lastMessageSenderRole ?? this.lastMessageSenderRole,
+      lastMessageReadAt: lastMessageReadAt ?? this.lastMessageReadAt,
       customerUnreadCount: customerUnreadCount ?? this.customerUnreadCount,
       sellerUnreadCount: sellerUnreadCount ?? this.sellerUnreadCount,
       orderStatus: orderStatus ?? this.orderStatus,
@@ -160,6 +184,8 @@ class Chat extends Equatable {
         shopId,
         lastMessageAt,
         lastMessagePreview,
+        lastMessageSenderRole,
+        lastMessageReadAt,
         customerUnreadCount,
         sellerUnreadCount,
       ];
@@ -167,5 +193,16 @@ class Chat extends Equatable {
 
 DateTime? _parseDate(Object? raw) {
   if (raw is String) return DateTime.parse(raw);
+  return null;
+}
+
+/// Null-safe sender-role parse for the chat-list summary. A missing or
+/// unknown value (empty thread, legacy row) degrades to null rather than
+/// throwing — the tile then simply renders no read receipt.
+ChatSenderRole? _parseSenderRole(Object? raw) {
+  if (raw is! String) return null;
+  for (final r in ChatSenderRole.values) {
+    if (r.value == raw) return r;
+  }
   return null;
 }
