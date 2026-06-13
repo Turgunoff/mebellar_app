@@ -27,6 +27,7 @@ import 'core/notifications/push_service.dart';
 import 'customer/features/notifications/cubit/notifications_cubit.dart';
 import 'customer/features/profile/cubit/profile_cubit.dart';
 import 'shared/models/notification_model.dart';
+import 'shared/repositories/chat_repository.dart';
 import 'core/storage/hive_boxes.dart';
 import 'core/theme/theme_cubit.dart';
 import 'core/widgets/app_splash_screen.dart';
@@ -200,8 +201,8 @@ Future<void> _bootstrapAndRun() async {
   // router couldn't consume anyway.
   if (initialMode == AppMode.customer) {
     try {
-      DeferredDeepLink.pendingLocation =
-          await DeferredDeepLinkService().resolveInitialDeepLink();
+      DeferredDeepLink.pendingLocation = await DeferredDeepLinkService()
+          .resolveInitialDeepLink();
     } catch (e, st) {
       talker.handle(e, st, 'Deferred deep link resolution failed');
     }
@@ -244,6 +245,14 @@ void _wirePushToInboxRefresh() {
     final kind = NotificationKind.fromString(message.data['kind'] as String?);
     if (kind.isSellerVerdict && sl.isRegistered<ProfileCubit>()) {
       unawaited(sl<ProfileCubit>().fetch());
+    }
+    // Chat list is realtime-first over the WS, but a foreground chat push can
+    // beat (or stand in for) the socket — nudge the list to re-fetch so the
+    // conversation reorders + re-badges even when the socket is down. The
+    // open thread itself rides the WS `chat_message` frame directly.
+    if (kind == NotificationKind.chatMessage &&
+        sl.isRegistered<ChatRepository>()) {
+      sl<ChatRepository>().nudgeFromPush();
     }
   };
 }

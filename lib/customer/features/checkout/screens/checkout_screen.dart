@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -607,6 +608,7 @@ class _OrderSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final deliveryFee = state.deliveryFee;
+    final deliveryPriced = state.deliveryPriced;
     return _SectionCard(
       pt: pt,
       child: Column(
@@ -637,6 +639,17 @@ class _OrderSummaryCard extends StatelessWidget {
                     size: 14,
                     weight: FontWeight.w600,
                     color: pt.dark,
+                  ),
+                )
+              else if (deliveryPriced)
+                // Every line's product prices its own delivery and the total is
+                // zero → genuinely free, not "to be determined".
+                Text(
+                  'Tekin',
+                  style: PremiumTokens.body(
+                    size: 14,
+                    weight: FontWeight.w700,
+                    color: const Color(0xFF16A34A),
                   ),
                 )
               else
@@ -701,36 +714,100 @@ class _ItemRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(width: 4),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        // Tap a line to open its product page. Inert only when the snapshot
+        // somehow carries no product id.
+        onTap: item.productId.isEmpty
+            ? null
+            : () => context.push('/product/${item.productId}'),
+        borderRadius: BorderRadius.circular(12),
+        splashColor: PremiumTokens.accent.withValues(alpha: 0.06),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
             children: [
-              Text(
-                '${item.productName} × ${item.quantity}',
-                style: PremiumTokens.body(size: 13, color: pt.grey),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              if (item.selectedColor != null) ...[
-                const SizedBox(height: 3),
-                ProductColorChip(
-                  slug: item.selectedColor,
-                  swatchSize: 11,
-                  labelStyle: PremiumTokens.body(size: 11, color: pt.greyLight),
+              _ItemThumb(url: item.productImage, pt: pt),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${item.productName} × ${item.quantity}',
+                      style: PremiumTokens.body(
+                        size: 13,
+                        weight: FontWeight.w600,
+                        color: pt.dark,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (item.selectedColor != null) ...[
+                      const SizedBox(height: 3),
+                      ProductColorChip(
+                        slug: item.selectedColor,
+                        swatchSize: 11,
+                        labelStyle: PremiumTokens.body(
+                          size: 11,
+                          color: pt.greyLight,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-              ],
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${_fmt(item.lineTotal)} UZS',
+                style: PremiumTokens.body(
+                  size: 13,
+                  weight: FontWeight.w600,
+                  color: pt.dark,
+                ),
+              ),
+              const SizedBox(width: 2),
+              Icon(Iconsax.arrow_right_3, size: 13, color: pt.greyLight),
             ],
           ),
         ),
-        Text(
-          '${_fmt(item.lineTotal)} UZS',
-          style: PremiumTokens.body(size: 13, color: pt.dark),
-        ),
-      ],
+      ),
+    );
+  }
+}
+
+/// Small rounded product thumbnail for a checkout invoice line. Falls back to
+/// a neutral box-icon placeholder when the snapshot carries no image.
+class _ItemThumb extends StatelessWidget {
+  const _ItemThumb({required this.url, required this.pt});
+  final String url;
+  final PremiumTokens pt;
+
+  @override
+  Widget build(BuildContext context) {
+    final placeholder = ColoredBox(
+      color: pt.imageBg,
+      child: Icon(Iconsax.box, size: 16, color: pt.greyLight),
+    );
+    return Container(
+      width: 42,
+      height: 42,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: pt.divider),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: url.isEmpty
+          ? placeholder
+          : CachedNetworkImage(
+              imageUrl: url,
+              fit: BoxFit.cover,
+              memCacheWidth: 126,
+              placeholder: (_, _) => placeholder,
+              errorWidget: (_, _, _) => placeholder,
+            ),
     );
   }
 }

@@ -91,6 +91,14 @@ class CheckoutState extends Equatable {
   bool get installationAvailable =>
       quote?.installationAvailable ?? (_installationFeeLocal > 0);
 
+  /// Whether the delivery fee shown is authoritative — every line's product
+  /// prices its own delivery (even when that price is 0 = free). When false,
+  /// no product pre-prices delivery, so the seller proposes it after the order
+  /// is placed and the invoice shows "Sotuvchi belgilaydi" rather than a
+  /// misleading "Tekin".
+  bool get deliveryPriced =>
+      groups.isNotEmpty && allItems.every((it) => it.hasDelivery);
+
   /// Instantly recomputed: subtotal + delivery + (installation if opted in).
   double get grandTotal =>
       subtotal + deliveryFee + (wantsInstallation ? installationFee : 0);

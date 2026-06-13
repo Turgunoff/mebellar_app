@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import '../../core/network/woody_api_client.dart';
+import '../../core/realtime/woody_realtime_service.dart';
 import '../models/app_notification.dart';
 import '../models/chat.dart';
 import '../models/chat_message.dart';
@@ -13,13 +14,36 @@ import 'notifications_repository.dart';
 ///
 /// Image attachments arrive in Phase 7 once the R2 presigned-PUT flow lands
 /// — for now `sendImage` throws so the UI can fall back to a "feature
-/// unavailable" message rather than silently failing. Realtime stream
-/// support lands in Phase 6 (WebSocket); until then the streams emit only
-/// the latest snapshot fetched on demand.
+/// unavailable" message rather than silently failing.
+///
+/// Realtime: the backend publishes a `chat_message` frame to the *recipient*
+/// over the Woody WebSocket the instant a message is inserted, carrying the
+/// full row. [messagesStream] lifts that frame into a [ChatMessage] for the
+/// open thread; [myChatsStream] re-fetches the list on each frame so unread
+/// badges + ordering + last-message previews update live. When no realtime
+/// service is wired (tests / no-backend builds) the streams degrade to a
+/// single on-demand snapshot, exactly as before.
 class WoodyChatRepository implements ChatRepository {
-  WoodyChatRepository({required WoodyApiClient api}) : _api = api;
+  WoodyChatRepository({
+    required WoodyApiClient api,
+    WoodyRealtimeService? realtime,
+  }) : _api = api,
+       _realtime = realtime;
 
   final WoodyApiClient _api;
+
+  /// Live event source. Null in builds/tests without a configured backend.
+  final WoodyRealtimeService? _realtime;
+
+  /// Ticks whenever the signed-in user's chat list may have changed: a
+  /// realtime `chat_message` frame, or an FCM foreground push that beat the
+  /// socket ([nudgeFromPush]). Broadcast so every open list screen shares one
+  /// upstream WS subscription.
+  final _listDirty = StreamController<void>.broadcast();
+
+  /// One shared subscription bridging the WS `chat_message` feed onto
+  /// [_listDirty]; opened lazily the first time a list stream is requested.
+  StreamSubscription<RealtimeEvent>? _wsListSub;
 
   @override
   Future<Chat> openChatForOrder({required String orderId}) async {
@@ -100,14 +124,84 @@ class WoodyChatRepository implements ChatRepository {
 
   @override
   Stream<ChatMessage> messagesStream(String chatId) {
-    // Phase 6 wires the WebSocket fan-out. Until then return an empty
-    // stream so subscribers don't crash on a null stream.
-    return const Stream.empty();
+    final realtime = _realtime;
+    // No socket (tests / no-backend build) → empty stream; the thread still
+    // shows its initial page, it just won't live-append.
+    if (realtime == null) return const Stream.empty();
+    // The backend publishes `chat_message` to the recipient only, with the
+    // full row. Filter to this thread and lift it into a ChatMessage — the
+    // thread cubit dedupes against its own optimistic insert by id.
+    return realtime
+        .eventsOfType('chat_message')
+        .where((e) => e.data['chat_id'] == chatId)
+        .map((e) => _messageFromEvent(e.data))
+        .where((m) => m != null)
+        .cast<ChatMessage>();
   }
 
   @override
   Stream<List<Chat>> myChatsStream() {
-    return Stream.fromFuture(listMyChats());
+    late final StreamController<List<Chat>> out;
+    StreamSubscription<void>? dirtySub;
+
+    Future<void> pull({required bool initial}) async {
+      try {
+        if (!out.isClosed) out.add(await listMyChats());
+      } catch (e, st) {
+        // Surface a genuine first-load failure to the cubit; on a later
+        // realtime re-fetch keep the last good list instead of tearing the
+        // screen down over a transient blip.
+        if (initial && !out.isClosed) out.addError(e, st);
+      }
+    }
+
+    out = StreamController<List<Chat>>(
+      // Subscribe to the dirty signal BEFORE the first fetch so a frame that
+      // lands mid-fetch (broadcast streams don't buffer) still triggers a
+      // follow-up pull.
+      onListen: () {
+        _wireListRefresh();
+        dirtySub = _listDirty.stream.listen((_) => pull(initial: false));
+        pull(initial: true);
+      },
+      onCancel: () async {
+        await dirtySub?.cancel();
+        dirtySub = null;
+      },
+    );
+    return out.stream;
+  }
+
+  @override
+  void nudgeFromPush() {
+    if (!_listDirty.isClosed) _listDirty.add(null);
+  }
+
+  /// Opens the single WS→list bridge on first use. Idempotent.
+  void _wireListRefresh() {
+    final realtime = _realtime;
+    if (realtime == null || _wsListSub != null) return;
+    _wsListSub = realtime.eventsOfType('chat_message').listen((_) {
+      if (!_listDirty.isClosed) _listDirty.add(null);
+    });
+  }
+
+  ChatMessage? _messageFromEvent(Map<String, dynamic> data) {
+    try {
+      return _rowToMessage(data);
+    } catch (_) {
+      // A forward-compat field shift must not crash the live thread; the
+      // message still lands on the next reload.
+      return null;
+    }
+  }
+
+  /// Tears down the realtime bridge. The repo is app-lifetime in production,
+  /// so this is mainly for tests and a clean DI-scope dispose if ever wired.
+  Future<void> dispose() async {
+    await _wsListSub?.cancel();
+    _wsListSub = null;
+    await _listDirty.close();
   }
 
   Chat _rowToChat(Map<String, dynamic> row) {

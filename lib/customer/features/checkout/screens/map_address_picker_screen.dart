@@ -419,38 +419,49 @@ class _MapAddressPickerScreenState extends State<MapAddressPickerScreen> {
             ),
           ),
 
-          // My-location FAB
-          Positioned(
-            right: 16,
-            bottom: 180,
-            child: _GlassButton(
-              onTap: _goToMyLocation,
-              child: Icon(Icons.my_location, size: 22, color: widget.accent),
-            ),
-          ),
-
-          // Bottom address panel + confirm button
+          // My-location FAB + bottom address panel, stacked in one bottom-
+          // anchored column so the FAB always rides directly above the panel —
+          // no matter how tall the address makes it — and is never covered or
+          // unclickable. (A fixed FAB offset broke once the address wrapped to
+          // 2–3 lines.)
           Positioned(
             left: 0,
             right: 0,
             bottom: 0,
-            child: _BottomPanel(
-              address: _geocodedAddress,
-              isGeocoding: _isGeocoding,
-              onConfirm: () {
-                final address = _geocodedAddress;
-                if (address != null && address.trim().isNotEmpty) {
-                  Navigator.of(context).pop(
-                    PickedLocation(
-                      address: address.trim(),
-                      latitude: _pickedPoint.latitude,
-                      longitude: _pickedPoint.longitude,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 16, bottom: 12),
+                  child: _GlassButton(
+                    onTap: _goToMyLocation,
+                    child: Icon(
+                      Icons.my_location,
+                      size: 22,
+                      color: widget.accent,
                     ),
-                  );
-                }
-              },
-              pt: pt,
-              accent: widget.accent,
+                  ),
+                ),
+                _BottomPanel(
+                  address: _geocodedAddress,
+                  isGeocoding: _isGeocoding,
+                  onConfirm: () {
+                    final address = _geocodedAddress;
+                    if (address != null && address.trim().isNotEmpty) {
+                      Navigator.of(context).pop(
+                        PickedLocation(
+                          address: address.trim(),
+                          latitude: _pickedPoint.latitude,
+                          longitude: _pickedPoint.longitude,
+                        ),
+                      );
+                    }
+                  },
+                  pt: pt,
+                  accent: widget.accent,
+                ),
+              ],
             ),
           ),
         ],

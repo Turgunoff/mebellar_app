@@ -97,7 +97,11 @@ class _OrdersHistoryScreenState extends State<OrdersHistoryScreen> {
                 selected: _filter,
                 counts: counts,
                 onSelect: (f) => setState(() => _filter = f),
-                onBack: () => Navigator.of(context).pop(),
+                // After a successful checkout the dialog `context.go('/orders')`s
+                // here, leaving a single-entry stack — a bare `Navigator.pop`
+                // would be dead. Fall back to home so Back is never trapped.
+                onBack: () =>
+                    context.canPop() ? context.pop() : context.go('/'),
               ),
               Expanded(
                 child: firstLoad

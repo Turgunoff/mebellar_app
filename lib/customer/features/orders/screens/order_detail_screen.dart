@@ -172,57 +172,72 @@ class _Body extends StatelessWidget {
                   ),
                   const Divider(),
                   for (final item in order.items)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      child: Row(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: SizedBox(
-                              width: 48,
-                              height: 48,
-                              child: item.thumbnail.isEmpty
-                                  ? const ColoredBox(color: Color(0x11000000))
-                                  : CachedNetworkImage(
-                                      imageUrl: item.thumbnail,
-                                      // ROADMAP B.7 — 48px order-item thumbnail.
-                                      memCacheWidth: 150,
-                                      fit: BoxFit.cover,
-                                    ),
+                    InkWell(
+                      // Tap a line to open its product page. Disabled only when
+                      // the product id is missing (shouldn't happen for a real
+                      // order line, but keeps the row inert rather than 404ing).
+                      onTap: item.productId.isEmpty
+                          ? null
+                          : () => context.push('/product/${item.productId}'),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: Row(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: SizedBox(
+                                width: 48,
+                                height: 48,
+                                child: item.thumbnail.isEmpty
+                                    ? const ColoredBox(color: Color(0x11000000))
+                                    : CachedNetworkImage(
+                                        imageUrl: item.thumbnail,
+                                        // ROADMAP B.7 — 48px order-item thumbnail.
+                                        memCacheWidth: 150,
+                                        fit: BoxFit.cover,
+                                      ),
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  item.productName.get(lang),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                Text(
-                                  '${item.quantity} Г— ${priceFormat.format(item.unitPrice)}',
-                                  style: Theme.of(context).textTheme.bodySmall,
-                                ),
-                                if (item.colorSlug.isNotEmpty) ...[
-                                  const SizedBox(height: 3),
-                                  ProductColorChip(
-                                    slug: item.colorSlug,
-                                    swatchSize: 12,
-                                    labelStyle: Theme.of(
-                                      context,
-                                    ).textTheme.bodySmall,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    item.productName.get(lang),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
+                                  Text(
+                                    '${item.quantity} Г— ${priceFormat.format(item.unitPrice)}',
+                                    style: Theme.of(context).textTheme.bodySmall,
+                                  ),
+                                  if (item.colorSlug.isNotEmpty) ...[
+                                    const SizedBox(height: 3),
+                                    ProductColorChip(
+                                      slug: item.colorSlug,
+                                      swatchSize: 12,
+                                      labelStyle: Theme.of(
+                                        context,
+                                      ).textTheme.bodySmall,
+                                    ),
+                                  ],
                                 ],
-                              ],
+                              ),
                             ),
-                          ),
-                          Text(
-                            '${priceFormat.format(item.lineTotal)} so\'m',
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                        ],
+                            const Icon(
+                              Icons.chevron_right,
+                              size: 18,
+                              color: Color(0x66000000),
+                            ),
+                            const SizedBox(width: 2),
+                            Text(
+                              '${priceFormat.format(item.lineTotal)} so\'m',
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                 ],

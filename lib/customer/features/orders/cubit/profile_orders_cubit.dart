@@ -108,15 +108,30 @@ class ProfileOrdersCubit extends Cubit<ProfileOrdersState> {
               'quantity': raw['quantity'],
               'reviews': null,
               'products': {
-                'images': raw['product'] is Map<String, dynamic>
-                    ? (raw['product']['images'] ?? const [])
-                    : const [],
-                'name': raw['product'] is Map<String, dynamic>
-                    ? raw['product']['name']
-                    : null,
+                'images': _itemImages(raw),
+                'name':
+                    raw['product_name'] ??
+                    (raw['product'] is Map<String, dynamic>
+                        ? raw['product']['name']
+                        : null),
               },
             },
       ],
     };
+  }
+
+  /// First product image for an order line as a one-element list — the flat
+  /// `product_image` the backend now returns, falling back to a nested
+  /// `product.images` join for older payloads. Kept as a list because the
+  /// history card reads `products.images.first`.
+  List<String> _itemImages(Map<String, dynamic> raw) {
+    final flat = raw['product_image'];
+    if (flat is String && flat.isNotEmpty) return [flat];
+    final nested = raw['product'];
+    if (nested is Map<String, dynamic>) {
+      final images = nested['images'];
+      if (images is List) return images.whereType<String>().toList();
+    }
+    return const [];
   }
 }

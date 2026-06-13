@@ -447,18 +447,35 @@ class WoodyOrderRepository implements OrderRepository {
 
   static OrderItem _rowToOrderItem(dynamic raw) {
     final row = raw as Map<String, dynamic>;
-    final product = row['product'] as Map<String, dynamic>?;
-    final rawName = product?['name'];
-    final name = rawName is String ? rawName : '';
-    final images = product?['images'] as List<dynamic>? ?? const [];
+    // The customer order endpoints return flat per-line product fields
+    // (`product_name`, `product_image`). A nested `product`/`products` join is
+    // accepted as a fallback so older payloads and the test fixtures still map.
+    final product = (row['product'] ?? row['products']) as Map<String, dynamic>?;
+    final nestedImages = product?['images'];
+    final nestedImage = nestedImages is List && nestedImages.isNotEmpty
+        ? nestedImages.first as String?
+        : null;
+    final thumbnail =
+        (row['product_image'] as String?) ??
+        (row['thumbnail'] as String?) ??
+        nestedImage ??
+        '';
+    final nestedName = product?['name'];
+    final name =
+        (row['product_name'] as String?) ??
+        (nestedName is String ? nestedName : null) ??
+        '';
+    // Null-safe so a malformed row degrades to an inert (un-tappable) line
+    // rather than throwing — the productId.isEmpty guard depends on this.
+    final productId = row['product_id'] as String? ?? '';
     return OrderItem(
       id: row['id'] as String?,
-      productId: row['product_id'] as String,
-      productSlug: row['product_id'] as String,
+      productId: productId,
+      productSlug: productId,
       productName: MultilingualText(uz: name, ru: name, en: name),
-      thumbnail: images.isNotEmpty ? images.first as String : '',
+      thumbnail: thumbnail,
       unitPrice: (row['price'] as num?) ?? 0,
-      quantity: (row['quantity'] as int?) ?? 1,
+      quantity: (row['quantity'] as num?)?.toInt() ?? 1,
       colorSlug: row['color_slug'] as String? ?? '',
     );
   }

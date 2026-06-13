@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-
 import '../models/chat.dart';
 import '../models/chat_message.dart';
 
@@ -62,6 +61,14 @@ abstract class ChatRepository {
   /// whenever any participating chat row changes (last_message_at,
   /// unread counts). Used by the list screen to badge in real time.
   Stream<List<Chat>> myChatsStream();
+
+  /// Belt-and-suspenders refresh signal for the chat list. The realtime
+  /// socket is the primary path, but a foreground FCM push for a new message
+  /// can arrive when the socket is momentarily down (backgrounded, network
+  /// blip). Calling this nudges [myChatsStream] to re-fetch so the list
+  /// reorders + re-badges even on the degraded path. No-op when there are no
+  /// active list subscribers.
+  void nudgeFromPush();
 }
 
 /// In-memory fallback used by integration tests and the offline
@@ -171,4 +178,7 @@ class MockChatRepository implements ChatRepository {
 
   @override
   Stream<List<Chat>> myChatsStream() => _chatsListCtrl.stream;
+
+  @override
+  void nudgeFromPush() => _chatsListCtrl.add(List.unmodifiable(_chats));
 }

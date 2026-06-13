@@ -75,9 +75,16 @@ void registerCatalogModule(GetIt sl) {
       ),
     );
 
-    // Order-scoped chats — Woody REST.
+    // Order-scoped chats — Woody REST + realtime fan-out. The WS service
+    // drives live message inserts and chat-list refreshes; null-safe so
+    // no-backend builds degrade to on-demand snapshots.
     sl.registerLazySingleton<ChatRepository>(
-      () => WoodyChatRepository(api: sl<WoodyApiClient>()),
+      () => WoodyChatRepository(
+        api: sl<WoodyApiClient>(),
+        realtime: sl.isRegistered<WoodyRealtimeService>()
+            ? sl<WoodyRealtimeService>()
+            : null,
+      ),
     );
     // Notifications inbox data source — Woody REST (`/notifications`).
     sl.registerLazySingleton<NotificationDataSource>(
