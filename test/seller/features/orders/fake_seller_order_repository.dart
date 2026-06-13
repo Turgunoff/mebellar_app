@@ -96,12 +96,22 @@ class FakeSellerOrderRepository implements SellerOrderRepository {
       _transition(id, OrderStatus.delivered, label: 'delivered');
 
   @override
-  Future<Result<Order>> proposeDeliveryFee(
-    String id, {
-    required num fee,
-    String? note,
-  }) async =>
-      const Err(ServerFailure(message: 'proposeDeliveryFee not stubbed'));
+  Future<Result<Order>> setDeliveryFee(String id, {required num fee}) async {
+    transitionLog.add('setFee:$id:$fee');
+    final builder = _getByIdResult;
+    if (builder == null) {
+      return const Err(ServerFailure(message: 'setDeliveryFee: no stub'));
+    }
+    final result = builder(id);
+    return switch (result) {
+      Ok(:final value) when value.status == OrderStatus.pending => Ok(
+        value.copyWith(grandTotal: value.grandTotal - value.deliveryFee + fee),
+      ),
+      // Mirrors the backend gate: the invoice is locked once accepted.
+      Ok() => const Err(ServerFailure(message: 'order_not_pending')),
+      Err() => result,
+    };
+  }
 
   @override
   Future<Result<Order>> cancel(String id, {required String reason}) async {

@@ -1,5 +1,5 @@
-
 import '../models/address.dart';
+import '../models/cancel_reason.dart';
 import '../models/cart_item.dart';
 import '../models/order.dart';
 import '../models/shop.dart';
@@ -30,7 +30,20 @@ abstract class OrderRepository {
   /// N orders. (The live checkout posts to `/orders` directly via
   /// `WoodyApiClient`; this typed path backs the repository contract.)
   Future<Order> create(CreateOrderInput input);
-  Future<Order> cancel(String id, {required String reason});
+
+  /// Cancels [id] with a structured reason: a [reasonCode] from
+  /// [fetchCancelReasons] plus free [reasonText] (required only when the code
+  /// is `other`). The backend enforces customer cancel is pending-only.
+  Future<Order> cancel(
+    String id, {
+    required String reasonCode,
+    String? reasonText,
+  });
+
+  /// Predefined customer cancellation reasons, localised by the active locale
+  /// (the API client stamps `Accept-Language`). The `other` code pairs with a
+  /// free-text field in the picker.
+  Future<List<CancelReason>> fetchCancelReasons();
 
   /// Customer accepts the seller's proposed delivery fee.
   /// Updates `total_amount`, clears the proposal columns.

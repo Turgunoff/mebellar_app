@@ -1,4 +1,5 @@
 import '../../core/result/result.dart';
+import '../models/cancel_reason.dart';
 import '../models/order.dart';
 import '../models/order_status.dart';
 
@@ -30,15 +31,27 @@ abstract class SellerOrderRepository {
   Future<Result<Order>> markPreparing(String id);
   Future<Result<Order>> markShipped(String id);
   Future<Result<Order>> markDelivered(String id);
-  Future<Result<Order>> cancel(String id, {required String reason});
 
-  /// Seller proposes a new delivery fee. Sets `fee_adjustment_status =
-  /// 'pending_customer'` and sends the customer a push notification.
-  Future<Result<Order>> proposeDeliveryFee(
+  /// Cancels [id] with a structured reason: a [reasonCode] from
+  /// [fetchCancelReasons] plus free [reasonText] (required only when the code
+  /// is `other`). A seller may cancel from any non-terminal state; an illegal
+  /// transition resolves to an [Err], not a throw.
+  Future<Result<Order>> cancel(
     String id, {
-    required num fee,
-    String? note,
+    required String reasonCode,
+    String? reasonText,
   });
+
+  /// Predefined seller cancellation reasons, localised by the active locale.
+  /// Reference data — degrades to an empty list on failure (the picker then
+  /// offers only the free-text path).
+  Future<List<CancelReason>> fetchCancelReasons();
+
+  /// Sets the order's delivery fee and re-derives the grand total. Allowed
+  /// only while the order is still `pending`; once the seller accepts it the
+  /// invoice is locked and the backend rejects the change (resolved to an
+  /// [Err], not a throw). Returns the refreshed [Order] on success.
+  Future<Result<Order>> setDeliveryFee(String id, {required num fee});
 
   Stream<Order> watch(String orderId);
 

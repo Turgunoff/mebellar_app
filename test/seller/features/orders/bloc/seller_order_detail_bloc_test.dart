@@ -104,6 +104,44 @@ void main() {
     );
 
     blocTest<SellerOrderDetailBloc, SellerOrderDetailState>(
+      'setting the delivery fee on a pending order re-derives the total',
+      build: () => SellerOrderDetailBloc(repo),
+      act: (bloc) async {
+        bloc.add(const SellerOrderDetailRequested('s1'));
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+        bloc.add(const SellerOrderDeliveryFeeSet(fee: 50));
+      },
+      wait: const Duration(milliseconds: 30),
+      verify: (bloc) {
+        expect(bloc.state.status, SellerOrderDetailStatus.ready);
+        // makeOrder defaults: grandTotal 100, deliveryFee 0 → 100 - 0 + 50.
+        expect(bloc.state.order?.grandTotal, 150);
+      },
+    );
+
+    blocTest<SellerOrderDetailBloc, SellerOrderDetailState>(
+      'setting the delivery fee on an accepted order is rejected (invoice locked)',
+      build: () {
+        repo.getByIdResult =
+            (id) => Ok(makeOrder(id: id, status: OrderStatus.confirmed));
+        return SellerOrderDetailBloc(repo);
+      },
+      act: (bloc) async {
+        bloc.add(const SellerOrderDetailRequested('s2'));
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+        bloc.add(const SellerOrderDeliveryFeeSet(fee: 50));
+      },
+      wait: const Duration(milliseconds: 30),
+      verify: (bloc) {
+        // The gate surfaces an error and leaves the loaded order untouched.
+        expect(bloc.state.status, SellerOrderDetailStatus.ready);
+        expect(bloc.state.error, 'order_not_pending');
+        expect(bloc.state.order?.grandTotal, 100);
+        expect(bloc.state.order?.status, OrderStatus.confirmed);
+      },
+    );
+
+    blocTest<SellerOrderDetailBloc, SellerOrderDetailState>(
       'realtime watch update mutates the loaded order in place',
       build: () => SellerOrderDetailBloc(repo),
       act: (bloc) async {

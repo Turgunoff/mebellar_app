@@ -14,6 +14,8 @@ import '../../../../shared/repositories/product_data_source.dart';
 import '../../../customer_app.dart';
 import '../../../widgets/glass_bottom_nav.dart';
 import '../../../widgets/network_error_gate.dart';
+import '../../../widgets/price_format.dart';
+import '../../../widgets/view_mode_toggle.dart';
 import '../../categories/bloc/categories_bloc.dart';
 import '../../favorites/bloc/favorites_bloc.dart';
 import '../../notifications/cubit/notifications_cubit.dart';
@@ -23,11 +25,6 @@ import '../widgets/premium/premium_product_card.dart';
 import '../widgets/premium/premium_product_list_card.dart';
 import '../widgets/premium/premium_tokens.dart';
 
-/// Feed layout the user picks via the header toggle. Ephemeral UI state held in
-/// a [ValueNotifier] on [_HomeScreenState] — it resets on cold restart, which is
-/// fine for a presentation preference.
-enum HomeViewMode { grid, list }
-
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -36,8 +33,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final ValueNotifier<HomeViewMode> _viewMode = ValueNotifier(
-    HomeViewMode.grid,
+  final ValueNotifier<ProductViewMode> _viewMode = ValueNotifier(
+    ProductViewMode.grid,
   );
 
   @override
@@ -102,7 +99,7 @@ class _HomeScreenState extends State<HomeScreen> {
               // sliver swaps between masonry grid and full-width list. Toggling
               // is rare; banners/categories ride their own cached BlocBuilders,
               // so the rebuild is cheap.
-              return ValueListenableBuilder<HomeViewMode>(
+              return ValueListenableBuilder<ProductViewMode>(
                 valueListenable: _viewMode,
                 builder: (context, viewMode, _) {
                   return CustomScrollView(
@@ -652,8 +649,8 @@ class _RecommendedHeader extends StatelessWidget {
     required this.onViewModeChanged,
   });
 
-  final HomeViewMode viewMode;
-  final ValueChanged<HomeViewMode> onViewModeChanged;
+  final ProductViewMode viewMode;
+  final ValueChanged<ProductViewMode> onViewModeChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -672,7 +669,7 @@ class _RecommendedHeader extends StatelessWidget {
           const SizedBox(width: 8),
           const _SortButton(),
           const SizedBox(width: 8),
-          _ViewModeToggle(viewMode: viewMode, onChanged: onViewModeChanged),
+          ViewModeToggle(viewMode: viewMode, onChanged: onViewModeChanged),
         ],
       ),
     );
@@ -721,88 +718,13 @@ class _SortButton extends StatelessWidget {
   }
 }
 
-/// Two-segment grid/list switch. The active segment lifts onto a surface chip;
-/// tapping the inactive one fires [onChanged].
-class _ViewModeToggle extends StatelessWidget {
-  const _ViewModeToggle({required this.viewMode, required this.onChanged});
-
-  final HomeViewMode viewMode;
-  final ValueChanged<HomeViewMode> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final pt = PremiumTokens.of(context);
-    return Container(
-      height: 38,
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: pt.imageBg,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _segment(
-            pt,
-            HomeViewMode.grid,
-            Icons.grid_view_rounded,
-            tr('home.view_grid'),
-          ),
-          _segment(
-            pt,
-            HomeViewMode.list,
-            Icons.view_agenda_rounded,
-            tr('home.view_list'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _segment(
-    PremiumTokens pt,
-    HomeViewMode mode,
-    IconData icon,
-    String tooltip,
-  ) {
-    final selected = viewMode == mode;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => onChanged(mode),
-      child: Tooltip(
-        message: tooltip,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          width: 38,
-          height: 32,
-          decoration: BoxDecoration(
-            color: selected ? pt.surface : Colors.transparent,
-            borderRadius: BorderRadius.circular(9),
-            boxShadow: selected ? PremiumTokens.softShadow : null,
-          ),
-          child: Icon(
-            icon,
-            size: 18,
-            color: selected ? PremiumTokens.accent : pt.grey,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 /// The recommended feed — masonry grid or full-width list depending on
 /// [viewMode]. Both layouts share the favourite wiring, the detail-tap, and the
 /// near-end load-more trigger; only the card widget + sliver differ.
 class _RecommendedFeed extends StatelessWidget {
   const _RecommendedFeed({required this.viewMode});
 
-  final HomeViewMode viewMode;
-
-  static String _formatPrice(double price) {
-    final formatted = NumberFormat('#,##0', 'en_US').format(price);
-    return '$formatted UZS';
-  }
+  final ProductViewMode viewMode;
 
   @override
   Widget build(BuildContext context) {
@@ -819,7 +741,7 @@ class _RecommendedFeed extends StatelessWidget {
         if (state.recommended.isEmpty) {
           return const SliverToBoxAdapter(child: _RecommendedEmpty());
         }
-        return viewMode == HomeViewMode.grid
+        return viewMode == ProductViewMode.grid
             ? _grid(state)
             : _list(state);
       },
@@ -843,8 +765,8 @@ class _RecommendedFeed extends StatelessWidget {
               imageUrl: p.thumbnail ?? '',
               name: p.name,
               subtitle: p.description ?? '',
-              price: _formatPrice(p.effectivePrice),
-              oldPrice: p.hasDiscount ? _formatPrice(p.price) : null,
+              price: formatUzsPrice(p.effectivePrice),
+              oldPrice: p.hasDiscount ? formatUzsPrice(p.price) : null,
               discountPercent: p.discountPercent,
               isFavorite: isFav,
               customImageHeight: i.isEven ? 180.0 : 240.0,
@@ -874,8 +796,8 @@ class _RecommendedFeed extends StatelessWidget {
               imageUrl: p.thumbnail ?? '',
               name: p.name,
               subtitle: p.description ?? '',
-              price: _formatPrice(p.effectivePrice),
-              oldPrice: p.hasDiscount ? _formatPrice(p.price) : null,
+              price: formatUzsPrice(p.effectivePrice),
+              oldPrice: p.hasDiscount ? formatUzsPrice(p.price) : null,
               discountPercent: p.discountPercent,
               isFavorite: isFav,
               onTap: () => context.push('/product-detail/${p.id}', extra: p),

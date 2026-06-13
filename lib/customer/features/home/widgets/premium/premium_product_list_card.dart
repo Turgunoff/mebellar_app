@@ -6,10 +6,11 @@ import '../../../../../shared/widgets/image_error_placeholder.dart';
 import 'premium_card_parts.dart';
 import 'premium_tokens.dart';
 
-/// Full-width list variant of the premium product card — image on the left,
-/// details (name, subtitle, price) on the right. Used by the home feed's "list"
-/// view mode. Like [PremiumProductCard] it has **no** quick-add: tapping the
-/// card opens the detail screen where the cart/colour picker lives.
+/// Full-width list variant of the premium product card — a strict square
+/// thumbnail on the left, details (name, subtitle, price) on the right. Used by
+/// the home feed and the per-category product list when the user picks the
+/// "list" view mode. Like [PremiumProductCard] it has **no** quick-add: tapping
+/// the card opens the detail screen where the cart/colour picker lives.
 class PremiumProductListCard extends StatelessWidget {
   const PremiumProductListCard({
     super.key,
@@ -43,12 +44,16 @@ class PremiumProductListCard extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onFavoriteToggle;
 
-  static const double _imageWidth = 124;
-  // Floor for the content column (excludes the 28px vertical padding), giving a
-  // ~132px resting card height. The card grows past this — and the left image
-  // follows via IntrinsicHeight — when the name wraps or the OS font scale is
-  // large, so it never overflows.
-  static const double _minContentHeight = 104;
+  /// Strict square thumbnail. A fixed box (not a content-driven strip) is what
+  /// keeps every list row's image at the same 1:1 proportion — so a 1-line and a
+  /// 2-line product read as one uniform column instead of a mix of tall and
+  /// square images.
+  static const double _imageSize = 120;
+  // Floor for the content column so a short (1-line, no-discount) row still rests
+  // at the thumbnail's height rather than collapsing shorter than the square. The
+  // card grows past this when the name wraps or the OS font scale is large, so it
+  // never overflows — the thumbnail then centres against the taller content.
+  static const double _minContentHeight = _imageSize - 24;
 
   @override
   Widget build(BuildContext context) {
@@ -60,6 +65,8 @@ class PremiumProductListCard extends StatelessWidget {
         Container(color: pt.imageBg),
         CachedNetworkImage(
           imageUrl: imageUrl,
+          // cover crops to fill the square box instead of letter-boxing or
+          // distorting, so portrait and landscape source images both sit flush.
           fit: BoxFit.cover,
           memCacheWidth: 400,
           placeholder: (_, _) => Shimmer.fromColors(
@@ -90,87 +97,85 @@ class PremiumProductListCard extends StatelessWidget {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(20),
-          // IntrinsicHeight lets the left image match a content-driven height —
-          // so the card can grow when text wraps or the font scale is large
-          // instead of pinning a fixed box that would overflow.
-          child: IntrinsicHeight(
-            child: Stack(
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    SizedBox(width: _imageWidth, child: image),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(
-                            minHeight: _minContentHeight,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    name,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: PremiumTokens.body(
-                                      size: 15,
-                                      weight: FontWeight.w700,
-                                      color: pt.dark,
-                                      height: 1.25,
-                                      letterSpacing: -0.2,
-                                    ),
-                                  ),
-                                  if (subtitle.isNotEmpty) ...[
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      subtitle,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: PremiumTokens.body(
-                                        size: 12,
-                                        color: pt.grey,
-                                      ),
-                                    ),
-                                  ],
-                                ],
+          child: Stack(
+            children: [
+              Row(
+                // Centre the fixed square against the content: short rows rest at
+                // the 120px thumbnail height (image fills the left flush); when a
+                // long name or a large font scale makes the content taller, the
+                // card grows and the square sits centred rather than stretching.
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: _imageSize,
+                    height: _imageSize,
+                    child: image,
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          minHeight: _minContentHeight,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              name,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: PremiumTokens.body(
+                                size: 15,
+                                weight: FontWeight.w700,
+                                color: pt.dark,
+                                height: 1.25,
+                                letterSpacing: -0.2,
                               ),
-                              // Price sits on the left of the content column, so
-                              // it gets the full text width and scales down
-                              // rather than truncating.
-                              Padding(
-                                padding: const EdgeInsets.only(top: 8),
-                                child: PremiumPriceBlock(
-                                  price: price,
-                                  oldPrice: oldPrice,
-                                  pt: pt,
-                                  priceSize: 17,
+                            ),
+                            if (subtitle.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                subtitle,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: PremiumTokens.body(
+                                  size: 12,
+                                  color: pt.grey,
                                 ),
                               ),
                             ],
-                          ),
+                            // Price sits on the left of the content column, so it
+                            // gets the full text width and scales down rather than
+                            // truncating.
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: PremiumPriceBlock(
+                                price: price,
+                                oldPrice: oldPrice,
+                                pt: pt,
+                                priceSize: 17,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                  ],
-                ),
-                Positioned(
-                  top: 10,
-                  right: 10,
-                  child: PremiumFrostedHeartButton(
-                    isFavorite: isFavorite,
-                    onTap: onFavoriteToggle,
-                    size: 34,
                   ),
+                ],
+              ),
+              Positioned(
+                top: 10,
+                right: 10,
+                child: PremiumFrostedHeartButton(
+                  isFavorite: isFavorite,
+                  onTap: onFavoriteToggle,
+                  size: 34,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

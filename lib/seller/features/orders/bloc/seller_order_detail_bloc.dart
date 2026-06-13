@@ -45,12 +45,11 @@ class SellerOrderActionCancelled extends SellerOrderDetailEvent {
   List<Object?> get props => [reason];
 }
 
-class SellerOrderFeeAdjustmentProposed extends SellerOrderDetailEvent {
-  const SellerOrderFeeAdjustmentProposed({required this.fee, this.note});
+class SellerOrderDeliveryFeeSet extends SellerOrderDetailEvent {
+  const SellerOrderDeliveryFeeSet({required this.fee});
   final num fee;
-  final String? note;
   @override
-  List<Object?> get props => [fee, note];
+  List<Object?> get props => [fee];
 }
 
 class _SellerOrderRealtimeUpdated extends SellerOrderDetailEvent {
@@ -60,7 +59,7 @@ class _SellerOrderRealtimeUpdated extends SellerOrderDetailEvent {
   List<Object?> get props => [order];
 }
 
-enum SellerOrderDetailStatus { initial, loading, ready, mutating, failure, proposingFee }
+enum SellerOrderDetailStatus { initial, loading, ready, mutating, failure, settingFee }
 
 class SellerOrderDetailState extends Equatable {
   const SellerOrderDetailState({
@@ -113,7 +112,7 @@ class SellerOrderDetailBloc
       await _runAction((id) => _repo.cancel(id, reason: event.reason)).call(
           event, emit);
     });
-    on<SellerOrderFeeAdjustmentProposed>(_onFeeAdjustmentProposed);
+    on<SellerOrderDeliveryFeeSet>(_onDeliveryFeeSet);
     on<_SellerOrderRealtimeUpdated>(
         (e, emit) => emit(state.copyWith(order: e.order)));
   }
@@ -147,18 +146,14 @@ class SellerOrderDetailBloc
     }
   }
 
-  Future<void> _onFeeAdjustmentProposed(
-    SellerOrderFeeAdjustmentProposed event,
+  Future<void> _onDeliveryFeeSet(
+    SellerOrderDeliveryFeeSet event,
     Emitter<SellerOrderDetailState> emit,
   ) async {
     final order = state.order;
     if (order == null) return;
-    emit(state.copyWith(status: SellerOrderDetailStatus.proposingFee));
-    final result = await _repo.proposeDeliveryFee(
-      order.id,
-      fee: event.fee,
-      note: event.note,
-    );
+    emit(state.copyWith(status: SellerOrderDetailStatus.settingFee));
+    final result = await _repo.setDeliveryFee(order.id, fee: event.fee);
     switch (result) {
       case Ok(:final value):
         emit(state.copyWith(status: SellerOrderDetailStatus.ready, order: value));

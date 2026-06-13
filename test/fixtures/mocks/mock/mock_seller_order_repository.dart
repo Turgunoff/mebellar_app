@@ -85,12 +85,28 @@ class MockSellerOrderRepository implements SellerOrderRepository {
       );
 
   @override
-  Future<Result<Order>> proposeDeliveryFee(
-    String id, {
-    required num fee,
-    String? note,
-  }) async =>
-      const Err(ServerFailure(message: 'proposeDeliveryFee not supported in mock'));
+  Future<Result<Order>> setDeliveryFee(String id, {required num fee}) async {
+    await Future<void>.delayed(_delay);
+    final idx = _orders.indexWhere((o) => o.id == id);
+    if (idx < 0) {
+      return Err(ServerFailure(message: 'Buyurtma topilmadi: $id'));
+    }
+    final order = _orders[idx];
+    if (order.status != OrderStatus.pending) {
+      // Invoice locked after acceptance — mirrors the backend 409 gate.
+      return Err(ServerFailure(
+        message:
+            "Buyurtma qabul qilingach yetkazish narxini o'zgartirib bo'lmaydi",
+      ));
+    }
+    final updated = order.copyWith(
+      grandTotal: order.grandTotal - order.deliveryFee + fee,
+    );
+    _orders[idx] = updated;
+    _watchers[id]?.add(updated);
+    if (!_orderUpdates.isClosed) _orderUpdates.add(updated);
+    return Ok(updated);
+  }
 
   @override
   Future<Result<Order>> cancel(String id, {required String reason}) async {

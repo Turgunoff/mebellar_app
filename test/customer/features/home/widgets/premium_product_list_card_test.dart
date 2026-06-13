@@ -91,4 +91,48 @@ void main() {
     await tester.tap(find.text('Tappable'));
     expect(tapped, 1);
   });
+
+  testWidgets('thumbnail is a strict 120x120 square regardless of content', (
+    tester,
+  ) async {
+    Finder squareBox() => find.byWidgetPredicate(
+      (w) => w is SizedBox && w.width == 120 && w.height == 120,
+    );
+
+    // Short content (1-line name, no subtitle/discount) and tall content
+    // (2-line name + subtitle + struck price) must yield the same square so the
+    // list reads as a uniform column.
+    await tester.pumpWidget(
+      wrap(
+        const SizedBox(
+          width: 360,
+          child: PremiumProductListCard(
+            imageUrl: 'https://example.com/x.jpg',
+            name: 'Short',
+            price: '1 UZS',
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(squareBox(), findsOneWidget);
+
+    await tester.pumpWidget(
+      wrap(
+        const SizedBox(
+          width: 360,
+          child: PremiumProductListCard(
+            imageUrl: 'https://example.com/x.jpg',
+            name: "SAFIA yotoq to'plami (krovat + shkaf + tumba)",
+            subtitle: 'Oq rangli klassik yotoq toʻplami',
+            price: '6,292,203 UZS',
+            oldPrice: '6,991,337 UZS',
+            discountPercent: 10,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(squareBox(), findsOneWidget);
+  });
 }

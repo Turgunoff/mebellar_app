@@ -159,6 +159,8 @@ class Order extends Equatable {
     required this.createdAt,
     required this.timeline,
     this.cancelReason,
+    this.cancelReasonCode,
+    this.cancelReasonText,
     this.expectedDeliveryAt,
     this.proposedDeliveryFee,
     this.feeAdjustmentNote,
@@ -180,6 +182,11 @@ class Order extends Equatable {
   final DateTime createdAt;
   final List<OrderStatusEvent> timeline;
   final String? cancelReason;
+  // Structured cancellation (hybrid model): the predefined reason code the
+  // canceller picked (localised client-side from the `cancel_reasons.*` bundle)
+  // and the free text typed for the `other` code.
+  final String? cancelReasonCode;
+  final String? cancelReasonText;
   final DateTime? expectedDeliveryAt;
   final num? proposedDeliveryFee;
   final String? feeAdjustmentNote;
@@ -223,6 +230,8 @@ class Order extends Equatable {
       // a fallback so an older payload still resolves.
       cancelReason:
           (json['cancellation_reason'] ?? json['cancel_reason']) as String?,
+      cancelReasonCode: json['cancel_reason_code'] as String?,
+      cancelReasonText: json['cancel_reason_text'] as String?,
       expectedDeliveryAt: _parseDateOrNull(json['expected_delivery_at']),
       proposedDeliveryFee: json['proposed_delivery_fee'] as num?,
       feeAdjustmentNote: json['fee_adjustment_note'] as String?,
@@ -246,6 +255,8 @@ class Order extends Equatable {
     'payment_method': paymentMethod.code,
     'created_at': createdAt.toIso8601String(),
     if (cancelReason != null) 'cancellation_reason': cancelReason,
+    if (cancelReasonCode != null) 'cancel_reason_code': cancelReasonCode,
+    if (cancelReasonText != null) 'cancel_reason_text': cancelReasonText,
     if (expectedDeliveryAt != null)
       'expected_delivery_at': expectedDeliveryAt!.toIso8601String(),
   };
@@ -253,6 +264,8 @@ class Order extends Equatable {
   Order copyWith({
     OrderStatus? status,
     String? cancelReason,
+    String? cancelReasonCode,
+    String? cancelReasonText,
     List<OrderStatusEvent>? timeline,
     num? grandTotal,
     num? proposedDeliveryFee,
@@ -276,6 +289,8 @@ class Order extends Equatable {
       createdAt: createdAt,
       timeline: timeline ?? this.timeline,
       cancelReason: cancelReason ?? this.cancelReason,
+      cancelReasonCode: cancelReasonCode ?? this.cancelReasonCode,
+      cancelReasonText: cancelReasonText ?? this.cancelReasonText,
       expectedDeliveryAt: expectedDeliveryAt,
       proposedDeliveryFee: clearFeeAdjustment
           ? null
@@ -296,6 +311,7 @@ class Order extends Equatable {
     timeline.length,
     proposedDeliveryFee,
     feeAdjustmentStatus,
+    cancelReasonCode,
   ];
 }
 

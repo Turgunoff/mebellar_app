@@ -9,7 +9,7 @@ import 'order_details_kit.dart';
 /// (not the brand indigo) so the only saturated accent on screen stays the CTA.
 ///
 /// When [proposedDelivery] is non-null the card shows a pending-fee banner.
-/// [onProposeFee] wires the "Narxni o'zgartirish" button — omit to hide it.
+/// [onSetFee] wires the "Narxni o'zgartirish" button — omit to hide it.
 class PaymentSummaryCard extends StatelessWidget {
   const PaymentSummaryCard({
     super.key,
@@ -19,7 +19,7 @@ class PaymentSummaryCard extends StatelessWidget {
     required this.paymentMethod,
     this.proposedDelivery,
     this.feeAdjustmentNote,
-    this.onProposeFee,
+    this.onSetFee,
   });
 
   final String subtotal;
@@ -28,7 +28,7 @@ class PaymentSummaryCard extends StatelessWidget {
   final String paymentMethod;
   final String? proposedDelivery;
   final String? feeAdjustmentNote;
-  final VoidCallback? onProposeFee;
+  final VoidCallback? onSetFee;
 
   @override
   Widget build(BuildContext context) {
@@ -155,12 +155,12 @@ class PaymentSummaryCard extends StatelessWidget {
               ),
             ),
           ],
-          if (onProposeFee != null && proposedDelivery == null) ...[
+          if (onSetFee != null && proposedDelivery == null) ...[
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
-                onPressed: onProposeFee,
+                onPressed: onSetFee,
                 icon: const Icon(Iconsax.edit, size: 15),
                 label: const Text(
                   'Yetkazish narxini o\'zgartirish',

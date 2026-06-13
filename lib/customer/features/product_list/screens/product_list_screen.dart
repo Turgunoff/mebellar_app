@@ -16,11 +16,14 @@ import '../../../widgets/filter/active_filters_bar.dart';
 import '../../../widgets/filter/filter_button.dart';
 import '../../../widgets/glass_bottom_nav.dart';
 import '../../../widgets/network_error_gate.dart';
+import '../../../widgets/price_format.dart';
+import '../../../widgets/view_mode_toggle.dart';
+import '../../home/widgets/premium/premium_product_list_card.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../../search/widgets/search_filter_sheet.dart';
 import '../cubit/product_list_cubit.dart';
 
-class ProductListScreen extends StatelessWidget {
+class ProductListScreen extends StatefulWidget {
   const ProductListScreen({
     super.key,
     required this.categoryId,
@@ -31,6 +34,23 @@ class ProductListScreen extends StatelessWidget {
   final String categoryId;
   final String? subcategoryId;
   final String categoryName;
+
+  @override
+  State<ProductListScreen> createState() => _ProductListScreenState();
+}
+
+class _ProductListScreenState extends State<ProductListScreen> {
+  // Grid/list preference, mirroring the home feed's toggle. Held locally (and
+  // reset per visit) since it's a presentation choice, not browse state.
+  final ValueNotifier<ProductViewMode> _viewMode = ValueNotifier(
+    ProductViewMode.grid,
+  );
+
+  @override
+  void dispose() {
+    _viewMode.dispose();
+    super.dispose();
+  }
 
   Future<void> _openFilter(
     BuildContext context,
@@ -73,65 +93,80 @@ class ProductListScreen extends StatelessWidget {
             s.status == ProductListStatus.failure && s.products.isEmpty,
         isRecovered: (s) => s.status == ProductListStatus.loaded,
         isRetrying: (s) => s.status == ProductListStatus.loading,
-        onRetry: (cubit) =>
-            cubit.load(categoryId: categoryId, subcategoryId: subcategoryId),
+        onRetry: (cubit) => cubit.load(
+          categoryId: widget.categoryId,
+          subcategoryId: widget.subcategoryId,
+        ),
         child: BlocBuilder<ProductListCubit, ProductListState>(
           builder: (context, state) {
             if (state.status == ProductListStatus.failure) {
-            return _ErrorView(
-              message: state.error ?? '',
-              onRetry: () => context.read<ProductListCubit>().load(
-                categoryId: categoryId,
-                subcategoryId: subcategoryId,
-              ),
+              return _ErrorView(
+                message: state.error ?? '',
+                onRetry: () => context.read<ProductListCubit>().load(
+                  categoryId: widget.categoryId,
+                  subcategoryId: widget.subcategoryId,
+                ),
+              );
+            }
+
+            final isLoading =
+                state.status == ProductListStatus.initial ||
+                state.status == ProductListStatus.loading;
+
+            return ValueListenableBuilder<ProductViewMode>(
+              valueListenable: _viewMode,
+              builder: (context, viewMode, _) {
+                return CustomScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  slivers: [
+                    _AppBar(
+                      title: widget.categoryName,
+                      filterCount: state.filter.activeCount,
+                      onFilterTap: () => _openFilter(context, state),
+                      viewMode: viewMode,
+                      onViewModeChanged: (m) => _viewMode.value = m,
+                    ),
+                    if (state.subcategories.isNotEmpty)
+                      SliverToBoxAdapter(
+                        child: _SubcategoryChipsBar(
+                          subcategories: state.subcategories,
+                          selectedId: state.selectedSubcategoryId,
+                          onSelect: (id) => context
+                              .read<ProductListCubit>()
+                              .selectSubcategory(id),
+                        ),
+                      ),
+                    if (state.filter.isNotEmpty)
+                      SliverToBoxAdapter(
+                        child: ActiveFiltersBar(
+                          filter: state.filter,
+                          onChanged: (next) => context
+                              .read<ProductListCubit>()
+                              .applyFilter(next),
+                        ),
+                      ),
+                    SliverPadding(
+                      padding: EdgeInsets.fromLTRB(
+                        16,
+                        8,
+                        16,
+                        GlassBottomNav.reservedHeight(context) + 24,
+                      ),
+                      sliver: isLoading
+                          ? (viewMode == ProductViewMode.grid
+                                ? const _SkeletonGrid()
+                                : const _SkeletonList())
+                          : state.products.isEmpty
+                          ? const _EmptySliver()
+                          : (viewMode == ProductViewMode.grid
+                                ? _ProductGrid(products: state.products)
+                                : _ProductListView(products: state.products)),
+                    ),
+                  ],
+                );
+              },
             );
-          }
-
-          final isLoading =
-              state.status == ProductListStatus.initial ||
-              state.status == ProductListStatus.loading;
-
-          return CustomScrollView(
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              _AppBar(
-                title: categoryName,
-                filterCount: state.filter.activeCount,
-                onFilterTap: () => _openFilter(context, state),
-              ),
-              if (state.subcategories.isNotEmpty)
-                SliverToBoxAdapter(
-                  child: _SubcategoryChipsBar(
-                    subcategories: state.subcategories,
-                    selectedId: state.selectedSubcategoryId,
-                    onSelect: (id) =>
-                        context.read<ProductListCubit>().selectSubcategory(id),
-                  ),
-                ),
-              if (state.filter.isNotEmpty)
-                SliverToBoxAdapter(
-                  child: ActiveFiltersBar(
-                    filter: state.filter,
-                    onChanged: (next) =>
-                        context.read<ProductListCubit>().applyFilter(next),
-                  ),
-                ),
-              SliverPadding(
-                padding: EdgeInsets.fromLTRB(
-                  16,
-                  8,
-                  16,
-                  GlassBottomNav.reservedHeight(context) + 24,
-                ),
-                sliver: isLoading
-                    ? const _SkeletonGrid()
-                    : state.products.isEmpty
-                    ? const _EmptySliver()
-                    : _ProductGrid(products: state.products),
-              ),
-            ],
-          );
-        },
+          },
         ),
       ),
     );
@@ -147,11 +182,15 @@ class _AppBar extends StatelessWidget {
     required this.title,
     required this.filterCount,
     required this.onFilterTap,
+    required this.viewMode,
+    required this.onViewModeChanged,
   });
 
   final String title;
   final int filterCount;
   final VoidCallback onFilterTap;
+  final ProductViewMode viewMode;
+  final ValueChanged<ProductViewMode> onViewModeChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -163,15 +202,26 @@ class _AppBar extends StatelessWidget {
       pinned: true,
       elevation: 0,
       scrolledUnderElevation: 0,
+      titleSpacing: 0,
       leading: IconButton(
         icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: pt.dark),
-        onPressed: () => context.pop(),
+        // The category list is reached by `push` from the Categories tab, so a
+        // plain pop drops the user right back onto it (the home shell keeps that
+        // tab alive). The fallback only fires when there's nothing to pop — a
+        // cold deep-link straight into a category — and routes to the Categories
+        // tab so Back never dead-ends on Home or a half-built stack.
+        onPressed: () =>
+            context.canPop() ? context.pop() : context.go('/?tab=categories'),
       ),
       title: Text(
         title,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: PremiumTokens.display(size: 22, letterSpacing: -0.4),
       ),
       actions: [
+        ViewModeToggle(viewMode: viewMode, onChanged: onViewModeChanged),
+        const SizedBox(width: 8),
         FilterButton(count: filterCount, onTap: onFilterTap),
         const SizedBox(width: 8),
       ],
@@ -358,15 +408,52 @@ class _ProductGrid extends StatelessWidget {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Product list (full-width rows) — the "list" view-mode counterpart of the
+// grid. Reuses the shared [PremiumProductListCard] so a category list row reads
+// identically to the home feed's list mode.
+// ---------------------------------------------------------------------------
+
+class _ProductListView extends StatelessWidget {
+  const _ProductListView({required this.products});
+
+  final List<ProductModel> products;
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverList.separated(
+      itemCount: products.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 14),
+      itemBuilder: (context, i) {
+        final product = products[i];
+        return BlocSelector<FavoritesBloc, FavoritesState, bool>(
+          selector: (state) => state.isFavorite(product.id),
+          builder: (context, isFav) => PremiumProductListCard(
+            imageUrl: product.thumbnail ?? '',
+            name: product.name,
+            subtitle: product.description ?? '',
+            price: formatUzsPrice(product.effectivePrice),
+            oldPrice: product.hasDiscount
+                ? formatUzsPrice(product.price)
+                : null,
+            discountPercent: product.discountPercent,
+            isFavorite: isFav,
+            onTap: () =>
+                context.push('/product-detail/${product.id}', extra: product),
+            onFavoriteToggle: () => context.read<FavoritesBloc>().add(
+              FavoriteToggled(Product.fromModel(product)),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _ProductCard extends StatelessWidget {
   const _ProductCard({required this.product});
 
   final ProductModel product;
-
-  static String _formatPrice(double price) {
-    final formatted = NumberFormat('#,##0', 'en_US').format(price);
-    return '$formatted UZS';
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -461,7 +548,7 @@ class _ProductCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      _formatPrice(product.effectivePrice),
+                      formatUzsPrice(product.effectivePrice),
                       style: PremiumTokens.body(
                         size: 14,
                         weight: FontWeight.w700,
@@ -550,6 +637,33 @@ class _SkeletonGrid extends StatelessWidget {
           decoration: BoxDecoration(
             color: pt.imageBg,
             borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SkeletonList extends StatelessWidget {
+  const _SkeletonList();
+
+  @override
+  Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
+    return SliverList.separated(
+      itemCount: 6,
+      separatorBuilder: (_, _) => const SizedBox(height: 14),
+      itemBuilder: (context, _) => Shimmer.fromColors(
+        baseColor: pt.imageBg,
+        highlightColor: pt.surface,
+        child: Container(
+          // The strict-square card rests at its 120px thumbnail height for the
+          // common row, so the shimmer matches it — real rows replace the
+          // placeholders without the list jumping.
+          height: 120,
+          decoration: BoxDecoration(
+            color: pt.imageBg,
+            borderRadius: BorderRadius.circular(20),
           ),
         ),
       ),

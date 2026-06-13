@@ -6,6 +6,7 @@ import '../../core/network/api_error.dart';
 import '../../core/network/woody_api_client.dart';
 import '../../core/result/result.dart';
 import '../models/address.dart';
+import '../models/cancel_reason.dart';
 import '../models/cart.dart';
 import '../models/cart_item.dart';
 import '../models/cart_item_model.dart';
@@ -381,12 +382,33 @@ class WoodyOrderRepository implements OrderRepository {
   }
 
   @override
-  Future<Order> cancel(String id, {required String reason}) async {
+  Future<Order> cancel(
+    String id, {
+    required String reasonCode,
+    String? reasonText,
+  }) async {
     final body = await _api.post<Map<String, dynamic>>(
       '/orders/$id/cancel',
-      body: {'reason': reason},
+      body: {
+        'cancel_reason_code': reasonCode,
+        if (reasonText != null && reasonText.isNotEmpty)
+          'cancel_reason_text': reasonText,
+      },
     );
     return _rowToOrder(body);
+  }
+
+  @override
+  Future<List<CancelReason>> fetchCancelReasons() async {
+    final rows = await _api.get<List<dynamic>>(
+      '/orders/cancel-reasons',
+      query: const {'role': 'customer'},
+      retries: 2,
+    );
+    return rows
+        .whereType<Map<String, dynamic>>()
+        .map(CancelReason.fromJson)
+        .toList(growable: false);
   }
 
   @override
@@ -450,7 +472,8 @@ class WoodyOrderRepository implements OrderRepository {
     // The customer order endpoints return flat per-line product fields
     // (`product_name`, `product_image`). A nested `product`/`products` join is
     // accepted as a fallback so older payloads and the test fixtures still map.
-    final product = (row['product'] ?? row['products']) as Map<String, dynamic>?;
+    final product =
+        (row['product'] ?? row['products']) as Map<String, dynamic>?;
     final nestedImages = product?['images'];
     final nestedImage = nestedImages is List && nestedImages.isNotEmpty
         ? nestedImages.first as String?

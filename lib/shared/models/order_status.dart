@@ -23,15 +23,22 @@ enum OrderStatus {
   bool get isTerminal =>
       this == OrderStatus.delivered || this == OrderStatus.cancelled;
   bool get isActive => !isTerminal;
-  bool get cancellable =>
-      this == OrderStatus.pending || this == OrderStatus.confirmed;
+
+  /// A customer may self-cancel ONLY while the order is still `pending` — once
+  /// the seller confirms, cancellation is the seller's call (protects seller
+  /// logistics costs). Mirrors the backend state machine in `order_policy.py`.
+  bool get customerCancellable => this == OrderStatus.pending;
+
+  /// A seller may cancel/reject from any non-terminal state (e.g. the customer
+  /// is unreachable or logistics fail).
+  bool get sellerCancellable => isActive;
 
   IconData get icon => switch (this) {
-        OrderStatus.pending => Icons.access_time,
-        OrderStatus.confirmed => Icons.verified_outlined,
-        OrderStatus.preparing => Icons.inventory_2_outlined,
-        OrderStatus.shipped => Icons.local_shipping_outlined,
-        OrderStatus.delivered => Icons.check_circle_outline,
-        OrderStatus.cancelled => Icons.cancel_outlined,
-      };
+    OrderStatus.pending => Icons.access_time,
+    OrderStatus.confirmed => Icons.verified_outlined,
+    OrderStatus.preparing => Icons.inventory_2_outlined,
+    OrderStatus.shipped => Icons.local_shipping_outlined,
+    OrderStatus.delivered => Icons.check_circle_outline,
+    OrderStatus.cancelled => Icons.cancel_outlined,
+  };
 }

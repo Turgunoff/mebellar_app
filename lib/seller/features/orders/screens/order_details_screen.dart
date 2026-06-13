@@ -106,14 +106,14 @@ class _OrderDetailView extends StatelessWidget {
     }
   }
 
-  Future<void> _showProposeFeeDialog(BuildContext context) async {
-    final result = await showDialog<_FeeProposal>(
+  Future<void> _showSetFeeDialog(BuildContext context) async {
+    final fee = await showDialog<num>(
       context: context,
-      builder: (_) => const _ProposeFeeDialog(),
+      builder: (_) => const _SetFeeDialog(),
     );
-    if (result == null || !context.mounted) return;
+    if (fee == null || !context.mounted) return;
     context.read<SellerOrderDetailBloc>().add(
-      SellerOrderFeeAdjustmentProposed(fee: result.fee, note: result.note),
+      SellerOrderDeliveryFeeSet(fee: fee),
     );
   }
 
@@ -172,7 +172,7 @@ class _OrderDetailView extends StatelessWidget {
                   status: order.status,
                   busy:
                       state.status == SellerOrderDetailStatus.mutating ||
-                      state.status == SellerOrderDetailStatus.proposingFee,
+                      state.status == SellerOrderDetailStatus.settingFee,
                   feePendingCustomer:
                       order.feeAdjustmentStatus ==
                       FeeAdjustmentStatus.pendingCustomer,
@@ -209,7 +209,11 @@ class _OrderDetailView extends StatelessWidget {
         : 0;
     final feePending =
         order.feeAdjustmentStatus == FeeAdjustmentStatus.pendingCustomer;
-    final canProposeNewFee = !order.status.isTerminal && !feePending;
+    // The invoice is editable only while the order is still pending. Once the
+    // seller accepts it (confirmed → … → delivered) the delivery fee is locked,
+    // so the "change delivery price" button disappears — matching the backend,
+    // which rejects a fee change on any non-pending order.
+    final canSetFee = order.status == OrderStatus.pending && !feePending;
 
     return SafeArea(
       top: false,
@@ -249,9 +253,7 @@ class _OrderDetailView extends StatelessWidget {
                 ? formatOrderAmount(order.proposedDeliveryFee ?? 0)
                 : null,
             feeAdjustmentNote: order.feeAdjustmentNote,
-            onProposeFee: canProposeNewFee
-                ? () => _showProposeFeeDialog(context)
-                : null,
+            onSetFee: canSetFee ? () => _showSetFeeDialog(context) : null,
           ),
           const SizedBox(height: 16),
         ],
@@ -622,22 +624,15 @@ class _SpaceThousandsFormatter extends TextInputFormatter {
   }
 }
 
-class _FeeProposal {
-  const _FeeProposal({required this.fee, this.note});
-  final num fee;
-  final String? note;
-}
-
-class _ProposeFeeDialog extends StatefulWidget {
-  const _ProposeFeeDialog();
+class _SetFeeDialog extends StatefulWidget {
+  const _SetFeeDialog();
 
   @override
-  State<_ProposeFeeDialog> createState() => _ProposeFeeDialogState();
+  State<_SetFeeDialog> createState() => _SetFeeDialogState();
 }
 
-class _ProposeFeeDialogState extends State<_ProposeFeeDialog> {
+class _SetFeeDialogState extends State<_SetFeeDialog> {
   final _feeController = TextEditingController();
-  final _noteController = TextEditingController();
   bool _valid = false;
 
   @override
@@ -651,7 +646,6 @@ class _ProposeFeeDialogState extends State<_ProposeFeeDialog> {
   @override
   void dispose() {
     _feeController.dispose();
-    _noteController.dispose();
     super.dispose();
   }
 
@@ -666,7 +660,7 @@ class _ProposeFeeDialogState extends State<_ProposeFeeDialog> {
     return AlertDialog(
       backgroundColor: c.surface,
       title: Text(
-        'Yetkazish narxini taklif qilish',
+        'Yetkazish narxini belgilash',
         style: TextStyle(
           fontFamily: AppFonts.seller,
           fontSize: 16,
@@ -674,61 +668,29 @@ class _ProposeFeeDialogState extends State<_ProposeFeeDialog> {
           color: c.ink,
         ),
       ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: _feeController,
-            autofocus: true,
-            keyboardType: TextInputType.number,
-            inputFormatters: [_SpaceThousandsFormatter()],
-            style: TextStyle(
-              fontFamily: AppFonts.seller,
-              fontSize: 15,
-              color: c.ink,
-            ),
-            decoration: InputDecoration(
-              hintText: 'Yangi yetkazish narxi (UZS)',
-              hintStyle: TextStyle(fontFamily: AppFonts.seller, color: c.grey),
-              suffixText: 'UZS',
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: c.outline),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.sellerPrimary),
-              ),
-            ),
+      content: TextField(
+        controller: _feeController,
+        autofocus: true,
+        keyboardType: TextInputType.number,
+        inputFormatters: [_SpaceThousandsFormatter()],
+        style: TextStyle(
+          fontFamily: AppFonts.seller,
+          fontSize: 15,
+          color: c.ink,
+        ),
+        decoration: InputDecoration(
+          hintText: 'Yetkazish narxi (UZS)',
+          hintStyle: TextStyle(fontFamily: AppFonts.seller, color: c.grey),
+          suffixText: 'UZS',
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: c.outline),
           ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _noteController,
-            minLines: 1,
-            maxLines: 3,
-            style: TextStyle(
-              fontFamily: AppFonts.seller,
-              fontSize: 13,
-              color: c.ink,
-            ),
-            decoration: InputDecoration(
-              hintText: 'Izoh (ixtiyoriy) — masalan: uzoq manzil',
-              hintStyle: TextStyle(
-                fontFamily: AppFonts.seller,
-                color: c.grey,
-                fontSize: 12,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: c.outline),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.sellerPrimary),
-              ),
-            ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.sellerPrimary),
           ),
-        ],
+        ),
       ),
       actions: [
         TextButton(
@@ -744,14 +706,7 @@ class _ProposeFeeDialogState extends State<_ProposeFeeDialog> {
         ),
         FilledButton(
           onPressed: _valid
-              ? () => Navigator.of(context).pop(
-                  _FeeProposal(
-                    fee: _parsedFee()!,
-                    note: _noteController.text.trim().isEmpty
-                        ? null
-                        : _noteController.text.trim(),
-                  ),
-                )
+              ? () => Navigator.of(context).pop(_parsedFee())
               : null,
           style: FilledButton.styleFrom(
             backgroundColor: AppColors.sellerPrimary,
@@ -761,7 +716,7 @@ class _ProposeFeeDialogState extends State<_ProposeFeeDialog> {
             ),
           ),
           child: const Text(
-            'Yuborish',
+            'Saqlash',
             style: TextStyle(
               fontFamily: AppFonts.seller,
               fontWeight: FontWeight.w700,

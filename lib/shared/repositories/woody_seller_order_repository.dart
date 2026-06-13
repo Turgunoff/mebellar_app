@@ -1,6 +1,7 @@
 import '../../core/network/woody_api_client.dart';
 import '../../core/result/result.dart';
 import '../models/address.dart';
+import '../models/cancel_reason.dart';
 import '../models/multilingual_text.dart';
 import '../models/order.dart';
 import '../models/order_status.dart';
@@ -24,7 +25,6 @@ import 'seller_order_repository.dart';
 /// implementation does no client-side ownership filtering.
 ///
 /// Degradations vs. the live implementation (see backendGaps):
-///  - [proposeDeliveryFee] has no endpoint — returns [getById] unchanged.
 ///  - [newOrders]/[orderUpdates] have no realtime feed yet — empty streams.
 ///  - [watch] one-shot re-reads via [getById] (no live updates).
 class WoodySellerOrderRepository implements SellerOrderRepository {
@@ -95,17 +95,19 @@ class WoodySellerOrderRepository implements SellerOrderRepository {
     return _toOrder(row);
   });
 
+  /// `PATCH /seller/orders/{id}/delivery-fee` with a `{delivery_fee}` payload.
+  /// The backend sets the fee, re-derives `total_amount`, and returns the
+  /// refreshed [SellerOrder]. It rejects the change (→ [Err]) when the order
+  /// is no longer `pending` — the invoice is locked once accepted.
   @override
-  Future<Result<Order>> proposeDeliveryFee(
-    String id, {
-    required num fee,
-    String? note,
-  }) {
-    // No backend endpoint for seller-proposed delivery-fee adjustments yet —
-    // degrade to re-reading the order unchanged so callers still get a fresh
-    // Result instead of an error. Tracked in backendGaps.
-    return getById(id);
-  }
+  Future<Result<Order>> setDeliveryFee(String id, {required num fee}) =>
+      runCatching(() async {
+        final row = await _api.patch<Map<String, dynamic>>(
+          '$_ordersPath/$id/delivery-fee',
+          body: {'delivery_fee': fee},
+        );
+        return _toOrder(row);
+      });
 
   @override
   Stream<Order> newOrders() => const Stream.empty();
@@ -131,11 +133,7 @@ class WoodySellerOrderRepository implements SellerOrderRepository {
         .whereType<Map<String, dynamic>>()
         .map(_toOrderItem)
         .toList(growable: false);
-    return Order.fromJson(
-      row,
-      items: items,
-      address: _toAddress(id, row),
-    );
+    return Order.fromJson(row, items: items, address: _toAddress(id, row));
   }
 
   /// Maps a backend [SellerOrderItem]. The backend's `product_image` carries
