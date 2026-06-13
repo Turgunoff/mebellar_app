@@ -37,6 +37,7 @@ import '../network/woody_api_client.dart';
 import '../realtime/woody_realtime_service.dart';
 import '../storage/cache_store.dart';
 import '../storage/hive_boxes.dart';
+import '../storage/r2_upload_client.dart';
 
 /// Root-scope catalog + customer-shared repositories and data sources.
 ///
@@ -83,6 +84,9 @@ void registerCatalogModule(GetIt sl) {
         api: sl<WoodyApiClient>(),
         realtime: sl.isRegistered<WoodyRealtimeService>()
             ? sl<WoodyRealtimeService>()
+            : null,
+        uploads: sl.isRegistered<R2UploadClient>()
+            ? sl<R2UploadClient>()
             : null,
       ),
     );

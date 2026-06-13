@@ -3,10 +3,13 @@
 const Map<String, dynamic> chatUz = {
   'title': 'Suhbatlar',
   'empty_title': 'Hozircha suhbat yo\'q',
-  'empty_message': 'Buyurtma berganingizdan keyin sotuvchi bilan suhbat bu yerda paydo bo\'ladi',
+  'empty_message':
+      'Buyurtma berganingizdan keyin sotuvchi bilan suhbat bu yerda paydo bo\'ladi',
   'open_for_order': 'Sotuvchi bilan suhbat',
   'open_for_order_seller': 'Mijoz bilan suhbat',
   'composer_hint': 'Habar yozing...',
+  'caption_hint': 'Rasmga izoh qo\'shing...',
+  'remove_attachment': 'Olib tashlash',
   'send': 'Yuborish',
   'attach_image': 'Rasm yuborish',
   'sending': 'Yuborilmoqda...',
@@ -51,6 +54,8 @@ const Map<String, dynamic> chatRu = {
   'open_for_order': 'Чат с продавцом',
   'open_for_order_seller': 'Чат с покупателем',
   'composer_hint': 'Напишите сообщение...',
+  'caption_hint': 'Добавьте подпись к фото...',
+  'remove_attachment': 'Удалить',
   'send': 'Отправить',
   'attach_image': 'Отправить фото',
   'sending': 'Отправка...',
@@ -89,10 +94,13 @@ const Map<String, dynamic> chatRu = {
 const Map<String, dynamic> chatEn = {
   'title': 'Chats',
   'empty_title': 'No conversations yet',
-  'empty_message': 'After placing an order, your chat with the seller will appear here',
+  'empty_message':
+      'After placing an order, your chat with the seller will appear here',
   'open_for_order': 'Chat with seller',
   'open_for_order_seller': 'Chat with customer',
   'composer_hint': 'Type a message...',
+  'caption_hint': 'Add a caption...',
+  'remove_attachment': 'Remove',
   'send': 'Send',
   'attach_image': 'Send photo',
   'sending': 'Sending...',
@@ -112,7 +120,8 @@ const Map<String, dynamic> chatEn = {
   'cancel': 'Cancel',
   'status': {
     'delivered_title': 'Order delivered',
-    'delivered_subtitle': 'If anything\'s wrong, you can still message the seller',
+    'delivered_subtitle':
+        'If anything\'s wrong, you can still message the seller',
     'delivered_cta': 'Leave a review',
     'cancelled_title': 'Order cancelled',
     'cancelled_subtitle': 'Reason: {}',

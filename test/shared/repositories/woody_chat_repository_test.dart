@@ -9,11 +9,14 @@ import 'package:mocktail/mocktail.dart';
 import 'package:woody_app/core/network/token_store.dart';
 import 'package:woody_app/core/network/woody_api_client.dart';
 import 'package:woody_app/core/realtime/woody_realtime_service.dart';
+import 'package:woody_app/core/storage/r2_upload_client.dart';
 import 'package:woody_app/shared/models/chat.dart';
 import 'package:woody_app/shared/models/chat_message.dart';
 import 'package:woody_app/shared/repositories/woody_chat_repositories.dart';
 
 class _MockSecureStorage extends Mock implements FlutterSecureStorage {}
+
+class _MockUploads extends Mock implements R2UploadClient {}
 
 /// A [RealtimeConnection] the test drives by hand — emit frames without a
 /// real socket. Mirrors the fake used by the realtime-service test.
@@ -96,6 +99,11 @@ Map<String, dynamic> _msg(String id) => {
 void main() {
   late TokenStore store;
 
+  setUpAll(() {
+    registerFallbackValue(Uint8List(0));
+    registerFallbackValue(R2Bucket.chatAttachments);
+  });
+
   setUp(() async {
     final storage = _MockSecureStorage();
     final mem = <String, String>{};
@@ -130,6 +138,24 @@ void main() {
     )..httpClientAdapter = adapter;
     final api = WoodyApiClient(tokens: store, dio: dio);
     return (repo: WoodyChatRepository(api: api), adapter: adapter);
+  }
+
+  ({WoodyChatRepository repo, _FakeAdapter adapter}) makeWithUploads(
+    R2UploadClient uploads,
+    (int, String) Function(RequestOptions) responder,
+  ) {
+    final adapter = _FakeAdapter(responder);
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: 'https://test.local',
+        validateStatus: (s) => s != null && s < 500,
+      ),
+    )..httpClientAdapter = adapter;
+    final api = WoodyApiClient(tokens: store, dio: dio);
+    return (
+      repo: WoodyChatRepository(api: api, uploads: uploads),
+      adapter: adapter,
+    );
   }
 
   test('listMyChats maps the chat rows', () async {
@@ -299,6 +325,141 @@ void main() {
 
       expect(calls, 2);
       await sub.cancel();
+    });
+
+    test('orderEventsStream fires on a notification for THIS order', () async {
+      final h = await makeRealtime((_) => (200, '[]'));
+      addTearDown(() => h.rt.stop());
+
+      var ticks = 0;
+      final sub = h.repo.orderEventsStream('order-1').listen((_) => ticks++);
+      await pumpEventQueue();
+
+      void emitNotif(String refId) => h.conn.emit(
+        jsonEncode({
+          'type': 'notification',
+          'data': {'reference_id': refId, 'type': 'order_status'},
+        }),
+      );
+      emitNotif('order-1'); // matches → tick
+      emitNotif('order-9'); // different order → ignored
+      await pumpEventQueue();
+
+      expect(ticks, 1);
+      await sub.cancel();
+    });
+
+    test(
+      'markAsRead nudges the chat list (badge drop after reading)',
+      () async {
+        var listGets = 0;
+        final h = await makeRealtime((options) {
+          if (options.uri.path.endsWith('/read')) return (200, '{}');
+          listGets++;
+          return (200, jsonEncode([_chat('ch1')]));
+        });
+        addTearDown(() => h.rt.stop());
+
+        final sub = h.repo.myChatsStream().listen((_) {});
+        await pumpEventQueue();
+        expect(listGets, 1);
+
+        await h.repo.markAsRead('ch1');
+        await pumpEventQueue();
+
+        expect(listGets, 2); // reading re-pulled the list so the badge updates
+        await sub.cancel();
+      },
+    );
+  });
+
+  group('image attachments', () {
+    final imgBytes = Uint8List.fromList([1, 2, 3, 4]);
+
+    void stubUpload(_MockUploads uploads, {required String? publicUrl}) {
+      when(
+        () => uploads.upload(
+          bucket: any(named: 'bucket'),
+          path: any(named: 'path'),
+          bytes: any(named: 'bytes'),
+          contentType: any(named: 'contentType'),
+        ),
+      ).thenAnswer(
+        (_) async => R2UploadResult(
+          bucket: R2Bucket.chatAttachments,
+          path: 'p',
+          publicUrl: publicUrl,
+        ),
+      );
+    }
+
+    test('reports unavailable when no uploader is wired', () async {
+      final h = make((_) => (200, '{}')); // repo built WITHOUT uploads
+      await expectLater(
+        () => h.repo.sendImage(
+          chatId: 'ch1',
+          bytes: imgBytes,
+          mimeType: 'image/jpeg',
+          as: ChatSenderRole.customer,
+        ),
+        throwsA(
+          isA<StateError>().having(
+            (e) => e.message,
+            'message',
+            'chat_image_unavailable',
+          ),
+        ),
+      );
+    });
+
+    test('degrades (no POST) when the bucket returns no public URL', () async {
+      final uploads = _MockUploads();
+      stubUpload(uploads, publicUrl: null);
+      final h = makeWithUploads(uploads, (_) => (201, jsonEncode(_msg('m1'))));
+
+      await expectLater(
+        () => h.repo.sendImage(
+          chatId: 'ch1',
+          bytes: imgBytes,
+          mimeType: 'image/jpeg',
+          as: ChatSenderRole.customer,
+        ),
+        throwsA(isA<StateError>()),
+      );
+      // Never persisted an unrenderable message.
+      expect(h.adapter.calls, isEmpty);
+    });
+
+    test('uploads then POSTs attachment_url + caption on success', () async {
+      final uploads = _MockUploads();
+      stubUpload(uploads, publicUrl: 'https://cdn.woody.uz/chat/x.jpg');
+      final h = makeWithUploads(uploads, (_) => (201, jsonEncode(_msg('m1'))));
+
+      final msg = await h.repo.sendImage(
+        chatId: 'ch1',
+        bytes: imgBytes,
+        mimeType: 'image/jpeg',
+        as: ChatSenderRole.customer,
+        caption: 'salom',
+      );
+
+      expect(msg.id, 'm1');
+      final call = h.adapter.calls.single;
+      expect(call.method, 'POST');
+      expect(call.uri.path, endsWith('/chats/ch1/messages'));
+      expect(
+        (call.data as Map)['attachment_url'],
+        'https://cdn.woody.uz/chat/x.jpg',
+      );
+      expect((call.data as Map)['body'], 'salom');
+      verify(
+        () => uploads.upload(
+          bucket: R2Bucket.chatAttachments,
+          path: any(named: 'path'),
+          bytes: imgBytes,
+          contentType: 'image/jpeg',
+        ),
+      ).called(1);
     });
   });
 }

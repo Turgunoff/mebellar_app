@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../shared/chat/widgets/unread_count_badge.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 
 /// One row in the [MenuListCard].
@@ -9,12 +10,17 @@ class MenuEntry {
     required this.label,
     this.onTap,
     this.onLongPress,
+    this.badgeCount = 0,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
+
+  /// Optional unread count shown as a red pill before the chevron (e.g. the
+  /// "Suhbatlar" row). Hidden when zero.
+  final int badgeCount;
 }
 
 /// Card grouping the settings / help / about navigation rows.
@@ -85,6 +91,10 @@ class _MenuRow extends StatelessWidget {
                   style: PremiumTokens.body(size: 14, weight: FontWeight.w500),
                 ),
               ),
+              if (entry.badgeCount > 0) ...[
+                UnreadCountBadge(count: entry.badgeCount),
+                const SizedBox(width: 8),
+              ],
               Icon(Icons.chevron_right, size: 20, color: pt.greyLight),
             ],
           ),

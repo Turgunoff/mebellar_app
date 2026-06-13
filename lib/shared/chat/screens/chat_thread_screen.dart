@@ -7,6 +7,7 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import '../../../core/analytics/analytics_service.dart';
 import '../../../core/di/service_locator.dart';
 import '../../../core/i18n/i18n.dart';
+import '../../../core/notifications/active_chat_tracker.dart';
 import '../../../customer/features/home/widgets/premium/premium_tokens.dart';
 import '../../models/chat.dart';
 import '../../models/chat_message.dart';
@@ -32,9 +33,9 @@ class ChatThreadScreen extends StatelessWidget {
     this.orderId,
     this.onOpenOrder,
   }) : assert(
-          chatId != null || orderId != null,
-          'Either chatId or orderId must be provided',
-        );
+         chatId != null || orderId != null,
+         'Either chatId or orderId must be provided',
+       );
 
   final ChatSenderRole viewer;
   final String? chatId;
@@ -137,7 +138,7 @@ class _BootstrapLoading extends StatelessWidget {
   }
 }
 
-class _ChatThreadView extends StatelessWidget {
+class _ChatThreadView extends StatefulWidget {
   const _ChatThreadView({
     required this.chat,
     required this.viewer,
@@ -149,18 +150,49 @@ class _ChatThreadView extends StatelessWidget {
   final void Function(String orderId)? onOpenOrder;
 
   @override
+  State<_ChatThreadView> createState() => _ChatThreadViewState();
+}
+
+class _ChatThreadViewState extends State<_ChatThreadView> {
+  @override
+  void initState() {
+    super.initState();
+    // Tell PushService we're on this thread so it suppresses a foreground
+    // push for the same conversation (the WS already updates the UI live).
+    ActiveChatTracker.instance.enter(widget.chat.id);
+  }
+
+  @override
+  void dispose() {
+    ActiveChatTracker.instance.leave(widget.chat.id);
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => ChatThreadCubit(
         repo: sl<ChatRepository>(),
-        chatId: chat.id,
-        viewer: viewer,
+        chatId: widget.chat.id,
+        viewer: widget.viewer,
         analytics: sl<AnalyticsService>(),
       )..load(),
-      child: _ChatThreadBody(
-        chat: chat,
-        viewer: viewer,
-        onOpenOrder: onOpenOrder,
+      child: BlocListener<ChatThreadCubit, ChatThreadState>(
+        // Surface a send failure (text or image) as a transient snackbar —
+        // the optimistic bubble also flips to a "failed" glyph, but the
+        // snackbar names the reason (e.g. image upload not available yet).
+        listenWhen: (prev, curr) =>
+            curr.error != null && curr.error != prev.error,
+        listener: (context, state) {
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(SnackBar(content: Text(state.error!)));
+        },
+        child: _ChatThreadBody(
+          chat: widget.chat,
+          viewer: widget.viewer,
+          onOpenOrder: widget.onOpenOrder,
+        ),
       ),
     );
   }
@@ -204,25 +236,23 @@ class _ChatThreadBody extends StatelessWidget {
                   // CTA that jumps to the order detail (where the existing
                   // review composer lives). Seller-side and other statuses
                   // skip the CTA.
-                  onLeaveReview: viewer == ChatSenderRole.customer &&
-                          onOpenOrder != null
+                  onLeaveReview:
+                      viewer == ChatSenderRole.customer && onOpenOrder != null
                       ? () => onOpenOrder!(activeChat.orderId)
                       : null,
                 ),
                 Expanded(
                   child: switch (state.status) {
                     ChatThreadStatus.initial ||
-                    ChatThreadStatus.loading =>
-                      const _LoadingBody(),
+                    ChatThreadStatus.loading => const _LoadingBody(),
                     ChatThreadStatus.failure => ErrorState(
-                        message: state.error,
-                        onRetry: () =>
-                            context.read<ChatThreadCubit>().load(),
-                      ),
+                      message: state.error,
+                      onRetry: () => context.read<ChatThreadCubit>().load(),
+                    ),
                     ChatThreadStatus.ready => _MessageList(
-                        messages: state.messages,
-                        viewer: viewer,
-                      ),
+                      messages: state.messages,
+                      viewer: viewer,
+                    ),
                   },
                 ),
                 ChatComposer(
@@ -231,10 +261,10 @@ class _ChatThreadBody extends StatelessWidget {
                       context.read<ChatThreadCubit>().sendText(body),
                   onSendImage: (bytes, mime, caption) async =>
                       context.read<ChatThreadCubit>().sendImage(
-                            bytes: bytes,
-                            mimeType: mime,
-                            caption: caption,
-                          ),
+                        bytes: bytes,
+                        mimeType: mime,
+                        caption: caption,
+                      ),
                 ),
               ],
             );
@@ -277,11 +307,7 @@ class _ThreadAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       title: Row(
         children: [
-          ChatAvatar(
-            name: name,
-            imageUrl: chat.avatarFor(viewer),
-            size: 38,
-          ),
+          ChatAvatar(name: name, imageUrl: chat.avatarFor(viewer), size: 38),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -318,7 +344,11 @@ class _ThreadAppBar extends StatelessWidget implements PreferredSizeWidget {
         if (onOpenOrder != null)
           IconButton(
             tooltip: tr('chat.view_order'),
-            icon: Icon(Iconsax.receipt_2_1, color: PremiumTokens.accent, size: 22),
+            icon: Icon(
+              Iconsax.receipt_2_1,
+              color: PremiumTokens.accent,
+              size: 22,
+            ),
             onPressed: () => onOpenOrder!(chat.orderId),
           ),
         const SizedBox(width: 4),
@@ -472,8 +502,10 @@ class _MessageListState extends State<_MessageList> {
       itemBuilder: (context, i) {
         final row = _rows[i];
         return switch (row) {
-          _MessageRow(:final message) =>
-            MessageBubble(message: message, viewer: widget.viewer),
+          _MessageRow(:final message) => MessageBubble(
+            message: message,
+            viewer: widget.viewer,
+          ),
           _SeparatorRow(:final date) => MessageDateSeparator(date: date),
         };
       },

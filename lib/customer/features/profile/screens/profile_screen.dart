@@ -8,6 +8,9 @@ import '../../../../config/app_mode.dart';
 import '../../../../core/auth/app_mode_cubit.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
+import '../../../../shared/chat/bloc/total_unread_chats_cubit.dart';
+import '../../../../shared/models/chat.dart';
+import '../../../../shared/repositories/chat_repository.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/fullscreen_image_viewer.dart';
 import '../../../widgets/glass_bottom_nav.dart';
@@ -94,10 +97,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     await context.read<ProfileCubit>().fetch();
   }
 
-  List<MenuEntry> _buildMenuItems(BuildContext context) => [
+  List<MenuEntry> _buildMenuItems(BuildContext context, int unreadChats) => [
     MenuEntry(
       icon: Iconsax.message,
       label: tr('chat.title'),
+      badgeCount: unreadChats,
       onTap: () => context.push('/chats'),
     ),
     MenuEntry(
@@ -164,8 +168,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Scoped to the profile screen: one lightweight chat-list subscription
+    // that drives the live "Suhbatlar" unread badge.
+    return BlocProvider(
+      create: (_) =>
+          TotalUnreadChatsCubit(sl<ChatRepository>(), ChatSenderRole.customer),
+      child: Builder(builder: _buildScaffold),
+    );
+  }
+
+  Widget _buildScaffold(BuildContext context) {
     final pt = PremiumTokens.of(context);
     final profileState = context.watch<ProfileCubit>().state;
+    final unreadChats = context.watch<TotalUnreadChatsCubit>().state;
     return Scaffold(
       backgroundColor: pt.background,
       appBar: AppBar(
@@ -232,7 +247,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             else
               BecomeSellerBanner(onTap: _openSellerOnboarding),
             const SizedBox(height: 24),
-            MenuListCard(items: _buildMenuItems(context)),
+            MenuListCard(items: _buildMenuItems(context, unreadChats)),
             const SizedBox(height: 28),
             DangerZone(
               onSignOut: () => showSignOutDialog(context),

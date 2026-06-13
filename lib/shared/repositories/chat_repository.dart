@@ -57,6 +57,13 @@ abstract class ChatRepository {
   /// row lands in `chat_messages` for [chatId] via Woody Realtime.
   Stream<ChatMessage> messagesStream(String chatId);
 
+  /// Fires when something about [orderId] changed (status moved, cancelled)
+  /// and the linked chat's status banner may be stale. The thread cubit
+  /// re-fetches the chat on each tick so the banner reflects the new status
+  /// without a manual refresh. Driven by the `notification` realtime feed
+  /// (the backend emits no dedicated order event yet).
+  Stream<void> orderEventsStream(String orderId);
+
   /// Live stream of the current user's chats — emits the full list
   /// whenever any participating chat row changes (last_message_at,
   /// unread counts). Used by the list screen to badge in real time.
@@ -80,6 +87,7 @@ class MockChatRepository implements ChatRepository {
   final List<Chat> _chats = [];
   final Map<String, List<ChatMessage>> _messages = {};
   final _newMessageCtrls = <String, StreamController<ChatMessage>>{};
+  final _orderEventCtrls = <String, StreamController<void>>{};
   final _chatsListCtrl = StreamController<List<Chat>>.broadcast();
 
   @override
@@ -175,6 +183,11 @@ class MockChatRepository implements ChatRepository {
     );
     return ctrl.stream;
   }
+
+  @override
+  Stream<void> orderEventsStream(String orderId) => _orderEventCtrls
+      .putIfAbsent(orderId, () => StreamController<void>.broadcast())
+      .stream;
 
   @override
   Stream<List<Chat>> myChatsStream() => _chatsListCtrl.stream;

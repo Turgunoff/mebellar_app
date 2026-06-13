@@ -30,9 +30,7 @@ class MessageBubble extends StatelessWidget {
 
     final bg = mine ? PremiumTokens.accent : pt.surface;
     final fg = mine ? Colors.white : pt.dark;
-    final timeColor = mine
-        ? Colors.white.withValues(alpha: 0.75)
-        : pt.grey;
+    final timeColor = mine ? Colors.white.withValues(alpha: 0.75) : pt.grey;
 
     final radius = BorderRadius.only(
       topLeft: const Radius.circular(18),
@@ -44,8 +42,9 @@ class MessageBubble extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
       child: Row(
-        mainAxisAlignment:
-            mine ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: mine
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Flexible(
@@ -106,12 +105,9 @@ class MessageBubble extends StatelessWidget {
                               ),
                               if (mine) ...[
                                 const SizedBox(width: 4),
-                                Icon(
-                                  message.isRead
-                                      ? Iconsax.tick_circle
-                                      : Iconsax.tick_square,
-                                  size: 12,
-                                  color: timeColor,
+                                _StatusGlyph(
+                                  message: message,
+                                  baseColor: timeColor,
                                 ),
                               ],
                             ],
@@ -137,6 +133,32 @@ class MessageBubble extends StatelessWidget {
   }
 }
 
+/// Outgoing-message status glyph: clock while sending, a warning while
+/// failed, then the single/double tick once the server has it (double =
+/// read). Sized to sit inline with the timestamp.
+class _StatusGlyph extends StatelessWidget {
+  const _StatusGlyph({required this.message, required this.baseColor});
+
+  final ChatMessage message;
+  final Color baseColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final (icon, color) = switch (message.status) {
+      ChatMessageStatus.sending => (Iconsax.clock, baseColor),
+      ChatMessageStatus.failed => (
+        Iconsax.info_circle,
+        const Color(0xFFFFC9BC), // soft red — legible on the accent bubble
+      ),
+      ChatMessageStatus.sent => (
+        message.isRead ? Iconsax.tick_circle : Iconsax.tick_square,
+        baseColor,
+      ),
+    };
+    return Icon(icon, size: 12, color: color);
+  }
+}
+
 class _ImageContent extends StatelessWidget {
   const _ImageContent({required this.url});
   final String url;
@@ -145,10 +167,7 @@ class _ImageContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
     return ConstrainedBox(
-      constraints: const BoxConstraints(
-        maxHeight: 260,
-        minWidth: 180,
-      ),
+      constraints: const BoxConstraints(maxHeight: 260, minWidth: 180),
       child: AspectRatio(
         aspectRatio: 4 / 3,
         child: CachedNetworkImage(
@@ -210,7 +229,8 @@ class MessageDateSeparator extends StatelessWidget {
 
   static String _label(DateTime date) {
     final today = DateTime.now();
-    final isToday = date.year == today.year &&
+    final isToday =
+        date.year == today.year &&
         date.month == today.month &&
         date.day == today.day;
     if (isToday) return tr('chat.today');

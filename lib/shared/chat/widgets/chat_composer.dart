@@ -5,13 +5,11 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../core/i18n/i18n.dart';
 import '../../../customer/features/home/widgets/premium/premium_tokens.dart';
+import 'selected_attachment_preview.dart';
 
 typedef SendTextCallback = Future<void> Function(String body);
-typedef SendImageCallback = Future<void> Function(
-  Uint8List bytes,
-  String mimeType,
-  String? caption,
-);
+typedef SendImageCallback =
+    Future<void> Function(Uint8List bytes, String mimeType, String? caption);
 
 /// The bottom composer bar — text field, attach button, send button.
 /// Disables itself while [sending] is true to avoid double-submits.
@@ -36,6 +34,13 @@ class _ChatComposerState extends State<ChatComposer> {
   final _focus = FocusNode();
   bool _hasText = false;
 
+  /// Picked-but-not-yet-sent image. Held here so the user can add a caption in
+  /// the text field and send both as one message (Telegram-style).
+  Uint8List? _attachBytes;
+  String? _attachMime;
+
+  bool get _hasAttachment => _attachBytes != null;
+
   @override
   void initState() {
     super.initState();
@@ -56,11 +61,25 @@ class _ChatComposerState extends State<ChatComposer> {
   }
 
   Future<void> _handleSend() async {
-    final body = _ctrl.text.trim();
-    if (body.isEmpty || widget.sending) return;
+    if (widget.sending) return;
+    final caption = _ctrl.text.trim();
+    final bytes = _attachBytes;
+    final mime = _attachMime;
+    if (bytes != null && mime != null) {
+      // Image (+ optional caption) → one message payload.
+      _ctrl.clear();
+      setState(() {
+        _hasText = false;
+        _attachBytes = null;
+        _attachMime = null;
+      });
+      await widget.onSendImage(bytes, mime, caption.isEmpty ? null : caption);
+      return;
+    }
+    if (caption.isEmpty) return;
     _ctrl.clear();
     setState(() => _hasText = false);
-    await widget.onSendText(body);
+    await widget.onSendText(caption);
   }
 
   Future<void> _handleAttach() async {
@@ -80,10 +99,24 @@ class _ChatComposerState extends State<ChatComposer> {
     } catch (_) {
       file = null;
     }
-    if (file == null) return;
-    final bytes = await file.readAsBytes();
-    final mime = _mimeFromName(file.name);
-    await widget.onSendImage(bytes, mime, null);
+    final picked = file;
+    if (picked == null) return;
+    final bytes = await picked.readAsBytes();
+    if (!mounted) return;
+    // Pin the preview above the field — the user reviews + captions, then
+    // sends. (Old behaviour fired the send immediately on pick.)
+    setState(() {
+      _attachBytes = bytes;
+      _attachMime = _mimeFromName(picked.name);
+    });
+  }
+
+  void _removeAttachment() {
+    if (widget.sending) return;
+    setState(() {
+      _attachBytes = null;
+      _attachMime = null;
+    });
   }
 
   Future<ImageSource?> _pickSource() async {
@@ -139,7 +172,9 @@ class _ChatComposerState extends State<ChatComposer> {
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
-    final canSend = _hasText && !widget.sending;
+    // Image alone is a valid message, so the send button lights up on an
+    // attachment even with an empty caption.
+    final canSend = (_hasText || _hasAttachment) && !widget.sending;
     return Container(
       padding: EdgeInsets.fromLTRB(
         12,
@@ -151,67 +186,74 @@ class _ChatComposerState extends State<ChatComposer> {
         color: pt.background,
         border: Border(top: BorderSide(color: pt.divider, width: 0.6)),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          _RoundButton(
-            icon: Iconsax.gallery_add,
-            tooltip: tr('chat.attach_image'),
-            onTap: widget.sending ? null : _handleAttach,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Container(
-              constraints: const BoxConstraints(maxHeight: 140),
-              decoration: BoxDecoration(
-                color: pt.surface,
-                borderRadius: BorderRadius.circular(22),
-                boxShadow: PremiumTokens.softShadow,
+          if (_attachBytes != null)
+            SelectedAttachmentPreview(
+              bytes: _attachBytes!,
+              onRemove: _removeAttachment,
+            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              _RoundButton(
+                icon: Iconsax.gallery_add,
+                tooltip: tr('chat.attach_image'),
+                onTap: widget.sending ? null : _handleAttach,
               ),
-              child: Theme(
-                data: Theme.of(context).copyWith(
-                  inputDecorationTheme: const InputDecorationTheme(
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    disabledBorder: InputBorder.none,
-                    errorBorder: InputBorder.none,
-                    focusedErrorBorder: InputBorder.none,
-                    filled: false,
-                    fillColor: Colors.transparent,
-                    contentPadding: EdgeInsets.zero,
-                    isCollapsed: true,
+              const SizedBox(width: 8),
+              Expanded(
+                child: Container(
+                  constraints: const BoxConstraints(maxHeight: 140),
+                  decoration: BoxDecoration(
+                    color: pt.surface,
+                    borderRadius: BorderRadius.circular(22),
+                    boxShadow: PremiumTokens.softShadow,
                   ),
-                ),
-                child: TextField(
-                  controller: _ctrl,
-                  focusNode: _focus,
-                  enabled: !widget.sending,
-                  maxLines: null,
-                  textInputAction: TextInputAction.newline,
-                  textCapitalization: TextCapitalization.sentences,
-                  inputFormatters: [
-                    LengthLimitingTextInputFormatter(4000),
-                  ],
-                  cursorColor: PremiumTokens.accent,
-                  style: PremiumTokens.body(
-                    size: 14.5,
-                    color: pt.dark,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: tr('chat.composer_hint'),
-                    hintStyle: PremiumTokens.body(size: 14, color: pt.grey),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
+                  child: Theme(
+                    data: Theme.of(context).copyWith(
+                      inputDecorationTheme: const InputDecorationTheme(
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        disabledBorder: InputBorder.none,
+                        errorBorder: InputBorder.none,
+                        focusedErrorBorder: InputBorder.none,
+                        filled: false,
+                        fillColor: Colors.transparent,
+                        contentPadding: EdgeInsets.zero,
+                        isCollapsed: true,
+                      ),
+                    ),
+                    child: TextField(
+                      controller: _ctrl,
+                      focusNode: _focus,
+                      enabled: !widget.sending,
+                      maxLines: null,
+                      textInputAction: TextInputAction.newline,
+                      textCapitalization: TextCapitalization.sentences,
+                      inputFormatters: [LengthLimitingTextInputFormatter(4000)],
+                      cursorColor: PremiumTokens.accent,
+                      style: PremiumTokens.body(size: 14.5, color: pt.dark),
+                      decoration: InputDecoration(
+                        hintText: _hasAttachment
+                            ? tr('chat.caption_hint')
+                            : tr('chat.composer_hint'),
+                        hintStyle: PremiumTokens.body(size: 14, color: pt.grey),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
+              const SizedBox(width: 8),
+              _SendButton(enabled: canSend, onTap: _handleSend),
+            ],
           ),
-          const SizedBox(width: 8),
-          _SendButton(enabled: canSend, onTap: _handleSend),
         ],
       ),
     );

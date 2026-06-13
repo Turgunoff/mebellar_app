@@ -2,6 +2,12 @@ import 'package:equatable/equatable.dart';
 
 import 'chat.dart';
 
+/// Delivery lifecycle of an outgoing message. Server-loaded / inbound
+/// messages are always [sent]; an optimistic local insert starts as
+/// [sending] and reconciles to [sent] (server ack) or [failed] (the send
+/// threw). Drives the status glyph on the bubble — clock → tick → retry.
+enum ChatMessageStatus { sending, sent, failed }
+
 /// A single message inside a chat thread. Either [body] or [attachmentUrl]
 /// is non-null (the DB CHECK guarantees this); both can be present when
 /// a user sends an image with a caption.
@@ -15,6 +21,8 @@ class ChatMessage extends Equatable {
     this.attachmentUrl,
     this.readAt,
     required this.createdAt,
+    this.status = ChatMessageStatus.sent,
+    this.localId,
   });
 
   final String id;
@@ -26,9 +34,19 @@ class ChatMessage extends Equatable {
   final DateTime? readAt;
   final DateTime createdAt;
 
+  /// Send lifecycle — [ChatMessageStatus.sent] for anything from the server.
+  final ChatMessageStatus status;
+
+  /// Client-generated correlation id for an optimistic insert, used to swap
+  /// the placeholder for the server row when the POST returns. Null on
+  /// server-sourced messages.
+  final String? localId;
+
   bool get hasText => body != null && body!.trim().isNotEmpty;
   bool get hasImage => attachmentUrl != null && attachmentUrl!.isNotEmpty;
   bool get isRead => readAt != null;
+  bool get isSending => status == ChatMessageStatus.sending;
+  bool get isFailed => status == ChatMessageStatus.failed;
 
   /// True when the *viewer* is the sender — drives bubble alignment
   /// (right vs left) and tick-mark visibility (read receipts only show
@@ -48,30 +66,39 @@ class ChatMessage extends Equatable {
     );
   }
 
-  ChatMessage copyWith({DateTime? readAt}) {
+  ChatMessage copyWith({
+    String? id,
+    DateTime? readAt,
+    ChatMessageStatus? status,
+    String? attachmentUrl,
+  }) {
     return ChatMessage(
-      id: id,
+      id: id ?? this.id,
       chatId: chatId,
       senderId: senderId,
       senderRole: senderRole,
       body: body,
-      attachmentUrl: attachmentUrl,
+      attachmentUrl: attachmentUrl ?? this.attachmentUrl,
       readAt: readAt ?? this.readAt,
       createdAt: createdAt,
+      status: status ?? this.status,
+      localId: localId,
     );
   }
 
   @override
   List<Object?> get props => [
-        id,
-        chatId,
-        senderId,
-        senderRole,
-        body,
-        attachmentUrl,
-        readAt,
-        createdAt,
-      ];
+    id,
+    chatId,
+    senderId,
+    senderRole,
+    body,
+    attachmentUrl,
+    readAt,
+    createdAt,
+    status,
+    localId,
+  ];
 }
 
 DateTime? _parseDate(Object? raw) {

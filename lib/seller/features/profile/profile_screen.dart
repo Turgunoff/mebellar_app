@@ -11,9 +11,13 @@ import '../../../config/remote_config.dart';
 import '../../../core/di/service_locator.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_fonts.dart';
+import '../../../shared/chat/bloc/total_unread_chats_cubit.dart';
+import '../../../shared/chat/widgets/unread_count_badge.dart';
+import '../../../shared/models/chat.dart';
 import '../../../shared/models/shop_settings.dart';
 import '../../../shared/models/tariff.dart';
 import '../../../shared/models/verification_status.dart';
+import '../../../shared/repositories/chat_repository.dart';
 import '../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../shared/widgets/fullscreen_image_viewer.dart';
 import '../reviews/screens/reviews_screen.dart';
@@ -45,8 +49,19 @@ class SellerProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<SellerProfileCubit>(
-      create: (_) => sl<SellerProfileCubit>()..load(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<SellerProfileCubit>(
+          create: (_) => sl<SellerProfileCubit>()..load(),
+        ),
+        // Drives the live unread badge on the "Suhbatlar" row.
+        BlocProvider<TotalUnreadChatsCubit>(
+          create: (_) => TotalUnreadChatsCubit(
+            sl<ChatRepository>(),
+            ChatSenderRole.seller,
+          ),
+        ),
+      ],
       child: const _SellerProfileView(),
     );
   }
@@ -70,6 +85,9 @@ class _SellerProfileView extends StatelessWidget {
                 onRefresh: () => context.read<SellerProfileCubit>().load(),
                 child: BlocBuilder<SellerProfileCubit, SellerProfileState>(
                   builder: (context, state) {
+                    final unreadChats = context
+                        .watch<TotalUnreadChatsCubit>()
+                        .state;
                     return ListView(
                       padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
                       physics: const BouncingScrollPhysics(
@@ -102,6 +120,15 @@ class _SellerProfileView extends StatelessWidget {
                               onTap: () =>
                                   _push(context, const ReviewsScreen()),
                             ),
+                            // Promoted out of "Ilova sozlamalari" — chats are a
+                            // core shop-management surface, not an app setting.
+                            _SettingsItem(
+                              icon: Iconsax.message,
+                              title: 'Suhbatlar',
+                              subtitle: 'Mijozlar bilan yozishuvlar',
+                              badgeCount: unreadChats,
+                              onTap: () => context.push('/seller/chats'),
+                            ),
                             _SettingsItem(
                               icon: Iconsax.wallet_3,
                               iconColor: state.wallet?.isHealthy == false
@@ -109,8 +136,7 @@ class _SellerProfileView extends StatelessWidget {
                                   : null,
                               title: 'Hamyon',
                               subtitle: _walletSubtitle(state),
-                              onTap: () =>
-                                  _push(context, const WalletScreen()),
+                              onTap: () => _push(context, const WalletScreen()),
                             ),
                             // Tariff is hidden while the tariff system is
                             // switched off (RemoteConfig.tariffEnabled).
@@ -130,15 +156,9 @@ class _SellerProfileView extends StatelessWidget {
                         const SizedBox(height: 8),
                         _SettingsCard(
                           items: [
-                            _SettingsItem(
-                              icon: Iconsax.message,
-                              title: 'Suhbatlar',
-                              subtitle: 'Mijozlar bilan yozishuvlar',
-                              onTap: () => context.push('/seller/chats'),
-                            ),
+                            // Suhbatlar promoted up to "Do'konni boshqarish".
                             // Bildirishnomalar entry removed — the dashboard
-                            // bell icon is the canonical entry point, so this
-                            // row was redundant.
+                            // bell icon is the canonical entry point.
                             _SettingsItem(
                               icon: Iconsax.setting_2,
                               title: 'Sozlamalar',
@@ -272,7 +292,8 @@ class _ProfileIdentity extends StatelessWidget {
     final c = SellerColors.of(context);
     final dark = Theme.of(context).brightness == Brightness.dark;
     final sellerName = state.sellerName;
-    final showOwner = sellerName != null &&
+    final showOwner =
+        sellerName != null &&
         sellerName.isNotEmpty &&
         sellerName != state.displayShopName;
 
@@ -306,11 +327,11 @@ class _ProfileIdentity extends StatelessWidget {
                   child: GestureDetector(
                     onTap: state.hasCover
                         ? () => openFullscreenImageViewer(
-                              context,
-                              images: [state.coverUrl!],
-                              initialIndex: 0,
-                              heroTagPrefix: 'shop-cover',
-                            )
+                            context,
+                            images: [state.coverUrl!],
+                            initialIndex: 0,
+                            heroTagPrefix: 'shop-cover',
+                          )
                         : null,
                     child: Hero(
                       tag: 'shop-cover-0',
@@ -333,11 +354,11 @@ class _ProfileIdentity extends StatelessWidget {
                     child: GestureDetector(
                       onTap: state.hasLogo
                           ? () => openFullscreenImageViewer(
-                                context,
-                                images: [state.logoUrl!],
-                                initialIndex: 0,
-                                heroTagPrefix: 'shop-logo',
-                              )
+                              context,
+                              images: [state.logoUrl!],
+                              initialIndex: 0,
+                              heroTagPrefix: 'shop-logo',
+                            )
                           : null,
                       child: Hero(
                         tag: 'shop-logo-0',
@@ -519,10 +540,7 @@ class _Avatar extends StatelessWidget {
         ],
       ),
       child: Container(
-        decoration: BoxDecoration(
-          color: c.neutralBg,
-          shape: BoxShape.circle,
-        ),
+        decoration: BoxDecoration(color: c.neutralBg, shape: BoxShape.circle),
         clipBehavior: Clip.antiAlias,
         alignment: Alignment.center,
         child: (url == null || url.isEmpty)
@@ -618,8 +636,10 @@ class _IdentitySkeleton extends StatelessWidget {
                   child: Container(
                     width: _kAvatarSize,
                     height: _kAvatarSize,
-                    decoration:
-                        BoxDecoration(color: block, shape: BoxShape.circle),
+                    decoration: BoxDecoration(
+                      color: block,
+                      shape: BoxShape.circle,
+                    ),
                   ),
                 ),
               ),
@@ -808,6 +828,7 @@ class _SettingsItem extends StatelessWidget {
     this.iconColor,
     this.titleColor,
     this.showTrailing = true,
+    this.badgeCount = 0,
   });
 
   final IconData icon;
@@ -817,6 +838,9 @@ class _SettingsItem extends StatelessWidget {
   final Color? iconColor;
   final Color? titleColor;
   final bool showTrailing;
+
+  /// Unread pill shown before the chevron (the "Suhbatlar" row). Hidden at 0.
+  final int badgeCount;
 
   @override
   Widget build(BuildContext context) {
@@ -863,6 +887,10 @@ class _SettingsItem extends StatelessWidget {
                   ],
                 ),
               ),
+              if (badgeCount > 0) ...[
+                const SizedBox(width: 8),
+                UnreadCountBadge(count: badgeCount),
+              ],
               if (showTrailing) ...[
                 const SizedBox(width: 8),
                 Icon(Iconsax.arrow_right_3, size: 18, color: c.greyMid),

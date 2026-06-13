@@ -14,6 +14,7 @@ import '../logging/talker.dart';
 import '../network/api_error.dart';
 import '../network/woody_api_client.dart';
 import '../platform/messaging_facade.dart';
+import 'active_chat_tracker.dart';
 import 'notification_handler.dart';
 
 /// FCM topic the app subscribes to for marketing / news pushes.
@@ -94,10 +95,11 @@ class PushService {
   }
 
   /// Invoked when the user taps a push (background or cold start). Reads
-  /// `route` and optional `mode` from the message data payload and stashes
-  /// them via [NotificationHandler] so the active app shell consumes them
-  /// on the next frame. If the target mode differs from the running mode,
-  /// the handler also flips `app_mode` for Phoenix-rebirth on next boot.
+  /// `route` and optional `mode` from the message data payload and hands them
+  /// to [NotificationHandler.routeFromPush], which stashes the destination so
+  /// the matching shell consumes it on its next frame and — when the target
+  /// mode differs from the running mode — requests the mode switch that
+  /// brings that shell up (GetIt scope swap + Phoenix rebirth).
   void _onMessageTapped(RemoteMessage message) {
     var route = message.data['route'] as String?;
     if (route == null || route.isEmpty) return;
@@ -109,7 +111,11 @@ class PushService {
       modeName: modeName,
     );
     debugPrint('[FCM] push tapped → route: $route (mode: $modeName)');
-    _notificationHandler.savePendingRoute(route, modeName, kind: kind);
+    _notificationHandler.routeFromPush(
+      route: route,
+      mode: modeName,
+      kind: kind,
+    );
   }
 
   /// Verification verdicts must always land on the customer profile — the
@@ -125,6 +131,33 @@ class PushService {
       return ('/profile', AppMode.customer.name);
     }
     return (route, modeName);
+  }
+
+  /// True when [message] is a chat push for the exact thread the user is
+  /// currently viewing. Matches on chat id rather than the raw route so it
+  /// works regardless of which path opened the thread (`/chats/:id`,
+  /// `/seller/chats/:id`, or `/seller/orders/:id/chat`). The chat id is read
+  /// from the push `route` (the same field tap-navigation relies on, so it's
+  /// always the thread route) or an explicit `chat_id` field.
+  bool _isViewingPushedChat(RemoteMessage message) {
+    if (NotificationKind.fromString(message.data['kind'] as String?) !=
+        NotificationKind.chatMessage) {
+      return false;
+    }
+    final chatId =
+        (message.data['chat_id'] as String?) ??
+        _chatIdFromRoute(message.data['route'] as String?);
+    return ActiveChatTracker.instance.isViewing(chatId);
+  }
+
+  /// Extracts the chat id from a `…/chats/<id>` route, or null if the route
+  /// isn't a chat thread path.
+  static String? _chatIdFromRoute(String? route) {
+    if (route == null || route.isEmpty) return null;
+    final segments = Uri.parse(route).pathSegments;
+    final i = segments.indexOf('chats');
+    if (i >= 0 && i + 1 < segments.length) return segments[i + 1];
+    return null;
   }
 
   Future<void> _initLocalNotifications() async {
@@ -384,7 +417,12 @@ class PushService {
     // actually sees the ping. iOS already handles this through the
     // setForegroundNotificationPresentationOptions call in
     // requestPermissionAndSubscribe(), so we only re-post on Android.
-    if (!kIsWeb && Platform.isAndroid) {
+    //
+    // Smart suppression: when the push is for the very chat the user is
+    // staring at, skip the re-post entirely — the open thread already shows
+    // the message live over the WS, so a drop-down on top of it is just
+    // noise (Telegram does the same).
+    if (!kIsWeb && Platform.isAndroid && !_isViewingPushedChat(message)) {
       await _showLocalNotification(message);
     }
 
@@ -486,7 +524,14 @@ class PushService {
       GoRouter.of(ctx).push(route);
       return;
     }
-    _notificationHandler.savePendingRoute(route, modeName, kind: kind);
+    // Not the customer fast-path (cross-mode, or no live customer router):
+    // stash + (cross-mode) trigger the switch so the target shell mounts and
+    // consumes the route, instead of dropping a push meant for the other mode.
+    _notificationHandler.routeFromPush(
+      route: route,
+      mode: modeName,
+      kind: kind,
+    );
   }
 
   /// Exposed so debug tooling (push simulator screen) can preview a payload

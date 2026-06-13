@@ -4,6 +4,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../../config/app_mode.dart';
 import '../../shared/models/app_notification.dart';
 import '../../shared/repositories/notifications_repository.dart';
+import '../auth/app_mode_cubit.dart';
 import '../di/service_locator.dart';
 
 /// Cross-mode push handler. Sprint 1 scaffolded the pending-route box;
@@ -32,6 +33,50 @@ class NotificationHandler {
     if (kind != null) _pendingRoute.put(_kindKey, kind);
   }
 
+  /// Entry point for an FCM push tap (background or cold start). Stashes the
+  /// destination keyed by [mode] so the matching shell consumes it via
+  /// [consumeFor] on its next frame, and — when [mode] differs from the
+  /// running app mode — requests the mode switch that brings that shell up.
+  ///
+  /// Context-free on purpose: the FCM handlers fire without a BuildContext.
+  /// `switchMode` only *emits*; the root `BlocListener<AppModeCubit>` in
+  /// `main.dart` owns the GetIt scope swap + `Phoenix.rebirth`, and the
+  /// freshly-mounted target shell consumes the route via [consumeFor] on its
+  /// first frame. Mirrors the in-app inbox tap path in
+  /// `notifications_screen._handleTap`.
+  ///
+  /// The switch is **deferred to the next frame** for a load-bearing reason:
+  /// `bootstrap()` is fired with `unawaited`, so a cold-start launch push read
+  /// via `getInitialMessage()` can reach this method *before* `runApp()` has
+  /// mounted the root `BlocListener` — emitting synchronously there would be
+  /// lost (a `BlocListener` ignores pre-subscription transitions), leaving the
+  /// app to rebuild the target shell against the still-old GetIt scope. A
+  /// post-frame callback only ever runs after a frame has rendered, i.e. after
+  /// `runApp()` mounted that listener, so the emit is always observed. On the
+  /// first build the cubit still reports the boot mode, so that build stays
+  /// scope-consistent; the rebirth follows on the listener's frame.
+  void routeFromPush({
+    required String route,
+    required String mode,
+    String? kind,
+  }) {
+    savePendingRoute(route, mode, kind: kind);
+    if (!sl.isRegistered<AppModeCubit>()) return;
+    final target = AppMode.fromName(mode);
+    if (sl<AppModeCubit>().state == target) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (sl.isRegistered<AppModeCubit>() &&
+          sl<AppModeCubit>().state != target) {
+        sl<AppModeCubit>().switchMode(target);
+      }
+    });
+    // `addPostFrameCallback` only runs if a frame is actually produced. A
+    // tray-push tap can fire while the app is idle (no animation, nothing
+    // dirty), in which case no frame would be scheduled and the deferred
+    // switch would never run. Force one so the callback is guaranteed to fire.
+    WidgetsBinding.instance.ensureVisualUpdate();
+  }
+
   /// Returns the pending destination once — the route plus the notification
   /// `kind` that produced it (so the consuming shell can refresh any state
   /// the notification invalidated, e.g. a seller verdict → `/me` refetch) —
@@ -42,17 +87,34 @@ class NotificationHandler {
     final savedMode = _pendingRoute.get(_modeKey) as String?;
     final tsRaw = _pendingRoute.get(_tsKey) as String?;
     final kind = _pendingRoute.get(_kindKey) as String?;
+
+    // Nothing usable — clear any partial debris and bail.
+    if (route == null || savedMode == null || tsRaw == null) {
+      _clearPending();
+      return null;
+    }
+    // Expired: GC it regardless of which mode it targeted.
+    final ts = DateTime.tryParse(tsRaw);
+    if (ts == null || DateTime.now().difference(ts) > _staleAfter) {
+      _clearPending();
+      return null;
+    }
+    // Fresh route for the OTHER mode: leave it in place. A cross-mode push
+    // stashes the destination keyed to the *target* mode and kicks off a
+    // Phoenix rebirth (see [routeFromPush]); the outgoing shell's
+    // resume-consume races that rebirth and would otherwise wipe the route
+    // before the target shell mounts. Only the matching shell clears it.
+    if (savedMode != mode) return null;
+
+    _clearPending();
+    return (route: route, kind: kind);
+  }
+
+  void _clearPending() {
     _pendingRoute.delete(_routeKey);
     _pendingRoute.delete(_modeKey);
     _pendingRoute.delete(_tsKey);
     _pendingRoute.delete(_kindKey);
-
-    if (route == null || savedMode != mode || tsRaw == null) return null;
-    final ts = DateTime.tryParse(tsRaw);
-    if (ts == null || DateTime.now().difference(ts) > _staleAfter) {
-      return null;
-    }
-    return (route: route, kind: kind);
   }
 
   /// Inspects the pending payload without consuming it — used by cold-start

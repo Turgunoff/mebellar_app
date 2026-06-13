@@ -110,10 +110,15 @@ void main() {
       expect(h.consumeFor(AppMode.customer.name)?.kind, isNull);
     });
 
-    test('consume from a different mode discards (returns null)', () {
+    test('consume from a different mode returns null but LEAVES the route '
+        'for the target shell', () {
       final h = NotificationHandler(box);
       h.savePendingRoute('/orders/abc', AppMode.seller.name);
+      // The wrong-mode shell must not drain a cross-mode route — that race
+      // (outgoing shell resume-consume vs. the post-switch rebirth) used to
+      // drop the notification. It stays put until the matching shell mounts.
       expect(h.consumeFor(AppMode.customer.name), isNull);
+      expect(h.consumeFor(AppMode.seller.name)?.route, '/orders/abc');
     });
 
     test('stale routes (>5 min) are discarded', () {

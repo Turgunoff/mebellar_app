@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:math';
 import 'dart:typed_data';
 
 import '../../core/network/woody_api_client.dart';
 import '../../core/realtime/woody_realtime_service.dart';
+import '../../core/storage/r2_upload_client.dart';
 import '../models/app_notification.dart';
 import '../models/chat.dart';
 import '../models/chat_message.dart';
@@ -12,28 +14,38 @@ import 'notifications_repository.dart';
 
 /// REST-backed chat repository. Calls `/chats/*` endpoints on api.woody.uz.
 ///
-/// Image attachments arrive in Phase 7 once the R2 presigned-PUT flow lands
-/// — for now `sendImage` throws so the UI can fall back to a "feature
-/// unavailable" message rather than silently failing.
+/// Image attachments upload to the `chat-attachments` R2 bucket via
+/// [R2UploadClient] and POST the resulting URL as `attachment_url`. The bucket
+/// must be configured public server-side (`PUBLIC_BUCKETS` +
+/// `R2_CHAT_ATTACHMENTS_PUBLIC_BASE_URL`) for the stored URL to render; until
+/// then `sendImage` degrades gracefully with a clear error instead of writing
+/// an unrenderable message.
 ///
 /// Realtime: the backend publishes a `chat_message` frame to the *recipient*
 /// over the Woody WebSocket the instant a message is inserted, carrying the
 /// full row. [messagesStream] lifts that frame into a [ChatMessage] for the
 /// open thread; [myChatsStream] re-fetches the list on each frame so unread
-/// badges + ordering + last-message previews update live. When no realtime
-/// service is wired (tests / no-backend builds) the streams degrade to a
-/// single on-demand snapshot, exactly as before.
+/// badges + ordering + last-message previews update live. Order status moves
+/// arrive over the `notification` feed and drive [orderEventsStream]. When no
+/// realtime service is wired (tests / no-backend builds) the streams degrade
+/// to a single on-demand snapshot, exactly as before.
 class WoodyChatRepository implements ChatRepository {
   WoodyChatRepository({
     required WoodyApiClient api,
     WoodyRealtimeService? realtime,
+    R2UploadClient? uploads,
   }) : _api = api,
-       _realtime = realtime;
+       _realtime = realtime,
+       _uploads = uploads;
 
   final WoodyApiClient _api;
 
   /// Live event source. Null in builds/tests without a configured backend.
   final WoodyRealtimeService? _realtime;
+
+  /// Presigned-PUT uploader for image attachments. Null in tests / no-backend
+  /// builds, where `sendImage` reports the feature unavailable.
+  final R2UploadClient? _uploads;
 
   /// Ticks whenever the signed-in user's chat list may have changed: a
   /// realtime `chat_message` frame, or an FCM foreground push that beat the
@@ -109,17 +121,56 @@ class WoodyChatRepository implements ChatRepository {
     required String mimeType,
     required ChatSenderRole as,
     String? caption,
-  }) {
-    // Storage uploads land in Phase 7. Surface a clear failure instead of
-    // silently swallowing the image.
-    throw UnimplementedError(
-      'Image attachments arrive with the R2 storage migration (Phase 7).',
+  }) async {
+    final uploads = _uploads;
+    if (uploads == null) {
+      throw StateError('chat_image_unavailable');
+    }
+    final result = await uploads.upload(
+      bucket: R2Bucket.chatAttachments,
+      path: '$chatId/${_randomObjectName()}.${_extFor(mimeType)}',
+      bytes: bytes,
+      contentType: mimeType,
     );
+    final url = result.publicUrl;
+    if (url == null || url.isEmpty) {
+      // The bucket isn't configured public yet (no PUBLIC_BUCKETS entry /
+      // R2_CHAT_ATTACHMENTS_PUBLIC_BASE_URL). Bail before POSTing so we never
+      // persist a message whose image can't render.
+      throw StateError('chat_image_unavailable');
+    }
+    final trimmed = caption?.trim();
+    final response = await _api.post<Map<String, dynamic>>(
+      '/chats/$chatId/messages',
+      body: {
+        if (trimmed != null && trimmed.isNotEmpty) 'body': trimmed,
+        'attachment_url': url,
+      },
+    );
+    return _rowToMessage(response);
   }
 
   @override
   Future<void> markAsRead(String chatId) async {
     await _api.post<dynamic>('/chats/$chatId/read');
+    // Reading zeroes this side's counter server-side — nudge the list so the
+    // chat-list tile + the profile unread badge drop without waiting for the
+    // next inbound frame.
+    if (!_listDirty.isClosed) _listDirty.add(null);
+  }
+
+  static String _extFor(String mimeType) => switch (mimeType) {
+    'image/png' => 'png',
+    'image/webp' => 'webp',
+    'image/gif' => 'gif',
+    _ => 'jpg',
+  };
+
+  static String _randomObjectName() {
+    final rnd = Random();
+    final stamp = DateTime.now().microsecondsSinceEpoch.toRadixString(36);
+    final salt = rnd.nextInt(1 << 32).toRadixString(36);
+    return 'msg_${stamp}_$salt';
   }
 
   @override
@@ -137,6 +188,20 @@ class WoodyChatRepository implements ChatRepository {
         .map((e) => _messageFromEvent(e.data))
         .where((m) => m != null)
         .cast<ChatMessage>();
+  }
+
+  @override
+  Stream<void> orderEventsStream(String orderId) {
+    final realtime = _realtime;
+    if (realtime == null) return const Stream.empty();
+    // The backend ships no dedicated order event; an order status move reaches
+    // the observing party as a `notification` whose `reference_id` is the
+    // order id. Filter to this order and strip the payload — the cubit re-pulls
+    // the chat to refresh the banner.
+    return realtime
+        .eventsOfType('notification')
+        .where((e) => e.data['reference_id'] == orderId)
+        .map((_) {});
   }
 
   @override
