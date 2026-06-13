@@ -25,6 +25,7 @@ const Map<String, dynamic> homeUz = {
   'sort_popular': 'Eng ommabop',
   'sort_discount': 'Chegirmalilar oldin',
   'sort_newest': 'Eng yangi',
+  'seller_promo_cta': 'Boshlash',
 };
 
 const Map<String, dynamic> homeRu = {
@@ -51,6 +52,7 @@ const Map<String, dynamic> homeRu = {
   'sort_popular': 'Популярные',
   'sort_discount': 'Сначала со скидкой',
   'sort_newest': 'Сначала новые',
+  'seller_promo_cta': 'Начать',
 };
 
 const Map<String, dynamic> homeEn = {
@@ -77,4 +79,5 @@ const Map<String, dynamic> homeEn = {
   'sort_popular': 'Most popular',
   'sort_discount': 'Biggest discount',
   'sort_newest': 'Newest first',
+  'seller_promo_cta': 'Start',
 };

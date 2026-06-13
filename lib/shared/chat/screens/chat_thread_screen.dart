@@ -324,6 +324,18 @@ class _ThreadAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Size get preferredSize => const Size.fromHeight(64);
 
+  /// Back from a chat thread. A push-notification deep-link opens this screen
+  /// with an empty navigation stack, where `context.pop()` throws
+  /// `GoError: There is nothing to pop`. Pop when there's something to pop;
+  /// otherwise fall back to the viewer's chat-list route.
+  void _handleBack(BuildContext context) {
+    if (context.canPop()) {
+      context.pop();
+      return;
+    }
+    context.go(viewer == ChatSenderRole.seller ? '/seller/chats' : '/chats');
+  }
+
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
@@ -338,7 +350,7 @@ class _ThreadAppBar extends StatelessWidget implements PreferredSizeWidget {
       titleSpacing: 0,
       leading: IconButton(
         icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: pt.dark),
-        onPressed: () => context.pop(),
+        onPressed: () => _handleBack(context),
       ),
       title: Row(
         children: [

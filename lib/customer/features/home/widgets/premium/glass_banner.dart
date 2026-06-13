@@ -8,6 +8,7 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../../core/i18n/i18n.dart';
 import '../../../../../shared/models/banner.dart';
 import '../../../../../shared/models/multilingual_text.dart';
 import '../../../../../shared/widgets/image_error_placeholder.dart';
@@ -185,83 +186,190 @@ class _BannerCard extends StatelessWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: hasAction ? () => _handleBannerTap(context, data) : null,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: isSellerPromo
-              ? _SellerPromoBody(data: data, lang: lang)
-              : _ImageBannerBody(data: data, lang: lang),
-        ),
+        // The promo card carries its own clip + shadow so the drop shadow
+        // reads; image banners stay flat under the shared rounded clip.
+        child: isSellerPromo
+            ? _SellerPromoBody(data: data, lang: lang)
+            : ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: _ImageBannerBody(data: data, lang: lang),
+              ),
       ),
     );
   }
 }
 
-/// Branded gradient slide for the "Sotuvchi bo'ling" promo — no network image,
-/// so it never depends on a CDN URL and always renders.
+/// Premium gradient slide for the "Sotuvchi bo'ling" promo — no network image,
+/// so it never depends on a CDN URL and always renders. Self-contained: it
+/// carries its own rounded clip, drop shadow, warm glow and an oversized
+/// glassmorphic shop glyph, plus a white CTA pill that signals tappability.
 class _SellerPromoBody extends StatelessWidget {
   const _SellerPromoBody({required this.data, required this.lang});
 
   final HomeBanner data;
   final String lang;
 
+  // Fixed marketing palette — intentionally identical in light and dark mode,
+  // like the image banners' white-on-photo overlays. Not a themed surface.
+  static const _deep = Color(0xFF5A2A1A); // espresso terracotta — adds depth
+  static const _glow = Color(0xFFF4B488); // warm luminous highlight
+
   @override
   Widget build(BuildContext context) {
     final title = data.title?.get(lang) ?? '';
     final subtitle = data.subtitle?.get(lang) ?? '';
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: [PremiumTokens.accentDeep, PremiumTokens.accent],
+
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [_deep, PremiumTokens.accentDeep, PremiumTokens.accent],
+          stops: [0.0, 0.55, 1.0],
         ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        boxShadow: [
+          BoxShadow(
+            color: _deep.withValues(alpha: 0.45),
+            blurRadius: 22,
+            offset: const Offset(0, 14),
+            spreadRadius: -8,
+          ),
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (title.isNotEmpty)
-                    Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: PremiumTokens.display(
-                        size: 20,
-                        color: Colors.white,
-                        height: 1.1,
-                      ),
-                    ),
-                  if (subtitle.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: PremiumTokens.body(
-                        size: 13,
-                        color: Colors.white.withValues(alpha: 0.92),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            Container(
-              padding: const EdgeInsets.all(10),
+      child: Stack(
+        children: [
+          // Warm radial glow so the brand colours feel lit, not flat.
+          Positioned(
+            right: -40,
+            top: -56,
+            child: Container(
+              width: 200,
+              height: 200,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.18),
                 shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    _glow.withValues(alpha: 0.55),
+                    _glow.withValues(alpha: 0.0),
+                  ],
+                ),
               ),
-              child: const Icon(Iconsax.shop, color: Colors.white, size: 22),
             ),
-          ],
-        ),
+          ),
+          // Oversized, angled, translucent shop glyph bleeding off the corner.
+          Positioned(
+            right: -18,
+            bottom: -26,
+            child: Transform.rotate(
+              angle: -0.20,
+              child: Icon(
+                Iconsax.shop,
+                size: 138,
+                color: Colors.white.withValues(alpha: 0.14),
+              ),
+            ),
+          ),
+          // Foreground content.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(22, 14, 22, 14),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (title.isNotEmpty)
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style:
+                        PremiumTokens.display(
+                          size: 24,
+                          weight: FontWeight.w800,
+                          color: Colors.white,
+                          height: 1.05,
+                        ).copyWith(
+                          shadows: const [
+                            Shadow(
+                              blurRadius: 12,
+                              color: Colors.black38,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                  ),
+                if (subtitle.isNotEmpty) ...[
+                  const SizedBox(height: 5),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style:
+                        PremiumTokens.body(
+                          size: 13,
+                          weight: FontWeight.w500,
+                          color: Colors.white.withValues(alpha: 0.92),
+                        ).copyWith(
+                          shadows: const [
+                            Shadow(blurRadius: 6, color: Colors.black26),
+                          ],
+                        ),
+                  ),
+                ],
+                const SizedBox(height: 11),
+                _CtaPill(label: tr('home.seller_promo_cta')),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Sleek white pill — high-contrast against the gradient — that makes the
+/// promo's tappability unmistakable. The whole card is the tap target; the
+/// pill is the affordance.
+class _CtaPill extends StatelessWidget {
+  const _CtaPill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 8, 12, 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: PremiumTokens.body(
+              size: 13,
+              weight: FontWeight.w700,
+              color: PremiumTokens.accentDeep,
+            ),
+          ),
+          const SizedBox(width: 6),
+          const Icon(
+            Icons.arrow_forward_rounded,
+            size: 16,
+            color: PremiumTokens.accentDeep,
+          ),
+        ],
       ),
     );
   }

@@ -31,6 +31,20 @@ class ChatsListScreen extends StatelessWidget {
   /// `/chats/$id` for customer, `/seller/chats/$id` for seller.
   final String Function(Chat chat) threadRouteBuilder;
 
+  /// Back from the chat list. When this screen is reached via a
+  /// push-notification deep-link fallback (`context.go`, not `push`), the
+  /// navigation stack is empty and `context.pop()` throws
+  /// `GoError: There is nothing to pop`. Pop when there's something to pop;
+  /// otherwise fall back to the viewer's shell root (the screen hosting the
+  /// bottom navigation bar).
+  void _handleBack(BuildContext context) {
+    if (context.canPop()) {
+      context.pop();
+      return;
+    }
+    context.go(viewer == ChatSenderRole.seller ? '/seller/dashboard' : '/');
+  }
+
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
@@ -47,7 +61,7 @@ class ChatsListScreen extends StatelessWidget {
           leading: IconButton(
             icon: Icon(Icons.arrow_back_ios_new_rounded,
                 size: 20, color: pt.dark),
-            onPressed: () => context.pop(),
+            onPressed: () => _handleBack(context),
           ),
           title: Text(
             tr('chat.title'),
