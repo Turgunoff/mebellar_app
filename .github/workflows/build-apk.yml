@@ -12,6 +12,7 @@ jobs:
   build:
     name: Build APK for ARM64
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Checkout code
@@ -57,7 +58,12 @@ jobs:
           }
           JSON
 
+      # `--no-daemon` / `--parallel` are Gradle flags, not `flutter build` ones
+      # (passing them to flutter errors), so route them through GRADLE_OPTS:
+      # no daemon (avoids the background hang/cancel) + parallel module builds.
       - name: Build APK (Optimized)
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.parallel=true"
         run: flutter build apk --release --target-platform android-arm64 --dart-define-from-file=env/prod.json
 
       - name: Upload Artifact
