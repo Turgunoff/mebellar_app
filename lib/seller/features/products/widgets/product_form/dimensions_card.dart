@@ -210,7 +210,9 @@ class _DimensionFieldState extends State<_DimensionField> {
       children: [
         Text(
           widget.label,
-          maxLines: 1,
+          // Wrap rather than truncate so "Balandligi"/"Chuqurligi" stay legible
+          // in the narrow 3-across layout (matches the read-only preview card).
+          maxLines: 2,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
             fontFamily: AppFonts.seller,

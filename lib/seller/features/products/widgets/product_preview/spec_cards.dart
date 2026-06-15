@@ -85,20 +85,39 @@ class DimensionsCard extends StatelessWidget {
 
 class _DimensionTile extends StatelessWidget {
   const _DimensionTile({
-    required this.icon,
+    this.icon,
     required this.label,
     required this.value,
   });
 
-  final IconData icon;
+  /// Optional leading glyph. The plain 2-per-row [DimensionsCard] passes a
+  /// per-measure icon; the grouped 3-per-row [SetDimensionsCard] omits it so
+  /// the narrow tiles spend their width on the label instead of the glyph
+  /// (the piece header already carries a ruler icon for the whole group).
+  final IconData? icon;
   final String label;
   final String value;
 
   @override
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
+    final labelText = Text(
+      label,
+      // Wraps to a second line instead of truncating ("Balandligi",
+      // "Chuqurligi") when three tiles share a row on a narrow phone or the
+      // user runs a large text scale; ellipsis is only the last resort.
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(
+        fontFamily: AppFonts.seller,
+        fontSize: 11,
+        fontWeight: FontWeight.w500,
+        color: c.grey,
+        height: 1.2,
+      ),
+    );
     return Container(
-      padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
+      padding: const EdgeInsets.fromLTRB(10, 10, 10, 11),
       decoration: BoxDecoration(
         color: c.fillSoft,
         borderRadius: BorderRadius.circular(12),
@@ -107,40 +126,35 @@ class _DimensionTile extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(icon, size: 14, color: c.grey),
-              const SizedBox(width: 6),
-              // Flexible + ellipsis so a long measure label ("Balandligi")
-              // never overflows when three tiles share a row on a narrow phone.
-              Flexible(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: AppFonts.seller,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    color: c.grey,
-                    height: 1.2,
-                  ),
-                ),
+          if (icon != null)
+            Row(
+              children: [
+                Icon(icon, size: 14, color: c.grey),
+                const SizedBox(width: 6),
+                Flexible(child: labelText),
+              ],
+            )
+          else
+            labelText,
+          const SizedBox(height: 7),
+          // The measurement is the single most important datum — it must never
+          // hard-clip to "21…". FittedBox shrinks it to fit a narrow tile (or a
+          // large text scale) instead of ellipsising, so the full number stays
+          // readable while the label above is the part allowed to wrap.
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              maxLines: 1,
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: c.ink,
+                letterSpacing: -0.2,
+                height: 1.0,
               ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontFamily: AppFonts.seller,
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: c.ink,
-              letterSpacing: -0.2,
-              height: 1.0,
             ),
           ),
         ],
@@ -180,7 +194,7 @@ class SetDimensionsCard extends StatelessWidget {
         children: [
           const SectionTitle(text: "O'lchamlar (sm)"),
           for (var g = 0; g < groups.length; g++) ...[
-            SizedBox(height: g == 0 ? 14 : 18),
+            SizedBox(height: g == 0 ? 12 : 14),
             Row(
               children: [
                 Icon(Iconsax.ruler, size: 15, color: c.grey),
@@ -197,21 +211,28 @@ class SetDimensionsCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 10),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                for (var i = 0; i < groups[g].measures.length; i++) ...[
-                  if (i > 0) const SizedBox(width: 10),
-                  Expanded(
-                    child: _DimensionTile(
-                      icon: Iconsax.size,
-                      label: groups[g].measures[i].$1,
-                      value: groups[g].measures[i].$2,
+            const SizedBox(height: 8),
+            // IntrinsicHeight bounds the row's height to its tallest tile, so
+            // `stretch` gives every bordered tile the SAME height (clean common
+            // bottom edge) even when one label wraps to two lines — without the
+            // unbounded-height overflow bare `stretch` would cause in a scroll.
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (var i = 0; i < groups[g].measures.length; i++) ...[
+                    if (i > 0) const SizedBox(width: 8),
+                    // No per-tile icon: the narrow 3-across tiles need every
+                    // pixel for the label so "Balandligi"/"Chuqurligi" read full.
+                    Expanded(
+                      child: _DimensionTile(
+                        label: groups[g].measures[i].$1,
+                        value: groups[g].measures[i].$2,
+                      ),
                     ),
-                  ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ],
         ],

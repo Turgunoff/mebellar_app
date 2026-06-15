@@ -66,12 +66,21 @@ class WoodyAttributesRepository implements AttributesRepository {
     // merged and sorted, with `options` nested under each definition. Options
     // carry no `attribute_id` over the wire (they're nested), so we stamp the
     // parent definition's id when building [AttributeOption].
+    //
+    // Uses the PUBLIC `/catalog/attributes` mirror (not `/seller/attributes`,
+    // which gates behind a signed-in user): the customer detail page must
+    // resolve attribute labels even for guests, and the schema is non-sensitive
+    // catalog metadata. The seller (already authed) reads the same data here.
+    // Retry transient blips: a single timeout/5xx would otherwise leave the
+    // detail page with no schema, falling back to humanised raw keys (English)
+    // and hiding the grouped dimensions card — the very symptom this path fixes.
     final rows = await _api.get<List<dynamic>>(
-      '/seller/attributes',
+      '/catalog/attributes',
       query: {
         'category_id': categoryId,
-        if (subcategoryId != null) 'subcategory_id': subcategoryId,
+        'subcategory_id': ?subcategoryId,
       },
+      retries: 2,
     );
     return rows.whereType<Map<String, dynamic>>().map((def) {
       final defId = def['id'] as String;
