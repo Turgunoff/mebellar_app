@@ -131,6 +131,17 @@ abstract class AnalyticsService {
   Future<void> languageChanged({required String code});
   Future<void> themeChanged({required String mode});
 
+  // ── seller contact ────────────────────────────────────────────────────
+
+  /// A buyer tapped a seller contact channel on the shop profile. [channel]
+  /// is 'call' or 'telegram'; [gated] is true when the tap came from a guest
+  /// and triggered the login gate (pair with [loggedIn] to gauge drop-off).
+  Future<void> sellerContacted({
+    required String shopId,
+    required String channel,
+    required bool gated,
+  });
+
   // ── notifications ─────────────────────────────────────────────────────
 
   /// A notification was tapped (push or in-app inbox). [kind] is the

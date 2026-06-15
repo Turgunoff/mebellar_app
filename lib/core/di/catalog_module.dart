@@ -17,7 +17,9 @@ import '../../shared/repositories/checkout_repository.dart';
 import '../../shared/repositories/customer_reviews_repository.dart';
 import '../../shared/repositories/favorites_repository.dart';
 import '../../shared/repositories/hive_cart_repository.dart';
+import '../../shared/repositories/hive_favorites_repository.dart';
 import '../../shared/repositories/hybrid_cart_repository.dart';
+import '../../shared/repositories/hybrid_favorites_repository.dart';
 import '../../shared/repositories/news_repository.dart';
 import '../../shared/repositories/notifications_repository.dart';
 import '../../shared/repositories/order_repository.dart';
@@ -169,9 +171,20 @@ void registerCatalogModule(GetIt sl) {
       authChanges: tokens.changes.map((pair) => pair != null),
     );
   }, dispose: (r) => (r as HybridCartRepository).dispose());
-  sl.registerLazySingleton<FavoritesRepository>(
-    () => WoodyFavoritesRepository(api: sl<WoodyApiClient>()),
-  );
+  // Hybrid favorites: mirrors the cart — a Hive-backed local list for guests,
+  // the backend account once signed in, and a union-merge of the former into
+  // the latter on login.
+  sl.registerLazySingleton<FavoritesRepository>(() {
+    final tokens = sl<TokenStore>();
+    return HybridFavoritesRepository(
+      remote: WoodyFavoritesRepository(api: sl<WoodyApiClient>()),
+      local: HiveFavoritesRepository(
+        box: sl<Box>(instanceName: HiveBoxes.favorites),
+      ),
+      isSignedIn: () => tokens.current != null,
+      authChanges: tokens.changes.map((pair) => pair != null),
+    );
+  }, dispose: (r) => (r as HybridFavoritesRepository).dispose());
   sl.registerLazySingleton<OrderRepository>(
     () => WoodyOrderRepository(sl<WoodyApiClient>()),
   );

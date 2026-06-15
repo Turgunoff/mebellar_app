@@ -376,6 +376,21 @@ class FirebaseAnalyticsService implements AnalyticsService {
     return _safeLog('theme_changed', {'mode': mode});
   }
 
+  // ── seller contact ────────────────────────────────────────────────────
+
+  @override
+  Future<void> sellerContacted({
+    required String shopId,
+    required String channel,
+    required bool gated,
+  }) {
+    return _safeLog('seller_contacted', {
+      'shop_id': shopId,
+      'channel': channel,
+      'gated': gated ? 1 : 0,
+    });
+  }
+
   // ── notifications ─────────────────────────────────────────────────────
 
   @override

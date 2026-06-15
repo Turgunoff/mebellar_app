@@ -23,6 +23,7 @@ import '../../shared/repositories/profile_orders_repository.dart';
 import '../../shared/repositories/banner_repository.dart';
 import '../../shared/repositories/cart_repository.dart';
 import '../../shared/repositories/favorites_repository.dart';
+import '../../shared/repositories/hybrid_favorites_repository.dart';
 import '../../shared/repositories/seller_dashboard_repository.dart';
 import '../../shared/repositories/seller_reviews_repository.dart';
 import '../../shared/repositories/category_data_source.dart';
@@ -59,16 +60,21 @@ void registerCustomerScope(GetIt sl) {
     )..add(const LoadCart()),
     dispose: (bloc) => bloc.close(),
   );
-  sl.registerLazySingleton<FavoritesBloc>(
-    () => FavoritesBloc(
-      sl<FavoritesRepository>(),
+  sl.registerLazySingleton<FavoritesBloc>(() {
+    final repo = sl<FavoritesRepository>();
+    return FavoritesBloc(
+      repo,
       localeController: sl<AppLocaleController>(),
-      // Same signed-in/out signal the hybrid cart uses — login pulls the
-      // account's favorites, logout empties the tab.
-      authChanges: sl<TokenStore>().changes.map((pair) => pair != null),
-    )..add(const FavoritesRequested()),
-    dispose: (bloc) => bloc.close(),
-  );
+      // The hybrid repo merges the guest list into the account on login, then
+      // emits `sessionChanges` — reload products off THAT (not the raw token
+      // stream) so the refetch lands after the merge, never racing it. Logout
+      // empties the tab. Falls back to the token stream for a non-hybrid repo
+      // (e.g. a test mock).
+      authChanges: repo is HybridFavoritesRepository
+          ? repo.sessionChanges
+          : sl<TokenStore>().changes.map((pair) => pair != null),
+    )..add(const FavoritesRequested());
+  }, dispose: (bloc) => bloc.close());
   sl.registerLazySingleton<CategoriesBloc>(
     () => CategoriesBloc(
       sl<CategoryDataSource>(),

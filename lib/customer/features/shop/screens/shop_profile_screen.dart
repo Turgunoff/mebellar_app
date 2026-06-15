@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,6 +10,9 @@ import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../auth/auth_bottom_sheet.dart';
+import '../../../../core/analytics/analytics_service.dart';
+import '../../../../core/auth/auth_cubit.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
@@ -636,9 +641,30 @@ class _ContactCard extends StatelessWidget {
   final ShopProfile shop;
   final Color brand;
 
+  /// Guests browse the whole profile freely, but contacting a seller needs an
+  /// account — it captures the lead (phone), keeps the seller's contacts off
+  /// scrapers, and keeps deals on-platform. Records the tap (with whether it
+  /// was gated) and, for a guest, opens the login flow; returns `true` once
+  /// the caller may proceed (already signed in, or a fresh sign-in succeeded
+  /// and the screen is still mounted) so the action resumes automatically.
+  Future<bool> _passContactGate(BuildContext context, String channel) async {
+    final isGuest = context.read<AuthCubit>().state is AppAuthUnauthenticated;
+    unawaited(
+      sl<AnalyticsService>().sellerContacted(
+        shopId: shop.id,
+        channel: channel,
+        gated: isGuest,
+      ),
+    );
+    if (!isGuest) return true;
+    final ok = await showAuthScreen(context);
+    return ok && context.mounted;
+  }
+
   Future<void> _call(BuildContext context) async {
+    if (!await _passContactGate(context, 'call')) return;
     final phone = shop.contactPhone;
-    if (phone == null) return;
+    if (phone == null || !context.mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     final uri = Uri(scheme: 'tel', path: phone);
     if (await canLaunchUrl(uri)) {
@@ -655,8 +681,9 @@ class _ContactCard extends StatelessWidget {
   }
 
   Future<void> _telegram(BuildContext context) async {
+    if (!await _passContactGate(context, 'telegram')) return;
     final username = shop.telegramUsername;
-    if (username == null) return;
+    if (username == null || !context.mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     final handle = username.replaceFirst(RegExp(r'^@'), '');
     final ok = await launchUrl(

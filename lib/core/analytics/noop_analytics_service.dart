@@ -148,6 +148,13 @@ class NoopAnalyticsService implements AnalyticsService {
   Future<void> themeChanged({required String mode}) async {}
 
   @override
+  Future<void> sellerContacted({
+    required String shopId,
+    required String channel,
+    required bool gated,
+  }) async {}
+
+  @override
   Future<void> notificationOpened({
     required String kind,
     bool opened = true,

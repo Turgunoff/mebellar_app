@@ -208,11 +208,11 @@ class _EditorialCategoryCardState extends State<_EditorialCategoryCard> {
           height: 140,
           child: DecoratedBox(
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(22),
               boxShadow: PremiumTokens.cardShadow,
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(22),
               child: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -287,23 +287,7 @@ class _EditorialCategoryCardState extends State<_EditorialCategoryCard> {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.18),
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.35),
-                              width: 1,
-                            ),
-                          ),
-                          child: const Icon(
-                            Icons.arrow_forward_ios,
-                            size: 13,
-                            color: Colors.white,
-                          ),
-                        ),
+                        const _CardArrowButton(),
                       ],
                     ),
                   ),
@@ -423,28 +407,48 @@ class _CategoriesErrorState extends StatelessWidget {
 class _CardGradientScrim extends StatelessWidget {
   const _CardGradientScrim();
 
+  // The scrim is built from a warm espresso base (a very dark, red-leaning
+  // brown, 0xFF2A150D) plus a terracotta wash. Constant — like every photo
+  // scrim it always sits under white text, so it never flips for dark mode.
+
   @override
   Widget build(BuildContext context) {
     return const Stack(
       fit: StackFit.expand,
       children: [
+        // Diagonal espresso scrim — anchors the bottom-left title in shadow
+        // while the furniture stays visible toward the top-right.
         DecoratedBox(
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.bottomLeft,
               end: Alignment.topRight,
-              colors: [Color(0xCC000000), Color(0x66000000), Color(0x00000000)],
+              colors: [Color(0xF02A150D), Color(0x802A150D), Color(0x002A150D)],
               stops: [0.0, 0.55, 1.0],
             ),
           ),
         ),
+        // Bottom full-width darkening so the title row stays legible all the way
+        // across to the arrow.
         DecoratedBox(
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.bottomCenter,
               end: Alignment.topCenter,
-              colors: [Color(0xB3000000), Color(0x33000000), Color(0x00000000)],
-              stops: [0.0, 0.55, 0.95],
+              colors: [Color(0x992A150D), Color(0x00000000)],
+              stops: [0.0, 0.6],
+            ),
+          ),
+        ),
+        // Terracotta brand wash on top — lifts the dark scrim into a warm,
+        // furniture-catalog brown and unifies every photo under one tone.
+        DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [Color(0x59B85C38), Color(0x1FB85C38), Color(0x00B85C38)],
+              stops: [0.0, 0.5, 1.0],
             ),
           ),
         ),
@@ -467,10 +471,12 @@ class _GlassItemPill extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.22),
+            // Warm translucent brown to sit on the terracotta scrim instead of
+            // the old cold white glass.
+            color: const Color(0x593A1E12),
             borderRadius: BorderRadius.circular(100),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.35),
+              color: Colors.white.withValues(alpha: 0.22),
               width: 1,
             ),
           ),
@@ -482,6 +488,43 @@ class _GlassItemPill extends StatelessWidget {
               color: Colors.white,
               letterSpacing: 0.2,
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Frosted arrow affordance — warm translucent disc with a white chevron,
+// matching the badge glass so the card reads as one terracotta set.
+// ---------------------------------------------------------------------------
+
+class _CardArrowButton extends StatelessWidget {
+  const _CardArrowButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(100),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          width: 40,
+          height: 40,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: const Color(0x593A1E12),
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.30),
+              width: 1,
+            ),
+          ),
+          child: const Icon(
+            Icons.arrow_forward_ios,
+            size: 14,
+            color: Colors.white,
           ),
         ),
       ),
