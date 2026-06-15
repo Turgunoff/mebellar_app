@@ -118,6 +118,9 @@ class SellerProduct extends Equatable {
     required this.status,
     this.rejectionReason,
     this.archiveReason,
+    this.arStatus = 'none',
+    this.arModelUrl,
+    this.arRejectionReason,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -190,12 +193,27 @@ class SellerProduct extends Equatable {
   /// did. Drives the explanatory banner on the products screen.
   final String? archiveReason;
 
+  /// Video-to-3D AR pipeline state (mirrors backend `ArStatus`):
+  /// `none | processing | pending_review | approved | rejected`.
+  final String arStatus;
+
+  /// Public URL of the QC-approved `.glb` (null until approved).
+  final String? arModelUrl;
+
+  /// Seller-facing feedback when the scan was rejected (blurry video, bad
+  /// model, …). Only meaningful while [arStatus] is `rejected`.
+  final String? arRejectionReason;
+
   final DateTime createdAt;
   final DateTime updatedAt;
 
   bool get archivedByTariff =>
       status == SellerProductStatus.archived &&
       archiveReason == 'tariff_downgrade';
+
+  /// True once a scan has been started — drives whether the detail shows the
+  /// AR status badge at all (a never-scanned product shows just the CTA).
+  bool get hasArScan => arStatus != 'none';
 
   String? get heroImage {
     if (images.isEmpty) return null;
@@ -260,6 +278,9 @@ class SellerProduct extends Equatable {
           ? null
           : (rejectionReason ?? this.rejectionReason),
       archiveReason: archiveReason,
+      arStatus: arStatus,
+      arModelUrl: arModelUrl,
+      arRejectionReason: arRejectionReason,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
