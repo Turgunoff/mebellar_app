@@ -41,7 +41,7 @@ jobs:
             "APP_ENV": "prod",
             "WOODY_API_URL": "https://api.woody.uz",
             "ONESIGNAL_APP_ID": "",
-            "YANDEX_GEOCODER_API_KEY": "762e99e2-af16-41cf-bff5-25992af0e7ee"
+            "YANDEX_GEOCODER_API_KEY": "${{ secrets.YANDEX_GEOCODER_API_KEY }}"
           }
           JSON
 
