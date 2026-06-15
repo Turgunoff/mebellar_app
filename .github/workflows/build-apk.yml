@@ -1,0 +1,41 @@
+name: Build APK (Poco X7 Pro)
+
+# Minimal ARM64-only release APK for quick on-device testing on the
+# Redmi Poco X7 Pro (64-bit). Manual trigger + on push to the active branch.
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - claude/category-management-overhaul-pzpb0x
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build ARM64 release APK
+        run: flutter build apk --release --target-platform android-arm64
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Woody-App-Poco-X7-Pro
+          path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 3
