@@ -99,6 +99,17 @@ dependencies:
   flutter_svg: ^2.0.10
   shimmer: ^3.0.0
 
+  # AR / 3D pipeline (Video-to-3D).
+  #  - camera: custom locked-down scan UI (no OS camera app).
+  #  - video_player: preview the recorded scan before submit.
+  #  - video_compress: shrink the clip before the presigned upload (ProRes/4K
+  #    devices produce huge files).
+  #  - model_viewer_plus: buyer-side <model-viewer> for the approved .glb.
+  camera: ^0.11.0
+  video_player: ^2.9.2
+  video_compress: ^3.1.4
+  model_viewer_plus: ^1.9.3
+
   # Typography — fonts are declared natively under `flutter.fonts` below.
   # The `google_fonts` package was previously used; it's no longer needed
   # because every TTF is bundled under `assets/google_fonts/` and looked up

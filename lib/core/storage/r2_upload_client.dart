@@ -58,6 +58,37 @@ class R2UploadClient {
   /// signature mismatch.
   final Dio _rawDio;
 
+  /// PUT bytes to an already-issued presigned R2 URL. Used by flows that get
+  /// their presigned URL from a dedicated endpoint rather than
+  /// `/storage/upload-url` (e.g. the AR scan upload via
+  /// `/seller/products/{id}/ar-scan/upload-url`). Same raw-Dio + error surface
+  /// as [upload]; no auth header (the URL signs the request).
+  Future<void> putToPresignedUrl({
+    required String url,
+    required Uint8List bytes,
+    required String contentType,
+  }) async {
+    try {
+      await _rawDio.put<dynamic>(
+        url,
+        data: Stream.fromIterable([bytes]),
+        options: Options(
+          headers: {
+            'Content-Type': contentType,
+            'Content-Length': bytes.length,
+          },
+          sendTimeout: const Duration(minutes: 5),
+          receiveTimeout: const Duration(seconds: 30),
+        ),
+      );
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      final body = e.response?.data?.toString() ?? e.message ?? '';
+      final snippet = body.length > 500 ? body.substring(0, 500) : body;
+      throw StateError('R2 PUT rejected (status=$status): $snippet');
+    }
+  }
+
   Future<R2UploadResult> upload({
     required R2Bucket bucket,
     required String path,

@@ -2,6 +2,8 @@
 
 const Map<String, dynamic> productUz = {
   'description': 'Tavsif',
+  'view_in_ar': 'Xonada ko\'rish (AR)',
+  'ar_viewer_title': '3D ko\'rinish',
   'attributes': 'Xususiyatlar',
   'show_more': 'Ko\'proq ko\'rish',
   'show_less': 'Yopish',
@@ -25,6 +27,8 @@ const Map<String, dynamic> productUz = {
 
 const Map<String, dynamic> productRu = {
   'description': 'Описание',
+  'view_in_ar': 'Посмотреть в комнате (AR)',
+  'ar_viewer_title': '3D просмотр',
   'attributes': 'Характеристики',
   'show_more': 'Показать больше',
   'show_less': 'Свернуть',
@@ -48,6 +52,8 @@ const Map<String, dynamic> productRu = {
 
 const Map<String, dynamic> productEn = {
   'description': 'Description',
+  'view_in_ar': 'View in your room (AR)',
+  'ar_viewer_title': '3D preview',
   'attributes': 'Specifications',
   'show_more': 'Show more',
   'show_less': 'Show less',

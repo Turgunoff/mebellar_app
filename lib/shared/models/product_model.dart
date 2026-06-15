@@ -28,6 +28,8 @@ class ProductModel extends Equatable {
     this.warrantyMonths = 0,
     this.productionTimeDays,
     this.discountPrice,
+    this.arModelUrl,
+    this.arStatus = 'none',
   });
 
   final String id;
@@ -75,8 +77,20 @@ class ProductModel extends Equatable {
   /// discount_price`), or null when the seller set no discount.
   final double? discountPrice;
 
+  /// Public URL of the QC-approved 3D model (`.glb`). The backend only sends
+  /// this once `ar_status == 'approved'`, so a non-null value means the buyer
+  /// "view in your room" entry is live.
+  final String? arModelUrl;
+
+  /// AR pipeline state (mirrors backend `ArStatus`): `none | processing |
+  /// pending_review | approved | rejected`.
+  final String arStatus;
+
   String? get thumbnail => images.isNotEmpty ? images.first : null;
   bool get inStock => stock > 0;
+
+  /// True when a published 3D model is available for the buyer AR viewer.
+  bool get hasAr => (arModelUrl?.isNotEmpty ?? false) && arStatus == 'approved';
 
   /// True when a real discount applies — a positive discounted price strictly
   /// below the list price.
@@ -140,6 +154,10 @@ class ProductModel extends Equatable {
       warrantyMonths: (json['warranty_months'] as num?)?.toInt() ?? 0,
       productionTimeDays: json['production_time_days'] as String?,
       discountPrice: (firstVariant?['discount_price'] as num?)?.toDouble(),
+      arModelUrl: (json['ar_model_url'] as String?)?.trim().isNotEmpty == true
+          ? (json['ar_model_url'] as String).trim()
+          : null,
+      arStatus: json['ar_status'] as String? ?? 'none',
     );
   }
 
@@ -172,6 +190,8 @@ class ProductModel extends Equatable {
     'installation_price': installationPrice,
     'warranty_months': warrantyMonths,
     'production_time_days': productionTimeDays,
+    if (arModelUrl != null) 'ar_model_url': arModelUrl,
+    'ar_status': arStatus,
     if (discountPrice != null)
       'product_variants': [
         {'price': price, 'discount_price': discountPrice},
