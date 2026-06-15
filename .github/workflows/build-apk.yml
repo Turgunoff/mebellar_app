@@ -1,4 +1,4 @@
-name: Build APK (Poco X7 Pro)
+name: Fast Minimal APK Build
 
 # Minimal ARM64-only release APK for quick on-device testing on the
 # Redmi Poco X7 Pro (64-bit). Manual trigger + on push to the active branch.
@@ -9,31 +9,43 @@ on:
       - claude/category-management-overhaul-pzpb0x
 
 jobs:
-  build-apk:
+  build:
+    name: Build APK for ARM64
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Java 17
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Set up Flutter
+      - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
           cache: true
 
-      - name: Install dependencies
+      # Gradle dependency + build caching — the primary Android build-time win.
+      # cache-read-only:false so the cache is also WRITTEN on this branch (the
+      # action defaults to read-only off the default branch); without it repeat
+      # builds here wouldn't hit the 2-3 min target.
+      - name: Setup Gradle Cache
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          cache-read-only: false
+
+      - name: Install Dependencies
         run: flutter pub get
 
       # env/prod.json is gitignored, so the runner has no env file. Generate it
-      # here (AppConfig reads these via --dart-define-from-file at build time;
-      # without it the app throws at boot).
-      - name: Generate env/prod.json
+      # here; the Yandex key comes from a repo secret (never committed). The
+      # quoted heredoc blocks bash $-expansion, but Actions still substitutes
+      # ${{ secrets.* }} into the script before bash runs.
+      - name: Generate Env File
         run: |
           mkdir -p env
           cat > env/prod.json <<'JSON'
@@ -45,10 +57,10 @@ jobs:
           }
           JSON
 
-      - name: Build ARM64 release APK
+      - name: Build APK (Optimized)
         run: flutter build apk --release --target-platform android-arm64 --dart-define-from-file=env/prod.json
 
-      - name: Upload APK artifact
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Woody-App-Poco-X7-Pro
