@@ -30,8 +30,23 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      # env/prod.json is gitignored, so the runner has no env file. Generate it
+      # here (AppConfig reads these via --dart-define-from-file at build time;
+      # without it the app throws at boot).
+      - name: Generate env/prod.json
+        run: |
+          mkdir -p env
+          cat > env/prod.json <<'JSON'
+          {
+            "APP_ENV": "prod",
+            "WOODY_API_URL": "https://api.woody.uz",
+            "ONESIGNAL_APP_ID": "",
+            "YANDEX_GEOCODER_API_KEY": "762e99e2-af16-41cf-bff5-25992af0e7ee"
+          }
+          JSON
+
       - name: Build ARM64 release APK
-        run: flutter build apk --release --target-platform android-arm64
+        run: flutter build apk --release --target-platform android-arm64 --dart-define-from-file=env/prod.json
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
