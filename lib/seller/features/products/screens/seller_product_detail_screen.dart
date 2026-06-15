@@ -334,7 +334,10 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
                   const SizedBox(height: 14),
                   TitlePriceCard(product: product),
                   const SizedBox(height: 14),
-                  _ArScanCard(onTap: () => _openArScan(product.id)),
+                  _ArScanCard(
+                    product: product,
+                    onScan: () => _openArScan(product.id),
+                  ),
                   const SizedBox(height: 14),
                   MetaCard(
                     sku: product.sku.isEmpty ? '—' : product.sku,
@@ -525,66 +528,224 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
       DateFormat('dd MMM yyyy, HH:mm', 'uz').format(dt);
 }
 
-/// Seller entry point for the Video-to-3D scan — a tappable card under the
-/// price. Seller tokens + terracotta accent, matching the add-product surface.
+/// Seller-facing AR pipeline card under the price — closes the loop: it badges
+/// the current `ar_status`, surfaces the rejection reason verbatim, and offers
+/// the (re-)scan CTA. Seller tokens + terracotta, matching the add-product
+/// surface. The CTA is live only when an action makes sense (never scanned,
+/// rejected, or approved → re-record); blocked while in flight
+/// (processing / pending_review).
 class _ArScanCard extends StatelessWidget {
-  const _ArScanCard({required this.onTap});
+  const _ArScanCard({required this.product, required this.onScan});
 
-  final VoidCallback onTap;
+  final SellerProduct product;
+  final VoidCallback onScan;
 
   @override
   Widget build(BuildContext context) {
+    final state = _arState(product.arStatus);
+    final canScan = state.canScan;
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
-        onTap: onTap,
+        onTap: canScan ? onScan : null,
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: AppColors.terracotta.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Icon(
-                  Icons.view_in_ar,
-                  color: AppColors.terracotta,
-                ),
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: AppColors.terracotta.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(
+                      Icons.view_in_ar,
+                      color: AppColors.terracotta,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Text(
+                              '3D skan (AR)',
+                              style: TextStyle(
+                                fontFamily: AppFonts.seller,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 15,
+                              ),
+                            ),
+                            if (state.badge != null) ...[
+                              const SizedBox(width: 8),
+                              _ArBadge(label: state.badge!, color: state.color),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          state.subtitle,
+                          style: const TextStyle(
+                            fontFamily: AppFonts.seller,
+                            fontSize: 12.5,
+                            color: Colors.black54,
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (canScan)
+                    const Icon(Icons.chevron_right, color: Colors.black38),
+                ],
               ),
-              const SizedBox(width: 14),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '3D skan (AR)',
-                      style: TextStyle(
+
+              // Rejection feedback — the "why" so the seller can fix + re-record.
+              if (product.arStatus == 'rejected' &&
+                  (product.arRejectionReason?.trim().isNotEmpty ?? false)) ...[
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.terracotta.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Rad etish sababi',
+                        style: TextStyle(
+                          fontFamily: AppFonts.seller,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.terracotta,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        product.arRejectionReason!.trim(),
+                        style: const TextStyle(
+                          fontFamily: AppFonts.seller,
+                          fontSize: 13,
+                          color: Colors.black87,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: onScan,
+                    icon: const Icon(Icons.refresh, size: 18),
+                    label: const Text('Qaytadan skan qilish'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.terracotta,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      textStyle: const TextStyle(
                         fontFamily: AppFonts.seller,
                         fontWeight: FontWeight.w700,
-                        fontSize: 15,
                       ),
                     ),
-                    SizedBox(height: 2),
-                    Text(
-                      'Mahsulotni aylanib videoga oling — AI 3D model yasaydi.',
-                      style: TextStyle(
-                        fontFamily: AppFonts.seller,
-                        fontSize: 12.5,
-                        color: Colors.black54,
-                        height: 1.3,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-              const Icon(Icons.chevron_right, color: Colors.black38),
+              ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Per-status presentation for the seller AR card.
+class _ArCardState {
+  const _ArCardState({
+    required this.subtitle,
+    required this.canScan,
+    this.badge,
+    this.color = AppColors.terracotta,
+  });
+  final String subtitle;
+  final bool canScan;
+  final String? badge;
+  final Color color;
+}
+
+_ArCardState _arState(String arStatus) {
+  switch (arStatus) {
+    case 'processing':
+      return const _ArCardState(
+        subtitle: 'AI 3D model tayyorlamoqda…',
+        canScan: false,
+        badge: 'Ishlanmoqda',
+        color: Color(0xFF8C5A12), // amber — matches ProductStatusChip pending
+      );
+    case 'pending_review':
+      return const _ArCardState(
+        subtitle: 'Admin tasdiqlashini kutmoqda.',
+        canScan: false,
+        badge: 'Tekshiruvda',
+        color: Color(0xFF2563EB), // blue, awaiting QC
+      );
+    case 'approved':
+      return const _ArCardState(
+        subtitle: '3D model ilovada ko‘rinmoqda. Qayta skan qilish mumkin.',
+        canScan: true,
+        badge: 'Tasdiqlangan',
+        color: Color(0xFF1F6B49), // green — matches ProductStatusChip approved
+      );
+    case 'rejected':
+      return const _ArCardState(
+        subtitle: 'Skan rad etildi — sababini ko‘ring va qaytadan oling.',
+        canScan: true,
+        badge: 'Rad etilgan',
+        color: Color(0xFFC0392B), // red — matches ProductStatusChip rejected
+      );
+    default:
+      return const _ArCardState(
+        subtitle: 'Mahsulotni aylanib videoga oling — AI 3D model yasaydi.',
+        canScan: true,
+      );
+  }
+}
+
+class _ArBadge extends StatelessWidget {
+  const _ArBadge({required this.label, required this.color});
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(99),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontFamily: AppFonts.seller,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: color,
         ),
       ),
     );
