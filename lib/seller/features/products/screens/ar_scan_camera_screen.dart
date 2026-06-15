@@ -50,13 +50,13 @@ class _ArScanCameraScreenState extends State<ArScanCameraScreen>
         (c) => c.lensDirection == CameraLensDirection.back,
         orElse: () => cameras.first,
       );
-      // Constraint 1: lock the capture to 1080p. (Frame rate is governed by the
-      // platform at this preset — the `camera` plugin exposes no fps setter, so
-      // 30fps is the device default for fhd video; documented for the native
-      // layer if a hard lock is later required.)
+      // Constraint 1: lock the capture to 1080p (veryHigh). (Frame rate is
+      // governed by the platform at this preset — the `camera` plugin exposes
+      // no fps setter, so 30fps is the device default for 1080p video;
+      // documented for the native layer if a hard lock is later required.)
       final controller = CameraController(
         back,
-        ResolutionPreset.fhd,
+        ResolutionPreset.veryHigh,
         enableAudio: false,
       );
       await controller.initialize();
