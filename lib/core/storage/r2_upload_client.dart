@@ -42,10 +42,12 @@ class R2UploadResult {
 /// the bytes directly to R2. The backend never sees the body — saves both
 /// the bandwidth and the proxy hop.
 ///
-/// The `path` argument is treated as the final R2 key — callers are
-/// responsible for generating uniqueness (UUID + extension) and respecting
-/// the validation rules in `validate_path` server-side (`[A-Za-z0-9._/-]`,
-/// no leading `/`, no `..`).
+/// The `path` argument is the REQUESTED R2 key — callers are responsible for
+/// generating uniqueness (UUID + extension) and respecting the validation
+/// rules in `validate_path` server-side (`[A-Za-z0-9._/-]`, no leading `/`,
+/// no `..`). The backend may override it (chat attachments get a server-issued
+/// object name); the upload result carries the path the backend actually used,
+/// so persist `result.path` / `result.publicUrl`, never the requested string.
 class R2UploadClient {
   R2UploadClient({required WoodyApiClient api, Dio? rawDio})
     : _api = api,
@@ -97,10 +99,14 @@ class R2UploadClient {
         'R2 PUT rejected (status=$status) for ${bucket.value}/$path: $snippet',
       );
     }
+    // The backend may CHOOSE the final key (chat attachments get a server-issued
+    // object name so a client can't overwrite an existing object) — always
+    // persist the path it returns, not the one we requested.
+    final returnedPath = presigned['path'];
     final publicUrl = presigned['public_url'];
     return R2UploadResult(
       bucket: bucket,
-      path: path,
+      path: returnedPath is String && returnedPath.isNotEmpty ? returnedPath : path,
       publicUrl: publicUrl is String && publicUrl.isNotEmpty ? publicUrl : null,
     );
   }
