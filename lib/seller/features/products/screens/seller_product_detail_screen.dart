@@ -11,6 +11,7 @@ import '../../../../shared/models/attribute_definition.dart';
 import '../../../../shared/models/seller_product.dart';
 import '../bloc/seller_products_bloc.dart';
 import '../data/attributes_repository.dart';
+import 'ar_scan_camera_screen.dart';
 import '../widgets/product_preview/attributes_card.dart';
 import '../widgets/product_preview/bottom_action_bar.dart';
 import '../widgets/product_preview/description_card.dart';
@@ -253,6 +254,28 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
       );
   }
 
+  /// Opens the custom AR scan camera. On a successful submit the product's
+  /// model is queued for AI generation + admin QC, so we confirm and let the
+  /// seller carry on (the model appears once approved).
+  Future<void> _openArScan(String productId) async {
+    final submitted = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => ArScanCameraScreen(productId: productId),
+      ),
+    );
+    if (submitted == true && mounted) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text(
+              '3D model yaratilmoqda. Tasdiqdan so‘ng ilovada ko‘rinadi.',
+            ),
+          ),
+        );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final product = widget.product;
@@ -310,6 +333,8 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
                   ],
                   const SizedBox(height: 14),
                   TitlePriceCard(product: product),
+                  const SizedBox(height: 14),
+                  _ArScanCard(onTap: () => _openArScan(product.id)),
                   const SizedBox(height: 14),
                   MetaCard(
                     sku: product.sku.isEmpty ? '—' : product.sku,
@@ -498,4 +523,70 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
 
   String _formatDateTime(DateTime dt) =>
       DateFormat('dd MMM yyyy, HH:mm', 'uz').format(dt);
+}
+
+/// Seller entry point for the Video-to-3D scan — a tappable card under the
+/// price. Seller tokens + terracotta accent, matching the add-product surface.
+class _ArScanCard extends StatelessWidget {
+  const _ArScanCard({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.terracotta.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.view_in_ar,
+                  color: AppColors.terracotta,
+                ),
+              ),
+              const SizedBox(width: 14),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '3D skan (AR)',
+                      style: TextStyle(
+                        fontFamily: AppFonts.seller,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Mahsulotni aylanib videoga oling — AI 3D model yasaydi.',
+                      style: TextStyle(
+                        fontFamily: AppFonts.seller,
+                        fontSize: 12.5,
+                        color: Colors.black54,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: Colors.black38),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

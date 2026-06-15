@@ -13,6 +13,7 @@ import '../../../../core/i18n/i18n.dart';
 import '../../../../core/result/result.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
+import 'ar_viewer_screen.dart';
 import '../../../../shared/constants/product_colors.dart';
 import '../../../../shared/models/attribute_definition.dart';
 import '../../../../shared/models/product.dart';
@@ -338,6 +339,39 @@ class _CatalogProductDetailScreenState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _TitlePriceCard(product: product),
+                      // Buyer AR entry — only when a QC-approved .glb exists.
+                      if (product.hasAr)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: FilledButton.icon(
+                              onPressed: () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => ArViewerScreen(
+                                    modelUrl: product.arModelUrl!,
+                                    productName: product.name,
+                                  ),
+                                ),
+                              ),
+                              icon: const Icon(Icons.view_in_ar),
+                              label: Text(tr('product.view_in_ar')),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: AppColors.terracotta,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(18),
+                                ),
+                                textStyle: const TextStyle(
+                                  fontFamily: AppFonts.body,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                       for (final card in [
                         // Colours sit right under the price — they are the
                         // first thing a furniture buyer looks for, and the

@@ -2,6 +2,7 @@ import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../seller/features/products/data/add_product_repository.dart';
+import '../../seller/features/products/data/ar_scan_repository.dart';
 import '../../seller/features/products/data/attributes_repository.dart';
 import '../../seller/features/products/data/exchange_rate_service.dart';
 import '../../shared/repositories/seller_analytics_repository.dart';
@@ -64,6 +65,14 @@ void registerSellerModule(GetIt sl) {
     () => AddProductRepository(
       api: sl<WoodyApiClient>(),
       auth: sl<AuthRepository>(),
+      uploads: sl<R2UploadClient>(),
+    ),
+  );
+
+  // AR scan upload (Video-to-3D) — dedicated endpoint, reuses the R2 PUT.
+  sl.registerLazySingleton<ArScanRepository>(
+    () => ArScanRepository(
+      api: sl<WoodyApiClient>(),
       uploads: sl<R2UploadClient>(),
     ),
   );
