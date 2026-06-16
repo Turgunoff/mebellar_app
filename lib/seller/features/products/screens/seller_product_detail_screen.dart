@@ -258,7 +258,9 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
   /// model is queued for AI generation + admin QC, so we confirm and let the
   /// seller carry on (the model appears once approved).
   Future<void> _openArScan(String productId) async {
-    final submitted = await Navigator.of(context).push<bool>(
+    // Push on the ROOT navigator so the camera covers the seller shell's
+    // bottom navigation bar — a scanner must be a fully immersive surface.
+    final submitted = await Navigator.of(context, rootNavigator: true).push<bool>(
       MaterialPageRoute(
         builder: (_) => ArScanCameraScreen(productId: productId),
       ),

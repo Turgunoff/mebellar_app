@@ -205,23 +205,24 @@ class _ArScanCameraScreenState extends State<ArScanCameraScreen>
               child: CircularProgressIndicator(color: AppColors.terracotta),
             );
           }
+          final ratio = (_elapsed.inMilliseconds /
+                  ArScanCameraScreen.maxDuration.inMilliseconds)
+              .clamp(0.0, 1.0);
+          final remaining = ArScanCameraScreen.maxDuration - _elapsed;
           return Stack(
             fit: StackFit.expand,
             children: [
-              CameraPreview(c),
+              _FullBleedPreview(controller: c),
               const _GuideOverlay(),
               _TopBar(
                 torchOn: _torchOn,
                 onClose: () => Navigator.of(context).maybePop(),
                 onToggleTorch: _toggleTorch,
               ),
-              if (_recording)
-                _ProgressBar(
-                  elapsed: _elapsed,
-                  total: ArScanCameraScreen.maxDuration,
-                ),
+              if (_recording) _RecordingBadge(remaining: remaining),
               _RecordControls(
                 recording: _recording,
+                progress: ratio,
                 onStart: _startRecording,
                 onStop: _stopRecording,
               ),
@@ -332,40 +333,76 @@ class _GlassButton extends StatelessWidget {
   }
 }
 
-class _ProgressBar extends StatelessWidget {
-  const _ProgressBar({required this.elapsed, required this.total});
-  final Duration elapsed;
-  final Duration total;
+/// Fills the whole screen with the live feed (BoxFit.cover semantics): the
+/// preview is centered at its native aspect ratio, then scaled up until it
+/// covers the viewport, so no letterbox bars show on any device ratio.
+class _FullBleedPreview extends StatelessWidget {
+  const _FullBleedPreview({required this.controller});
+  final CameraController controller;
 
   @override
   Widget build(BuildContext context) {
-    final ratio = (elapsed.inMilliseconds / total.inMilliseconds).clamp(0.0, 1.0);
-    final secs = (total - elapsed).inSeconds.clamp(0, total.inSeconds);
-    return Positioned(
-      left: 24,
-      right: 24,
-      bottom: 140,
-      child: Column(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(99),
-            child: LinearProgressIndicator(
-              value: ratio,
-              minHeight: 6,
-              backgroundColor: Colors.white.withValues(alpha: 0.25),
-              valueColor: const AlwaysStoppedAnimation(AppColors.terracotta),
+    final size = MediaQuery.of(context).size;
+    var scale = size.aspectRatio * controller.value.aspectRatio;
+    if (scale < 1) scale = 1 / scale;
+    return ClipRect(
+      child: Transform.scale(
+        scale: scale,
+        alignment: Alignment.center,
+        child: Center(child: CameraPreview(controller)),
+      ),
+    );
+  }
+}
+
+/// Top-center recording pill: a terracotta dot + remaining time. Lives in the
+/// top safe area between the close/torch buttons, so it never overlaps the
+/// centered guide bubble or the bottom record cluster.
+class _RecordingBadge extends StatelessWidget {
+  const _RecordingBadge({required this.remaining});
+  final Duration remaining;
+
+  @override
+  Widget build(BuildContext context) {
+    final secs = remaining.inSeconds
+        .clamp(0, ArScanCameraScreen.maxDuration.inSeconds);
+    return SafeArea(
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(99),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: AppColors.terracotta,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 7),
+                Text(
+                  '0:${secs.toString().padLeft(2, '0')}',
+                  style: const TextStyle(
+                    fontFamily: AppFonts.seller,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            '$secs s',
-            style: const TextStyle(
-              fontFamily: AppFonts.seller,
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -374,10 +411,12 @@ class _ProgressBar extends StatelessWidget {
 class _RecordControls extends StatelessWidget {
   const _RecordControls({
     required this.recording,
+    required this.progress,
     required this.onStart,
     required this.onStop,
   });
   final bool recording;
+  final double progress;
   final VoidCallback onStart;
   final VoidCallback onStop;
 
@@ -388,26 +427,48 @@ class _RecordControls extends StatelessWidget {
       right: 0,
       bottom: 40,
       child: Center(
-        child: GestureDetector(
-          onTap: recording ? onStop : onStart,
-          child: Container(
-            width: 78,
-            height: 78,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 4),
-            ),
-            child: Center(
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                width: recording ? 30 : 60,
-                height: recording ? 30 : 60,
-                decoration: BoxDecoration(
-                  color: AppColors.terracotta,
-                  borderRadius: BorderRadius.circular(recording ? 8 : 99),
+        child: SizedBox(
+          width: 92,
+          height: 92,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // Terracotta ring fills as the 30s clip elapses — the sole
+              // progress affordance, wrapping the shutter so it can't collide
+              // with the guide bubble in the middle of the frame.
+              if (recording)
+                SizedBox.expand(
+                  child: CircularProgressIndicator(
+                    value: progress,
+                    strokeWidth: 4,
+                    backgroundColor: Colors.white.withValues(alpha: 0.25),
+                    valueColor:
+                        const AlwaysStoppedAnimation(AppColors.terracotta),
+                  ),
+                ),
+              GestureDetector(
+                onTap: recording ? onStop : onStart,
+                child: Container(
+                  width: 74,
+                  height: 74,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 4),
+                  ),
+                  child: Center(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      width: recording ? 28 : 58,
+                      height: recording ? 28 : 58,
+                      decoration: BoxDecoration(
+                        color: AppColors.terracotta,
+                        borderRadius: BorderRadius.circular(recording ? 8 : 99),
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
         ),
       ),
