@@ -1,0 +1,93 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:model_viewer_plus/model_viewer_plus.dart';
+import 'package:woody_app/core/i18n/i18n.dart';
+import 'package:woody_app/core/theme/app_theme.dart';
+import 'package:woody_app/customer/features/product_list/screens/buyer_ar_viewer_screen.dart';
+import 'package:woody_app/shared/models/product_model.dart';
+
+import '../../../../support/fake_webview_platform.dart';
+
+// ModelViewer wraps a WebView platform view that has no plugin in the
+// flutter_test harness, so its controller init asserts on a missing
+// WebViewPlatform.instance. A no-op fake platform (installed in setUpAll) lets
+// the widget mount; a single pump (no pumpAndSettle, which would hang on the
+// indefinite proxy bind) is enough to read the mounted ModelViewer's config.
+ProductModel _product({
+  num? widthCm,
+  num? heightCm,
+  num? depthCm,
+  String name = 'Krovat',
+}) => ProductModel(
+  id: 'p1',
+  categoryId: 'cat-1',
+  name: name,
+  price: 1000000,
+  images: const [],
+  stock: 5,
+  createdAt: DateTime(2026, 1, 1),
+  arModelUrl: 'https://example.com/model.glb',
+  arStatus: 'approved',
+  widthCm: widthCm,
+  heightCm: heightCm,
+  depthCm: depthCm,
+);
+
+Future<void> _pump(WidgetTester tester, ProductModel product) {
+  return tester.pumpWidget(
+    MaterialApp(
+      theme: AppTheme.lightTheme,
+      home: BuyerArViewerScreen(product: product),
+    ),
+  );
+}
+
+void main() {
+  setUpAll(() {
+    AppTranslations.setInstance(AppTranslations.forLocale(const Locale('uz')));
+    installFakeWebViewPlatform();
+  });
+
+  testWidgets('builds true-to-size with full dimensions', (tester) async {
+    await _pump(
+      tester,
+      _product(widthCm: 180, heightCm: 90, depthCm: 200, name: 'Krovat'),
+    );
+
+    // Product name surfaces in the immersive top bar + share prompt visible.
+    expect(find.text('Krovat'), findsOneWidget);
+    expect(find.text(tr('product.ar_share_cta')), findsOneWidget);
+
+    final viewer = tester.widget<ModelViewer>(find.byType(ModelViewer));
+    // 1 scene unit = 1 metre, so cm/100 per axis.
+    expect(viewer.scale, '1.8 0.9 2.0');
+    // True scale is locked so buyers can't pinch-resize in AR.
+    expect(viewer.arScale, ArScale.fixed);
+    expect(viewer.ar, isTrue);
+    expect(viewer.arPlacement, ArPlacement.floor);
+    expect(viewer.environmentImage, 'neutral');
+  });
+
+  testWidgets('builds unscaled when dimensions are missing', (tester) async {
+    await _pump(tester, _product(name: 'Stol'));
+
+    expect(find.text('Stol'), findsOneWidget);
+
+    final viewer = tester.widget<ModelViewer>(find.byType(ModelViewer));
+    expect(viewer.scale, isNull);
+    expect(viewer.arScale, isNull);
+    // AR itself stays enabled even without a true-scale lock.
+    expect(viewer.ar, isTrue);
+  });
+
+  testWidgets('builds unscaled when a dimension is zero', (tester) async {
+    await _pump(
+      tester,
+      _product(widthCm: 120, heightCm: 0, depthCm: 60, name: 'Shkaf'),
+    );
+
+    final viewer = tester.widget<ModelViewer>(find.byType(ModelViewer));
+    expect(viewer.scale, isNull);
+    expect(viewer.arScale, isNull);
+  });
+}

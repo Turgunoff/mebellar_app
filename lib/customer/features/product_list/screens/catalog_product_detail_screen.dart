@@ -13,7 +13,7 @@ import '../../../../core/i18n/i18n.dart';
 import '../../../../core/result/result.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
-import 'ar_viewer_screen.dart';
+import '../widgets/ar_entry_points.dart';
 import '../../../../shared/constants/product_colors.dart';
 import '../../../../shared/models/attribute_definition.dart';
 import '../../../../shared/models/product.dart';
@@ -302,6 +302,11 @@ class _CatalogProductDetailScreenState
                 productName: product.name,
                 titleOpacity: _titleOpacity,
                 onShare: () => shareProduct(product),
+                // Floating "3D / AR" glass badge on the carousel — only when a
+                // QC-approved .glb exists.
+                galleryOverlay: product.hasAr
+                    ? ArGlassBadge(product: product)
+                    : null,
                 extraActions: [
                   // Context-aware escape hatch — collapses a deep recommendation
                   // rabbit hole straight back to the browsing surface the user
@@ -339,41 +344,13 @@ class _CatalogProductDetailScreenState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _TitlePriceCard(product: product),
-                      // Buyer AR entry — only when a QC-approved .glb exists.
+                      // Premium AR call-to-action — sits below the in-stock
+                      // status and above the colour selector. Only when a
+                      // QC-approved .glb exists.
                       if (product.hasAr)
                         Padding(
-                          padding: const EdgeInsets.only(top: 12),
-                          child: SizedBox(
-                            width: double.infinity,
-                            child: FilledButton.icon(
-                              onPressed: () => Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => ArViewerScreen(
-                                    modelUrl: product.arModelUrl!,
-                                    productName: product.name,
-                                    widthCm: product.widthCm,
-                                    heightCm: product.heightCm,
-                                    depthCm: product.depthCm,
-                                  ),
-                                ),
-                              ),
-                              icon: const Icon(Icons.view_in_ar),
-                              label: Text(tr('product.view_in_ar')),
-                              style: FilledButton.styleFrom(
-                                backgroundColor: AppColors.terracotta,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(18),
-                                ),
-                                textStyle: const TextStyle(
-                                  fontFamily: AppFonts.body,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 15,
-                                ),
-                              ),
-                            ),
-                          ),
+                          padding: const EdgeInsets.only(top: 14),
+                          child: ArPromoCard(product: product),
                         ),
                       for (final card in [
                         // Colours sit right under the price — they are the
