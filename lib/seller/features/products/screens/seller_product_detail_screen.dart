@@ -531,10 +531,11 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
 }
 
 /// Seller-facing AR pipeline card under the price — closes the loop: it badges
-/// the current `ar_status`, surfaces the rejection reason verbatim, and offers
-/// the (re-)scan CTA. Seller tokens + terracotta, matching the add-product
+/// the current `ar_status`, surfaces the terminal-failure reason verbatim
+/// (a Meshy `failed` error or a human `rejected` reason), and offers the
+/// (re-)scan CTA. Seller tokens + terracotta, matching the add-product
 /// surface. The CTA is live only when an action makes sense (never scanned,
-/// rejected, or approved → re-record); blocked while in flight
+/// failed, rejected, or approved → re-record); blocked while in flight
 /// (processing / pending_review).
 class _ArScanCard extends StatelessWidget {
   const _ArScanCard({required this.product, required this.onScan});
@@ -610,32 +611,34 @@ class _ArScanCard extends StatelessWidget {
                 ],
               ),
 
-              // Rejection feedback — the "why" so the seller can fix + re-record.
-              if (product.arStatus == 'rejected' &&
-                  (product.arRejectionReason?.trim().isNotEmpty ?? false)) ...[
+              // Feedback + re-scan — the "why" so the seller can fix + re-record.
+              // `failed` is a machine/Meshy failure (error-styled, sellerNegative);
+              // `rejected` is a human QC rejection (terracotta). Both offer re-scan,
+              // which the backend resets to `processing` and clears the old reason.
+              if (_feedback(product) case final fb?) ...[
                 const SizedBox(height: 12),
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.terracotta.withValues(alpha: 0.08),
+                    color: fb.accent.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Rad etish sababi',
+                      Text(
+                        fb.title,
                         style: TextStyle(
                           fontFamily: AppFonts.seller,
                           fontSize: 11.5,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.terracotta,
+                          color: fb.accent,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        product.arRejectionReason!.trim(),
+                        fb.reason,
                         style: const TextStyle(
                           fontFamily: AppFonts.seller,
                           fontSize: 13,
@@ -652,9 +655,9 @@ class _ArScanCard extends StatelessWidget {
                   child: FilledButton.icon(
                     onPressed: onScan,
                     icon: const Icon(Icons.refresh, size: 18),
-                    label: const Text('Qaytadan skan qilish'),
+                    label: const Text('Qayta skanlash'),
                     style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.terracotta,
+                      backgroundColor: fb.accent,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
@@ -674,6 +677,46 @@ class _ArScanCard extends StatelessWidget {
       ),
     );
   }
+
+  /// The feedback note + re-scan CTA for a terminal failure state, or null
+  /// when the current `ar_status` carries no seller-actionable feedback.
+  _ArFeedback? _feedback(SellerProduct p) {
+    switch (p.arStatus) {
+      case 'failed':
+        return _ArFeedback(
+          title: 'Skan xatosi',
+          // arErrorReason is meaningful only while failed; keep a clear
+          // Uzbek fallback so the note is never empty.
+          reason: p.arErrorReason?.trim().isNotEmpty == true
+              ? p.arErrorReason!.trim()
+              : 'Skan amalga oshmadi',
+          accent: AppColors.sellerNegative,
+        );
+      case 'rejected':
+        if (p.arRejectionReason?.trim().isNotEmpty ?? false) {
+          return _ArFeedback(
+            title: 'Rad etish sababi',
+            reason: p.arRejectionReason!.trim(),
+            accent: AppColors.terracotta,
+          );
+        }
+        return null;
+      default:
+        return null;
+    }
+  }
+}
+
+/// A terminal-state feedback note (failed / rejected) shown in [_ArScanCard].
+class _ArFeedback {
+  const _ArFeedback({
+    required this.title,
+    required this.reason,
+    required this.accent,
+  });
+  final String title;
+  final String reason;
+  final Color accent;
 }
 
 /// Per-status presentation for the seller AR card.
@@ -719,6 +762,14 @@ _ArCardState _arState(String arStatus) {
         canScan: true,
         badge: 'Rad etilgan',
         color: Color(0xFFC0392B), // red — matches ProductStatusChip rejected
+      );
+    case 'failed':
+      // Pipeline/Meshy failure (machine), distinct from a human QC rejection.
+      return _ArCardState(
+        subtitle: 'Skan amalga oshmadi — qaytadan urinib ko‘ring.',
+        canScan: true,
+        badge: 'Xatolik',
+        color: AppColors.sellerNegative,
       );
     default:
       return const _ArCardState(

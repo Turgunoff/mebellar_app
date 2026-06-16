@@ -121,6 +121,7 @@ class SellerProduct extends Equatable {
     this.arStatus = 'none',
     this.arModelUrl,
     this.arRejectionReason,
+    this.arErrorReason,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -193,16 +194,22 @@ class SellerProduct extends Equatable {
   /// did. Drives the explanatory banner on the products screen.
   final String? archiveReason;
 
-  /// Video-to-3D AR pipeline state (mirrors backend `ArStatus`):
-  /// `none | processing | pending_review | approved | rejected`.
+  /// Photo-to-3D AR pipeline state (mirrors backend `ArStatus`):
+  /// `none | processing | pending_review | approved | rejected | failed`.
+  /// `failed` is a machine/pipeline (Meshy) failure — distinct from
+  /// `rejected`, which is a human QC rejection of a generated model.
   final String arStatus;
 
   /// Public URL of the QC-approved `.glb` (null until approved).
   final String? arModelUrl;
 
   /// Seller-facing feedback when the scan was rejected (blurry video, bad
-  /// model, …). Only meaningful while [arStatus] is `rejected`.
+  /// model, …) by admin QC. Only meaningful while [arStatus] is `rejected`.
   final String? arRejectionReason;
+
+  /// Pipeline/Meshy failure reason (e.g. the model generation failed or the
+  /// task expired). Only meaningful while [arStatus] is `failed`.
+  final String? arErrorReason;
 
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -281,6 +288,7 @@ class SellerProduct extends Equatable {
       arStatus: arStatus,
       arModelUrl: arModelUrl,
       arRejectionReason: arRejectionReason,
+      arErrorReason: arErrorReason,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
