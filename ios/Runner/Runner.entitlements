@@ -9,6 +9,15 @@
 		file, not here. Add this capability in Xcode (Signing & Capabilities → +
 		Capability → Associated Domains) so CODE_SIGN_ENTITLEMENTS points at this file.
 	-->
+	<!--
+		Push Notifications (FCM → APNs). Required for firebase_messaging to
+		register for remote notifications. Xcode rewrites this to "production"
+		in the archived App Store build via the distribution provisioning
+		profile; "development" is what Xcode-launched debug / TestFlight runs
+		use. Needs the Push Notifications capability enabled on the App ID.
+	-->
+	<key>aps-environment</key>
+	<string>development</string>
 	<key>com.apple.developer.associated-domains</key>
 	<array>
 		<string>applinks:woody.uz</string>

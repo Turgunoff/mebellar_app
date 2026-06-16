@@ -1,5 +1,6 @@
-# Uncomment this line to define a global platform for your project
-# platform :ios, '13.0'
+# Firebase 11.x (resolved 11.15.0) sets iOS 13 as its floor; pin the project's
+# global platform to match so CocoaPods resolves a consistent deployment target.
+platform :ios, '13.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'

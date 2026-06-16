@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 
 import '../../../../core/di/service_locator.dart';
@@ -13,16 +13,28 @@ import '../data/ar_scan_repository.dart';
 
 /// Custom locked-down scanning camera — never the OS camera app. Walks the
 /// seller through a 3-photo guided capture (front / side / top-back), reviews
-/// each shot, collects the three real-world dimensions, then compresses and
-/// uploads the JPEGs so the backend can build a true-to-size 3D model.
-/// Uzbek-only + seller tokens, matching the rest of the add-product surface.
+/// each shot, then compresses and uploads the JPEGs so the backend can build a
+/// true-to-size 3D model. Uzbek-only + seller tokens, matching the rest of the
+/// add-product surface.
 ///
-/// Pops `true` once the photos have been submitted (uploaded) so the caller can
-/// show the "model is being generated" confirmation.
+/// The real-world dimensions ([heightCm] / [widthCm] / [lengthCm], cm) are
+/// resolved up front from the product's own data and passed in — the seller
+/// never re-types them. They ride straight through to the upload payload, so
+/// the wizard is just "three photos → upload". Pops `true` once the photos have
+/// been submitted (uploaded) so the caller can show the confirmation.
 class ArScanCameraScreen extends StatefulWidget {
-  const ArScanCameraScreen({super.key, required this.productId});
+  const ArScanCameraScreen({
+    super.key,
+    required this.productId,
+    required this.heightCm,
+    required this.widthCm,
+    required this.lengthCm,
+  });
 
   final String productId;
+  final int heightCm;
+  final int widthCm;
+  final int lengthCm;
 
   static const int requiredShots = 3;
 
@@ -30,9 +42,9 @@ class ArScanCameraScreen extends StatefulWidget {
   State<ArScanCameraScreen> createState() => _ArScanCameraScreenState();
 }
 
-/// The wizard moves through capturing each of the three shots, a per-photo
-/// review after every shot, then the dimensions form, then upload.
-enum _WizardStage { capture, review, dimensions }
+/// The wizard moves through capturing each of the three shots and a per-photo
+/// review after every shot; accepting the final shot submits the upload.
+enum _WizardStage { capture, review }
 
 class _ArScanCameraScreenState extends State<ArScanCameraScreen>
     with WidgetsBindingObserver {
@@ -46,7 +58,13 @@ class _ArScanCameraScreenState extends State<ArScanCameraScreen>
   Future<void>? _initFuture;
   bool _lowLight = false;
   bool _torchOn = false;
+
+  /// Fatal camera-setup/capture error — takes over the whole screen.
   String? _error;
+
+  /// Upload failure after the final shot — shown as a retry overlay over the
+  /// captured shots, so the seller doesn't lose the three photos.
+  String? _submitError;
 
   _WizardStage _stage = _WizardStage.capture;
 
@@ -173,21 +191,19 @@ class _ArScanCameraScreenState extends State<ArScanCameraScreen>
     _shots.add(shot);
     _pendingShot = null;
     if (_shots.length >= ArScanCameraScreen.requiredShots) {
-      setState(() => _stage = _WizardStage.dimensions);
+      // Dimensions came in with the route — the last shot goes straight to
+      // upload, no manual measurement step.
+      _submit();
     } else {
       setState(() => _stage = _WizardStage.capture);
     }
   }
 
-  Future<void> _submit({
-    required int heightCm,
-    required int widthCm,
-    required int lengthCm,
-  }) async {
+  Future<void> _submit() async {
     if (_submitting) return;
     setState(() {
       _submitting = true;
-      _error = null;
+      _submitError = null;
     });
     try {
       final photos = <Uint8List>[];
@@ -197,16 +213,16 @@ class _ArScanCameraScreenState extends State<ArScanCameraScreen>
       await sl<ArScanRepository>().uploadScanPhotos(
         productId: widget.productId,
         photos: photos,
-        heightCm: heightCm,
-        widthCm: widthCm,
-        lengthCm: lengthCm,
+        heightCm: widget.heightCm,
+        widthCm: widget.widthCm,
+        lengthCm: widget.lengthCm,
       );
       if (mounted) Navigator.of(context).pop(true);
     } catch (_) {
       if (mounted) {
         setState(() {
           _submitting = false;
-          _error = 'Yuklashda xatolik. Qayta urinib ko‘ring.';
+          _submitError = 'Yuklashda xatolik. Qayta urinib ko‘ring.';
         });
       }
     }
@@ -264,7 +280,7 @@ class _ArScanCameraScreenState extends State<ArScanCameraScreen>
       body: FutureBuilder<void>(
         future: _initFuture,
         builder: (context, snapshot) {
-          if (_error != null && _stage != _WizardStage.dimensions) {
+          if (_error != null) {
             return _ErrorView(message: _error!);
           }
           final c = _controller;
@@ -273,15 +289,19 @@ class _ArScanCameraScreenState extends State<ArScanCameraScreen>
               child: CircularProgressIndicator(color: AppColors.terracotta),
             );
           }
+          final inReview =
+              _stage == _WizardStage.review && _pendingShot != null;
+          final inCapture = _stage == _WizardStage.capture &&
+              _shots.length < ArScanCameraScreen.requiredShots;
           return Stack(
             fit: StackFit.expand,
             children: [
-              if (_stage == _WizardStage.review && _pendingShot != null)
+              if (inReview)
                 _ShotPreview(path: _pendingShot!.path)
               else
                 _FullBleedPreview(controller: c),
 
-              if (_stage == _WizardStage.capture) ...[
+              if (inCapture) ...[
                 _GuideLabel(text: _guides[_shots.length]),
                 _TopBar(
                   torchOn: _torchOn,
@@ -295,22 +315,21 @@ class _ArScanCameraScreenState extends State<ArScanCameraScreen>
                 _ShutterButton(busy: _capturing, onTap: _capture),
               ],
 
-              if (_stage == _WizardStage.review && _pendingShot != null)
+              if (inReview)
                 _ReviewControls(
                   isLast: _shots.length == ArScanCameraScreen.requiredShots - 1,
                   onRetake: _retake,
                   onNext: _acceptShot,
                 ),
 
-              if (_stage == _WizardStage.dimensions)
-                ArDimensionsStep(
-                  submitting: _submitting,
-                  error: _error,
-                  onClose: () => Navigator.of(context).maybePop(),
-                  onSubmit: _submit,
-                ),
-
               if (_submitting) const _GeneratingOverlay(),
+
+              if (_submitError != null)
+                _SubmitErrorOverlay(
+                  message: _submitError!,
+                  onRetry: _submit,
+                  onClose: () => Navigator.of(context).maybePop(),
+                ),
             ],
           );
         },
@@ -490,7 +509,7 @@ class _ReviewControls extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    isLast ? 'O‘lchamlar' : 'Keyingisi',
+                    isLast ? 'Yuklash' : 'Keyingisi',
                     style: const TextStyle(
                       fontFamily: AppFonts.seller,
                       fontWeight: FontWeight.w700,
@@ -522,215 +541,78 @@ class _ShotPreview extends StatelessWidget {
   }
 }
 
-/// Final step: three mandatory real-world dimensions, then "Yuklash".
-/// Public so the validation gate can be widget-tested without a live camera.
-class ArDimensionsStep extends StatefulWidget {
-  const ArDimensionsStep({
-    super.key,
-    required this.submitting,
-    required this.error,
+/// Full-bleed retry surface when the upload of the three captured shots fails.
+/// The shots are still held in memory, so "Qayta urinish" re-fires the upload
+/// without re-shooting; "Yopish" abandons the scan.
+class _SubmitErrorOverlay extends StatelessWidget {
+  const _SubmitErrorOverlay({
+    required this.message,
+    required this.onRetry,
     required this.onClose,
-    required this.onSubmit,
   });
 
-  final bool submitting;
-  final String? error;
+  final String message;
+  final VoidCallback onRetry;
   final VoidCallback onClose;
-  final void Function({
-    required int heightCm,
-    required int widthCm,
-    required int lengthCm,
-  }) onSubmit;
-
-  @override
-  State<ArDimensionsStep> createState() => _ArDimensionsStepState();
-}
-
-class _ArDimensionsStepState extends State<ArDimensionsStep> {
-  final _height = TextEditingController();
-  final _width = TextEditingController();
-  final _length = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    for (final c in [_height, _width, _length]) {
-      c.addListener(() => setState(() {}));
-    }
-  }
-
-  @override
-  void dispose() {
-    _height.dispose();
-    _width.dispose();
-    _length.dispose();
-    super.dispose();
-  }
-
-  int? _parse(TextEditingController c) {
-    final v = int.tryParse(c.text.trim());
-    return (v != null && v > 0) ? v : null;
-  }
-
-  bool get _valid =>
-      _parse(_height) != null &&
-      _parse(_width) != null &&
-      _parse(_length) != null;
-
-  void _submit() {
-    final h = _parse(_height);
-    final w = _parse(_width);
-    final l = _parse(_length);
-    if (h == null || w == null || l == null) return;
-    widget.onSubmit(heightCm: h, widthCm: w, lengthCm: l);
-  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.black.withValues(alpha: 0.92),
-      child: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              child: Row(
-                children: [
-                  _GlassButton(icon: Icons.close, onTap: widget.onClose),
-                ],
-              ),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Text(
-                      'Mahsulot o‘lchamlari',
-                      style: TextStyle(
-                        fontFamily: AppFonts.seller,
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      'Aniq 3D model uchun haqiqiy o‘lchamlarni kiriting.',
-                      style: TextStyle(
-                        fontFamily: AppFonts.seller,
-                        color: Colors.white70,
-                        fontSize: 13,
-                        height: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    _DimField(label: 'Bo‘yi (sm)', controller: _height),
-                    const SizedBox(height: 16),
-                    _DimField(label: 'Eni (sm)', controller: _width),
-                    const SizedBox(height: 16),
-                    _DimField(label: 'Uzunligi (sm)', controller: _length),
-                    if (widget.error != null) ...[
-                      const SizedBox(height: 16),
-                      Text(
-                        widget.error!,
-                        style: const TextStyle(
-                          fontFamily: AppFonts.seller,
-                          color: AppColors.sellerNegative,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-              child: SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: (_valid && !widget.submitting) ? _submit : null,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.terracotta,
-                    disabledBackgroundColor:
-                        AppColors.terracotta.withValues(alpha: 0.35),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                  ),
-                  child: const Text(
-                    'Yuklash',
-                    style: TextStyle(
-                      fontFamily: AppFonts.seller,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _DimField extends StatelessWidget {
-  const _DimField({required this.label, required this.controller});
-  final String label;
-  final TextEditingController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontFamily: AppFonts.seller,
-            color: Colors.white70,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextField(
-          controller: controller,
-          keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          style: const TextStyle(
-            fontFamily: AppFonts.seller,
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
-          cursorColor: AppColors.terracotta,
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: Colors.white.withValues(alpha: 0.08),
-            hintText: '0',
-            hintStyle: TextStyle(
+      color: Colors.black.withValues(alpha: 0.88),
+      alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.cloud_off, color: Colors.white70, size: 44),
+          const SizedBox(height: 16),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
               fontFamily: AppFonts.seller,
-              color: Colors.white.withValues(alpha: 0.3),
-            ),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: AppColors.terracotta, width: 2),
+              color: Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              height: 1.4,
             ),
           ),
-        ),
-      ],
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text('Qayta urinish'),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.terracotta,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                textStyle: const TextStyle(
+                  fontFamily: AppFonts.seller,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          TextButton(
+            onPressed: onClose,
+            child: const Text(
+              'Yopish',
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
+                color: Colors.white70,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

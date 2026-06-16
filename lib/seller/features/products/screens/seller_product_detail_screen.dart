@@ -11,7 +11,9 @@ import '../../../../shared/models/attribute_definition.dart';
 import '../../../../shared/models/seller_product.dart';
 import '../bloc/seller_products_bloc.dart';
 import '../data/attributes_repository.dart';
+import '../data/ar_scan_components.dart';
 import 'ar_scan_camera_screen.dart';
+import 'seller_ar_model_screen.dart';
 import '../widgets/product_preview/attributes_card.dart';
 import '../widgets/product_preview/bottom_action_bar.dart';
 import '../widgets/product_preview/description_card.dart';
@@ -254,15 +256,48 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
       );
   }
 
-  /// Opens the custom AR scan camera. On a successful submit the product's
-  /// model is queued for AI generation + admin QC, so we confirm and let the
-  /// seller carry on (the model appears once approved).
-  Future<void> _openArScan(String productId) async {
+  /// Entry point for the AR card's scan CTA. Resolves the product's scannable
+  /// pieces from its own dimension data (the seller never re-types them), then:
+  ///   * exactly one ready piece → straight into the camera,
+  ///   * no usable dimensions    → route to the edit form to add them,
+  ///   * two or more pieces      → ask which one to scan.
+  Future<void> _startArScan(SellerProduct product) async {
+    final components = resolveArScanComponents(
+      schema: _schema,
+      product: product,
+    );
+
+    if (components.length == 1 && components.single.isComplete) {
+      await _launchArCamera(product.id, components.single);
+      return;
+    }
+    if (components.where((c) => c.isComplete).isEmpty) {
+      await _showNeedDimensionsDialog();
+      return;
+    }
+
+    final picked = await _showComponentPicker(components);
+    if (picked != null) await _launchArCamera(product.id, picked);
+  }
+
+  /// Opens the locked-down camera for [component], passing its real-world
+  /// dimensions straight through. On a successful submit the model is queued
+  /// for AI generation + admin QC, so we confirm and let the seller carry on
+  /// (the model appears once approved).
+  Future<void> _launchArCamera(
+    String productId,
+    ArScanComponent component,
+  ) async {
     // Push on the ROOT navigator so the camera covers the seller shell's
     // bottom navigation bar — a scanner must be a fully immersive surface.
     final submitted = await Navigator.of(context, rootNavigator: true).push<bool>(
       MaterialPageRoute(
-        builder: (_) => ArScanCameraScreen(productId: productId),
+        builder: (_) => ArScanCameraScreen(
+          productId: productId,
+          heightCm: component.heightCm!,
+          widthCm: component.widthCm!,
+          lengthCm: component.lengthCm!,
+        ),
       ),
     );
     if (submitted == true && mounted) {
@@ -276,6 +311,144 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
           ),
         );
     }
+  }
+
+  /// Bottom sheet asking which furniture piece to 3D-scan (a bedroom set has a
+  /// bed + wardrobe + dresser). Pieces with incomplete dimensions are shown
+  /// disabled with a hint — the backend needs all three, so an under-specified
+  /// piece never gets through.
+  Future<ArScanComponent?> _showComponentPicker(
+    List<ArScanComponent> components,
+  ) {
+    final c = SellerColors.of(context);
+    return showModalBottomSheet<ArScanComponent>(
+      context: context,
+      backgroundColor: c.surface,
+      showDragHandle: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Qaysi qismini 3D skaner qilasiz?',
+                style: TextStyle(
+                  fontFamily: AppFonts.seller,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: c.ink,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Tanlangan qism o‘lchamlari modelga avtomatik qo‘shiladi.',
+                style: TextStyle(
+                  fontFamily: AppFonts.seller,
+                  fontSize: 13,
+                  color: c.grey,
+                  height: 1.35,
+                ),
+              ),
+              const SizedBox(height: 14),
+              for (final component in components) ...[
+                _ComponentTile(
+                  component: component,
+                  onTap: component.isComplete
+                      ? () => Navigator.of(sheetContext).pop(component)
+                      : null,
+                ),
+                const SizedBox(height: 10),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Shown when the product has no usable dimensions to feed the scan. The 3D
+  /// pipeline needs real cm to size the model, so we route the seller to the
+  /// edit form rather than firing a scan the backend would reject.
+  Future<void> _showNeedDimensionsDialog() async {
+    final c = SellerColors.of(context);
+    final goEdit = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: c.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: Text(
+          'O‘lchamlar kerak',
+          style: TextStyle(
+            fontFamily: AppFonts.seller,
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            color: c.ink,
+          ),
+        ),
+        content: Text(
+          '3D model aniq bo‘lishi uchun mahsulot o‘lchamlari (eni, bo‘yi, '
+          'chuqurligi) kerak. Iltimos, avval ularni to‘ldiring.',
+          style: TextStyle(
+            fontFamily: AppFonts.seller,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: c.grey,
+            height: 1.4,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(
+              'Yopish',
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
+                fontWeight: FontWeight.w600,
+                color: c.grey,
+              ),
+            ),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.sellerPrimary,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text(
+              'Tahrirlash',
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (goEdit == true) widget.onEdit?.call();
+  }
+
+  /// Opens the seller's own QC-approved 3D model full-screen.
+  void _openModelViewer(SellerProduct product) {
+    final url = product.arModelUrl;
+    if (url == null || url.isEmpty) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SellerArModelScreen(
+          modelUrl: url,
+          productName: product.name.get('uz'),
+          widthCm: product.widthCm,
+          heightCm: product.heightCm,
+          depthCm: product.lengthCm,
+        ),
+      ),
+    );
   }
 
   @override
@@ -338,7 +511,8 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
                   const SizedBox(height: 14),
                   _ArScanCard(
                     product: product,
-                    onScan: () => _openArScan(product.id),
+                    onScan: () => _startArScan(product),
+                    onViewModel: () => _openModelViewer(product),
                   ),
                   const SizedBox(height: 14),
                   MetaCard(
@@ -532,27 +706,42 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
 
 /// Seller-facing AR pipeline card under the price — closes the loop: it badges
 /// the current `ar_status`, surfaces the terminal-failure reason verbatim
-/// (a Meshy `failed` error or a human `rejected` reason), and offers the
-/// (re-)scan CTA. Seller tokens + terracotta, matching the add-product
-/// surface. The CTA is live only when an action makes sense (never scanned,
-/// failed, rejected, or approved → re-record); blocked while in flight
-/// (processing / pending_review).
+/// (a Meshy `failed` error or a human `rejected` reason), and adapts its CTA
+/// to the state. Seller tokens + terracotta, matching the add-product surface.
+///
+/// Per state:
+///   * none (idle)     → a pulsing CTA inviting the first scan (whole card taps),
+///   * processing       → a spinner + "yasamoqda", tap disabled,
+///   * pending_review   → a clock + "Moderator tekshiruvida", tap disabled,
+///   * approved         → a "3D modelni ko‘rish" button + a quiet re-scan,
+///   * failed / rejected→ the reason in an error note + a "Qayta urinish" button.
 class _ArScanCard extends StatelessWidget {
-  const _ArScanCard({required this.product, required this.onScan});
+  const _ArScanCard({
+    required this.product,
+    required this.onScan,
+    required this.onViewModel,
+  });
 
   final SellerProduct product;
   final VoidCallback onScan;
+  final VoidCallback onViewModel;
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final state = _arState(product.arStatus);
-    final canScan = state.canScan;
+    final fb = _feedback(product);
+    final isApproved = product.arStatus == 'approved';
+    // The whole card only taps in the idle state; every other actionable state
+    // owns an explicit button, so there's never a hidden second affordance.
+    final cardTappable = state.canScan && fb == null && !isApproved;
+
     return Material(
-      color: Colors.white,
+      color: c.surface,
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
-        onTap: canScan ? onScan : null,
+        onTap: cardTappable ? onScan : null,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -560,18 +749,7 @@ class _ArScanCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: AppColors.terracotta.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Icon(
-                      Icons.view_in_ar,
-                      color: AppColors.terracotta,
-                    ),
-                  ),
+                  _ArIconBadge(status: product.arStatus, color: state.color),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(
@@ -579,12 +757,13 @@ class _ArScanCard extends StatelessWidget {
                       children: [
                         Row(
                           children: [
-                            const Text(
+                            Text(
                               '3D skan (AR)',
                               style: TextStyle(
                                 fontFamily: AppFonts.seller,
                                 fontWeight: FontWeight.w700,
                                 fontSize: 15,
+                                color: c.ink,
                               ),
                             ),
                             if (state.badge != null) ...[
@@ -596,26 +775,68 @@ class _ArScanCard extends StatelessWidget {
                         const SizedBox(height: 2),
                         Text(
                           state.subtitle,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: AppFonts.seller,
                             fontSize: 12.5,
-                            color: Colors.black54,
+                            color: c.grey,
                             height: 1.3,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  if (canScan)
-                    const Icon(Icons.chevron_right, color: Colors.black38),
+                  if (cardTappable)
+                    Icon(Icons.chevron_right, color: c.greyFaint),
                 ],
               ),
 
-              // Feedback + re-scan — the "why" so the seller can fix + re-record.
+              // Approved → primary "view the model", with a quiet re-scan below.
+              if (isApproved) ...[
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: onViewModel,
+                    icon: const Icon(Icons.view_in_ar, size: 20),
+                    label: const Text('3D modelni ko‘rish'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.terracotta,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      textStyle: const TextStyle(
+                        fontFamily: AppFonts.seller,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Align(
+                  alignment: Alignment.center,
+                  child: TextButton.icon(
+                    onPressed: onScan,
+                    icon: Icon(Icons.refresh, size: 17, color: c.grey),
+                    label: Text(
+                      'Qayta skanlash',
+                      style: TextStyle(
+                        fontFamily: AppFonts.seller,
+                        fontWeight: FontWeight.w600,
+                        color: c.grey,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+
+              // Feedback + retry — the "why" so the seller can fix + re-record.
               // `failed` is a machine/Meshy failure (error-styled, sellerNegative);
-              // `rejected` is a human QC rejection (terracotta). Both offer re-scan,
+              // `rejected` is a human QC rejection (terracotta). Both offer retry,
               // which the backend resets to `processing` and clears the old reason.
-              if (_feedback(product) case final fb?) ...[
+              if (fb != null) ...[
                 const SizedBox(height: 12),
                 Container(
                   width: double.infinity,
@@ -639,10 +860,10 @@ class _ArScanCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         fb.reason,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: AppFonts.seller,
                           fontSize: 13,
-                          color: Colors.black87,
+                          color: c.ink,
                           height: 1.35,
                         ),
                       ),
@@ -655,7 +876,7 @@ class _ArScanCard extends StatelessWidget {
                   child: FilledButton.icon(
                     onPressed: onScan,
                     icon: const Icon(Icons.refresh, size: 18),
-                    label: const Text('Qayta skanlash'),
+                    label: const Text('Qayta urinish'),
                     style: FilledButton.styleFrom(
                       backgroundColor: fb.accent,
                       foregroundColor: Colors.white,
@@ -678,7 +899,7 @@ class _ArScanCard extends StatelessWidget {
     );
   }
 
-  /// The feedback note + re-scan CTA for a terminal failure state, or null
+  /// The feedback note + retry CTA for a terminal failure state, or null
   /// when the current `ar_status` carries no seller-actionable feedback.
   _ArFeedback? _feedback(SellerProduct p) {
     switch (p.arStatus) {
@@ -737,21 +958,21 @@ _ArCardState _arState(String arStatus) {
   switch (arStatus) {
     case 'processing':
       return const _ArCardState(
-        subtitle: 'AI 3D model tayyorlamoqda…',
+        subtitle: 'AI 3D model yasamoqda (2-5 daqiqa)…',
         canScan: false,
         badge: 'Ishlanmoqda',
         color: Color(0xFF8C5A12), // amber — matches ProductStatusChip pending
       );
     case 'pending_review':
       return const _ArCardState(
-        subtitle: 'Admin tasdiqlashini kutmoqda.',
+        subtitle: 'Moderator tekshiruvida',
         canScan: false,
         badge: 'Tekshiruvda',
         color: Color(0xFF2563EB), // blue, awaiting QC
       );
     case 'approved':
       return const _ArCardState(
-        subtitle: '3D model ilovada ko‘rinmoqda. Qayta skan qilish mumkin.',
+        subtitle: '3D model tayyor — ko‘rib chiqing yoki qayta skanlang.',
         canScan: true,
         badge: 'Tasdiqlangan',
         color: Color(0xFF1F6B49), // green — matches ProductStatusChip approved
@@ -773,7 +994,7 @@ _ArCardState _arState(String arStatus) {
       );
     default:
       return const _ArCardState(
-        subtitle: 'Mahsulotni aylanib videoga oling — AI 3D model yasaydi.',
+        subtitle: 'Mahsulotni 3 ta burchakdan rasmga oling — AI 3D model yasaydi.',
         canScan: true,
       );
   }
@@ -800,6 +1021,193 @@ class _ArBadge extends StatelessWidget {
           fontWeight: FontWeight.w700,
           color: color,
         ),
+      ),
+    );
+  }
+}
+
+/// One selectable furniture piece in the component picker. Disabled (no
+/// [onTap]) when its dimensions are incomplete, with a hint instead of dims.
+class _ComponentTile extends StatelessWidget {
+  const _ComponentTile({required this.component, required this.onTap});
+
+  final ArScanComponent component;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    final enabled = onTap != null;
+    return Material(
+      color: enabled ? c.fillFaint : c.fillFaint.withValues(alpha: 0.5),
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          child: Row(
+            children: [
+              Icon(
+                Icons.view_in_ar,
+                size: 22,
+                color: enabled ? AppColors.terracotta : c.greyFaint,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      component.label,
+                      style: TextStyle(
+                        fontFamily: AppFonts.seller,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: enabled ? c.ink : c.grey,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      enabled
+                          ? component.summary
+                          : 'O‘lchamlar to‘liq emas',
+                      style: TextStyle(
+                        fontFamily: AppFonts.seller,
+                        fontSize: 12.5,
+                        color: enabled ? c.grey : c.greyFaint,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (enabled) Icon(Icons.chevron_right, color: c.greyFaint),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The 44×44 status glyph for the AR card. Idle pulses to invite the first
+/// scan; processing shows a spinner; the rest show a fitting static icon —
+/// all tinted to the state colour.
+class _ArIconBadge extends StatelessWidget {
+  const _ArIconBadge({required this.status, required this.color});
+
+  final String status;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    switch (status) {
+      case 'processing':
+        return _ArIconBox(
+          color: color,
+          child: SizedBox(
+            width: 22,
+            height: 22,
+            child: CircularProgressIndicator(
+              strokeWidth: 2.5,
+              valueColor: AlwaysStoppedAnimation<Color>(color),
+            ),
+          ),
+        );
+      case 'pending_review':
+        return _ArIconBox(color: color, child: Icon(Icons.schedule, color: color));
+      case 'approved':
+        return _ArIconBox(
+          color: color,
+          child: Icon(Icons.view_in_ar, color: color),
+        );
+      case 'rejected':
+      case 'failed':
+        return _ArIconBox(
+          color: color,
+          child: Icon(Icons.error_outline, color: color),
+        );
+      default:
+        return _PulsingArIcon(color: color);
+    }
+  }
+}
+
+/// The rounded tinted square behind every AR card glyph.
+class _ArIconBox extends StatelessWidget {
+  const _ArIconBox({required this.color, required this.child});
+
+  final Color color;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 44,
+      height: 44,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: child,
+    );
+  }
+}
+
+/// Idle-state glyph with a continuous, subtle pulse — an expanding/fading ring
+/// behind the icon plus a gentle breath on the box — to draw the seller's eye
+/// to the never-used scan CTA.
+class _PulsingArIcon extends StatefulWidget {
+  const _PulsingArIcon({required this.color});
+
+  final Color color;
+
+  @override
+  State<_PulsingArIcon> createState() => _PulsingArIconState();
+}
+
+class _PulsingArIconState extends State<_PulsingArIcon>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1800),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final t = Curves.easeOut.transform(_controller.value);
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            // Halo that expands and fades out on each cycle.
+            Transform.scale(
+              scale: 1 + t * 0.7,
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: widget.color.withValues(alpha: (1 - t) * 0.22),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            ),
+            Transform.scale(scale: 1 + t * 0.06, child: child),
+          ],
+        );
+      },
+      child: _ArIconBox(
+        color: widget.color,
+        child: Icon(Icons.view_in_ar, color: widget.color),
       ),
     );
   }

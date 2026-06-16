@@ -13,11 +13,25 @@
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Manzilingizni xaritada belgilash uchun joriy joylashuvingiz kerak.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Mahsulotning 3D modelini yaratish uchun rasmga olishda kamera kerak.</string>
+	<string>Mahsulot rasmlari va 3D modelini yaratish uchun rasmga olishda kamera kerak.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Mahsulot rasmlarini yuklash uchun galereyangizdan rasm tanlaysiz.</string>
+	<!-- url_launcher uses canLaunchUrl('tel:'/'mailto:') for the shop "call" and
+	     contact buttons; on iOS canLaunchUrl returns false for any scheme not
+	     listed here, which would silently disable those buttons. -->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>tel</string>
+		<string>mailto</string>
+	</array>
+	<!-- The app uses only standard HTTPS (exempt encryption); declaring this
+	     skips the export-compliance prompt on every App Store / TestFlight upload. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Woody — Mebel do'koni</string>
+	<string>Woody</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
