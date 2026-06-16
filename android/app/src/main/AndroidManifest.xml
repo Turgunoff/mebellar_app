@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Network -->
     <uses-permission android:name="android.permission.INTERNET" />
@@ -18,7 +19,9 @@
          drops the permission automatically. ACCESS_MEDIA_LOCATION is NOT
          declared — it only matters for READING original Exif GPS, and this is a
          write-only flow (a Play Console restricted-permission risk otherwise). -->
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29"
+        tools:replace="android:maxSdkVersion" />
 
     <!-- Push notifications. POST_NOTIFICATIONS is the runtime prompt on
          Android 13+; FCM declares the rest of its receiver/service in its
