@@ -351,6 +351,9 @@ class _CatalogProductDetailScreenState
                                   builder: (_) => ArViewerScreen(
                                     modelUrl: product.arModelUrl!,
                                     productName: product.name,
+                                    widthCm: product.widthCm,
+                                    heightCm: product.heightCm,
+                                    depthCm: product.depthCm,
                                   ),
                                 ),
                               ),

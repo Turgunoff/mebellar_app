@@ -99,15 +99,12 @@ dependencies:
   flutter_svg: ^2.0.10
   shimmer: ^3.0.0
 
-  # AR / 3D pipeline (Video-to-3D).
-  #  - camera: custom locked-down scan UI (no OS camera app).
-  #  - video_player: preview the recorded scan before submit.
-  #  - video_compress: shrink the clip before the presigned upload (ProRes/4K
-  #    devices produce huge files).
-  #  - model_viewer_plus: buyer-side <model-viewer> for the approved .glb.
+  # AR / 3D pipeline (Photos-to-3D via Meshy).
+  #  - camera: custom locked-down 3-photo scan UI (no OS camera app).
+  #  - flutter_image_compress (declared above): shrink each photo before upload.
+  #  - model_viewer_plus: buyer-side <model-viewer> for the approved .glb,
+  #    scaled true-to-size from the product's real-world dimensions.
   camera: ^0.11.0
-  video_player: ^2.9.2
-  video_compress: ^3.1.4
   model_viewer_plus: ^1.9.3
 
   # Typography — fonts are declared natively under `flutter.fonts` below.
@@ -166,6 +163,10 @@ dev_dependencies:
   mocktail: ^1.0.4
   flutter_native_splash: ^2.4.4
   flutter_launcher_icons: ^0.14.1
+  # Test-only: a no-op WebViewPlatform fake so model_viewer_plus (the buyer-side
+  # AR viewer) can mount in the flutter_test harness, where no platform plugin
+  # is registered. Pulled in transitively by webview_flutter at runtime.
+  webview_flutter_platform_interface: ^2.13.0
 
 # Generated iOS/Android launcher icons from a single 1024×1024 master.
 # Run after changes:  dart run flutter_launcher_icons
