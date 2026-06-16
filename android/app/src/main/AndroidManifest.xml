@@ -11,6 +11,15 @@
     <!-- Camera (image_picker uses Android Photo Picker for gallery — no storage permission required) -->
     <uses-permission android:name="android.permission.CAMERA" />
 
+    <!-- Save AR screenshots to the gallery (gal). gal writes via the legacy
+         MediaStore DATA path on API ≤ 29 and scoped RELATIVE_PATH on API 30+,
+         so it needs WRITE_EXTERNAL_STORAGE up to API 29 plus the legacy-storage
+         opt-in on the <application> below (else API-29 saves fail). API 30+
+         drops the permission automatically. ACCESS_MEDIA_LOCATION is NOT
+         declared — it only matters for READING original Exif GPS, and this is a
+         write-only flow (a Play Console restricted-permission risk otherwise). -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" />
+
     <!-- Push notifications. POST_NOTIFICATIONS is the runtime prompt on
          Android 13+; FCM declares the rest of its receiver/service in its
          own manifest. -->
@@ -37,6 +46,12 @@
         install is also a security/UX hazard for an e-commerce app, so we opt
         out of backup entirely rather than chase per-path excludes.
     -->
+    <!--
+        requestLegacyExternalStorage: API 29 only. gal saves AR screenshots via
+        the legacy MediaStore DATA path on API ≤ 29, which needs legacy storage
+        on Android 10; ignored on API 30+ (scoped storage). No other component
+        writes to shared external storage.
+    -->
     <application
         android:name=".MainApplication"
         android:label="Woody"
@@ -45,6 +60,7 @@
         android:supportsRtl="true"
         android:hardwareAccelerated="true"
         android:enableOnBackInvokedCallback="true"
+        android:requestLegacyExternalStorage="true"
         android:allowBackup="false"
         android:fullBackupContent="false"
         android:dataExtractionRules="@xml/data_extraction_rules"

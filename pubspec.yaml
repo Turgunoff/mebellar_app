@@ -106,6 +106,15 @@ dependencies:
   #    scaled true-to-size from the product's real-world dimensions.
   camera: ^0.11.0
   model_viewer_plus: ^1.9.3
+  # Pulled in directly (already transitive via model_viewer_plus) so the buyer
+  # AR viewer can hold a `WebViewController` and run JS against the
+  # <model-viewer> canvas to capture a screenshot for "save to gallery".
+  webview_flutter: ^4.13.0
+  # Save the watermarked AR screenshot straight to the device camera roll.
+  # `gal` is the maintained MediaStore / PHPhotoLibrary plugin (Dart 3) — the
+  # PlatformView (WebView) can't be captured via RepaintBoundary, so the shot
+  # is read from the WebGL canvas instead and written here.
+  gal: ^2.3.2
 
   # Typography — fonts are declared natively under `flutter.fonts` below.
   # The `google_fonts` package was previously used; it's no longer needed

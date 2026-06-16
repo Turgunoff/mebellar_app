@@ -54,9 +54,11 @@ void main() {
       _product(widthCm: 180, heightCm: 90, depthCm: 200, name: 'Krovat'),
     );
 
-    // Product name surfaces in the immersive top bar + share prompt visible.
+    // Product name surfaces in the immersive top bar, the prominent AR launch
+    // CTA is visible, and the save-to-gallery action sits in the top bar.
     expect(find.text('Krovat'), findsOneWidget);
-    expect(find.text(tr('product.ar_share_cta')), findsOneWidget);
+    expect(find.text(tr('product.ar_place_cta')), findsOneWidget);
+    expect(find.byIcon(Icons.save_alt), findsOneWidget);
 
     final viewer = tester.widget<ModelViewer>(find.byType(ModelViewer));
     // 1 scene unit = 1 metre, so cm/100 per axis.

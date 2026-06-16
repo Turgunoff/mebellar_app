@@ -45,6 +45,13 @@ class _FakeWebViewController extends PlatformWebViewController {
     PlatformNavigationDelegate handler,
   ) async {}
 
+  // The buyer AR viewer registers JS channels (screenshot capture + AR-state
+  // feedback); model_viewer_plus wires them through here at controller init.
+  @override
+  Future<void> addJavaScriptChannel(
+    JavaScriptChannelParams javaScriptChannelParams,
+  ) async {}
+
   @override
   Future<void> loadRequest(LoadRequestParams params) async {}
 }

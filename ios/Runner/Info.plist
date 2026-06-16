@@ -16,6 +16,9 @@
 	<string>Mahsulot rasmlari va 3D modelini yaratish uchun rasmga olishda kamera kerak.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Mahsulot rasmlarini yuklash uchun galereyangizdan rasm tanlaysiz.</string>
+	<!-- Write-only Photos access (gal) so the buyer can save the AR screenshot. -->
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>AR ko'rinishidagi mebel suratini galereyangizga saqlash uchun ruxsat kerak.</string>
 	<!-- url_launcher uses canLaunchUrl('tel:'/'mailto:') for the shop "call" and
 	     contact buttons; on iOS canLaunchUrl returns false for any scheme not
 	     listed here, which would silently disable those buttons. -->
