@@ -24,12 +24,19 @@ class PreviewAppBar extends StatelessWidget {
     this.titleOpacity = 0,
     this.extraActions = const [],
     this.onShare,
+    this.galleryOverlay,
   });
 
   final List<String> images;
   final String heroTagPrefix;
   final String productName;
   final double titleOpacity;
+
+  /// Optional widget pinned to the gallery's bottom-right corner (e.g. the
+  /// customer detail screen's "3D / AR" glass badge). Kept generic so this
+  /// shared preview app bar carries no feature knowledge; null on surfaces
+  /// that don't need it (the seller preview).
+  final Widget? galleryOverlay;
 
   /// Toolbar actions rendered to the left of the built-in share button
   /// (e.g. the customer detail screen's favourite toggle). Use
@@ -93,7 +100,11 @@ class PreviewAppBar extends StatelessWidget {
         ),
       ],
       flexibleSpace: FlexibleSpaceBar(
-        background: _ImageGallery(images: images, heroTagPrefix: heroTagPrefix),
+        background: _ImageGallery(
+          images: images,
+          heroTagPrefix: heroTagPrefix,
+          overlay: galleryOverlay,
+        ),
       ),
     );
   }
@@ -157,10 +168,15 @@ class PreviewGlassIconButton extends StatelessWidget {
 }
 
 class _ImageGallery extends StatefulWidget {
-  const _ImageGallery({required this.images, required this.heroTagPrefix});
+  const _ImageGallery({
+    required this.images,
+    required this.heroTagPrefix,
+    this.overlay,
+  });
 
   final List<String> images;
   final String heroTagPrefix;
+  final Widget? overlay;
 
   @override
   State<_ImageGallery> createState() => _ImageGalleryState();
@@ -259,6 +275,8 @@ class _ImageGalleryState extends State<_ImageGallery> {
               ),
             ),
           ),
+        if (widget.overlay != null)
+          Positioned(right: 16, bottom: 16, child: widget.overlay!),
       ],
     );
   }

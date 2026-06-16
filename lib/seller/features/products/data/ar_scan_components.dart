@@ -57,9 +57,7 @@ List<ArScanComponent> resolveArScanComponents({
     if (!DimensionsCard.isDimensionAttribute(def)) continue;
     final axis = _axisOf(def.key);
     if (axis == null) continue;
-    final label = def.labelFor(locale);
-    final dash = label.indexOf('—');
-    final piece = dash == -1 ? label : label.substring(0, dash).trim();
+    final piece = DimensionsCard.pieceLabel(def, locale);
     final bucket = axesByPiece.putIfAbsent(piece, () {
       order.add(piece);
       return <String, int>{};
@@ -78,8 +76,14 @@ List<ArScanComponent> resolveArScanComponents({
   }
 
   // --- Single product: typed columns first, then bare dimension attributes. ---
-  final height = _firstPositive([product.heightCm, product.attributes['height_cm']]);
-  final width = _firstPositive([product.widthCm, product.attributes['width_cm']]);
+  final height = _firstPositive([
+    product.heightCm,
+    product.attributes['height_cm'],
+  ]);
+  final width = _firstPositive([
+    product.widthCm,
+    product.attributes['width_cm'],
+  ]);
   final length = _firstPositive([
     product.lengthCm,
     product.attributes['depth_cm'],

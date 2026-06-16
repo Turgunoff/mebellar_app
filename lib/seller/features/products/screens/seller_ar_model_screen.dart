@@ -3,6 +3,7 @@ import 'package:model_viewer_plus/model_viewer_plus.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
+import '../../../../shared/ar/ar_scale.dart';
 
 /// Seller-side 3D viewer for their own QC-approved `.glb` — the same
 /// `<model-viewer>` the buyer sees, so the seller previews exactly what
@@ -30,20 +31,10 @@ class SellerArModelScreen extends StatelessWidget {
   final num? heightCm;
   final num? depthCm;
 
-  /// Space-separated `x y z` metre multipliers for the `<model-viewer>` `scale`
-  /// attribute, or null when any axis is missing/non-positive (1 scene unit =
-  /// 1 metre, so cm / 100).
-  String? get _scale {
-    final w = widthCm, h = heightCm, d = depthCm;
-    if (w == null || h == null || d == null) return null;
-    if (w <= 0 || h <= 0 || d <= 0) return null;
-    return '${w / 100} ${h / 100} ${d / 100}';
-  }
-
   @override
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
-    final scale = _scale;
+    final scale = arScaleString(widthCm, heightCm, depthCm);
     return Scaffold(
       backgroundColor: c.background,
       appBar: AppBar(

@@ -59,7 +59,7 @@ class DimensionsCard extends StatelessWidget {
                       Expanded(
                         child: _DimensionField(
                           key: ValueKey(groups[g].defs[i].key),
-                          label: _measureLabel(groups[g].defs[i], locale),
+                          label: measureLabel(groups[g].defs[i], locale),
                           value: values[groups[g].defs[i].key],
                           onChanged: (v) => onChanged(groups[g].defs[i].key, v),
                         ),
@@ -88,7 +88,7 @@ class DimensionsCard extends StatelessWidget {
     final order = <String>[];
     final byPiece = <String, List<AttributeDefinition>>{};
     for (final def in defs) {
-      final piece = _pieceLabel(def, locale);
+      final piece = pieceLabel(def, locale);
       byPiece
           .putIfAbsent(piece, () {
             order.add(piece);
@@ -99,13 +99,17 @@ class DimensionsCard extends StatelessWidget {
     return [for (final p in order) _PieceGroup(p, byPiece[p]!)];
   }
 
-  static String _pieceLabel(AttributeDefinition def, String locale) {
+  /// Piece name before the em-dash in a "Piece — measure" dimension label
+  /// (e.g. "Krovat" from "Krovat — uzunligi"). Public so the AR scan resolver
+  /// and the read-only preview share one owner for the label convention.
+  static String pieceLabel(AttributeDefinition def, String locale) {
     final label = def.labelFor(locale);
     final dash = label.indexOf('—');
     return dash == -1 ? label : label.substring(0, dash).trim();
   }
 
-  static String _measureLabel(AttributeDefinition def, String locale) {
+  /// Measure name after the em-dash (e.g. "uzunligi" from "Krovat — uzunligi").
+  static String measureLabel(AttributeDefinition def, String locale) {
     final label = def.labelFor(locale);
     final dash = label.indexOf('—');
     return dash == -1 ? label : label.substring(dash + 1).trim();

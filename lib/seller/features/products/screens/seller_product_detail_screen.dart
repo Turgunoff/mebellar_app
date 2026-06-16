@@ -49,8 +49,15 @@ class SellerProductDetailScreen extends StatefulWidget {
 
 class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
   List<AttributeDefinition> _schema = const [];
+  Future<void>? _schemaFuture;
   final ScrollController _scrollController = ScrollController();
   double _titleOpacity = 0;
+
+  // The product is an immutable snapshot, so a scan kicked off in-session can't
+  // flow back through it. We track the AR status locally and flip it to
+  // `processing` on a successful submit so the card reflects the in-flight scan
+  // (and blocks a second tap) without leaving the screen.
+  late String _arStatus = widget.product.arStatus;
 
   // The product is passed in as a snapshot; archive/restore can change its
   // status without leaving the screen, so we track the live status locally and
@@ -62,7 +69,7 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
   void initState() {
     super.initState();
     _scrollController.addListener(_handleScroll);
-    _loadSchema();
+    _schemaFuture = _loadSchema();
   }
 
   @override
@@ -262,6 +269,13 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
   ///   * no usable dimensions    → route to the edit form to add them,
   ///   * two or more pieces      → ask which one to scan.
   Future<void> _startArScan(SellerProduct product) async {
+    // A set's dimensions live only in the per-piece attribute schema, so resolve
+    // against an empty schema would falsely report "no dimensions". Wait for the
+    // in-flight load (if any) before deciding.
+    if (_schema.isEmpty && _schemaFuture != null) {
+      await _schemaFuture;
+      if (!mounted) return;
+    }
     final components = resolveArScanComponents(
       schema: _schema,
       product: product,
@@ -290,17 +304,22 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
   ) async {
     // Push on the ROOT navigator so the camera covers the seller shell's
     // bottom navigation bar — a scanner must be a fully immersive surface.
-    final submitted = await Navigator.of(context, rootNavigator: true).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => ArScanCameraScreen(
-          productId: productId,
-          heightCm: component.heightCm!,
-          widthCm: component.widthCm!,
-          lengthCm: component.lengthCm!,
-        ),
-      ),
-    );
+    final submitted = await Navigator.of(context, rootNavigator: true)
+        .push<bool>(
+          MaterialPageRoute(
+            builder: (_) => ArScanCameraScreen(
+              productId: productId,
+              heightCm: component.heightCm!,
+              widthCm: component.widthCm!,
+              lengthCm: component.lengthCm!,
+            ),
+          ),
+        );
     if (submitted == true && mounted) {
+      // Optimistically reflect the now-in-flight scan so the card flips to the
+      // `processing` state (spinner + copy, tap disabled) instead of lying about
+      // the idle state and inviting a duplicate scan.
+      setState(() => _arStatus = 'processing');
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
@@ -438,14 +457,29 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
   void _openModelViewer(SellerProduct product) {
     final url = product.arModelUrl;
     if (url == null || url.isEmpty) return;
+    // Prefer the resolver's dims so a set previews true-to-size: a set stores
+    // its dimensions only in per-piece attributes, where the typed columns the
+    // viewer would otherwise read are null. Fall back to the typed columns for
+    // single products.
+    final components = resolveArScanComponents(
+      schema: _schema,
+      product: product,
+    );
+    ArScanComponent? sized;
+    for (final component in components) {
+      if (component.isComplete) {
+        sized = component;
+        break;
+      }
+    }
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => SellerArModelScreen(
           modelUrl: url,
           productName: product.name.get('uz'),
-          widthCm: product.widthCm,
-          heightCm: product.heightCm,
-          depthCm: product.lengthCm,
+          widthCm: sized?.widthCm ?? product.widthCm,
+          heightCm: sized?.heightCm ?? product.heightCm,
+          depthCm: sized?.lengthCm ?? product.lengthCm,
         ),
       ),
     );
@@ -511,6 +545,7 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
                   const SizedBox(height: 14),
                   _ArScanCard(
                     product: product,
+                    arStatus: _arStatus,
                     onScan: () => _startArScan(product),
                     onViewModel: () => _openModelViewer(product),
                   ),
@@ -630,10 +665,8 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
       if (!p.attributes.containsKey(def.key)) continue;
       final value = _renderValue(p.attributes[def.key], def);
       if (value.isEmpty) continue;
-      final label = def.labelFor(locale);
-      final dash = label.indexOf('—');
-      final piece = dash == -1 ? label : label.substring(0, dash).trim();
-      final measure = dash == -1 ? label : label.substring(dash + 1).trim();
+      final piece = form_dims.DimensionsCard.pieceLabel(def, locale);
+      final measure = form_dims.DimensionsCard.measureLabel(def, locale);
       byPiece
           .putIfAbsent(piece, () {
             order.add(piece);
@@ -718,20 +751,27 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
 class _ArScanCard extends StatelessWidget {
   const _ArScanCard({
     required this.product,
+    required this.arStatus,
     required this.onScan,
     required this.onViewModel,
   });
 
   final SellerProduct product;
+
+  /// The live AR status — the screen tracks it locally (it flips to
+  /// `processing` on an in-session scan), so the card reads this rather than
+  /// the immutable `product.arStatus` snapshot. The reason text still comes
+  /// from [product] (only meaningful for the failed/rejected snapshot).
+  final String arStatus;
   final VoidCallback onScan;
   final VoidCallback onViewModel;
 
   @override
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
-    final state = _arState(product.arStatus);
-    final fb = _feedback(product);
-    final isApproved = product.arStatus == 'approved';
+    final state = _arState(arStatus);
+    final fb = _feedback();
+    final isApproved = arStatus == 'approved';
     // The whole card only taps in the idle state; every other actionable state
     // owns an explicit button, so there's never a hidden second affordance.
     final cardTappable = state.canScan && fb == null && !isApproved;
@@ -749,7 +789,7 @@ class _ArScanCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  _ArIconBadge(status: product.arStatus, color: state.color),
+                  _ArIconBadge(status: arStatus, color: state.color),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(
@@ -900,28 +940,28 @@ class _ArScanCard extends StatelessWidget {
   }
 
   /// The feedback note + retry CTA for a terminal failure state, or null
-  /// when the current `ar_status` carries no seller-actionable feedback.
-  _ArFeedback? _feedback(SellerProduct p) {
-    switch (p.arStatus) {
+  /// when the current AR status carries no seller-actionable feedback. Both
+  /// terminal states always return a note (with an Uzbek fallback) so the retry
+  /// button always renders — the card subtitle promises a reason, so there must
+  /// be one to show.
+  _ArFeedback? _feedback() {
+    switch (arStatus) {
       case 'failed':
         return _ArFeedback(
           title: 'Skan xatosi',
-          // arErrorReason is meaningful only while failed; keep a clear
-          // Uzbek fallback so the note is never empty.
-          reason: p.arErrorReason?.trim().isNotEmpty == true
-              ? p.arErrorReason!.trim()
+          reason: product.arErrorReason?.trim().isNotEmpty == true
+              ? product.arErrorReason!.trim()
               : 'Skan amalga oshmadi',
           accent: AppColors.sellerNegative,
         );
       case 'rejected':
-        if (p.arRejectionReason?.trim().isNotEmpty ?? false) {
-          return _ArFeedback(
-            title: 'Rad etish sababi',
-            reason: p.arRejectionReason!.trim(),
-            accent: AppColors.terracotta,
-          );
-        }
-        return null;
+        return _ArFeedback(
+          title: 'Rad etish sababi',
+          reason: product.arRejectionReason?.trim().isNotEmpty == true
+              ? product.arRejectionReason!.trim()
+              : 'Model rad etildi',
+          accent: AppColors.terracotta,
+        );
       default:
         return null;
     }
@@ -994,7 +1034,8 @@ _ArCardState _arState(String arStatus) {
       );
     default:
       return const _ArCardState(
-        subtitle: 'Mahsulotni 3 ta burchakdan rasmga oling — AI 3D model yasaydi.',
+        subtitle:
+            'Mahsulotni 3 ta burchakdan rasmga oling — AI 3D model yasaydi.',
         canScan: true,
       );
   }
@@ -1069,9 +1110,7 @@ class _ComponentTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      enabled
-                          ? component.summary
-                          : 'O‘lchamlar to‘liq emas',
+                      enabled ? component.summary : 'O‘lchamlar to‘liq emas',
                       style: TextStyle(
                         fontFamily: AppFonts.seller,
                         fontSize: 12.5,
@@ -1115,7 +1154,10 @@ class _ArIconBadge extends StatelessWidget {
           ),
         );
       case 'pending_review':
-        return _ArIconBox(color: color, child: Icon(Icons.schedule, color: color));
+        return _ArIconBox(
+          color: color,
+          child: Icon(Icons.schedule, color: color),
+        );
       case 'approved':
         return _ArIconBox(
           color: color,

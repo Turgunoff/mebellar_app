@@ -124,10 +124,7 @@ class _ArScanCameraScreenState extends State<ArScanCameraScreen>
         }
         if (samples.length >= 5 && !done.isCompleted) done.complete();
       });
-      await done.future.timeout(
-        const Duration(seconds: 1),
-        onTimeout: () {},
-      );
+      await done.future.timeout(const Duration(seconds: 1), onTimeout: () {});
       await controller.stopImageStream();
       if (samples.isNotEmpty) {
         final avg = samples.reduce((a, b) => a + b) / samples.length;
@@ -188,15 +185,15 @@ class _ArScanCameraScreenState extends State<ArScanCameraScreen>
   void _acceptShot() {
     final shot = _pendingShot;
     if (shot == null) return;
-    _shots.add(shot);
-    _pendingShot = null;
-    if (_shots.length >= ArScanCameraScreen.requiredShots) {
-      // Dimensions came in with the route — the last shot goes straight to
-      // upload, no manual measurement step.
-      _submit();
-    } else {
-      setState(() => _stage = _WizardStage.capture);
-    }
+    final isLast = _shots.length + 1 >= ArScanCameraScreen.requiredShots;
+    setState(() {
+      _shots.add(shot);
+      _pendingShot = null;
+      if (!isLast) _stage = _WizardStage.capture;
+    });
+    // Dimensions came in with the route — the last shot goes straight to
+    // upload, no manual measurement step. _submit drives its own setState.
+    if (isLast) _submit();
   }
 
   Future<void> _submit() async {
@@ -251,18 +248,24 @@ class _ArScanCameraScreenState extends State<ArScanCameraScreen>
     }
     // compressWithFile returned null at every step (unreadable / unsupported) —
     // fall back to the raw bytes so the scan can still proceed.
-    return Uint8List.fromList(
-      await XFile(path).readAsBytes(),
-    );
+    return Uint8List.fromList(await XFile(path).readAsBytes());
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    final c = _controller;
-    if (c == null || !c.value.isInitialized) return;
     if (state == AppLifecycleState.inactive) {
-      c.dispose();
-      _controller = null;
+      // Free the camera while backgrounded (an app switch / incoming call).
+      final c = _controller;
+      if (c != null && c.value.isInitialized) {
+        c.dispose();
+        _controller = null;
+      }
+    } else if (state == AppLifecycleState.resumed) {
+      // Re-acquire it on return — without this the FutureBuilder would sit on a
+      // spinner forever (the original _setup future is already complete).
+      if (_controller == null && _error == null && mounted) {
+        setState(() => _initFuture = _setup());
+      }
     }
   }
 
@@ -275,64 +278,75 @@ class _ArScanCameraScreenState extends State<ArScanCameraScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: FutureBuilder<void>(
-        future: _initFuture,
-        builder: (context, snapshot) {
-          if (_error != null) {
-            return _ErrorView(message: _error!);
-          }
-          final c = _controller;
-          if (c == null || !c.value.isInitialized) {
-            return const Center(
-              child: CircularProgressIndicator(color: AppColors.terracotta),
-            );
-          }
-          final inReview =
-              _stage == _WizardStage.review && _pendingShot != null;
-          final inCapture = _stage == _WizardStage.capture &&
-              _shots.length < ArScanCameraScreen.requiredShots;
-          return Stack(
-            fit: StackFit.expand,
-            children: [
-              if (inReview)
-                _ShotPreview(path: _pendingShot!.path)
-              else
-                _FullBleedPreview(controller: c),
+    return PopScope(
+      // Block back while the upload is in flight so a stray system-back / edge
+      // swipe can't abandon the scan with no confirmation (the photos are
+      // already compressing + uploading). The error overlay has its own close.
+      canPop: !_submitting,
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: FutureBuilder<void>(
+          future: _initFuture,
+          builder: (context, snapshot) {
+            if (_error != null) {
+              return _ErrorView(message: _error!);
+            }
+            final c = _controller;
+            if (c == null || !c.value.isInitialized) {
+              return const Center(
+                child: CircularProgressIndicator(color: AppColors.terracotta),
+              );
+            }
+            final inReview =
+                _stage == _WizardStage.review && _pendingShot != null;
+            final inCapture =
+                _stage == _WizardStage.capture &&
+                _shots.length < ArScanCameraScreen.requiredShots;
+            return Stack(
+              fit: StackFit.expand,
+              children: [
+                if (inReview)
+                  _ShotPreview(path: _pendingShot!.path)
+                else
+                  _FullBleedPreview(controller: c),
 
-              if (inCapture) ...[
-                _GuideLabel(text: _guides[_shots.length]),
-                _TopBar(
-                  torchOn: _torchOn,
-                  onClose: () => Navigator.of(context).maybePop(),
-                  onToggleTorch: _toggleTorch,
-                ),
-                _ProgressDots(
-                  total: ArScanCameraScreen.requiredShots,
-                  done: _shots.length,
-                ),
-                _ShutterButton(busy: _capturing, onTap: _capture),
+                if (inCapture) ...[
+                  _GuideLabel(text: _guides[_shots.length]),
+                  _TopBar(
+                    torchOn: _torchOn,
+                    onClose: () => Navigator.of(context).maybePop(),
+                    onToggleTorch: _toggleTorch,
+                  ),
+                  _ProgressDots(
+                    total: ArScanCameraScreen.requiredShots,
+                    done: _shots.length,
+                  ),
+                  _ShutterButton(busy: _capturing, onTap: _capture),
+                ],
+
+                if (inReview)
+                  _ReviewControls(
+                    isLast:
+                        _shots.length == ArScanCameraScreen.requiredShots - 1,
+                    onRetake: _retake,
+                    onNext: _acceptShot,
+                  ),
+
+                // AbsorbPointer so taps can't reach the shutter/controls beneath
+                // while the upload runs.
+                if (_submitting)
+                  const AbsorbPointer(child: _GeneratingOverlay()),
+
+                if (_submitError != null)
+                  _SubmitErrorOverlay(
+                    message: _submitError!,
+                    onRetry: _submit,
+                    onClose: () => Navigator.of(context).maybePop(),
+                  ),
               ],
-
-              if (inReview)
-                _ReviewControls(
-                  isLast: _shots.length == ArScanCameraScreen.requiredShots - 1,
-                  onRetake: _retake,
-                  onNext: _acceptShot,
-                ),
-
-              if (_submitting) const _GeneratingOverlay(),
-
-              if (_submitError != null)
-                _SubmitErrorOverlay(
-                  message: _submitError!,
-                  onRetry: _submit,
-                  onClose: () => Navigator.of(context).maybePop(),
-                ),
-            ],
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
@@ -752,7 +766,11 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.photo_camera_back, color: Colors.white70, size: 40),
+            const Icon(
+              Icons.photo_camera_back,
+              color: Colors.white70,
+              size: 40,
+            ),
             const SizedBox(height: 12),
             const Text(
               'Kamerani ochib bo‘lmadi. Ruxsatlarni tekshiring.',
