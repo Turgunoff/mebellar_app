@@ -285,19 +285,29 @@ class _TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _GlassButton(icon: Icons.close, onTap: onClose),
-            _GlassButton(
-              icon: torchOn ? Icons.flash_on : Icons.flash_off,
-              active: torchOn,
-              onTap: onToggleTorch,
-            ),
-          ],
+    // Pin to the absolute top — close on the left, torch on the right.
+    // Anchoring with Positioned (instead of a full-bleed SafeArea child) stops
+    // the Row from centering itself vertically in the expand Stack; SafeArea
+    // keeps the controls clear of the notch / Dynamic Island / status bar.
+    return Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _GlassButton(icon: Icons.close, onTap: onClose),
+              _GlassButton(
+                icon: torchOn ? Icons.flash_on : Icons.flash_off,
+                active: torchOn,
+                onTap: onToggleTorch,
+              ),
+            ],
+          ),
         ),
       ),
     );
