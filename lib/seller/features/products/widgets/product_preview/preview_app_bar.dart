@@ -276,7 +276,14 @@ class _ImageGalleryState extends State<_ImageGallery> {
             ),
           ),
         if (widget.overlay != null)
-          Positioned(right: 16, bottom: 16, child: widget.overlay!),
+          // Lift clear of the centred page-dot strip (also at bottom:16) when a
+          // multi-image gallery shows it, so the two never crowd on image-rich
+          // products / narrow screens.
+          Positioned(
+            right: 16,
+            bottom: imgs.length > 1 ? 44 : 16,
+            child: widget.overlay!,
+          ),
       ],
     );
   }

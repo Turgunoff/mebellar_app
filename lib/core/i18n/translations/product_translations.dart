@@ -2,16 +2,16 @@
 
 const Map<String, dynamic> productUz = {
   'description': 'Tavsif',
-  'view_in_ar': 'Xonada ko\'rish (AR)',
-  'ar_viewer_title': '3D ko\'rinish',
   'ar_badge': '3D / AR',
   'ar_card_title': 'Xonangizga qo\'yib ko\'ring',
   'ar_card_subtitle':
       'AI yordamida mebelni o\'z uyingizda haqiqiy o\'lchamda ko\'ring.',
+  'ar_card_subtitle_plain':
+      'AI yordamida mebelni o\'z uyingizda ko\'rib chiqing.',
   'ar_cta': 'AR da ko\'rish',
   'ar_true_scale': 'Haqiqiy o\'lcham',
-  'ar_share_hint':
-      'Mebelni xonangizga qo\'ying va rasmga olib yaqinlaringizga yuboring! 📸',
+  'ar_tap_hint':
+      'Haqiqiy o\'lchamda ko\'rish uchun ekrandagi 🔲 AR tugmasini bosing.',
   'ar_share_cta': 'Ulashish',
   'attributes': 'Xususiyatlar',
   'show_more': 'Ko\'proq ko\'rish',
@@ -36,15 +36,15 @@ const Map<String, dynamic> productUz = {
 
 const Map<String, dynamic> productRu = {
   'description': 'Описание',
-  'view_in_ar': 'Посмотреть в комнате (AR)',
-  'ar_viewer_title': '3D просмотр',
   'ar_badge': '3D / AR',
   'ar_card_title': 'Поставьте в своей комнате',
   'ar_card_subtitle':
       'С помощью AI посмотрите мебель у себя дома в реальном размере.',
+  'ar_card_subtitle_plain': 'С помощью AI рассмотрите мебель у себя дома.',
   'ar_cta': 'Смотреть в AR',
   'ar_true_scale': 'Реальный размер',
-  'ar_share_hint': 'Разместите мебель в комнате и отправьте фото близким! 📸',
+  'ar_tap_hint':
+      'Чтобы увидеть в реальном размере, нажмите кнопку 🔲 AR на экране.',
   'ar_share_cta': 'Поделиться',
   'attributes': 'Характеристики',
   'show_more': 'Показать больше',
@@ -69,16 +69,15 @@ const Map<String, dynamic> productRu = {
 
 const Map<String, dynamic> productEn = {
   'description': 'Description',
-  'view_in_ar': 'View in your room (AR)',
-  'ar_viewer_title': '3D preview',
   'ar_badge': '3D / AR',
   'ar_card_title': 'See it in your room',
   'ar_card_subtitle':
       'Use AI to view the furniture at true size right in your home.',
+  'ar_card_subtitle_plain':
+      'Use AI to preview the furniture right in your home.',
   'ar_cta': 'View in AR',
   'ar_true_scale': 'True size',
-  'ar_share_hint':
-      'Place the furniture in your room and share a photo with friends! 📸',
+  'ar_tap_hint': 'To see it at true size, tap the 🔲 AR button on the screen.',
   'ar_share_cta': 'Share',
   'attributes': 'Specifications',
   'show_more': 'Show more',

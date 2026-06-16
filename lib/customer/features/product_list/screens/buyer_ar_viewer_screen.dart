@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
@@ -12,17 +10,19 @@ import '../../../../shared/ar/ar_scale.dart';
 import '../../../../shared/models/product_model.dart';
 import '../../../../shared/sharing/product_share.dart';
 
-/// Studio backdrop behind the (transparent) model — a near-black radial pool
-/// that makes the lit `.glb` pop and reads as a premium product stage. Fixed
-/// in both light & dark: the AR viewer is its own immersive surface, not a
-/// themed page, so the backdrop never flips.
-const Color _kStudioTop = Color(0xFF26242C);
-const Color _kStudioBottom = Color(0xFF0D0C10);
+/// Clean light "showroom" backdrop behind the model — a flat, premium
+/// e-commerce stage (think IKEA/Wayfair) rather than a dark void. Fixed in both
+/// light & dark: the AR viewer is its own immersive surface, not a themed page,
+/// so the backdrop never flips. The model's own contact shadow + neutral IBL
+/// ground it on the light stage.
+const Color _kViewerBg = Color(0xFFF4F5F7);
+const Color _kInk = Color(0xFF17171C);
 
 /// Immersive, full-screen buyer 3D / AR viewer for an approved `.glb`. Wraps
 /// `<model-viewer>` with AR ("view in your room"), idle auto-rotate, and full
-/// rotate/zoom controls over a dark studio stage, plus an engaging share
-/// prompt that drives the "place it → photograph it → send it" viral loop.
+/// rotate/zoom controls over a clean light stage, plus a prompt that points the
+/// buyer at the model-viewer native AR button and a share CTA for the
+/// "place it → photograph it → send it" viral loop.
 ///
 /// When the product's real dimensions are known the model is rendered
 /// true-to-size in AR ([ArScale.fixed] + a per-axis `scale`): Meshy normalises
@@ -44,26 +44,20 @@ class BuyerArViewerScreen extends StatelessWidget {
     final bottomInset = MediaQuery.of(context).padding.bottom;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      // Light status-bar glyphs read against the dark studio stage.
-      value: SystemUiOverlayStyle.light.copyWith(
+      // Dark glyphs now read against the light stage.
+      value: SystemUiOverlayStyle.dark.copyWith(
         statusBarColor: Colors.transparent,
-        systemNavigationBarColor: _kStudioBottom,
+        systemNavigationBarColor: _kViewerBg,
+        systemNavigationBarIconBrightness: Brightness.dark,
       ),
       child: Scaffold(
-        backgroundColor: _kStudioBottom,
+        backgroundColor: _kViewerBg,
         extendBodyBehindAppBar: true,
         body: Stack(
           children: [
-            const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  center: Alignment(0, -0.3),
-                  radius: 1.15,
-                  colors: [_kStudioTop, _kStudioBottom],
-                ),
-              ),
-              child: SizedBox.expand(),
-            ),
+            // Solid light base — keeps the surface clean (never a black flash)
+            // while the model streams in or if the WebView is slow.
+            const ColoredBox(color: _kViewerBg, child: SizedBox.expand()),
             Positioned.fill(
               child: ModelViewer(
                 src: product.arModelUrl!,
@@ -85,20 +79,24 @@ class BuyerArViewerScreen extends StatelessWidget {
                 cameraControls: true,
                 // Neutral IBL gives the model even, showroom-style lighting.
                 environmentImage: 'neutral',
-                // A grounded contact shadow sells the "it's really here" feel.
+                // A grounded contact shadow sells the "it's really here" feel
+                // and reads cleanly on the light stage.
                 shadowIntensity: 1,
-                // Transparent so the studio gradient shows through behind the
-                // model instead of a flat fill.
-                backgroundColor: Colors.transparent,
+                // Solid light fill — the model-viewer's own AR button (bottom
+                // right) and chrome stay visible against it.
+                backgroundColor: _kViewerBg,
                 loading: Loading.eager,
               ),
             ),
             _TopBar(productName: product.name, trueScale: scale != null),
+            // Instruction sits centred well above the bottom edge; the FAB is
+            // centred too. The bottom-RIGHT corner is left deliberately free so
+            // the model-viewer native AR button is never overlapped.
             Positioned(
               left: 20,
               right: 20,
-              bottom: bottomInset + 92,
-              child: const Center(child: _ShareHintCard()),
+              bottom: bottomInset + 96,
+              child: const Center(child: _ArHintCard()),
             ),
           ],
         ),
@@ -107,7 +105,7 @@ class BuyerArViewerScreen extends StatelessWidget {
           onPressed: () => shareProduct(product),
           backgroundColor: AppColors.terracotta,
           foregroundColor: Colors.white,
-          elevation: 6,
+          elevation: 4,
           icon: const Icon(Iconsax.share, size: 20),
           label: Text(
             tr('product.ar_share_cta'),
@@ -124,9 +122,9 @@ class BuyerArViewerScreen extends StatelessWidget {
   }
 }
 
-/// Top overlay: a frosted back button, the product name, and a true-scale chip
-/// when the model renders at real dimensions. Sits above the model on the dark
-/// stage, so its glass + ink are fixed-for-dark (not theme-driven).
+/// Top overlay: a back button, the product name, and a true-scale chip when the
+/// model renders at real dimensions. Restyled for the light stage — solid
+/// surfaces + ink, fixed-for-light (not theme-driven).
 class _TopBar extends StatelessWidget {
   const _TopBar({required this.productName, required this.trueScale});
 
@@ -140,7 +138,7 @@ class _TopBar extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
         child: Row(
           children: [
-            _GlassCircleButton(
+            _CircleIconButton(
               icon: Iconsax.arrow_left_2,
               onTap: () => Navigator.of(context).maybePop(),
             ),
@@ -155,7 +153,7 @@ class _TopBar extends StatelessWidget {
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -0.2,
-                  color: Colors.white,
+                  color: _kInk,
                 ),
               ),
             ),
@@ -170,32 +168,30 @@ class _TopBar extends StatelessWidget {
   }
 }
 
-/// Frosted dark-glass circular icon button — reads on the studio backdrop.
-class _GlassCircleButton extends StatelessWidget {
-  const _GlassCircleButton({required this.icon, required this.onTap});
+/// Solid white circular icon button with a soft shadow — reads cleanly on the
+/// light stage (was dark glass on the old black backdrop).
+class _CircleIconButton extends StatelessWidget {
+  const _CircleIconButton({required this.icon, required this.onTap});
 
   final IconData icon;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return ClipOval(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: Material(
-          color: Colors.white.withValues(alpha: 0.14),
-          shape: const CircleBorder(
-            side: BorderSide(color: Colors.white24, width: 1),
-          ),
-          child: InkWell(
-            onTap: onTap,
-            customBorder: const CircleBorder(),
-            child: SizedBox(
-              width: 42,
-              height: 42,
-              child: Icon(icon, size: 20, color: Colors.white),
-            ),
-          ),
+    return Material(
+      color: Colors.white,
+      shape: const CircleBorder(
+        side: BorderSide(color: Color(0x14000000), width: 1),
+      ),
+      elevation: 2,
+      shadowColor: const Color(0x22000000),
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: SizedBox(
+          width: 42,
+          height: 42,
+          child: Icon(icon, size: 20, color: _kInk),
         ),
       ),
     );
@@ -212,7 +208,7 @@ class _TrueScaleChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
       decoration: BoxDecoration(
-        color: AppColors.terracotta.withValues(alpha: 0.92),
+        color: AppColors.terracotta,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
@@ -235,36 +231,49 @@ class _TrueScaleChip extends StatelessWidget {
   }
 }
 
-/// Bottom glass card with the playful "place it → photograph it → send it"
-/// prompt. The actual share affordance is the FAB below it.
-class _ShareHintCard extends StatelessWidget {
-  const _ShareHintCard();
+/// Light instruction card pointing the buyer at the model-viewer native AR
+/// button (bottom-right of the canvas). White surface + soft shadow + ink so it
+/// reads on the clean stage; constrained width so it never reaches the bottom-
+/// right corner where the AR button lives.
+class _ArHintCard extends StatelessWidget {
+  const _ArHintCard();
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(18),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.white24, width: 1),
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 340),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0x0F000000), width: 1),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x1A000000),
+            blurRadius: 18,
+            offset: Offset(0, 6),
           ),
-          child: Text(
-            tr('product.ar_share_hint'),
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontFamily: AppFonts.body,
-              fontSize: 13.5,
-              height: 1.35,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Iconsax.box, size: 20, color: AppColors.terracotta),
+          const SizedBox(width: 10),
+          Flexible(
+            child: Text(
+              tr('product.ar_tap_hint'),
+              textAlign: TextAlign.start,
+              style: const TextStyle(
+                fontFamily: AppFonts.body,
+                fontSize: 13.5,
+                height: 1.35,
+                fontWeight: FontWeight.w600,
+                color: _kInk,
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

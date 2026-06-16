@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    model_viewer_plus renders <model-viewer> inside a WebView whose HTML is
+    served from a local loopback HTTP server (http://127.0.0.1:<port>/). On
+    Android 9+ (API 28) cleartext is blocked by default, so that navigation
+    fails with net::ERR_CLEARTEXT_NOT_PERMITTED and the 3D/AR viewer shows a
+    blank/error page. Permit cleartext ONLY to loopback — every real network
+    call (api.woody.uz, R2, the .glb itself) stays HTTPS-only via base-config.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">127.0.0.1</domain>
+        <domain includeSubdomains="false">localhost</domain>
+    </domain-config>
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>

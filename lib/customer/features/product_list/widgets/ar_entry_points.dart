@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
+import '../../../../shared/ar/ar_scale.dart';
 import '../../../../shared/models/product_model.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../screens/buyer_ar_viewer_screen.dart';
@@ -76,7 +77,10 @@ class ArGlassBadge extends StatelessWidget {
                     fontSize: 12.5,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 0.3,
-                    color: Color(0xFF1D1D1D),
+                    // Fixed dark ink on the fixed white glass over the photo —
+                    // shared with PreviewGlassIconButton (overlay-on-photo
+                    // exception to the theming rule), so reuse the same token.
+                    color: AppColors.sellerInk,
                   ),
                 ),
               ],
@@ -145,6 +149,12 @@ class ArPromoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    // The viewer only locks AR to true size when all three dimensions are
+    // known (arScaleString != null). Match the card's promise to that so it
+    // never claims "true size" for a model that renders unscaled.
+    final trueScale =
+        arScaleString(product.widthCm, product.heightCm, product.depthCm) !=
+        null;
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -153,7 +163,7 @@ class ArPromoCard extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: isDark
               ? [AppColors.terracotta.withValues(alpha: 0.22), pt.surface]
-              : [const Color(0xFFFBEEE8), Colors.white],
+              : [const Color(0xFFFBEEE8), pt.surface],
         ),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
@@ -196,7 +206,11 @@ class ArPromoCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 5),
                       Text(
-                        tr('product.ar_card_subtitle'),
+                        tr(
+                          trueScale
+                              ? 'product.ar_card_subtitle'
+                              : 'product.ar_card_subtitle_plain',
+                        ),
                         style: TextStyle(
                           fontFamily: AppFonts.seller,
                           fontSize: 12.5,
