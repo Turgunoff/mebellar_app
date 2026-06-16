@@ -69,9 +69,10 @@ void registerSellerModule(GetIt sl) {
     ),
   );
 
-  // AR scan upload (Video-to-3D) — dedicated endpoint, reuses the R2 PUT.
+  // AR scan upload (Photos-to-3D) — guided 3-photo capture, uploads to the
+  // public product-images bucket then POSTs the URLs to the dedicated endpoint.
   sl.registerLazySingleton<ArScanRepository>(
-    () => ArScanRepository(
+    () => WoodyArScanRepository(
       api: sl<WoodyApiClient>(),
       uploads: sl<R2UploadClient>(),
     ),

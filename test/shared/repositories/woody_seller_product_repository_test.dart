@@ -36,13 +36,22 @@ class _FakeAdapter implements HttpClientAdapter {
   }
 }
 
-Map<String, dynamic> _row(String id, {String status = 'approved'}) => {
+Map<String, dynamic> _row(
+  String id, {
+  String status = 'approved',
+  String arStatus = 'none',
+  String? arErrorReason,
+  String? arRejectionReason,
+}) => {
       'id': id,
       'name': 'Divan',
       'price': 100000,
       'status': status,
       'sku': 'SKU1',
       'created_at': '2026-01-01T00:00:00Z',
+      'ar_status': arStatus,
+      if (arErrorReason != null) 'ar_error_reason': arErrorReason,
+      if (arRejectionReason != null) 'ar_rejection_reason': arRejectionReason,
     };
 
 void main() {
@@ -112,6 +121,49 @@ void main() {
     final call = h.adapter.calls.single;
     expect(call.method, 'POST');
     expect(call.uri.path, endsWith('/seller/products/sp1/archive'));
+  });
+
+  test('maps ar_error_reason + ar_status=failed into the model', () async {
+    final h = make(
+      (_) => (
+        200,
+        jsonEncode({
+          'rows': [
+            _row(
+              'sp1',
+              arStatus: 'failed',
+              arErrorReason: 'Meshy task failed',
+            ),
+          ],
+          'total': 1,
+        }),
+      ),
+    );
+
+    final product = (await h.repo.list()).items.single;
+
+    expect(product.arStatus, 'failed');
+    expect(product.arErrorReason, 'Meshy task failed');
+    // The failed product is re-scannable — hasArScan stays true so the
+    // detail card renders the feedback + "Qayta skanlash" CTA.
+    expect(product.hasArScan, isTrue);
+  });
+
+  test('blank ar_error_reason maps to null', () async {
+    final h = make(
+      (_) => (
+        200,
+        jsonEncode({
+          'rows': [_row('sp1', arStatus: 'failed', arErrorReason: '   ')],
+          'total': 1,
+        }),
+      ),
+    );
+
+    final product = (await h.repo.list()).items.single;
+
+    expect(product.arStatus, 'failed');
+    expect(product.arErrorReason, isNull);
   });
 
   test('restore POSTs the restore endpoint', () async {
