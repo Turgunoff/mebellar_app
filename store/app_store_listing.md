@@ -125,7 +125,7 @@ mebel,divan,stol,stul,shkaf,karavot,mebel xarid,interyer,yetkazish,dokon,woody,t
 |--------|--------|
 | **URL службы поддержки** (Support URL) | https://woody.uz |
 | **Маркетинг URL** (Marketing URL) | https://woody.uz *(ixtiyoriy)* |
-| **Privacy Policy URL** | ⚠️ KERAK — pastdagi eslatmaga qarang |
+| **Privacy Policy URL** | https://woody.uz/uz/privacy |
 | **Версия** (Version) | 1.0.15 |
 | **Авторские права** (Copyright · ≤200) | © 2026 Woody. Все права защищены. |
 
@@ -166,12 +166,71 @@ v1.0.15
 
 ---
 
-## 9. OCHIQ MASALALAR (review oldidan hal qilinishi kerak)
+## 9. ИНФОРМАЦИЯ ДЛЯ ПРОВЕРКИ (App Review Information)
 
-1. **Privacy Policy URL — MAJBURIY.** Apple "App Privacy" bo'limi privacy
-   siyosatining ishlaydigan URL'ini so'raydi. Hozir `store/privacy_policy.md`
-   bor, lekin hostlanmagan. woody.uz'ga `/privacy` (yoki `/[locale]/privacy`)
-   sahifasi qo'shilishi kerak — woody_frontend'da hozircha bunday sahifa yo'q.
+### Информация для входа (Sign-In Information)
+**"Необходимо войти" — belgilang (✅).** Woody login = telefon + bir martalik
+SMS kod (parolsiz). Reviewer SMS ololmaydi, shuning uchun woody_backend'da
+**review uchun test-raqam + doimiy kod** sozlangan (env orqali):
+
+| Maydon | Qiymat |
+|--------|--------|
+| **Имя пользователя** (Username) | +998901234567 |
+| **Пароль** (Password) | 12345 |
+
+> Bu qiymatlar woody_backend env'idagi `REVIEW_TEST_PHONE` / `REVIEW_TEST_OTP`
+> bilan **bir xil bo'lishi shart**. Prod `.env`'ga qo'ying:
+> ```
+> REVIEW_TEST_PHONE=+998901234567
+> REVIEW_TEST_OTP=12345
+> ```
+> Bypass faqat shu raqam uchun ishlaydi, oddiy mijoz profili yaratiladi (admin
+> emas), Apple tasdiqlagach env'dan o'chirsangiz ham bo'ladi.
+
+### Контактная информация (Contact Information)
+| Maydon | Qiymat |
+|--------|--------|
+| **Имя / Фамилия** | *(ilova egasining ism-familiyasi)* |
+| **Номер телефона** | +998 94 643 37 33 |
+| **E-mail** | info@woody.uz |
+
+### Примечания (Notes · ≤4000) — inglizcha tavsiya etiladi
+```
+Woody is a furniture marketplace for Uzbekistan. One app contains two modes:
+Customer (browse catalog, cart, checkout, order tracking, in-app chat) and
+Seller (manage products and orders).
+
+Most of the app — catalog, search, product details — works WITHOUT login.
+Sign-in is required only for cart/checkout, order history, profile and the
+seller area.
+
+LOGIN IS PASSWORDLESS (phone + one-time SMS code). For this review we set up a
+test phone number with a FIXED code:
+  • Phone (Username field): +998 90 123 45 67
+  • Fixed code (Password field): 12345
+On the first auth screen enter the phone number, tap Continue, then type the
+fixed code 12345 to log in.
+
+The app supports Uzbek and Russian (switch in profile). Payments are cash on
+delivery or card — no real charge happens during review.
+
+For any issue please contact info@woody.uz.
+```
+
+### Вложение (Attachment)
+Ixtiyoriy — bo'sh qoldiring.
+
+### Релиз версии (App Store release)
+**"Выпустить вручную"** (qo'lda) tavsiya etiladi — review tasdiqlangach o'zingiz
+tugma bosib chiqarasiz.
+
+---
+
+## 10. OCHIQ MASALALAR (review oldidan hal qilinishi kerak)
+
+1. **Privacy Policy URL — TAYYOR.** woody_frontend'ga trilingual `/privacy`
+   sahifasi qo'shilib deploy qilindi. App Privacy bo'limiga qo'ying:
+   **https://woody.uz/uz/privacy** (deploy tugagach ochilishini tekshiring).
 
 2. **Support URL ishlashi shart.** https://woody.uz ochilib, footer'da
    kontaktlar (telefon/email/Telegram) ko'rinishi kerak — Apple review buni
