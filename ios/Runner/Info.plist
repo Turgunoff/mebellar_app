@@ -14,18 +14,27 @@
 	<string>Manzilingizni xaritada belgilash uchun joriy joylashuvingiz kerak.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Mahsulot rasmlari va 3D modelini yaratish uchun rasmga olishda kamera kerak.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Kamera yordamida video yozib olish uchun mikrofonga ruxsat berishingiz kerak.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Mahsulot rasmlarini yuklash uchun galereyangizdan rasm tanlaysiz.</string>
 	<!-- Write-only Photos access (gal) so the buyer can save the AR screenshot. -->
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>AR ko'rinishidagi mebel suratini galereyangizga saqlash uchun ruxsat kerak.</string>
-	<!-- url_launcher uses canLaunchUrl('tel:'/'mailto:') for the shop "call" and
-	     contact buttons; on iOS canLaunchUrl returns false for any scheme not
-	     listed here, which would silently disable those buttons. -->
+	<!-- Required for Firebase Cloud Messaging background message processing. -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
+	<!-- url_launcher uses canLaunchUrl('tel:'/'mailto:'/'https:') for the shop "call",
+	     email, and chat support buttons; on iOS canLaunchUrl returns false for any
+	     scheme not listed here, which would silently disable those buttons. -->
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>tel</string>
 		<string>mailto</string>
+		<string>https</string>
+		<string>http</string>
 	</array>
 	<!-- The app uses only standard HTTPS (exempt encryption); declaring this
 	     skips the export-compliance prompt on every App Store / TestFlight upload. -->
