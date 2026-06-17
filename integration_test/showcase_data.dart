@@ -207,16 +207,38 @@ final List<ProductModel> showcaseProducts = [
 
 class ShowcaseProductDataSource extends ProductDataSource {
   @override
-  Future<List<ProductModel>> listAll({int limit = 10}) async =>
-      showcaseProducts.take(limit).toList();
-
-  @override
-  Future<List<ProductModel>> listByCategory({
+  Future<ProductFeedPage> listByCategory({
     required String categoryId,
     String? subcategoryId,
     ProductSearchFilter filter = const ProductSearchFilter(),
-  }) async =>
-      showcaseProducts.where((p) => p.categoryId == categoryId).toList();
+    int limit = kCategoryPageSize,
+    int offset = 0,
+  }) async {
+    final results =
+        showcaseProducts.where((p) => p.categoryId == categoryId).toList();
+    final page = results.skip(offset).take(limit).toList(growable: false);
+    return ProductFeedPage(items: page, total: results.length);
+  }
+
+  @override
+  Future<ProductFeedPage> listFeed({
+    int limit = kHomeFeedPageSize,
+    int offset = 0,
+    HomeFeedSort sort = HomeFeedSort.recommended,
+  }) async {
+    final sorted = [...showcaseProducts];
+    switch (sort) {
+      case HomeFeedSort.recommended:
+      case HomeFeedSort.newest:
+        sorted.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      case HomeFeedSort.popular:
+        sorted.sort((a, b) => b.stock.compareTo(a.stock));
+      case HomeFeedSort.discount:
+        sorted.sort((a, b) => b.discountPercent.compareTo(a.discountPercent));
+    }
+    final page = sorted.skip(offset).take(limit).toList(growable: false);
+    return ProductFeedPage(items: page, total: sorted.length);
+  }
 
   @override
   Future<List<ProductModel>> listBySubcategory({

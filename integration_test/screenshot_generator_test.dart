@@ -61,6 +61,16 @@ import 'package:woody_app/shared/repositories/banner_repository.dart';
 import 'package:woody_app/shared/repositories/customer_reviews_repository.dart';
 import 'package:woody_app/shared/repositories/product_data_source.dart';
 import 'package:woody_app/shared/repositories/seller_dashboard_repository.dart';
+import 'package:woody_app/shared/repositories/cart_repository.dart';
+import 'package:woody_app/shared/repositories/hybrid_cart_repository.dart';
+import 'package:woody_app/shared/repositories/hive_cart_repository.dart';
+import 'package:woody_app/shared/repositories/favorites_repository.dart';
+import 'package:woody_app/shared/repositories/hybrid_favorites_repository.dart';
+import 'package:woody_app/shared/models/product.dart';
+import 'package:woody_app/customer/features/product_list/screens/product_list_screen.dart';
+import 'package:woody_app/customer/features/search/screens/search_screen.dart';
+import 'package:woody_app/customer/features/cart/screens/cart_screen.dart';
+import 'package:woody_app/customer/features/favorites/screens/favorites_screen.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import 'showcase_data.dart';
@@ -154,6 +164,22 @@ void main() {
       () => SellerDashboardCubit(sl<SellerDashboardRepository>()),
     );
 
+    // Seed the guest local stores so the cart + favourites screens read as
+    // "in use" — both repos are hybrid; the local (Hive) side works offline
+    // and is what a logged-out shopper hits.
+    final cartLocal =
+        (sl<CartRepository>() as HybridCartRepository).local
+            as HiveCartRepository;
+    await cartLocal.addProduct(showcaseProducts[0], quantity: 1);
+    await cartLocal.addProduct(showcaseProducts[2], quantity: 2);
+    await cartLocal.addProduct(showcaseProducts[3], quantity: 1);
+
+    final favLocal =
+        (sl<FavoritesRepository>() as HybridFavoritesRepository).local;
+    await favLocal.toggle(Product.fromModel(showcaseProducts[1]));
+    await favLocal.toggle(Product.fromModel(showcaseProducts[4]));
+    await favLocal.toggle(Product.fromModel(showcaseProducts[5]));
+
     // ── 1+2. Customer surface ──
     await tester.pumpWidget(
       MultiBlocProvider(
@@ -213,6 +239,50 @@ void main() {
     // Gallery + similar-products images.
     await settleFor(tester, const Duration(seconds: 6));
     await capture(binding, tester, 'product-detail');
+
+    // ── Catalog / search / cart / favourites ──
+    // The detail page sits below the GoRouter, so its element resolves the
+    // live router; reuse it to drive the remaining customer surfaces by route
+    // instead of relying on fragile hit-testing.
+    final router = GoRouter.of(
+      tester.element(find.byType(CatalogProductDetailScreen)),
+    );
+    router.pop(); // back to home
+    await settleFor(tester, const Duration(seconds: 1));
+
+    // Catalog: a category's product grid (showcase sofa category).
+    router.push('/product-list?categoryId=show-cat-sofa&categoryName=Divanlar');
+    await settleFor(tester, const Duration(seconds: 4));
+    expect(find.byType(ProductListScreen), findsOneWidget);
+    await capture(binding, tester, 'catalog');
+    router.pop();
+    await settleFor(tester, const Duration(seconds: 1));
+
+    // Search: type a query and let the showcase results populate.
+    router.push('/search');
+    await settleFor(tester, const Duration(seconds: 1));
+    await tester.enterText(find.byType(TextField).first, 'divan');
+    await settleFor(tester, const Duration(seconds: 3));
+    expect(find.byType(SearchScreen), findsOneWidget);
+    await capture(binding, tester, 'search');
+    router.pop();
+    await settleFor(tester, const Duration(seconds: 1));
+
+    // Cart: pre-seeded with three showcase products at boot.
+    router.push('/cart');
+    await settleFor(tester, const Duration(seconds: 3));
+    expect(find.byType(CartScreen), findsOneWidget);
+    await capture(binding, tester, 'cart');
+    router.pop();
+    await settleFor(tester, const Duration(seconds: 1));
+
+    // Favourites: pre-seeded with three showcase products at boot.
+    router.push('/favorites');
+    await settleFor(tester, const Duration(seconds: 3));
+    expect(find.byType(FavoritesScreen), findsOneWidget);
+    await capture(binding, tester, 'favorites');
+    router.pop();
+    await settleFor(tester, const Duration(seconds: 1));
 
     // ── 3. Seller dashboard (showcase repository, real widgets/theme) ──
     await tester.pumpWidget(
