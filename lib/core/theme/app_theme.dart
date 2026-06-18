@@ -30,8 +30,7 @@ class AppTheme {
     final isDark = brightness == Brightness.dark;
     final colorScheme = _colorScheme(brightness);
     final textTheme = _textTheme(colorScheme);
-    final customColors =
-        isDark ? AppCustomColors.dark : AppCustomColors.light;
+    final customColors = isDark ? AppCustomColors.dark : AppCustomColors.light;
 
     return ThemeData(
       useMaterial3: true,
@@ -40,7 +39,9 @@ class AppTheme {
       scaffoldBackgroundColor: isDark
           ? AppColors.darkBackground
           : AppColors.lightBackground,
-      canvasColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+      canvasColor: isDark
+          ? AppColors.darkBackground
+          : AppColors.lightBackground,
       textTheme: textTheme,
       primaryTextTheme: textTheme,
       extensions: <ThemeExtension<dynamic>>[customColors],
@@ -111,14 +112,16 @@ class AppTheme {
         ),
       ),
 
+      // By design the customer card is DARK in both themes (near-black on the
+      // light scaffold). The default Material `Card` colour therefore comes
+      // from the extension, not `colorScheme.surface` — sheets / dialogs / inputs
+      // keep `surface` so they stay light in light mode.
       cardTheme: CardThemeData(
         elevation: 0,
         margin: EdgeInsets.zero,
-        color: colorScheme.surface,
+        color: customColors.customCardBackground,
         surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
 
       dividerTheme: DividerThemeData(
@@ -130,8 +133,10 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: customColors.imageBackground,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         hintStyle: textTheme.bodyMedium?.copyWith(
           color: colorScheme.onSurfaceVariant,
         ),
@@ -163,16 +168,16 @@ class AppTheme {
       ),
 
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightTextPrimary,
+        backgroundColor: isDark
+            ? AppColors.darkSurface
+            : AppColors.lightTextPrimary,
         contentTextStyle: TextStyle(
           fontFamily: AppFonts.body,
           color: isDark ? AppColors.darkTextPrimary : Colors.white,
           fontSize: 14,
         ),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
 
       iconTheme: IconThemeData(color: colorScheme.onSurface, size: 22),
@@ -193,38 +198,44 @@ class AppTheme {
       onPrimaryContainer: Colors.white,
       secondary: AppColors.terracotta,
       onSecondary: Colors.white,
-      secondaryContainer:
-          isDark ? AppColors.darkSurface : AppColors.lightImageBg,
-      onSecondaryContainer:
-          isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+      secondaryContainer: isDark
+          ? AppColors.darkSurface
+          : AppColors.lightImageBg,
+      onSecondaryContainer: isDark
+          ? AppColors.darkTextPrimary
+          : AppColors.lightTextPrimary,
       tertiary: AppColors.terracottaDeep,
       onTertiary: Colors.white,
       error: AppColors.danger,
       onError: Colors.white,
       surface: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-      onSurface:
-          isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-      surfaceContainerLowest:
-          isDark ? AppColors.darkBackground : AppColors.lightBackground,
-      surfaceContainerLow:
-          isDark ? AppColors.darkSurface : AppColors.lightSurface,
-      surfaceContainer:
-          isDark ? AppColors.darkSurface : AppColors.lightSurface,
-      surfaceContainerHigh:
-          isDark ? AppColors.darkImageBg : AppColors.lightImageBg,
-      surfaceContainerHighest:
-          isDark ? AppColors.darkImageBg : AppColors.lightImageBg,
-      onSurfaceVariant:
-          isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+      onSurface: isDark
+          ? AppColors.darkTextPrimary
+          : AppColors.lightTextPrimary,
+      surfaceContainerLowest: isDark
+          ? AppColors.darkBackground
+          : AppColors.lightBackground,
+      surfaceContainerLow: isDark
+          ? AppColors.darkSurface
+          : AppColors.lightSurface,
+      surfaceContainer: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+      surfaceContainerHigh: isDark
+          ? AppColors.darkImageBg
+          : AppColors.lightImageBg,
+      surfaceContainerHighest: isDark
+          ? AppColors.darkImageBg
+          : AppColors.lightImageBg,
+      onSurfaceVariant: isDark
+          ? AppColors.darkTextSecondary
+          : AppColors.lightTextSecondary,
       outline: isDark ? AppColors.darkDivider : AppColors.lightDivider,
-      outlineVariant:
-          isDark ? AppColors.darkDivider : AppColors.lightDivider,
+      outlineVariant: isDark ? AppColors.darkDivider : AppColors.lightDivider,
       shadow: Colors.black,
       scrim: Colors.black,
-      inverseSurface:
-          isDark ? AppColors.lightSurface : AppColors.darkSurface,
-      onInverseSurface:
-          isDark ? AppColors.lightTextPrimary : AppColors.darkTextPrimary,
+      inverseSurface: isDark ? AppColors.lightSurface : AppColors.darkSurface,
+      onInverseSurface: isDark
+          ? AppColors.lightTextPrimary
+          : AppColors.darkTextPrimary,
       inversePrimary: AppColors.terracottaDeep,
       surfaceTint: Colors.transparent,
     );
@@ -321,8 +332,9 @@ SystemUiOverlayStyle appSystemOverlay(Brightness themeBrightness) {
     statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
     statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
     systemNavigationBarColor: Colors.transparent,
-    systemNavigationBarIconBrightness:
-        isDark ? Brightness.light : Brightness.dark,
+    systemNavigationBarIconBrightness: isDark
+        ? Brightness.light
+        : Brightness.dark,
     systemNavigationBarDividerColor: Colors.transparent,
   );
 }

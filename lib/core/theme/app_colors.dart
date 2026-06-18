@@ -44,9 +44,29 @@ class AppColors {
   static const Color warning = Color(0xFFF59E0B);
   static const Color danger = Color(0xFFEF4444);
 
+  // ---- Customer "inverted" card surface -----------------------------------
+  // By design the customer cards (product detail, profile rows, checkout,
+  // shop profile) read DARK in BOTH themes: in light mode they sit as
+  // near-black panels on the off-white scaffold; in dark mode they reuse the
+  // normal dark surface, a touch above the near-black background. Consumed via
+  // [AppCustomColors.customCardBackground] / `.customCardText` — never let a
+  // widget hardcode these again.
+  static const Color cardSurfaceLight = Color(0xFF1A1A1A);
+  static const Color cardSurfaceDark = darkSurface; // #1E1E1E, above #121212 bg
+  static const Color cardForeground = Color(0xFFF5F5F5);
+
+  // ---- Contact / social action colors -------------------------------------
+  // Telegram brand blue and the phone-call CTA yellow seen on the shop-profile
+  // action row. Exposed through [AppCustomColors] so the buttons theme with the
+  // rest of the app instead of carrying inline hex.
+  static const Color telegram = Color(0xFF2AABEE);
+  static const Color onTelegram = Color(0xFFFFFFFF);
+  static const Color callYellow = Color(0xFFF4B400);
+  static const Color onCallYellow = Color(0xFF1A1A1A);
+
   // ---- Legacy seeds -------------------------------------------------------
-  // Retained so the existing seller_theme.dart and customer_theme.dart
-  // continue to compile while the codebase migrates to AppTheme.
+  // Retained for seller_theme.dart's `fromSeed` palette. The customer mode no
+  // longer seeds — AppTheme builds its ColorScheme explicitly from [terracotta].
   static const Color customerSeed = Color(0xFF8B5E3C);
   static const Color sellerSeed = Color(0xFF3949AB);
 

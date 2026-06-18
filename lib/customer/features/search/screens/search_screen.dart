@@ -206,7 +206,7 @@ class _SearchField extends StatelessWidget {
           Icon(Iconsax.search_normal_1, color: pt.grey, size: 17),
           const SizedBox(width: 10),
           Expanded(
-            // The app's global `inputDecorationTheme` (see customer_theme.dart)
+            // The app's global `inputDecorationTheme` (see app_theme.dart)
             // forces every TextField into a filled OutlineInputBorder with a
             // terracotta focused ring. That looks correct inside forms but
             // double-borders this field, which already lives in its own pill
