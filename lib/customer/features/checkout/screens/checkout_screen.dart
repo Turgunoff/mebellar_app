@@ -4,14 +4,19 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
+import '../../../../config/app_config.dart';
 import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/auth/auth_cubit.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../orders/cubit/profile_orders_cubit.dart';
+import '../../payment/cubit/payment_cards_cubit.dart';
+import '../../payment/screens/add_card_screen.dart';
+import '../../payment/widgets/payment_pin.dart';
 import '../../../../shared/models/cart_item_model.dart';
 import '../../../../shared/repositories/cart_repository.dart';
 import '../../../../shared/repositories/checkout_repository.dart';
+import '../../../../shared/repositories/payment_cards_repository.dart';
 import '../../../../shared/widgets/product_color_chip.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../cubit/checkout_cubit.dart';
@@ -24,13 +29,23 @@ class CheckoutScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => CheckoutCubit(
-        items: items,
-        checkout: sl<CheckoutRepository>(),
-        cartRepo: sl<CartRepository>(),
-        analytics: sl<AnalyticsService>(),
-      ),
+    // Preload the saved-card list so the card picker paints instantly when the
+    // user opens the payment section.
+    if (AppConfig.hasPayme) sl<PaymentCardsCubit>().load();
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (_) => CheckoutCubit(
+            items: items,
+            checkout: sl<CheckoutRepository>(),
+            cartRepo: sl<CartRepository>(),
+            cards: AppConfig.hasPayme ? sl<PaymentCardsRepository>() : null,
+            analytics: sl<AnalyticsService>(),
+          ),
+        ),
+        if (AppConfig.hasPayme)
+          BlocProvider.value(value: sl<PaymentCardsCubit>()),
+      ],
       child: const _CheckoutView(),
     );
   }
@@ -359,6 +374,15 @@ class _PaymentCard extends StatelessWidget {
   final CheckoutState state;
   final PremiumTokens pt;
 
+  Future<void> _addCard(BuildContext context) async {
+    final added = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const AddCardScreen()),
+    );
+    if (added == true && context.mounted) {
+      context.read<PaymentCardsCubit>().load(refresh: true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return _SectionCard(
@@ -366,28 +390,95 @@ class _PaymentCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionHeader(icon: Iconsax.card, label: "To'lov usuli", pt: pt),
+          _SectionHeader(icon: Iconsax.card, label: tr('checkout.step_payment'), pt: pt),
           const SizedBox(height: 8),
           _PaymentTile(
             icon: Iconsax.money,
-            title: 'Naqd pul',
-            subtitle: "Yetkazib berishda to'lash",
+            title: tr('payment.cash'),
+            subtitle: tr('payment.cash_hint'),
             selected: state.payment == CheckoutPayment.cash,
-            onTap: () => context.read<CheckoutCubit>().selectPayment(
-              CheckoutPayment.cash,
-            ),
+            onTap: () =>
+                context.read<CheckoutCubit>().selectPayment(CheckoutPayment.cash),
             pt: pt,
           ),
           const SizedBox(height: 8),
-          _PaymentTile(
-            icon: Iconsax.card,
-            title: 'Karta',
-            subtitle: "Tez orada mavjud bo'ladi",
-            selected: state.payment == CheckoutPayment.card,
-            onTap: null,
-            pt: pt,
-          ),
+          if (AppConfig.hasPayme)
+            ..._cardOptions(context)
+          else
+            _PaymentTile(
+              icon: Iconsax.card,
+              title: tr('payment.card'),
+              subtitle: tr('payment.card_disabled'),
+              selected: false,
+              onTap: null,
+              pt: pt,
+            ),
         ],
+      ),
+    );
+  }
+
+  List<Widget> _cardOptions(BuildContext context) {
+    return [
+      BlocBuilder<PaymentCardsCubit, PaymentCardsState>(
+        builder: (context, cardsState) {
+          return Column(
+            children: [
+              for (final card in cardsState.cards) ...[
+                _PaymentTile(
+                  icon: Iconsax.card,
+                  title: card.maskedNumber,
+                  subtitle: tr('payment.card_hint'),
+                  selected: state.payment == CheckoutPayment.card &&
+                      state.selectedCardId == card.id,
+                  onTap: () => context.read<CheckoutCubit>().selectCard(card.id),
+                  pt: pt,
+                ),
+                const SizedBox(height: 8),
+              ],
+            ],
+          );
+        },
+      ),
+      // Always offer adding a (another) card.
+      _AddCardTile(pt: pt, onTap: () => _addCard(context)),
+    ];
+  }
+}
+
+/// Dashed-style "add a card" row inside the checkout payment section.
+class _AddCardTile extends StatelessWidget {
+  const _AddCardTile({required this.pt, required this.onTap});
+  final PremiumTokens pt;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: pt.imageBg,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: PremiumTokens.accent.withValues(alpha: 0.4),
+          ),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            const Icon(Iconsax.add_circle, size: 22, color: PremiumTokens.accent),
+            const SizedBox(width: 14),
+            Text(
+              tr('payment.add_card'),
+              style: PremiumTokens.body(
+                size: 14,
+                weight: FontWeight.w700,
+                color: PremiumTokens.accent,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -929,24 +1020,48 @@ class _ConfirmBar extends StatelessWidget {
     );
   }
 
-  void _onConfirm(BuildContext context) {
+  Future<void> _onConfirm(BuildContext context) async {
     HapticFeedback.mediumImpact();
     if (!state.hasAddress) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(tr('checkout.address_required')),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: const Color(0xFFEF4444),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
+      _toast(context, tr('checkout.address_required'));
       return;
+    }
+    // Card method chosen but no card picked yet.
+    if (state.isCardPayment && state.selectedCardId == null) {
+      _toast(context, tr('payment.select_card'));
+      return;
+    }
+    // Guard against a stale selection: the chosen card may have been removed
+    // (e.g. from Profile → My cards) while this screen stayed open. Validate it
+    // still exists BEFORE any order is placed, so a deleted card can't leave
+    // orphaned unpaid orders behind.
+    if (state.isCardPayment) {
+      final cards = context.read<PaymentCardsCubit>().state.cards;
+      if (!cards.any((c) => c.id == state.selectedCardId)) {
+        _toast(context, tr('payment.select_card'));
+        return;
+      }
     }
     final authState = context.read<AuthCubit>().state;
     if (authState is! AppAuthAuthenticated) return;
+    // Card payments pass a local PIN gate before the token is charged
+    // (Payme-recommended for token-based charges).
+    if (state.isCardPayment) {
+      final ok = await showPaymentPinGate(context);
+      if (!ok || !context.mounted) return;
+    }
     context.read<CheckoutCubit>().submit(authState.userId);
+  }
+
+  void _toast(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: const Color(0xFFEF4444),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
   }
 }
 

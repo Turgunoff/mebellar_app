@@ -9,6 +9,7 @@ import '../connectivity/connectivity_service.dart';
 import '../connectivity/network_cubit.dart';
 import '../deep_links/deep_link_service.dart';
 import '../i18n/app_locale_controller.dart';
+import '../network/payme_client.dart';
 import '../network/token_store.dart';
 import '../network/woody_api_client.dart';
 import '../platform/location_facade.dart';
@@ -101,6 +102,15 @@ Future<void> registerCoreModule(GetIt sl) async {
   // KYC docs, tariff receipts).
   sl.registerLazySingleton<R2UploadClient>(
     () => R2UploadClient(api: sl<WoodyApiClient>()),
+  );
+
+  // Payme Subscribe API client — talks DIRECTLY to Payme (X-Auth: merchant_id)
+  // to tokenise + OTP-verify cards, so the raw PAN never reaches the backend.
+  // Root-scoped (used by the add-card flow in customer mode); only ever
+  // exercised when AppConfig.hasPayme — the UI is gated on that.
+  sl.registerLazySingleton<PaymeClient>(
+    () => PaymeClient(),
+    dispose: (c) => c.dispose(),
   );
 
   // Location facade — wraps geolocator's static API behind an injectable

@@ -6,6 +6,7 @@ import 'package:smart_auth/smart_auth.dart';
 
 import '../core/auth/auth_repository.dart';
 import '../core/di/service_locator.dart';
+import '../core/i18n/app_locale_controller.dart';
 import '../core/logging/talker.dart';
 import '../core/network/api_error.dart';
 import '../customer/features/profile/cubit/profile_cubit.dart';
@@ -75,6 +76,13 @@ class AuthSheetController extends ChangeNotifier {
   AuthRepository? get _repo =>
       sl.isRegistered<AuthRepository>() ? sl<AuthRepository>() : null;
 
+  /// Active UI language code (uz/ru/en) used to pick the OTP SMS template.
+  /// Null when the locale controller isn't registered (tests/tooling) — the
+  /// repository then falls back to the English template.
+  String? _appLanguage() => sl.isRegistered<AppLocaleController>()
+      ? sl<AppLocaleController>().value.languageCode
+      : null;
+
   // ---- Step actions ------------------------------------------------------
 
   Future<void> sendOtp({bool isResend = false}) async {
@@ -96,7 +104,10 @@ class AuthSheetController extends ChangeNotifier {
     final phone = currentPhone;
     talker.info('Requesting OTP for: ${_maskPhone(phone)}');
     try {
-      final cooldown = await repo.requestOtp(phone);
+      final cooldown = await repo.requestOtp(
+        phone,
+        appLanguage: _appLanguage(),
+      );
       _lastCooldown = cooldown > 0 ? cooldown : 60;
       talker.info('✓ OTP requested ok (cooldown=$cooldown s)');
       // Start listening for the incoming SMS so the code auto-fills (Android

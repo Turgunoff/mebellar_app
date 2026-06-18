@@ -33,9 +33,28 @@ class AppConfig {
     defaultValue: true,
   );
 
+  /// Payme (Paycom) Subscribe API base for DIRECT card tokenisation from the
+  /// app (X-Auth: merchant_id only — no key in the app). Test:
+  /// `https://checkout.test.paycom.uz/api`, prod: `https://checkout.paycom.uz/api`.
+  /// Optional: when unset, card payments are hidden and the app stays COD-only,
+  /// so a build with no Payme config still boots (unlike the required keys).
+  static const String paymeApiUrl = String.fromEnvironment('PAYME_API_URL');
+
+  /// Payme merchant id (public-side identifier sent as the `X-Auth` header for
+  /// card tokenisation). The merchant KEY is NEVER in the app — only the
+  /// backend holds it.
+  static const String paymeMerchantId = String.fromEnvironment(
+    'PAYME_MERCHANT_ID',
+  );
+
   static bool get isProd => environment == 'prod';
 
   static bool get hasWoodyApi => woodyApiUrl.isNotEmpty;
+
+  /// Whether direct Payme card tokenisation is configured. Card payment UI is
+  /// gated on this; false → the app shows only Cash on Delivery.
+  static bool get hasPayme =>
+      paymeApiUrl.isNotEmpty && paymeMerchantId.isNotEmpty;
 
   /// Required keys that have no safe fallback. Missing any of these is a build
   /// misconfiguration, not a recoverable runtime state.

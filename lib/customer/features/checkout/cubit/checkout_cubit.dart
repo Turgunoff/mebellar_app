@@ -8,6 +8,7 @@ import '../../../../core/network/api_error_messages.dart';
 import '../../../../shared/models/cart_item_model.dart';
 import '../../../../shared/repositories/cart_repository.dart';
 import '../../../../shared/repositories/checkout_repository.dart';
+import '../../../../shared/repositories/payment_cards_repository.dart';
 
 enum CheckoutPayment { cash, card }
 
@@ -45,6 +46,7 @@ class CheckoutState extends Equatable {
     this.status = CheckoutStatus.idle,
     this.groups = const [],
     this.payment = CheckoutPayment.cash,
+    this.selectedCardId,
     this.deliveryAddress = '',
     this.placedOrderIds = const [],
     this.wantsInstallation = false,
@@ -55,6 +57,10 @@ class CheckoutState extends Equatable {
   final CheckoutStatus status;
   final List<ShopOrderGroup> groups;
   final CheckoutPayment payment;
+
+  /// Saved card chosen for a card payment. Null when paying cash, or when card
+  /// is selected but no card is picked yet (blocks confirm).
+  final String? selectedCardId;
   final String deliveryAddress;
 
   /// Order IDs created during [submit] — populated on success.
@@ -71,6 +77,14 @@ class CheckoutState extends Equatable {
   final String? error;
 
   bool get hasAddress => deliveryAddress.trim().isNotEmpty;
+
+  /// Whether the order is ready to submit: address set, and — for card
+  /// payments — a card chosen.
+  bool get canSubmit =>
+      hasAddress &&
+      (payment == CheckoutPayment.cash || selectedCardId != null);
+
+  bool get isCardPayment => payment == CheckoutPayment.card;
 
   double get subtotal => groups.fold(0.0, (s, g) => s + g.subtotal);
 
@@ -109,6 +123,8 @@ class CheckoutState extends Equatable {
     CheckoutStatus? status,
     List<ShopOrderGroup>? groups,
     CheckoutPayment? payment,
+    String? selectedCardId,
+    bool clearSelectedCard = false,
     String? deliveryAddress,
     List<String>? placedOrderIds,
     bool? wantsInstallation,
@@ -119,6 +135,9 @@ class CheckoutState extends Equatable {
     status: status ?? this.status,
     groups: groups ?? this.groups,
     payment: payment ?? this.payment,
+    selectedCardId: clearSelectedCard
+        ? null
+        : (selectedCardId ?? this.selectedCardId),
     deliveryAddress: deliveryAddress ?? this.deliveryAddress,
     placedOrderIds: placedOrderIds ?? this.placedOrderIds,
     wantsInstallation: wantsInstallation ?? this.wantsInstallation,
@@ -131,6 +150,7 @@ class CheckoutState extends Equatable {
     status,
     groups,
     payment,
+    selectedCardId,
     deliveryAddress,
     placedOrderIds,
     wantsInstallation,
@@ -144,9 +164,11 @@ class CheckoutCubit extends Cubit<CheckoutState> {
     required List<CartItemModel> items,
     required CheckoutRepository checkout,
     required CartRepository cartRepo,
+    PaymentCardsRepository? cards,
     AnalyticsService? analytics,
   }) : _checkout = checkout,
        _cartRepo = cartRepo,
+       _cards = cards,
        _analytics = analytics,
        super(CheckoutState(groups: _groupByShop(items))) {
     // Funnel start — one event per checkout session, regardless of how
@@ -166,11 +188,24 @@ class CheckoutCubit extends Cubit<CheckoutState> {
 
   final CheckoutRepository _checkout;
   final CartRepository _cartRepo;
+  final PaymentCardsRepository? _cards;
   final AnalyticsService? _analytics;
 
   void selectPayment(CheckoutPayment payment) {
-    emit(state.copyWith(payment: payment));
+    // Switching to cash drops any chosen card.
+    emit(
+      state.copyWith(
+        payment: payment,
+        clearSelectedCard: payment == CheckoutPayment.cash,
+      ),
+    );
     unawaited(_analytics?.paymentInfoAdded(paymentType: payment.name));
+  }
+
+  /// Picks a saved card and flips the method to card in one step.
+  void selectCard(String cardId) {
+    emit(state.copyWith(payment: CheckoutPayment.card, selectedCardId: cardId));
+    unawaited(_analytics?.paymentInfoAdded(paymentType: 'card'));
   }
 
   void updateAddress(String address) {
@@ -246,7 +281,27 @@ class CheckoutCubit extends Cubit<CheckoutState> {
         );
       }
 
+      // Orders now exist server-side, so the cart is empty regardless of what
+      // happens next — clear it BEFORE charging so a card decline can't leave
+      // a stale cart that re-checks-out into duplicate orders.
       await _cartRepo.clear();
+
+      // Card payment: charge each placed order with the chosen saved card. A
+      // decline surfaces as `failure` (the declined order stays `unpaid` — the
+      // customer can retry payment later); cash orders skip this entirely.
+      //
+      // KNOWN LIMITATION (multi-shop): the cart fans out into one order per
+      // shop, charged independently. If shop A's charge succeeds and shop B's
+      // declines, A stays paid and B stays unpaid — there is no cross-order
+      // rollback (that needs a Payme refund/combined-receipt flow, a follow-up).
+      // Single-shop carts — the common case — are unaffected.
+      final cardId = state.selectedCardId;
+      if (state.isCardPayment && cardId != null && _cards != null) {
+        for (final orderId in placedIds) {
+          await _cards.payOrder(orderId: orderId, cardId: cardId);
+        }
+      }
+
       if (isClosed) return;
       emit(
         state.copyWith(

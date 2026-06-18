@@ -328,12 +328,16 @@ This brain captures the state after a multi-session redesign:
   templates end with) and use **SMS Retriever** — zero-tap, no dialog;
   debug / sideloaded-release builds carry a different signing key (debug =
   `yaRHQKhlEo9`) so they fall back to the hash-free **SMS User Consent**
-  dialog. The OTP SMS is **always Uzbek**, regardless of the UI language:
-  `AuthRepository.requestOtp` calls `_api.post(..., localeOverride: 'uz')`, and
-  the interceptor lets a per-request `localeOverride` (carried in the request
-  `extra`) win over the live `Accept-Language`. Uzbek is the only approved
-  Eskiz template and, as a single ≤140-byte segment, the only one SMS
-  Retriever can read — the Cyrillic RU template spanned two segments (breaking
-  zero-tap) and was rejected by the operator, so it was dropped. Backend error
-  codes are translated client-side (`auth_error_messages.dart`), so forcing
-  `uz` on the SMS costs no localisation.
+  dialog. The OTP SMS **follows the active UI language** (uz/ru/en):
+  `AuthRepository.requestOtp(phone, appLanguage:)` maps the UI language via
+  `_smsLocale` (uz→uz, ru→ru, anything else / unknown → **en**, never uz) and
+  passes it as `_api.post(..., localeOverride: …)`; the interceptor lets that
+  per-request `localeOverride` (carried in the request `extra`) win over the
+  live `Accept-Language`. `AuthSheetController.sendOtp` supplies the UI language
+  from `sl<AppLocaleController>().value.languageCode`. Each of the three Eskiz
+  templates (uz/ru/en) is a single ≤140-byte segment ending with our app
+  signature hash, so SMS Retriever zero-tap still works in every language. All
+  three templates **must stay approved on the Eskiz dashboard** — a not-yet-
+  moderated template makes `/auth/otp/request` fail for that language (Eskiz
+  400 → `sms_unavailable`). Backend error codes are translated client-side
+  (`auth_error_messages.dart`), independent of the SMS language.

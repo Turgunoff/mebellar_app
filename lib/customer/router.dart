@@ -30,6 +30,7 @@ import 'features/checkout/screens/checkout_screen.dart';
 import 'features/favorites/screens/favorites_screen.dart';
 import 'features/orders/screens/order_detail_screen.dart';
 import 'features/orders/screens/orders_history_screen.dart';
+import 'features/payment/screens/payment_cards_screen.dart';
 import 'features/notifications/screens/notifications_screen.dart'
     as customer_notifications;
 import 'features/search/screens/search_screen.dart';
@@ -218,6 +219,10 @@ GoRouter buildCustomerRouter() {
         path: '/orders/:id',
         builder: (context, state) =>
             OrderDetailScreen(id: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/payment-cards',
+        builder: (context, state) => const PaymentCardsScreen(),
       ),
       GoRoute(
         path: '/seller/onboarding',

@@ -1,5 +1,7 @@
 {
   "APP_ENV": "dev",
   "WOODY_API_URL": "https://api.woody.uz",
-  "YANDEX_GEOCODER_API_KEY": ""
+  "YANDEX_GEOCODER_API_KEY": "",
+  "PAYME_API_URL": "https://checkout.test.paycom.uz/api",
+  "PAYME_MERCHANT_ID": ""
 }

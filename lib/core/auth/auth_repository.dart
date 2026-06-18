@@ -45,22 +45,33 @@ class AuthRepository {
   /// expects to elapse before another /otp/request is accepted — the UI
   /// kicks off a countdown with this value.
   ///
-  /// The OTP SMS is always requested in Uzbek (`localeOverride: 'uz'`),
-  /// independent of the UI language: it's the only approved Eskiz template,
-  /// and being a single 140-byte segment it lets Android's SMS Retriever
-  /// auto-fill the code (the Cyrillic RU template spanned two segments and
-  /// broke zero-tap). Backend error codes are still translated client-side,
-  /// so forcing `uz` here costs no localisation.
-  Future<int> requestOtp(String phone) async {
+  /// The OTP SMS follows the active UI language ([appLanguage]): uz/ru/en each
+  /// have an approved Eskiz template, so the code arrives in the user's
+  /// language. Any other / unknown language falls back to the English template
+  /// (never uz — see [_smsLocale]). The resolved locale is sent as a
+  /// per-request `localeOverride` so it wins over the live `Accept-Language`
+  /// header. Every template ends with our app-signature hash, so Android's SMS
+  /// Retriever can still zero-tap auto-fill the code. Backend error codes are
+  /// translated client-side, so the SMS language is independent of error copy.
+  Future<int> requestOtp(String phone, {String? appLanguage}) async {
     final body = await _api.post<Map<String, dynamic>>(
       '/auth/otp/request',
       body: {'phone': phone},
       anonymous: true,
-      localeOverride: 'uz',
+      localeOverride: _smsLocale(appLanguage),
     );
     final cooldown = body['cooldown_seconds'];
     return cooldown is int ? cooldown : 0;
   }
+
+  /// Maps the active UI language to the OTP SMS locale. uz/ru/en each map to
+  /// their own approved Eskiz template; anything else (incl. null) gets the
+  /// English template — uz is never a sensible default for a non-uz speaker.
+  static String _smsLocale(String? appLanguage) => switch (appLanguage) {
+    'uz' => 'uz',
+    'ru' => 'ru',
+    _ => 'en',
+  };
 
   /// Verifies the OTP and writes the resulting token pair to the store.
   /// The caller can then call [fetchMe] to decide whether the user needs

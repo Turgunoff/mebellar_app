@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../config/app_config.dart';
 import '../../../../config/app_mode.dart';
 import '../../../../core/auth/app_mode_cubit.dart';
 import '../../../../core/di/service_locator.dart';
@@ -101,6 +102,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       badgeCount: unreadChats,
       onTap: () => context.push('/chats'),
     ),
+    if (AppConfig.hasPayme)
+      MenuEntry(
+        icon: Iconsax.card,
+        label: tr('payment.cards_title'),
+        onTap: () => context.push('/payment-cards'),
+      ),
     MenuEntry(
       icon: Iconsax.setting_2,
       label: 'Sozlamalar',

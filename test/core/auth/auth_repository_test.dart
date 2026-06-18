@@ -85,17 +85,26 @@ void main() {
     return (repo: AuthRepository(api: api, tokens: store), adapter: adapter);
   }
 
-  test(
-    'requestOtp returns the server cooldown and forces the uz SMS locale',
-    () async {
+  test('requestOtp returns the cooldown and maps the UI language to the SMS '
+      'locale (uz/ru/en, else en)', () async {
+    Future<void> expectLocale(String? appLanguage, String expected) async {
       final h = makeRepo((_) => (200, '{"cooldown_seconds":42}'));
-      expect(await h.repo.requestOtp('+998901112233'), 42);
+      expect(
+        await h.repo.requestOtp('+998901112233', appLanguage: appLanguage),
+        42,
+      );
       expect(h.adapter.calls.single.uri.path, endsWith('/auth/otp/request'));
-      // OTP always goes out in Uzbek — the only approved, Retriever-safe Eskiz
-      // template — regardless of the UI language.
-      expect(h.adapter.calls.single.headers['Accept-Language'], 'uz');
-    },
-  );
+      expect(h.adapter.calls.single.headers['Accept-Language'], expected);
+    }
+
+    // Each supported UI language has its own approved Eskiz template.
+    await expectLocale('uz', 'uz');
+    await expectLocale('ru', 'ru');
+    await expectLocale('en', 'en');
+    // Unknown / absent UI language falls back to English, never uz.
+    await expectLocale(null, 'en');
+    await expectLocale('kk', 'en');
+  });
 
   test('requestOtp defaults the cooldown to 0 when absent', () async {
     final h = makeRepo((_) => (200, '{}'));

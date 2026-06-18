@@ -2,23 +2,29 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:woody_app/customer/features/checkout/cubit/checkout_cubit.dart';
+import 'package:woody_app/shared/models/cart.dart';
 import 'package:woody_app/shared/models/cart_item_model.dart';
 import 'package:woody_app/shared/repositories/cart_repository.dart';
 import 'package:woody_app/shared/repositories/checkout_repository.dart';
+import 'package:woody_app/shared/repositories/payment_cards_repository.dart';
 
 class _MockCheckoutRepo extends Mock implements CheckoutRepository {}
 
 class _MockCartRepo extends Mock implements CartRepository {}
+
+class _MockCardsRepo extends Mock implements PaymentCardsRepository {}
 
 void main() {
   setUpAll(() => registerFallbackValue(const <CheckoutOrderLine>[]));
 
   late _MockCheckoutRepo checkout;
   late _MockCartRepo cartRepo;
+  late _MockCardsRepo cardsRepo;
 
   setUp(() {
     checkout = _MockCheckoutRepo();
     cartRepo = _MockCartRepo();
+    cardsRepo = _MockCardsRepo();
     // Default: the construction-time quote refresh is a no-op (swallowed),
     // so tests that don't care about quoting stay deterministic.
     when(
@@ -32,6 +38,15 @@ void main() {
 
   CheckoutCubit build({List<CartItemModel> items = const <CartItemModel>[]}) =>
       CheckoutCubit(items: items, checkout: checkout, cartRepo: cartRepo);
+
+  CheckoutCubit buildWithCards({
+    List<CartItemModel> items = const <CartItemModel>[],
+  }) => CheckoutCubit(
+    items: items,
+    checkout: checkout,
+    cartRepo: cartRepo,
+    cards: cardsRepo,
+  );
 
   const item = CartItemModel(
     id: 'c1',
@@ -120,6 +135,91 @@ void main() {
           .having((s) => s.installationAvailable, 'available', true)
           // subtotal 1_000_000 + installation 500_000, no delivery.
           .having((s) => s.grandTotal, 'grandTotal', 1500000),
+    ],
+  );
+
+  blocTest<CheckoutCubit, CheckoutState>(
+    'selectCard flips the method to card and stores the chosen card',
+    build: build,
+    act: (cubit) => cubit.selectCard('card-1'),
+    expect: () => [
+      isA<CheckoutState>()
+          .having((s) => s.payment, 'payment', CheckoutPayment.card)
+          .having((s) => s.selectedCardId, 'card', 'card-1')
+          .having((s) => s.isCardPayment, 'isCardPayment', true),
+    ],
+  );
+
+  blocTest<CheckoutCubit, CheckoutState>(
+    'card payment places then charges each order with the chosen card',
+    build: () {
+      when(
+        () => checkout.placeOrder(
+          lines: any(named: 'lines'),
+          deliveryAddress: any(named: 'deliveryAddress'),
+          wantInstallation: any(named: 'wantInstallation'),
+        ),
+      ).thenAnswer((_) async => 'order-1');
+      when(() => cartRepo.clear()).thenAnswer((_) async => const Cart());
+      when(
+        () => cardsRepo.payOrder(
+          orderId: any(named: 'orderId'),
+          cardId: any(named: 'cardId'),
+        ),
+      ).thenAnswer(
+        (_) async =>
+            const OrderPayResult(paymentStatus: 'paid', provider: 'payme'),
+      );
+      return buildWithCards(items: const [item]);
+    },
+    act: (cubit) {
+      cubit.selectCard('card-1');
+      cubit.submit('user-1');
+    },
+    expect: () => [
+      isA<CheckoutState>().having((s) => s.selectedCardId, 'card', 'card-1'),
+      isA<CheckoutState>()
+          .having((s) => s.status, 'status', CheckoutStatus.submitting),
+      isA<CheckoutState>()
+          .having((s) => s.status, 'status', CheckoutStatus.success)
+          .having((s) => s.placedOrderIds, 'orders', ['order-1']),
+    ],
+    verify: (_) {
+      verify(() => cardsRepo.payOrder(orderId: 'order-1', cardId: 'card-1'))
+          .called(1);
+    },
+  );
+
+  blocTest<CheckoutCubit, CheckoutState>(
+    'card payment emits failure when the charge is declined',
+    build: () {
+      when(
+        () => checkout.placeOrder(
+          lines: any(named: 'lines'),
+          deliveryAddress: any(named: 'deliveryAddress'),
+          wantInstallation: any(named: 'wantInstallation'),
+        ),
+      ).thenAnswer((_) async => 'order-1');
+      when(() => cartRepo.clear()).thenAnswer((_) async => const Cart());
+      when(
+        () => cardsRepo.payOrder(
+          orderId: any(named: 'orderId'),
+          cardId: any(named: 'cardId'),
+        ),
+      ).thenThrow(Exception('declined'));
+      return buildWithCards(items: const [item]);
+    },
+    act: (cubit) {
+      cubit.selectCard('card-1');
+      cubit.submit('user-1');
+    },
+    expect: () => [
+      isA<CheckoutState>().having((s) => s.selectedCardId, 'card', 'card-1'),
+      isA<CheckoutState>()
+          .having((s) => s.status, 'status', CheckoutStatus.submitting),
+      isA<CheckoutState>()
+          .having((s) => s.status, 'status', CheckoutStatus.failure)
+          .having((s) => s.error, 'error', isNotNull),
     ],
   );
 
