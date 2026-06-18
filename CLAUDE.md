@@ -5,6 +5,8 @@ distinct modes (customer + seller) inside one binary, backed by a custom
 FastAPI backend (`woody_backend` at `api.woody.uz`). Package name
 `com.mebellar.app`, internal Dart package name `woody_app`.
 
+> **Workspace master spec:** [`../TZ.md`](../TZ.md) is the single source of truth for the whole platform. This file is the operational brain for the Flutter app.
+
 ## Tech stack
 
 - **Flutter** (Dart SDK `^3.11.5`) — single binary, customer + seller modes
@@ -326,7 +328,12 @@ This brain captures the state after a multi-session redesign:
   templates end with) and use **SMS Retriever** — zero-tap, no dialog;
   debug / sideloaded-release builds carry a different signing key (debug =
   `yaRHQKhlEo9`) so they fall back to the hash-free **SMS User Consent**
-  dialog. The OTP SMS is localized (uz/ru/en) by the `Accept-Language` the
-  `WoodyApiClient` interceptor stamps on every request — and the RU template
-  spans 2 SMS segments (>140 bytes, Cyrillic), so Retriever can't fire for it
-  and Russian users get the User Consent dialog.
+  dialog. The OTP SMS is **always Uzbek**, regardless of the UI language:
+  `AuthRepository.requestOtp` calls `_api.post(..., localeOverride: 'uz')`, and
+  the interceptor lets a per-request `localeOverride` (carried in the request
+  `extra`) win over the live `Accept-Language`. Uzbek is the only approved
+  Eskiz template and, as a single ≤140-byte segment, the only one SMS
+  Retriever can read — the Cyrillic RU template spanned two segments (breaking
+  zero-tap) and was rejected by the operator, so it was dropped. Backend error
+  codes are translated client-side (`auth_error_messages.dart`), so forcing
+  `uz` on the SMS costs no localisation.

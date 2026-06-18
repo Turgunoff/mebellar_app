@@ -53,10 +53,15 @@ void main() {
   setUp(() {
     storage = _MockSecureStorage();
     final mem = <String, String>{};
-    when(() => storage.read(key: any(named: 'key')))
-        .thenAnswer((i) async => mem[i.namedArguments[#key] as String]);
-    when(() => storage.write(key: any(named: 'key'), value: any(named: 'value')))
-        .thenAnswer((i) async {
+    when(
+      () => storage.read(key: any(named: 'key')),
+    ).thenAnswer((i) async => mem[i.namedArguments[#key] as String]);
+    when(
+      () => storage.write(
+        key: any(named: 'key'),
+        value: any(named: 'value'),
+      ),
+    ).thenAnswer((i) async {
       mem[i.namedArguments[#key] as String] =
           i.namedArguments[#value] as String;
     });
@@ -80,80 +85,96 @@ void main() {
     return (repo: AuthRepository(api: api, tokens: store), adapter: adapter);
   }
 
-  test('requestOtp returns the server cooldown', () async {
-    final h = makeRepo((_) => (200, '{"cooldown_seconds":42}'));
-    expect(await h.repo.requestOtp('+998901112233'), 42);
-    expect(h.adapter.calls.single.uri.path, endsWith('/auth/otp/request'));
-  });
+  test(
+    'requestOtp returns the server cooldown and forces the uz SMS locale',
+    () async {
+      final h = makeRepo((_) => (200, '{"cooldown_seconds":42}'));
+      expect(await h.repo.requestOtp('+998901112233'), 42);
+      expect(h.adapter.calls.single.uri.path, endsWith('/auth/otp/request'));
+      // OTP always goes out in Uzbek — the only approved, Retriever-safe Eskiz
+      // template — regardless of the UI language.
+      expect(h.adapter.calls.single.headers['Accept-Language'], 'uz');
+    },
+  );
 
   test('requestOtp defaults the cooldown to 0 when absent', () async {
     final h = makeRepo((_) => (200, '{}'));
     expect(await h.repo.requestOtp('+998901112233'), 0);
   });
 
-  test('verifyOtp parses tokens, persists them, and exposes the identity',
-      () async {
-    final access = _jwt({'sub': 'user-1', 'phone': '+998901112233'});
-    final h = makeRepo((opts) {
-      if (opts.uri.path.endsWith('/auth/otp/verify')) {
-        return (
-          200,
-          '{"access_token":"$access","refresh_token":"R1","expires_in":900}',
-        );
-      }
-      return (200, '{}');
-    });
+  test(
+    'verifyOtp parses tokens, persists them, and exposes the identity',
+    () async {
+      final access = _jwt({'sub': 'user-1', 'phone': '+998901112233'});
+      final h = makeRepo((opts) {
+        if (opts.uri.path.endsWith('/auth/otp/verify')) {
+          return (
+            200,
+            '{"access_token":"$access","refresh_token":"R1","expires_in":900}',
+          );
+        }
+        return (200, '{}');
+      });
 
-    final pair = await h.repo.verifyOtp('+998901112233', '0000');
+      final pair = await h.repo.verifyOtp('+998901112233', '0000');
 
-    expect(pair.accessToken, access);
-    expect(pair.refreshToken, 'R1');
-    expect(store.current?.accessToken, access); // written to the store
-    expect(h.repo.isAuthenticated, isTrue);
-    expect(h.repo.currentUserId, 'user-1');
-    expect(h.repo.currentUserPhone, '+998901112233');
-  });
+      expect(pair.accessToken, access);
+      expect(pair.refreshToken, 'R1');
+      expect(store.current?.accessToken, access); // written to the store
+      expect(h.repo.isAuthenticated, isTrue);
+      expect(h.repo.currentUserId, 'user-1');
+      expect(h.repo.currentUserPhone, '+998901112233');
+    },
+  );
 
-  test('verifyOtp throws on a malformed token response and writes nothing',
-      () async {
-    final h = makeRepo((_) => (200, '{"refresh_token":"R1"}')); // no access
+  test(
+    'verifyOtp throws on a malformed token response and writes nothing',
+    () async {
+      final h = makeRepo((_) => (200, '{"refresh_token":"R1"}')); // no access
 
-    await expectLater(
-      () => h.repo.verifyOtp('+998901112233', '0000'),
-      throwsA(
-        isA<ApiError>().having((e) => e.code, 'code', 'malformed_token_response'),
-      ),
-    );
-    expect(store.current, isNull);
-    expect(h.repo.isAuthenticated, isFalse);
-  });
+      await expectLater(
+        () => h.repo.verifyOtp('+998901112233', '0000'),
+        throwsA(
+          isA<ApiError>().having(
+            (e) => e.code,
+            'code',
+            'malformed_token_response',
+          ),
+        ),
+      );
+      expect(store.current, isNull);
+      expect(h.repo.isAuthenticated, isFalse);
+    },
+  );
 
-  test('signOut clears the local session even when the backend logout fails',
-      () async {
-    await store.write(
-      const TokenPair(accessToken: 'A', refreshToken: 'R'),
-    );
-    final h = makeRepo((opts) {
-      if (opts.uri.path.endsWith('/auth/logout')) return (400, '{"detail":"x"}');
-      return (200, '{}');
-    });
+  test(
+    'signOut clears the local session even when the backend logout fails',
+    () async {
+      await store.write(const TokenPair(accessToken: 'A', refreshToken: 'R'));
+      final h = makeRepo((opts) {
+        if (opts.uri.path.endsWith('/auth/logout'))
+          return (400, '{"detail":"x"}');
+        return (200, '{}');
+      });
 
-    await h.repo.signOut();
+      await h.repo.signOut();
 
-    expect(store.current, isNull);
-    expect(h.repo.isAuthenticated, isFalse);
-    expect(
-      h.adapter.calls.any((c) => c.uri.path.endsWith('/auth/logout')),
-      isTrue,
-    );
-  });
+      expect(store.current, isNull);
+      expect(h.repo.isAuthenticated, isFalse);
+      expect(
+        h.adapter.calls.any((c) => c.uri.path.endsWith('/auth/logout')),
+        isTrue,
+      );
+    },
+  );
 
   test('fetchMe maps the /me payload', () async {
     await store.write(
       TokenPair(accessToken: _jwt({'sub': 'user-1'}), refreshToken: 'R'),
     );
     final h = makeRepo(
-      (_) => (200, '{"id":"user-1","full_name":"Ali","preferred_language":"ru"}'),
+      (_) =>
+          (200, '{"id":"user-1","full_name":"Ali","preferred_language":"ru"}'),
     );
 
     final me = await h.repo.fetchMe();
@@ -164,23 +185,23 @@ void main() {
     expect(me.hasProfile, isTrue);
   });
 
-  test('updateProfile sends only the provided fields and maps the result',
-      () async {
-    await store.write(
-      TokenPair(accessToken: _jwt({'sub': 'user-1'}), refreshToken: 'R'),
-    );
-    final h = makeRepo(
-      (_) => (200, '{"id":"user-1","full_name":"Yangi"}'),
-    );
+  test(
+    'updateProfile sends only the provided fields and maps the result',
+    () async {
+      await store.write(
+        TokenPair(accessToken: _jwt({'sub': 'user-1'}), refreshToken: 'R'),
+      );
+      final h = makeRepo((_) => (200, '{"id":"user-1","full_name":"Yangi"}'));
 
-    final me = await h.repo.updateProfile(fullName: 'Yangi');
+      final me = await h.repo.updateProfile(fullName: 'Yangi');
 
-    expect(me.fullName, 'Yangi');
-    final patch = h.adapter.calls.single;
-    expect(patch.method, 'PATCH');
-    expect(patch.uri.path, endsWith('/me'));
-    final body = patch.data as Map<String, dynamic>;
-    expect(body['full_name'], 'Yangi');
-    expect(body.containsKey('email'), isFalse); // unset fields omitted
-  });
+      expect(me.fullName, 'Yangi');
+      final patch = h.adapter.calls.single;
+      expect(patch.method, 'PATCH');
+      expect(patch.uri.path, endsWith('/me'));
+      final body = patch.data as Map<String, dynamic>;
+      expect(body['full_name'], 'Yangi');
+      expect(body.containsKey('email'), isFalse); // unset fields omitted
+    },
+  );
 }

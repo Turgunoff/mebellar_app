@@ -39,8 +39,9 @@ void main() {
 
   setUp(() {
     storage = _MockSecureStorage();
-    when(() => storage.read(key: any(named: 'key')))
-        .thenAnswer((_) async => null);
+    when(
+      () => storage.read(key: any(named: 'key')),
+    ).thenAnswer((_) async => null);
     store = TokenStore(storage);
     adapter = _HeaderCaptureAdapter();
   });
@@ -55,21 +56,23 @@ void main() {
     return WoodyApiClient(tokens: store, locale: locale, dio: dio);
   }
 
-  test('stamps Accept-Language from the live locale on every request',
-      () async {
-    var lang = 'uz';
-    final api = client(locale: () => lang);
+  test(
+    'stamps Accept-Language from the live locale on every request',
+    () async {
+      var lang = 'uz';
+      final api = client(locale: () => lang);
 
-    await api.get<Map<String, dynamic>>('/catalog/categories');
-    // The resolver is consulted per request — a language switch applies to
-    // the very next call without rebuilding the client.
-    lang = 'ru';
-    await api.post<Map<String, dynamic>>('/cart/items', body: {'qty': 1});
+      await api.get<Map<String, dynamic>>('/catalog/categories');
+      // The resolver is consulted per request — a language switch applies to
+      // the very next call without rebuilding the client.
+      lang = 'ru';
+      await api.post<Map<String, dynamic>>('/cart/items', body: {'qty': 1});
 
-    expect(adapter.requests, hasLength(2));
-    expect(adapter.requests[0].headers['Accept-Language'], 'uz');
-    expect(adapter.requests[1].headers['Accept-Language'], 'ru');
-  });
+      expect(adapter.requests, hasLength(2));
+      expect(adapter.requests[0].headers['Accept-Language'], 'uz');
+      expect(adapter.requests[1].headers['Accept-Language'], 'ru');
+    },
+  );
 
   test('sends no Accept-Language when no locale resolver is wired', () async {
     final api = client();
@@ -80,5 +83,20 @@ void main() {
       adapter.requests.single.headers.containsKey('Accept-Language'),
       isFalse,
     );
+  });
+
+  test('a per-request localeOverride beats the live UI locale', () async {
+    // The OTP request forces `uz` so the SMS template never follows the UI
+    // language (only the Uzbek Eskiz template is approved + Retriever-safe).
+    final api = client(locale: () => 'ru');
+
+    await api.post<Map<String, dynamic>>(
+      '/auth/otp/request',
+      body: {'phone': '+998901112233'},
+      anonymous: true,
+      localeOverride: 'uz',
+    );
+
+    expect(adapter.requests.single.headers['Accept-Language'], 'uz');
   });
 }

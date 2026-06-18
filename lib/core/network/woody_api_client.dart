@@ -21,18 +21,16 @@ import 'token_store.dart';
 /// envelope becomes [ApiError.code]; the `Retry-After` header populates
 /// [ApiError.retryAfterSeconds] on 429.
 class WoodyApiClient {
-  WoodyApiClient({
-    required this.tokens,
-    String Function()? locale,
-    Dio? dio,
-  })  : _locale = locale,
-        _dio = dio ?? _defaultDio() {
+  WoodyApiClient({required this.tokens, String Function()? locale, Dio? dio})
+    : _locale = locale,
+      _dio = dio ?? _defaultDio() {
     _dio.interceptors.add(_AuthInterceptor(this));
   }
 
   static const _apiV1Path = '/api/v1';
   static const _skipRefreshKey = '__woody_skip_refresh';
   static const _anonymousKey = '__woody_anonymous';
+  static const _localeOverrideKey = '__woody_locale_override';
 
   final Dio _dio;
   final TokenStore tokens;
@@ -102,24 +100,29 @@ class WoodyApiClient {
     Object? body,
     Map<String, dynamic>? query,
     bool anonymous = false,
-  }) =>
-      _send<T>('POST', path, body: body, query: query, anonymous: anonymous);
+    String? localeOverride,
+  }) => _send<T>(
+    'POST',
+    path,
+    body: body,
+    query: query,
+    anonymous: anonymous,
+    localeOverride: localeOverride,
+  );
 
   Future<T> patch<T>(
     String path, {
     Object? body,
     Map<String, dynamic>? query,
     bool anonymous = false,
-  }) =>
-      _send<T>('PATCH', path, body: body, query: query, anonymous: anonymous);
+  }) => _send<T>('PATCH', path, body: body, query: query, anonymous: anonymous);
 
   Future<T> put<T>(
     String path, {
     Object? body,
     Map<String, dynamic>? query,
     bool anonymous = false,
-  }) =>
-      _send<T>('PUT', path, body: body, query: query, anonymous: anonymous);
+  }) => _send<T>('PUT', path, body: body, query: query, anonymous: anonymous);
 
   Future<T> delete<T>(
     String path, {
@@ -135,6 +138,7 @@ class WoodyApiClient {
     Object? body,
     Map<String, dynamic>? query,
     bool anonymous = false,
+    String? localeOverride,
   }) async {
     final fullPath = '$_apiV1Path$path';
     try {
@@ -144,7 +148,10 @@ class WoodyApiClient {
         queryParameters: query,
         options: Options(
           method: method,
-          extra: {_anonymousKey: anonymous},
+          extra: {
+            _anonymousKey: anonymous,
+            _localeOverrideKey: ?localeOverride,
+          },
         ),
       );
       _ensureSuccess(response);
@@ -191,13 +198,14 @@ class WoodyApiClient {
     }
     final retryAfterHeader =
         response.headers.value('retry-after') ??
-            response.headers.value('Retry-After');
+        response.headers.value('Retry-After');
     return ApiError(
       status: response.statusCode ?? 0,
       code: code,
       message: message,
-      retryAfterSeconds:
-          retryAfterHeader == null ? null : int.tryParse(retryAfterHeader),
+      retryAfterSeconds: retryAfterHeader == null
+          ? null
+          : int.tryParse(retryAfterHeader),
     );
   }
 
@@ -210,8 +218,9 @@ class WoodyApiClient {
   /// to login. Funnelling every caller through one in-flight future means
   /// the rotating refresh token is presented to the server exactly once.
   Future<bool> _attemptRefresh() {
-    return _refreshFlight ??=
-        _doRefresh().whenComplete(() => _refreshFlight = null);
+    return _refreshFlight ??= _doRefresh().whenComplete(
+      () => _refreshFlight = null,
+    );
   }
 
   Future<bool> _doRefresh() async {
@@ -287,8 +296,11 @@ class _AuthInterceptor extends Interceptor {
   ) async {
     // Dynamic content (catalog, cart, orders) comes back pre-localised by
     // the backend, so every request — including refresh and replays —
-    // declares the active UI language.
-    final lang = _client._locale?.call();
+    // declares the active UI language. A per-request override (OTP request →
+    // forced `uz`) wins, so the SMS template never follows the UI language.
+    final override =
+        options.extra[WoodyApiClient._localeOverrideKey] as String?;
+    final lang = override ?? _client._locale?.call();
     if (lang != null && lang.isNotEmpty) {
       options.headers['Accept-Language'] = lang;
     }

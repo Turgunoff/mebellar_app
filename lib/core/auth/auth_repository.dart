@@ -44,11 +44,19 @@ class AuthRepository {
   /// Triggers SMS delivery. Returns the cooldown (in seconds) the server
   /// expects to elapse before another /otp/request is accepted — the UI
   /// kicks off a countdown with this value.
+  ///
+  /// The OTP SMS is always requested in Uzbek (`localeOverride: 'uz'`),
+  /// independent of the UI language: it's the only approved Eskiz template,
+  /// and being a single 140-byte segment it lets Android's SMS Retriever
+  /// auto-fill the code (the Cyrillic RU template spanned two segments and
+  /// broke zero-tap). Backend error codes are still translated client-side,
+  /// so forcing `uz` here costs no localisation.
   Future<int> requestOtp(String phone) async {
     final body = await _api.post<Map<String, dynamic>>(
       '/auth/otp/request',
       body: {'phone': phone},
       anonymous: true,
+      localeOverride: 'uz',
     );
     final cooldown = body['cooldown_seconds'];
     return cooldown is int ? cooldown : 0;

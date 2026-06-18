@@ -3,7 +3,7 @@
 **Komponent:** `mebellar_app` — Woody mobil ilova (customer + seller)
 **Sana:** 2026-06-04 · **Holat:** Production · **Versiya:** `1.0.5+6`
 **Package:** `com.mebellar.app` (Dart paket `woody_app`)
-**Umumiy TZ:** [`../woody_v2_tz.md`](../woody_v2_tz.md) · **Brain:** `CLAUDE.md`
+**Umumiy TZ:** [`../TZ.md`](../TZ.md) (master spec) · **Brain:** `CLAUDE.md`
 
 > Bitta binary'da ikki rejim (customer + seller), `woody_backend` (`api.woody.uz`)
 > ustida. Authoritative narrative — `CLAUDE.md`; invariant kartalar — `.claude/rules/`.
