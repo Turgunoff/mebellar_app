@@ -95,8 +95,8 @@ class AuthSheetController extends ChangeNotifier {
       _lastCooldown = cooldown > 0 ? cooldown : 60;
       talker.info('✓ OTP requested ok (cooldown=$cooldown s)');
       // Start listening for the incoming SMS so the code auto-fills (Android
-      // User Consent — no app-hash needed, unlike SMS Retriever). Fire-and-
-      // forget; manual entry always works as a fallback.
+      // SMS Retriever — zero-tap; the Eskiz template ends with our own app-
+      // signature hash). Fire-and-forget; manual entry is always the fallback.
       unawaited(_listenForSmsCode());
       otpCtrl.clear();
       _startResendTimer();
@@ -224,17 +224,35 @@ class AuthSheetController extends ChangeNotifier {
 
   void cancelResendTimer() => _resendTimer?.cancel();
 
-  /// Android SMS User Consent: shows the system "read this message?" dialog
-  /// when the OTP SMS arrives, then fills [otpCtrl] with the extracted code
-  /// (which trips the pin-field listener → auto-submit). Hash-free, so it
-  /// works even though the Eskiz template carries another app's SMS-Retriever
-  /// hash. No-op on iOS — there, QuickType handles it via the field's
+  /// 11-char SMS Retriever hash for the Play App Signing key (derived from the
+  /// `com.mebellar.app` App signing key certificate). The Eskiz OTP template
+  /// ends with this exact string. If Play's signing key is ever rotated this
+  /// must be regenerated — otherwise the match below silently fails and every
+  /// build just falls back to the User Consent dialog.
+  static const String _playAppSignatureHash = 'mH1HhnJpGqi';
+
+  /// Android OTP autofill, choosing the API by this build's app-signature hash:
+  ///
+  ///  * **Play-installed builds** — the signature is the Play App Signing key
+  ///    ([_playAppSignatureHash]), the same hash the Eskiz OTP template ends
+  ///    with, so [getSmsWithRetrieverApi] hands us the code silently — zero-tap.
+  ///  * **Debug / sideloaded-release builds** — a different signing key, so the
+  ///    silent Retriever would never fire. They fall back to the hash-free
+  ///    [getSmsWithUserConsentApi], which shows the system "read this message?"
+  ///    dialog before filling.
+  ///
+  /// Either path fills [otpCtrl] (→ trips the pin-field listener → auto-submit).
+  /// No-op on iOS — there, QuickType fills it via the field's
   /// `AutofillHints.oneTimeCode` inside an `AutofillGroup`.
   Future<void> _listenForSmsCode() async {
     if (!Platform.isAndroid || _smsListenerActive) return;
     _smsListenerActive = true;
     try {
-      final res = await SmartAuth.instance.getSmsWithUserConsentApi();
+      final sig = await SmartAuth.instance.getAppSignature();
+      if (_disposed) return;
+      final res = sig.data == _playAppSignatureHash
+          ? await SmartAuth.instance.getSmsWithRetrieverApi()
+          : await SmartAuth.instance.getSmsWithUserConsentApi();
       if (_disposed) return;
       final code = res.data?.code;
       if (code != null && code.length >= 4) {
@@ -290,8 +308,9 @@ class AuthSheetController extends ChangeNotifier {
 
   // Phone numbers are PII; talker forwards to Crashlytics, so never log the
   // full E.164 value. Keep the country prefix + last two digits for debugging.
-  String _maskPhone(String p) =>
-      p.length <= 4 ? '***' : '${p.substring(0, 4)}***${p.substring(p.length - 2)}';
+  String _maskPhone(String p) => p.length <= 4
+      ? '***'
+      : '${p.substring(0, 4)}***${p.substring(p.length - 2)}';
 
   void _notify() {
     if (!_disposed) notifyListeners();
@@ -302,6 +321,10 @@ class AuthSheetController extends ChangeNotifier {
     _disposed = true;
     _resendTimer?.cancel();
     if (Platform.isAndroid) {
+      // Either listener may be the active one (depends on the signature match
+      // in _listenForSmsCode), so tear both down — removing an unregistered
+      // listener is a harmless no-op.
+      unawaited(SmartAuth.instance.removeSmsRetrieverApiListener());
       unawaited(SmartAuth.instance.removeUserConsentApiListener());
     }
     phoneCtrl.dispose();

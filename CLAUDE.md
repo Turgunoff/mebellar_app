@@ -318,9 +318,15 @@ This brain captures the state after a multi-session redesign:
   system back. Dark mode via `AuthTokens`; steps under `auth/sheets/`,
   logic in `AuthSheetController`. File is still `auth/auth_bottom_sheet.dart`.
 - OTP autofill: iOS uses QuickType (`AutofillHints.oneTimeCode` inside an
-  `AutofillGroup` in `otp_step.dart`); Android uses `smart_auth` **SMS User
-  Consent** (`AuthSheetController._listenForSmsCode`), started when the OTP
-  is requested — fills `otpCtrl` → auto-submits. User Consent is used (not
-  SMS Retriever) because the Eskiz template carries another app's signature
-  hash, so hash-based retrieval can't match. Fully-automatic Android autofill
-  would need an Eskiz template ending in Woody's own app-signature hash.
+  `AutofillGroup` in `otp_step.dart`); Android picks its `smart_auth` API by
+  the running build's app-signature hash in
+  `AuthSheetController._listenForSmsCode` (started when the OTP is requested —
+  fills `otpCtrl` → auto-submits). Play-installed builds match the Play App
+  Signing hash (`_playAppSignatureHash = 'mH1HhnJpGqi'`, which the Eskiz OTP
+  templates end with) and use **SMS Retriever** — zero-tap, no dialog;
+  debug / sideloaded-release builds carry a different signing key (debug =
+  `yaRHQKhlEo9`) so they fall back to the hash-free **SMS User Consent**
+  dialog. The OTP SMS is localized (uz/ru/en) by the `Accept-Language` the
+  `WoodyApiClient` interceptor stamps on every request — and the RU template
+  spans 2 SMS segments (>140 bytes, Cyrillic), so Retriever can't fire for it
+  and Russian users get the User Consent dialog.
