@@ -83,10 +83,23 @@ class ChatThreadCubit extends Cubit<ChatThreadState> {
   /// distinct local ids.
   int _localSeq = 0;
 
-  Future<void> load() async {
-    emit(state.copyWith(status: ChatThreadStatus.loading, clearError: true));
+  /// [initialChat] is the row the bootstrap `FutureBuilder` already resolved
+  /// (or lazy-created from an order id). Passing it lets [load] skip the
+  /// redundant `getChat` round-trip — there is no single-chat endpoint, so
+  /// `getChat` re-downloads the user's entire chat list and linearly scans it.
+  Future<void> load([Chat? initialChat]) async {
+    // Seed the resolved chat into the loading state so the app bar / status
+    // banner render immediately instead of waiting on the message fetch.
+    final seed = initialChat ?? state.chat;
+    emit(
+      state.copyWith(
+        status: ChatThreadStatus.loading,
+        chat: seed,
+        clearError: true,
+      ),
+    );
     try {
-      final chat = await _repo.getChat(chatId);
+      final chat = seed ?? await _repo.getChat(chatId);
       final messages = await _repo.listMessages(chatId);
       emit(
         state.copyWith(

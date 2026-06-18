@@ -85,6 +85,32 @@ void main() {
     ],
   );
 
+  // CHAT-01: the bootstrap FutureBuilder already resolved the chat row, so
+  // passing it into load() must skip the (list-scanning) getChat refetch.
+  blocTest<ChatThreadCubit, ChatThreadState>(
+    'load(initialChat) reuses the passed row and skips the getChat refetch',
+    build: () {
+      stubLoad(initial: [_msg('a')]);
+      return build();
+    },
+    act: (cubit) => cubit.load(_chat('chat-1')),
+    expect: () => [
+      isA<ChatThreadState>().having(
+        (s) => s.status,
+        'status',
+        ChatThreadStatus.loading,
+      ),
+      isA<ChatThreadState>()
+          .having((s) => s.status, 'status', ChatThreadStatus.ready)
+          .having((s) => s.chat?.id, 'chat.id', 'chat-1')
+          .having((s) => s.messages.length, 'messages', 1),
+    ],
+    verify: (_) {
+      verifyNever(() => repo.getChat(any()));
+      verify(() => repo.listMessages('chat-1')).called(1);
+    },
+  );
+
   blocTest<ChatThreadCubit, ChatThreadState>(
     'sendText inserts an optimistic "sending" bubble, then reconciles to sent',
     build: () {

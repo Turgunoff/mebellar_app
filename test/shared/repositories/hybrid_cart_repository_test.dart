@@ -3,11 +3,16 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:woody_app/core/network/api_error.dart';
+import 'package:woody_app/shared/models/cart_item_model.dart';
 import 'package:woody_app/shared/models/product_model.dart';
+import 'package:woody_app/shared/repositories/cart_repository.dart';
 import 'package:woody_app/shared/repositories/hive_cart_repository.dart';
 import 'package:woody_app/shared/repositories/hybrid_cart_repository.dart';
 
 class _MockBox extends Mock implements Box {}
+
+class _MockRemote extends Mock implements CartRepository {}
 
 Box _box() {
   final backing = <dynamic, dynamic>{};
@@ -32,6 +37,8 @@ ProductModel _product(String id) => ProductModel(
 );
 
 void main() {
+  setUpAll(() => registerFallbackValue(_product('fallback')));
+
   group('HybridCartRepository', () {
     test('guest adds route to the local cart, not the server', () async {
       final auth = StreamController<bool>.broadcast();
@@ -82,6 +89,62 @@ void main() {
         });
         expect(local.currentItems, isEmpty);
         expect(hybrid.currentItems, hasLength(2)); // active = remote now
+      },
+    );
+
+    // CART-01: a transient failure must keep its line locally to retry, while a
+    // permanent rejection drops it — and the merge reports both counts so the
+    // UI can tell the user about lost items.
+    test(
+      'login merge keeps transient failures, drops permanent ones, reports counts',
+      () async {
+        var signedIn = false;
+        final auth = StreamController<bool>.broadcast();
+        final local = HiveCartRepository(box: _box());
+        final remote = _MockRemote();
+        when(
+          () => remote.watchItems(),
+        ).thenAnswer((_) => const Stream<List<CartItemModel>>.empty());
+        when(
+          () => remote.fetchItems(),
+        ).thenAnswer((_) async => const <CartItemModel>[]);
+        when(
+          () => remote.addProduct(
+            any(),
+            quantity: any(named: 'quantity'),
+            selectedColor: any(named: 'selectedColor'),
+          ),
+        ).thenAnswer((inv) async {
+          final p = inv.positionalArguments.first as ProductModel;
+          if (p.id == 'gone') throw ApiError(status: 404, code: 'not_found');
+          if (p.id == 'flaky') throw ApiError(status: 503, code: 'unavailable');
+          // 'p1' merges fine.
+        });
+
+        final hybrid = HybridCartRepository(
+          remote: remote,
+          local: local,
+          isSignedIn: () => signedIn,
+          authChanges: auth.stream,
+        );
+        addTearDown(hybrid.dispose);
+
+        await local.addProduct(_product('p1'));
+        await local.addProduct(_product('gone'));
+        await local.addProduct(_product('flaky'));
+
+        final reported = hybrid.mergeEvents.first;
+
+        signedIn = true;
+        auth.add(true);
+        await pumpEventQueue(times: 50);
+
+        // Only the transient 503 line survives locally for the next merge.
+        expect(local.currentItems.map((e) => e.productId), ['flaky']);
+
+        final result = await reported;
+        expect(result.merged, 1); // p1
+        expect(result.dropped, 1); // gone (404)
       },
     );
 

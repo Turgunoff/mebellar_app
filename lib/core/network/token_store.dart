@@ -28,7 +28,7 @@ class TokenPair {
 /// sign-in / sign-out / refresh-failure events without polling.
 class TokenStore {
   TokenStore([FlutterSecureStorage? storage])
-      : _storage = storage ?? const FlutterSecureStorage();
+    : _storage = storage ?? const FlutterSecureStorage();
 
   static const _kAccess = 'woody_access_token';
   static const _kRefresh = 'woody_refresh_token';
@@ -41,28 +41,42 @@ class TokenStore {
   TokenPair? _cached;
   bool _hydrated = false;
 
+  /// In-flight first read of secure storage. Memoised so a cold-start burst of
+  /// authenticated requests (the interceptor reads tokens per request) funnels
+  /// through a single storage round-trip instead of each firing its own — the
+  /// same single-flight discipline the refresh path uses.
+  Future<TokenPair?>? _hydration;
+
   Stream<TokenPair?> get changes => _changes.stream;
   TokenPair? get current => _cached;
 
-  Future<TokenPair?> read() async {
-    if (_hydrated) return _cached;
-    final access = await _storage.read(key: _kAccess);
-    final refresh = await _storage.read(key: _kRefresh);
-    final expiresAtStr = await _storage.read(key: _kExpiresAt);
-    _hydrated = true;
-    if (access == null || refresh == null) {
-      _cached = null;
-      return null;
+  Future<TokenPair?> read() {
+    if (_hydrated) return Future<TokenPair?>.value(_cached);
+    return _hydration ??= _hydrate();
+  }
+
+  Future<TokenPair?> _hydrate() async {
+    try {
+      final access = await _storage.read(key: _kAccess);
+      final refresh = await _storage.read(key: _kRefresh);
+      final expiresAtStr = await _storage.read(key: _kExpiresAt);
+      // A write()/clear() may have landed while we awaited storage; its value
+      // is authoritative, so don't clobber it with what we just read.
+      if (_hydrated) return _cached;
+      _cached = (access == null || refresh == null)
+          ? null
+          : TokenPair(
+              accessToken: access,
+              refreshToken: refresh,
+              expiresAt: expiresAtStr == null
+                  ? null
+                  : DateTime.tryParse(expiresAtStr),
+            );
+      _hydrated = true;
+      return _cached;
+    } finally {
+      _hydration = null;
     }
-    final expiresAt = expiresAtStr == null
-        ? null
-        : DateTime.tryParse(expiresAtStr);
-    _cached = TokenPair(
-      accessToken: access,
-      refreshToken: refresh,
-      expiresAt: expiresAt,
-    );
-    return _cached;
   }
 
   Future<void> write(TokenPair pair) async {

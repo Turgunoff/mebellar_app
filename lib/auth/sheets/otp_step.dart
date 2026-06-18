@@ -130,6 +130,19 @@ class _PinFieldState extends State<_PinField>
   final FocusNode _focus = FocusNode();
   late final AnimationController _shake;
 
+  // Both auto-submit (120ms) and post-error clear (500ms) are debounced through
+  // cancellable timers so they can't interleave — a stale submit firing after
+  // the field was cleared, or two submits racing — and so they're torn down on
+  // dispose.
+  Timer? _submitTimer;
+  Timer? _errorClearTimer;
+
+  /// The last full code that actually triggered [onCompleted]. Guards the
+  /// auto-submit so the same code fires exactly once — the autofill path
+  /// (`otpCtrl.text = code`) and the manual path both trip the controller
+  /// listener for the same value.
+  String? _lastSubmittedValue;
+
   @override
   void initState() {
     super.initState();
@@ -152,9 +165,13 @@ class _PinFieldState extends State<_PinField>
     // delete six digits manually after a wrong attempt.
     if (widget.hasError && !old.hasError) {
       _shake.forward(from: 0);
+      // The rejected code is about to be wiped, so drop the one-shot guard:
+      // the user must be able to re-submit, even if they retype the same code.
+      _lastSubmittedValue = null;
       // Slight delay so the user sees the error state before the field
       // resets — avoids the "did I type that wrong?" moment of doubt.
-      Future<void>.delayed(const Duration(milliseconds: 500), () {
+      _errorClearTimer?.cancel();
+      _errorClearTimer = Timer(const Duration(milliseconds: 500), () {
         if (mounted) {
           widget.controller.clear();
           _focus.requestFocus();
@@ -165,6 +182,8 @@ class _PinFieldState extends State<_PinField>
 
   @override
   void dispose() {
+    _submitTimer?.cancel();
+    _errorClearTimer?.cancel();
     widget.controller.removeListener(_handle);
     _focus.removeListener(_handleFocus);
     _focus.dispose();
@@ -174,12 +193,20 @@ class _PinFieldState extends State<_PinField>
 
   void _handle() {
     setState(() {});
-    if (widget.controller.text.length == widget.length) {
-      // Slight delay so the last digit visually lands before submit.
-      Future<void>.delayed(const Duration(milliseconds: 120), () {
-        if (mounted) widget.onCompleted();
-      });
-    }
+    // Any edit supersedes a pending auto-submit so a fast backspace-then-retype
+    // can't fire a stale submit against an old value.
+    _submitTimer?.cancel();
+    final value = widget.controller.text;
+    if (value.length != widget.length) return;
+    // Fire once per unique completed code (the autofill and manual paths both
+    // land here for the same value).
+    if (value == _lastSubmittedValue) return;
+    // Slight delay so the last digit visually lands before submit.
+    _submitTimer = Timer(const Duration(milliseconds: 120), () {
+      if (!mounted) return;
+      _lastSubmittedValue = value;
+      widget.onCompleted();
+    });
   }
 
   void _handleFocus() => setState(() {});

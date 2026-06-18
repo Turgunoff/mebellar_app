@@ -1,9 +1,39 @@
 import 'dart:async';
 
+import '../../core/network/api_error.dart';
 import '../models/cart.dart';
 import '../models/cart_item_model.dart';
 import '../models/product_model.dart';
 import 'cart_repository.dart';
+
+/// Outcome of merging the guest's local cart into the server cart on login.
+/// Surfaced via [HybridCartRepository.mergeEvents] so the UI can tell the user
+/// when lines were dropped (e.g. "2 items are no longer available").
+class CartMergeResult {
+  const CartMergeResult({required this.merged, required this.dropped});
+
+  /// Lines successfully replayed onto the server cart.
+  final int merged;
+
+  /// Lines permanently unmergeable (product removed / out of stock) — dropped
+  /// from the local cart so they don't linger. Transient failures are NOT
+  /// counted here: they're kept locally to retry on the next merge.
+  final int dropped;
+}
+
+/// Per-line result of a single replay attempt during `_mergeGuestCart`.
+enum _MergeOutcome {
+  /// Added to the server cart — remove it from local.
+  merged,
+
+  /// Permanent backend rejection (product gone / invalid) — remove it from
+  /// local and surface the drop to the user.
+  dropped,
+
+  /// Transient failure (5xx / rate-limit / auth / network) — keep it local so
+  /// the next merge retries it.
+  kept,
+}
 
 /// Auth-aware cart that routes to a [local] (Hive, guest) or [remote] (backend,
 /// signed-in) cart depending on session state, and merges the guest cart into
@@ -38,11 +68,16 @@ class HybridCartRepository implements CartRepository {
 
   bool _lastAuthed = false;
   final _itemsController = StreamController<List<CartItemModel>>.broadcast();
+  final _mergeController = StreamController<CartMergeResult>.broadcast();
   StreamSubscription<List<CartItemModel>>? _remoteSub;
   StreamSubscription<List<CartItemModel>>? _localSub;
   StreamSubscription<bool>? _authSub;
 
   CartRepository get _active => _isSignedIn() ? remote : local;
+
+  /// Emits once per guest→signed-in merge that touched any line, so the UI can
+  /// notify the user of dropped (no-longer-available) items.
+  Stream<CartMergeResult> get mergeEvents => _mergeController.stream;
 
   Future<void> _onAuthChanged(bool authed) async {
     // `changes` also fires on token refresh (authed→authed); only act on a
@@ -58,25 +93,68 @@ class HybridCartRepository implements CartRepository {
     }
   }
 
-  /// Replays the guest's local rows into the server cart, then empties the
-  /// local cart. Best-effort per item so one unavailable product can't block
-  /// the rest of the merge.
+  /// Replays the guest's local rows into the server cart on login. Each line is
+  /// attempted in parallel; only lines that succeed (or are permanently
+  /// unmergeable) are removed from the local cart, so a transient failure keeps
+  /// the line for the next merge instead of silently losing it. A summary is
+  /// pushed onto [mergeEvents] when any line merged or dropped, so the UI can
+  /// surface "N items are no longer available".
   Future<void> _mergeGuestCart() async {
     final pending = local.currentItems;
-    for (final it in pending) {
-      try {
-        await remote.addProduct(
-          _toProduct(it),
-          quantity: it.quantity,
-          selectedColor: it.selectedColor,
-        );
-      } catch (_) {
-        // Skip an item that no longer adds (e.g. the product was removed).
+    if (pending.isEmpty) return;
+
+    final outcomes = await Future.wait(
+      pending.map((it) async {
+        try {
+          await remote.addProduct(
+            _toProduct(it),
+            quantity: it.quantity,
+            selectedColor: it.selectedColor,
+          );
+          return (_MergeOutcome.merged, it);
+        } on ApiError catch (e) {
+          return (
+            _isPermanent(e) ? _MergeOutcome.dropped : _MergeOutcome.kept,
+            it,
+          );
+        } catch (_) {
+          // Network / unknown — treat as transient and keep the line.
+          return (_MergeOutcome.kept, it);
+        }
+      }),
+    );
+
+    final keptAny = outcomes.any((o) => o.$1 == _MergeOutcome.kept);
+    if (keptAny) {
+      // Partial merge: drop only the lines that merged or are permanently gone,
+      // leaving transient failures in place to retry.
+      for (final (outcome, it) in outcomes) {
+        if (outcome != _MergeOutcome.kept) {
+          await local.removeProduct(it.productId);
+        }
       }
+    } else {
+      // Nothing to retry — clear in one write rather than row-by-row.
+      await local.clear();
     }
-    await local.clear();
+
     await remote.fetchItems();
+
+    final merged = outcomes.where((o) => o.$1 == _MergeOutcome.merged).length;
+    final dropped = outcomes.where((o) => o.$1 == _MergeOutcome.dropped).length;
+    if (merged > 0 || dropped > 0) {
+      _mergeController.add(CartMergeResult(merged: merged, dropped: dropped));
+    }
   }
+
+  /// A 4xx (other than auth/rate-limit) means the line can never replay — the
+  /// product was removed, is out of stock, or the request was invalid. 5xx /
+  /// 401 / 429 / network errors are transient and worth retrying next merge.
+  static bool _isPermanent(ApiError e) =>
+      e.status >= 400 &&
+      e.status < 500 &&
+      !e.isUnauthorized &&
+      !e.isRateLimited;
 
   // ── Snapshot API — routes to the active backend ───────────────────────────
 
@@ -153,5 +231,6 @@ class HybridCartRepository implements CartRepository {
     await _localSub?.cancel();
     await _authSub?.cancel();
     await _itemsController.close();
+    await _mergeController.close();
   }
 }

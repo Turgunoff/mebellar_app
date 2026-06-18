@@ -171,12 +171,15 @@ class _ChatThreadViewState extends State<_ChatThreadView>
     // Tell PushService we're on this thread so it suppresses a foreground
     // push for the same conversation (the WS already updates the UI live).
     ActiveChatTracker.instance.enter(widget.chat.id);
-    _cubit = ChatThreadCubit(
-      repo: sl<ChatRepository>(),
-      chatId: widget.chat.id,
-      viewer: widget.viewer,
-      analytics: sl<AnalyticsService>(),
-    )..load();
+    _cubit =
+        ChatThreadCubit(
+          repo: sl<ChatRepository>(),
+          chatId: widget.chat.id,
+          viewer: widget.viewer,
+          analytics: sl<AnalyticsService>(),
+        )..load(
+          widget.chat,
+        ); // bootstrap already resolved the row — skip the refetch
     // Opening the thread == reading it (the cubit fires markAsRead on load),
     // so clear any tray notifications this chat already accumulated while the
     // user was away.

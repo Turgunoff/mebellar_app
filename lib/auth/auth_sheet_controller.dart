@@ -30,7 +30,12 @@ class AuthSheetController extends ChangeNotifier {
   int _secondsRemaining = 0;
   Timer? _resendTimer;
   bool _disposed = false;
-  bool _smsListenerActive = false;
+
+  /// Monotonic token for the active SMS-autofill listen. Each (re)arm bumps it
+  /// so a superseded in-flight listen (e.g. the first SMS was slow and the user
+  /// tapped "resend") bows out after its awaits instead of racing — and its
+  /// teardown can't clobber the fresh listener.
+  int _smsListenGeneration = 0;
 
   /// Last cooldown the server returned. We pass this to the resend timer
   /// instead of a hardcoded 120s so the UI matches the backend's policy.
@@ -245,23 +250,28 @@ class AuthSheetController extends ChangeNotifier {
   /// No-op on iOS — there, QuickType fills it via the field's
   /// `AutofillHints.oneTimeCode` inside an `AutofillGroup`.
   Future<void> _listenForSmsCode() async {
-    if (!Platform.isAndroid || _smsListenerActive) return;
-    _smsListenerActive = true;
+    if (!Platform.isAndroid) return;
+    // A prior request may have left a listener armed (the first SMS was slow
+    // and the user tapped "resend"). Tear it down first so this fresh listen
+    // isn't a no-op against the still-registered receiver — otherwise the
+    // resent code never auto-fills. Removing an unarmed listener is a no-op.
+    await SmartAuth.instance.removeSmsRetrieverApiListener();
+    await SmartAuth.instance.removeUserConsentApiListener();
+    if (_disposed) return;
+    final generation = ++_smsListenGeneration;
     try {
       final sig = await SmartAuth.instance.getAppSignature();
-      if (_disposed) return;
+      if (_disposed || generation != _smsListenGeneration) return;
       final res = sig.data == _playAppSignatureHash
           ? await SmartAuth.instance.getSmsWithRetrieverApi()
           : await SmartAuth.instance.getSmsWithUserConsentApi();
-      if (_disposed) return;
+      if (_disposed || generation != _smsListenGeneration) return;
       final code = res.data?.code;
       if (code != null && code.length >= 4) {
         otpCtrl.text = code; // trips _PinField's listener → auto-submit
       }
     } catch (_) {
       // Best-effort autofill — the user can always type the code by hand.
-    } finally {
-      _smsListenerActive = false;
     }
   }
 
