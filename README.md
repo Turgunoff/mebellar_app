@@ -191,7 +191,7 @@ flutter build ipa --release \
 | [`.claude/rules/`](./.claude/rules/) | Distilled invariant cards (architecture, theming, i18n, backend-api, testing). |
 | [`woody_mobile_tz.md`](./woody_mobile_tz.md) | Component-level technical spec for the mobile app. |
 | [`../TZ.md`](../TZ.md) | Platform **Master Technical Specification** (single source of truth). |
-| [`../docs/audit/workspace_audit_2026_06_18.md`](../docs/audit/workspace_audit_2026_06_18.md) | Latest code-health audit (incl. the mobile findings). |
+| [`../docs/_archive/workspace_audit_2026_06_18.md`](../docs/_archive/workspace_audit_2026_06_18.md) | 2026-06-18 code-health audit (incl. the mobile findings) — archived, all resolved. |
 | [`store/`](./store/) | App Store / Play listings + privacy policy. |
 
 ---
