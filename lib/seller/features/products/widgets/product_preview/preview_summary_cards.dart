@@ -75,7 +75,7 @@ class StatusCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
-    final palette = statusPalette(status);
+    final palette = statusPalette(c, status);
     return SectionCard(
       child: Row(
         children: [

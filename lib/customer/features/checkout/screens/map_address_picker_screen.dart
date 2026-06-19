@@ -334,7 +334,7 @@ class _MapAddressPickerScreenState extends State<MapAddressPickerScreen> {
                     vertical: 7,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: pt.surface,
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(

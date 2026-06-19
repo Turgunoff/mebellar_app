@@ -54,6 +54,16 @@ class AppColors {
   static const Color successContainerDark = Color(0xFF14331B);
   static const Color onSuccessContainerDark = Color(0xFFA5D6A7);
 
+  // ---- Warning container (cautionary banner fill + text) ------------------
+  // Soft amber fill + deep amber foreground for cautionary banners (fee
+  // adjustment, action required). Split into a light/dark pair so the banner
+  // flips with the theme instead of staying a bright cream island in dark mode.
+  // Consumed via [AppCustomColors.warningContainer] / `.onWarningContainer`.
+  static const Color warningContainer = Color(0xFFFFF8EE);
+  static const Color onWarningContainer = Color(0xFF8C5A12);
+  static const Color warningContainerDark = Color(0xFF3A2D12);
+  static const Color onWarningContainerDark = Color(0xFFF5C77A);
+
   // ---- Success accent (emerald CTA / gradient) ----------------------------
   // Fixed brand-success emerald used for the "seller approved" gradient banner.
   // Like [terracotta], it does NOT flip with brightness — emerald reads fine on

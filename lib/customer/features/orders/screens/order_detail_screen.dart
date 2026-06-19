@@ -382,34 +382,38 @@ class _FeeAdjustmentBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final pt = PremiumTokens.of(context);
     final priceFormat = NumberFormat('#,###');
     final busy = state.status == OrderDetailStatus.mutating;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF8EE),
+        color: pt.warningBg,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFFFD580), width: 1.5),
+        border: Border.all(
+          color: pt.onWarningBg.withValues(alpha: 0.35),
+          width: 1.5,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.local_shipping_outlined,
                 size: 20,
-                color: Color(0xFF8C5A12),
+                color: pt.onWarningBg,
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   tr('orders.fee_changed_title'),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF8C5A12),
+                    color: pt.onWarningBg,
                   ),
                 ),
               ),
@@ -421,19 +425,15 @@ class _FeeAdjustmentBanner extends StatelessWidget {
               'orders.fee_changed_body',
               namedArgs: {'fee': priceFormat.format(proposedFee)},
             ),
-            style: const TextStyle(
-              fontSize: 13,
-              color: Color(0xFF5C3A0A),
-              height: 1.4,
-            ),
+            style: TextStyle(fontSize: 13, color: pt.onWarningBg, height: 1.4),
           ),
           if (note?.isNotEmpty == true) ...[
             const SizedBox(height: 4),
             Text(
               note!,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: Color(0xFF8C5A12),
+                color: pt.onWarningBg,
                 height: 1.3,
               ),
             ),

@@ -41,6 +41,7 @@ void main() {
     expect(r.seller.surface, AppColors.sellerSurface);
     expect(r.seller.ink, AppColors.sellerInk);
     expect(r.custom.successContainer, AppColors.successContainer);
+    expect(r.custom.warningContainer, AppColors.warningContainer);
   });
 
   testWidgets('customer dark theme resolves the DARK seller surface set', (
@@ -52,5 +53,6 @@ void main() {
     expect(r.seller.surface, AppColors.sellerSurfaceDark);
     expect(r.seller.ink, AppColors.sellerInkDark);
     expect(r.custom.successContainer, AppColors.successContainerDark);
+    expect(r.custom.warningContainer, AppColors.warningContainerDark);
   });
 }

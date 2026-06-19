@@ -29,6 +29,8 @@ class AppCustomColors extends ThemeExtension<AppCustomColors> {
     required this.successContainer,
     required this.onSuccessContainer,
     required this.warning,
+    required this.warningContainer,
+    required this.onWarningContainer,
     required this.error,
     required this.customCardBackground,
     required this.customCardText,
@@ -67,6 +69,13 @@ class AppCustomColors extends ThemeExtension<AppCustomColors> {
   /// Cautionary status color (pending, low-stock, action required).
   final Color warning;
 
+  /// Soft-amber *fill* behind a cautionary banner (fee adjustment, action
+  /// required). Pair with [onWarningContainer] for the text + icon.
+  final Color warningContainer;
+
+  /// Deep-amber foreground (text + icon) that sits on [warningContainer].
+  final Color onWarningContainer;
+
   /// Negative status color. Mirrors `colorScheme.error` for components that
   /// can't reach the scheme directly (e.g. inside a widget that only sees
   /// the extension).
@@ -103,6 +112,8 @@ class AppCustomColors extends ThemeExtension<AppCustomColors> {
     successContainer: AppColors.successContainer,
     onSuccessContainer: AppColors.onSuccessContainer,
     warning: AppColors.warning,
+    warningContainer: AppColors.warningContainer,
+    onWarningContainer: AppColors.onWarningContainer,
     error: AppColors.danger,
     customCardBackground: AppColors.cardSurfaceLight,
     customCardText: AppColors.cardForeground,
@@ -122,6 +133,8 @@ class AppCustomColors extends ThemeExtension<AppCustomColors> {
     successContainer: AppColors.successContainerDark,
     onSuccessContainer: AppColors.onSuccessContainerDark,
     warning: AppColors.warning,
+    warningContainer: AppColors.warningContainerDark,
+    onWarningContainer: AppColors.onWarningContainerDark,
     error: AppColors.danger,
     customCardBackground: AppColors.cardSurfaceDark,
     customCardText: AppColors.cardForeground,
@@ -141,6 +154,8 @@ class AppCustomColors extends ThemeExtension<AppCustomColors> {
     Color? successContainer,
     Color? onSuccessContainer,
     Color? warning,
+    Color? warningContainer,
+    Color? onWarningContainer,
     Color? error,
     Color? customCardBackground,
     Color? customCardText,
@@ -158,6 +173,8 @@ class AppCustomColors extends ThemeExtension<AppCustomColors> {
       successContainer: successContainer ?? this.successContainer,
       onSuccessContainer: onSuccessContainer ?? this.onSuccessContainer,
       warning: warning ?? this.warning,
+      warningContainer: warningContainer ?? this.warningContainer,
+      onWarningContainer: onWarningContainer ?? this.onWarningContainer,
       error: error ?? this.error,
       customCardBackground: customCardBackground ?? this.customCardBackground,
       customCardText: customCardText ?? this.customCardText,
@@ -190,6 +207,12 @@ class AppCustomColors extends ThemeExtension<AppCustomColors> {
           Color.lerp(onSuccessContainer, other.onSuccessContainer, t) ??
           onSuccessContainer,
       warning: Color.lerp(warning, other.warning, t) ?? warning,
+      warningContainer:
+          Color.lerp(warningContainer, other.warningContainer, t) ??
+          warningContainer,
+      onWarningContainer:
+          Color.lerp(onWarningContainer, other.onWarningContainer, t) ??
+          onWarningContainer,
       error: Color.lerp(error, other.error, t) ?? error,
       customCardBackground:
           Color.lerp(customCardBackground, other.customCardBackground, t) ??

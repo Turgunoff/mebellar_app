@@ -18,37 +18,42 @@ const Color kAccentSoft = AppColors.sellerPrimaryTint;
 
 /// Status palette — kept aligned with `ProductStatusChip` so the preview's
 /// banner pill matches the list-tile pill exactly.
+// Resolved from [SellerColors] (not raw [AppColors] consts) so the neutral
+// draft / archived pills flip with the theme instead of pinning the light grey
+// — the status-intent fills (warning / positive / negative) read the same on
+// both backgrounds but go through the resolver too for consistency.
 ({Color bg, Color fg, IconData icon, String label}) statusPalette(
+  SellerColors c,
   SellerProductStatus status,
 ) {
   return switch (status) {
     SellerProductStatus.draft => (
-      bg: AppColors.sellerNeutralBgAlt,
-      fg: AppColors.sellerNeutralFgAlt,
+      bg: c.neutralBgAlt,
+      fg: c.neutralFgAlt,
       icon: Iconsax.edit,
       label: 'Qoralama',
     ),
     SellerProductStatus.pendingReview => (
-      bg: AppColors.sellerWarningBg,
-      fg: AppColors.sellerWarning,
+      bg: c.warningBg,
+      fg: c.warning,
       icon: Iconsax.clock,
       label: 'Tekshirilmoqda',
     ),
     SellerProductStatus.approved => (
-      bg: AppColors.sellerPositiveBg,
-      fg: AppColors.sellerPositive,
+      bg: c.positiveBg,
+      fg: c.positive,
       icon: Iconsax.tick_circle,
       label: 'Tasdiqlangan',
     ),
     SellerProductStatus.rejected => (
-      bg: AppColors.sellerNegativeBg,
-      fg: AppColors.sellerNegative,
+      bg: c.negativeBg,
+      fg: c.negative,
       icon: Iconsax.close_circle,
       label: 'Rad etilgan',
     ),
     SellerProductStatus.archived => (
-      bg: AppColors.sellerNeutralBg,
-      fg: AppColors.sellerNeutralFg,
+      bg: c.neutralBg,
+      fg: c.neutralFg,
       icon: Iconsax.archive_2,
       label: 'Arxivlangan',
     ),

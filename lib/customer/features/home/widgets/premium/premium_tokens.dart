@@ -81,6 +81,12 @@ class PremiumTokens {
   /// Deep-green foreground on [successBg].
   Color get onSuccessBg => _custom.onSuccessContainer;
 
+  /// Soft-amber *fill* for a cautionary banner (fee adjustment, action needed).
+  Color get warningBg => _custom.warningContainer;
+
+  /// Deep-amber foreground on [warningBg].
+  Color get onWarningBg => _custom.onWarningContainer;
+
   /// Telegram contact button background.
   Color get telegram => _custom.telegramButton;
 
