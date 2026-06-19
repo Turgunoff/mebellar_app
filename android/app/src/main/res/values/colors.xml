@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#FBF1E8</color>
+    <color name="ic_launcher_background">#1F2933</color>
+    <!-- FCM notification accent (brand terracotta). Referenced by the
+         default_notification_color meta-data in AndroidManifest. -->
+    <color name="notification_accent">#C2703D</color>
 </resources>

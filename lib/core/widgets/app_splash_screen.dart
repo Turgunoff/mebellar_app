@@ -1,19 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../r.dart';
 import '../theme/app_fonts.dart';
 
 import '../theme/app_colors.dart';
+import '../theme/theme_cubit.dart';
 
 /// Premium brand splash, shown on cold start while [_ModeRouter] in main.dart
 /// waits for the minimum display duration to elapse before crossfading into
 /// the active app shell.
 ///
 /// Design choices:
-/// - Off-white background (`#FAFAFA`) matches the customer premium surface,
-///   so the cold-start → first-frame transition is visually continuous.
-/// - The mark is rendered in code (Playfair "M" inside a terracotta disc) so
-///   we don't ship a PNG asset that would need light/dark variants and HiDPI
-///   buckets. If a designer drops a real logo later, swap the inner Container
-///   for `Image.asset(...)` — the surrounding animation stays.
+/// - Background follows the active theme (off-white `#FAFAFA` in light,
+///   near-black `#121212` in dark) so the cold-start → first-frame transition
+///   stays visually continuous in both modes. The splash sits *above*
+///   MaterialApp (no `Theme.of` here), so brightness is read from [ThemeCubit];
+///   `ThemeMode.system` falls back to the platform brightness.
+/// - The mark is the white cabinet logo (`AssetLogo.woodyLogoMonochrome`) on a
+///   terracotta disc, matching the launcher icon. The staggered entrance
+///   animation is code-driven, so only the inner asset changes on a rebrand.
 /// - Three staggered fade/scale entries give the screen a sense of arrival
 ///   without feeling slow; total entrance settles by ~750 ms.
 class AppSplashScreen extends StatefulWidget {
@@ -36,10 +41,8 @@ class _AppSplashScreenState extends State<AppSplashScreen>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: _entranceDuration,
-    )..forward();
+    _controller = AnimationController(vsync: this, duration: _entranceDuration)
+      ..forward();
 
     // Staggered Intervals: mark first, wordmark a beat later, tagline last.
     // Curves.easeOutCubic feels premium — quick start, gentle arrival.
@@ -71,8 +74,23 @@ class _AppSplashScreenState extends State<AppSplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final mode = context.watch<ThemeCubit>().state.themeMode;
+    final isDark = switch (mode) {
+      ThemeMode.dark => true,
+      ThemeMode.light => false,
+      ThemeMode.system =>
+        WidgetsBinding.instance.platformDispatcher.platformBrightness ==
+            Brightness.dark,
+    };
+    final titleColor = isDark
+        ? AppColors.darkTextPrimary
+        : AppColors.lightTextPrimary;
+    final tagColor = isDark
+        ? AppColors.darkTextSecondary
+        : AppColors.lightTextSecondary;
+
     return ColoredBox(
-      color: AppColors.lightBackground,
+      color: isDark ? AppColors.darkBackground : AppColors.lightBackground,
       child: SafeArea(
         child: Stack(
           children: [
@@ -96,10 +114,11 @@ class _AppSplashScreenState extends State<AppSplashScreen>
                     opacity: _wordmarkFade,
                     child: Text(
                       'Woody',
-                      style: TextStyle(fontFamily: AppFonts.display, 
+                      style: TextStyle(
+                        fontFamily: AppFonts.display,
                         fontSize: 38,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.lightTextPrimary,
+                        color: titleColor,
                         letterSpacing: -0.8,
                         height: 1.0,
                       ),
@@ -110,10 +129,11 @@ class _AppSplashScreenState extends State<AppSplashScreen>
                     opacity: _tagFade,
                     child: Text(
                       'Premium mebel olami',
-                      style: TextStyle(fontFamily: AppFonts.body, 
+                      style: TextStyle(
+                        fontFamily: AppFonts.body,
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
-                        color: AppColors.lightTextSecondary,
+                        color: tagColor,
                         letterSpacing: 0.6,
                       ),
                     ),
@@ -148,9 +168,8 @@ class _AppSplashScreenState extends State<AppSplashScreen>
   }
 }
 
-/// Code-rendered monogram. Terracotta disc + soft glow behind, white
-/// Playfair "M" centered inside. Replace with an asset later by swapping
-/// the inner stack for `Image.asset('assets/images/logo.png')`.
+/// Brand mark: terracotta disc + soft glow behind, the white cabinet logo
+/// centered inside (matches the app launcher icon).
 class _BrandMark extends StatelessWidget {
   const _BrandMark();
 
@@ -187,14 +206,11 @@ class _BrandMark extends StatelessWidget {
               ],
             ),
             alignment: Alignment.center,
-            child: Text(
-              'M',
-              style: TextStyle(fontFamily: AppFonts.display, 
-                fontSize: 46,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                height: 1.0,
-                letterSpacing: -1,
+            child: const Padding(
+              padding: EdgeInsets.all(8),
+              child: Image(
+                image: AssetImage(AssetLogo.woodyLogoMonochrome),
+                fit: BoxFit.contain,
               ),
             ),
           ),

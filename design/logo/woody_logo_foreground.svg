@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Woody app-icon foreground: terracotta cabinet glyph on transparent.
+     Glyph scaled to ~65% (central safe zone) for the Android adaptive icon
+     and the iOS/legacy master (flattened against the navy background by
+     flutter_launcher_icons). Brand-faithful colour from the approved mock. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 100 100">
+  <g transform="translate(50,50) scale(0.8) translate(-50,-50)">
+    <rect x="13" y="13" width="74" height="74" rx="19" fill="none"
+          stroke="#C2703D" stroke-width="7" stroke-linejoin="round"/>
+    <line x1="13" y1="38" x2="87" y2="38"
+          stroke="#C2703D" stroke-width="7" stroke-linecap="round"/>
+    <rect x="37" y="56.5" width="26" height="11" rx="5.5" fill="#C2703D"/>
+  </g>
+</svg>

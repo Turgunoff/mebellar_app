@@ -214,10 +214,12 @@ class PushService {
   }
 
   Future<void> _initLocalNotifications() async {
-    // Android side wants an icon resource that exists in the launcher
-    // mipmaps; @mipmap/ic_launcher always exists since flutter_launcher_icons
-    // generates it, so it is the safest default.
-    const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+    // Status-bar notification icon: a white-on-transparent silhouette
+    // (ic_stat_woody). A full-colour @mipmap/ic_launcher would render as a
+    // white square here, since Android draws only the icon's alpha channel.
+    const androidInit = AndroidInitializationSettings(
+      '@drawable/ic_stat_woody',
+    );
     // iOS requires Darwin settings or initialize() throws. We don't request
     // permissions here (requestPermissionAndSubscribe does that via FCM); the
     // OS shows foreground pings itself through
@@ -527,7 +529,7 @@ class PushService {
       channelDescription: 'Yangiliklar va aksiyalar haqida bildirishnomalar',
       importance: Importance.high,
       priority: Priority.high,
-      icon: '@mipmap/ic_launcher',
+      icon: '@drawable/ic_stat_woody',
       // Tag forces every notification to occupy its own tray slot even when
       // bodies are identical (e.g. 3 rapid order-update pings) — without
       // this, Android's auto-grouping replaces older entries on some OEM

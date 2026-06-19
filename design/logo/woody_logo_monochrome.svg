@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Woody adaptive monochrome layer (Android 13+ themed icons). White glyph on
+     transparent — the system tints it to the user's wallpaper, so colour is
+     dropped on purpose. Same geometry + safe-zone scale as the foreground. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 100 100">
+  <g transform="translate(50,50) scale(0.8) translate(-50,-50)">
+    <rect x="13" y="13" width="74" height="74" rx="19" fill="none"
+          stroke="#FFFFFF" stroke-width="7" stroke-linejoin="round"/>
+    <line x1="13" y1="38" x2="87" y2="38"
+          stroke="#FFFFFF" stroke-width="7" stroke-linecap="round"/>
+    <rect x="37" y="56.5" width="26" height="11" rx="5.5" fill="#FFFFFF"/>
+  </g>
+</svg>

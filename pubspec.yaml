@@ -182,19 +182,20 @@ dev_dependencies:
 flutter_launcher_icons:
   android: "ic_launcher"
   ios: true
-  # Use the padded foreground (W in central 65%) for both iOS and the
-  # legacy ic_launcher.png — same safe zone as Android adaptive, flattened
-  # to cream for iOS.
-  image_path: "assets/logo/woody_logo_foreground.png"
+  # iOS + legacy ic_launcher.png use the FULL icon (navy bg baked in) so the
+  # pre-adaptive Android (<8) launcher and iOS both show the finished icon, not
+  # a bare glyph on transparency. Adaptive (8+) composes the bg colour + the
+  # transparent foreground below instead.
+  image_path: "design/logo/woody_logo_full.png"
   min_sdk_android: 21
   # Apple App Store rejects icons with an alpha channel — flatten the iOS
-  # variant against the cream brand background instead of leaving it
+  # variant against the navy brand background instead of leaving it
   # transparent.
   remove_alpha_ios: true
-  background_color_ios: "#FBF1E8"
-  # Adaptive icon (Android 8+): cream background + W foreground with the
+  background_color_ios: "#1F2933"
+  # Adaptive icon (Android 8+): navy background + cabinet foreground with the
   # 17.5% safe-zone padding pre-baked into woody_logo_foreground.png.
-  adaptive_icon_background: "#FBF1E8"
+  adaptive_icon_background: "#1F2933"
   adaptive_icon_foreground: "assets/logo/woody_logo_foreground.png"
   # Themed icons (Android 13+): the system tints this silhouette to match
   # the user's wallpaper, so colour is dropped here on purpose.

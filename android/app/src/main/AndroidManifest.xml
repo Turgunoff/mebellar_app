@@ -126,6 +126,18 @@
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="news" />
+
+        <!-- FCM small icon shown in the status bar. MUST be a white-on-
+             transparent silhouette — a colour launcher icon renders as a white
+             square because Android draws only the icon's alpha. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_woody" />
+        <!-- Accent applied to the expanded notification (and the small icon on
+             some OEMs). Brand terracotta. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/notification_accent" />
     </application>
 
     <queries>
