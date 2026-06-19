@@ -29,6 +29,7 @@ class ProductModel extends Equatable {
     this.productionTimeDays,
     this.discountPrice,
     this.arModelUrl,
+    this.usdzUrl,
     this.arStatus = 'none',
   });
 
@@ -81,6 +82,13 @@ class ProductModel extends Equatable {
   /// this once `ar_status == 'approved'`, so a non-null value means the buyer
   /// "view in your room" entry is live.
   final String? arModelUrl;
+
+  /// Public URL of the QC-approved iOS-AR model (`.usdz`), the counterpart of
+  /// [arModelUrl] used by `<model-viewer iosSrc>` for AR Quick Look. Null when
+  /// no usdz was produced (Meshy omitted it and no converter ran) — the iOS
+  /// in-page 3D view still works off the `.glb`; only the native AR launch needs
+  /// this. Gated on `ar_status == 'approved'` server-side, same as [arModelUrl].
+  final String? usdzUrl;
 
   /// AR pipeline state (mirrors backend `ArStatus`): `none | processing |
   /// pending_review | approved | rejected`.
@@ -157,6 +165,9 @@ class ProductModel extends Equatable {
       arModelUrl: (json['ar_model_url'] as String?)?.trim().isNotEmpty == true
           ? (json['ar_model_url'] as String).trim()
           : null,
+      usdzUrl: (json['ar_usdz_url'] as String?)?.trim().isNotEmpty == true
+          ? (json['ar_usdz_url'] as String).trim()
+          : null,
       arStatus: json['ar_status'] as String? ?? 'none',
     );
   }
@@ -191,6 +202,7 @@ class ProductModel extends Equatable {
     'warranty_months': warrantyMonths,
     'production_time_days': productionTimeDays,
     if (arModelUrl != null) 'ar_model_url': arModelUrl,
+    if (usdzUrl != null) 'ar_usdz_url': usdzUrl,
     'ar_status': arStatus,
     if (discountPrice != null)
       'product_variants': [

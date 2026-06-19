@@ -476,6 +476,7 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
       MaterialPageRoute(
         builder: (_) => SellerArModelScreen(
           modelUrl: url,
+          usdzUrl: product.usdzUrl,
           productName: product.name.get('uz'),
           widthCm: sized?.widthCm ?? product.widthCm,
           heightCm: sized?.heightCm ?? product.heightCm,

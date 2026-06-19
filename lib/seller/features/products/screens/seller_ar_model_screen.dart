@@ -19,6 +19,7 @@ class SellerArModelScreen extends StatelessWidget {
   const SellerArModelScreen({
     super.key,
     required this.modelUrl,
+    this.usdzUrl,
     required this.productName,
     this.widthCm,
     this.heightCm,
@@ -26,6 +27,10 @@ class SellerArModelScreen extends StatelessWidget {
   });
 
   final String modelUrl;
+
+  /// iOS-AR (.usdz) source for AR Quick Look; null → omitted by
+  /// model_viewer_plus and iOS falls back to the in-page WebGL `.glb` view.
+  final String? usdzUrl;
   final String productName;
   final num? widthCm;
   final num? heightCm;
@@ -53,8 +58,16 @@ class SellerArModelScreen extends StatelessWidget {
       ),
       body: ModelViewer(
         src: modelUrl,
+        // iOS AR Quick Look source (.usdz). Passed through untouched —
+        // model_viewer_plus writes `ios-src` only when non-null, so a null usdz
+        // simply omits it and iOS falls back to the in-page WebGL `.glb` view.
+        // No Platform.isIOS branching: the package picks src vs iosSrc by OS.
+        iosSrc: usdzUrl,
         alt: productName,
         ar: true,
+        // Mirror the buyer viewer's launchers so the seller previews exactly the
+        // same AR behaviour shoppers get (Quick Look on iOS when a usdz exists).
+        arModes: const ['webxr', 'scene-viewer', 'quick-look'],
         // Lock AR scale to true size so the seller previews the real footprint
         // and can't pinch-resize away from it.
         arScale: scale != null ? ArScale.fixed : null,

@@ -120,6 +120,7 @@ class SellerProduct extends Equatable {
     this.archiveReason,
     this.arStatus = 'none',
     this.arModelUrl,
+    this.usdzUrl,
     this.arRejectionReason,
     this.arErrorReason,
     required this.createdAt,
@@ -202,6 +203,11 @@ class SellerProduct extends Equatable {
 
   /// Public URL of the QC-approved `.glb` (null until approved).
   final String? arModelUrl;
+
+  /// Public URL of the QC-approved iOS-AR `.usdz` (null when none was produced).
+  /// Lets the seller's own preview launch AR Quick Look on iOS, mirroring the
+  /// buyer viewer; iOS falls back to the in-page WebGL `.glb` view when null.
+  final String? usdzUrl;
 
   /// Seller-facing feedback when the scan was rejected (blurry video, bad
   /// model, …) by admin QC. Only meaningful while [arStatus] is `rejected`.
@@ -287,6 +293,7 @@ class SellerProduct extends Equatable {
       archiveReason: archiveReason,
       arStatus: arStatus,
       arModelUrl: arModelUrl,
+      usdzUrl: usdzUrl,
       arRejectionReason: arRejectionReason,
       arErrorReason: arErrorReason,
       createdAt: createdAt,

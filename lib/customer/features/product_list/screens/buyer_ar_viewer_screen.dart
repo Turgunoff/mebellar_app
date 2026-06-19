@@ -102,11 +102,18 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
             Positioned.fill(
               child: ModelViewer(
                 src: _product.arModelUrl!,
+                // iOS AR Quick Look source (.usdz). Passed straight through —
+                // model_viewer_plus writes the `ios-src` attribute only when
+                // non-null (see html_builder), so a null usdz simply omits it and
+                // iOS falls back to the in-page WebGL view of `src`. No
+                // Platform.isIOS branching: the package picks src vs iosSrc by OS.
+                iosSrc: _product.usdzUrl,
                 alt: _product.name,
                 ar: true,
-                // Prioritised AR launchers — Scene Viewer (Android) and WebXR;
-                // Quick Look fires on iOS only when a USDZ is present.
-                arModes: const ['scene-viewer', 'webxr', 'quick-look'],
+                // All three launchers offered; model-viewer auto-selects per
+                // platform (WebXR / Scene Viewer on Android, Quick Look on iOS
+                // when a usdz is present).
+                arModes: const ['webxr', 'scene-viewer', 'quick-look'],
                 // Lock AR scale to true size so buyers can't pinch-resize the
                 // model and misjudge whether it fits their room.
                 arScale: scale != null ? ArScale.fixed : null,

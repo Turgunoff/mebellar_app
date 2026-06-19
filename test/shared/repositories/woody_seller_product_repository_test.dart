@@ -40,6 +40,8 @@ Map<String, dynamic> _row(
   String id, {
   String status = 'approved',
   String arStatus = 'none',
+  String? arModelUrl,
+  String? arUsdzUrl,
   String? arErrorReason,
   String? arRejectionReason,
 }) => {
@@ -50,6 +52,8 @@ Map<String, dynamic> _row(
       'sku': 'SKU1',
       'created_at': '2026-01-01T00:00:00Z',
       'ar_status': arStatus,
+      if (arModelUrl != null) 'ar_model_url': arModelUrl,
+      if (arUsdzUrl != null) 'ar_usdz_url': arUsdzUrl,
       if (arErrorReason != null) 'ar_error_reason': arErrorReason,
       if (arRejectionReason != null) 'ar_rejection_reason': arRejectionReason,
     };
@@ -87,6 +91,34 @@ void main() {
     final api = WoodyApiClient(tokens: store, dio: dio);
     return (repo: WoodySellerProductRepository(api: api), adapter: adapter);
   }
+
+  test('list maps both AR model URLs (glb + usdz)', () async {
+    final h = make(
+      (_) => (
+        200,
+        jsonEncode({
+          'rows': [
+            _row(
+              'sp1',
+              arStatus: 'approved',
+              arModelUrl: 'https://cdn/m.glb',
+              arUsdzUrl: 'https://cdn/m.usdz',
+            ),
+            _row('sp2', arStatus: 'approved', arModelUrl: 'https://cdn/g.glb'),
+          ],
+          'total': 2,
+        }),
+      ),
+    );
+
+    final page = await h.repo.list();
+
+    expect(page.items[0].arModelUrl, 'https://cdn/m.glb');
+    expect(page.items[0].usdzUrl, 'https://cdn/m.usdz');
+    // glb-only row → usdz null (iOS falls back to the in-page WebGL view).
+    expect(page.items[1].arModelUrl, 'https://cdn/g.glb');
+    expect(page.items[1].usdzUrl, isNull);
+  });
 
   test('list maps rows into a Paginated page with limit/offset query',
       () async {
