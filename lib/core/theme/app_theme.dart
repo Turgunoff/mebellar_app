@@ -44,7 +44,15 @@ class AppTheme {
           : AppColors.lightBackground,
       textTheme: textTheme,
       primaryTextTheme: textTheme,
-      extensions: <ThemeExtension<dynamic>>[customColors],
+      // A few customer screens (product detail, shop profile) reuse seller-mode
+      // preview cards + PreviewAppBar that read `SellerColors.of(context)`.
+      // Register the brightness-matched seller set on the customer theme too, so
+      // those shared surfaces flip with customer dark mode instead of falling
+      // back to `SellerColors.light` (white) and staying light in dark mode.
+      extensions: <ThemeExtension<dynamic>>[
+        customColors,
+        isDark ? SellerColors.dark : SellerColors.light,
+      ],
 
       // ---- Components ----------------------------------------------------
       appBarTheme: AppBarTheme(

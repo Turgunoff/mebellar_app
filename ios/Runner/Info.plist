@@ -12,6 +12,11 @@
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Manzilingizni xaritada belgilash uchun joriy joylashuvingiz kerak.</string>
+	<!-- The app only uses when-in-use location, but the geolocator plugin's iOS
+	     code references the always-authorization API, so Apple's static scan
+	     (ITMS-90683) requires this purpose string too. -->
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Manzilingizni xaritada belgilash uchun joriy joylashuvingiz kerak.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Mahsulot rasmlari va 3D modelini yaratish uchun rasmga olishda kamera kerak.</string>
 	<key>NSMicrophoneUsageDescription</key>

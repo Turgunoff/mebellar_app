@@ -5,6 +5,7 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:woody_app/core/theme/app_theme.dart';
 import 'package:woody_app/customer/features/cart/bloc/cart_bloc.dart';
 import 'package:woody_app/customer/features/cart/screens/cart_screen.dart';
 import 'package:woody_app/shared/models/cart_item_model.dart';
@@ -25,6 +26,10 @@ void main() {
     whenListen(bloc, const Stream<CartState>.empty(), initialState: state);
     await tester.pumpWidget(
       MaterialApp(
+        // Pump under the real customer theme so PremiumTokens.of(context) and
+        // the AppCustomColors extension resolve to production values instead of
+        // Material defaults (per testing rule card).
+        theme: AppTheme.lightTheme,
         home: Scaffold(
           body: BlocProvider<CartBloc>.value(
             value: bloc,
