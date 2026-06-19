@@ -88,6 +88,44 @@ Env keys live in `env/prod.json` (gitignored) — copy from `env/example.json`.
 Required: `WOODY_API_URL`, `YANDEX_GEOCODER_API_KEY`.
 The Sentry DSN was removed when Crashlytics replaced Sentry — do not re-add it.
 
+### Code push (Shorebird)
+
+Shorebird (`shorebird.yaml`, `app_id: c1639a0d-…`) lets us hot-fix shipped
+builds **without a store review** — but only **Dart code** rides a patch.
+Native (`android/`, `ios/`), bundled `assets/`, `pubspec` dependency, and
+Flutter-version changes all need a brand-new release; Shorebird's own CLI
+refuses those diffs (`--allow-native-diffs` / `--allow-asset-diffs` warn they
+crash the app).
+
+`tools/shorebird.sh` is the wrapper (mirrors `build_release.sh`'s env/signing
+preflight; same `--obfuscate --split-debug-info`):
+
+```bash
+./tools/shorebird.sh check                 # "what did I change — patch-safe or not?"
+./tools/shorebird.sh release android       # patchable store build + ledger entry
+./tools/shorebird.sh patch android         # preflight-gated Dart patch to the live release
+./tools/shorebird.sh log                   # release history
+```
+
+Invariants:
+
+- **A patchable store build MUST come from `shorebird release`**, not
+  `flutter build` / `build_release.sh`. Plain builds can't receive patches —
+  `build_release.sh` now prints that reminder when `shorebird.yaml` exists.
+- **The ledger is the history file** — `tools/shorebird/releases.md` (a
+  markdown table; `.md` not `.log`, since `*.log` is gitignored) records
+  `sana | versiya | git_sha | platforma | izoh` per release (committed to
+  git). `check`/`patch` diff today's tree against the recorded SHA, so you
+  always see *which files changed since the version you shipped* — the thing
+  that's easy to forget. `release` appends automatically; `record <version>`
+  logs a release built outside the script.
+- **`patch` is preflight-gated** — it runs `check` first and aborts on a
+  blocker (native/asset/flutter), so you can't accidentally ship a crashing
+  patch. `--force` bypasses the guard (not recommended).
+- **No Shorebird secret in the repo** — `shorebird.yaml`'s `app_id` is public
+  by design; auth is the developer's `shorebird login` on the build machine,
+  not a committed token.
+
 ## Architecture conventions
 
 ### Two-mode shell

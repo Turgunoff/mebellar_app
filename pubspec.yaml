@@ -1,7 +1,7 @@
 name: woody_app
 description: "Woody — Mebel do'koni"
 publish_to: "none"
-version: 1.0.15+16
+version: 1.0.17+17
 
 environment:
   sdk: ^3.11.5
@@ -206,6 +206,7 @@ flutter:
     - assets/logo/
     - assets/google_fonts/
     - assets/lottie/
+    - shorebird.yaml
 
   # Native Flutter font registration — replaces the `google_fonts` package.
   # Every family/weight referenced via `AppFonts.*` in the code points back

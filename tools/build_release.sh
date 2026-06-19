@@ -24,6 +24,13 @@
 # explicitly with `ipa`. Bump `version:` in pubspec.yaml before each store
 # upload (1.0.5+6 → 1.0.5+7): both Play and App Store reject a duplicate
 # build number.
+#
+# ── Code push (Shorebird) ─────────────────────────────────────────────────
+# These are PLAIN flutter builds — they CANNOT receive Shorebird patches.
+# For a store build you can later hot-fix with `shorebird patch`, build it
+# with `tools/shorebird.sh release` instead and upload THAT artifact. Then
+# `tools/shorebird.sh check` tells you whether your changes are patch-safe
+# (Dart only) or need a fresh release (native / assets / deps).
 
 set -euo pipefail
 
@@ -172,4 +179,11 @@ if [ "$WANTS_IOS" -eq 1 ] && [ "$NO_CODESIGN" -eq 0 ]; then
   echo "    xcrun altool --upload-app -f \"${IPA:-<ipa>}\" -t ios --apiKey <KEY> --apiIssuer <ISSUER>"
   echo "  Decode obfuscated Dart stack traces with:"
   echo "    flutter symbolize -i <crash.txt> -d $SYMBOLS_DIR/app.ios-arm64.symbols"
+fi
+
+# Code-push reminder — a plain build can't be patched later.
+if [ -f shorebird.yaml ]; then
+  echo
+  echo "  ℹ️  Bu oddiy flutter build — Shorebird patch QABUL QILMAYDI."
+  echo "     Keyin patch qilinadigan release uchun: ./tools/shorebird.sh release"
 fi
