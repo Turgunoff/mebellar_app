@@ -12,3 +12,5 @@ Yozuvlar avtomatik qo'shiladi:
 
 | Sana | Versiya | Git SHA | Platforma | Izoh |
 |------|---------|---------|-----------|------|
+| 2026-06-19 | 1.0.18+18 | c80583d880e3 | android | — |
+| 2026-06-19 | 1.0.18+18 | c80583d880e3 | ios | — |
