@@ -75,6 +75,12 @@ class PremiumTokens {
   /// Green used for positive status text ("Sotuvda mavjud", "Tasdiqlangan").
   Color get success => _custom.successText;
 
+  /// Soft-green *fill* for a positive badge / chip ("Yetkazildi").
+  Color get successBg => _custom.successContainer;
+
+  /// Deep-green foreground on [successBg].
+  Color get onSuccessBg => _custom.onSuccessContainer;
+
   /// Telegram contact button background.
   Color get telegram => _custom.telegramButton;
 
@@ -91,6 +97,11 @@ class PremiumTokens {
 
   static const Color accent = AppColors.terracotta;
   static const Color accentDeep = AppColors.terracottaDeep;
+
+  /// Fixed brand-success emerald (CTA / "approved" gradient). Like [accent] it
+  /// does not flip with brightness — emerald reads fine on both backgrounds.
+  static const Color successStrong = AppColors.successStrong;
+  static const Color successStrongDeep = AppColors.successStrongDeep;
 
   static List<BoxShadow> get softShadow => [
     BoxShadow(

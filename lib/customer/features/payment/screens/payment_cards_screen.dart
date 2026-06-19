@@ -28,9 +28,9 @@ class _CardsView extends StatelessWidget {
   const _CardsView();
 
   Future<void> _addCard(BuildContext context) async {
-    final added = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => const AddCardScreen()),
-    );
+    final added = await Navigator.of(
+      context,
+    ).push<bool>(MaterialPageRoute(builder: (_) => const AddCardScreen()));
     if (added == true && context.mounted) {
       context.read<PaymentCardsCubit>().load(refresh: true);
     }
@@ -128,7 +128,9 @@ class _CardTile extends StatelessWidget {
         final p = PremiumTokens.of(ctx);
         return AlertDialog(
           backgroundColor: p.surface,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: Text(
             tr('payment.remove_card'),
             style: PremiumTokens.body(size: 17, weight: FontWeight.w700),
@@ -144,7 +146,7 @@ class _CardTile extends StatelessWidget {
             ),
             FilledButton(
               style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFFEF4444),
+                backgroundColor: Theme.of(ctx).colorScheme.error,
               ),
               onPressed: () => Navigator.pop(ctx, true),
               child: Text(tr('payment.remove_card')),
@@ -176,7 +178,11 @@ class _CardTile extends StatelessWidget {
               color: PremiumTokens.accent.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Iconsax.card, color: PremiumTokens.accent, size: 22),
+            child: const Icon(
+              Iconsax.card,
+              color: PremiumTokens.accent,
+              size: 22,
+            ),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -190,7 +196,11 @@ class _CardTile extends StatelessWidget {
             ),
           ),
           IconButton(
-            icon: const Icon(Iconsax.trash, size: 20, color: Color(0xFFEF4444)),
+            icon: Icon(
+              Iconsax.trash,
+              size: 20,
+              color: Theme.of(context).colorScheme.error,
+            ),
             onPressed: () => _confirmRemove(context),
           ),
         ],

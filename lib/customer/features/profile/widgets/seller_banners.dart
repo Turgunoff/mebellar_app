@@ -14,8 +14,8 @@ class SellerBannerShimmer extends StatelessWidget {
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
     return Shimmer.fromColors(
-      baseColor: const Color(0xFFE8E8E8),
-      highlightColor: const Color(0xFFF5F5F5),
+      baseColor: pt.imageBg,
+      highlightColor: pt.surface,
       child: Container(
         padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
         decoration: BoxDecoration(
@@ -28,8 +28,8 @@ class SellerBannerShimmer extends StatelessWidget {
             Container(
               width: 48,
               height: 48,
-              decoration: const BoxDecoration(
-                color: Colors.white,
+              decoration: BoxDecoration(
+                color: pt.surface,
                 shape: BoxShape.circle,
               ),
             ),
@@ -42,7 +42,7 @@ class SellerBannerShimmer extends StatelessWidget {
                     height: 16,
                     width: 150,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: pt.surface,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -51,7 +51,7 @@ class SellerBannerShimmer extends StatelessWidget {
                     height: 12,
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: pt.surface,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -109,7 +109,11 @@ class BecomeSellerBanner extends StatelessWidget {
                     borderRadius: BorderRadius.circular(14),
                   ),
                   alignment: Alignment.center,
-                  child: const Icon(Iconsax.shop, size: 24, color: Colors.white),
+                  child: const Icon(
+                    Iconsax.shop,
+                    size: 24,
+                    color: Colors.white,
+                  ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -227,8 +231,8 @@ class SellerApprovedBanner extends StatelessWidget {
 
   final VoidCallback onOpenDashboard;
 
-  static const Color _accent = Color(0xFF2F9E6E); // emerald
-  static const Color _accentDeep = Color(0xFF237955);
+  static const Color _accent = PremiumTokens.successStrong; // emerald
+  static const Color _accentDeep = PremiumTokens.successStrongDeep;
 
   @override
   Widget build(BuildContext context) {
@@ -356,11 +360,10 @@ class SellerRejectedBanner extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onDismiss;
 
-  static const Color _errorColor = Color(0xFFE05A4A);
-
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
+    final errorColor = Theme.of(context).colorScheme.error;
     final hasReason = reason != null && reason!.trim().isNotEmpty;
 
     return Container(
@@ -368,7 +371,7 @@ class SellerRejectedBanner extends StatelessWidget {
       decoration: BoxDecoration(
         color: pt.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _errorColor.withValues(alpha: 0.22)),
+        border: Border.all(color: errorColor.withValues(alpha: 0.22)),
         boxShadow: PremiumTokens.softShadow,
       ),
       child: Column(
@@ -381,15 +384,11 @@ class SellerRejectedBanner extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: _errorColor.withValues(alpha: 0.10),
+                  color: errorColor.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 alignment: Alignment.center,
-                child: const Icon(
-                  Iconsax.info_circle,
-                  size: 22,
-                  color: _errorColor,
-                ),
+                child: Icon(Iconsax.info_circle, size: 22, color: errorColor),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -443,9 +442,9 @@ class SellerRejectedBanner extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
               decoration: BoxDecoration(
-                color: _errorColor.withValues(alpha: 0.06),
+                color: errorColor.withValues(alpha: 0.06),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: _errorColor.withValues(alpha: 0.14)),
+                border: Border.all(color: errorColor.withValues(alpha: 0.14)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -455,7 +454,7 @@ class SellerRejectedBanner extends StatelessWidget {
                     style: PremiumTokens.body(
                       size: 10,
                       weight: FontWeight.w700,
-                      color: _errorColor,
+                      color: errorColor,
                       letterSpacing: 0.8,
                     ),
                   ),
@@ -481,7 +480,7 @@ class SellerRejectedBanner extends StatelessWidget {
               icon: const Icon(Iconsax.refresh, size: 17),
               label: const Text('Qayta topshirish'),
               style: FilledButton.styleFrom(
-                backgroundColor: _errorColor,
+                backgroundColor: errorColor,
                 foregroundColor: Colors.white,
                 textStyle: PremiumTokens.body(
                   size: 14,

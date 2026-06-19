@@ -1,4 +1,4 @@
-﻿import 'dart:math' as math;
+import 'dart:math' as math;
 
 import 'package:woody_app/core/i18n/i18n.dart';
 import 'package:flutter/material.dart';
@@ -7,7 +7,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../../core/di/service_locator.dart';
 import '../../../core/storage/hive_boxes.dart';
-import '../../../core/theme/app_colors.dart';
+import '../home/widgets/premium/premium_tokens.dart';
 
 const String _tutorialSeenKey = 'tutorial_seen_v1';
 
@@ -101,12 +101,18 @@ class _CustomerTutorialScreenState extends State<CustomerTutorialScreen> {
               Positioned(
                 top: -60,
                 right: -40,
-                child: _Orb(size: 220, color: blended.accent.withValues(alpha: 0.18)),
+                child: _Orb(
+                  size: 220,
+                  color: blended.accent.withValues(alpha: 0.18),
+                ),
               ),
               Positioned(
                 bottom: -80,
                 left: -50,
-                child: _Orb(size: 260, color: blended.accent.withValues(alpha: 0.10)),
+                child: _Orb(
+                  size: 260,
+                  color: blended.accent.withValues(alpha: 0.10),
+                ),
               ),
               Column(
                 children: [
@@ -119,11 +125,8 @@ class _CustomerTutorialScreenState extends State<CustomerTutorialScreen> {
                     child: PageView.builder(
                       controller: _controller,
                       itemCount: slides.length,
-                      itemBuilder: (_, i) => _SlideView(
-                        slide: slides[i],
-                        page: _page,
-                        index: i,
-                      ),
+                      itemBuilder: (_, i) =>
+                          _SlideView(slide: slides[i], page: _page, index: i),
                     ),
                   ),
                   _Dots(
@@ -162,7 +165,7 @@ class _CustomerTutorialScreenState extends State<CustomerTutorialScreen> {
         body: tr('tutorial.slide1_body'),
         bgTop: isDark ? const Color(0xFF231410) : const Color(0xFFFBF1E8),
         bgBottom: isDark ? const Color(0xFF120907) : const Color(0xFFF2DBC4),
-        accent: AppColors.terracotta,
+        accent: PremiumTokens.accent,
         foreground: isDark ? Colors.white : const Color(0xFF2A1A0E),
         scene: _SceneType.welcome,
       ),
@@ -180,9 +183,7 @@ class _CustomerTutorialScreenState extends State<CustomerTutorialScreen> {
         body: tr('tutorial.slide3_body'),
         bgTop: isDark ? const Color(0xFF181410) : const Color(0xFFEFE6DC),
         bgBottom: isDark ? const Color(0xFF0A0806) : const Color(0xFFCFBFA9),
-        accent: isDark
-            ? const Color(0xFF7A6754)
-            : const Color(0xFF4A3F35),
+        accent: isDark ? const Color(0xFF7A6754) : const Color(0xFF4A3F35),
         foreground: isDark ? Colors.white : const Color(0xFF1E1611),
         scene: _SceneType.deliver,
       ),
@@ -229,7 +230,8 @@ class _TopBar extends StatelessWidget {
           // onboarding a premium editorial feel.
           Text(
             'Woody',
-            style: TextStyle(fontFamily: AppFonts.display, 
+            style: TextStyle(
+              fontFamily: AppFonts.display,
               fontSize: 22,
               fontWeight: FontWeight.w700,
               letterSpacing: -0.4,
@@ -245,7 +247,10 @@ class _TopBar extends StatelessWidget {
               onPressed: isLast ? null : onSkip,
               style: TextButton.styleFrom(
                 foregroundColor: foreground.withValues(alpha: 0.75),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
               ),
               child: Text(
                 tr('common.skip'),
@@ -359,9 +364,18 @@ class _HeroScene extends StatelessWidget {
             alignment: Alignment.center,
             children: [
               // Concentric soft rings — wood-grain inspired backdrop.
-              _Ring(size: size * 0.95, color: slide.accent.withValues(alpha: 0.06)),
-              _Ring(size: size * 0.78, color: slide.accent.withValues(alpha: 0.10)),
-              _Ring(size: size * 0.58, color: slide.accent.withValues(alpha: 0.16)),
+              _Ring(
+                size: size * 0.95,
+                color: slide.accent.withValues(alpha: 0.06),
+              ),
+              _Ring(
+                size: size * 0.78,
+                color: slide.accent.withValues(alpha: 0.10),
+              ),
+              _Ring(
+                size: size * 0.58,
+                color: slide.accent.withValues(alpha: 0.16),
+              ),
               _hero(slide.scene),
               ..._floaters(slide.scene, size),
             ],
@@ -433,7 +447,10 @@ class _HeroScene extends StatelessWidget {
           place(
             left: size * 0.05,
             top: size * 0.12,
-            child: _MiniIcon(icon: Icons.king_bed_rounded, accent: slide.accent),
+            child: _MiniIcon(
+              icon: Icons.king_bed_rounded,
+              accent: slide.accent,
+            ),
           ),
           place(
             left: size * 0.78,
@@ -444,7 +461,10 @@ class _HeroScene extends StatelessWidget {
           place(
             left: size * 0.72,
             top: size * 0.7,
-            child: _MiniIcon(icon: Icons.table_restaurant_rounded, accent: slide.accent),
+            child: _MiniIcon(
+              icon: Icons.table_restaurant_rounded,
+              accent: slide.accent,
+            ),
             driftFactor: 0.6,
           ),
         ];
@@ -453,18 +473,27 @@ class _HeroScene extends StatelessWidget {
           place(
             left: size * 0.08,
             top: size * 0.14,
-            child: _MiniIcon(icon: Icons.favorite_rounded, accent: slide.accent),
+            child: _MiniIcon(
+              icon: Icons.favorite_rounded,
+              accent: slide.accent,
+            ),
           ),
           place(
             left: size * 0.74,
             top: size * 0.12,
-            child: _MiniIcon(icon: Icons.add_shopping_cart_rounded, accent: slide.accent),
+            child: _MiniIcon(
+              icon: Icons.add_shopping_cart_rounded,
+              accent: slide.accent,
+            ),
             driftFactor: -1,
           ),
           place(
             left: size * 0.1,
             top: size * 0.7,
-            child: _MiniIcon(icon: Icons.payments_rounded, accent: slide.accent),
+            child: _MiniIcon(
+              icon: Icons.payments_rounded,
+              accent: slide.accent,
+            ),
             driftFactor: 0.6,
           ),
         ];
@@ -473,18 +502,27 @@ class _HeroScene extends StatelessWidget {
           place(
             left: size * 0.06,
             top: size * 0.16,
-            child: _MiniIcon(icon: Icons.inventory_2_rounded, accent: slide.accent),
+            child: _MiniIcon(
+              icon: Icons.inventory_2_rounded,
+              accent: slide.accent,
+            ),
           ),
           place(
             left: size * 0.78,
             top: size * 0.2,
-            child: _MiniIcon(icon: Icons.location_on_rounded, accent: slide.accent),
+            child: _MiniIcon(
+              icon: Icons.location_on_rounded,
+              accent: slide.accent,
+            ),
             driftFactor: -1,
           ),
           place(
             left: size * 0.74,
             top: size * 0.7,
-            child: _MiniIcon(icon: Icons.schedule_rounded, accent: slide.accent),
+            child: _MiniIcon(
+              icon: Icons.schedule_rounded,
+              accent: slide.accent,
+            ),
             driftFactor: 0.6,
           ),
         ];
@@ -639,9 +677,7 @@ class _Orb extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: RadialGradient(
-          colors: [color, color.withValues(alpha: 0)],
-        ),
+        gradient: RadialGradient(colors: [color, color.withValues(alpha: 0)]),
       ),
     );
   }
@@ -666,9 +702,7 @@ class _Dots extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        for (var i = 0; i < count; i++) _dot(i),
-      ],
+      children: [for (var i = 0; i < count; i++) _dot(i)],
     );
   }
 

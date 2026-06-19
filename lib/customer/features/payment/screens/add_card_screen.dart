@@ -11,6 +11,7 @@ import '../../../../shared/repositories/payment_cards_repository.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../cubit/add_card_cubit.dart';
 import '../widgets/payme_badge.dart';
+import '../widgets/payment_pin.dart';
 
 const _paymeOfferUrl = 'https://payme.uz/terms/main';
 
@@ -41,18 +42,22 @@ class _AddCardView extends StatelessWidget {
     final pt = PremiumTokens.of(context);
     return BlocConsumer<AddCardCubit, AddCardState>(
       listenWhen: (a, b) => a.step != b.step,
-      listener: (ctx, state) {
-        if (state.step == AddCardStep.done) {
-          ScaffoldMessenger.of(ctx).showSnackBar(
-            SnackBar(
-              content: Text(tr('payment.card_added')),
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: const Color(0xFF16A34A),
-            ),
-          );
-          // Tell the cards list to reload.
-          Navigator.of(ctx).pop(true);
-        }
+      listener: (ctx, state) async {
+        if (state.step != AddCardStep.done) return;
+        // Right after the card is saved, offer to set a 4-digit local PIN
+        // (skipped silently if the user already has one) so the first checkout
+        // charge isn't interrupted.
+        await ensurePaymentPin(ctx);
+        if (!ctx.mounted) return;
+        ScaffoldMessenger.of(ctx).showSnackBar(
+          SnackBar(
+            content: Text(tr('payment.card_added')),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: PremiumTokens.successStrong,
+          ),
+        );
+        // Tell the cards list to reload.
+        Navigator.of(ctx).pop(true);
       },
       builder: (ctx, state) {
         return Scaffold(
@@ -143,7 +148,12 @@ class _CardFormState extends State<_CardForm> {
               LengthLimitingTextInputFormatter(16),
               _CardNumberFormatter(),
             ],
-            decoration: _dec(pt, tr('payment.card_number'), Iconsax.card, '0000 0000 0000 0000'),
+            decoration: _dec(
+              pt,
+              tr('payment.card_number'),
+              Iconsax.card,
+              '0000 0000 0000 0000',
+            ),
             validator: (v) {
               final digits = (v ?? '').replaceAll(RegExp(r'\D'), '');
               return digits.length < 16 ? '' : null;
@@ -158,7 +168,12 @@ class _CardFormState extends State<_CardForm> {
               LengthLimitingTextInputFormatter(4),
               _ExpiryFormatter(),
             ],
-            decoration: _dec(pt, tr('payment.expiry'), Iconsax.calendar_1, 'MM/YY'),
+            decoration: _dec(
+              pt,
+              tr('payment.expiry'),
+              Iconsax.calendar_1,
+              'MM/YY',
+            ),
             validator: (v) {
               final digits = (v ?? '').replaceAll(RegExp(r'\D'), '');
               return digits.length < 4 ? '' : null;
@@ -224,7 +239,11 @@ class _CodeFormState extends State<_CodeForm> {
               color: PremiumTokens.accent.withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Iconsax.sms, color: PremiumTokens.accent, size: 32),
+            child: const Icon(
+              Iconsax.sms,
+              color: PremiumTokens.accent,
+              size: 32,
+            ),
           ),
         ),
         const SizedBox(height: 20),
@@ -250,7 +269,12 @@ class _CodeFormState extends State<_CodeForm> {
             LengthLimitingTextInputFormatter(6),
           ],
           style: PremiumTokens.display(size: 24, letterSpacing: 8),
-          decoration: _dec(pt, tr('payment.sms_code'), Iconsax.password_check, '••••••'),
+          decoration: _dec(
+            pt,
+            tr('payment.sms_code'),
+            Iconsax.password_check,
+            '••••••',
+          ),
         ),
         if (widget.state.error != null) ...[
           const SizedBox(height: 14),
@@ -266,7 +290,9 @@ class _CodeFormState extends State<_CodeForm> {
         ),
         const SizedBox(height: 8),
         TextButton(
-          onPressed: busy ? null : () => context.read<AddCardCubit>().resendCode(),
+          onPressed: busy
+              ? null
+              : () => context.read<AddCardCubit>().resendCode(),
           child: Text(
             tr('payment.resend'),
             style: PremiumTokens.body(
@@ -283,7 +309,12 @@ class _CodeFormState extends State<_CodeForm> {
 
 // ── Shared bits ───────────────────────────────────────────────────────────────
 
-InputDecoration _dec(PremiumTokens pt, String label, IconData icon, String hint) {
+InputDecoration _dec(
+  PremiumTokens pt,
+  String label,
+  IconData icon,
+  String hint,
+) {
   return InputDecoration(
     labelText: label,
     hintText: hint,
@@ -329,7 +360,11 @@ class _SecureNote extends StatelessWidget {
               Expanded(
                 child: Text(
                   tr('payment.secure_note'),
-                  style: PremiumTokens.body(size: 12, color: pt.grey, height: 1.45),
+                  style: PremiumTokens.body(
+                    size: 12,
+                    color: pt.grey,
+                    height: 1.45,
+                  ),
                 ),
               ),
             ],
@@ -369,21 +404,22 @@ class _ErrorBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final error = Theme.of(context).colorScheme.error;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFEF4444).withValues(alpha: 0.08),
+        color: error.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
-          const Icon(Iconsax.info_circle, size: 16, color: Color(0xFFEF4444)),
+          Icon(Iconsax.info_circle, size: 16, color: error),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               message,
-              style: PremiumTokens.body(size: 13, color: const Color(0xFFEF4444)),
+              style: PremiumTokens.body(size: 13, color: error),
             ),
           ),
         ],
@@ -413,7 +449,9 @@ class _PrimaryButton extends StatelessWidget {
         style: FilledButton.styleFrom(
           backgroundColor: PremiumTokens.accent,
           disabledBackgroundColor: PremiumTokens.accent.withValues(alpha: 0.5),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
         ),
         child: busy
             ? const SizedBox(

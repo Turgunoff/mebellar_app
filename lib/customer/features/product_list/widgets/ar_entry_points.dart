@@ -68,7 +68,7 @@ class ArGlassBadge extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const PulsingArCube(size: 18, color: AppColors.terracotta),
+                const PulsingArCube(size: 18, color: PremiumTokens.accent),
                 const SizedBox(width: 7),
                 Text(
                   tr('product.ar_badge'),
@@ -162,17 +162,17 @@ class ArPromoCard extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: isDark
-              ? [AppColors.terracotta.withValues(alpha: 0.22), pt.surface]
+              ? [PremiumTokens.accent.withValues(alpha: 0.22), pt.surface]
               : [const Color(0xFFFBEEE8), pt.surface],
         ),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: AppColors.terracotta.withValues(alpha: isDark ? 0.45 : 0.30),
+          color: PremiumTokens.accent.withValues(alpha: isDark ? 0.45 : 0.30),
           width: 1.2,
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.terracotta.withValues(alpha: isDark ? 0.20 : 0.14),
+            color: PremiumTokens.accent.withValues(alpha: isDark ? 0.20 : 0.14),
             blurRadius: 22,
             offset: const Offset(0, 8),
             spreadRadius: -6,
@@ -232,7 +232,7 @@ class ArPromoCard extends StatelessWidget {
                 icon: const Icon(Icons.view_in_ar, size: 20),
                 label: Text(tr('product.ar_cta')),
                 style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.terracotta,
+                  backgroundColor: PremiumTokens.accent,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 15),
                   shape: RoundedRectangleBorder(
@@ -268,12 +268,12 @@ class _PromoIconBadge extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppColors.terracotta, AppColors.terracottaDeep],
+          colors: [PremiumTokens.accent, PremiumTokens.accentDeep],
         ),
         borderRadius: BorderRadius.circular(13),
         boxShadow: [
           BoxShadow(
-            color: AppColors.terracotta.withValues(alpha: 0.4),
+            color: PremiumTokens.accent.withValues(alpha: 0.4),
             blurRadius: 12,
             offset: const Offset(0, 5),
           ),

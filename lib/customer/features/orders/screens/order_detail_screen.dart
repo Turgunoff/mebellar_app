@@ -15,6 +15,7 @@ import '../../../../shared/widgets/cancel_reason_sheet.dart';
 import '../../../../shared/widgets/error_state.dart';
 import '../../../../shared/widgets/product_color_chip.dart';
 import '../../../../shared/widgets/star_rating.dart';
+import '../../home/widgets/premium/premium_tokens.dart';
 import '../../reviews/widgets/review_composer_sheet.dart';
 import '../bloc/order_detail_bloc.dart';
 import '../widgets/order_status_badge.dart';
@@ -77,6 +78,7 @@ class _Body extends StatelessWidget {
     final lang = context.locale.languageCode;
     final priceFormat = NumberFormat('#,###', lang);
     final scheme = Theme.of(context).colorScheme;
+    final pt = PremiumTokens.of(context);
     return Scaffold(
       appBar: AppBar(
         title: Text(order.orderNumber),
@@ -94,8 +96,8 @@ class _Body extends StatelessWidget {
                   Container(
                     width: 8,
                     height: 8,
-                    decoration: const BoxDecoration(
-                      color: Colors.green,
+                    decoration: BoxDecoration(
+                      color: pt.success,
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -193,7 +195,7 @@ class _Body extends StatelessWidget {
                                 width: 48,
                                 height: 48,
                                 child: item.thumbnail.isEmpty
-                                    ? const ColoredBox(color: Color(0x11000000))
+                                    ? ColoredBox(color: pt.imageBg)
                                     : CachedNetworkImage(
                                         imageUrl: item.thumbnail,
                                         // ROADMAP B.7 — 48px order-item thumbnail.
@@ -231,10 +233,10 @@ class _Body extends StatelessWidget {
                                 ],
                               ),
                             ),
-                            const Icon(
+                            Icon(
                               Icons.chevron_right,
                               size: 18,
-                              color: Color(0x66000000),
+                              color: pt.greyLight,
                             ),
                             const SizedBox(width: 2),
                             Text(
@@ -463,7 +465,7 @@ class _FeeAdjustmentBanner extends StatelessWidget {
                 child: FilledButton(
                   onPressed: busy ? null : () => _confirmFeeApproval(context),
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF2A7D4F),
+                    backgroundColor: PremiumTokens.successStrong,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     shape: RoundedRectangleBorder(

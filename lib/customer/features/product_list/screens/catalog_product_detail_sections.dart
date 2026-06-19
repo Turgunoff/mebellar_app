@@ -137,7 +137,7 @@ class _SimilarSkeleton extends StatelessWidget {
         separatorBuilder: (_, _) => const SizedBox(width: 14),
         itemBuilder: (_, _) => Shimmer.fromColors(
           baseColor: pt.imageBg,
-          highlightColor: Colors.white,
+          highlightColor: pt.surface,
           child: Container(
             width: _kSimilarCardWidth,
             decoration: BoxDecoration(
@@ -234,7 +234,7 @@ class _AddToCartCta extends StatelessWidget {
     return FilledButton(
       onPressed: onPressed,
       style: FilledButton.styleFrom(
-        backgroundColor: AppColors.terracotta,
+        backgroundColor: PremiumTokens.accent,
         minimumSize: const Size.fromHeight(54),
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
@@ -334,7 +334,7 @@ class _InCartControls extends StatelessWidget {
             // Tab deep-link, not push — see _handleAddToCart's toast action.
             onPressed: () => context.go('/?tab=cart'),
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.terracotta,
+              backgroundColor: PremiumTokens.accent,
               minimumSize: const Size.fromHeight(54),
               elevation: 0,
               shape: RoundedRectangleBorder(

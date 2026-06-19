@@ -10,7 +10,6 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import '../../../../auth/auth_bottom_sheet.dart';
 import '../../../../core/auth/auth_cubit.dart';
 import '../../../../core/i18n/i18n.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/models/cart_item_model.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/premium_empty_state.dart';
@@ -442,7 +441,7 @@ class _DismissDeleteBackground extends StatelessWidget {
       alignment: AlignmentDirectional.centerEnd,
       padding: const EdgeInsetsDirectional.only(end: 24),
       decoration: BoxDecoration(
-        color: AppColors.danger,
+        color: Theme.of(context).colorScheme.error,
         borderRadius: BorderRadius.circular(16),
       ),
       child: const Icon(Iconsax.trash, color: Colors.white, size: 22),

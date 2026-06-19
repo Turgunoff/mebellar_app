@@ -7,11 +7,7 @@ import '../../features/home/widgets/premium/premium_tokens.dart';
 /// Used in both the search and category-product list app bars to launch
 /// the filter sheet. [count] hides the badge when zero.
 class FilterButton extends StatelessWidget {
-  const FilterButton({
-    super.key,
-    required this.count,
-    required this.onTap,
-  });
+  const FilterButton({super.key, required this.count, required this.onTap});
 
   final int count;
   final VoidCallback onTap;
@@ -65,7 +61,7 @@ class FilterButton extends StatelessWidget {
                         style: PremiumTokens.body(
                           size: 9,
                           weight: FontWeight.w800,
-                          color: Colors.white,
+                          color: pt.background,
                           height: 1.1,
                         ),
                       ),

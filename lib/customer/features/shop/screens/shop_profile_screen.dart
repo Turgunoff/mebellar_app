@@ -14,7 +14,6 @@ import '../../../../auth/auth_bottom_sheet.dart';
 import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/auth/auth_cubit.dart';
 import '../../../../core/di/service_locator.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/models/product.dart';
 import '../../../../shared/models/product_model.dart';
@@ -28,11 +27,6 @@ import '../../favorites/bloc/favorites_bloc.dart';
 import '../cubit/shop_profile_cubit.dart';
 
 part 'shop_profile_cards.dart';
-
-/// Telegram brand blue — the Telegram CTA keeps its native colour (not the
-/// seller's brand) so customers recognise it instantly.
-const Color _kTelegram = Color(0xFF24A1DE);
-const Color _kVerified = Color(0xFF1F6B49);
 
 /// `color` is nullable: pass an adaptive `PremiumTokens.of(context).dark` from
 /// the call site (it can't be a const default).
@@ -145,7 +139,7 @@ class _ShopProfileView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: PremiumTokens.of(context).background,
       body: BlocBuilder<ShopProfileCubit, ShopProfileState>(
         builder: (context, state) {
           // The ready screen owns its own scroll-aware top bar (so the shop
@@ -471,7 +465,7 @@ class _SubtitleLine extends StatelessWidget {
     return Row(
       children: [
         if (shop.isVerified) ...[
-          const Icon(Iconsax.verify, size: 15, color: _kVerified),
+          Icon(Iconsax.verify, size: 15, color: pt.success),
           const SizedBox(width: 5),
         ],
         Expanded(
@@ -480,7 +474,7 @@ class _SubtitleLine extends StatelessWidget {
             style: _ts(
               size: 12.5,
               weight: FontWeight.w600,
-              color: shop.isVerified ? _kVerified : pt.grey,
+              color: shop.isVerified ? pt.success : pt.grey,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -599,7 +593,7 @@ class _Stat extends StatelessWidget {
     return Expanded(
       child: Column(
         children: [
-          Icon(icon, size: 18, color: accent ?? AppColors.terracotta),
+          Icon(icon, size: 18, color: accent ?? PremiumTokens.accent),
           const SizedBox(height: 7),
           Text(
             value,
@@ -705,6 +699,7 @@ class _ContactCard extends StatelessWidget {
     // The Call button is the brand-coloured primary CTA (contrast-aware label).
     // Telegram keeps its native blue + white so it stays instantly recognisable
     // rather than blending into the seller's brand.
+    final pt = PremiumTokens.of(context);
     return _SectionCard(
       child: Row(
         children: [
@@ -724,8 +719,8 @@ class _ContactCard extends StatelessWidget {
               child: _ContactButton(
                 icon: Iconsax.send_2,
                 label: 'Telegram',
-                background: _kTelegram,
-                foreground: Colors.white,
+                background: pt.telegram,
+                foreground: pt.onTelegram,
                 onTap: () => _telegram(context),
               ),
             ),
@@ -967,7 +962,9 @@ class _OpenPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = openNow ? _kVerified : const Color(0xFFC0392B);
+    final color = openNow
+        ? PremiumTokens.of(context).success
+        : Theme.of(context).colorScheme.error;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(

@@ -9,6 +9,7 @@ import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/auth/auth_cubit.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
+import '../../../../core/theme/app_theme_extension.dart';
 import '../../orders/cubit/profile_orders_cubit.dart';
 import '../../payment/cubit/payment_cards_cubit.dart';
 import '../../payment/screens/add_card_screen.dart';
@@ -69,7 +70,7 @@ class _CheckoutView extends StatelessWidget {
             SnackBar(
               content: Text(state.error ?? 'Xatolik yuz berdi'),
               behavior: SnackBarBehavior.floating,
-              backgroundColor: const Color(0xFFEF4444),
+              backgroundColor: Theme.of(ctx).colorScheme.error,
             ),
           );
         }
@@ -336,23 +337,25 @@ class _DeliveryCard extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEF4444).withValues(alpha: 0.07),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.error.withValues(alpha: 0.07),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(
+                      Icon(
                         Iconsax.info_circle,
                         size: 14,
-                        color: Color(0xFFEF4444),
+                        color: Theme.of(context).colorScheme.error,
                       ),
                       const SizedBox(width: 6),
                       Text(
                         'Buyurtma uchun manzil talab qilinadi',
                         style: PremiumTokens.body(
                           size: 12,
-                          color: const Color(0xFFEF4444),
+                          color: Theme.of(context).colorScheme.error,
                         ),
                       ),
                     ],
@@ -375,9 +378,9 @@ class _PaymentCard extends StatelessWidget {
   final PremiumTokens pt;
 
   Future<void> _addCard(BuildContext context) async {
-    final added = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => const AddCardScreen()),
-    );
+    final added = await Navigator.of(
+      context,
+    ).push<bool>(MaterialPageRoute(builder: (_) => const AddCardScreen()));
     if (added == true && context.mounted) {
       context.read<PaymentCardsCubit>().load(refresh: true);
     }
@@ -390,15 +393,20 @@ class _PaymentCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionHeader(icon: Iconsax.card, label: tr('checkout.step_payment'), pt: pt),
+          _SectionHeader(
+            icon: Iconsax.card,
+            label: tr('checkout.step_payment'),
+            pt: pt,
+          ),
           const SizedBox(height: 8),
           _PaymentTile(
             icon: Iconsax.money,
             title: tr('payment.cash'),
             subtitle: tr('payment.cash_hint'),
             selected: state.payment == CheckoutPayment.cash,
-            onTap: () =>
-                context.read<CheckoutCubit>().selectPayment(CheckoutPayment.cash),
+            onTap: () => context.read<CheckoutCubit>().selectPayment(
+              CheckoutPayment.cash,
+            ),
             pt: pt,
           ),
           const SizedBox(height: 8),
@@ -429,9 +437,11 @@ class _PaymentCard extends StatelessWidget {
                   icon: Iconsax.card,
                   title: card.maskedNumber,
                   subtitle: tr('payment.card_hint'),
-                  selected: state.payment == CheckoutPayment.card &&
+                  selected:
+                      state.payment == CheckoutPayment.card &&
                       state.selectedCardId == card.id,
-                  onTap: () => context.read<CheckoutCubit>().selectCard(card.id),
+                  onTap: () =>
+                      context.read<CheckoutCubit>().selectCard(card.id),
                   pt: pt,
                 ),
                 const SizedBox(height: 8),
@@ -467,7 +477,11 @@ class _AddCardTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Row(
           children: [
-            const Icon(Iconsax.add_circle, size: 22, color: PremiumTokens.accent),
+            const Icon(
+              Iconsax.add_circle,
+              size: 22,
+              color: PremiumTokens.accent,
+            ),
             const SizedBox(width: 14),
             Text(
               tr('payment.add_card'),
@@ -740,7 +754,7 @@ class _OrderSummaryCard extends StatelessWidget {
                   style: PremiumTokens.body(
                     size: 14,
                     weight: FontWeight.w700,
-                    color: const Color(0xFF16A34A),
+                    color: pt.success,
                   ),
                 )
               else
@@ -749,12 +763,13 @@ class _OrderSummaryCard extends StatelessWidget {
                   style: PremiumTokens.body(
                     size: 13,
                     weight: FontWeight.w500,
-                    color: const Color(0xFFE5A23B),
+                    color: context.customColors.warning,
                   ),
                 ),
             ],
           ),
-          if (state.installationAvailable) _InstallationTile(state: state, pt: pt),
+          if (state.installationAvailable)
+            _InstallationTile(state: state, pt: pt),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 14),
             child: Divider(color: pt.divider, height: 1),
@@ -1058,7 +1073,7 @@ class _ConfirmBar extends StatelessWidget {
       SnackBar(
         content: Text(message),
         behavior: SnackBarBehavior.floating,
-        backgroundColor: const Color(0xFFEF4444),
+        backgroundColor: Theme.of(context).colorScheme.error,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );

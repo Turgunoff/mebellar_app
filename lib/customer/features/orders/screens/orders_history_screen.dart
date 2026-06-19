@@ -6,6 +6,7 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../../core/i18n/i18n.dart';
 import '../../../../core/theme/app_fonts.dart';
+import '../../../../core/theme/app_theme_extension.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/cancel_reason_sheet.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
@@ -700,21 +701,18 @@ class _FeePendingBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final warning = context.customColors.warning;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF8EE),
+        color: warning.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFFFD580)),
+        border: Border.all(color: warning.withValues(alpha: 0.40)),
       ),
       child: Row(
         children: [
-          const Icon(
-            Icons.local_shipping_outlined,
-            size: 15,
-            color: Color(0xFF8C5A12),
-          ),
+          Icon(Icons.local_shipping_outlined, size: 15, color: warning),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -722,11 +720,11 @@ class _FeePendingBanner extends StatelessWidget {
               style: PremiumTokens.body(
                 size: 12,
                 weight: FontWeight.w600,
-                color: const Color(0xFF8C5A12),
+                color: warning,
               ),
             ),
           ),
-          const Icon(Iconsax.arrow_right_3, size: 13, color: Color(0xFF8C5A12)),
+          Icon(Iconsax.arrow_right_3, size: 13, color: warning),
         ],
       ),
     );
@@ -812,7 +810,7 @@ class _CancelButtonState extends State<_CancelButton> {
     final selection = await showCancelReasonSheet(
       context: context,
       loadReasons: cubit.cancelReasons,
-      style: _customerCancelStyle(widget.pt),
+      style: _customerCancelStyle(context, widget.pt),
       labels: _cancelReasonLabels(),
     );
     if (selection == null || !mounted) return;
@@ -826,13 +824,12 @@ class _CancelButtonState extends State<_CancelButton> {
 
   @override
   Widget build(BuildContext context) {
+    final danger = Theme.of(context).colorScheme.error;
     if (_busy) {
-      return const SizedBox(
+      return SizedBox(
         width: 18,
         height: 18,
-        child: Center(
-          child: BrandLoadingIndicator(color: Color(0xFFDC2626), radius: 8),
-        ),
+        child: Center(child: BrandLoadingIndicator(color: danger, radius: 8)),
       );
     }
     return GestureDetector(
@@ -840,18 +837,16 @@ class _CancelButtonState extends State<_CancelButton> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
         decoration: BoxDecoration(
-          color: const Color(0xFFDC2626).withValues(alpha: 0.08),
+          color: danger.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: const Color(0xFFDC2626).withValues(alpha: 0.25),
-          ),
+          border: Border.all(color: danger.withValues(alpha: 0.25)),
         ),
         child: Text(
           'Bekor qilish',
           style: PremiumTokens.body(
             size: 12,
             weight: FontWeight.w600,
-            color: const Color(0xFFDC2626),
+            color: danger,
           ),
         ),
       ),

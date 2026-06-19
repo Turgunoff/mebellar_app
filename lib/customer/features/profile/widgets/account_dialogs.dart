@@ -33,14 +33,16 @@ Future<void> showSignOutDialog(BuildContext context) async {
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color: const Color(0xFFE05A4A).withValues(alpha: 0.1),
+                color: Theme.of(
+                  context,
+                ).colorScheme.error.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               alignment: Alignment.center,
-              child: const Icon(
+              child: Icon(
                 Iconsax.logout,
                 size: 24,
-                color: Color(0xFFE05A4A),
+                color: Theme.of(context).colorScheme.error,
               ),
             ),
             const SizedBox(height: 20),
@@ -69,7 +71,7 @@ Future<void> showSignOutDialog(BuildContext context) async {
                 Expanded(
                   child: FilledButton(
                     onPressed: () => Navigator.of(ctx).pop(true),
-                    style: _dangerButtonStyle(),
+                    style: _dangerButtonStyle(Theme.of(ctx).colorScheme.error),
                     child: _buttonLabel('Chiqish', color: Colors.white),
                   ),
                 ),
@@ -111,6 +113,7 @@ Future<void> confirmAccountDeletion(BuildContext context) async {
 
   final rootNav = Navigator.of(context, rootNavigator: true);
   final messenger = ScaffoldMessenger.of(context);
+  final dangerColor = Theme.of(context).colorScheme.error;
 
   await showDialog<bool>(
     context: context,
@@ -129,15 +132,17 @@ Future<void> confirmAccountDeletion(BuildContext context) async {
               Container(
                 width: 52,
                 height: 52,
-                decoration: const BoxDecoration(
-                  color: Color(0x1AE05A4A),
+                decoration: BoxDecoration(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.error.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 alignment: Alignment.center,
-                child: const Icon(
+                child: Icon(
                   Iconsax.trash,
                   size: 22,
-                  color: Color(0xFFE05A4A),
+                  color: Theme.of(context).colorScheme.error,
                 ),
               ),
               const SizedBox(height: 18),
@@ -170,7 +175,7 @@ Future<void> confirmAccountDeletion(BuildContext context) async {
                 style: PremiumTokens.body(
                   size: 14,
                   weight: FontWeight.w600,
-                  color: const Color(0xFFE05A4A),
+                  color: Theme.of(context).colorScheme.error,
                 ),
                 decoration: InputDecoration(
                   hintText: 'DELETE',
@@ -186,8 +191,8 @@ Future<void> confirmAccountDeletion(BuildContext context) async {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: Color(0xFFE05A4A),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.error,
                       width: 1.5,
                     ),
                   ),
@@ -265,14 +270,16 @@ Future<void> confirmAccountDeletion(BuildContext context) async {
                                           color: Colors.white,
                                         ),
                                       ),
-                                      backgroundColor: const Color(0xFFE05A4A),
+                                      backgroundColor: dangerColor,
                                       duration: const Duration(seconds: 4),
                                     ),
                                   );
                                 }
                               }
                             : null,
-                        style: _dangerButtonStyle(),
+                        style: _dangerButtonStyle(
+                          Theme.of(context).colorScheme.error,
+                        ),
                         child: isLoading
                             ? const SizedBox(
                                 width: 18,
@@ -351,15 +358,15 @@ void _showDeletionBlockedSheet(
           Container(
             width: 64,
             height: 64,
-            decoration: const BoxDecoration(
-              color: Color(0x1AE05A4A),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.error.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             alignment: Alignment.center,
-            child: const Icon(
+            child: Icon(
               Icons.error_outline_rounded,
               size: 32,
-              color: Color(0xFFE05A4A),
+              color: Theme.of(context).colorScheme.error,
             ),
           ),
           const SizedBox(height: 20),
@@ -412,12 +419,12 @@ ButtonStyle _cancelButtonStyle(PremiumTokens pt) => OutlinedButton.styleFrom(
   side: BorderSide(color: pt.divider),
 );
 
-ButtonStyle _dangerButtonStyle() => FilledButton.styleFrom(
+ButtonStyle _dangerButtonStyle(Color danger) => FilledButton.styleFrom(
   minimumSize: const Size(0, 44),
   padding: const EdgeInsets.symmetric(horizontal: 10),
   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-  backgroundColor: const Color(0xFFE05A4A),
-  disabledBackgroundColor: const Color(0xFFE05A4A).withValues(alpha: 0.3),
+  backgroundColor: danger,
+  disabledBackgroundColor: danger.withValues(alpha: 0.3),
   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
 );
 

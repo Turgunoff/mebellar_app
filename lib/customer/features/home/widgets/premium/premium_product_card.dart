@@ -80,7 +80,7 @@ class PremiumProductCard extends StatelessWidget {
             // Token, not a hardcoded near-white — otherwise the shimmer sweeps
             // a bright band across the dark card in dark mode.
             highlightColor: pt.surface,
-            child: Container(color: Colors.white),
+            child: Container(color: pt.surface),
           ),
           errorWidget: (_, _, _) => const ImageErrorPlaceholder(iconSize: 32),
         ),

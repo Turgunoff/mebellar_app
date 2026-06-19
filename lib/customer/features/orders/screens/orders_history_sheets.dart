@@ -7,16 +7,19 @@ part of 'orders_history_screen.dart';
 /// Maps the customer [PremiumTokens] bag onto the shared cancel-reason sheet.
 /// The cancel context is destructive, so the selection accent is the danger
 /// red (matching the old hardcoded sheet), not the brand terracotta.
-CancelReasonStyle _customerCancelStyle(PremiumTokens pt) => CancelReasonStyle(
-  surface: pt.surface,
-  ink: pt.dark,
-  muted: pt.grey,
-  border: pt.divider,
-  field: pt.background,
-  accent: const Color(0xFFDC2626),
-  danger: const Color(0xFFDC2626),
-  fontFamily: AppFonts.body,
-);
+CancelReasonStyle _customerCancelStyle(BuildContext context, PremiumTokens pt) {
+  final danger = Theme.of(context).colorScheme.error;
+  return CancelReasonStyle(
+    surface: pt.surface,
+    ink: pt.dark,
+    muted: pt.grey,
+    border: pt.divider,
+    field: pt.background,
+    accent: danger,
+    danger: danger,
+    fontFamily: AppFonts.body,
+  );
+}
 
 /// Localised chrome for the cancel-reason sheet. Reason titles themselves come
 /// from the backend already localised; these are the surrounding labels.

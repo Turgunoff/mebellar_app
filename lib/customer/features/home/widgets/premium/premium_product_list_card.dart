@@ -74,7 +74,7 @@ class PremiumProductListCard extends StatelessWidget {
             // Token, not a hardcoded near-white — keeps the sweep subtle on the
             // dark imageBg in dark mode.
             highlightColor: pt.surface,
-            child: Container(color: Colors.white),
+            child: Container(color: pt.surface),
           ),
           errorWidget: (_, _, _) => const ImageErrorPlaceholder(iconSize: 28),
         ),
@@ -106,11 +106,7 @@ class PremiumProductListCard extends StatelessWidget {
                 // card grows and the square sits centred rather than stretching.
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  SizedBox(
-                    width: _imageSize,
-                    height: _imageSize,
-                    child: image,
-                  ),
+                  SizedBox(width: _imageSize, height: _imageSize, child: image),
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/i18n/i18n.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_fonts.dart';
+import '../features/home/widgets/premium/premium_tokens.dart';
 
 /// Full-bleed "connection lost" interrupt — the Flashscore-style blocking gate
 /// shown when a critical fetch fails **and there is no cached data to fall back
@@ -73,13 +74,13 @@ class FlashscoreNetworkModal extends StatelessWidget {
                 width: 84,
                 height: 84,
                 decoration: BoxDecoration(
-                  color: AppColors.terracotta.withValues(alpha: 0.14),
+                  color: PremiumTokens.accent.withValues(alpha: 0.14),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
                   Icons.wifi_off_rounded,
                   size: 38,
-                  color: AppColors.terracotta,
+                  color: PremiumTokens.accent,
                 ),
               ),
               const SizedBox(height: 24),
@@ -113,8 +114,8 @@ class FlashscoreNetworkModal extends StatelessWidget {
                 child: FilledButton(
                   onPressed: retrying ? null : onRetry,
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.terracotta,
-                    disabledBackgroundColor: AppColors.terracotta.withValues(
+                    backgroundColor: PremiumTokens.accent,
+                    disabledBackgroundColor: PremiumTokens.accent.withValues(
                       alpha: 0.6,
                     ),
                     foregroundColor: Colors.white,

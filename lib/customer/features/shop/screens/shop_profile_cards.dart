@@ -71,7 +71,7 @@ class _LoadingState extends StatelessWidget {
       children: [
         Shimmer.fromColors(
           baseColor: pt.imageBg,
-          highlightColor: Colors.white,
+          highlightColor: pt.surface,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -142,7 +142,7 @@ class _ErrorState extends StatelessWidget {
             FilledButton(
               onPressed: onRetry,
               style: FilledButton.styleFrom(
-                backgroundColor: AppColors.terracotta,
+                backgroundColor: PremiumTokens.accent,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(13),
                 ),
@@ -179,6 +179,7 @@ class _TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
     final topPad = MediaQuery.paddingOf(context).top;
     final c = collapse.clamp(0.0, 1.0);
     return Positioned(
@@ -195,7 +196,7 @@ class _TopBar extends StatelessWidget {
               child: IgnorePointer(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: c),
+                    color: pt.surface.withValues(alpha: c),
                     boxShadow: c > 0.3
                         ? [
                             BoxShadow(
@@ -218,7 +219,7 @@ class _TopBar extends StatelessWidget {
                         size: 16.5,
                         weight: FontWeight.w800,
                         letterSpacing: -0.3,
-                        color: PremiumTokens.of(context).dark,
+                        color: pt.dark,
                       ),
                     ),
                   ),
@@ -256,8 +257,9 @@ class _BackCircle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
     return Material(
-      color: Colors.white,
+      color: pt.surface,
       shape: const CircleBorder(),
       elevation: 2,
       shadowColor: Colors.black.withValues(alpha: 0.2),
@@ -267,11 +269,7 @@ class _BackCircle extends StatelessWidget {
         child: SizedBox(
           width: 40,
           height: 40,
-          child: Icon(
-            Iconsax.arrow_left_2,
-            size: 20,
-            color: PremiumTokens.of(context).dark,
-          ),
+          child: Icon(Iconsax.arrow_left_2, size: 20, color: pt.dark),
         ),
       ),
     );
@@ -288,8 +286,9 @@ class _ShareCircle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
     return Material(
-      color: Colors.white,
+      color: pt.surface,
       shape: const CircleBorder(),
       elevation: 2,
       shadowColor: Colors.black.withValues(alpha: 0.2),
@@ -299,11 +298,7 @@ class _ShareCircle extends StatelessWidget {
         child: SizedBox(
           width: 40,
           height: 40,
-          child: Icon(
-            Iconsax.share,
-            size: 19,
-            color: PremiumTokens.of(context).dark,
-          ),
+          child: Icon(Iconsax.share, size: 19, color: pt.dark),
         ),
       ),
     );
@@ -322,7 +317,7 @@ Color _brandColor(String? hex) {
     final value = int.tryParse(raw, radix: 16);
     if (value != null) return Color(0xFF000000 | value);
   }
-  return AppColors.terracotta;
+  return PremiumTokens.accent;
 }
 
 /// Foreground (text/icon) colour for content placed ON a [brand] fill — black

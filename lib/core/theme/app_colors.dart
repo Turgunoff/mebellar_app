@@ -44,6 +44,23 @@ class AppColors {
   static const Color warning = Color(0xFFF59E0B);
   static const Color danger = Color(0xFFEF4444);
 
+  // ---- Success container (badge / chip fill + text) -----------------------
+  // Soft-green fill with a deep-green foreground for "delivered" / "in stock"
+  // pills. Split from [success] (a saturated fill) so a low-contrast container
+  // can be tuned for both themes independently. Consumed via
+  // [AppCustomColors.successContainer] / `.onSuccessContainer`.
+  static const Color successContainer = Color(0xFFDCEFDC);
+  static const Color onSuccessContainer = Color(0xFF1B5E20);
+  static const Color successContainerDark = Color(0xFF14331B);
+  static const Color onSuccessContainerDark = Color(0xFFA5D6A7);
+
+  // ---- Success accent (emerald CTA / gradient) ----------------------------
+  // Fixed brand-success emerald used for the "seller approved" gradient banner.
+  // Like [terracotta], it does NOT flip with brightness — emerald reads fine on
+  // both backgrounds. Exposed as static `PremiumTokens.successStrong` constants.
+  static const Color successStrong = Color(0xFF2F9E6E);
+  static const Color successStrongDeep = Color(0xFF237955);
+
   // ---- Customer "inverted" card surface -----------------------------------
   // By design the customer cards (product detail, profile rows, checkout,
   // shop profile) read DARK in BOTH themes: in light mode they sit as

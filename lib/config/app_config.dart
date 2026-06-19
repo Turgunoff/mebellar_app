@@ -47,14 +47,26 @@ class AppConfig {
     'PAYME_MERCHANT_ID',
   );
 
+  /// Routes card payments through an in-app MOCK of Payme — the full add-card +
+  /// pay flow runs end-to-end with NO real Payme credentials (demos / QA).
+  /// When true, [hasPayme] lights up the card UI and `core_module.dart` swaps
+  /// `MockPaymeClient` in for the real client (and the backend must run with its
+  /// own `PAYME_MOCK=true`). Defaults OFF so production is never silently
+  /// mocked.
+  static const bool paymeMock = bool.fromEnvironment(
+    'PAYME_MOCK',
+    defaultValue: false,
+  );
+
   static bool get isProd => environment == 'prod';
 
   static bool get hasWoodyApi => woodyApiUrl.isNotEmpty;
 
-  /// Whether direct Payme card tokenisation is configured. Card payment UI is
-  /// gated on this; false → the app shows only Cash on Delivery.
+  /// Whether card payments are available. True when either the mock is on
+  /// ([paymeMock]) or real Payme tokenisation is configured. False → the app
+  /// shows only Cash on Delivery.
   static bool get hasPayme =>
-      paymeApiUrl.isNotEmpty && paymeMerchantId.isNotEmpty;
+      paymeMock || (paymeApiUrl.isNotEmpty && paymeMerchantId.isNotEmpty);
 
   /// Required keys that have no safe fallback. Missing any of these is a build
   /// misconfiguration, not a recoverable runtime state.

@@ -399,8 +399,8 @@ class _ImageBannerBody extends StatelessWidget {
           fit: BoxFit.cover,
           placeholder: (_, _) => Shimmer.fromColors(
             baseColor: pt.imageBg,
-            highlightColor: const Color(0xFFFAFAFA),
-            child: Container(color: Colors.white),
+            highlightColor: pt.surface,
+            child: Container(color: pt.surface),
           ),
           errorWidget: (_, _, _) => const ImageErrorPlaceholder(iconSize: 40),
         ),
@@ -497,12 +497,12 @@ class GlassBannerShimmer extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Shimmer.fromColors(
             baseColor: pt.imageBg,
-            highlightColor: const Color(0xFFFAFAFA),
+            highlightColor: pt.surface,
             child: AspectRatio(
               aspectRatio: aspectRatio,
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: pt.surface,
                   borderRadius: BorderRadius.circular(24),
                 ),
               ),

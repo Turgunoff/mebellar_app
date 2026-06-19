@@ -47,7 +47,7 @@ class DangerZone extends StatelessWidget {
         TextButton(
           onPressed: onDeleteAccount,
           style: TextButton.styleFrom(
-            foregroundColor: const Color(0xFFE05A4A),
+            foregroundColor: Theme.of(context).colorScheme.error,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
           child: Text(
@@ -55,7 +55,7 @@ class DangerZone extends StatelessWidget {
             style: PremiumTokens.body(
               size: 13,
               weight: FontWeight.w500,
-              color: const Color(0xFFE05A4A),
+              color: Theme.of(context).colorScheme.error,
             ),
           ),
         ),

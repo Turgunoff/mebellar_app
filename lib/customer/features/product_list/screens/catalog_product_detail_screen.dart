@@ -11,7 +11,6 @@ import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../core/result/result.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../widgets/ar_entry_points.dart';
 import '../../../../shared/constants/product_colors.dart';
@@ -287,7 +286,6 @@ class _CatalogProductDetailScreenState
         product.warrantyMonths > 0;
 
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
       body: Stack(
         children: [
           CustomScrollView(
@@ -328,7 +326,7 @@ class _CatalogProductDetailScreenState
                       selector: (state) => state.isFavorite(product.id),
                       builder: (context, isFav) => PreviewGlassIconButton(
                         icon: isFav ? Icons.favorite : Icons.favorite_border,
-                        color: isFav ? AppColors.terracotta : null,
+                        color: isFav ? PremiumTokens.accent : null,
                         onTap: () => context.read<FavoritesBloc>().add(
                           FavoriteToggled(Product.fromModel(product)),
                         ),
@@ -528,8 +526,6 @@ class _TitlePriceCard extends StatelessWidget {
 
   final ProductModel product;
 
-  static const Color _green = Color(0xFF1F6B49);
-
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
@@ -599,7 +595,9 @@ class _TitlePriceCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: const Color(0xFFFDECEA),
+                color: Theme.of(
+                  context,
+                ).colorScheme.error.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
@@ -607,7 +605,7 @@ class _TitlePriceCard extends StatelessWidget {
                 style: _ts(
                   size: 12,
                   weight: FontWeight.w800,
-                  color: const Color(0xFFC0392B),
+                  color: Theme.of(context).colorScheme.error,
                   height: 1.0,
                 ),
               ),
@@ -618,7 +616,7 @@ class _TitlePriceCard extends StatelessWidget {
           const SizedBox(height: 14),
           Row(
             children: [
-              const Icon(Iconsax.tick_circle, size: 16, color: _green),
+              Icon(Iconsax.tick_circle, size: 16, color: pt.success),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -626,7 +624,7 @@ class _TitlePriceCard extends StatelessWidget {
                   style: _ts(
                     size: 13,
                     weight: FontWeight.w600,
-                    color: _green,
+                    color: pt.success,
                     height: 1.2,
                   ),
                 ),
@@ -643,11 +641,9 @@ class _TitlePriceCard extends StatelessWidget {
 // Seller card — premium, aligned with ShopProfileScreen
 // ═══════════════════════════════════════════════════════════════════════════
 
-/// Verified-green and rating-gold status tints. Constant in both light & dark
-/// (a verified badge stays green everywhere) — these mirror the `_kVerified`
-/// green and rating gold used by `ShopProfileScreen`, kept local so this
-/// customer card never reaches into the seller colour tokens.
-const Color _kVerifiedGreen = Color(0xFF1F6B49);
+/// Rating-gold star tint. Constant in both light & dark (a gold star reads fine
+/// on either background) — mirrors the rating gold used by `ShopProfileScreen`,
+/// kept local so this customer card never reaches into the seller colour tokens.
 const Color _kRatingGold = Color(0xFFE8A33D);
 
 /// Parses a `#RRGGBB` brand colour, falling back to the customer terracotta on
@@ -659,7 +655,7 @@ Color _sellerBrandColor(String? hex) {
     final value = int.tryParse(raw, radix: 16);
     if (value != null) return Color(0xFF000000 | value);
   }
-  return AppColors.terracotta;
+  return PremiumTokens.accent;
 }
 
 /// A legible on-surface variant of [brand]: very light brands (amber/lime) are
@@ -857,18 +853,14 @@ class _SellerInfo extends StatelessWidget {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
-                      Iconsax.verify,
-                      size: 14,
-                      color: _kVerifiedGreen,
-                    ),
+                    Icon(Iconsax.verify, size: 14, color: pt.success),
                     const SizedBox(width: 4),
                     Text(
                       'Tasdiqlangan',
                       style: _ts(
                         size: 12,
                         weight: FontWeight.w600,
-                        color: _kVerifiedGreen,
+                        color: pt.success,
                       ),
                     ),
                   ],
@@ -937,9 +929,6 @@ class _BrandChevron extends StatelessWidget {
 // Colours — placed directly under the price card
 // ═══════════════════════════════════════════════════════════════════════════
 
-/// Error tint shared by the colour validation hint.
-const Color _kColorError = Color(0xFFD64545);
-
 class _ColorsCard extends StatelessWidget {
   const _ColorsCard({
     super.key,
@@ -974,7 +963,7 @@ class _ColorsCard extends StatelessWidget {
                     const Icon(
                       Iconsax.tick_circle,
                       size: 14,
-                      color: AppColors.terracotta,
+                      color: PremiumTokens.accent,
                     ),
                     const SizedBox(width: 4),
                     Text(
@@ -982,7 +971,7 @@ class _ColorsCard extends StatelessWidget {
                       style: _ts(
                         size: 12.5,
                         weight: FontWeight.w700,
-                        color: AppColors.terracotta,
+                        color: PremiumTokens.accent,
                       ),
                     ),
                   ],
@@ -1006,14 +995,18 @@ class _ColorsCard extends StatelessWidget {
             const SizedBox(height: 12),
             Row(
               children: [
-                const Icon(Iconsax.info_circle, size: 13, color: _kColorError),
+                Icon(
+                  Iconsax.info_circle,
+                  size: 13,
+                  color: Theme.of(context).colorScheme.error,
+                ),
                 const SizedBox(width: 5),
                 Text(
                   'Davom etish uchun rang tanlang',
                   style: _ts(
                     size: 12,
                     weight: FontWeight.w600,
-                    color: _kColorError,
+                    color: Theme.of(context).colorScheme.error,
                   ),
                 ),
               ],
@@ -1042,7 +1035,7 @@ class _ColorChip extends StatelessWidget {
     // The tick contrasts against the swatch: dark accent on light fills
     // (e.g. white/beige), white on dark ones — so it stays visible on both.
     final tickColor = option.swatch.computeLuminance() > 0.6
-        ? AppColors.terracotta
+        ? PremiumTokens.accent
         : Colors.white;
     return GestureDetector(
       onTap: onTap,
@@ -1051,11 +1044,11 @@ class _ColorChip extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(5, 5, 13, 5),
         decoration: BoxDecoration(
           color: selected
-              ? AppColors.terracotta.withValues(alpha: 0.08)
+              ? PremiumTokens.accent.withValues(alpha: 0.08)
               : pt.background,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
-            color: selected ? AppColors.terracotta : pt.divider,
+            color: selected ? PremiumTokens.accent : pt.divider,
             width: selected ? 1.5 : 1,
           ),
         ),
@@ -1081,7 +1074,7 @@ class _ColorChip extends StatelessWidget {
               style: _ts(
                 size: 13,
                 weight: FontWeight.w700,
-                color: selected ? AppColors.terracotta : pt.dark,
+                color: selected ? PremiumTokens.accent : pt.dark,
               ),
             ),
           ],
@@ -1226,7 +1219,7 @@ class _ReviewRow extends StatelessWidget {
               height: 36,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: AppColors.terracotta.withValues(alpha: 0.12),
+                color: PremiumTokens.accent.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: Text(
@@ -1234,7 +1227,7 @@ class _ReviewRow extends StatelessWidget {
                 style: _ts(
                   size: 15,
                   weight: FontWeight.w700,
-                  color: AppColors.terracotta,
+                  color: PremiumTokens.accent,
                 ),
               ),
             ),

@@ -11,9 +11,9 @@ import 'package:model_viewer_plus/model_viewer_plus.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../../../core/i18n/i18n.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/ar/ar_scale.dart';
+import '../../home/widgets/premium/premium_tokens.dart';
 import '../../../../shared/models/product_model.dart';
 
 /// Clean light "showroom" backdrop behind the model — a flat, premium
@@ -471,8 +471,8 @@ class _ArPlaceButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: enabled
-          ? AppColors.terracotta
-          : AppColors.terracotta.withValues(alpha: 0.5),
+          ? PremiumTokens.accent
+          : PremiumTokens.accent.withValues(alpha: 0.5),
       borderRadius: BorderRadius.circular(18),
       elevation: 6,
       shadowColor: const Color(0x33000000),

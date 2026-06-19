@@ -1,10 +1,15 @@
-﻿import 'package:woody_app/core/i18n/i18n.dart';
+import 'package:woody_app/core/i18n/i18n.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../shared/models/order_status.dart';
+import '../../home/widgets/premium/premium_tokens.dart';
 
 class OrderStatusBadge extends StatelessWidget {
-  const OrderStatusBadge({super.key, required this.status, this.compact = false});
+  const OrderStatusBadge({
+    super.key,
+    required this.status,
+    this.compact = false,
+  });
 
   final OrderStatus status;
   final bool compact;
@@ -12,7 +17,8 @@ class OrderStatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final palette = _palette(scheme, status);
+    final pt = PremiumTokens.of(context);
+    final palette = _palette(scheme, pt, status);
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: compact ? 8 : 10,
@@ -40,13 +46,23 @@ class OrderStatusBadge extends StatelessWidget {
     );
   }
 
-  ({Color bg, Color fg}) _palette(ColorScheme s, OrderStatus status) {
+  ({Color bg, Color fg}) _palette(
+    ColorScheme s,
+    PremiumTokens pt,
+    OrderStatus status,
+  ) {
     return switch (status) {
       OrderStatus.pending => (bg: s.surfaceContainerHighest, fg: s.onSurface),
-      OrderStatus.confirmed => (bg: s.tertiaryContainer, fg: s.onTertiaryContainer),
-      OrderStatus.preparing => (bg: s.tertiaryContainer, fg: s.onTertiaryContainer),
+      OrderStatus.confirmed => (
+        bg: s.tertiaryContainer,
+        fg: s.onTertiaryContainer,
+      ),
+      OrderStatus.preparing => (
+        bg: s.tertiaryContainer,
+        fg: s.onTertiaryContainer,
+      ),
       OrderStatus.shipped => (bg: s.primaryContainer, fg: s.onPrimaryContainer),
-      OrderStatus.delivered => (bg: const Color(0xFFDCEFDC), fg: const Color(0xFF1B5E20)),
+      OrderStatus.delivered => (bg: pt.successBg, fg: pt.onSuccessBg),
       OrderStatus.cancelled => (bg: s.errorContainer, fg: s.onErrorContainer),
     };
   }

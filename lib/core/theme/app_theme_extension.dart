@@ -26,6 +26,8 @@ class AppCustomColors extends ThemeExtension<AppCustomColors> {
     required this.imageBackground,
     required this.success,
     required this.successText,
+    required this.successContainer,
+    required this.onSuccessContainer,
     required this.warning,
     required this.error,
     required this.customCardBackground,
@@ -54,6 +56,13 @@ class AppCustomColors extends ThemeExtension<AppCustomColors> {
   /// "Tasdiqlangan"). Split from [success] so a text shade can be darkened for
   /// contrast later without disturbing the fills.
   final Color successText;
+
+  /// Soft-green *fill* behind a positive badge / chip ("Yetkazildi", "Sotuvda
+  /// mavjud"). Pair with [onSuccessContainer] for the label + icon.
+  final Color successContainer;
+
+  /// Deep-green foreground (text + icon) that sits on [successContainer].
+  final Color onSuccessContainer;
 
   /// Cautionary status color (pending, low-stock, action required).
   final Color warning;
@@ -91,6 +100,8 @@ class AppCustomColors extends ThemeExtension<AppCustomColors> {
     imageBackground: AppColors.lightImageBg,
     success: AppColors.success,
     successText: AppColors.success,
+    successContainer: AppColors.successContainer,
+    onSuccessContainer: AppColors.onSuccessContainer,
     warning: AppColors.warning,
     error: AppColors.danger,
     customCardBackground: AppColors.cardSurfaceLight,
@@ -108,6 +119,8 @@ class AppCustomColors extends ThemeExtension<AppCustomColors> {
     imageBackground: AppColors.darkImageBg,
     success: AppColors.success,
     successText: AppColors.success,
+    successContainer: AppColors.successContainerDark,
+    onSuccessContainer: AppColors.onSuccessContainerDark,
     warning: AppColors.warning,
     error: AppColors.danger,
     customCardBackground: AppColors.cardSurfaceDark,
@@ -125,6 +138,8 @@ class AppCustomColors extends ThemeExtension<AppCustomColors> {
     Color? imageBackground,
     Color? success,
     Color? successText,
+    Color? successContainer,
+    Color? onSuccessContainer,
     Color? warning,
     Color? error,
     Color? customCardBackground,
@@ -140,6 +155,8 @@ class AppCustomColors extends ThemeExtension<AppCustomColors> {
       imageBackground: imageBackground ?? this.imageBackground,
       success: success ?? this.success,
       successText: successText ?? this.successText,
+      successContainer: successContainer ?? this.successContainer,
+      onSuccessContainer: onSuccessContainer ?? this.onSuccessContainer,
       warning: warning ?? this.warning,
       error: error ?? this.error,
       customCardBackground: customCardBackground ?? this.customCardBackground,
@@ -166,6 +183,12 @@ class AppCustomColors extends ThemeExtension<AppCustomColors> {
           imageBackground,
       success: Color.lerp(success, other.success, t) ?? success,
       successText: Color.lerp(successText, other.successText, t) ?? successText,
+      successContainer:
+          Color.lerp(successContainer, other.successContainer, t) ??
+          successContainer,
+      onSuccessContainer:
+          Color.lerp(onSuccessContainer, other.onSuccessContainer, t) ??
+          onSuccessContainer,
       warning: Color.lerp(warning, other.warning, t) ?? warning,
       error: Color.lerp(error, other.error, t) ?? error,
       customCardBackground:

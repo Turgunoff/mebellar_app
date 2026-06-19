@@ -41,6 +41,25 @@ Future<bool> showPaymentPinGate(BuildContext context) async {
   return ok ?? false;
 }
 
+/// Ensures a payment PIN exists, prompting the user to SET one (enter +
+/// confirm) only when they don't already have it. Used right after a card is
+/// saved so the first checkout charge isn't interrupted. Returns true once a
+/// PIN is in place (already set, or just set); false if the user dismissed the
+/// setup sheet — they can still set it later on the first charge, so it's a
+/// convenience, not a hard gate.
+Future<bool> ensurePaymentPin(BuildContext context) async {
+  final service = PaymentPinService(sl<SecureStorage>());
+  if (await service.hasPin()) return true;
+  if (!context.mounted) return false;
+  final ok = await showModalBottomSheet<bool>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => _PinSheet(service: service, setup: true),
+  );
+  return ok ?? false;
+}
+
 class _PinSheet extends StatefulWidget {
   const _PinSheet({required this.service, required this.setup});
   final PaymentPinService service;
@@ -175,7 +194,7 @@ class _PinSheetState extends State<_PinSheet> {
               _error!,
               style: PremiumTokens.body(
                 size: 13,
-                color: const Color(0xFFEF4444),
+                color: Theme.of(context).colorScheme.error,
               ),
             ),
           ],

@@ -46,10 +46,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
   // this screen.
   final ProductViewModeController _viewMode = sl<ProductViewModeController>();
 
-  Future<void> _openFilter(
-    BuildContext context,
-    ProductListState state,
-  ) async {
+  Future<void> _openFilter(BuildContext context, ProductListState state) async {
     final cubit = context.read<ProductListCubit>();
     final next = await showSearchFilterSheet(
       context,
@@ -273,8 +270,10 @@ class _SubcategoryChipsBarState extends State<_SubcategoryChipsBar> {
   void didUpdateWidget(covariant _SubcategoryChipsBar old) {
     super.didUpdateWidget(old);
     if (widget.subcategories.length != old.subcategories.length) {
-      _keys =
-          List.generate(widget.subcategories.length + 1, (_) => GlobalKey());
+      _keys = List.generate(
+        widget.subcategories.length + 1,
+        (_) => GlobalKey(),
+      );
     }
     if (widget.selectedId != old.selectedId) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToSelected());
@@ -503,7 +502,7 @@ class _ProductCard extends StatelessWidget {
                         fit: BoxFit.cover,
                         placeholder: (_, _) => Shimmer.fromColors(
                           baseColor: pt.imageBg,
-                          highlightColor: pt.background,
+                          highlightColor: pt.surface,
                           child: Container(color: pt.imageBg),
                         ),
                         errorWidget: (_, _, _) => Container(
@@ -532,7 +531,7 @@ class _ProductCard extends StatelessWidget {
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFC0392B),
+                            color: Theme.of(context).colorScheme.error,
                             borderRadius: BorderRadius.circular(7),
                           ),
                           child: Text(
@@ -629,7 +628,6 @@ class _FavHeart extends StatelessWidget {
   }
 }
 
-
 // ---------------------------------------------------------------------------
 // Infinite-scroll trigger + footer
 // ---------------------------------------------------------------------------
@@ -651,10 +649,7 @@ void _maybeLoadMore(BuildContext context, ProductListState state, int index) {
 /// collapsing to a hairline gap when idle. Always reserves [bottomInset] so the
 /// final row clears the floating bottom nav.
 class _LoadMoreFooter extends StatelessWidget {
-  const _LoadMoreFooter({
-    required this.loadingMore,
-    required this.bottomInset,
-  });
+  const _LoadMoreFooter({required this.loadingMore, required this.bottomInset});
 
   final bool loadingMore;
   final double bottomInset;

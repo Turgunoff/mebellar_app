@@ -219,8 +219,8 @@ class UserCardShimmer extends StatelessWidget {
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
     return Shimmer.fromColors(
-      baseColor: const Color(0xFFE8E8E8),
-      highlightColor: const Color(0xFFF5F5F5),
+      baseColor: pt.imageBg,
+      highlightColor: pt.surface,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -233,8 +233,8 @@ class UserCardShimmer extends StatelessWidget {
             Container(
               width: 58,
               height: 58,
-              decoration: const BoxDecoration(
-                color: Colors.white,
+              decoration: BoxDecoration(
+                color: pt.surface,
                 shape: BoxShape.circle,
               ),
             ),
@@ -247,7 +247,7 @@ class UserCardShimmer extends StatelessWidget {
                     height: 18,
                     width: 160,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: pt.surface,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -256,7 +256,7 @@ class UserCardShimmer extends StatelessWidget {
                     height: 13,
                     width: 120,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: pt.surface,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
