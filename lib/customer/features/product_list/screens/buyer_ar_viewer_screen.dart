@@ -14,7 +14,6 @@ import '../../../../core/i18n/i18n.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/ar/ar_loading_overlay.dart';
 import '../../../../shared/ar/ar_scale.dart';
-import '../../../../shared/ar/ar_support.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../../../../shared/models/product_model.dart';
 import 'fallback_2d_camera_screen.dart';
@@ -197,25 +196,22 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
     );
   }
 
-  /// Launches the model-viewer AR session (Scene Viewer / WebXR / Quick Look).
+  /// Launches the model-viewer AR session (Scene Viewer / WebXR / Quick Look),
+  /// gated on model-viewer's own `canActivateAR` — the exact signal the seller
+  /// viewer's (working) native AR button uses.
   ///
-  /// First gates on native device capability: on an ARCore-incapable Android
-  /// device, model-viewer still reports `canActivateAR` (Scene Viewer is
-  /// "installable") and firing it bounces the user out to the Play Store for a
-  /// Google-Play-Services-for-AR build that won't run here. So we check
-  /// [ArSupport] up front and, when AR isn't available, open the in-app 2D
-  /// camera overlay instead of ever leaving the app. The JS `canActivateAR`
-  /// probe stays as a second guard (emulators / WebXR-less browsers) and also
-  /// routes to the fallback.
+  /// We deliberately DON'T pre-check the native `FEATURE_CAMERA_AR` hardware
+  /// flag any more: it's declared only by devices that ship ARCore as a system
+  /// feature, so it reads `false` on the many phones that get ARCore via the
+  /// installable "Google Play Services for AR". That false-negative forced the
+  /// 2D fallback on AR-capable buyer devices while the seller viewer (no such
+  /// gate) worked on the very same hardware — the bug this fixes. `canActivateAR`
+  /// is the accurate runtime gate; when it's genuinely false we still route to
+  /// the in-app 2D fallback via the `unsupported` message (never a Play Store
+  /// dead-end).
   Future<void> _activateAr() async {
     final web = _web;
     if (web == null) return;
-    final supported = await ArSupport.instance.isSupported();
-    if (!mounted) return;
-    if (!supported) {
-      _openFallback();
-      return;
-    }
     await web.runJavaScript(
       "(function(){var mv=document.querySelector('model-viewer');"
       'if(!mv){return;}'
