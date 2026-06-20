@@ -44,6 +44,11 @@ class WoodySupportChatRepository implements SupportChatRepository {
   /// realtime frames to this user's thread.
   String? _chatId;
 
+  /// Local "I just read the thread" signal so the global unread badge can reset
+  /// without the thread screen touching the badge cubit. Broadcast + never
+  /// closed — this repo is an app-lifetime singleton.
+  final _localReadCtrl = StreamController<void>.broadcast();
+
   @override
   Future<SupportChatSnapshot> fetchChat() async {
     final body = await _api.get<Map<String, dynamic>>('/support/chat');
@@ -136,7 +141,19 @@ class WoodySupportChatRepository implements SupportChatRepository {
   @override
   Future<void> markRead() async {
     await _api.post<dynamic>('/support/read');
+    // Nudge the badge to zero once the server has cleared the unread counter.
+    _localReadCtrl.add(null);
   }
+
+  @override
+  Future<int> fetchUnreadCount() async {
+    final body = await _api.get<Map<String, dynamic>>('/support/unread');
+    final raw = body['unread'];
+    return raw is int ? raw : (raw is num ? raw.toInt() : 0);
+  }
+
+  @override
+  Stream<void> localReadStream() => _localReadCtrl.stream;
 
   @override
   Stream<SupportMessage> messagesStream() {

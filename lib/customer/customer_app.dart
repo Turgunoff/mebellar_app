@@ -22,6 +22,8 @@ import '../core/theme/app_theme.dart';
 import '../core/theme/theme_cubit.dart';
 import '../core/updates/app_update_gate.dart';
 import 'features/categories/bloc/categories_bloc.dart';
+import 'features/support/bloc/support_unread_cubit.dart';
+import 'features/support/repository/support_chat_repository.dart';
 import '../main.dart' show AppLocaleScope;
 import '../shared/chat/bloc/total_unread_chats_cubit.dart';
 import '../shared/models/chat.dart';
@@ -170,6 +172,12 @@ class _CustomerAppState extends State<CustomerApp> with WidgetsBindingObserver {
               sl<ChatRepository>(),
               ChatSenderRole.customer,
             ),
+          ),
+          // Same hoist for the support badge: the profile "Yordam" row reads
+          // this live unread count; it seeds from the server and rides the
+          // `support_message` WS frames + the read signal.
+          BlocProvider<SupportUnreadCubit>(
+            create: (_) => SupportUnreadCubit(sl<SupportChatRepository>()),
           ),
         ],
         child: MaterialApp.router(

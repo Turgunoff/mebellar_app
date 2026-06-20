@@ -370,11 +370,12 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
         );
     if (submitted == true && mounted) {
       // Optimistically reflect the now-in-flight scan: flip to `processing`
-      // (spinner + copy, tap disabled) and bump the attempt counter so
-      // "Urinishlar: N/3" updates without leaving the screen.
+      // (spinner + copy, tap disabled) and bump the free-attempt counter (capped
+      // at the allowance — once it's spent, scans are token-paid and the count
+      // stays put) so "Urinishlar: N/3" updates without leaving the screen.
       setState(() {
         _arStatus = 'processing';
-        _arGenerationCount += 1;
+        if (_arGenerationCount < _maxArGenerations) _arGenerationCount += 1;
       });
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
@@ -385,7 +386,7 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
             ),
           ),
         );
-      // A generation spent a token — refresh the balance from the server.
+      // Refresh the balance — a post-free (token-paid) generation spent one.
       await _loadArBalance();
     }
   }
@@ -848,15 +849,24 @@ class _ArScanCard extends StatelessWidget {
   final VoidCallback onViewModel;
   final VoidCallback onBuyTokens;
 
-  bool get _atCap => generationCount >= maxGenerations;
+  /// The first [maxGenerations] scans per product are free; past that each
+  /// costs a token. So the seller is only blocked (→ "buy tokens") once the free
+  /// allowance is spent AND the balance is empty.
+  bool get _freeAttemptsExhausted => generationCount >= maxGenerations;
+
+  /// `arCredits` is null while the balance loads — treat that as "not empty" so
+  /// the scan CTA stays available (the server still enforces the real rule).
   bool get _outOfTokens => (arCredits ?? 1) < 1;
+
+  bool get _needsToken => _freeAttemptsExhausted && _outOfTokens;
 
   @override
   Widget build(BuildContext context) {
-    // AR generation is gated to moderation-approved products (it costs a token +
-    // a paid Meshy task). A draft/pending/rejected/archived product shows the
-    // locked card with a "get it approved first" message instead of any scan
-    // controls. Backend enforces the same (403 product_not_approved).
+    // AR generation is gated to moderation-approved products (it runs a paid
+    // Meshy task — free for the first few attempts, token-paid after). A
+    // draft/pending/rejected/archived product shows the locked card with a "get
+    // it approved first" message instead of any scan controls. Backend enforces
+    // the same (403 product_not_approved).
     if (!product.status.isPublished) {
       return const ArNotApprovedCard();
     }
@@ -965,9 +975,9 @@ class _ArScanCard extends StatelessWidget {
   }
 
   /// The single, gated primary action for a scannable state:
-  ///   * at the retry cap   → a disabled, explanatory note (no button);
-  ///   * out of tokens      → "AR Token sotib olish" (morphed CTA);
-  ///   * otherwise          → scan / re-scan / retry.
+  ///   * free attempts spent + no tokens → "AR Token sotib olish" (morphed CTA);
+  ///   * otherwise → generate / re-scan / retry (free while attempts remain,
+  ///     token-paid once they're spent — the server meters it either way).
   Widget _scanAction(
     BuildContext context, {
     required bool isApproved,
@@ -975,37 +985,7 @@ class _ArScanCard extends StatelessWidget {
   }) {
     final c = SellerColors.of(context);
 
-    if (_atCap) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: c.fillFaint,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: c.divider),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.lock_clock, size: 18, color: c.grey),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Bu mahsulot uchun urinishlar tugadi ($maxGenerations/$maxGenerations). '
-                'Mavjud modeldan foydalaning yoki admin bilan bog‘laning.',
-                style: TextStyle(
-                  fontFamily: AppFonts.seller,
-                  fontSize: 12.5,
-                  color: c.grey,
-                  height: 1.35,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (_outOfTokens && canBuyTokens) {
+    if (_needsToken && canBuyTokens) {
       // Token economy → gold, distinct from the indigo brand action above so
       // "buy energy" reads as its own thing next to "view the model".
       return _ArCtaButton(
@@ -1016,11 +996,12 @@ class _ArScanCard extends StatelessWidget {
       );
     }
 
-    // (Re)scan. Label + emphasis depend on the state: a fresh idle scan and a
-    // post-failure retry are primary; an approved re-scan is a quiet secondary.
+    // Generate / (re)scan. Label + emphasis depend on the state: a fresh idle
+    // scan and a post-failure retry are primary; an approved re-scan is a quiet
+    // secondary.
     final label = hasFeedback
         ? 'Qayta urinish'
-        : (isApproved ? 'Qayta skanlash' : '3D skan boshlash');
+        : (isApproved ? 'Qayta skanlash' : '3D Model yasash');
     if (isApproved) {
       return Align(
         alignment: Alignment.center,

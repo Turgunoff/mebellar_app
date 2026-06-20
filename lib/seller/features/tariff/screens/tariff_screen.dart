@@ -907,17 +907,16 @@ class _FeatureList extends StatelessWidget {
   Widget build(BuildContext context) {
     final lang = AppTranslations.instance.locale.languageCode;
 
-    // The structured caps (products / images / commission) are derived here so
-    // they always render and stay in sync with the plan's limits. `features_*`
-    // carries only the extra perks the admin authors per plan — so nothing is
-    // duplicated.
+    // Product cap + commission are derived from the plan; the image cap and AI
+    // 3D model are now GLOBAL (same on every plan), so they render as fixed
+    // perks rather than per-plan limits. `features_*` carries only the extra
+    // perks the admin authors per plan — so nothing is duplicated.
     final lines = <String>[
       plan.hasUnlimitedProducts
           ? tr('tariff.feature_unlimited_products')
           : tr('tariff.feature_products', args: ['${plan.maxProducts}']),
-      plan.hasUnlimitedImages
-          ? tr('tariff.feature_unlimited_images')
-          : tr('tariff.feature_images', args: ['${plan.maxImagesPerProduct}']),
+      tr('tariff.feature_images_all'),
+      tr('tariff.feature_ar_3d'),
       tr('tariff.feature_commission', args: [_fmtPercent(plan.commissionRate)]),
       ...plan.featuresForLocale(lang),
     ];

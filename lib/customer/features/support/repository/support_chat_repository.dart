@@ -35,8 +35,18 @@ abstract class SupportChatRepository {
   /// Mark admin messages read + zero the customer's unread counter.
   Future<void> markRead();
 
+  /// Read-only unread count for the profile badge — hits `GET /support/unread`,
+  /// which (unlike [fetchChat]) does NOT mark anything read. Used to seed the
+  /// badge at boot and re-seed on resume (catching pushes received while away).
+  Future<int> fetchUnreadCount();
+
   /// Live stream of new admin replies (emitted only on an admin message).
   Stream<SupportMessage> messagesStream();
+
+  /// Fires locally whenever [markRead] succeeds, so the global unread badge can
+  /// reset to 0 without the thread screen reaching up into the badge cubit
+  /// (mirrors how the chat repo nudges its list stream on read).
+  Stream<void> localReadStream();
 
   /// Live stream that fires when the admin read the user's messages, so the
   /// outgoing read-receipt ticks flip ✓ → ✓✓.
@@ -52,6 +62,10 @@ class MockSupportChatRepository implements SupportChatRepository {
   final List<SupportMessage> _messages = [];
   final _newMessageCtrl = StreamController<SupportMessage>.broadcast();
   final _readCtrl = StreamController<void>.broadcast();
+  final _localReadCtrl = StreamController<void>.broadcast();
+
+  /// Settable so tests can seed a non-zero unread count for the badge cubit.
+  int unreadCount = 0;
 
   int _seq = 0;
 
@@ -97,17 +111,28 @@ class MockSupportChatRepository implements SupportChatRepository {
   }
 
   @override
-  Future<void> markRead() async {}
+  Future<void> markRead() async {
+    unreadCount = 0;
+    _localReadCtrl.add(null);
+  }
+
+  @override
+  Future<int> fetchUnreadCount() async => unreadCount;
 
   @override
   Stream<SupportMessage> messagesStream() => _newMessageCtrl.stream;
 
   @override
+  Stream<void> localReadStream() => _localReadCtrl.stream;
+
+  @override
   Stream<void> readStream() => _readCtrl.stream;
 
-  /// Test helper: simulate an inbound admin reply.
+  /// Test helper: simulate an inbound admin reply (bumps the server-side unread
+  /// count so a re-seed via [fetchUnreadCount] stays consistent).
   void emitAdminMessage(SupportMessage message) {
     _messages.add(message);
+    unreadCount += 1;
     _newMessageCtrl.add(message);
   }
 

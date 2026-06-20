@@ -30,8 +30,8 @@ const Map<String, dynamic> tariffUz = {
   // computed client-side from `max_products` using the two keys below.
   'feature_unlimited_products': 'Cheksiz mahsulotlar',
   'feature_products': '{} tagacha aktiv mahsulot',
-  'feature_unlimited_images': 'Cheksiz rasm',
-  'feature_images': 'Har mahsulotga {} ta rasm',
+  'feature_images_all': '10 tagacha rasm yuklash',
+  'feature_ar_3d': 'AI 3D model yasash (3 ta bepul urinish)',
   'feature_commission': '{}% komissiya',
   'payment_title': 'To\'lov yo\'riqnomasi',
   'payment_subtitle': '{} tarif ({}) — {} so\'m',
@@ -119,8 +119,8 @@ const Map<String, dynamic> tariffRu = {
   // See tariffUz — feature bullets are server-driven via subscription_plans.
   'feature_unlimited_products': 'Неограниченные товары',
   'feature_products': 'До {} активных товаров',
-  'feature_unlimited_images': 'Безлимит фото',
-  'feature_images': 'До {} фото на товар',
+  'feature_images_all': 'До 10 фотографий на товар',
+  'feature_ar_3d': 'AI 3D-модель (3 бесплатные попытки)',
   'feature_commission': 'Комиссия {}%',
   'payment_title': 'Инструкция по оплате',
   'payment_subtitle': '{} тариф ({}) — {} сум',
@@ -207,8 +207,8 @@ const Map<String, dynamic> tariffEn = {
   // See tariffUz — feature bullets are server-driven via subscription_plans.
   'feature_unlimited_products': 'Unlimited products',
   'feature_products': 'Up to {} active products',
-  'feature_unlimited_images': 'Unlimited images',
-  'feature_images': 'Up to {} images per product',
+  'feature_images_all': 'Up to 10 images per product',
+  'feature_ar_3d': 'AI 3D model (3 free tries)',
   'feature_commission': '{}% commission',
   'payment_title': 'Payment instructions',
   'payment_subtitle': '{} plan ({}) — {} UZS',

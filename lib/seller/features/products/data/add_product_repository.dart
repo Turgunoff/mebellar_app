@@ -11,11 +11,15 @@ import '../../../../core/storage/r2_upload_client.dart';
 import '../../../../shared/models/category_model.dart';
 import '../../../../shared/models/tariff.dart';
 
+/// Global per-product image cap. Plan-independent: every product, on any plan,
+/// may have up to this many images. Mirrors the backend's flat-10 image-limit
+/// trigger + Pydantic cap. Bumping it means changing all three together.
+const int kMaxProductImages = 10;
+
 /// Snapshot of the seller's shop + plan that the add-product screen needs
 /// before the user can start filling the form. Loaded once via
 /// [AddProductRepository.loadShopContext] so the cubit can:
 ///   * gate access (`canAddMoreProducts` against the current product count),
-///   * cap image picking dynamically (`plan.maxImagesPerProduct`),
 ///   * surface the right tariff snapshot to the upgrade prompt.
 class AddProductShopContext {
   const AddProductShopContext({
@@ -45,9 +49,9 @@ class AddProductShopContext {
       !RemoteConfig.instance.tariffEnabled ||
       plan.canAddMoreProducts(activeProductsCount);
 
-  /// `-1` means unlimited — which is always the case while tariff mode is off.
-  int get maxImages =>
-      RemoteConfig.instance.tariffEnabled ? plan.maxImagesPerProduct : -1;
+  /// Global, plan-independent image cap — see [kMaxProductImages]. The plan no
+  /// longer affects how many images a product may carry.
+  int get maxImages => kMaxProductImages;
 
   TariffSnapshot get tariffSnapshot => TariffSnapshot(
     plan: plan.asEnum,
