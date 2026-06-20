@@ -19,12 +19,13 @@ ProductModel _product({
   num? depthCm,
   String name = 'Krovat',
   String? usdzUrl,
+  List<String> images = const [],
 }) => ProductModel(
   id: 'p1',
   categoryId: 'cat-1',
   name: name,
   price: 1000000,
-  images: const [],
+  images: images,
   stock: 5,
   createdAt: DateTime(2026, 1, 1),
   arModelUrl: 'https://example.com/model.glb',
@@ -115,5 +116,24 @@ void main() {
     // iOS falls back to the in-page WebGL view. AR stays enabled.
     expect(viewer.iosSrc, isNull);
     expect(viewer.ar, isTrue);
+  });
+
+  testWidgets('uses the product photo as the loading poster', (tester) async {
+    await _pump(
+      tester,
+      _product(images: const ['https://example.com/photo.jpg']),
+    );
+
+    final viewer = tester.widget<ModelViewer>(find.byType(ModelViewer));
+    // The first product image fills the canvas (+ progress bar) while the .glb
+    // downloads, instead of a blank white flash.
+    expect(viewer.poster, 'https://example.com/photo.jpg');
+  });
+
+  testWidgets('poster is null when the product has no photo', (tester) async {
+    await _pump(tester, _product());
+
+    final viewer = tester.widget<ModelViewer>(find.byType(ModelViewer));
+    expect(viewer.poster, isNull);
   });
 }

@@ -108,6 +108,11 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
                 // iOS falls back to the in-page WebGL view of `src`. No
                 // Platform.isIOS branching: the package picks src vs iosSrc by OS.
                 iosSrc: _product.usdzUrl,
+                // The product's 2D photo as a placeholder while the (multi-MB)
+                // .glb streams in — model-viewer shows it + a progress bar over
+                // the light stage instead of a blank canvas. Null (no image)
+                // degrades to the plain stage, never a crash.
+                poster: _product.thumbnail,
                 alt: _product.name,
                 ar: true,
                 // All three launchers offered; model-viewer auto-selects per

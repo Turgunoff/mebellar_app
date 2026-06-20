@@ -20,6 +20,7 @@ class SellerArModelScreen extends StatelessWidget {
     super.key,
     required this.modelUrl,
     this.usdzUrl,
+    this.posterUrl,
     required this.productName,
     this.widthCm,
     this.heightCm,
@@ -31,6 +32,10 @@ class SellerArModelScreen extends StatelessWidget {
   /// iOS-AR (.usdz) source for AR Quick Look; null → omitted by
   /// model_viewer_plus and iOS falls back to the in-page WebGL `.glb` view.
   final String? usdzUrl;
+
+  /// The product's 2D photo, shown as a placeholder (with a progress bar) while
+  /// the `.glb` streams in — avoids a blank canvas. Null → plain background.
+  final String? posterUrl;
   final String productName;
   final num? widthCm;
   final num? heightCm;
@@ -58,6 +63,10 @@ class SellerArModelScreen extends StatelessWidget {
       ),
       body: ModelViewer(
         src: modelUrl,
+        // The product's 2D photo as a placeholder while the .glb downloads —
+        // model-viewer shows it + a progress bar over the themed background
+        // (no white flash in dark mode). Null → plain background.
+        poster: posterUrl,
         // iOS AR Quick Look source (.usdz). Passed through untouched —
         // model_viewer_plus writes `ios-src` only when non-null, so a null usdz
         // simply omits it and iOS falls back to the in-page WebGL `.glb` view.
