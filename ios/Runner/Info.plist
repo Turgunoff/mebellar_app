@@ -20,7 +20,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>Mahsulot rasmlari va 3D modelini yaratish uchun rasmga olishda kamera kerak.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Kamera yordamida video yozib olish uchun mikrofonga ruxsat berishingiz kerak.</string>
+	<string>Yordam chatida ovozli xabar yozib yuborish uchun mikrofonga ruxsat berishingiz kerak.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Mahsulot rasmlarini yuklash uchun galereyangizdan rasm tanlaysiz.</string>
 	<!-- Write-only Photos access (gal) so the buyer can save the AR screenshot. -->

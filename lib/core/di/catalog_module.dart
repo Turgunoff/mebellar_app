@@ -35,6 +35,8 @@ import '../../shared/repositories/woody_chat_repositories.dart';
 import '../../shared/repositories/woody_customer_repositories.dart';
 import '../../shared/repositories/woody_product_repository.dart';
 import '../../shared/repositories/woody_shop_repository.dart';
+import '../../customer/features/support/repository/support_chat_repository.dart';
+import '../../customer/features/support/repository/woody_support_chat_repository.dart';
 import '../auth/auth_repository.dart';
 import '../network/token_store.dart';
 import '../network/woody_api_client.dart';
@@ -103,6 +105,21 @@ void registerCatalogModule(GetIt sl) {
             : null,
       ),
     );
+    // Customer support chat — single per-user thread over Woody REST +
+    // realtime (`/support/*`). WS drives admin replies + read receipts; the
+    // upload client (null-safe) handles image/audio attachments.
+    sl.registerLazySingleton<SupportChatRepository>(
+      () => WoodySupportChatRepository(
+        api: sl<WoodyApiClient>(),
+        realtime: sl.isRegistered<WoodyRealtimeService>()
+            ? sl<WoodyRealtimeService>()
+            : null,
+        uploads: sl.isRegistered<R2UploadClient>()
+            ? sl<R2UploadClient>()
+            : null,
+      ),
+    );
+
     // Notifications inbox data source — Woody REST (`/notifications`).
     sl.registerLazySingleton<NotificationDataSource>(
       () => WoodyNotificationDataSource(api: sl<WoodyApiClient>()),

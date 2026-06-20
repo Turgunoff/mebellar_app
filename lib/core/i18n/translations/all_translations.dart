@@ -23,6 +23,7 @@ import 'seller_translations.dart';
 import 'settings_translations.dart';
 import 'shop_settings_translations.dart';
 import 'shop_translations.dart';
+import 'support_translations.dart';
 import 'system_translations.dart';
 import 'tariff_translations.dart';
 import 'tutorial_translations.dart';
@@ -40,6 +41,7 @@ const Map<String, dynamic> uzTranslations = {
   'shop': shopUz,
   'cart': cartUz,
   'chat': chatUz,
+  'support': supportUz,
   'favorites': favoritesUz,
   'attributes': attributesUz,
   'address': addressUz,
@@ -86,6 +88,7 @@ const Map<String, dynamic> ruTranslations = {
   'shop': shopRu,
   'cart': cartRu,
   'chat': chatRu,
+  'support': supportRu,
   'favorites': favoritesRu,
   'attributes': attributesRu,
   'address': addressRu,
@@ -132,6 +135,7 @@ const Map<String, dynamic> enTranslations = {
   'shop': shopEn,
   'cart': cartEn,
   'chat': chatEn,
+  'support': supportEn,
   'favorites': favoritesEn,
   'attributes': attributesEn,
   'address': addressEn,

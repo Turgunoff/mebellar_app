@@ -35,6 +35,7 @@ import 'features/notifications/screens/notifications_screen.dart'
     as customer_notifications;
 import 'features/search/screens/search_screen.dart';
 import 'features/shop/screens/shop_profile_screen.dart';
+import 'features/support/screens/support_chat_screen.dart';
 import 'features/tutorial/tutorial_screen.dart';
 import '../seller/features/onboarding/screens/onboarding_screen.dart';
 
@@ -190,6 +191,12 @@ GoRouter buildCustomerRouter() {
           viewer: ChatSenderRole.customer,
           orderId: state.pathParameters['orderId']!,
         ),
+      ),
+      // Customer support — single per-user thread. Both the profile menu and
+      // a push tap (FCM route="support") deep-link here.
+      GoRoute(
+        path: '/support',
+        builder: (context, state) => const SupportChatScreen(),
       ),
       GoRoute(path: '/cart', builder: (context, state) => const CartScreen()),
       GoRoute(

@@ -15,6 +15,7 @@ import '../network/api_error.dart';
 import '../network/woody_api_client.dart';
 import '../platform/messaging_facade.dart';
 import 'active_chat_tracker.dart';
+import 'active_support_tracker.dart';
 import 'notification_handler.dart';
 
 /// FCM topic the app subscribes to for marketing / news pushes.
@@ -130,6 +131,11 @@ class PushService {
     if (NotificationKind.fromString(kind).isSellerVerdict) {
       return ('/profile', AppMode.customer.name);
     }
+    // Support pushes carry `route="support"` (no leading slash) + the customer
+    // mode. Normalise to the GoRoute path so a tap deep-links to the thread.
+    if (kind == _supportMessageKind || route == 'support') {
+      return ('/support', AppMode.customer.name);
+    }
     return (route, modeName);
   }
 
@@ -148,6 +154,51 @@ class PushService {
         (message.data['chat_id'] as String?) ??
         _chatIdFromRoute(message.data['route'] as String?);
     return ActiveChatTracker.instance.isViewing(chatId);
+  }
+
+  /// Push payload `kind` for a support-chat message. The backend sends the
+  /// literal `"support_message"` (NOT a [NotificationKind] code), so it's
+  /// matched as a raw string rather than through the enum.
+  static const String _supportMessageKind = 'support_message';
+
+  /// The Android tray `tag` (and iOS thread) every support notification
+  /// carries. Static — support is one per-user thread — so repeat messages
+  /// collapse to a single tray entry and [dismissSupportNotifications] can find
+  /// them. MUST match the backend's `android_tag` (`support`).
+  static const String supportNotificationTag = 'support';
+
+  /// Stable notification id for the (single) support thread — a fixed value so
+  /// the OS replaces (not stacks) the support entry and we can cancel it by id.
+  static const int supportNotificationId = 0x53555050; // 'SUPP'
+
+  /// True when [message] is a support push while the support thread is on
+  /// screen — the open thread already shows the message live over the WS, so
+  /// the foreground re-post is just noise.
+  bool _isViewingPushedSupport(RemoteMessage message) {
+    if (message.data['kind'] != _supportMessageKind) return false;
+    return ActiveSupportTracker.instance.isViewing;
+  }
+
+  /// Clears the support tray notification(s) — our foreground re-post plus any
+  /// OS-shown background push (both tagged `support`). Call when the support
+  /// thread is opened/read.
+  Future<void> dismissSupportNotifications() async {
+    try {
+      await _localNotifications.cancel(
+        supportNotificationId,
+        tag: supportNotificationTag,
+      );
+      if (!kIsWeb && Platform.isAndroid) {
+        final active = await _localNotifications.getActiveNotifications();
+        for (final n in active) {
+          if (n.tag == supportNotificationTag && n.id != null) {
+            await _localNotifications.cancel(n.id!, tag: n.tag);
+          }
+        }
+      }
+    } catch (e, st) {
+      talker.handle(e, st, 'PushService.dismissSupportNotifications failed');
+    }
   }
 
   /// Extracts the chat id from a `…/chats/<id>` route, or null if the route
@@ -477,7 +528,10 @@ class PushService {
     // staring at, skip the re-post entirely — the open thread already shows
     // the message live over the WS, so a drop-down on top of it is just
     // noise (Telegram does the same).
-    if (!kIsWeb && Platform.isAndroid && !_isViewingPushedChat(message)) {
+    if (!kIsWeb &&
+        Platform.isAndroid &&
+        !_isViewingPushedChat(message) &&
+        !_isViewingPushedSupport(message)) {
       await _showLocalNotification(message);
     }
 
@@ -516,12 +570,15 @@ class PushService {
     final isChat =
         NotificationKind.fromString(message.data['kind'] as String?) ==
         NotificationKind.chatMessage;
+    final isSupport = message.data['kind'] == _supportMessageKind;
     final chatId =
         (message.data['chat_id'] as String?) ??
         _chatIdFromRoute(message.data['route'] as String?);
     final useChatSlot = isChat && chatId != null && chatId.isNotEmpty;
     final tag = useChatSlot
         ? chatNotificationTag(chatId)
+        : isSupport
+        ? supportNotificationTag
         : (message.messageId ?? '${DateTime.now().microsecondsSinceEpoch}');
     final androidDetails = AndroidNotificationDetails(
       _kNewsChannelId,
@@ -542,6 +599,8 @@ class PushService {
     // provides cross-process uniqueness once the channel is reused.
     final id = useChatSlot
         ? chatNotificationId(chatId)
+        : isSupport
+        ? supportNotificationId
         : ((_localNotificationCounter++) & 0x7FFFFFFF);
     // Carry the FCM data payload so a tap can resolve route + mode.
     await _localNotifications.show(

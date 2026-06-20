@@ -12,6 +12,9 @@
     <!-- Camera (image_picker uses Android Photo Picker for gallery — no storage permission required) -->
     <uses-permission android:name="android.permission.CAMERA" />
 
+    <!-- Microphone (support-chat hold-to-record voice notes via `record`) -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
     <!-- Save AR screenshots to the gallery (gal). gal writes via the legacy
          MediaStore DATA path on API ≤ 29 and scoped RELATIVE_PATH on API 30+,
          so it needs WRITE_EXTERNAL_STORAGE up to API 29 plus the legacy-storage

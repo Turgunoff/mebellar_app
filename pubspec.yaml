@@ -152,6 +152,12 @@ dependencies:
   # Logging
   talker_flutter: ^5.1.16
 
+  # Support chat voice notes. `record` captures mic audio (AAC-LC → .m4a,
+  # content_type audio/mp4); `just_audio` plays back the resulting clips +
+  # admin voice replies with a play/pause + seek bar.
+  record: ^5.1.2
+  just_audio: ^0.9.42
+
   # Connectivity — connectivity_plus detects link changes (wifi / cellular /
   # none), internet_connection_checker_plus verifies actual reachability so
   # the offline banner doesn't lie when the device is on a captive wifi that
@@ -159,6 +165,16 @@ dependencies:
   connectivity_plus: ^6.1.0
   internet_connection_checker_plus: ^2.5.2
   smart_auth: ^3.2.0
+
+dependency_overrides:
+  # `record` 5.2.1 pins `record_linux` to `<1.0.0`, which resolves to the
+  # ancient 0.7.2 — that build predates `record_platform_interface` 1.6.0
+  # (it's missing `startStream` and the new `hasPermission` signature), so a
+  # compile fails even though Linux is not a target. Force the matching
+  # `record_linux` 1.3.1 (implements platform_interface ^1.5.0); the mobile
+  # runtime uses record_android / record_darwin, so this only satisfies the
+  # resolver/analyzer.
+  record_linux: 1.3.1
 
 dev_dependencies:
   flutter_test:
