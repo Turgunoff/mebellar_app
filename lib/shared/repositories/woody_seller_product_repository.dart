@@ -384,6 +384,7 @@ class WoodySellerProductRepository implements SellerProductRepository {
           (row['ar_error_reason'] as String?)?.trim().isNotEmpty == true
           ? (row['ar_error_reason'] as String).trim()
           : null,
+      arGenerationCount: (row['ar_generation_count'] as num?)?.toInt() ?? 0,
       createdAt: created,
       // Backend SellerProductRow exposes no updated_at — mirror created_at.
       updatedAt: created,

@@ -51,8 +51,10 @@ class WoodyArScanRepository implements ArScanRepository {
     for (var i = 0; i < photos.length; i++) {
       // Mirror woody_seller_product_repository.uploadImage: presigned PUT into
       // the public product-images bucket, then keep the composed public URL.
+      // Keyed under `ar_sources/` so a product's scan inputs are grouped
+      // separately from its catalogue photos in the bucket.
       final path =
-          '$productId/ar-${DateTime.now().millisecondsSinceEpoch}-$i.jpg';
+          'ar_sources/$productId/ar-${DateTime.now().millisecondsSinceEpoch}-$i.jpg';
       final result = await _uploads.upload(
         bucket: R2Bucket.productImages,
         path: path,

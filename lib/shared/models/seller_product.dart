@@ -123,6 +123,7 @@ class SellerProduct extends Equatable {
     this.usdzUrl,
     this.arRejectionReason,
     this.arErrorReason,
+    this.arGenerationCount = 0,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -217,6 +218,11 @@ class SellerProduct extends Equatable {
   /// task expired). Only meaningful while [arStatus] is `failed`.
   final String? arErrorReason;
 
+  /// How many AR generations this product has spent (success OR pipeline
+  /// failure). Capped server-side; the seller card shows "Urinishlar: N/3" and
+  /// disables the scan once it reaches the cap.
+  final int arGenerationCount;
+
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -296,6 +302,7 @@ class SellerProduct extends Equatable {
       usdzUrl: usdzUrl,
       arRejectionReason: arRejectionReason,
       arErrorReason: arErrorReason,
+      arGenerationCount: arGenerationCount,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

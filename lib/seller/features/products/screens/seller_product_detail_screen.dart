@@ -6,12 +6,15 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/logging/talker.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
+import '../../../../core/theme/app_theme_extension.dart';
 import '../../../../shared/constants/product_colors.dart';
 import '../../../../shared/models/attribute_definition.dart';
 import '../../../../shared/models/seller_product.dart';
 import '../bloc/seller_products_bloc.dart';
 import '../data/attributes_repository.dart';
 import '../data/ar_scan_components.dart';
+import '../data/ar_token_repository.dart';
+import '../widgets/ar_token_buy_sheet.dart';
 import 'ar_scan_camera_screen.dart';
 import 'seller_ar_model_screen.dart';
 import '../widgets/product_preview/attributes_card.dart';
@@ -59,6 +62,17 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
   // (and blocks a second tap) without leaving the screen.
   late String _arStatus = widget.product.arStatus;
 
+  // Per-product AR generation cap (mirrors backend AR_MAX_GENERATIONS_PER_PRODUCT).
+  static const int _maxArGenerations = 3;
+
+  // Live attempt count — bumped optimistically on a successful in-session scan
+  // so the "Urinishlar: N/3" counter updates without leaving the screen.
+  late int _arGenerationCount = widget.product.arGenerationCount;
+
+  // The seller's AR-token balance + the purchasable catalog, loaded once on
+  // open. Null while loading; drives the balance label + the morph-to-buy CTA.
+  ArTokenBalance? _arBalance;
+
   // The product is passed in as a snapshot; archive/restore can change its
   // status without leaving the screen, so we track the live status locally and
   // let the bottom bar + status card flip between Archive and Restore.
@@ -70,6 +84,41 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
     super.initState();
     _scrollController.addListener(_handleScroll);
     _schemaFuture = _loadSchema();
+    _loadArBalance();
+  }
+
+  Future<void> _loadArBalance() async {
+    try {
+      final balance = await sl<ArTokenRepository>().balance();
+      if (mounted) setState(() => _arBalance = balance);
+    } catch (e, st) {
+      // Non-fatal: the card falls back to hiding the balance / buy CTA. The
+      // scan endpoint still enforces the limit server-side.
+      talker.handle(e, st, '[seller-product-detail] ar balance load failed');
+    }
+  }
+
+  /// Opens the token top-up sheet; on a successful purchase refreshes the
+  /// balance and confirms with the new total.
+  Future<void> _openBuyTokens() async {
+    final balance = _arBalance;
+    if (balance == null) return;
+    final bought = await showArTokenBuySheet(context, packages: balance.packages);
+    if (!mounted || !bought) return;
+    final result = takeLastArTokenPurchase();
+    await _loadArBalance();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            result != null
+                ? '+${result.tokensAdded} token qo‘shildi. Balans: ${result.balance}'
+                : 'Tokenlar qo‘shildi.',
+          ),
+        ),
+      );
   }
 
   @override
@@ -316,10 +365,13 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
           ),
         );
     if (submitted == true && mounted) {
-      // Optimistically reflect the now-in-flight scan so the card flips to the
-      // `processing` state (spinner + copy, tap disabled) instead of lying about
-      // the idle state and inviting a duplicate scan.
-      setState(() => _arStatus = 'processing');
+      // Optimistically reflect the now-in-flight scan: flip to `processing`
+      // (spinner + copy, tap disabled) and bump the attempt counter so
+      // "Urinishlar: N/3" updates without leaving the screen.
+      setState(() {
+        _arStatus = 'processing';
+        _arGenerationCount += 1;
+      });
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
@@ -329,6 +381,8 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
             ),
           ),
         );
+      // A generation spent a token — refresh the balance from the server.
+      await _loadArBalance();
     }
   }
 
@@ -547,8 +601,13 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
                   _ArScanCard(
                     product: product,
                     arStatus: _arStatus,
+                    generationCount: _arGenerationCount,
+                    maxGenerations: _maxArGenerations,
+                    arCredits: _arBalance?.arCredits,
+                    canBuyTokens: _arBalance != null,
                     onScan: () => _startArScan(product),
                     onViewModel: () => _openModelViewer(product),
+                    onBuyTokens: _openBuyTokens,
                   ),
                   const SizedBox(height: 14),
                   MetaCard(
@@ -753,8 +812,13 @@ class _ArScanCard extends StatelessWidget {
   const _ArScanCard({
     required this.product,
     required this.arStatus,
+    required this.generationCount,
+    required this.maxGenerations,
+    required this.arCredits,
+    required this.canBuyTokens,
     required this.onScan,
     required this.onViewModel,
+    required this.onBuyTokens,
   });
 
   final SellerProduct product;
@@ -764,8 +828,23 @@ class _ArScanCard extends StatelessWidget {
   /// the immutable `product.arStatus` snapshot. The reason text still comes
   /// from [product] (only meaningful for the failed/rejected snapshot).
   final String arStatus;
+
+  /// Live attempt count + the per-product cap → "Urinishlar: N/3".
+  final int generationCount;
+  final int maxGenerations;
+
+  /// The seller's AR-token balance; null while still loading (then the balance
+  /// chip + morph-to-buy are suppressed and the scan CTA stays available — the
+  /// server still enforces the limit).
+  final int? arCredits;
+  final bool canBuyTokens;
+
   final VoidCallback onScan;
   final VoidCallback onViewModel;
+  final VoidCallback onBuyTokens;
+
+  bool get _atCap => generationCount >= maxGenerations;
+  bool get _outOfTokens => (arCredits ?? 1) < 1;
 
   @override
   Widget build(BuildContext context) {
@@ -773,178 +852,221 @@ class _ArScanCard extends StatelessWidget {
     final state = _arState(arStatus);
     final fb = _feedback();
     final isApproved = arStatus == 'approved';
-    // The whole card only taps in the idle state; every other actionable state
-    // owns an explicit button, so there's never a hidden second affordance.
-    final cardTappable = state.canScan && fb == null && !isApproved;
 
     return Material(
       color: c.surface,
       borderRadius: BorderRadius.circular(18),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: cardTappable ? onScan : null,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  _ArIconBadge(status: arStatus, color: state.color),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              '3D skan (AR)',
-                              style: TextStyle(
-                                fontFamily: AppFonts.seller,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 15,
-                                color: c.ink,
-                              ),
-                            ),
-                            if (state.badge != null) ...[
-                              const SizedBox(width: 8),
-                              _ArBadge(label: state.badge!, color: state.color),
-                            ],
-                          ],
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          state.subtitle,
-                          style: TextStyle(
-                            fontFamily: AppFonts.seller,
-                            fontSize: 12.5,
-                            color: c.grey,
-                            height: 1.3,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (cardTappable)
-                    Icon(Icons.chevron_right, color: c.greyFaint),
-                ],
-              ),
-
-              // Approved → primary "view the model", with a quiet re-scan below.
-              if (isApproved) ...[
-                const SizedBox(height: 14),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: onViewModel,
-                    icon: const Icon(Icons.view_in_ar, size: 20),
-                    label: const Text('3D modelni ko‘rish'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.terracotta,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      textStyle: const TextStyle(
-                        fontFamily: AppFonts.seller,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 15,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Align(
-                  alignment: Alignment.center,
-                  child: TextButton.icon(
-                    onPressed: onScan,
-                    icon: Icon(Icons.refresh, size: 17, color: c.grey),
-                    label: Text(
-                      'Qayta skanlash',
-                      style: TextStyle(
-                        fontFamily: AppFonts.seller,
-                        fontWeight: FontWeight.w600,
-                        color: c.grey,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-
-              // Feedback + retry — the "why" so the seller can fix + re-record.
-              // `failed` is a machine/Meshy failure (error-styled, sellerNegative);
-              // `rejected` is a human QC rejection (terracotta). Both offer retry,
-              // which the backend resets to `processing` and clears the old reason.
-              if (fb != null) ...[
-                const SizedBox(height: 12),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: fb.accent.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                _ArIconBadge(status: arStatus, color: state.color),
+                const SizedBox(width: 14),
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        fb.title,
-                        style: TextStyle(
-                          fontFamily: AppFonts.seller,
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w700,
-                          color: fb.accent,
-                        ),
+                      Row(
+                        children: [
+                          Text(
+                            '3D skan (AR)',
+                            style: TextStyle(
+                              fontFamily: AppFonts.seller,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 15,
+                              color: c.ink,
+                            ),
+                          ),
+                          if (state.badge != null) ...[
+                            const SizedBox(width: 8),
+                            _ArBadge(label: state.badge!, color: state.color),
+                          ],
+                        ],
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 2),
                       Text(
-                        fb.reason,
+                        state.subtitle,
                         style: TextStyle(
                           fontFamily: AppFonts.seller,
-                          fontSize: 13,
-                          color: c.ink,
-                          height: 1.35,
+                          fontSize: 12.5,
+                          color: c.grey,
+                          height: 1.3,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: onScan,
-                    icon: const Icon(Icons.refresh, size: 18),
-                    label: const Text('Qayta urinish'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: fb.accent,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      textStyle: const TextStyle(
-                        fontFamily: AppFonts.seller,
-                        fontWeight: FontWeight.w700,
-                      ),
+              ],
+            ),
+
+            // Attempts + token balance — shown wherever a (re)scan is possible.
+            if (state.canScan) ...[
+              const SizedBox(height: 12),
+              _ArMetaRow(
+                generationCount: generationCount,
+                maxGenerations: maxGenerations,
+                arCredits: arCredits,
+              ),
+            ],
+
+            // Approved → primary "view the model" (always available).
+            if (isApproved) ...[
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: onViewModel,
+                  icon: const Icon(Icons.view_in_ar, size: 20),
+                  label: const Text('3D modelni ko‘rish'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.terracotta,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    textStyle: const TextStyle(
+                      fontFamily: AppFonts.seller,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
                     ),
                   ),
                 ),
-              ],
+              ),
             ],
+
+            // Terminal-failure feedback — the "why" so the seller can fix it.
+            // `rejected` (human QC) uses the warningContainer tokens; `failed`
+            // (machine/Meshy) stays error-styled.
+            if (fb != null) ...[
+              const SizedBox(height: 12),
+              _ArFeedbackNote(feedback: fb, isRejection: arStatus == 'rejected'),
+            ],
+
+            // The gated scan action: cap message · buy-tokens CTA · (re)scan.
+            if (state.canScan) ...[
+              const SizedBox(height: 12),
+              _scanAction(context, isApproved: isApproved, hasFeedback: fb != null),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// The single, gated primary action for a scannable state:
+  ///   * at the retry cap   → a disabled, explanatory note (no button);
+  ///   * out of tokens      → "AR Token sotib olish" (morphed CTA);
+  ///   * otherwise          → scan / re-scan / retry.
+  Widget _scanAction(
+    BuildContext context, {
+    required bool isApproved,
+    required bool hasFeedback,
+  }) {
+    final c = SellerColors.of(context);
+
+    if (_atCap) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: c.fillFaint,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: c.divider),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.lock_clock, size: 18, color: c.grey),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Bu mahsulot uchun urinishlar tugadi ($maxGenerations/$maxGenerations). '
+                'Mavjud modeldan foydalaning yoki admin bilan bog‘laning.',
+                style: TextStyle(
+                  fontFamily: AppFonts.seller,
+                  fontSize: 12.5,
+                  color: c.grey,
+                  height: 1.35,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_outOfTokens && canBuyTokens) {
+      return SizedBox(
+        width: double.infinity,
+        child: FilledButton.icon(
+          onPressed: onBuyTokens,
+          icon: const Icon(Icons.bolt, size: 18),
+          label: const Text('AR Token sotib olish'),
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.terracotta,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            textStyle: const TextStyle(
+              fontFamily: AppFonts.seller,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+      );
+    }
+
+    // (Re)scan. Label + emphasis depend on the state: a fresh idle scan and a
+    // post-failure retry are primary; an approved re-scan is a quiet secondary.
+    final label = hasFeedback
+        ? 'Qayta urinish'
+        : (isApproved ? 'Qayta skanlash' : '3D skan boshlash');
+    if (isApproved) {
+      return Align(
+        alignment: Alignment.center,
+        child: TextButton.icon(
+          onPressed: onScan,
+          icon: Icon(Icons.refresh, size: 17, color: c.grey),
+          label: Text(
+            label,
+            style: TextStyle(
+              fontFamily: AppFonts.seller,
+              fontWeight: FontWeight.w600,
+              color: c.grey,
+            ),
+          ),
+        ),
+      );
+    }
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton.icon(
+        onPressed: onScan,
+        icon: Icon(hasFeedback ? Icons.refresh : Icons.view_in_ar, size: 18),
+        label: Text(label),
+        style: FilledButton.styleFrom(
+          backgroundColor: AppColors.terracotta,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          textStyle: const TextStyle(
+            fontFamily: AppFonts.seller,
+            fontWeight: FontWeight.w700,
           ),
         ),
       ),
     );
   }
 
-  /// The feedback note + retry CTA for a terminal failure state, or null
-  /// when the current AR status carries no seller-actionable feedback. Both
-  /// terminal states always return a note (with an Uzbek fallback) so the retry
-  /// button always renders — the card subtitle promises a reason, so there must
-  /// be one to show.
+  /// The feedback note for a terminal failure state, or null when the current
+  /// AR status carries no seller-actionable feedback.
   _ArFeedback? _feedback() {
     switch (arStatus) {
       case 'failed':
@@ -966,6 +1088,157 @@ class _ArScanCard extends StatelessWidget {
       default:
         return null;
     }
+  }
+}
+
+/// "Urinishlar: N/3" + token-balance chips, shown in the scannable states.
+class _ArMetaRow extends StatelessWidget {
+  const _ArMetaRow({
+    required this.generationCount,
+    required this.maxGenerations,
+    required this.arCredits,
+  });
+
+  final int generationCount;
+  final int maxGenerations;
+  final int? arCredits;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    final atCap = generationCount >= maxGenerations;
+    return Row(
+      children: [
+        _MetaChip(
+          icon: Icons.refresh,
+          label: 'Urinishlar: $generationCount/$maxGenerations',
+          emphasis: atCap,
+          color: c,
+        ),
+        if (arCredits != null) ...[
+          const SizedBox(width: 8),
+          _MetaChip(
+            icon: Icons.bolt,
+            label: 'Token: $arCredits',
+            emphasis: arCredits! < 1,
+            color: c,
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _MetaChip extends StatelessWidget {
+  const _MetaChip({
+    required this.icon,
+    required this.label,
+    required this.emphasis,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool emphasis;
+  final SellerColors color;
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = emphasis ? AppColors.terracotta : color.grey;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: emphasis
+            ? AppColors.terracotta.withValues(alpha: 0.08)
+            : color.fillFaint,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: fg),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontFamily: AppFonts.seller,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: fg,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The terminal-failure note. A `rejected` (human QC) note uses the strict
+/// `warningContainer` / `onWarningContainer` theme tokens; a `failed`
+/// (machine/Meshy) note stays error-tinted off [_ArFeedback.accent].
+class _ArFeedbackNote extends StatelessWidget {
+  const _ArFeedbackNote({required this.feedback, required this.isRejection});
+
+  final _ArFeedback feedback;
+  final bool isRejection;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    final custom = Theme.of(context).extension<AppCustomColors>()!;
+    final bg = isRejection
+        ? custom.warningContainer
+        : feedback.accent.withValues(alpha: 0.08);
+    final titleColor = isRejection ? custom.onWarningContainer : feedback.accent;
+    final bodyColor = isRejection ? custom.onWarningContainer : c.ink;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(12),
+        border: isRejection
+            ? Border.all(color: custom.onWarningContainer.withValues(alpha: 0.2))
+            : null,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              if (isRejection) ...[
+                Icon(
+                  Icons.warning_amber_rounded,
+                  size: 15,
+                  color: custom.onWarningContainer,
+                ),
+                const SizedBox(width: 6),
+              ],
+              Text(
+                feedback.title,
+                style: TextStyle(
+                  fontFamily: AppFonts.seller,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                  color: titleColor,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            feedback.reason,
+            style: TextStyle(
+              fontFamily: AppFonts.seller,
+              fontSize: 13,
+              color: bodyColor,
+              height: 1.35,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
