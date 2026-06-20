@@ -14,11 +14,12 @@ class ArScanUploadResult {
 /// Data layer for the seller "Photos-to-3D" scan. Abstract interface so the
 /// capture wizard depends on the contract, not the REST impl, and tests mock it.
 ///
-/// The three guided JPEGs are uploaded to the public `product-images` R2 bucket
-/// via the same presigned-PUT plumbing a normal product image uses; the
-/// resulting public URLs (plus the seller's dimensions) are then POSTed to the
-/// dedicated AR endpoint. The 3D model is generated server-side by Meshy and
-/// reviewed by an admin — this repo only kicks the pipeline off.
+/// The three guided JPEGs are uploaded to the dedicated public `product-ar-scans`
+/// R2 bucket (raw scan INPUT, kept apart from the generated `.glb` in
+/// `product-ar-models`) via the same presigned-PUT plumbing a normal product
+/// image uses; the resulting public URLs (plus the seller's dimensions) are then
+/// POSTed to the dedicated AR endpoint. The 3D model is generated server-side by
+/// Meshy and reviewed by an admin — this repo only kicks the pipeline off.
 abstract class ArScanRepository {
   Future<ArScanUploadResult> uploadScanPhotos({
     required String productId,
@@ -49,23 +50,23 @@ class WoodyArScanRepository implements ArScanRepository {
   }) async {
     final imageUrls = <String>[];
     for (var i = 0; i < photos.length; i++) {
-      // Mirror woody_seller_product_repository.uploadImage: presigned PUT into
-      // the public product-images bucket, then keep the composed public URL.
-      // Keyed under `ar_sources/` so a product's scan inputs are grouped
-      // separately from its catalogue photos in the bucket.
+      // Presigned PUT into the dedicated public product-ar-scans bucket, then
+      // keep the composed public URL. The key is `{productId}/...` — the first
+      // segment must be the caller's own product (backend `_assert_path_owned`
+      // binds it to the seller), so scans never collide across products.
       final path =
-          'ar_sources/$productId/ar-${DateTime.now().millisecondsSinceEpoch}-$i.jpg';
+          '$productId/ar-${DateTime.now().millisecondsSinceEpoch}-$i.jpg';
       final result = await _uploads.upload(
-        bucket: R2Bucket.productImages,
+        bucket: R2Bucket.productArScans,
         path: path,
         bytes: photos[i],
         contentType: 'image/jpeg',
       );
       final url = result.publicUrl;
       if (url == null || url.isEmpty) {
-        // The product-images bucket only returns a public URL when its public
-        // base is configured; without it the model can't be built, so fail
-        // loudly rather than POST an unrenderable reference to Meshy.
+        // The product-ar-scans bucket only returns a public URL when its public
+        // base is configured; without it Meshy can't fetch the photos, so fail
+        // loudly rather than POST an unrenderable reference.
         throw StateError('Empty public URL from /storage/upload-url');
       }
       imageUrls.add(url);

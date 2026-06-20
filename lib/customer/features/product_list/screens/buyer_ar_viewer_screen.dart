@@ -14,8 +14,10 @@ import '../../../../core/i18n/i18n.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/ar/ar_loading_overlay.dart';
 import '../../../../shared/ar/ar_scale.dart';
+import '../../../../shared/ar/ar_support.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../../../../shared/models/product_model.dart';
+import 'fallback_2d_camera_screen.dart';
 
 /// Clean light "showroom" backdrop behind the model — a flat, premium
 /// e-commerce stage (think IKEA/Wayfair) rather than a dark void. Fixed in both
@@ -196,17 +198,42 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
   }
 
   /// Launches the model-viewer AR session (Scene Viewer / WebXR / Quick Look).
-  /// When the device can't do AR, model-viewer's `activateAR()` is a silent
-  /// no-op, so we probe `canActivateAR` first and surface a soft message
-  /// instead of leaving the button feeling broken.
+  ///
+  /// First gates on native device capability: on an ARCore-incapable Android
+  /// device, model-viewer still reports `canActivateAR` (Scene Viewer is
+  /// "installable") and firing it bounces the user out to the Play Store for a
+  /// Google-Play-Services-for-AR build that won't run here. So we check
+  /// [ArSupport] up front and, when AR isn't available, open the in-app 2D
+  /// camera overlay instead of ever leaving the app. The JS `canActivateAR`
+  /// probe stays as a second guard (emulators / WebXR-less browsers) and also
+  /// routes to the fallback.
   Future<void> _activateAr() async {
     final web = _web;
     if (web == null) return;
+    final supported = await ArSupport.instance.isSupported();
+    if (!mounted) return;
+    if (!supported) {
+      _openFallback();
+      return;
+    }
     await web.runJavaScript(
       "(function(){var mv=document.querySelector('model-viewer');"
       'if(!mv){return;}'
       'if(mv.canActivateAR){mv.activateAR();}'
       "else{$_arChannel.postMessage('unsupported');}})();",
+    );
+  }
+
+  /// Opens the 2D camera overlay fallback for the product's main photo.
+  void _openFallback() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => Fallback2DCameraScreen(
+          imageUrl: _product.thumbnail,
+          productName: _product.name,
+        ),
+      ),
     );
   }
 
@@ -218,9 +245,10 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
       case 'ready':
         if (!_modelReady) setState(() => _modelReady = true);
       // Reached only once the model is loaded (the CTA is gated on readiness),
-      // so this is a genuine "no AR on this device", not a not-ready-yet race.
+      // so this is a genuine "no AR on this device" — open the 2D fallback
+      // rather than dead-ending on a toast.
       case 'unsupported':
-        _toast(tr('product.ar_unsupported'));
+        _openFallback();
     }
   }
 

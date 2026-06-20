@@ -27,12 +27,12 @@ void main() {
   });
 
   R2UploadResult uploadOk(String url) => R2UploadResult(
-        bucket: R2Bucket.productImages,
+        bucket: R2Bucket.productArScans,
         path: 'p',
         publicUrl: url,
       );
 
-  test('uploads each photo to product-images then POSTs the URLs + dims',
+  test('uploads each photo to product-ar-scans then POSTs the URLs + dims',
       () async {
     var i = 0;
     when(
@@ -61,20 +61,27 @@ void main() {
     expect(result.arStatus, 'processing');
     expect(result.taskId, 'task-7');
 
-    // Exactly three uploads, all to the public product-images bucket as JPEG.
+    // Exactly three uploads, all to the dedicated public product-ar-scans
+    // bucket as JPEG, keyed under the caller's own product id (`{productId}/...`)
+    // — never the legacy `ar_sources/` prefix that tripped the backend IDOR
+    // guard with a 403.
     final captured = verify(
       () => uploads.upload(
         bucket: captureAny(named: 'bucket'),
-        path: any(named: 'path'),
+        path: captureAny(named: 'path'),
         bytes: any(named: 'bytes'),
         contentType: captureAny(named: 'contentType'),
       ),
     ).captured;
-    expect(captured.length, 6); // 3 calls × 2 captured args
+    expect(captured.length, 9); // 3 calls × 3 captured args
     expect(captured.whereType<R2Bucket>().toList(),
-        everyElement(R2Bucket.productImages));
-    expect(captured.whereType<String>().toList(),
-        everyElement('image/jpeg'));
+        everyElement(R2Bucket.productArScans));
+    final strings = captured.whereType<String>().toList();
+    expect(strings.where((s) => s == 'image/jpeg').length, 3);
+    final paths = strings.where((s) => s.endsWith('.jpg')).toList();
+    expect(paths.length, 3);
+    expect(paths, everyElement(startsWith('prod-1/')));
+    expect(paths, everyElement(isNot(contains('ar_sources'))));
 
     // The POST carries the composed public URLs + the three dimensions, with
     // length mapped to depth by the backend contract (sent as length_cm).

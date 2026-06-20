@@ -13,7 +13,12 @@ const Map<String, dynamic> productUz = {
   'ar_saved': 'Rasm galereyaga saqlandi',
   'ar_save_failed': 'Saqlab bo\'lmadi. Qayta urinib ko\'ring',
   'ar_save_denied': 'Galereyaga ruxsat berilmadi',
-  'ar_unsupported': 'Bu qurilmada AR qo\'llab-quvvatlanmaydi',
+  'ar_fallback_hint':
+      'Bu qurilmada AR ishlamaydi. Mahsulot rasmini barmoq bilan suring, '
+      'kattalashtiring va aylantiring.',
+  'ar_fallback_camera_error':
+      'Kamerani ochib bo\'lmadi. Kameraga ruxsat bering.',
+  'ar_fallback_open_settings': 'Sozlamalarni ochish',
   'attributes': 'Xususiyatlar',
   'show_more': 'Ko\'proq ko\'rish',
   'show_less': 'Yopish',
@@ -47,7 +52,12 @@ const Map<String, dynamic> productRu = {
   'ar_saved': 'Изображение сохранено в галерею',
   'ar_save_failed': 'Не удалось сохранить. Попробуйте снова',
   'ar_save_denied': 'Доступ к галерее не предоставлен',
-  'ar_unsupported': 'AR не поддерживается на этом устройстве',
+  'ar_fallback_hint':
+      'AR не поддерживается на этом устройстве. Перетаскивайте, '
+      'масштабируйте и поворачивайте изображение товара пальцами.',
+  'ar_fallback_camera_error':
+      'Не удалось открыть камеру. Разрешите доступ к камере.',
+  'ar_fallback_open_settings': 'Открыть настройки',
   'attributes': 'Характеристики',
   'show_more': 'Показать больше',
   'show_less': 'Свернуть',
@@ -82,7 +92,12 @@ const Map<String, dynamic> productEn = {
   'ar_saved': 'Image saved to gallery',
   'ar_save_failed': 'Couldn\'t save. Try again',
   'ar_save_denied': 'Gallery access denied',
-  'ar_unsupported': 'AR is not supported on this device',
+  'ar_fallback_hint':
+      'AR isn\'t supported on this device. Drag, pinch to zoom and rotate '
+      'the product image with your fingers.',
+  'ar_fallback_camera_error':
+      'Couldn\'t open the camera. Please allow camera access.',
+  'ar_fallback_open_settings': 'Open settings',
   'attributes': 'Specifications',
   'show_more': 'Show more',
   'show_less': 'Show less',
