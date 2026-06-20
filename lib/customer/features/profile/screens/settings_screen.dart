@@ -11,6 +11,7 @@ import '../../../../core/i18n/i18n.dart';
 import '../../../../core/i18n/language_picker.dart';
 import '../../../../core/storage/hive_boxes.dart';
 import '../../../../core/theme/theme_cubit.dart';
+import '../../../../core/theme/theme_mode_picker.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../../../../shared/about/about_screen.dart';
 
@@ -249,14 +250,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
-    // Resolve the boolean switch state from the global theme preference.
-    // `system` reflects the device brightness so the toggle reads correctly
-    // before the user makes an explicit choice.
+    // The active theme preference (System / Light / Dark) drives the trailing
+    // label on the appearance row; `watch` rebuilds it when the choice changes.
     final themeMode = context.watch<ThemeCubit>().state.themeMode;
-    final isDark =
-        themeMode == ThemeMode.dark ||
-        (themeMode == ThemeMode.system &&
-            MediaQuery.platformBrightnessOf(context) == Brightness.dark);
     final languageLabel = tr('lang.${context.locale.languageCode}');
     return Scaffold(
       backgroundColor: pt.background,
@@ -302,11 +298,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 8),
           _Card(
             children: [
-              _SwitchRow(
+              _NavRow(
                 icon: Iconsax.moon,
-                title: tr('settings.dark_mode'),
-                value: isDark,
-                onChanged: (v) => context.read<ThemeCubit>().toggleDark(v),
+                title: tr('settings.theme'),
+                trailingLabel: themeModeLabel(themeMode),
+                onTap: () => showThemeModePicker(context),
               ),
             ],
           ),

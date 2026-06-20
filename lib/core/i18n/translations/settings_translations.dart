@@ -18,8 +18,12 @@ const Map<String, dynamic> settingsUz = {
   'language_row': 'Ilova tili',
   'language_title': 'Tilni tanlang',
 
-  // Appearance
-  'dark_mode': 'Tungi rejim',
+  // Appearance — three-way theme picker (System / Light / Dark)
+  'theme': 'Mavzu',
+  'theme_title': 'Mavzuni tanlang',
+  'theme_system': 'Tizimga mos',
+  'theme_light': "Yorug'",
+  'theme_dark': "Qorong'i",
 
   // Customer notifications
   'push_notifications': 'Push bildirishnomalar',
@@ -73,7 +77,11 @@ const Map<String, dynamic> settingsRu = {
   'language_row': 'Язык приложения',
   'language_title': 'Выберите язык',
 
-  'dark_mode': 'Тёмный режим',
+  'theme': 'Тема',
+  'theme_title': 'Выберите тему',
+  'theme_system': 'Системная',
+  'theme_light': 'Светлая',
+  'theme_dark': 'Тёмная',
 
   'push_notifications': 'Push-уведомления',
   'order_updates': 'Обновления заказов',
@@ -123,7 +131,11 @@ const Map<String, dynamic> settingsEn = {
   'language_row': 'App language',
   'language_title': 'Choose language',
 
-  'dark_mode': 'Dark mode',
+  'theme': 'Theme',
+  'theme_title': 'Choose theme',
+  'theme_system': 'System',
+  'theme_light': 'Light',
+  'theme_dark': 'Dark',
 
   'push_notifications': 'Push notifications',
   'order_updates': 'Order updates',

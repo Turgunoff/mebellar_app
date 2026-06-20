@@ -10,6 +10,7 @@ import '../../../../core/i18n/i18n.dart';
 import '../../../../core/i18n/language_picker.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/theme_cubit.dart';
+import '../../../../core/theme/theme_mode_picker.dart';
 import '../../../../shared/about/about_screen.dart';
 
 // All neutral colours now come from `SellerColors.of(context)` so the surface
@@ -48,13 +49,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     // Native name of the active language for the trailing label; rebuilds with
     // the rest of the tree when the locale changes.
     final languageLabel = tr('lang.${context.locale.languageCode}');
-    // Dark mode is global — read it from the shared ThemeCubit. `system`
-    // resolves against the device brightness so the switch reads correctly.
+    // Theme is global — read the active preference (System / Light / Dark)
+    // from the shared ThemeCubit; `watch` rebuilds the trailing label on change.
     final themeMode = context.watch<ThemeCubit>().state.themeMode;
-    final isDark =
-        themeMode == ThemeMode.dark ||
-        (themeMode == ThemeMode.system &&
-            MediaQuery.platformBrightnessOf(context) == Brightness.dark);
     return Scaffold(
       backgroundColor: c.background,
       appBar: const _SettingsAppBar(),
@@ -75,11 +72,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onTap: () => showLanguagePicker(context),
               ),
               const _RowDivider(),
-              _SwitchRow(
+              _NavRow(
                 icon: Iconsax.moon,
-                title: tr('settings.dark_mode'),
-                value: isDark,
-                onChanged: (v) => context.read<ThemeCubit>().toggleDark(v),
+                title: tr('settings.theme'),
+                trailingText: themeModeLabel(themeMode),
+                onTap: () => showThemeModePicker(context),
               ),
             ],
           ),

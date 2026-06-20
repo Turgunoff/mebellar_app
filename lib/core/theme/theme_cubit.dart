@@ -20,15 +20,11 @@ class ThemeCubit extends Cubit<ThemeState> {
   ThemeMode get themeMode => state.themeMode;
 
   /// Persists [mode] and emits it. No-ops when unchanged so listeners don't
-  /// rebuild needlessly.
+  /// rebuild needlessly. The single entry point for the settings picker —
+  /// callers choose between [ThemeMode.system], `.light` and `.dark` directly.
   Future<void> setThemeMode(ThemeMode mode) async {
     if (mode == state.themeMode) return;
     await _settings.setThemeMode(mode);
     emit(ThemeState(mode));
   }
-
-  /// Convenience for the boolean dark-mode switches in the settings screens:
-  /// maps the toggle to an explicit light/dark choice (never `system`).
-  Future<void> toggleDark(bool isDark) =>
-      setThemeMode(isDark ? ThemeMode.dark : ThemeMode.light);
 }

@@ -32,9 +32,9 @@ void main() {
   });
 
   blocTest<ThemeCubit, ThemeState>(
-    'toggleDark(true) emits dark mode and persists it',
+    'setThemeMode(dark) emits dark mode and persists it',
     build: () => ThemeCubit(settings),
-    act: (cubit) => cubit.toggleDark(true),
+    act: (cubit) => cubit.setThemeMode(ThemeMode.dark),
     expect: () => [
       isA<ThemeState>().having((s) => s.themeMode, 'mode', ThemeMode.dark),
     ],
@@ -43,17 +43,31 @@ void main() {
   );
 
   blocTest<ThemeCubit, ThemeState>(
-    'toggleDark(false) from a dark start emits light mode',
+    'setThemeMode(light) from a dark start emits light mode',
     build: () {
       when(() => settings.themeMode).thenReturn(ThemeMode.dark);
       return ThemeCubit(settings);
     },
-    act: (cubit) => cubit.toggleDark(false),
+    act: (cubit) => cubit.setThemeMode(ThemeMode.light),
     expect: () => [
       isA<ThemeState>().having((s) => s.themeMode, 'mode', ThemeMode.light),
     ],
     verify: (_) =>
         verify(() => settings.setThemeMode(ThemeMode.light)).called(1),
+  );
+
+  blocTest<ThemeCubit, ThemeState>(
+    'setThemeMode(system) from a dark start emits system and persists it',
+    build: () {
+      when(() => settings.themeMode).thenReturn(ThemeMode.dark);
+      return ThemeCubit(settings);
+    },
+    act: (cubit) => cubit.setThemeMode(ThemeMode.system),
+    expect: () => [
+      isA<ThemeState>().having((s) => s.themeMode, 'mode', ThemeMode.system),
+    ],
+    verify: (_) =>
+        verify(() => settings.setThemeMode(ThemeMode.system)).called(1),
   );
 
   blocTest<ThemeCubit, ThemeState>(
