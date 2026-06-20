@@ -21,6 +21,21 @@ import '../../home/widgets/premium/premium_tokens.dart';
 import '../../profile/cubit/profile_cubit.dart';
 import '../cubit/notifications_cubit.dart';
 
+/// The three inbox tabs. `category == null` is the "Barchasi" (all) tab — no
+/// filter; the other two filter the loaded inbox by
+/// [NotificationModel.category]. Mirrors the `OrdersTab`/`tr('...tab_$name')`
+/// convention so the labels live in the i18n bundles.
+enum _NotificationsTab {
+  all(null, 'tab_all'),
+  orders(NotificationCategory.order, 'tab_orders'),
+  system(NotificationCategory.system, 'tab_system');
+
+  const _NotificationsTab(this.category, this.i18nKey);
+
+  final NotificationCategory? category;
+  final String i18nKey;
+}
+
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
 
@@ -245,86 +260,142 @@ class _NotificationsViewState extends State<_NotificationsView> {
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
-    return Scaffold(
-      backgroundColor: pt.background,
-      appBar: AppBar(
+    return DefaultTabController(
+      length: _NotificationsTab.values.length,
+      child: Scaffold(
         backgroundColor: pt.background,
-        foregroundColor: pt.dark,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios_new_rounded,
-            size: 20,
-            color: pt.dark,
-          ),
-          onPressed: () => context.pop(),
-        ),
-        title: Text(
-          tr('notifications.title'),
-          style: PremiumTokens.display(size: 22, letterSpacing: -0.4),
-        ),
-        actions: [
-          BlocBuilder<NotificationsCubit, NotificationsState>(
-            buildWhen: (a, b) => a.unreadCount != b.unreadCount,
-            builder: (context, state) {
-              if (state.unreadCount == 0) return const SizedBox.shrink();
-              return TextButton(
-                onPressed: () =>
-                    context.read<NotificationsCubit>().markAllRead(),
-                child: Text(
-                  tr('notifications.mark_all_read'),
-                  style: PremiumTokens.body(
-                    size: 13,
-                    weight: FontWeight.w600,
-                    color: PremiumTokens.accent,
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-      body: BlocBuilder<NotificationsCubit, NotificationsState>(
-        builder: (context, state) {
-          return switch (state.status) {
-            NotificationsStatus.initial ||
-            NotificationsStatus.loading => const _NotificationsSkeleton(),
-            NotificationsStatus.failure when state.items.isEmpty => ErrorState(
-              message: state.error,
-              onRetry: () => context.read<NotificationsCubit>().load(),
+        appBar: AppBar(
+          backgroundColor: pt.background,
+          foregroundColor: pt.dark,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          leading: IconButton(
+            icon: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              size: 20,
+              color: pt.dark,
             ),
-            _ =>
-              state.items.isEmpty
-                  ? EmptyState(
-                      icon: Iconsax.notification,
-                      title: tr('notifications.empty'),
-                      message: tr('notifications.empty_hint'),
-                    )
-                  : BrandRefreshIndicator(
-                      color: PremiumTokens.accent,
-                      onRefresh: () =>
-                          context.read<NotificationsCubit>().load(),
-                      child: ListView.separated(
-                        physics: const AlwaysScrollableScrollPhysics(
-                          parent: BouncingScrollPhysics(),
-                        ),
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                        itemCount: state.items.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 12),
-                        itemBuilder: (_, i) => _NotificationTile(
-                          notification: state.items[i],
-                          // Routeless (informational) kinds expand in place
-                          // so the full text is readable without leaving the
-                          // inbox.
-                          expandsOnTap:
-                              determineRouteFor(state.items[i]) == null,
-                          onTap: () => _handleTap(context, state.items[i]),
-                        ),
-                      ),
-                    ),
-          };
-        },
+            onPressed: () => context.pop(),
+          ),
+          title: Text(
+            tr('notifications.title'),
+            style: PremiumTokens.display(size: 22, letterSpacing: -0.4),
+          ),
+          actions: [
+            // Marks the whole inbox read (every tab), not just the visible
+            // one — the badge reflects total unread, so does this action.
+            BlocBuilder<NotificationsCubit, NotificationsState>(
+              buildWhen: (a, b) => a.unreadCount != b.unreadCount,
+              builder: (context, state) {
+                if (state.unreadCount == 0) return const SizedBox.shrink();
+                return IconButton(
+                  icon: const Icon(Icons.checklist_rounded),
+                  color: PremiumTokens.accent,
+                  tooltip: tr('notifications.mark_all_read'),
+                  onPressed: () =>
+                      context.read<NotificationsCubit>().markAllRead(),
+                );
+              },
+            ),
+          ],
+          bottom: TabBar(
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
+            labelColor: pt.dark,
+            unselectedLabelColor: pt.grey,
+            indicatorColor: PremiumTokens.accent,
+            tabs: [
+              for (final t in _NotificationsTab.values)
+                Tab(text: tr('notifications.${t.i18nKey}')),
+            ],
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            for (final t in _NotificationsTab.values)
+              _NotificationsList(
+                category: t.category,
+                onTap: (n) => _handleTap(context, n),
+                // Routeless (informational) kinds expand in place so the full
+                // text is readable without leaving the inbox.
+                expandsOnTap: (n) => determineRouteFor(n) == null,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// One tab's list: filters the loaded inbox by [category] (`null` = all) and
+/// renders the shared loading / error / empty / list states. The cubit holds
+/// the full inbox; tabs are a pure client-side filter over `state.items`, so
+/// switching tabs never refetches.
+class _NotificationsList extends StatelessWidget {
+  const _NotificationsList({
+    required this.category,
+    required this.onTap,
+    required this.expandsOnTap,
+  });
+
+  final NotificationCategory? category;
+  final void Function(NotificationModel) onTap;
+  final bool Function(NotificationModel) expandsOnTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<NotificationsCubit, NotificationsState>(
+      builder: (context, state) {
+        return switch (state.status) {
+          NotificationsStatus.initial ||
+          NotificationsStatus.loading => const _NotificationsSkeleton(),
+          NotificationsStatus.failure when state.items.isEmpty => ErrorState(
+            message: state.error,
+            onRetry: () => context.read<NotificationsCubit>().load(),
+          ),
+          _ => _list(context, state),
+        };
+      },
+    );
+  }
+
+  Widget _list(BuildContext context, NotificationsState state) {
+    // Inbox totally empty → the inviting first-run empty state.
+    if (state.items.isEmpty) {
+      return EmptyState(
+        icon: Iconsax.notification,
+        title: tr('notifications.empty'),
+        message: tr('notifications.empty_hint'),
+      );
+    }
+    final items = category == null
+        ? state.items
+        : state.items
+              .where((n) => n.category == category)
+              .toList(growable: false);
+    // Inbox has rows but none in this tab → a lighter "nothing here" empty.
+    if (items.isEmpty) {
+      return EmptyState(
+        icon: Iconsax.notification,
+        title: tr('notifications.empty'),
+        message: tr('notifications.tab_empty'),
+      );
+    }
+    return BrandRefreshIndicator(
+      color: PremiumTokens.accent,
+      onRefresh: () => context.read<NotificationsCubit>().load(),
+      child: ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        itemCount: items.length,
+        separatorBuilder: (_, _) => const SizedBox(height: 12),
+        itemBuilder: (_, i) => _NotificationTile(
+          notification: items[i],
+          expandsOnTap: expandsOnTap(items[i]),
+          onTap: () => onTap(items[i]),
+        ),
       ),
     );
   }

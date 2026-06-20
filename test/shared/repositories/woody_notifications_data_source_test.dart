@@ -111,13 +111,13 @@ void main() {
     expect(call.uri.path, endsWith('/notifications/n1/read'));
   });
 
-  test('markAllRead POSTs the read-all endpoint', () async {
+  test('markAllRead POSTs the mark-all-read endpoint', () async {
     final h = make((_) => (200, '{}'));
 
     await h.ds.markAllRead();
 
     final call = h.adapter.calls.single;
     expect(call.method, 'POST');
-    expect(call.uri.path, endsWith('/notifications/read-all'));
+    expect(call.uri.path, endsWith('/notifications/mark-all-read'));
   });
 }

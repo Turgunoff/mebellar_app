@@ -17,7 +17,7 @@ abstract class NotificationDataSource {
 }
 
 /// Reads / mutates the customer inbox via `GET /notifications`,
-/// `PATCH /notifications/{id}/read` and `POST /notifications/read-all`. The
+/// `PATCH /notifications/{id}/read` and `POST /notifications/mark-all-read`. The
 /// backend scopes every query to the JWT's user, so no client-side user filter
 /// is needed; the row carries no `user_id`, so we stamp a synthetic one.
 class WoodyNotificationDataSource implements NotificationDataSource {
@@ -51,7 +51,7 @@ class WoodyNotificationDataSource implements NotificationDataSource {
 
   @override
   Future<void> markAllRead() async {
-    await _api.post<dynamic>('/notifications/read-all');
+    await _api.post<dynamic>('/notifications/mark-all-read');
   }
 
   NotificationModel _toModel(Map<String, dynamic> r) {
@@ -68,6 +68,9 @@ class WoodyNotificationDataSource implements NotificationDataSource {
       referenceId: r['reference_id'] as String?,
       isRead: r['is_read'] as bool? ?? false,
       createdAt: DateTime.parse(r['created_at'] as String),
+      notificationType: NotificationCategory.fromString(
+        r['notification_type'] as String?,
+      ),
       payload: payload,
     );
   }

@@ -142,6 +142,56 @@ enum NotificationKind {
       NotificationKind.general => const Color(0xFF8A8A8A), // neutral grey
     };
   }
+
+  /// Coarse [NotificationCategory] this kind rolls up to — the client mirror
+  /// of the backend's generated `notification_type` column (woody_backend
+  /// migration 0043). Drives the inbox tab filter, and is the fallback when
+  /// a row arrives without an explicit category (a local-only `news` row, or
+  /// a response from a backend that predates the column). Keep this in sync
+  /// with the backend CASE expression in that migration.
+  NotificationCategory get category {
+    return switch (this) {
+      NotificationKind.order ||
+      NotificationKind.orderCreated ||
+      NotificationKind.orderShipped ||
+      NotificationKind.orderDelivered ||
+      NotificationKind.sellerNewOrder ||
+      NotificationKind.sellerOrderCancelled ||
+      NotificationKind.feeAdjustmentProposed ||
+      NotificationKind.feeAdjustmentResponse => NotificationCategory.order,
+      NotificationKind.chatMessage => NotificationCategory.chat,
+      NotificationKind.promo ||
+      NotificationKind.priceDrop => NotificationCategory.promo,
+      _ => NotificationCategory.system,
+    };
+  }
+}
+
+/// Coarse inbox category, mirroring the backend's `notification_type`
+/// generated column (woody_backend migration 0043). Drives the tab filter on
+/// the notifications screen (Barchasi / Buyurtmalar / Tizim). Wire values are
+/// UPPERCASE — deliberately distinct from the lowercase granular
+/// [NotificationKind.code] — so 'ORDER' the category never reads as 'order'
+/// the kind.
+enum NotificationCategory {
+  order('ORDER'),
+  system('SYSTEM'),
+  promo('PROMO'),
+  chat('CHAT');
+
+  const NotificationCategory(this.code);
+
+  final String code;
+
+  /// Parses the backend `notification_type`. Returns `null` for an absent or
+  /// unknown value so the caller can fall back to [NotificationKind.category].
+  static NotificationCategory? fromString(String? raw) {
+    if (raw == null) return null;
+    for (final category in NotificationCategory.values) {
+      if (category.code == raw) return category;
+    }
+    return null;
+  }
 }
 
 /// Maps every [NotificationKind] to the [AppMode] whose router knows how to
@@ -208,6 +258,7 @@ class NotificationModel extends Equatable {
     required this.referenceId,
     required this.isRead,
     required this.createdAt,
+    this.notificationType,
     this.payload,
   });
 
@@ -216,6 +267,12 @@ class NotificationModel extends Equatable {
   final String title;
   final String body;
   final NotificationKind kind;
+
+  /// Coarse category as reported by the backend (`notification_type`, a
+  /// generated column). `null` when the response predates the column or for
+  /// local-only rows — prefer [category], which falls back to the
+  /// kind-derived category, over reading this directly.
+  final NotificationCategory? notificationType;
 
   /// Foreign id (order_id, product_id, ...) the notification refers to.
   /// `null` when the type doesn't need deep linking (e.g. `news`).
@@ -237,6 +294,11 @@ class NotificationModel extends Equatable {
   /// in practice — but the field stays nullable so the model can be built
   /// in tests / from push payloads that don't include the key.
   final Map<String, dynamic>? payload;
+
+  /// Effective coarse category for tab filtering: the backend-reported
+  /// [notificationType] when present, else derived from [kind]. Always
+  /// non-null so the tab filter never has to special-case a missing value.
+  NotificationCategory get category => notificationType ?? kind.category;
 
   /// The [AppMode] whose router can render this notification's destination.
   /// Prefers an explicit `mode` in [payload] — authoritative for
@@ -272,6 +334,7 @@ class NotificationModel extends Equatable {
       referenceId: referenceId,
       isRead: isRead ?? this.isRead,
       createdAt: createdAt,
+      notificationType: notificationType,
       payload: payload,
     );
   }
@@ -293,6 +356,9 @@ class NotificationModel extends Equatable {
       referenceId: json['reference_id'] as String?,
       isRead: json['is_read'] as bool? ?? false,
       createdAt: DateTime.parse(json['created_at'] as String),
+      notificationType: NotificationCategory.fromString(
+        json['notification_type'] as String?,
+      ),
       payload: payload,
     );
   }
@@ -304,6 +370,9 @@ class NotificationModel extends Equatable {
       'title': title,
       'body': body,
       'type': kind.code,
+      // Emit the *effective* category (falls back to the kind-derived one)
+      // so a round-trip is faithful even for a model built without it.
+      'notification_type': category.code,
       'reference_id': referenceId,
       'is_read': isRead,
       'created_at': createdAt.toIso8601String(),
@@ -322,6 +391,7 @@ class NotificationModel extends Equatable {
     kind,
     referenceId,
     createdAt,
+    notificationType,
     payload,
   ];
 }
