@@ -120,8 +120,10 @@ class SellerProduct extends Equatable {
     this.archiveReason,
     this.arStatus = 'none',
     this.arModelUrl,
+    this.usdzUrl,
     this.arRejectionReason,
     this.arErrorReason,
+    this.arGenerationCount = 0,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -203,6 +205,11 @@ class SellerProduct extends Equatable {
   /// Public URL of the QC-approved `.glb` (null until approved).
   final String? arModelUrl;
 
+  /// Public URL of the QC-approved iOS-AR `.usdz` (null when none was produced).
+  /// Lets the seller's own preview launch AR Quick Look on iOS, mirroring the
+  /// buyer viewer; iOS falls back to the in-page WebGL `.glb` view when null.
+  final String? usdzUrl;
+
   /// Seller-facing feedback when the scan was rejected (blurry video, bad
   /// model, …) by admin QC. Only meaningful while [arStatus] is `rejected`.
   final String? arRejectionReason;
@@ -210,6 +217,11 @@ class SellerProduct extends Equatable {
   /// Pipeline/Meshy failure reason (e.g. the model generation failed or the
   /// task expired). Only meaningful while [arStatus] is `failed`.
   final String? arErrorReason;
+
+  /// How many AR generations this product has spent (success OR pipeline
+  /// failure). Capped server-side; the seller card shows "Urinishlar: N/3" and
+  /// disables the scan once it reaches the cap.
+  final int arGenerationCount;
 
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -287,8 +299,10 @@ class SellerProduct extends Equatable {
       archiveReason: archiveReason,
       arStatus: arStatus,
       arModelUrl: arModelUrl,
+      usdzUrl: usdzUrl,
       arRejectionReason: arRejectionReason,
       arErrorReason: arErrorReason,
+      arGenerationCount: arGenerationCount,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

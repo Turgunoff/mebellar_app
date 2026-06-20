@@ -18,6 +18,7 @@ ProductModel _product({
   num? heightCm,
   num? depthCm,
   String name = 'Krovat',
+  String? usdzUrl,
 }) => ProductModel(
   id: 'p1',
   categoryId: 'cat-1',
@@ -27,6 +28,7 @@ ProductModel _product({
   stock: 5,
   createdAt: DateTime(2026, 1, 1),
   arModelUrl: 'https://example.com/model.glb',
+  usdzUrl: usdzUrl,
   arStatus: 'approved',
   widthCm: widthCm,
   heightCm: heightCm,
@@ -91,5 +93,27 @@ void main() {
     final viewer = tester.widget<ModelViewer>(find.byType(ModelViewer));
     expect(viewer.scale, isNull);
     expect(viewer.arScale, isNull);
+  });
+
+  testWidgets('passes usdz through to iosSrc for iOS AR Quick Look', (tester) async {
+    await _pump(tester, _product(usdzUrl: 'https://example.com/model.usdz'));
+
+    final viewer = tester.widget<ModelViewer>(find.byType(ModelViewer));
+    // glb drives src (Android/WebGL); usdz drives iosSrc (Quick Look).
+    expect(viewer.src, 'https://example.com/model.glb');
+    expect(viewer.iosSrc, 'https://example.com/model.usdz');
+    // All three launchers offered so model-viewer can pick per platform.
+    expect(viewer.arModes, const ['webxr', 'scene-viewer', 'quick-look']);
+  });
+
+  testWidgets('iosSrc is null when no usdz exists (glb-only, no crash)', (tester) async {
+    await _pump(tester, _product());
+
+    final viewer = tester.widget<ModelViewer>(find.byType(ModelViewer));
+    expect(viewer.src, 'https://example.com/model.glb');
+    // Null usdz → iosSrc null; model_viewer_plus omits the ios-src attribute and
+    // iOS falls back to the in-page WebGL view. AR stays enabled.
+    expect(viewer.iosSrc, isNull);
+    expect(viewer.ar, isTrue);
   });
 }

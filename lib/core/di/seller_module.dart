@@ -3,6 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../seller/features/products/data/add_product_repository.dart';
 import '../../seller/features/products/data/ar_scan_repository.dart';
+import '../../seller/features/products/data/ar_token_repository.dart';
 import '../../seller/features/products/data/attributes_repository.dart';
 import '../../seller/features/products/data/exchange_rate_service.dart';
 import '../../shared/repositories/seller_analytics_repository.dart';
@@ -76,6 +77,11 @@ void registerSellerModule(GetIt sl) {
       api: sl<WoodyApiClient>(),
       uploads: sl<R2UploadClient>(),
     ),
+  );
+  // AR tokenisation: balance read + package purchase (Payme) for the metered
+  // generation flow.
+  sl.registerLazySingleton<ArTokenRepository>(
+    () => WoodyArTokenRepository(api: sl<WoodyApiClient>()),
   );
   sl.registerLazySingleton<AttributesRepository>(
     () => WoodyAttributesRepository(api: sl<WoodyApiClient>()),
