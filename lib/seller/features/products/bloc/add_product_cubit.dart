@@ -76,6 +76,7 @@ class AddProductState extends Equatable {
     this.images = const [],
     this.isAiBusy = false,
     this.error,
+    this.duplicateMatch,
   });
 
   final AddProductStatus status;
@@ -120,6 +121,12 @@ class AddProductState extends Equatable {
   /// button spinner + disables the form so applied fields don't fight a tap.
   final bool isAiBusy;
   final String? error;
+
+  /// Set after a save was rejected with 409 DUPLICATE_DETECTED — the seller's
+  /// existing product the new one resembles. The form shows a soft warning
+  /// sheet; a "save anyway" re-submits with force_create. Cleared on the next
+  /// submit. Non-null only transiently alongside [AddProductStatus.failure].
+  final DuplicateProductMatch? duplicateMatch;
 
   bool get isEditing => editingProductId != null;
 
@@ -216,6 +223,8 @@ class AddProductState extends Equatable {
     bool? isAiBusy,
     String? error,
     bool clearError = false,
+    DuplicateProductMatch? duplicateMatch,
+    bool clearDuplicate = false,
   }) {
     return AddProductState(
       status: status ?? this.status,
@@ -245,6 +254,9 @@ class AddProductState extends Equatable {
       images: images ?? this.images,
       isAiBusy: isAiBusy ?? this.isAiBusy,
       error: clearError ? null : (error ?? this.error),
+      duplicateMatch: clearDuplicate
+          ? null
+          : (duplicateMatch ?? this.duplicateMatch),
     );
   }
 
@@ -278,6 +290,7 @@ class AddProductState extends Equatable {
     images.length,
     isAiBusy,
     error,
+    duplicateMatch,
   ];
 }
 
@@ -645,7 +658,10 @@ class AddProductCubit extends Cubit<AddProductState> {
   /// Saves the form: create mode uploads + POSTs a new product; edit mode
   /// uploads only the newly-picked photos and PATCHes the existing row.
   /// Returns `true` on success so the screen can pop after the snackbar.
-  Future<bool> submit() async {
+  /// Saves the form (create or edit). [forceCreate] re-sends after the seller
+  /// dismissed a duplicate warning with "Baribir qo'shish", telling the backend
+  /// to skip the seller-scoped similarity check.
+  Future<bool> submit({bool forceCreate = false}) async {
     final ctx = state.context;
     if (ctx == null) {
       talker.warning('[add-product-cubit] submit aborted — no shop context');
@@ -678,7 +694,13 @@ class AddProductCubit extends Cubit<AddProductState> {
       'images=${state.images.length} attributes=${state.attributes.length} '
       'currency=${state.priceCurrency.name} priceUzs=${state.priceInUzs}',
     );
-    emit(state.copyWith(status: AddProductStatus.saving, clearError: true));
+    emit(
+      state.copyWith(
+        status: AddProductStatus.saving,
+        clearError: true,
+        clearDuplicate: true,
+      ),
+    );
     try {
       final input = AddProductInput(
         sellerId: ctx.sellerId,
@@ -710,10 +732,17 @@ class AddProductCubit extends Cubit<AddProductState> {
       );
       final editingId = state.editingProductId;
       if (editingId != null) {
-        await _repository.updateProduct(editingId, input);
+        await _repository.updateProduct(
+          editingId,
+          input,
+          forceCreate: forceCreate,
+        );
         unawaited(_analytics?.productUpdated(productId: editingId));
       } else {
-        final result = await _repository.createProduct(input);
+        final result = await _repository.createProduct(
+          input,
+          forceCreate: forceCreate,
+        );
         unawaited(_analytics?.productCreated(productId: result.productId));
       }
       if (!isClosed) {
@@ -722,6 +751,27 @@ class AddProductCubit extends Cubit<AddProductState> {
       talker.info('[add-product-cubit] submit ok sku=${state.sku}');
       return true;
     } catch (e, st) {
+      // 409 DUPLICATE_DETECTED is a soft warning, not a failure: surface the
+      // matched product so the form can offer "save anyway" (force_create).
+      if (e is ApiError) {
+        final match = DuplicateProductMatch.fromApiError(e);
+        if (match != null) {
+          talker.info(
+            '[add-product-cubit] duplicate detected '
+            'match=${match.id} sim=${match.similarity}',
+          );
+          if (!isClosed) {
+            emit(
+              state.copyWith(
+                status: AddProductStatus.failure,
+                clearError: true,
+                duplicateMatch: match,
+              ),
+            );
+          }
+          return false;
+        }
+      }
       talker.handle(
         e,
         st,

@@ -11,12 +11,19 @@ class ApiError implements Exception {
     required this.code,
     this.message,
     this.retryAfterSeconds,
+    this.detail,
   });
 
   final int status;
   final String code;
   final String? message;
   final int? retryAfterSeconds;
+
+  /// The raw `detail` body when FastAPI returns a STRUCTURED error object
+  /// (`{"detail": {"code": ..., ...}}`) rather than a bare string code — e.g.
+  /// the 409 `DUPLICATE_DETECTED` payload carries the matched product here.
+  /// Null for the common string/validation-array shapes.
+  final Map<String, dynamic>? detail;
 
   bool get isUnauthorized => status == 401;
   bool get isForbidden => status == 403;

@@ -181,11 +181,19 @@ class WoodyApiClient {
     final data = response.data;
     String code = 'http_error';
     String? message;
+    Map<String, dynamic>? detailMap;
     if (data is Map<String, dynamic>) {
       final detail = data['detail'];
       if (detail is String) {
         code = detail;
         message = detail;
+      } else if (detail is Map<String, dynamic>) {
+        // Structured error object (e.g. 409 DUPLICATE_DETECTED). Lift the
+        // code/message for the usual call sites and keep the whole object so
+        // a caller can unpack the rest (the matched product).
+        detailMap = detail;
+        if (detail['code'] is String) code = detail['code'] as String;
+        message = detail['message'] as String?;
       } else if (detail is List && detail.isNotEmpty) {
         code = 'validation_error';
         message = detail.toString();
@@ -206,6 +214,7 @@ class WoodyApiClient {
       retryAfterSeconds: retryAfterHeader == null
           ? null
           : int.tryParse(retryAfterHeader),
+      detail: detailMap,
     );
   }
 

@@ -13,6 +13,7 @@ import '../controller/product_form_controllers.dart';
 import '../data/add_product_repository.dart';
 import '../data/attributes_repository.dart';
 import '../data/exchange_rate_service.dart';
+import '../widgets/duplicate_warning_sheet.dart';
 import '../widgets/product_form/ai_loading_overlay.dart';
 import '../widgets/product_form/product_form_app_bar.dart';
 import '../widgets/product_form/product_form_body.dart';
@@ -118,45 +119,58 @@ class _ProductFormViewState extends State<_ProductFormView> {
     final cubit = context.read<AddProductCubit>();
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
-    final ok = await cubit.submit();
+
+    var ok = await cubit.submit();
     if (!mounted) return;
+
+    // Soft duplicate warning (409): the seller's catalogue already has a very
+    // similar product. Let them decide; "Baribir qo'shish" re-submits forcing.
+    final dup = cubit.state.duplicateMatch;
+    if (!ok && dup != null) {
+      final proceed = await showDuplicateWarningSheet(
+        context: this.context,
+        match: dup,
+      );
+      if (!mounted) return;
+      if (!proceed) return; // cancelled — stay on the form, no snackbar
+      ok = await cubit.submit(forceCreate: true);
+      if (!mounted) return;
+    }
+
     if (ok) {
-      messenger.showSnackBar(
-        SnackBar(
-          backgroundColor: const Color(0xFF1D1D1D),
-          behavior: SnackBarBehavior.floating,
-          content: Text(
-            widget.isEditing
-                ? 'Mahsulot yangilandi va qayta tekshiruvga yuborildi'
-                : "Mahsulot e'lon qilindi",
-            style: const TextStyle(
-              fontFamily: AppFonts.seller,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
-          ),
-        ),
+      _showSnack(
+        messenger,
+        widget.isEditing
+            ? 'Mahsulot yangilandi va qayta tekshiruvga yuborildi'
+            : "Mahsulot e'lon qilindi",
+        const Color(0xFF1D1D1D),
       );
       navigator.maybePop(true);
     } else {
       final err = cubit.state.error;
-      if (err != null) {
-        messenger.showSnackBar(
-          SnackBar(
-            backgroundColor: AppColors.danger,
-            behavior: SnackBarBehavior.floating,
-            content: Text(
-              err,
-              style: const TextStyle(
-                fontFamily: AppFonts.seller,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        );
-      }
+      if (err != null) _showSnack(messenger, err, AppColors.danger);
     }
+  }
+
+  void _showSnack(
+    ScaffoldMessengerState messenger,
+    String message,
+    Color background,
+  ) {
+    messenger.showSnackBar(
+      SnackBar(
+        backgroundColor: background,
+        behavior: SnackBarBehavior.floating,
+        content: Text(
+          message,
+          style: const TextStyle(
+            fontFamily: AppFonts.seller,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -189,8 +203,7 @@ class _ProductFormViewState extends State<_ProductFormView> {
               // background. A thin progress line above the body signals the
               // load; the save CTA stays disabled via `canSubmit` until ready.
               body: switch (state.status) {
-                AddProductStatus.walletSuspended =>
-                  const WalletSuspendedView(),
+                AddProductStatus.walletSuspended => const WalletSuspendedView(),
                 AddProductStatus.tariffBlocked => TariffBlockedView(
                   snapshot: context.read<AddProductCubit>().tariffSnapshot,
                 ),

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:woody_app/core/network/api_error.dart';
 import 'package:woody_app/seller/features/products/bloc/add_product_cubit.dart';
 import 'package:woody_app/seller/features/products/data/add_product_repository.dart';
 import 'package:woody_app/seller/features/products/data/attributes_repository.dart';
@@ -67,6 +68,7 @@ void main() {
   late _MockAddProductRepo repo;
 
   setUpAll(() {
+    registerFallbackValue(false);
     registerFallbackValue(<FormImage>[]);
     registerFallbackValue(
       const AddProductInput(
@@ -145,9 +147,9 @@ void main() {
     'loadContext emits walletSuspended for a debt-frozen shop — even when '
     'the quota would allow more products',
     build: () {
-      when(repo.loadShopContext).thenAnswer(
-        (_) async => _context(canAddMore: true, suspended: true),
-      );
+      when(
+        repo.loadShopContext,
+      ).thenAnswer((_) async => _context(canAddMore: true, suspended: true));
       return _cubit(repo);
     },
     act: (cubit) => cubit.loadContext(),
@@ -953,6 +955,97 @@ void main() {
       expect(cubit.state.status, AddProductStatus.success);
       verify(() => repo.updateProduct('prod-1', any())).called(1);
       verifyNever(() => repo.createProduct(any()));
+    });
+  });
+
+  group('duplicate detection (409 DUPLICATE_DETECTED)', () {
+    ApiError dupError() => ApiError(
+      status: 409,
+      code: 'DUPLICATE_DETECTED',
+      message: "Sizda shunga o'xshash mahsulot allaqachon bor.",
+      detail: const {
+        'code': 'DUPLICATE_DETECTED',
+        'message': "Sizda shunga o'xshash mahsulot allaqachon bor.",
+        'product': {
+          'id': 'old-1',
+          'name': 'Krovat (oldingi)',
+          'image': 'https://r2/old.webp',
+          'similarity': 0.95,
+        },
+      },
+    );
+
+    AddProductCubit readyToSubmit() {
+      final ctx = _context(canAddMore: true);
+      when(() => ctx.sellerId).thenReturn('seller-1');
+      final cubit = _cubit(repo);
+      cubit.emit(
+        AddProductState(
+          status: AddProductStatus.ready,
+          context: ctx,
+          name: 'Krovat',
+          categoryId: 'cat-1',
+          price: 1000,
+          images: [FormImage.local(File('/tmp/a.jpg'))],
+        ),
+      );
+      return cubit;
+    }
+
+    test('surfaces the matched product instead of a generic failure', () async {
+      when(
+        () => repo.createProduct(any(), forceCreate: any(named: 'forceCreate')),
+      ).thenThrow(dupError());
+
+      final cubit = readyToSubmit();
+      final ok = await cubit.submit();
+
+      expect(ok, isFalse);
+      expect(cubit.state.status, AddProductStatus.failure);
+      // No generic error snackbar — the sheet drives the UX instead.
+      expect(cubit.state.error, isNull);
+      final match = cubit.state.duplicateMatch;
+      expect(match, isNotNull);
+      expect(match!.id, 'old-1');
+      expect(match.name, 'Krovat (oldingi)');
+      expect(match.image, 'https://r2/old.webp');
+      expect(match.similarity, 0.95);
+    });
+
+    test('force_create retry bypasses the check and saves', () async {
+      when(
+        () => repo.createProduct(any(), forceCreate: any(named: 'forceCreate')),
+      ).thenAnswer((invocation) async {
+        final force = invocation.namedArguments[#forceCreate] as bool;
+        if (!force) throw dupError();
+        return const AddProductResult(productId: 'p-1', imageUrls: []);
+      });
+
+      final cubit = readyToSubmit();
+      expect(await cubit.submit(), isFalse);
+      expect(cubit.state.duplicateMatch, isNotNull);
+
+      // The seller tapped "Baribir qo'shish".
+      final ok = await cubit.submit(forceCreate: true);
+      expect(ok, isTrue);
+      expect(cubit.state.status, AddProductStatus.success);
+      // The forced retry cleared the stale duplicate match.
+      expect(cubit.state.duplicateMatch, isNull);
+      verify(() => repo.createProduct(any(), forceCreate: true)).called(1);
+    });
+
+    test('a non-409 ApiError is still a plain failure', () async {
+      when(
+        () => repo.createProduct(any(), forceCreate: any(named: 'forceCreate')),
+      ).thenThrow(ApiError(status: 422, code: 'bad', message: 'Xato'));
+
+      final cubit = readyToSubmit();
+      final ok = await cubit.submit();
+
+      expect(ok, isFalse);
+      expect(cubit.state.status, AddProductStatus.failure);
+      expect(cubit.state.duplicateMatch, isNull);
+      expect(cubit.state.error, 'Xato');
     });
   });
 }

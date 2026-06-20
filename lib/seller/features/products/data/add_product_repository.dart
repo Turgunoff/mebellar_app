@@ -5,6 +5,7 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 
 import '../../../../config/remote_config.dart';
 import '../../../../core/auth/auth_repository.dart';
+import '../../../../core/network/api_error.dart';
 import '../../../../core/network/woody_api_client.dart';
 import '../../../../core/storage/r2_upload_client.dart';
 import '../../../../shared/models/category_model.dart';
@@ -134,6 +135,42 @@ class AddProductResult {
   const AddProductResult({required this.productId, required this.imageUrls});
   final String productId;
   final List<String> imageUrls;
+}
+
+/// The seller's own existing product that a save was flagged as a near-duplicate
+/// of (backend cosine-similarity over the text embedding). Parsed from the 409
+/// `DUPLICATE_DETECTED` response so the form can show a soft "you may have
+/// already added this" sheet; the seller can save anyway with `force_create`.
+class DuplicateProductMatch {
+  const DuplicateProductMatch({
+    required this.id,
+    required this.name,
+    required this.similarity,
+    this.image,
+  });
+
+  final String id;
+  final String name;
+  final String? image;
+
+  /// Cosine similarity in 0..1 (1 == identical text).
+  final double similarity;
+
+  /// Pulls the match out of a 409 [ApiError]; returns null for any other error
+  /// so callers can `?? rethrow`-style fall through to generic handling.
+  static DuplicateProductMatch? fromApiError(ApiError error) {
+    if (error.status != 409) return null;
+    final detail = error.detail;
+    if (detail == null || detail['code'] != 'DUPLICATE_DETECTED') return null;
+    final product = detail['product'];
+    if (product is! Map) return null;
+    return DuplicateProductMatch(
+      id: product['id']?.toString() ?? '',
+      name: product['name']?.toString() ?? '',
+      image: product['image'] as String?,
+      similarity: (product['similarity'] as num?)?.toDouble() ?? 0,
+    );
+  }
 }
 
 /// Best-effort form prefill returned by `POST /seller/products/ai-suggest`.
@@ -302,7 +339,10 @@ class AddProductRepository {
 
   /// Uploads images to R2 first (so a network failure aborts before the
   /// product row exists), then creates the product via `POST /seller/products`.
-  Future<AddProductResult> createProduct(AddProductInput input) async {
+  Future<AddProductResult> createProduct(
+    AddProductInput input, {
+    bool forceCreate = false,
+  }) async {
     if (input.images.isEmpty) {
       throw StateError('At least one product image is required');
     }
@@ -311,7 +351,7 @@ class AddProductRepository {
     final body = await _api.post<Map<String, dynamic>>(
       '/seller/products',
       body: {
-        ..._productFields(input, imageUrls),
+        ..._productFields(input, imageUrls, forceCreate: forceCreate),
         if (input.sku.isNotEmpty) 'sku': input.sku,
       },
     );
@@ -326,7 +366,11 @@ class AddProductRepository {
   /// field set to `PATCH /seller/products/{id}`. The backend forces the
   /// product back to `pending_review` on any column write, so an edited
   /// product re-enters moderation — by design, not a bug.
-  Future<void> updateProduct(String productId, AddProductInput input) async {
+  Future<void> updateProduct(
+    String productId,
+    AddProductInput input, {
+    bool forceCreate = false,
+  }) async {
     if (input.images.isEmpty) {
       throw StateError('At least one product image is required');
     }
@@ -335,7 +379,7 @@ class AddProductRepository {
       '/seller/products/$productId',
       // SKU is intentionally absent: it's generated at create time and the
       // backend's update path doesn't write the variant SKU anyway.
-      body: _productFields(input, imageUrls),
+      body: _productFields(input, imageUrls, forceCreate: forceCreate),
     );
   }
 
@@ -344,12 +388,16 @@ class AddProductRepository {
   /// `price` arrives without it, so omitting it deletes a removed discount.
   Map<String, dynamic> _productFields(
     AddProductInput input,
-    List<String> imageUrls,
-  ) {
+    List<String> imageUrls, {
+    bool forceCreate = false,
+  }) {
     final discountPrice = input.discountPercent > 0
         ? (input.price * (100 - input.discountPercent) / 100).roundToDouble()
         : null;
     return {
+      // Set only when the seller chose "save anyway" after a duplicate warning;
+      // tells the backend to skip the seller-scoped similarity check.
+      if (forceCreate) 'force_create': true,
       'category_id': input.categoryId,
       if (input.subcategoryId != null) 'subcategory_id': input.subcategoryId,
       'name': input.name,
