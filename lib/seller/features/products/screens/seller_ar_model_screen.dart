@@ -90,6 +90,10 @@ class _SellerArModelScreenState extends State<SellerArModelScreen> {
               // themed background (no white flash in dark mode). Null → plain
               // background.
               poster: widget.posterUrl,
+              // Start streaming the .glb immediately (not lazily) so the poster
+              // + loading overlay hand off to the live model fast — mirrors the
+              // buyer viewer, avoiding a poster/spinner that lingers.
+              loading: Loading.eager,
               // iOS AR Quick Look source (.usdz). Passed through untouched —
               // model_viewer_plus writes `ios-src` only when non-null, so a
               // null usdz simply omits it and iOS falls back to the in-page

@@ -15,6 +15,7 @@ import '../data/attributes_repository.dart';
 import '../data/ar_scan_components.dart';
 import '../data/ar_token_repository.dart';
 import '../widgets/ar_not_approved_card.dart';
+import '../widgets/ar_scan_onboarding_sheet.dart';
 import '../widgets/ar_token_buy_sheet.dart';
 import 'ar_scan_camera_screen.dart';
 import 'seller_ar_model_screen.dart';
@@ -355,6 +356,11 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
     String productId,
     ArScanComponent component,
   ) async {
+    // Surface the 3-photo "gold rules" (clean background / good lighting / three
+    // distinct angles) before the immersive camera opens — they materially
+    // improve the 3D result. Abort the scan if the seller dismisses it.
+    final proceed = await showArScanOnboardingSheet(context);
+    if (!proceed || !mounted) return;
     // Push on the ROOT navigator so the camera covers the seller shell's
     // bottom navigation bar — a scanner must be a fully immersive surface.
     final submitted = await Navigator.of(context, rootNavigator: true)
