@@ -14,6 +14,7 @@ import '../bloc/seller_products_bloc.dart';
 import '../data/attributes_repository.dart';
 import '../data/ar_scan_components.dart';
 import '../data/ar_token_repository.dart';
+import '../widgets/ar_not_approved_card.dart';
 import '../widgets/ar_token_buy_sheet.dart';
 import 'ar_scan_camera_screen.dart';
 import 'seller_ar_model_screen.dart';
@@ -848,6 +849,14 @@ class _ArScanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // AR generation is gated to moderation-approved products (it costs a token +
+    // a paid Meshy task). A draft/pending/rejected/archived product shows the
+    // locked card with a "get it approved first" message instead of any scan
+    // controls. Backend enforces the same (403 product_not_approved).
+    if (!product.status.isPublished) {
+      return const ArNotApprovedCard();
+    }
+
     final c = SellerColors.of(context);
     final state = _arState(arStatus);
     final fb = _feedback();
