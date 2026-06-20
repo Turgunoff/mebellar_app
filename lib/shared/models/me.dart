@@ -81,6 +81,8 @@ class SellerProfile {
     this.telegramUsername,
     this.shopId,
     this.rejectionReason,
+    this.bonusScreenSeen = false,
+    this.rejectionAlertDismissed = false,
   });
 
   final VerificationStatus verificationStatus;
@@ -91,6 +93,13 @@ class SellerProfile {
   final String? telegramUsername;
   final String? shopId;
   final String? rejectionReason;
+
+  /// Account-lifecycle UI flags resolved server-side (backed by the `sellers`
+  /// row, not local Hive — so they survive reinstall / device change).
+  /// [bonusScreenSeen] gates the one-time approval-bonus celebration;
+  /// [rejectionAlertDismissed] keeps a closed "Ariza rad etildi" banner closed.
+  final bool bonusScreenSeen;
+  final bool rejectionAlertDismissed;
 
   bool get isApproved => verificationStatus.isApproved;
   bool get isPending => verificationStatus.isPending;
@@ -107,6 +116,8 @@ class SellerProfile {
     String? shopId,
     String? rejectionReason,
     bool clearRejectionReason = false,
+    bool? bonusScreenSeen,
+    bool? rejectionAlertDismissed,
   }) {
     return SellerProfile(
       verificationStatus: verificationStatus ?? this.verificationStatus,
@@ -118,6 +129,9 @@ class SellerProfile {
       shopId: shopId ?? this.shopId,
       rejectionReason:
           clearRejectionReason ? null : (rejectionReason ?? this.rejectionReason),
+      bonusScreenSeen: bonusScreenSeen ?? this.bonusScreenSeen,
+      rejectionAlertDismissed:
+          rejectionAlertDismissed ?? this.rejectionAlertDismissed,
     );
   }
 
@@ -132,6 +146,9 @@ class SellerProfile {
       telegramUsername: json['telegram_username'] as String?,
       shopId: json['shop_id'] as String?,
       rejectionReason: json['rejection_reason'] as String?,
+      bonusScreenSeen: json['bonus_screen_seen'] as bool? ?? false,
+      rejectionAlertDismissed:
+          json['rejection_alert_dismissed'] as bool? ?? false,
     );
   }
 }

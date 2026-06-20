@@ -130,6 +130,25 @@ class AuthRepository {
     return Me.fromJson(body);
   }
 
+  /// Persists the account-lifecycle UI flags on the seller row via
+  /// `PATCH /seller/me/alerts`. Both are optional — only the provided flag is
+  /// written server-side. This replaces the old app-local Hive bookkeeping so
+  /// the state (approval-bonus screen seen, rejection banner dismissed) follows
+  /// the account across reinstall / device change instead of replaying. A
+  /// no-op (both null) returns without a network call.
+  Future<void> setSellerAlertFlags({
+    bool? bonusScreenSeen,
+    bool? rejectionAlertDismissed,
+  }) async {
+    final payload = <String, dynamic>{};
+    if (bonusScreenSeen != null) payload['bonus_screen_seen'] = bonusScreenSeen;
+    if (rejectionAlertDismissed != null) {
+      payload['rejection_alert_dismissed'] = rejectionAlertDismissed;
+    }
+    if (payload.isEmpty) return;
+    await _api.patch<Map<String, dynamic>>('/seller/me/alerts', body: payload);
+  }
+
   Future<void> dispose() async {
     // TokenStore + Dio dispose are owned by core_module — nothing local.
   }

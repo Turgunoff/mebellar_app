@@ -9,6 +9,7 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
 import '../core/auth/auth_cubit.dart';
+import '../core/auth/auth_repository.dart';
 import '../core/di/service_locator.dart';
 import '../core/i18n/i18n.dart';
 import '../core/logging/console_nav_observer.dart';
@@ -208,12 +209,18 @@ GoRouter buildSellerRouter() {
       GoRoute(
         path: '/seller/welcome',
         builder: (context, state) {
-          final sellerId = state.extra as String?;
           return SellerWelcomeScreen(
             onContinue: () {
-              if (sellerId != null) {
-                unawaited(sl<AppSettings>().setSellerWelcomeSeen(sellerId));
-              }
+              // Record server-side that the one-time bonus screen was seen, so
+              // it never replays after a reinstall / device change. Best-effort
+              // — a failed write just means it may show once more next launch.
+              unawaited(
+                sl<AuthRepository>()
+                    .setSellerAlertFlags(bonusScreenSeen: true)
+                    .catchError((Object e, StackTrace st) {
+                      talker.handle(e, st, 'seller welcome: mark bonus seen failed');
+                    }),
+              );
               if (context.canPop()) {
                 context.pop();
               } else {
@@ -300,19 +307,29 @@ class _SellerRouterShellState extends State<SellerRouterShell> {
 
   /// First-entry gate for the celebratory welcome screen. A freshly-approved
   /// seller who hasn't seen it is routed to `/seller/welcome` exactly once;
-  /// the per-seller flag flips when they tap "Boshlash". Subsequent entries
-  /// (and every later cold start) fall straight through to the dashboard.
-  void _maybeShowWelcome() {
+  /// the server-side `bonus_screen_seen` flag flips when they tap "Boshlash".
+  /// Because the "seen" state lives on the seller row (not local Hive), it
+  /// survives reinstall / device change — so the celebration never replays.
+  Future<void> _maybeShowWelcome() async {
     if (!mounted) return;
     final auth = sl<AuthCubit>().state;
     if (auth is! AppAuthAuthenticated) return;
-    final settings = sl<AppSettings>();
-    // Reaching the seller shell already implies approval (the boot guard
-    // demotes unapproved sellers to customer); the cached flag is re-checked
-    // so the welcome can never fire for an edge-case unapproved session.
-    if (!settings.sellerApproved) return;
-    if (settings.hasSeenSellerWelcome(auth.userId)) return;
-    GoRouter.of(context).push('/seller/welcome', extra: auth.userId);
+    // Cheap pre-filter: reaching the seller shell already implies approval (the
+    // boot guard demotes unapproved sellers to customer), but skipping the
+    // call for a stale unapproved session costs nothing.
+    if (!sl<AppSettings>().sellerApproved) return;
+    // Decide off the server: only an approved seller who hasn't yet seen the
+    // bonus screen gets it. Any failure just skips — the welcome is purely
+    // celebratory and must never block entry to the dashboard.
+    try {
+      final me = await sl<AuthRepository>().fetchMe();
+      if (!mounted) return;
+      final seller = me.sellerProfile;
+      if (seller == null || !seller.isApproved || seller.bonusScreenSeen) return;
+      GoRouter.of(context).push('/seller/welcome', extra: auth.userId);
+    } catch (e, st) {
+      talker.handle(e, st, 'seller welcome gate /me failed');
+    }
   }
 
   /// Full-screen detail/form/settings pages are pushed on

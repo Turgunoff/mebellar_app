@@ -213,4 +213,37 @@ void main() {
       expect(body.containsKey('email'), isFalse); // unset fields omitted
     },
   );
+
+  test(
+    'setSellerAlertFlags PATCHes /seller/me/alerts with only the given flag',
+    () async {
+      await store.write(
+        TokenPair(accessToken: _jwt({'sub': 'user-1'}), refreshToken: 'R'),
+      );
+      final h = makeRepo(
+        (_) => (200, '{"seller_id":"user-1","verification_status":"rejected"}'),
+      );
+
+      await h.repo.setSellerAlertFlags(rejectionAlertDismissed: true);
+
+      final patch = h.adapter.calls.single;
+      expect(patch.method, 'PATCH');
+      expect(patch.uri.path, endsWith('/seller/me/alerts'));
+      final body = patch.data as Map<String, dynamic>;
+      expect(body['rejection_alert_dismissed'], true);
+      // Only the supplied flag rides along — the other is left untouched.
+      expect(body.containsKey('bonus_screen_seen'), isFalse);
+    },
+  );
+
+  test('setSellerAlertFlags is a no-op (no request) when nothing changes', () async {
+    await store.write(
+      TokenPair(accessToken: _jwt({'sub': 'user-1'}), refreshToken: 'R'),
+    );
+    final h = makeRepo((_) => (200, '{}'));
+
+    await h.repo.setSellerAlertFlags();
+
+    expect(h.adapter.calls, isEmpty);
+  });
 }

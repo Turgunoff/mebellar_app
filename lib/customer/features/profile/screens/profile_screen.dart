@@ -95,7 +95,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     await context.read<ProfileCubit>().fetch();
   }
 
-  List<MenuEntry> _buildMenuItems(BuildContext context, int unreadChats) => [
+  List<MenuEntry> _buildMenuItems(
+    BuildContext context,
+    int unreadChats,
+    ProfileState profile,
+  ) => [
+    // Always-available fallback to the resubmit flow. Even after the rejection
+    // banner is dismissed, a rejected seller reaches their application from
+    // here — so closing the banner never locks them out of fixing it.
+    if (profile.isSellerRejected)
+      MenuEntry(
+        icon: Iconsax.refresh,
+        label: 'Ariza holati',
+        onTap: _openSellerOnboarding,
+      ),
     MenuEntry(
       icon: Iconsax.message,
       label: tr('chat.title'),
@@ -243,7 +256,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             else
               BecomeSellerBanner(onTap: _openSellerOnboarding),
             const SizedBox(height: 24),
-            MenuListCard(items: _buildMenuItems(context, unreadChats)),
+            MenuListCard(
+              items: _buildMenuItems(context, unreadChats, profileState),
+            ),
             const SizedBox(height: 28),
             DangerZone(
               onSignOut: () => showSignOutDialog(context),

@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../../../core/auth/app_mode_cubit.dart';
 import '../../../../core/auth/auth_repository.dart';
@@ -47,7 +46,9 @@ class ProfileState extends Equatable {
 
   /// True when the user closed the rejected banner with its X — the profile
   /// then shows the regular "become a seller" CTA instead, so re-applying
-  /// stays one tap away. Persisted per user in the Hive cache box.
+  /// stays one tap away. Sourced from the server (`/me.seller_profile
+  /// .rejection_alert_dismissed`) so the dismissal survives reinstall / a new
+  /// device; the moderation flow re-arms it on every fresh rejection.
   final bool rejectedBannerDismissed;
 
   final bool isLoading;
@@ -116,40 +117,27 @@ class ProfileState extends Equatable {
 /// name, avatar and seller status. A `/me` failure is non-fatal — the seeded
 /// identity stays on screen rather than blanking the card.
 class ProfileCubit extends Cubit<ProfileState> {
-  ProfileCubit(this._auth, {Box? cacheBox})
-    : _cacheBox = cacheBox,
-      super(const ProfileState(isLoading: true));
+  ProfileCubit(this._auth) : super(const ProfileState(isLoading: true));
 
   final AuthRepository _auth;
 
-  /// Hive cache box holding the per-user rejected-banner dismissal flag.
-  /// Wiped on logout with the rest of the cache box, so it never bleeds
-  /// across accounts. Null in tests → the flag lives only in state.
-  final Box? _cacheBox;
-
-  String? get _dismissKey {
-    final id = _auth.currentUserId;
-    return id == null ? null : 'seller_rejected_dismissed_$id';
-  }
-
-  /// Hides the rejected banner for this user until the verification status
-  /// changes again — the profile falls back to the "become a seller" CTA so
-  /// re-applying later stays possible.
+  /// Hides the rejected banner for this user until a fresh rejection re-arms
+  /// it server-side. Optimistic: flips the local flag for an instant response,
+  /// then persists `rejection_alert_dismissed=true` on the seller row so the
+  /// dismissal follows the account (reinstall / new device). A failed write is
+  /// swallowed — the banner simply reappears on the next `/me` refresh, which
+  /// is the safe degradation. The profile falls back to the "become a seller"
+  /// CTA so re-applying later stays possible.
   void dismissRejectedBanner() {
-    final key = _dismissKey;
-    if (key != null) unawaited(_cacheBox?.put(key, true));
     emit(state.copyWith(rejectedBannerDismissed: true));
-  }
-
-  bool _readDismissed() {
-    final key = _dismissKey;
-    if (key == null) return false;
-    return (_cacheBox?.get(key) as bool?) ?? false;
-  }
-
-  void _clearDismissed() {
-    final key = _dismissKey;
-    if (key != null) unawaited(_cacheBox?.delete(key));
+    unawaited(
+      _auth.setSellerAlertFlags(rejectionAlertDismissed: true).catchError((
+        Object e,
+        StackTrace st,
+      ) {
+        talker.handle(e, st, 'ProfileCubit.dismissRejectedBanner persist failed');
+      }),
+    );
   }
 
   Future<void> fetch() async {
@@ -220,11 +208,11 @@ class ProfileCubit extends Cubit<ProfileState> {
   ProfileState _fromMe(Me me) {
     final seller = me.sellerProfile;
     final status = seller?.verificationStatus ?? VerificationStatus.none;
-    // The dismissal only applies while the rejection is current: as soon as
-    // the status moves on (resubmitted → pending, approved, …) the flag is
-    // dropped, so a future fresh rejection surfaces its banner again.
-    final dismissed = status.isRejected && _readDismissed();
-    if (!status.isRejected) _clearDismissed();
+    // The dismissal only applies while the rejection is current. The backend
+    // re-arms `rejection_alert_dismissed` (sets it false) on every fresh
+    // rejection, so a new decision always surfaces the banner again even if an
+    // earlier one was dismissed.
+    final dismissed = status.isRejected && (seller?.rejectionAlertDismissed ?? false);
     return ProfileState(
       id: me.id,
       name: me.fullName,

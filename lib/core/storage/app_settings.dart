@@ -25,7 +25,6 @@ class AppSettings {
   static const String _kThemeMode = 'theme_mode';
   static const String _kLocaleCode = 'locale_code';
   static const String _kOnboardingSeen = 'onboarding_seen';
-  static const String _kSellerWelcomePrefix = 'has_seen_seller_welcome_';
   static const String _kProductViewMode = 'product_view_mode';
 
   // --- active app mode -----------------------------------------------------
@@ -104,15 +103,9 @@ class AppSettings {
       _box.put(_kOnboardingSeen, value);
 
   // --- one-time seller welcome screen --------------------------------------
-  /// Whether the approved seller [sellerId] has already seen the celebratory
-  /// welcome screen. Keyed per seller so the flag survives logout (re-login
-  /// must not replay it) and never bleeds across accounts on a shared device —
-  /// which is also why it's intentionally NOT cleared in
-  /// [clearUserScopedKeys].
-  bool hasSeenSellerWelcome(String sellerId) =>
-      _box.get('$_kSellerWelcomePrefix$sellerId', defaultValue: false) as bool;
-  Future<void> setSellerWelcomeSeen(String sellerId) =>
-      _box.put('$_kSellerWelcomePrefix$sellerId', true);
+  // The "approval-bonus screen seen" flag moved to the server (the seller row's
+  // `bonus_screen_seen`, read via /me) so it survives reinstall / device change
+  // instead of replaying. See AuthRepository.setSellerAlertFlags.
 
   /// Clears the per-user keys on sign-out (active mode + cached approval) so
   /// the next account on this device cannot inherit them. Device-level

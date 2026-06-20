@@ -11,7 +11,17 @@ class _MockAuthRepository extends Mock implements AuthRepository {}
 void main() {
   late _MockAuthRepository auth;
 
-  setUp(() => auth = _MockAuthRepository());
+  setUp(() {
+    auth = _MockAuthRepository();
+    // The dismissal now persists server-side (fire-and-forget); stub it so the
+    // cubit's optimistic emit isn't tripped up by an un-stubbed mock call.
+    when(
+      () => auth.setSellerAlertFlags(
+        bonusScreenSeen: any(named: 'bonusScreenSeen'),
+        rejectionAlertDismissed: any(named: 'rejectionAlertDismissed'),
+      ),
+    ).thenAnswer((_) async {});
+  });
 
   blocTest<ProfileCubit, ProfileState>(
     'applySignup emits the freshly-registered profile values',
@@ -114,7 +124,7 @@ void main() {
   );
 
   blocTest<ProfileCubit, ProfileState>(
-    'dismissRejectedBanner flips the flag so the CTA banner takes over',
+    'dismissRejectedBanner flips the flag and persists it server-side',
     build: () {
       when(() => auth.currentUserId).thenReturn('u1');
       return ProfileCubit(auth);
@@ -126,6 +136,42 @@ void main() {
         'rejectedBannerDismissed',
         true,
       ),
+    ],
+    verify: (_) {
+      verify(
+        () => auth.setSellerAlertFlags(rejectionAlertDismissed: true),
+      ).called(1);
+    },
+  );
+
+  blocTest<ProfileCubit, ProfileState>(
+    'fetch keeps a previously-dismissed rejection banner closed off /me state',
+    build: () {
+      when(() => auth.currentUserId).thenReturn('u1');
+      when(() => auth.currentUserPhone).thenReturn('+998901112233');
+      when(() => auth.fetchMe()).thenAnswer(
+        (_) async => const Me(
+          id: 'u1',
+          phone: '+998901112233',
+          sellerProfile: SellerProfile(
+            verificationStatus: VerificationStatus.rejected,
+            rejectionReason: 'notogri',
+            rejectionAlertDismissed: true,
+          ),
+        ),
+      );
+      return ProfileCubit(auth);
+    },
+    act: (cubit) => cubit.fetch(),
+    skip: 1,
+    expect: () => [
+      isA<ProfileState>()
+          .having((s) => s.isSellerRejected, 'isSellerRejected', true)
+          .having(
+            (s) => s.rejectedBannerDismissed,
+            'rejectedBannerDismissed',
+            true,
+          ),
     ],
   );
 

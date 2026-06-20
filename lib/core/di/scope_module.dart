@@ -91,10 +91,7 @@ void registerCustomerScope(GetIt sl) {
     dispose: (c) => c.close(),
   );
   sl.registerLazySingleton<ProfileCubit>(
-    () => ProfileCubit(
-      sl<AuthRepository>(),
-      cacheBox: sl<Box>(instanceName: HiveBoxes.cache),
-    ),
+    () => ProfileCubit(sl<AuthRepository>()),
     dispose: (c) => c.close(),
   );
   // Saved-cards list (profile → "My cards", and the checkout card picker).
