@@ -193,9 +193,9 @@ class _DocumentUploadCard extends StatelessWidget {
                     if (hasFile)
                       Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.check_circle,
-                            color: Colors.green,
+                            color: pt.success,
                             size: 14,
                           ),
                           const SizedBox(width: 4),
@@ -204,7 +204,7 @@ class _DocumentUploadCard extends StatelessWidget {
                               tr('onboarding.doc_picked_label'),
                               style: PremiumTokens.body(
                                 size: 12,
-                                color: Colors.green,
+                                color: pt.success,
                                 weight: FontWeight.w600,
                               ),
                               maxLines: 1,

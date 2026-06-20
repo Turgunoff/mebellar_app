@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 
 /// Sticky bottom CTA for the product form ("Saqlash va e'lon qilish";
@@ -22,12 +23,14 @@ class SaveBottomBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final primary = Theme.of(context).colorScheme.primary;
+    final c = SellerColors.of(context);
+    final dark = c.brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withValues(alpha: dark ? 0.28 : 0.04),
             blurRadius: 18,
             offset: const Offset(0, -6),
           ),

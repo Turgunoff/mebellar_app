@@ -119,7 +119,7 @@ class _ArTokenBuySheetState extends State<_ArTokenBuySheet> {
               const SizedBox(height: 16),
               Row(
                 children: [
-                  const Icon(Icons.bolt, color: AppColors.terracotta, size: 22),
+                  Icon(Icons.bolt_rounded, color: c.gold, size: 22),
                   const SizedBox(width: 8),
                   Text(
                     'AR Token sotib olish',
@@ -214,14 +214,13 @@ class _ArTokenBuySheetState extends State<_ArTokenBuySheet> {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
-                  onPressed: (_packageCode != null && _cardId != null && !_buying)
+                  onPressed:
+                      (_packageCode != null && _cardId != null && !_buying)
                       ? _buy
                       : null,
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.terracotta,
-                    disabledBackgroundColor: AppColors.terracotta.withValues(
-                      alpha: 0.4,
-                    ),
+                    backgroundColor: c.primary,
+                    disabledBackgroundColor: c.primary.withValues(alpha: 0.4),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -278,9 +277,7 @@ class _PackageTile extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
-        color: selected
-            ? AppColors.terracotta.withValues(alpha: 0.08)
-            : c.fillFaint,
+        color: selected ? c.primary.withValues(alpha: 0.08) : c.fillFaint,
         borderRadius: BorderRadius.circular(14),
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
@@ -290,7 +287,7 @@ class _PackageTile extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: selected ? AppColors.terracotta : c.divider,
+                color: selected ? c.primary : c.divider,
                 width: selected ? 1.6 : 1,
               ),
             ),
@@ -300,7 +297,7 @@ class _PackageTile extends StatelessWidget {
                   selected
                       ? Icons.radio_button_checked
                       : Icons.radio_button_off,
-                  color: selected ? AppColors.terracotta : c.greyFaint,
+                  color: selected ? c.primary : c.greyFaint,
                   size: 22,
                 ),
                 const SizedBox(width: 12),
@@ -360,7 +357,7 @@ class _CardTile extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: selected ? AppColors.terracotta : c.divider,
+                color: selected ? c.primary : c.divider,
                 width: selected ? 1.6 : 1,
               ),
             ),
@@ -380,11 +377,7 @@ class _CardTile extends StatelessWidget {
                   ),
                 ),
                 if (selected)
-                  const Icon(
-                    Icons.check_circle,
-                    color: AppColors.terracotta,
-                    size: 20,
-                  ),
+                  Icon(Icons.check_circle, color: c.primary, size: 20),
               ],
             ),
           ),

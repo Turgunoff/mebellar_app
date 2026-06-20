@@ -124,6 +124,7 @@ class _RevenueLineChartState extends State<RevenueLineChart> {
                       lineColor: colors.primary,
                       axisTextColor: colors.greyFaint,
                       dotRingColor: colors.surface,
+                      guideColor: colors.greyMid,
                     ),
                   ),
                 ),
@@ -273,6 +274,7 @@ class _RevenueChartPainter extends CustomPainter {
     required this.lineColor,
     required this.axisTextColor,
     required this.dotRingColor,
+    required this.guideColor,
   });
 
   final List<num> values;
@@ -296,10 +298,13 @@ class _RevenueChartPainter extends CustomPainter {
   /// dot reads as a punched-out hole on both light and dark cards.
   final Color dotRingColor;
 
+  /// Dashed selection-guide colour — `SellerColors.greyMid`, flips with the
+  /// theme so the guide stays visible on both light and dark cards.
+  final Color guideColor;
+
   // Gradient fill under the curve stays the fixed indigo wash on both modes.
   static const _fillTop = Color(0x333949AB); // indigo @ 20%
   static const _fillBottom = Color(0x003949AB);
-  static const _guide = Color(0xFFBDBDBD);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -374,7 +379,7 @@ class _RevenueChartPainter extends CustomPainter {
         start: Offset(p.dx, padTop),
         end: Offset(p.dx, padTop + h),
         paint: Paint()
-          ..color = _guide
+          ..color = guideColor
           ..strokeWidth = 1,
       );
       // Outer halo + inner dot.
@@ -505,7 +510,8 @@ class _RevenueChartPainter extends CustomPainter {
         old.granularity != granularity ||
         old.lineColor != lineColor ||
         old.axisTextColor != axisTextColor ||
-        old.dotRingColor != dotRingColor;
+        old.dotRingColor != dotRingColor ||
+        old.guideColor != guideColor;
   }
 }
 

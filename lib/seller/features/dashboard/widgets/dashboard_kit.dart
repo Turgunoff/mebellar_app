@@ -21,19 +21,13 @@ class DashKit {
   static const Color indigoTint = AppColors.sellerPrimaryTint; // #E8EAF6
   static const Color indigoBright = AppColors.sellerPrimaryBright; // #4554C4
 
-  static const Color positive = AppColors.sellerPositive;
-  static const Color positiveBg = AppColors.sellerPositiveBg;
-  static const Color negative = AppColors.sellerNegative;
-  static const Color negativeBg = AppColors.sellerNegativeBg;
+  // Gold reads on both backgrounds, so the achievement accent stays fixed.
   static const Color gold = AppColors.sellerGold;
   static const Color goldBright = AppColors.sellerGoldBright;
-  static const Color goldBg = AppColors.sellerGoldBg;
 
-  // Leaderboard medals.
-  static const Color silver = AppColors.sellerSilver;
-  static const Color silverBg = AppColors.sellerSilverBg;
-  static const Color bronze = AppColors.sellerBronze;
-  static const Color bronzeBg = AppColors.sellerBronzeBg;
+  // NOTE: status fills (positive / negative / gold / medal *Bg*) are NOT here —
+  // they flip with the theme, so read them off `SellerColors.of(context)`
+  // (`c.positiveBg`, `c.goldBg`, `c.silverBg`, …) inside `build`.
 
   /// Soft elevation shared by every card on the dashboard. A touch stronger in
   /// dark mode so cards still separate from the near-black background.
@@ -183,19 +177,20 @@ class DashTrendChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final delta = deltaPercent;
     if (delta == null) {
       return _shell(
-        bg: const Color(0x14757575),
-        fg: SellerColors.of(context).grey,
+        bg: c.grey.withValues(alpha: 0.10),
+        fg: c.grey,
         icon: Icons.remove_rounded,
         label: '—',
       );
     }
     final up = delta >= 0;
     final good = lowerIsBetter ? !up : up;
-    final fg = good ? DashKit.positive : DashKit.negative;
-    final bg = good ? DashKit.positiveBg : DashKit.negativeBg;
+    final fg = good ? c.positive : c.negative;
+    final bg = good ? c.positiveBg : c.negativeBg;
     return _shell(
       bg: bg,
       fg: fg,

@@ -294,7 +294,9 @@ class _ArScanCameraScreenState extends State<ArScanCameraScreen>
             final c = _controller;
             if (c == null || !c.value.isInitialized) {
               return const Center(
-                child: CircularProgressIndicator(color: AppColors.terracotta),
+                child: CircularProgressIndicator(
+                  color: AppColors.sellerPrimaryBright,
+                ),
               );
             }
             final inReview =
@@ -412,7 +414,7 @@ class _ProgressDots extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: i < done
-                    ? AppColors.terracotta
+                    ? AppColors.sellerPrimaryBright
                     : Colors.white.withValues(alpha: 0.4),
               ),
             ),
@@ -452,7 +454,7 @@ class _ShutterButton extends StatelessWidget {
                       height: 26,
                       child: CircularProgressIndicator(
                         strokeWidth: 3,
-                        color: AppColors.terracotta,
+                        color: AppColors.sellerPrimaryBright,
                       ),
                     )
                   : Container(
@@ -516,7 +518,7 @@ class _ReviewControls extends StatelessWidget {
                 child: FilledButton(
                   onPressed: onNext,
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.terracotta,
+                    backgroundColor: AppColors.sellerPrimaryBright,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(18),
@@ -599,7 +601,7 @@ class _SubmitErrorOverlay extends StatelessWidget {
               icon: const Icon(Icons.refresh, size: 18),
               label: const Text('Qayta urinish'),
               style: FilledButton.styleFrom(
-                backgroundColor: AppColors.terracotta,
+                backgroundColor: AppColors.sellerPrimaryBright,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
@@ -686,7 +688,7 @@ class _GlassButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: active
-          ? AppColors.terracotta
+          ? AppColors.sellerPrimaryBright
           : Colors.black.withValues(alpha: 0.4),
       shape: const CircleBorder(),
       child: InkWell(
@@ -735,7 +737,7 @@ class _GeneratingOverlay extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const CircularProgressIndicator(color: AppColors.terracotta),
+          const CircularProgressIndicator(color: AppColors.sellerPrimaryBright),
           const SizedBox(height: 20),
           const Text(
             '3D model yaratilmoqda. Tasdiqdan so‘ng ilovada ko‘rinadi.',

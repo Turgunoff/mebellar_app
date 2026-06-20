@@ -3,6 +3,7 @@ import 'app_fonts.dart';
 
 import 'app_colors.dart';
 import 'app_theme.dart' show appSystemOverlay;
+import 'app_theme_extension.dart';
 import 'app_typography.dart';
 
 /// Seller-mode theme.
@@ -77,8 +78,12 @@ ThemeData _build(Brightness brightness) {
     colorScheme: scheme,
     // Seller-mode semantic palette — every seller widget reads its colours
     // from `SellerColors.of(context)`, which resolves this per brightness.
+    // `AppCustomColors` ham ro'yxatdan o'tadi: ba'zi seller-mode kartochkalar
+    // (masalan AR feedback note) `warningContainer` kabi semantik ranglarni
+    // shu kengaytmadan o'qiydi — aks holda dark mode'da `null` bo'lib qoladi.
     extensions: <ThemeExtension<dynamic>>[
       isDark ? SellerColors.dark : SellerColors.light,
+      isDark ? AppCustomColors.dark : AppCustomColors.light,
     ],
     scaffoldBackgroundColor: isDark
         ? AppColors.darkBackground

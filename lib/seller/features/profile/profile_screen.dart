@@ -27,20 +27,10 @@ import '../tariff/screens/tariff_screen.dart';
 import '../wallet/screens/wallet_screen.dart';
 import 'cubit/seller_profile_cubit.dart';
 
-// Fixed (brightness-independent) local tokens — the verification-status
-// intent tints and the tariff gold. Adaptive ink/grey/surface/divider/avatar
-// colours are read from `SellerColors.of(context)` per build so the screen
-// flips with the seller theme. Plus Jakarta Sans is applied to every `Text`
-// explicitly via `AppFonts.seller`.
-const _verifiedBg = Color(0xFFDCF1E5);
-const _verifiedFg = Color(0xFF1F6B49);
-const _pendingBg = Color(0xFFFFF1D6);
-const _pendingFg = Color(0xFF8A5A00);
-const _rejectedBg = Color(0xFFFCE4E4);
-const _rejectedFg = Color(0xFFB42318);
-const _neutralBadgeBg = Color(0xFFEFEFEF);
-const _neutralBadgeFg = Color(0xFF6B6B6B);
-const _gold = Color(0xFFD4A017);
+// All surface / ink / grey / divider / status-intent / gold colours are read
+// from `SellerColors.of(context)` per build so the screen flips with the
+// seller theme. Plus Jakarta Sans is applied to every `Text` explicitly via
+// `AppFonts.seller`.
 
 class SellerProfileScreen extends StatelessWidget {
   const SellerProfileScreen({super.key});
@@ -133,7 +123,7 @@ class _SellerProfileView extends StatelessWidget {
                             if (RemoteConfig.instance.tariffEnabled)
                               _SettingsItem(
                                 icon: Iconsax.crown_1,
-                                iconColor: _gold,
+                                iconColor: SellerColors.of(context).gold,
                                 title: 'Tarif',
                                 subtitle: _planSubtitle(state),
                                 onTap: () =>
@@ -568,16 +558,17 @@ class _PlanChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: AppColors.sellerGoldBg,
+        color: c.goldBg,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Iconsax.crown_1, size: 13, color: _gold),
+          Icon(Iconsax.crown_1, size: 13, color: c.gold),
           const SizedBox(width: 5),
           Text(
             '${plan.label} tarif',
@@ -585,7 +576,7 @@ class _PlanChip extends StatelessWidget {
               fontFamily: AppFonts.seller,
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: _gold,
+              color: c.gold,
               height: 1.0,
             ),
           ),
@@ -666,15 +657,8 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var (label, bg, fg, icon) = _styleFor(status);
-    // The "unverified" (neutral) badge sits on the page background, so its
-    // soft grey must flip with the theme — the coloured intent badges read
-    // fine on both modes and stay fixed.
-    if (status == VerificationStatus.none) {
-      final c = SellerColors.of(context);
-      bg = c.neutralBg;
-      fg = c.neutralFg;
-    }
+    final c = SellerColors.of(context);
+    final (label, bg, fg, icon) = _styleFor(c, status);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
@@ -701,33 +685,37 @@ class _StatusBadge extends StatelessWidget {
     );
   }
 
-  /// Picks the badge palette + label for the four meaningful statuses. The
-  /// `none` bucket also covers an authenticated user whose `sellers` row is
-  /// missing — pre-onboarding state.
-  static (String, Color, Color, IconData) _styleFor(VerificationStatus s) {
+  /// Picks the badge palette + label for the four meaningful statuses. Each
+  /// intent maps to a brightness-aware [SellerColors] pair so the badges flip
+  /// with the theme. The `none` bucket also covers an authenticated user whose
+  /// `sellers` row is missing — pre-onboarding state.
+  static (String, Color, Color, IconData) _styleFor(
+    SellerColors c,
+    VerificationStatus s,
+  ) {
     return switch (s) {
       VerificationStatus.approved => (
         'Tasdiqlangan sotuvchi',
-        _verifiedBg,
-        _verifiedFg,
+        c.positiveBg,
+        c.positive,
         Iconsax.tick_circle,
       ),
       VerificationStatus.pending || VerificationStatus.inReview => (
         'Tasdiqlash kutilmoqda',
-        _pendingBg,
-        _pendingFg,
+        c.warningBg,
+        c.warning,
         Iconsax.clock,
       ),
       VerificationStatus.rejected => (
         'Tasdiqlash rad etilgan',
-        _rejectedBg,
-        _rejectedFg,
+        c.negativeBg,
+        c.negative,
         Iconsax.close_circle,
       ),
       VerificationStatus.none => (
         'Tasdiqlanmagan',
-        _neutralBadgeBg,
-        _neutralBadgeFg,
+        c.neutralBg,
+        c.neutralFg,
         Iconsax.info_circle,
       ),
     };

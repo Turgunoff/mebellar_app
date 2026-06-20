@@ -153,11 +153,12 @@ class TrendChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final delta = deltaPercent;
     if (delta == null) {
       return _ChipShell(
-        background: const Color(0x14757575),
-        foreground: SellerColors.of(context).grey,
+        background: c.grey.withValues(alpha: 0.10),
+        foreground: c.grey,
         icon: Iconsax.minus,
         label: '—',
       );

@@ -128,8 +128,8 @@ class _WalletInfoRow extends StatelessWidget {
     final c = SellerColors.of(context);
     // Fixed accent chips (brand icon on its tint) read on both light and dark
     // surfaces — same recipe as the screen's debt banner for the warning case.
-    final iconColor = item.warning ? c.warning : c.primary;
-    final chipColor = item.warning ? c.warningBg : c.primaryTint;
+    final iconColor = item.warning ? c.warning : c.onPrimarySoft;
+    final chipColor = item.warning ? c.warningBg : c.primarySoft;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

@@ -3,25 +3,14 @@ import 'package:flutter/material.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 
-// Local design tokens for the order-details screen — a thin facade over the
-// central seller palette in [AppColors].
-//
-// Only the FIXED (brightness-independent) tokens live here as `const` aliases:
-// the amber pill and the soft indigo accent read the same on light and dark.
-// The ADAPTIVE colours (ink / greys / dividers / surfaces / image bg) are NOT
-// here — every consuming widget grabs `final c = SellerColors.of(context)` at
-// the top of its `build` and reads `c.ink` / `c.grey` / `c.dividerStrong` /
-// `c.outline` / `c.fillSoft` / `c.imageBg`, so they flip with the theme.
-// Jakarta Sans is applied to every `Text` explicitly so the surface is immune
-// to seller-theme tint regressions.
-
-// Amber pill — soft tint, saturated text. Don't darken [kAmberFg] without
-// re-checking contrast against [kAmberBg].
-const Color kAmberBg = AppColors.sellerWarningBg;
-const Color kAmberFg = AppColors.sellerWarning;
-
-// Soft indigo tint for active step rings & accent backgrounds.
-const Color kAccentSoft = AppColors.sellerPrimaryTint;
+// Local design tokens for the order-details screen — every colour flips with
+// the theme. Each consuming widget grabs `final c = SellerColors.of(context)`
+// at the top of its `build` and reads the adaptive tokens (`c.ink` / `c.grey` /
+// `c.dividerStrong` / `c.outline` / `c.fillSoft` / `c.imageBg`), the status
+// intents (`c.warningBg` / `c.warning`, …) and the brand accent disc
+// (`c.primarySoft` / `c.onPrimarySoft`). Nothing is pinned to a fixed light
+// tint here. Jakarta Sans is applied to every `Text` explicitly so the surface
+// is immune to seller-theme tint regressions.
 
 /// Rounded, soft-shadowed card wrapping an order-details section. The surface
 /// flips with the theme via [SellerColors].

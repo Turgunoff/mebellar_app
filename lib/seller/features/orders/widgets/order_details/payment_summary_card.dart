@@ -92,39 +92,42 @@ class PaymentSummaryCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFF8EE),
+                color: c.warningBg,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFFFD580), width: 1),
+                border: Border.all(
+                  color: c.warning.withValues(alpha: 0.6),
+                  width: 1,
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Iconsax.warning_2,
                         size: 16,
-                        color: Color(0xFF8C5A12),
+                        color: c.warning,
                       ),
                       const SizedBox(width: 8),
-                      const Expanded(
+                      Expanded(
                         child: Text(
                           'Yangi yetkazish narxi taklif qilindi',
                           style: TextStyle(
                             fontFamily: AppFonts.seller,
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF8C5A12),
+                            color: c.warning,
                           ),
                         ),
                       ),
                       Text(
                         '$proposedDelivery UZS',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: AppFonts.seller,
                           fontSize: 13,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF8C5A12),
+                          color: c.warning,
                         ),
                       ),
                     ],
@@ -133,22 +136,22 @@ class PaymentSummaryCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(
                       feeAdjustmentNote!,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: AppFonts.seller,
                         fontSize: 12,
-                        color: Color(0xFF8C5A12),
+                        color: c.warning,
                         height: 1.3,
                       ),
                     ),
                   ],
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'Mijoz tasdiqlashini kutmoqda…',
                     style: TextStyle(
                       fontFamily: AppFonts.seller,
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF8C5A12),
+                      color: c.warning,
                     ),
                   ),
                 ],

@@ -301,7 +301,7 @@ class _TopCustomerTile extends StatelessWidget {
                 fontFamily: AppFonts.seller,
                 fontSize: 13,
                 fontWeight: FontWeight.w800,
-                color: index == 0 ? const Color(0xFFB45309) : c.grey,
+                color: index == 0 ? c.warning : c.grey,
               ),
             ),
           ),

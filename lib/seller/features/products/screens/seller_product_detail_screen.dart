@@ -104,7 +104,10 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
   Future<void> _openBuyTokens() async {
     final balance = _arBalance;
     if (balance == null) return;
-    final bought = await showArTokenBuySheet(context, packages: balance.packages);
+    final bought = await showArTokenBuySheet(
+      context,
+      packages: balance.packages,
+    );
     if (!mounted || !bought) return;
     final result = takeLastArTokenPurchase();
     await _loadArBalance();
@@ -802,7 +805,7 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
 /// Seller-facing AR pipeline card under the price — closes the loop: it badges
 /// the current `ar_status`, surfaces the terminal-failure reason verbatim
 /// (a Meshy `failed` error or a human `rejected` reason), and adapts its CTA
-/// to the state. Seller tokens + terracotta, matching the add-product surface.
+/// to the state. Brand actions are seller indigo; the AR-token currency is gold.
 ///
 /// Per state:
 ///   * none (idle)     → a pulsing CTA inviting the first scan (whole card taps),
@@ -859,13 +862,16 @@ class _ArScanCard extends StatelessWidget {
     }
 
     final c = SellerColors.of(context);
-    final state = _arState(arStatus);
+    final state = _arState(arStatus, c);
     final fb = _feedback();
     final isApproved = arStatus == 'approved';
 
     return Material(
       color: c.surface,
-      borderRadius: BorderRadius.circular(18),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: c.divider),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -925,26 +931,10 @@ class _ArScanCard extends StatelessWidget {
             // Approved → primary "view the model" (always available).
             if (isApproved) ...[
               const SizedBox(height: 14),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: onViewModel,
-                  icon: const Icon(Icons.view_in_ar, size: 20),
-                  label: const Text('3D modelni ko‘rish'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.terracotta,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    textStyle: const TextStyle(
-                      fontFamily: AppFonts.seller,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
-                    ),
-                  ),
-                ),
+              _ArCtaButton(
+                icon: Icons.view_in_ar_rounded,
+                label: '3D modelni ko‘rish',
+                onPressed: onViewModel,
               ),
             ],
 
@@ -953,13 +943,20 @@ class _ArScanCard extends StatelessWidget {
             // (machine/Meshy) stays error-styled.
             if (fb != null) ...[
               const SizedBox(height: 12),
-              _ArFeedbackNote(feedback: fb, isRejection: arStatus == 'rejected'),
+              _ArFeedbackNote(
+                feedback: fb,
+                isRejection: arStatus == 'rejected',
+              ),
             ],
 
             // The gated scan action: cap message · buy-tokens CTA · (re)scan.
             if (state.canScan) ...[
               const SizedBox(height: 12),
-              _scanAction(context, isApproved: isApproved, hasFeedback: fb != null),
+              _scanAction(
+                context,
+                isApproved: isApproved,
+                hasFeedback: fb != null,
+              ),
             ],
           ],
         ),
@@ -1009,25 +1006,13 @@ class _ArScanCard extends StatelessWidget {
     }
 
     if (_outOfTokens && canBuyTokens) {
-      return SizedBox(
-        width: double.infinity,
-        child: FilledButton.icon(
-          onPressed: onBuyTokens,
-          icon: const Icon(Icons.bolt, size: 18),
-          label: const Text('AR Token sotib olish'),
-          style: FilledButton.styleFrom(
-            backgroundColor: AppColors.terracotta,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-            textStyle: const TextStyle(
-              fontFamily: AppFonts.seller,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ),
+      // Token economy → gold, distinct from the indigo brand action above so
+      // "buy energy" reads as its own thing next to "view the model".
+      return _ArCtaButton(
+        icon: Icons.bolt_rounded,
+        label: 'AR Token sotib olish',
+        onPressed: onBuyTokens,
+        tone: _ArCtaTone.gold,
       );
     }
 
@@ -1053,25 +1038,10 @@ class _ArScanCard extends StatelessWidget {
         ),
       );
     }
-    return SizedBox(
-      width: double.infinity,
-      child: FilledButton.icon(
-        onPressed: onScan,
-        icon: Icon(hasFeedback ? Icons.refresh : Icons.view_in_ar, size: 18),
-        label: Text(label),
-        style: FilledButton.styleFrom(
-          backgroundColor: AppColors.terracotta,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-          textStyle: const TextStyle(
-            fontFamily: AppFonts.seller,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
+    return _ArCtaButton(
+      icon: hasFeedback ? Icons.refresh_rounded : Icons.view_in_ar_rounded,
+      label: label,
+      onPressed: onScan,
     );
   }
 
@@ -1093,11 +1063,86 @@ class _ArScanCard extends StatelessWidget {
           reason: product.arRejectionReason?.trim().isNotEmpty == true
               ? product.arRejectionReason!.trim()
               : 'Model rad etildi',
-          accent: AppColors.terracotta,
+          accent: AppColors.sellerNegative,
         );
       default:
         return null;
     }
+  }
+}
+
+/// Visual weight for [_ArCtaButton]: the indigo brand action vs the gold
+/// token-economy action.
+enum _ArCtaTone { indigo, gold }
+
+/// Full-width gradient CTA for the AR card. Indigo = the brand action
+/// (scan / view / retry); gold = the token currency (buy AR tokens). The soft
+/// colour-matched drop shadow gives the card its premium, raised feel.
+class _ArCtaButton extends StatelessWidget {
+  const _ArCtaButton({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+    this.tone = _ArCtaTone.indigo,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+  final _ArCtaTone tone;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    final isGold = tone == _ArCtaTone.gold;
+    // Gold is a light surface → ink text reads; indigo is dark → white text.
+    final fg = isGold ? AppColors.sellerInk : Colors.white;
+    final gradient = isGold
+        ? [c.goldBright, c.gold]
+        : [c.primaryBright, c.primaryDeep];
+    final glow = (isGold ? c.gold : c.primary).withValues(alpha: 0.30);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onPressed,
+        child: Ink(
+          height: 52,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: gradient,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: glow,
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 20, color: fg),
+              const SizedBox(width: 10),
+              Text(
+                label,
+                style: TextStyle(
+                  fontFamily: AppFonts.seller,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                  color: fg,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -1120,18 +1165,19 @@ class _ArMetaRow extends StatelessWidget {
     return Row(
       children: [
         _MetaChip(
-          icon: Icons.refresh,
+          icon: Icons.refresh_rounded,
           label: 'Urinishlar: $generationCount/$maxGenerations',
-          emphasis: atCap,
-          color: c,
+          fg: atCap ? c.warning : c.grey,
+          bg: atCap ? c.warningBg : c.fillFaint,
         ),
         if (arCredits != null) ...[
           const SizedBox(width: 8),
+          // Tokens are the AR currency → always gold, like the dashboard medals.
           _MetaChip(
-            icon: Icons.bolt,
+            icon: Icons.bolt_rounded,
             label: 'Token: $arCredits',
-            emphasis: arCredits! < 1,
-            color: c,
+            fg: c.gold,
+            bg: c.goldBg,
           ),
         ],
       ],
@@ -1143,24 +1189,21 @@ class _MetaChip extends StatelessWidget {
   const _MetaChip({
     required this.icon,
     required this.label,
-    required this.emphasis,
-    required this.color,
+    required this.fg,
+    required this.bg,
   });
 
   final IconData icon;
   final String label;
-  final bool emphasis;
-  final SellerColors color;
+  final Color fg;
+  final Color bg;
 
   @override
   Widget build(BuildContext context) {
-    final fg = emphasis ? AppColors.terracotta : color.grey;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: emphasis
-            ? AppColors.terracotta.withValues(alpha: 0.08)
-            : color.fillFaint,
+        color: bg,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
@@ -1195,11 +1238,13 @@ class _ArFeedbackNote extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
-    final custom = Theme.of(context).extension<AppCustomColors>()!;
+    final custom = context.customColors;
     final bg = isRejection
         ? custom.warningContainer
         : feedback.accent.withValues(alpha: 0.08);
-    final titleColor = isRejection ? custom.onWarningContainer : feedback.accent;
+    final titleColor = isRejection
+        ? custom.onWarningContainer
+        : feedback.accent;
     final bodyColor = isRejection ? custom.onWarningContainer : c.ink;
 
     return Container(
@@ -1209,7 +1254,9 @@ class _ArFeedbackNote extends StatelessWidget {
         color: bg,
         borderRadius: BorderRadius.circular(12),
         border: isRejection
-            ? Border.all(color: custom.onWarningContainer.withValues(alpha: 0.2))
+            ? Border.all(
+                color: custom.onWarningContainer.withValues(alpha: 0.2),
+              )
             : null,
       ),
       child: Column(
@@ -1270,7 +1317,7 @@ class _ArCardState {
     required this.subtitle,
     required this.canScan,
     this.badge,
-    this.color = AppColors.terracotta,
+    this.color = AppColors.sellerPrimary,
   });
   final String subtitle;
   final bool canScan;
@@ -1278,35 +1325,35 @@ class _ArCardState {
   final Color color;
 }
 
-_ArCardState _arState(String arStatus) {
+_ArCardState _arState(String arStatus, SellerColors c) {
   switch (arStatus) {
     case 'processing':
-      return const _ArCardState(
+      return _ArCardState(
         subtitle: 'AI 3D model yasamoqda (2-5 daqiqa)…',
         canScan: false,
         badge: 'Ishlanmoqda',
-        color: Color(0xFF8C5A12), // amber — matches ProductStatusChip pending
+        color: c.warning, // amber — matches ProductStatusChip pending
       );
     case 'pending_review':
-      return const _ArCardState(
+      return _ArCardState(
         subtitle: 'Moderator tekshiruvida',
         canScan: false,
         badge: 'Tekshiruvda',
-        color: Color(0xFF2563EB), // blue, awaiting QC
+        color: c.info, // blue, awaiting QC
       );
     case 'approved':
-      return const _ArCardState(
+      return _ArCardState(
         subtitle: '3D model tayyor — ko‘rib chiqing yoki qayta skanlang.',
         canScan: true,
         badge: 'Tasdiqlangan',
-        color: Color(0xFF1F6B49), // green — matches ProductStatusChip approved
+        color: c.positive, // green — matches ProductStatusChip approved
       );
     case 'rejected':
-      return const _ArCardState(
+      return _ArCardState(
         subtitle: 'Skan rad etildi — sababini ko‘ring va qaytadan oling.',
         canScan: true,
         badge: 'Rad etilgan',
-        color: Color(0xFFC0392B), // red — matches ProductStatusChip rejected
+        color: c.negative, // red — matches ProductStatusChip rejected
       );
     case 'failed':
       // Pipeline/Meshy failure (machine), distinct from a human QC rejection.
@@ -1376,7 +1423,7 @@ class _ComponentTile extends StatelessWidget {
               Icon(
                 Icons.view_in_ar,
                 size: 22,
-                color: enabled ? AppColors.terracotta : c.greyFaint,
+                color: enabled ? c.primary : c.greyFaint,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -1473,8 +1520,16 @@ class _ArIconBox extends StatelessWidget {
       height: 44,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            color.withValues(alpha: 0.18),
+            color.withValues(alpha: 0.08),
+          ],
+        ),
         borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.22)),
       ),
       child: child,
     );

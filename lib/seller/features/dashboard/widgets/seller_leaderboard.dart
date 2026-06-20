@@ -39,12 +39,18 @@ class _LeaderRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
+    final dark = c.brightness == Brightness.dark;
     final me = entry.isMe;
+    // The me-row highlight is a soft indigo wash: the fixed light tint on light
+    // mode, a translucent brand indigo over the dark surface on dark mode.
+    final meBg = dark
+        ? c.primary.withValues(alpha: 0.20)
+        : DashKit.indigoTint;
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
-        color: me ? DashKit.indigoTint : Colors.transparent,
+        color: me ? meBg : Colors.transparent,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
@@ -66,7 +72,11 @@ class _LeaderRow extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: me ? FontWeight.w700 : FontWeight.w600,
-                          color: me ? DashKit.indigoDeep : c.ink,
+                          // On the dark indigo wash a near-white ink reads
+                          // better than the deep indigo used on the light tint.
+                          color: me
+                              ? (dark ? c.ink : DashKit.indigoDeep)
+                              : c.ink,
                           height: 1.15,
                           letterSpacing: -0.1,
                         ),
@@ -102,10 +112,7 @@ class _LeaderRow extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    // The me-row sits on a FIXED light indigo tint, so its
-                    // secondary text stays a fixed grey; other rows are on the
-                    // adaptive surface and use the theme grey.
-                    color: me ? AppColors.sellerGrey : c.grey,
+                    color: c.grey,
                     height: 1.1,
                   ),
                 ),
@@ -126,20 +133,20 @@ class _RankBadge extends StatelessWidget {
   final int rank;
   final bool highlight;
 
-  /// Top-3 medal tints. Beyond 3rd, a plain neutral disc with the number.
-  static const _medals = <int, (Color, Color)>{
-    1: (DashKit.gold, DashKit.goldBg),
-    2: (DashKit.silver, DashKit.silverBg),
-    3: (DashKit.bronze, DashKit.bronzeBg),
-  };
-
   @override
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
-    final medal = _medals[rank];
+    // Top-3 medal (fg, bg) tints, theme-aware. Beyond 3rd, a plain neutral
+    // disc with the rank number.
+    final medals = <int, (Color, Color)>{
+      1: (c.gold, c.goldBg),
+      2: (c.silver, c.silverBg),
+      3: (c.bronze, c.bronzeBg),
+    };
+    final medal = medals[rank];
     final isTop3 = medal != null;
     final fg = isTop3 ? medal.$1 : c.grey;
-    final bg = isTop3 ? medal.$2 : (highlight ? Colors.white : c.fillSoft);
+    final bg = isTop3 ? medal.$2 : (highlight ? c.surface : c.fillSoft);
     return Container(
       width: 36,
       height: 36,

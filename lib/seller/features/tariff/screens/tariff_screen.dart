@@ -15,11 +15,10 @@ import '../widgets/payment_instructions_sheet.dart';
 import 'tariff_history_screen.dart';
 import 'tariff_pending_screen.dart';
 
-// The only brightness-independent local token left: the pending-banner brand
-// tint. Adaptive ink/grey/surface/outline/fill colours are read from
-// `SellerColors.of(context)` per build so the screen flips with the seller
-// theme. Plus Jakarta Sans is applied directly via `AppFonts.seller`.
-const _accentTint = AppColors.sellerPrimaryTint;
+// Every colour is read from `SellerColors.of(context)` per build so the screen
+// flips with the seller theme — the pending/expiry banner brand tint uses
+// `c.primarySoft` / `c.onPrimarySoft` (soft tint in light, low-luminance wash in
+// dark). Plus Jakarta Sans is applied directly via `AppFonts.seller`.
 
 class TariffScreen extends StatelessWidget {
   const TariffScreen({super.key});
@@ -219,8 +218,9 @@ class _PendingBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Material(
-      color: _accentTint,
+      color: c.primarySoft,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -237,14 +237,14 @@ class _PendingBanner extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: AppColors.sellerPrimary.withValues(alpha: 0.18),
+                  color: c.onPrimarySoft.withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 alignment: Alignment.center,
-                child: const Icon(
+                child: Icon(
                   Iconsax.clock,
                   size: 20,
-                  color: AppColors.sellerPrimary,
+                  color: c.onPrimarySoft,
                 ),
               ),
               const SizedBox(width: 12),
@@ -260,34 +260,32 @@ class _PendingBanner extends StatelessWidget {
                           tr('tariff.plan.${subscription.plan.code}_label'),
                         ],
                       ),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: AppFonts.seller,
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        // Banner sits on the fixed indigo tint, so dark ink
-                        // reads on both modes — kept constant deliberately.
-                        color: Color(0xFF1D1D1D),
+                        color: c.ink,
                         letterSpacing: -0.1,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       tr('tariff.pending_banner_subtitle'),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: AppFonts.seller,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: Color(0xFF5A5A5A),
+                        color: c.grey,
                         height: 1.3,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 Iconsax.arrow_right_3,
                 size: 18,
-                color: AppColors.sellerPrimary,
+                color: c.onPrimarySoft,
               ),
             ],
           ),
@@ -303,9 +301,6 @@ class _PendingBanner extends StatelessWidget {
 //     last 5 days (mirrors the backend's pre-expiry push window). Like the
 //     pending banner it sits on a fixed tint, so the inks stay constant.
 // =============================================================================
-const _warnTint = Color(0xFFFFF3E0);
-const _warnAccent = Color(0xFFB45309);
-
 class _ExpiryBanner extends StatelessWidget {
   const _ExpiryBanner({required this.snapshot, required this.freePlanLimit});
 
@@ -314,6 +309,7 @@ class _ExpiryBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final plan = snapshot.plan;
     final daysLeft = snapshot.daysUntilExpiry ?? 0;
     final expiresAt = snapshot.expiresAt!.toLocal();
@@ -341,9 +337,9 @@ class _ExpiryBanner extends StatelessWidget {
       );
     }
 
-    final accent = warning ? _warnAccent : AppColors.sellerPrimary;
+    final accent = warning ? c.warning : c.onPrimarySoft;
     return Material(
-      color: warning ? _warnTint : _accentTint,
+      color: warning ? c.warningBg : c.primarySoft,
       borderRadius: BorderRadius.circular(16),
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -362,24 +358,22 @@ class _ExpiryBanner extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: AppFonts.seller,
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      // Fixed tints under both banners — constant dark ink,
-                      // same rationale as _PendingBanner.
-                      color: Color(0xFF1D1D1D),
+                      color: c.ink,
                       letterSpacing: -0.1,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: AppFonts.seller,
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF5A5A5A),
+                      color: c.grey,
                       height: 1.3,
                     ),
                   ),

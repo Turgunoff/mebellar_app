@@ -342,23 +342,26 @@ class _RewardBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // The tint background is a FIXED light colour (goldBg / indigoTint), so the
-    // text on it must be a fixed dark ink — using the adaptive `c.ink` would
-    // turn it near-white in dark mode and vanish against the light tint.
+    final c = SellerColors.of(context);
+    final dark = c.brightness == Brightness.dark;
+    // Unlocked → adaptive gold tint; locked → adaptive indigo wash. The accent
+    // (icon + label) lightens in dark mode so it stays legible on the wash.
+    final bg = unlocked
+        ? c.goldBg
+        : (dark ? c.primary.withValues(alpha: 0.16) : DashKit.indigoTint);
+    final accent = unlocked
+        ? c.gold
+        : (dark ? c.primaryTint : DashKit.indigoDeep);
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: unlocked ? DashKit.goldBg : DashKit.indigoTint,
+        color: bg,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Iconsax.gift,
-            size: 16,
-            color: unlocked ? DashKit.gold : DashKit.indigoDeep,
-          ),
+          Icon(Iconsax.gift, size: 16, color: accent),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -370,7 +373,7 @@ class _RewardBox extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: unlocked ? DashKit.gold : DashKit.indigoDeep,
+                    color: accent,
                     height: 1.1,
                     letterSpacing: 0.2,
                   ),
@@ -378,10 +381,10 @@ class _RewardBox extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   reward,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w500,
-                    color: AppColors.sellerInk,
+                    color: c.ink,
                     height: 1.35,
                   ),
                 ),
@@ -399,23 +402,24 @@ class _DoneChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: DashKit.positiveBg,
+        color: c.positiveBg,
         borderRadius: BorderRadius.circular(999),
       ),
-      child: const Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.check_rounded, size: 13, color: DashKit.positive),
-          SizedBox(width: 3),
+          Icon(Icons.check_rounded, size: 13, color: c.positive),
+          const SizedBox(width: 3),
           Text(
             'Bajarildi',
             style: TextStyle(
               fontSize: 10.5,
               fontWeight: FontWeight.w700,
-              color: DashKit.positive,
+              color: c.positive,
               height: 1.0,
             ),
           ),

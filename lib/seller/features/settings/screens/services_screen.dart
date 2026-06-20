@@ -12,12 +12,12 @@ import '../../../../shared/repositories/seller_services_repository.dart';
 import '../../../../shared/widgets/error_state.dart';
 import '../bloc/services_bloc.dart';
 
-// The neutral colours now come from `SellerColors.of(context)` so the surface
-// flips with the theme; only the indigo accent tint (which reads fine on both
-// backgrounds) stays a const. Plus Jakarta Sans is applied to every `Text`
-// directly via `AppFonts.seller` so the surface is immune to the M3 surface tint
-// that the seller seed otherwise bleeds onto neutral cards.
-const _accentTint = AppColors.sellerPrimaryTint;
+// The neutral colours come from `SellerColors.of(context)` so the surface flips
+// with the theme; the indigo accent disc reads `c.primarySoft` / `c.onPrimarySoft`
+// (a soft tint in light, a low-luminance wash in dark) so it never glows as a
+// light island. Plus Jakarta Sans is applied to every `Text` directly via
+// `AppFonts.seller` so the surface is immune to the M3 surface tint that the
+// seller seed otherwise bleeds onto neutral cards.
 
 class SellerServicesScreen extends StatelessWidget {
   const SellerServicesScreen({super.key});
@@ -427,15 +427,16 @@ class _IconBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Container(
       width: 40,
       height: 40,
       decoration: BoxDecoration(
-        color: _accentTint,
+        color: c.primarySoft,
         borderRadius: BorderRadius.circular(12),
       ),
       alignment: Alignment.center,
-      child: Icon(icon, size: 20, color: AppColors.sellerPrimary),
+      child: Icon(icon, size: 20, color: c.onPrimarySoft),
     );
   }
 }

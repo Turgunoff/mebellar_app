@@ -34,13 +34,13 @@ class CustomerCard extends StatelessWidget {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: kAccentSoft,
+                  color: c.primarySoft,
                   borderRadius: BorderRadius.circular(999),
                 ),
-                child: const Icon(
+                child: Icon(
                   Iconsax.user,
                   size: 20,
-                  color: AppColors.sellerPrimary,
+                  color: c.onPrimarySoft,
                 ),
               ),
               const SizedBox(width: 12),

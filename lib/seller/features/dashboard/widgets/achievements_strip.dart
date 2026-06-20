@@ -142,9 +142,14 @@ class _Badge extends StatelessWidget {
                 width: 16,
                 height: 16,
                 decoration: BoxDecoration(
-                  color: DashKit.positive,
+                  // Solid emerald disc reads on both themes; the white tick
+                  // needs the saturated fill, not the soft adaptive chip green.
+                  color: AppColors.success,
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 1.5),
+                  // Cut-out ring in the card colour so the dot reads as lifted
+                  // on both light and dark surfaces (a hard white ring is harsh
+                  // on dark).
+                  border: Border.all(color: c.surface, width: 1.5),
                 ),
                 child: const Icon(
                   Icons.check_rounded,

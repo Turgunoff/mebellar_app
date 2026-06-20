@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/models/order_status.dart';
 
 /// Presentation helpers shared by the seller order list and detail screens.
@@ -35,21 +36,23 @@ String sellerOrderStatusLabel(OrderStatus status) => switch (status) {
       OrderStatus.cancelled => 'Bekor qilingan',
     };
 
-/// Background / foreground colours for a status pill.
-({Color bg, Color fg}) sellerOrderStatusColors(OrderStatus status) =>
+/// Background / foreground colours for a status pill, resolved against the
+/// brightness-aware seller palette [c] so each hue flips with the theme. The
+/// teal "shipped" pair has no [SellerColors] token, so its dark variant is
+/// spelled out inline.
+({Color bg, Color fg}) sellerOrderStatusColors(
+  OrderStatus status,
+  SellerColors c,
+) =>
     switch (status) {
-      OrderStatus.pending =>
-        (bg: const Color(0xFFFFF1D6), fg: const Color(0xFF8C5A12)),
-      OrderStatus.confirmed =>
-        (bg: const Color(0xFFE3F0FF), fg: const Color(0xFF1F5FA8)),
-      OrderStatus.preparing =>
-        (bg: const Color(0xFFEDE7FB), fg: const Color(0xFF5B3FB0)),
-      OrderStatus.shipped =>
-        (bg: const Color(0xFFDDF3F0), fg: const Color(0xFF18756A)),
-      OrderStatus.delivered =>
-        (bg: const Color(0xFFE0F3E4), fg: const Color(0xFF1E7A38)),
-      OrderStatus.cancelled =>
-        (bg: const Color(0xFFF3E1E1), fg: const Color(0xFF9A3434)),
+      OrderStatus.pending => (bg: c.warningBg, fg: c.warning),
+      OrderStatus.confirmed => (bg: c.infoBg, fg: c.info),
+      OrderStatus.preparing => (bg: c.progressBg, fg: c.progress),
+      OrderStatus.shipped => c.brightness == Brightness.dark
+          ? (bg: const Color(0xFF15302C), fg: const Color(0xFF5FC9BC))
+          : (bg: const Color(0xFFDDF3F0), fg: const Color(0xFF18756A)),
+      OrderStatus.delivered => (bg: c.positiveBg, fg: c.positive),
+      OrderStatus.cancelled => (bg: c.negativeBg, fg: c.negative),
     };
 
 /// Uzbek label for the forward action that moves an order *into* [target].

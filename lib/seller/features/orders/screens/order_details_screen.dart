@@ -132,7 +132,7 @@ class _OrderDetailView extends StatelessWidget {
         border: c.outline,
         field: c.fillSoft,
         accent: AppColors.sellerPrimary,
-        danger: const Color(0xFF9A3434),
+        danger: c.negative,
         fontFamily: AppFonts.seller,
       ),
       labels: CancelReasonLabels(
@@ -223,7 +223,10 @@ class _OrderDetailView extends StatelessWidget {
       return const Center(child: BrandLoadingIndicator());
     }
 
-    final colors = sellerOrderStatusColors(order.status);
+    final colors = sellerOrderStatusColors(
+      order.status,
+      SellerColors.of(context),
+    );
     final subtotal = order.items.fold<num>(0, (sum, it) => sum + it.lineTotal);
     final delivery = order.grandTotal > subtotal
         ? order.grandTotal - subtotal
@@ -373,26 +376,29 @@ class _CustomerContactSheet extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFF8EE),
+                color: c.warningBg,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFFFD580), width: 1),
+                border: Border.all(
+                  color: c.warning.withValues(alpha: 0.6),
+                  width: 1,
+                ),
               ),
               child: Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Iconsax.warning_2,
                     size: 18,
-                    color: Color(0xFF8C5A12),
+                    color: c.warning,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       "Katta summa uchun buyurtmani qabul qilishdan oldin mijoz bilan tafsilotlarni aniqlab oling.",
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: AppFonts.seller,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: Color(0xFF8C5A12),
+                        color: c.warning,
                         height: 1.4,
                       ),
                     ),

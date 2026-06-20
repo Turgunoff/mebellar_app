@@ -1,14 +1,16 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/models/seller_product.dart';
 
 /// Status pill used on the seller products list and detail.
 ///
-/// Palette is hand-picked rather than derived from the [ColorScheme] so the
-/// chip stays on-brand even when the seller theme's seed shifts. The label
-/// inherits the seller theme's Plus Jakarta Sans family — `fontFamily` is
-/// intentionally omitted so a single theme-level swap propagates here.
+/// Colours come from the brightness-aware [SellerColors] status intents so the
+/// pill flips with the theme (soft tint in light, low-luminance tint in dark)
+/// instead of glowing as a light island. The label inherits the seller theme's
+/// Plus Jakarta Sans family — `fontFamily` is intentionally omitted so a single
+/// theme-level swap propagates here.
 class ProductStatusChip extends StatelessWidget {
   const ProductStatusChip({
     super.key,
@@ -21,7 +23,7 @@ class ProductStatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = _palette(status);
+    final palette = _palette(status, SellerColors.of(context));
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: compact ? 8 : 10,
@@ -50,28 +52,13 @@ class ProductStatusChip extends StatelessWidget {
     );
   }
 
-  ({Color bg, Color fg}) _palette(SellerProductStatus status) {
+  ({Color bg, Color fg}) _palette(SellerProductStatus status, SellerColors c) {
     return switch (status) {
-      SellerProductStatus.draft => (
-          bg: const Color(0xFFF1F1F1),
-          fg: const Color(0xFF555555),
-        ),
-      SellerProductStatus.pendingReview => (
-          bg: const Color(0xFFFFF1D6),
-          fg: const Color(0xFF8C5A12),
-        ),
-      SellerProductStatus.approved => (
-          bg: const Color(0xFFDCF1E5),
-          fg: const Color(0xFF1F6B49),
-        ),
-      SellerProductStatus.rejected => (
-          bg: const Color(0xFFFDECEA),
-          fg: const Color(0xFFC0392B),
-        ),
-      SellerProductStatus.archived => (
-          bg: const Color(0xFFEDEDED),
-          fg: const Color(0xFF8A8A8A),
-        ),
+      SellerProductStatus.draft => (bg: c.neutralBgAlt, fg: c.neutralFgAlt),
+      SellerProductStatus.pendingReview => (bg: c.warningBg, fg: c.warning),
+      SellerProductStatus.approved => (bg: c.positiveBg, fg: c.positive),
+      SellerProductStatus.rejected => (bg: c.negativeBg, fg: c.negative),
+      SellerProductStatus.archived => (bg: c.neutralBg, fg: c.neutralFg),
     };
   }
 }

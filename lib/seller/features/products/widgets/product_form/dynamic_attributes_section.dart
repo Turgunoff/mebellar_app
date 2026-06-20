@@ -229,15 +229,15 @@ class _FieldLabel extends StatelessWidget {
             ),
           ),
           if (isRequired)
-            const Padding(
-              padding: EdgeInsets.only(left: 4),
+            Padding(
+              padding: const EdgeInsets.only(left: 4),
               child: Text(
                 '*',
                 style: TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFFEF4444),
+                  color: c.negative,
                 ),
               ),
             ),

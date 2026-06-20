@@ -36,13 +36,13 @@ class DeliveryAddressCard extends StatelessWidget {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF0F4FF),
+                  color: c.infoBg,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(
+                child: Icon(
                   Iconsax.location,
                   size: 18,
-                  color: Color(0xFF3B5BDB),
+                  color: c.info,
                 ),
               ),
               const SizedBox(width: 12),

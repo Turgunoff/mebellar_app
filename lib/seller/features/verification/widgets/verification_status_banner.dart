@@ -1,6 +1,7 @@
 ﻿import 'package:woody_app/core/i18n/i18n.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/models/verification_status.dart';
 
 /// Sticky banner that summarises the current verification state. Shown on
@@ -20,8 +21,7 @@ class VerificationStatusBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final palette = _palette(scheme, status);
+    final palette = _palette(SellerColors.of(context), status);
     return Material(
       color: palette.bg,
       child: InkWell(
@@ -70,27 +70,23 @@ class VerificationStatusBanner extends StatelessWidget {
     };
   }
 
-  ({Color bg, Color fg}) _palette(ColorScheme s, VerificationStatus status) {
+  ({Color bg, Color fg}) _palette(SellerColors c, VerificationStatus status) {
     return switch (status) {
       VerificationStatus.none => (
-          bg: s.surfaceContainerHighest,
-          fg: s.onSurface,
+          bg: c.neutralBg,
+          fg: c.neutralFg,
         ),
-      VerificationStatus.pending => (
-          bg: s.tertiaryContainer,
-          fg: s.onTertiaryContainer,
-        ),
-      VerificationStatus.inReview => (
-          bg: s.tertiaryContainer,
-          fg: s.onTertiaryContainer,
+      VerificationStatus.pending || VerificationStatus.inReview => (
+          bg: c.warningBg,
+          fg: c.warning,
         ),
       VerificationStatus.approved => (
-          bg: const Color(0xFFDCEFDC),
-          fg: const Color(0xFF1B5E20),
+          bg: c.positiveBg,
+          fg: c.positive,
         ),
       VerificationStatus.rejected => (
-          bg: s.errorContainer,
-          fg: s.onErrorContainer,
+          bg: c.negativeBg,
+          fg: c.negative,
         ),
     };
   }

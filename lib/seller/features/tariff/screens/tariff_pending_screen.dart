@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/models/tariff.dart';
 import '../../../../shared/repositories/tariff_repository.dart';
 import '../bloc/tariff_bloc.dart';
@@ -198,7 +199,7 @@ class _PendingViewState extends State<_PendingView> {
           approved ? Icons.check_circle_outline : Icons.cancel_outlined,
           size: 36,
           color: approved
-              ? Colors.green
+              ? SellerColors.of(ctx).positive
               : Theme.of(ctx).colorScheme.error,
         ),
         title: Text(approved

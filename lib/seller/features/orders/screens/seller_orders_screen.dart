@@ -364,7 +364,7 @@ class _OrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
-    final colors = sellerOrderStatusColors(order.status);
+    final colors = sellerOrderStatusColors(order.status, c);
     return Material(
       color: c.surface,
       borderRadius: BorderRadius.circular(16),

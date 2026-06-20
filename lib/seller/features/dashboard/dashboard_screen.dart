@@ -774,9 +774,7 @@ class _EmptyOrdersView extends StatelessWidget {
       decoration: BoxDecoration(
         color: c.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppColors.sellerPrimary.withValues(alpha: 0.08),
-        ),
+        border: Border.all(color: c.primary.withValues(alpha: 0.08)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -791,14 +789,14 @@ class _EmptyOrdersView extends StatelessWidget {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: AppColors.sellerPrimaryTint,
+              color: c.primarySoft,
               shape: BoxShape.circle,
             ),
             alignment: Alignment.center,
-            child: const Icon(
+            child: Icon(
               Icons.receipt_long_outlined,
               size: 36,
-              color: AppColors.sellerPrimaryDeep,
+              color: c.onPrimarySoft,
             ),
           ),
           const SizedBox(height: 16),

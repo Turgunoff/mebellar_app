@@ -13,22 +13,24 @@ class OrderMetaCard extends StatelessWidget {
     required this.orderId,
     required this.date,
     required this.statusLabel,
-    this.statusBg = kAmberBg,
-    this.statusFg = kAmberFg,
+    this.statusBg,
+    this.statusFg,
   });
 
   final String orderId;
   final String date;
   final String statusLabel;
 
-  /// Status-pill colours — default to amber (pending); the detail screen
-  /// passes the colours matching the live order status.
-  final Color statusBg;
-  final Color statusFg;
+  /// Status-pill colours — null falls back to the theme amber (pending); the
+  /// detail screen passes the colours matching the live order status.
+  final Color? statusBg;
+  final Color? statusFg;
 
   @override
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
+    final statusBg = this.statusBg ?? c.warningBg;
+    final statusFg = this.statusFg ?? c.warning;
     return SectionCard(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

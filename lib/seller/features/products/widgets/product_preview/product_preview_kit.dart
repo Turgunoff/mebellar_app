@@ -5,16 +5,11 @@ import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import '../../../../../shared/models/seller_product.dart';
 
-// Local design tokens for the seller product preview. Adaptive neutrals (ink,
-// greys, dividers, surfaces, image bg) flip with light/dark — read them from
-// `SellerColors.of(context)`: ink→c.ink, grey→c.grey, greyMid→c.greyMid,
-// greySoft→c.greySoft, divider→c.dividerStrong, outline→c.outline,
-// surfaceMuted→c.fillSoft, imageBg→c.imageBg. Only the brand accent stays
-// const here — it reads fine on both backgrounds.
-
-/// Soft indigo tint behind the "customer view" banner — the seller brand
-/// accent at low intensity.
-const Color kAccentSoft = AppColors.sellerPrimaryTint;
+// Local design tokens for the seller product preview. Every colour flips with
+// light/dark — read them from `SellerColors.of(context)`: ink→c.ink, grey→c.grey,
+// greyMid→c.greyMid, greySoft→c.greySoft, divider→c.dividerStrong,
+// outline→c.outline, surfaceMuted→c.fillSoft, imageBg→c.imageBg, and the
+// "customer view" banner accent disc → c.primarySoft / c.onPrimarySoft.
 
 /// Status palette — kept aligned with `ProductStatusChip` so the preview's
 /// banner pill matches the list-tile pill exactly.

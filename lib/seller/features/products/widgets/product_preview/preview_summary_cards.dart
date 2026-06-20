@@ -13,30 +13,31 @@ class PreviewModeBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
-        color: kAccentSoft,
+        color: c.primarySoft,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: AppColors.sellerPrimary.withValues(alpha: 0.18),
+          color: c.onPrimarySoft.withValues(alpha: 0.25),
         ),
       ),
       child: Row(
         children: [
-          const Icon(Iconsax.eye, size: 18, color: AppColors.sellerPrimary),
+          Icon(Iconsax.eye, size: 18, color: c.onPrimarySoft),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   "Mijoz ko'rinishi",
                   style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.sellerPrimary,
+                    color: c.onPrimarySoft,
                     height: 1.2,
                     letterSpacing: -0.1,
                   ),
@@ -48,7 +49,7 @@ class PreviewModeBanner extends StatelessWidget {
                     fontFamily: AppFonts.seller,
                     fontSize: 11.5,
                     fontWeight: FontWeight.w500,
-                    color: AppColors.sellerPrimaryDeep,
+                    color: c.onPrimarySoft.withValues(alpha: 0.85),
                     height: 1.3,
                   ),
                 ),
@@ -213,16 +214,16 @@ class TitlePriceCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: const Color(0xFFFDECEA),
+                color: c.negativeBg,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 '-$discountPercent%',
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFFC0392B),
+                  color: c.negative,
                   height: 1.0,
                 ),
               ),
@@ -242,8 +243,8 @@ class TitlePriceCard extends StatelessWidget {
                     : Iconsax.clock,
                 size: 16,
                 color: product.status == SellerProductStatus.approved
-                    ? const Color(0xFF1F6B49)
-                    : const Color(0xFF8C5A12),
+                    ? c.positive
+                    : c.warning,
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -256,8 +257,8 @@ class TitlePriceCard extends StatelessWidget {
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: product.status == SellerProductStatus.approved
-                        ? const Color(0xFF1F6B49)
-                        : const Color(0xFF8C5A12),
+                        ? c.positive
+                        : c.warning,
                     height: 1.2,
                   ),
                 ),
@@ -280,41 +281,42 @@ class RejectionReasonCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFFDECEA),
+        color: c.negativeBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFF3C9C3)),
+        border: Border.all(color: c.negative.withValues(alpha: 0.5)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Iconsax.info_circle, size: 18, color: Color(0xFFC0392B)),
+          Icon(Iconsax.info_circle, size: 18, color: c.negative),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Rad etish sababi',
                   style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFFC0392B),
+                    color: c.negative,
                     height: 1.2,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   reason,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFFB23B2E),
+                    color: c.negative,
                     height: 1.4,
                   ),
                 ),

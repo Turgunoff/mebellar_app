@@ -96,7 +96,7 @@ class _TimelineNode extends StatelessWidget {
         width: 26,
         height: 26,
         decoration: BoxDecoration(
-          color: kAccentSoft,
+          color: c.primarySoft,
           shape: BoxShape.circle,
           border: Border.all(color: activeColor, width: 2),
         ),

@@ -183,7 +183,7 @@ class _ProductFormViewState extends State<_ProductFormView> {
         return Stack(
           children: [
             Scaffold(
-              backgroundColor: AppColors.lightBackground,
+              backgroundColor: SellerColors.of(context).background,
               appBar: ProductFormAppBar(editing: widget.isEditing),
               // Render the form shell immediately — categories/plan load in the
               // background. A thin progress line above the body signals the

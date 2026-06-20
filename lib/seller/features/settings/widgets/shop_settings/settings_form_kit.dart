@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 
-// The only brightness-independent token shared by the shop-settings widgets —
-// the indigo accent tint reads fine on both light and dark backgrounds. Every
-// adaptive colour (ink / grey / surface / divider / outline / fill) now comes
-// from `SellerColors.of(context)` so the surface flips with the theme. Plus
-// Jakarta Sans is applied to each `Text` explicitly via `AppFonts.seller` so the
-// surface is immune to the M3 surface tint the seller seed bleeds onto neutrals.
-const Color kAccentTint = AppColors.sellerPrimaryTint;
+// Every colour in the shop-settings widgets comes from `SellerColors.of(context)`
+// so the surface flips with the theme — including the indigo accent disc, which
+// uses `c.primarySoft` / `c.onPrimarySoft` (soft tint in light, low-luminance
+// wash in dark) instead of a fixed light tint that would glow as an island on a
+// dark card. Plus Jakarta Sans is applied to each `Text` explicitly via
+// `AppFonts.seller` so the surface is immune to the M3 surface tint the seller
+// seed bleeds onto neutrals.
 
 /// Bold section header above each [SettingsCard].
 class SectionTitle extends StatelessWidget {
@@ -73,15 +73,16 @@ class IconTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Container(
       width: 36,
       height: 36,
       decoration: BoxDecoration(
-        color: kAccentTint,
+        color: c.primarySoft,
         borderRadius: BorderRadius.circular(10),
       ),
       alignment: Alignment.center,
-      child: Icon(icon, size: 18, color: AppColors.sellerPrimary),
+      child: Icon(icon, size: 18, color: c.onPrimarySoft),
     );
   }
 }

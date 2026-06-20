@@ -84,14 +84,14 @@ class SellerKpiCard extends StatelessWidget {
                 height: 34,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: AppColors.sellerPrimaryTint,
+                  color: c.primarySoft,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(icon, size: 18, color: AppColors.sellerPrimaryDeep),
+                child: Icon(icon, size: 18, color: c.onPrimarySoft),
               ),
               const Spacer(),
               if (indicator != null)
-                _buildIndicator(indicator!)
+                _buildIndicator(indicator!, c)
               else if (delta != null)
                 DashTrendChip(
                   deltaPercent: delta,
@@ -136,7 +136,14 @@ class SellerKpiCard extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                     letterSpacing: -0.4,
                     height: 1.1,
-                    color: accentValue ? AppColors.sellerPrimary : c.ink,
+                    // In dark mode the brand indigo is too dark to read as a
+                    // headline on the near-black surface — lift it to the light
+                    // periwinkle accent; light mode keeps the deep indigo.
+                    color: accentValue
+                        ? (c.brightness == Brightness.dark
+                              ? c.onPrimarySoft
+                              : c.primary)
+                        : c.ink,
                   ),
                 ),
                 if (unit != null) ...[
@@ -195,9 +202,7 @@ class SellerKpiCard extends StatelessWidget {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: important
-              ? BorderSide(
-                  color: AppColors.sellerPrimary.withValues(alpha: 0.35),
-                )
+              ? BorderSide(color: c.primary.withValues(alpha: 0.35))
               : BorderSide.none,
         ),
         child: onTap == null ? content : InkWell(onTap: onTap, child: content),
@@ -205,11 +210,17 @@ class SellerKpiCard extends StatelessWidget {
     );
   }
 
-  Widget _buildIndicator(KpiIndicator i) {
+  Widget _buildIndicator(KpiIndicator i, SellerColors c) {
+    final (Color fg, Color bg) = switch (i.kind) {
+      KpiIndicatorKind.danger => (c.negative, c.negativeBg),
+      KpiIndicatorKind.accent => (c.onPrimarySoft, c.primarySoft),
+      KpiIndicatorKind.warning => (c.warning, c.warningBg),
+      KpiIndicatorKind.success => (c.positive, c.positiveBg),
+    };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: i.tint,
+        color: bg,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
@@ -217,7 +228,7 @@ class SellerKpiCard extends StatelessWidget {
         style: TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.w700,
-          color: i.fg,
+          color: fg,
           height: 1.0,
         ),
       ),
@@ -225,47 +236,34 @@ class SellerKpiCard extends StatelessWidget {
   }
 }
 
+/// Semantic intent of a [KpiIndicator]. The actual fg/bg colours are resolved
+/// per theme in `_buildIndicator` from [SellerColors] so the pill flips with
+/// light/dark instead of baking a fixed light tint.
+enum KpiIndicatorKind { danger, accent, warning, success }
+
 /// Tiny pill shown at the top-right of a [SellerKpiCard]. Used for surfacing
 /// constraints the bare metric can't communicate (e.g. "limit exceeded" on
-/// the products card). Construct via the named factories so colors stay
-/// on-brand.
+/// the products card). Construct via the named factories so the intent (and
+/// therefore the theme-resolved colour) stays on-brand.
 @immutable
 class KpiIndicator {
-  const KpiIndicator._({
-    required this.label,
-    required this.fg,
-    required this.tint,
-  });
+  const KpiIndicator._({required this.label, required this.kind});
 
   final String label;
-  final Color fg;
-  final Color tint;
+  final KpiIndicatorKind kind;
 
-  factory KpiIndicator.danger(String label) => KpiIndicator._(
-    label: label,
-    fg: AppColors.sellerNegative,
-    tint: AppColors.sellerNegativeBg,
-  );
+  factory KpiIndicator.danger(String label) =>
+      KpiIndicator._(label: label, kind: KpiIndicatorKind.danger);
 
-  /// On-brand variant: Deep Indigo foreground over a soft Indigo tint.
-  /// Used on cards where a hard "danger" red would feel too alarming and
-  /// clash with the seller mode's premium aesthetic (e.g. a polite
-  /// "Limit oshdi" nudge on the products tile).
-  factory KpiIndicator.accent(String label) => KpiIndicator._(
-    label: label,
-    fg: AppColors.sellerPrimaryDeep,
-    tint: AppColors.sellerPrimaryTint,
-  );
+  /// On-brand variant: indigo foreground over a soft indigo tint. Used on
+  /// cards where a hard "danger" red would feel too alarming and clash with
+  /// the seller mode's premium aesthetic (e.g. a polite "Limit oshdi" nudge).
+  factory KpiIndicator.accent(String label) =>
+      KpiIndicator._(label: label, kind: KpiIndicatorKind.accent);
 
-  factory KpiIndicator.warning(String label) => KpiIndicator._(
-    label: label,
-    fg: AppColors.sellerWarning,
-    tint: AppColors.sellerWarningBg,
-  );
+  factory KpiIndicator.warning(String label) =>
+      KpiIndicator._(label: label, kind: KpiIndicatorKind.warning);
 
-  factory KpiIndicator.success(String label) => KpiIndicator._(
-    label: label,
-    fg: AppColors.sellerPositive,
-    tint: AppColors.sellerPositiveBg,
-  );
+  factory KpiIndicator.success(String label) =>
+      KpiIndicator._(label: label, kind: KpiIndicatorKind.success);
 }

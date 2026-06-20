@@ -13,11 +13,11 @@ import '../cubit/reviews_cubit.dart';
 // =============================================================================
 // Fixed (brightness-independent) local tokens. Adaptive ink/grey/surface/
 // divider/fill colours are read from `SellerColors.of(context)` per build so
-// the screen flips with the seller theme; only the brand tint and the star
-// amber stay constant on both backgrounds.
+// the screen flips with the seller theme; the brand accent disc uses
+// `c.primarySoft` / `c.onPrimarySoft` (soft tint in light, low-luminance wash in
+// dark). Only the star amber stays constant — it reads on both backgrounds.
 // =============================================================================
 const _amber = Color(0xFFF5A623);
-const _accentTint = AppColors.sellerPrimaryTint;
 
 class ReviewsScreen extends StatelessWidget {
   const ReviewsScreen({super.key});
@@ -458,29 +458,26 @@ class _ReplyButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return SizedBox(
       width: double.infinity,
       child: OutlinedButton.icon(
         onPressed: onTap,
-        icon: const Icon(
-          Iconsax.edit,
-          size: 16,
-          color: AppColors.sellerPrimary,
-        ),
+        icon: Icon(Iconsax.edit, size: 16, color: c.onPrimarySoft),
         label: Text(
           'Javob yozish',
           style: TextStyle(
             fontFamily: AppFonts.seller,
             fontSize: 13.5,
             fontWeight: FontWeight.w700,
-            color: AppColors.sellerPrimary,
+            color: c.onPrimarySoft,
             letterSpacing: -0.1,
           ),
         ),
         style: OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 12),
-          side: const BorderSide(color: AppColors.sellerPrimary, width: 1.2),
-          backgroundColor: _accentTint,
+          side: BorderSide(color: c.onPrimarySoft, width: 1.2),
+          backgroundColor: c.primarySoft,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -513,15 +510,15 @@ class _SellerReplyBlock extends StatelessWidget {
           Container(
             width: 32,
             height: 32,
-            decoration: const BoxDecoration(
-              color: _accentTint,
+            decoration: BoxDecoration(
+              color: c.primarySoft,
               shape: BoxShape.circle,
             ),
             alignment: Alignment.center,
-            child: const Icon(
+            child: Icon(
               Iconsax.shop,
               size: 16,
-              color: AppColors.sellerPrimary,
+              color: c.onPrimarySoft,
             ),
           ),
           const SizedBox(width: 10),

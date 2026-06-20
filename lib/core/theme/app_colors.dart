@@ -200,6 +200,37 @@ class AppColors {
   static const Color sellerBronze = Color(0xFFB06B3A);
   static const Color sellerBronzeBg = Color(0xFFF6E7DA);
 
+  /// Informational intent (blue) — "confirmed / awaiting QC" pills. Light pair.
+  static const Color sellerInfo = Color(0xFF1F5FA8);
+  static const Color sellerInfoBg = Color(0xFFE3F0FF);
+
+  // ---- Seller status intents — DARK variants ------------------------------
+  // The light status fills above (#DCF1E5 green, #FDECEA red, #FFF1D6 amber,
+  // #EDE3FF violet, …) are bright islands on the #1E1E1E dark card. These dark
+  // pairs swap in a low-luminance tinted fill + a lightened foreground so each
+  // pill reads as a quiet chip that harmonises with the dark surface. Consumed
+  // through [SellerColors]' brightness-aware getters — never hardcode them.
+  static const Color sellerPositiveDark = Color(0xFF6FD3A0);
+  static const Color sellerPositiveBgDark = Color(0xFF173A28);
+  static const Color sellerNegativeDark = Color(0xFFF0998D);
+  static const Color sellerNegativeBgDark = Color(0xFF3D211D);
+  static const Color sellerWarningDark = Color(0xFFF3C271);
+  static const Color sellerWarningBgDark = Color(0xFF3A2C12);
+  static const Color sellerInfoDark = Color(0xFF82B4F0);
+  static const Color sellerInfoBgDark = Color(0xFF16263F);
+  static const Color sellerProgressDark = Color(0xFFBFA7F0);
+  static const Color sellerProgressBgDark = Color(0xFF261D3D);
+
+  /// Soft brand-indigo FILL (avatar disc, icon chip, "current step" dot) +
+  /// its on-colour. Light mode is the airy [sellerPrimaryTint]; dark mode is a
+  /// low-luminance indigo wash with a light-periwinkle foreground so the chip
+  /// reads as a quiet tint, not a bright light-indigo island, on the dark card.
+  static const Color sellerPrimarySoftDark = Color(0xFF262D4A);
+  static const Color sellerPrimaryOnSoftDark = Color(0xFFA6B4F5);
+  static const Color sellerGoldBgDark = Color(0xFF352A12);
+  static const Color sellerSilverBgDark = Color(0xFF262B33);
+  static const Color sellerBronzeBgDark = Color(0xFF322318);
+
   /// Indigo-first chart series — replaces the old terracotta-led palette so
   /// seller analytics never paints a customer-brand slice.
   static const List<Color> sellerChartPalette = <Color>[
@@ -227,6 +258,7 @@ class AppColors {
 @immutable
 class SellerColors extends ThemeExtension<SellerColors> {
   const SellerColors({
+    required this.brightness,
     required this.ink,
     required this.grey,
     required this.greyFaint,
@@ -248,6 +280,13 @@ class SellerColors extends ThemeExtension<SellerColors> {
     required this.ringTrack,
     required this.trackBg,
   });
+
+  /// The brightness this set resolves for. Lets the *fixed-by-name* status
+  /// getters below (positive / warning / progress / medals …) pick a
+  /// light-or-dark tint without bloating the constructor with 20 more fields.
+  final Brightness brightness;
+
+  bool get _dark => brightness == Brightness.dark;
 
   // ---- Adaptive (light/dark) tokens ---------------------------------------
   final Color ink;
@@ -271,30 +310,58 @@ class SellerColors extends ThemeExtension<SellerColors> {
   final Color ringTrack;
   final Color trackBg;
 
-  // ---- Fixed tokens (identical on both backgrounds) -----------------------
+  // ---- Brand tokens (identical on both backgrounds) -----------------------
+  // Indigo reads fine on light and dark, so the brand accents never flip.
   Color get primary => AppColors.sellerPrimary;
   Color get primaryDeep => AppColors.sellerPrimaryDeep;
   Color get primaryTint => AppColors.sellerPrimaryTint;
   Color get primaryBright => AppColors.sellerPrimaryBright;
 
-  Color get positive => AppColors.sellerPositive;
-  Color get positiveBg => AppColors.sellerPositiveBg;
-  Color get negative => AppColors.sellerNegative;
-  Color get negativeBg => AppColors.sellerNegativeBg;
-  Color get warning => AppColors.sellerWarning;
-  Color get warningBg => AppColors.sellerWarningBg;
-  Color get progress => AppColors.sellerProgress;
-  Color get progressBg => AppColors.sellerProgressBg;
+  /// Soft indigo FILL + its on-colour, brightness-aware (see the AppColors
+  /// docs). Use for avatar/icon discs and "current step" dots that previously
+  /// hardcoded [primaryTint] — `primaryTint` stays a FIXED light tint, so it
+  /// must only be used as a foreground on a dark wash, never as a fill in dark.
+  Color get primarySoft =>
+      _dark ? AppColors.sellerPrimarySoftDark : AppColors.sellerPrimaryTint;
+  Color get onPrimarySoft =>
+      _dark ? AppColors.sellerPrimaryOnSoftDark : AppColors.sellerPrimary;
+
+  // ---- Status intents (brightness-aware) ----------------------------------
+  // Foreground + soft-fill pairs for badges / chips / banners. Each resolves
+  // a light-mode tint or a darkened dark-mode tint off [brightness] so the
+  // pills harmonise with the surface instead of glowing as light islands.
+  Color get positive =>
+      _dark ? AppColors.sellerPositiveDark : AppColors.sellerPositive;
+  Color get positiveBg =>
+      _dark ? AppColors.sellerPositiveBgDark : AppColors.sellerPositiveBg;
+  Color get negative =>
+      _dark ? AppColors.sellerNegativeDark : AppColors.sellerNegative;
+  Color get negativeBg =>
+      _dark ? AppColors.sellerNegativeBgDark : AppColors.sellerNegativeBg;
+  Color get warning =>
+      _dark ? AppColors.sellerWarningDark : AppColors.sellerWarning;
+  Color get warningBg =>
+      _dark ? AppColors.sellerWarningBgDark : AppColors.sellerWarningBg;
+  Color get info => _dark ? AppColors.sellerInfoDark : AppColors.sellerInfo;
+  Color get infoBg =>
+      _dark ? AppColors.sellerInfoBgDark : AppColors.sellerInfoBg;
+  Color get progress =>
+      _dark ? AppColors.sellerProgressDark : AppColors.sellerProgress;
+  Color get progressBg =>
+      _dark ? AppColors.sellerProgressBgDark : AppColors.sellerProgressBg;
   Color get gold => AppColors.sellerGold;
   Color get goldBright => AppColors.sellerGoldBright;
-  Color get goldBg => AppColors.sellerGoldBg;
+  Color get goldBg => _dark ? AppColors.sellerGoldBgDark : AppColors.sellerGoldBg;
   Color get silver => AppColors.sellerSilver;
-  Color get silverBg => AppColors.sellerSilverBg;
+  Color get silverBg =>
+      _dark ? AppColors.sellerSilverBgDark : AppColors.sellerSilverBg;
   Color get bronze => AppColors.sellerBronze;
-  Color get bronzeBg => AppColors.sellerBronzeBg;
+  Color get bronzeBg =>
+      _dark ? AppColors.sellerBronzeBgDark : AppColors.sellerBronzeBg;
   List<Color> get chartPalette => AppColors.sellerChartPalette;
 
   static const SellerColors light = SellerColors(
+    brightness: Brightness.light,
     ink: AppColors.sellerInk,
     grey: AppColors.sellerGrey,
     greyFaint: AppColors.sellerGreyFaint,
@@ -318,6 +385,7 @@ class SellerColors extends ThemeExtension<SellerColors> {
   );
 
   static const SellerColors dark = SellerColors(
+    brightness: Brightness.dark,
     ink: AppColors.sellerInkDark,
     grey: AppColors.sellerGreyDark,
     greyFaint: AppColors.sellerGreyFaintDark,
@@ -352,6 +420,7 @@ class SellerColors extends ThemeExtension<SellerColors> {
 
   @override
   SellerColors copyWith({
+    Brightness? brightness,
     Color? ink,
     Color? grey,
     Color? greyFaint,
@@ -374,6 +443,7 @@ class SellerColors extends ThemeExtension<SellerColors> {
     Color? trackBg,
   }) {
     return SellerColors(
+      brightness: brightness ?? this.brightness,
       ink: ink ?? this.ink,
       grey: grey ?? this.grey,
       greyFaint: greyFaint ?? this.greyFaint,
@@ -401,6 +471,7 @@ class SellerColors extends ThemeExtension<SellerColors> {
   SellerColors lerp(ThemeExtension<SellerColors>? other, double t) {
     if (other is! SellerColors) return this;
     return SellerColors(
+      brightness: t < 0.5 ? brightness : other.brightness,
       ink: Color.lerp(ink, other.ink, t)!,
       grey: Color.lerp(grey, other.grey, t)!,
       greyFaint: Color.lerp(greyFaint, other.greyFaint, t)!,

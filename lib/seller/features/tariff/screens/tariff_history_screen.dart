@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/models/tariff.dart';
 import '../../../../shared/repositories/tariff_repository.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
@@ -71,7 +72,7 @@ class _HistoryTile extends StatelessWidget {
     final priceFormat = NumberFormat('#,###', lang);
     final dateFmt = DateFormat('dd MMM yyyy', lang);
     final scheme = Theme.of(context).colorScheme;
-    final palette = _palette(scheme, subscription.status);
+    final palette = _palette(scheme, SellerColors.of(context), subscription.status);
 
     return Card(
       shape: RoundedRectangleBorder(
@@ -153,7 +154,11 @@ class _HistoryTile extends StatelessWidget {
     );
   }
 
-  ({Color bg, Color fg}) _palette(ColorScheme s, TariffUpgradeStatus status) {
+  ({Color bg, Color fg}) _palette(
+    ColorScheme s,
+    SellerColors c,
+    TariffUpgradeStatus status,
+  ) {
     return switch (status) {
       TariffUpgradeStatus.none => (
           bg: s.surfaceContainerHighest,
@@ -164,8 +169,8 @@ class _HistoryTile extends StatelessWidget {
           fg: s.onTertiaryContainer,
         ),
       TariffUpgradeStatus.approved => (
-          bg: const Color(0xFFDCEFDC),
-          fg: const Color(0xFF1B5E20),
+          bg: c.positiveBg,
+          fg: c.positive,
         ),
       TariffUpgradeStatus.rejected => (
           bg: s.errorContainer,

@@ -19,14 +19,6 @@ import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/error_state.dart';
 
-// Tones picked to match the seller dashboard surface — same `_ink` / `_grey`
-// the dashboard uses, so the inbox feels like an extension of "Backoffice"
-// rather than a separate screen. Indigo accents come from `AppColors`.
-const _ink = Color(0xFF1D1D1D);
-const _grey = Color(0xFF757575);
-const _greyLight = Color(0xFFBDBDBD);
-const _surfaceWhite = Colors.white;
-
 /// Seller-mode inbox. Mirrors the customer screen's layout but renders with
 /// the seller theme (Indigo accents, Plus Jakarta Sans inherited from the
 /// theme, opaque white tiles like the dashboard cards).
@@ -186,10 +178,11 @@ class _NotificationsViewState extends State<_NotificationsView> {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: c.background,
       appBar: AppBar(
-        backgroundColor: AppColors.lightBackground,
+        backgroundColor: c.background,
         elevation: 0,
         scrolledUnderElevation: 0,
         // titleSpacing 0 + the smaller font reclaim room for the long
@@ -198,10 +191,10 @@ class _NotificationsViewState extends State<_NotificationsView> {
         // "Bildirishnom..." next to the action.
         titleSpacing: 0,
         leading: IconButton(
-          icon: const Icon(
+          icon: Icon(
             Icons.arrow_back_ios_new_rounded,
             size: 20,
-            color: _ink,
+            color: c.ink,
           ),
           onPressed: () => Navigator.of(context).pop(),
         ),
@@ -211,10 +204,10 @@ class _NotificationsViewState extends State<_NotificationsView> {
           overflow: TextOverflow.ellipsis,
           // fontFamily intentionally omitted — seller theme pins Plus
           // Jakarta Sans on every TextStyle, see seller_theme.dart.
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w700,
-            color: _ink,
+            color: c.ink,
             letterSpacing: -0.2,
           ),
         ),
@@ -322,6 +315,7 @@ class _NotificationTileState extends State<_NotificationTile> {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final notification = widget.notification;
     final lang = context.locale.languageCode;
     final formatted = DateFormat(
@@ -339,11 +333,11 @@ class _NotificationTileState extends State<_NotificationTile> {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          // Seller surface aesthetic: pure white tiles with a soft drop
+          // Seller surface aesthetic: opaque tiles with a soft drop
           // shadow, matching the dashboard's KPI cards and order rows.
           // Unread state is signalled by the indigo dot + left-edge stripe
           // rather than a tinted background — keeps the inbox calm.
-          color: _surfaceWhite,
+          color: c.surface,
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
@@ -367,14 +361,14 @@ class _NotificationTileState extends State<_NotificationTile> {
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: isRead
-                    ? const Color(0xFFF2F2F2)
+                    ? c.fillSoft
                     : kindAccent.withValues(alpha: 0.14),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 notification.kind.icon,
                 size: 18,
-                color: isRead ? _grey : kindAccent,
+                color: isRead ? c.grey : kindAccent,
               ),
             ),
             const SizedBox(width: 12),
@@ -394,7 +388,7 @@ class _NotificationTileState extends State<_NotificationTile> {
                             fontWeight: isRead
                                 ? FontWeight.w600
                                 : FontWeight.w700,
-                            color: _ink,
+                            color: c.ink,
                             letterSpacing: -0.1,
                           ),
                         ),
@@ -416,9 +410,9 @@ class _NotificationTileState extends State<_NotificationTile> {
                       notification.body,
                       maxLines: _expanded ? null : 3,
                       overflow: _expanded ? null : TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
-                        color: _grey,
+                        color: c.grey,
                         height: 1.35,
                       ),
                     ),
@@ -426,10 +420,10 @@ class _NotificationTileState extends State<_NotificationTile> {
                   const SizedBox(height: 8),
                   Text(
                     formatted,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
-                      color: _greyLight,
+                      color: c.greyMid,
                     ),
                   ),
                 ],
@@ -447,18 +441,21 @@ class _SellerNotificationsSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final base = dark ? const Color(0xFF2A2A2A) : const Color(0xFFE6E6E6);
+    final highlight = dark ? const Color(0xFF383838) : const Color(0xFFF5F5F5);
     return ListView.separated(
       physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       itemCount: 6,
       separatorBuilder: (_, _) => const SizedBox(height: 10),
       itemBuilder: (_, _) => Shimmer.fromColors(
-        baseColor: const Color(0xFFF2F2F2),
-        highlightColor: _surfaceWhite,
+        baseColor: base,
+        highlightColor: highlight,
         child: Container(
           height: 88,
           decoration: BoxDecoration(
-            color: const Color(0xFFF2F2F2),
+            color: base,
             borderRadius: BorderRadius.circular(14),
           ),
         ),

@@ -730,15 +730,15 @@ class _PriceRow extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
             decoration: BoxDecoration(
-              color: const Color(0xFFFDECEA),
+              color: c.negativeBg,
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
               '-$discountPercent%',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
-                color: Color(0xFFC0392B),
+                color: c.negative,
                 height: 1.0,
               ),
             ),
@@ -950,13 +950,11 @@ class _DeleteButton extends StatelessWidget {
 class _TariffArchiveBanner extends StatelessWidget {
   const _TariffArchiveBanner();
 
-  static const _tint = Color(0xFFFFF3E0);
-  static const _accent = Color(0xFFB45309);
-
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     return Material(
-      color: _tint,
+      color: c.warningBg,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -971,11 +969,11 @@ class _TariffArchiveBanner extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: _accent.withValues(alpha: 0.16),
+                  color: c.warning.withValues(alpha: 0.16),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 alignment: Alignment.center,
-                child: const Icon(Iconsax.archive_1, size: 20, color: _accent),
+                child: Icon(Iconsax.archive_1, size: 20, color: c.warning),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -985,27 +983,27 @@ class _TariffArchiveBanner extends StatelessWidget {
                   children: [
                     Text(
                       tr('tariff.archived_banner_title'),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF1D1D1D),
+                        color: c.ink,
                         letterSpacing: -0.1,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       tr('tariff.archived_banner_subtitle'),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: Color(0xFF5A5A5A),
+                        color: c.grey,
                         height: 1.3,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(Iconsax.arrow_right_3, size: 18, color: _accent),
+              Icon(Iconsax.arrow_right_3, size: 18, color: c.warning),
             ],
           ),
         ),

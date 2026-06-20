@@ -228,22 +228,22 @@ class _WaitingForCustomerBar extends StatelessWidget {
                 child: Container(
                   height: 52,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFF8EE),
+                    color: c.warningBg,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: const Color(0xFFFFD580),
+                      color: c.warning.withValues(alpha: 0.6),
                       width: 1,
                     ),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
                         Icons.hourglass_bottom_rounded,
                         size: 16,
-                        color: Color(0xFF8C5A12),
+                        color: c.warning,
                       ),
-                      SizedBox(width: 8),
+                      const SizedBox(width: 8),
                       Flexible(
                         child: Text(
                           'Mijoz tasdiqlashini kutmoqda',
@@ -253,7 +253,7 @@ class _WaitingForCustomerBar extends StatelessWidget {
                             fontFamily: AppFonts.seller,
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF8C5A12),
+                            color: c.warning,
                           ),
                         ),
                       ),
