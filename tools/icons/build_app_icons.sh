@@ -29,8 +29,9 @@ ASSETS="$REPO_ROOT/assets/logo"
 APPICON="$REPO_ROOT/ios/Runner/Assets.xcassets/AppIcon.appiconset"
 
 # Brand colours (must match pubspec flutter_launcher_icons + the SVGs).
-NAVY_LIGHT="#1F2933"   # any / light background
-NAVY_DARK="#11181F"    # dark-appearance background
+NAVY_LIGHT="#1F2933"     # Android legacy + FLI source background (woody_logo_full.png)
+IOS_LIGHT_BG="#FFFFFF"   # iOS "any / light" appearance background — bright, distinct
+NAVY_DARK="#11181F"      # iOS dark-appearance background
 
 need() { command -v "$1" >/dev/null 2>&1 || { echo "✗ missing dependency: $1" >&2; exit 1; }; }
 need rsvg-convert
@@ -74,10 +75,11 @@ run_flutter_launcher_icons() {
 
 build_ios_appearances() {
   echo "▸ ios — rendering appearance masters + rewriting Contents.json"
-  # Any / light: navy background baked, alpha removed (doubles as the App Store
-  # marketing icon, which must be opaque).
-  render "$DESIGN/woody_icon_full.svg" "$APPICON/.tmp.png"
-  flatten "$APPICON/.tmp.png" "$APPICON/AppIcon-1024.png" "$NAVY_LIGHT"
+  # Any / light: WHITE background + terracotta glyph, alpha removed (doubles as
+  # the App Store marketing icon, which must be opaque). Bright + distinct from
+  # the dark home screen — woody_icon_full.svg's navy read as dark in light mode.
+  render "$DESIGN/woody_icon_light.svg" "$APPICON/.tmp.png"
+  flatten "$APPICON/.tmp.png" "$APPICON/AppIcon-1024.png" "$IOS_LIGHT_BG"
   # Dark: deeper navy background baked, alpha removed.
   render "$DESIGN/woody_icon_dark.svg" "$APPICON/.tmp.png"
   flatten "$APPICON/.tmp.png" "$APPICON/AppIcon-Dark-1024.png" "$NAVY_DARK"
