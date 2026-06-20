@@ -33,5 +33,6 @@ class AssetGoogle_fonts {
 class AssetLottie {
 	static const String aiAnimation = 'assets/lottie/ai_animation.json';
 	static const String aiAnimation2 = 'assets/lottie/ai_animation2.json';
+	static const String searchLottie = 'assets/lottie/search_lottie.json';
 }
 

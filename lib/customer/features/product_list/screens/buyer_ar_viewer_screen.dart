@@ -12,6 +12,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../../../core/i18n/i18n.dart';
 import '../../../../core/theme/app_fonts.dart';
+import '../../../../shared/ar/ar_loading_overlay.dart';
 import '../../../../shared/ar/ar_scale.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../../../../shared/models/product_model.dart';
@@ -171,6 +172,9 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
                 },
               ),
             ),
+            // Brand loading animation over the stage until the .glb is loaded;
+            // fades out (and stops blocking taps) the moment the model is ready.
+            ArModelLoadingOverlay(ready: _modelReady, background: _kViewerBg),
             _TopBar(
               productName: _product.name,
               canSave: ready,
