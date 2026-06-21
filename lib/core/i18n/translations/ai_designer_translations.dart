@@ -12,6 +12,7 @@ const Map<String, dynamic> aiDesignerUz = {
   'photo_added': 'Rasm qo\'shildi',
   'remove_photo': 'Rasmni olib tashlash',
   'thinking': 'O\'ylayapman...',
+  'typing': 'AI Dizayner javob yozmoqda...',
   'error':
       'Hozir javob bera olmadim. Iltimos, birozdan keyin qayta urinib ko\'ring.',
   'unavailable': 'AI yordamchi hozircha mavjud emas.',
@@ -35,6 +36,7 @@ const Map<String, dynamic> aiDesignerRu = {
   'photo_added': 'Фото добавлено',
   'remove_photo': 'Удалить фото',
   'thinking': 'Думаю...',
+  'typing': 'AI Дизайнер печатает...',
   'error': 'Не удалось ответить. Пожалуйста, попробуйте ещё раз чуть позже.',
   'unavailable': 'AI-помощник пока недоступен.',
   'recommended_products': 'Рекомендуемые товары',
@@ -57,6 +59,7 @@ const Map<String, dynamic> aiDesignerEn = {
   'photo_added': 'Photo added',
   'remove_photo': 'Remove photo',
   'thinking': 'Thinking...',
+  'typing': 'AI Designer is typing...',
   'error': 'Couldn\'t reply just now. Please try again in a moment.',
   'unavailable': 'The AI assistant is unavailable right now.',
   'recommended_products': 'Recommended products',

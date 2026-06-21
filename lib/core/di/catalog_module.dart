@@ -36,6 +36,7 @@ import '../../shared/repositories/woody_chat_repositories.dart';
 import '../../shared/repositories/woody_customer_repositories.dart';
 import '../../shared/repositories/woody_product_repository.dart';
 import '../../shared/repositories/woody_shop_repository.dart';
+import '../../customer/features/ai_designer/cubit/ai_designer_cubit.dart';
 import '../../customer/features/ai_designer/data/ai_designer_repository.dart';
 import '../../customer/features/support/repository/support_chat_repository.dart';
 import '../../customer/features/support/repository/woody_support_chat_repository.dart';
@@ -233,9 +234,22 @@ void registerCatalogModule(GetIt sl) {
 
   // AI interior-designer chat (`POST /ai/chat`). Always registered — it
   // degrades gracefully (returns an unavailable reply) if the backend has the
-  // feature off, so no `useWoody` guard is needed. The cubit is built per-route
-  // in the router (see `/ai-designer-chat`).
+  // feature off, so no `useWoody` guard is needed.
   sl.registerLazySingleton<AiDesignerRepository>(
     () => WoodyAiDesignerRepository(sl<WoodyApiClient>()),
+  );
+  // The chat cubit is a ROOT-scope SINGLETON (provided to the screen via
+  // BlocProvider.value), NOT built per-route — so popping the chat screen does
+  // not close it: an in-flight AI request keeps running in the background and
+  // persists its reply to Hive (background-execution resilience).
+  sl.registerLazySingleton<AiDesignerCubit>(
+    () => AiDesignerCubit(
+      repository: sl<AiDesignerRepository>(),
+      analytics: sl<AnalyticsService>(),
+      facebookAnalytics: sl.isRegistered<FacebookAnalyticsService>()
+          ? sl<FacebookAnalyticsService>()
+          : null,
+    ),
+    dispose: (cubit) => cubit.close(),
   );
 }

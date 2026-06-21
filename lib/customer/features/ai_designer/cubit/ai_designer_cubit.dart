@@ -15,7 +15,7 @@ class AiDesignerState extends Equatable {
     this.messages = const [],
     this.products = const {},
     this.localImages = const {},
-    this.sending = false,
+    this.pending = 0,
     this.error,
   });
 
@@ -31,17 +31,22 @@ class AiDesignerState extends Equatable {
   /// so it renders in the thread for this session only.
   final Map<String, Uint8List> localImages;
 
-  /// True while a reply is in flight; the composer disables itself and the
-  /// loading indicator shows.
-  final bool sending;
+  /// Number of AI replies currently in flight. A COUNTER, not a bool, so the
+  /// user can fire consecutive messages without the UI blocking — the typing
+  /// indicator stays up until the LAST reply lands.
+  final int pending;
 
   final String? error;
+
+  /// True while any reply is awaited — drives the typing indicator. The
+  /// composer NEVER disables on this (consecutive sends are allowed).
+  bool get sending => pending > 0;
 
   AiDesignerState copyWith({
     List<AiChatMessage>? messages,
     Map<String, List<AiRecommendedProduct>>? products,
     Map<String, Uint8List>? localImages,
-    bool? sending,
+    int? pending,
     String? error,
     bool clearError = false,
   }) {
@@ -49,18 +54,22 @@ class AiDesignerState extends Equatable {
       messages: messages ?? this.messages,
       products: products ?? this.products,
       localImages: localImages ?? this.localImages,
-      sending: sending ?? this.sending,
+      pending: pending ?? this.pending,
       error: clearError ? null : (error ?? this.error),
     );
   }
 
   @override
-  List<Object?> get props => [messages, products, localImages, sending, error];
+  List<Object?> get props => [messages, products, localImages, pending, error];
 }
 
-/// Drives the AI interior-designer chat. Loads persisted history instantly on
-/// construction (no loading state), then appends the user turn + the AI reply
-/// per send, persisting both.
+/// Drives the AI interior-designer chat.
+///
+/// Registered as a ROOT-scope GetIt singleton (see `catalog_module`) and handed
+/// to the screen via `BlocProvider.value` — so popping the chat screen does NOT
+/// close the cubit. An in-flight request therefore keeps running in the
+/// background, appends its reply, and persists it to Hive; reopening the chat
+/// shows the reply (background-execution resilience).
 class AiDesignerCubit extends Cubit<AiDesignerState> {
   AiDesignerCubit({
     required AiDesignerRepository repository,
@@ -93,7 +102,9 @@ class AiDesignerCubit extends Cubit<AiDesignerState> {
     String? imageMime,
   }) async {
     final trimmed = text.trim();
-    if ((trimmed.isEmpty && imageBytes == null) || state.sending) return;
+    // NO `sending` guard — consecutive sends are allowed; each request is
+    // independent and counted by `pending`.
+    if (trimmed.isEmpty && imageBytes == null) return;
 
     // Snapshot the PRIOR turns before adding the current one — the request
     // sends this turn as `message`, so it must NOT also appear in `history`
@@ -111,9 +122,9 @@ class AiDesignerCubit extends Cubit<AiDesignerState> {
         : {...state.localImages, userMessage.id: imageBytes};
     emit(
       state.copyWith(
-        messages: [...prior, userMessage],
+        messages: [...state.messages, userMessage],
         localImages: localImages,
-        sending: true,
+        pending: state.pending + 1,
         clearError: true,
       ),
     );
@@ -125,29 +136,39 @@ class AiDesignerCubit extends Cubit<AiDesignerState> {
       }),
     );
 
-    final reply = await _repo.chat(
-      message: trimmed,
-      imageBytes: imageBytes,
-      imageMime: imageMime,
-      history: prior,
-    );
+    try {
+      final reply = await _repo.chat(
+        message: trimmed,
+        imageBytes: imageBytes,
+        imageMime: imageMime,
+        history: prior,
+      );
 
-    final aiMessage = AiChatMessage(
-      id: _nextId(),
-      text: reply.reply,
-      isUser: false,
-      timestamp: DateTime.now(),
-    );
-    final products = {...state.products};
-    if (reply.products.isNotEmpty) products[aiMessage.id] = reply.products;
-    emit(
-      state.copyWith(
-        messages: [...state.messages, aiMessage],
-        products: products,
-        sending: false,
-      ),
-    );
-    unawaited(_store.append(aiMessage));
+      final aiMessage = AiChatMessage(
+        id: _nextId(),
+        text: reply.reply,
+        isUser: false,
+        timestamp: DateTime.now(),
+      );
+      // Persist FIRST so the reply survives even if the cubit was closed while
+      // the request was in flight (e.g. app teardown) — on the next open
+      // `_loadHistory` reads it back from Hive.
+      await _store.append(aiMessage);
+      if (isClosed) return;
+      final products = {...state.products};
+      if (reply.products.isNotEmpty) products[aiMessage.id] = reply.products;
+      emit(
+        state.copyWith(
+          messages: [...state.messages, aiMessage],
+          products: products,
+          pending: state.pending - 1,
+        ),
+      );
+    } catch (_) {
+      // The repository degrades gracefully (it never throws on an AI failure),
+      // so this only guards unexpected errors — never leak the typing counter.
+      if (!isClosed) emit(state.copyWith(pending: state.pending - 1));
+    }
   }
 
   Future<void> clearHistory() async {

@@ -153,7 +153,7 @@ class _MessageListState extends State<_MessageList> {
           padding: const EdgeInsets.symmetric(vertical: 12),
           itemCount: itemCount,
           itemBuilder: (context, i) {
-            if (i >= state.messages.length) return const _TypingIndicator();
+            if (i >= state.messages.length) return const _TypingBubble();
             final message = state.messages[i];
             return _MessageRow(
               message: message,
@@ -450,21 +450,99 @@ class _ProductCard extends StatelessWidget {
   }
 }
 
-class _TypingIndicator extends StatelessWidget {
-  const _TypingIndicator();
+/// Left-aligned "AI is typing" bubble shown while a reply is in flight — an
+/// animated ellipsis + the localized "AI Dizayner javob yozmoqda..." copy.
+/// Non-blocking: the composer stays live underneath.
+class _TypingBubble extends StatelessWidget {
+  const _TypingBubble();
 
   @override
   Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Align(
         alignment: Alignment.centerLeft,
-        child: SizedBox(
-          width: 64,
-          height: 40,
-          child: Lottie.asset('assets/lottie/ai_chat_bot.json', repeat: true),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: pt.surface,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(18),
+              topRight: Radius.circular(18),
+              bottomLeft: Radius.circular(4),
+              bottomRight: Radius.circular(18),
+            ),
+            boxShadow: PremiumTokens.softShadow,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const _TypingDots(),
+              const SizedBox(width: 10),
+              Flexible(
+                child: Text(
+                  tr('ai_designer.typing'),
+                  style: PremiumTokens.body(size: 13, color: pt.grey),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
+    );
+  }
+}
+
+/// A three-dot ellipsis that ripples — the classic chat "typing" cue.
+class _TypingDots extends StatefulWidget {
+  const _TypingDots();
+
+  @override
+  State<_TypingDots> createState() => _TypingDotsState();
+}
+
+class _TypingDotsState extends State<_TypingDots>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1100),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) {
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(3, (i) {
+            // Each dot peaks at a staggered phase → a travelling ripple.
+            final phase = (_controller.value - i * 0.18) % 1.0;
+            final scale = 0.6 + 0.4 * (1 - (2 * phase - 1).abs());
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2),
+              child: Transform.scale(
+                scale: scale,
+                child: Container(
+                  width: 7,
+                  height: 7,
+                  decoration: const BoxDecoration(
+                    color: PremiumTokens.accent,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            );
+          }),
+        );
+      },
     );
   }
 }
@@ -590,72 +668,61 @@ class _ComposerState extends State<_Composer> {
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
-    return BlocBuilder<AiDesignerCubit, AiDesignerState>(
-      buildWhen: (a, b) => a.sending != b.sending,
-      builder: (context, state) {
-        return Container(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-          decoration: BoxDecoration(
-            color: pt.surface,
-            boxShadow: PremiumTokens.softShadow,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+    // No BlocBuilder + no `sending` gate: the input stays live so the user can
+    // fire consecutive messages while a reply is still in flight. The in-list
+    // typing bubble is the only "busy" affordance — the field never freezes.
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+      decoration: BoxDecoration(
+        color: pt.surface,
+        boxShadow: PremiumTokens.softShadow,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (_pendingImage != null)
+            _ImagePreview(
+              bytes: _pendingImage!,
+              onRemove: () => setState(() {
+                _pendingImage = null;
+                _pendingMime = null;
+              }),
+            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              if (_pendingImage != null)
-                _ImagePreview(
-                  bytes: _pendingImage!,
-                  onRemove: () => setState(() {
-                    _pendingImage = null;
-                    _pendingMime = null;
-                  }),
-                ),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  _IconButton(
-                    icon: Icons.camera_alt,
-                    onTap: state.sending ? null : _pickImage,
+              _IconButton(icon: Icons.camera_alt, onTap: _pickImage),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Container(
+                  constraints: const BoxConstraints(maxHeight: 120),
+                  decoration: BoxDecoration(
+                    color: pt.background,
+                    borderRadius: BorderRadius.circular(22),
                   ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Container(
-                      constraints: const BoxConstraints(maxHeight: 120),
-                      decoration: BoxDecoration(
-                        color: pt.background,
-                        borderRadius: BorderRadius.circular(22),
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: TextField(
-                        controller: _ctrl,
-                        minLines: 1,
-                        maxLines: 5,
-                        enabled: !state.sending,
-                        textInputAction: TextInputAction.newline,
-                        style: PremiumTokens.body(size: 14, color: pt.dark),
-                        decoration: InputDecoration(
-                          isDense: true,
-                          border: InputBorder.none,
-                          hintText: tr('ai_designer.composer_hint'),
-                          hintStyle: PremiumTokens.body(
-                            size: 14,
-                            color: pt.grey,
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            vertical: 12,
-                          ),
-                        ),
-                      ),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: TextField(
+                    controller: _ctrl,
+                    minLines: 1,
+                    maxLines: 5,
+                    textInputAction: TextInputAction.newline,
+                    style: PremiumTokens.body(size: 14, color: pt.dark),
+                    decoration: InputDecoration(
+                      isDense: true,
+                      border: InputBorder.none,
+                      hintText: tr('ai_designer.composer_hint'),
+                      hintStyle: PremiumTokens.body(size: 14, color: pt.grey),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                   ),
-                  const SizedBox(width: 6),
-                  _SendButton(sending: state.sending, onTap: _send),
-                ],
+                ),
               ),
+              const SizedBox(width: 6),
+              _SendButton(onTap: _send),
             ],
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 
@@ -741,16 +808,17 @@ class _IconButton extends StatelessWidget {
 }
 
 class _SendButton extends StatelessWidget {
-  const _SendButton({required this.sending, required this.onTap});
+  const _SendButton({required this.onTap});
 
-  final bool sending;
   final Future<void> Function() onTap;
 
   @override
   Widget build(BuildContext context) {
+    // Always active — the busy state is shown by the in-list typing bubble, not
+    // by disabling send. The user can queue consecutive messages.
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: sending ? null : () => onTap(),
+      onTap: () => onTap(),
       child: Container(
         width: 44,
         height: 44,
@@ -758,15 +826,7 @@ class _SendButton extends StatelessWidget {
           color: PremiumTokens.accent,
           shape: BoxShape.circle,
         ),
-        child: sending
-            ? const Padding(
-                padding: EdgeInsets.all(12),
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
-              )
-            : const Icon(Iconsax.send_1, size: 20, color: Colors.white),
+        child: const Icon(Iconsax.send_1, size: 20, color: Colors.white),
       ),
     );
   }

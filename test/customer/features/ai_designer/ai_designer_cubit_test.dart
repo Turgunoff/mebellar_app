@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -117,5 +118,77 @@ void main() {
 
     expect(cubit.state.messages.last.text, 'fallback');
     expect(cubit.state.sending, isFalse);
+  });
+
+  test('allows consecutive sends; pending counts in-flight requests', () async {
+    final gate1 = Completer<AiDesignerReply>();
+    final gate2 = Completer<AiDesignerReply>();
+    final gates = <Completer<AiDesignerReply>>[gate1, gate2];
+    var call = 0;
+    when(
+      () => repo.chat(
+        message: any(named: 'message'),
+        imageBytes: any(named: 'imageBytes'),
+        imageMime: any(named: 'imageMime'),
+        history: any(named: 'history'),
+      ),
+    ).thenAnswer((_) => gates[call++].future);
+
+    final cubit = build();
+    // Fire two sends WITHOUT awaiting — the old code blocked the 2nd via the
+    // `sending` guard; now both go through (non-blocking UX).
+    final f1 = cubit.sendMessage(text: 'birinchi');
+    final f2 = cubit.sendMessage(text: 'ikkinchi');
+    await Future<void>.delayed(Duration.zero); // let the sync prefixes run
+
+    expect(cubit.state.messages.where((m) => m.isUser).length, 2);
+    expect(cubit.state.pending, 2);
+    expect(cubit.state.sending, isTrue);
+
+    gate1.complete(
+      const AiDesignerReply(available: true, reply: 'r1', products: []),
+    );
+    gate2.complete(
+      const AiDesignerReply(available: true, reply: 'r2', products: []),
+    );
+    await Future.wait([f1, f2]);
+
+    expect(cubit.state.pending, 0);
+    expect(cubit.state.sending, isFalse);
+    expect(cubit.state.messages.length, 4); // 2 user + 2 ai
+  });
+
+  test('persists an in-flight reply even after the cubit is closed (pop)', () async {
+    final gate = Completer<AiDesignerReply>();
+    when(
+      () => repo.chat(
+        message: any(named: 'message'),
+        imageBytes: any(named: 'imageBytes'),
+        imageMime: any(named: 'imageMime'),
+        history: any(named: 'history'),
+      ),
+    ).thenAnswer((_) => gate.future);
+
+    final cubit = build();
+    final f = cubit.sendMessage(text: 'salom');
+    await Future<void>.delayed(Duration.zero);
+
+    // Simulate the user popping the chat screen while the request is in flight.
+    // Closing here proves the worst case: the request is NOT cancelled and the
+    // reply is still written to the store (so reopening reloads it from Hive).
+    await cubit.close();
+    gate.complete(
+      const AiDesignerReply(available: true, reply: 'late reply', products: []),
+    );
+    await f;
+
+    final appended = verify(
+      () => store.append(captureAny()),
+    ).captured.cast<AiChatMessage>();
+    expect(
+      appended.any((m) => !m.isUser && m.text == 'late reply'),
+      isTrue,
+      reason: 'the AI reply must persist even when the cubit closed mid-flight',
+    );
   });
 }
