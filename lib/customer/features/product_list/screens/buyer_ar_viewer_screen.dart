@@ -98,9 +98,22 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
         extendBodyBehindAppBar: true,
         body: Stack(
           children: [
-            // Solid light base — keeps the surface clean (never a black flash)
-            // while the model streams in or if the WebView is slow.
-            const ColoredBox(color: _kViewerBg, child: SizedBox.expand()),
+            // Room-context backdrop: a soft showroom photo behind the now-
+            // transparent model canvas, so the piece reads as placed in a real
+            // space instead of floating in a void. The flat _kViewerBg fills
+            // first (never a black flash) and stays visible if the asset ever
+            // fails to decode; BoxFit.cover keeps it edge-to-edge on any ratio.
+            const Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: _kViewerBg,
+                  image: DecorationImage(
+                    image: AssetImage('assets/images/viewer_3d_bg.webp'),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+            ),
             Positioned.fill(
               child: ModelViewer(
                 src: _product.arModelUrl!,
@@ -135,7 +148,12 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
                 environmentImage: 'neutral',
                 // A grounded contact shadow sells the "it's really here" feel.
                 shadowIntensity: 1,
-                backgroundColor: _kViewerBg,
+                // Transparent canvas (model_viewer_plus also forces the WebView
+                // itself transparent) so the room backdrop behind shows through.
+                // The saved screenshot still flattens onto _kViewerBg —
+                // toDataURL captures only the model canvas, not this
+                // Flutter-layer backdrop.
+                backgroundColor: Colors.transparent,
                 loading: Loading.eager,
                 // Suppress <model-viewer>'s own bottom-right AR button. It is
                 // hidden whenever the device reports no AR support (emulators,
@@ -188,7 +206,7 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
               left: 16,
               right: 16,
               bottom: bottomInset + 16,
-              child: _ArPlaceButton(enabled: ready, onTap: _activateAr),
+              child: _ArPlaceButton(enabled: ready, onTap: _showArChoiceSheet),
             ),
           ],
         ),
@@ -217,6 +235,30 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
       'if(!mv){return;}'
       'if(mv.canActivateAR){mv.activateAR();}'
       "else{$_arChannel.postMessage('unsupported');}})();",
+    );
+  }
+
+  /// Lets the buyer pick how to preview the piece before launching: native
+  /// true-to-size 3D AR, or the universal 2D camera overlay. Replaces the old
+  /// "tap → straight to AR" so devices that can't run ARCore have an obvious,
+  /// first-class path up front, not only the silent `unsupported` fallback.
+  Future<void> _showArChoiceSheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      // The sheet supplies its own rounded white surface; a transparent host
+      // lets those corners read over the scrim.
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetContext) => _ArChoiceSheet(
+        onPick3d: () {
+          Navigator.of(sheetContext).pop();
+          unawaited(_activateAr());
+        },
+        onPick2d: () {
+          Navigator.of(sheetContext).pop();
+          _openFallback();
+        },
+      ),
     );
   }
 
@@ -536,6 +578,188 @@ class _ArPlaceButton extends StatelessWidget {
                   letterSpacing: 0.2,
                   color: Colors.white,
                 ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Premium choice sheet shown before launching: pick native true-to-size 3D AR
+/// or the universal 2D camera overlay. Fixed-for-light to match the immersive
+/// viewer surface (which never flips with the OS theme).
+class _ArChoiceSheet extends StatelessWidget {
+  const _ArChoiceSheet({required this.onPick3d, required this.onPick2d});
+
+  final VoidCallback onPick3d;
+  final VoidCallback onPick2d;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: _kInk.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(100),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 22),
+              Text(
+                tr('product.ar_choice_title'),
+                style: const TextStyle(
+                  fontFamily: AppFonts.body,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.3,
+                  color: _kInk,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                tr('product.ar_choice_subtitle'),
+                style: TextStyle(
+                  fontFamily: AppFonts.body,
+                  fontSize: 14,
+                  height: 1.35,
+                  fontWeight: FontWeight.w500,
+                  color: _kInk.withValues(alpha: 0.55),
+                ),
+              ),
+              const SizedBox(height: 22),
+              _ArChoiceOption(
+                icon: Iconsax.d_cube_scan,
+                title: tr('product.ar_choice_3d_title'),
+                subtitle: tr('product.ar_choice_3d_subtitle'),
+                highlighted: true,
+                onTap: onPick3d,
+              ),
+              const SizedBox(height: 12),
+              _ArChoiceOption(
+                icon: Iconsax.camera,
+                title: tr('product.ar_choice_2d_title'),
+                subtitle: tr('product.ar_choice_2d_subtitle'),
+                highlighted: false,
+                onTap: onPick2d,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A single tappable choice row: a terracotta-tinted icon tile, a title +
+/// subtitle, and a trailing chevron. The recommended ([highlighted]) option
+/// gets a filled terracotta tile and a soft accent border to pull the eye.
+class _ArChoiceOption extends StatelessWidget {
+  const _ArChoiceOption({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.highlighted,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool highlighted;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    const accent = PremiumTokens.accent;
+    return Material(
+      color: highlighted
+          ? accent.withValues(alpha: 0.07)
+          : const Color(0xFFF6F7F9),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(
+          color: highlighted
+              ? accent.withValues(alpha: 0.5)
+              : _kInk.withValues(alpha: 0.06),
+          width: 1.5,
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          child: Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: highlighted ? accent : accent.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  icon,
+                  size: 24,
+                  color: highlighted ? Colors.white : accent,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: AppFonts.body,
+                        fontSize: 15.5,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.2,
+                        color: _kInk,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: AppFonts.body,
+                        fontSize: 12.5,
+                        height: 1.3,
+                        fontWeight: FontWeight.w500,
+                        color: _kInk.withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Icon(
+                Iconsax.arrow_right_3,
+                size: 18,
+                color: _kInk.withValues(alpha: 0.3),
               ),
             ],
           ),

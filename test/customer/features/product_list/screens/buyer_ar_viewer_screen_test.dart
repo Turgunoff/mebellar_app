@@ -136,4 +136,25 @@ void main() {
     final viewer = tester.widget<ModelViewer>(find.byType(ModelViewer));
     expect(viewer.poster, isNull);
   });
+
+  testWidgets('renders the room backdrop behind a transparent canvas', (
+    tester,
+  ) async {
+    await _pump(tester, _product());
+
+    final viewer = tester.widget<ModelViewer>(find.byType(ModelViewer));
+    // The canvas is transparent so the room photo behind shows through;
+    // model_viewer_plus also forces the underlying WebView transparent.
+    expect(viewer.backgroundColor, Colors.transparent);
+
+    // The room-context backdrop asset is mounted behind the model.
+    final backdropAssets = tester
+        .widgetList<DecoratedBox>(find.byType(DecoratedBox))
+        .map((d) => d.decoration)
+        .whereType<BoxDecoration>()
+        .where((d) => d.image?.image is AssetImage)
+        .map((d) => (d.image!.image as AssetImage).assetName)
+        .toList();
+    expect(backdropAssets, contains('assets/images/viewer_3d_bg.webp'));
+  });
 }
