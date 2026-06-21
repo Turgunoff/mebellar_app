@@ -18,3 +18,5 @@ Yozuvlar avtomatik qo'shiladi:
 | 2026-06-19 | 1.0.19+19 | e957e55b4d98 | ios | — |
 | 2026-06-20 | 1.0.20+20 | 257422291e3d | android | — |
 | 2026-06-20 | 1.0.20+20 | 1706eeec8760 | ios | — |
+| 2026-06-21 | 1.0.22+22 | ec4ad22d26c0 | android | 1.0.22: AI Interyer Dizayner + onboarding/AR backlog |
+| 2026-06-21 | 1.0.22+22 | ec4ad22d26c0 | ios | 1.0.22: AI Interyer Dizayner + onboarding/AR backlog |
