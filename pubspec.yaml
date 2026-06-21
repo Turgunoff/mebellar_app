@@ -98,6 +98,8 @@ dependencies:
   flutter_image_compress: ^2.3.0
   flutter_svg: ^2.0.10
   shimmer: ^3.0.0
+  # Animated bottom pagination dots for the customer 3D onboarding PageView.
+  smooth_page_indicator: ^1.2.0
 
   # AR / 3D pipeline (Photos-to-3D via Meshy).
   #  - camera: custom locked-down 3-photo scan UI (no OS camera app).
@@ -224,6 +226,9 @@ flutter:
     - assets/logo/
     - assets/google_fonts/
     - assets/lottie/
+    # 3D onboarding: rotating chair model (page 1) + placeholder hero images.
+    - assets/models/
+    - assets/images/
     - shorebird.yaml
 
   # Native Flutter font registration — replaces the `google_fonts` package.

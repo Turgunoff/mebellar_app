@@ -36,6 +36,8 @@ import 'features/notifications/screens/notifications_screen.dart'
 import 'features/search/screens/search_screen.dart';
 import 'features/shop/screens/shop_profile_screen.dart';
 import 'features/support/screens/support_chat_screen.dart';
+import 'features/onboarding/screens/onboarding_screen.dart'
+    as customer_onboarding;
 import 'features/tutorial/tutorial_screen.dart';
 import '../seller/features/onboarding/screens/onboarding_screen.dart';
 
@@ -76,16 +78,18 @@ GoRouter buildCustomerRouter() {
       // Auto screen_view + Crashlytics breadcrumbs on every route push.
       FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
     ],
-    // First-launch onboarding gate. Runs on every navigation: if the user
-    // hasn't completed the tutorial, route them to `/tutorial` regardless of
-    // the intended destination. This replaces an earlier imperative push that
-    // raced with the Navigator's mount order under `_ModeRouter`'s crossfade
-    // and silently no-op'd when `navigatorKey.currentState` was momentarily
-    // null.
+    // First-launch onboarding gate. Runs on every navigation: until the user
+    // finishes the 3D onboarding, route them to `/onboarding` regardless of the
+    // intended destination. A declarative redirect (not an imperative push)
+    // avoids racing the Navigator's mount order under `_ModeRouter`'s crossfade.
     redirect: (context, state) {
-      final atTutorial = state.matchedLocation == '/tutorial';
-      if (!isTutorialSeen() && !atTutorial) return '/tutorial';
-      if (isTutorialSeen() && atTutorial) return '/';
+      // First-launch gate → the 3D onboarding (replaces the legacy /tutorial
+      // gate). Shows exactly once; `onboarding_seen` flips on Skip / Get Started.
+      final atOnboarding = state.matchedLocation == '/onboarding';
+      if (!customer_onboarding.isOnboardingSeen() && !atOnboarding) {
+        return '/onboarding';
+      }
+      if (customer_onboarding.isOnboardingSeen() && atOnboarding) return '/';
       return null;
     },
     routes: [
@@ -111,6 +115,14 @@ GoRouter buildCustomerRouter() {
         // shared product the user installed the app to see) instead of just
         // dropping them on home. `take()` clears it so it can't fire twice.
         builder: (context, state) => CustomerTutorialScreen(
+          onDone: () => context.go(DeferredDeepLink.take() ?? '/'),
+        ),
+      ),
+      GoRoute(
+        path: '/onboarding',
+        // First-launch 3D onboarding (the redirect gate above lands here).
+        // On finish, replay any deferred deep link captured at boot, else home.
+        builder: (context, state) => customer_onboarding.OnboardingScreen(
           onDone: () => context.go(DeferredDeepLink.take() ?? '/'),
         ),
       ),
@@ -328,10 +340,7 @@ class _ProductDetailLoader extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      tr('product.not_found'),
-                      textAlign: TextAlign.center,
-                    ),
+                    Text(tr('product.not_found'), textAlign: TextAlign.center),
                     const SizedBox(height: 16),
                     TextButton(
                       onPressed: () => context.go('/'),

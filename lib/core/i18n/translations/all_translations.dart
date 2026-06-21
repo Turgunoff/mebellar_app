@@ -12,6 +12,7 @@ import 'chat_translations.dart';
 import 'checkout_translations.dart';
 import 'common_translations.dart';
 import 'home_translations.dart';
+import 'intro_translations.dart';
 import 'mode_translations.dart';
 import 'nav_translations.dart';
 import 'notifications_translations.dart';
@@ -69,6 +70,7 @@ const Map<String, dynamic> uzTranslations = {
   'network_modal': networkModalUz,
   'update': updateUz,
   'deep_links': deepLinksUz,
+  'intro': introUz,
   'tutorial': tutorialUz,
   'error': errorUz,
   'lang': langUz,
@@ -116,6 +118,7 @@ const Map<String, dynamic> ruTranslations = {
   'network_modal': networkModalRu,
   'update': updateRu,
   'deep_links': deepLinksRu,
+  'intro': introRu,
   'tutorial': tutorialRu,
   'error': errorRu,
   'lang': langRu,
@@ -163,6 +166,7 @@ const Map<String, dynamic> enTranslations = {
   'network_modal': networkModalEn,
   'update': updateEn,
   'deep_links': deepLinksEn,
+  'intro': introEn,
   'tutorial': tutorialEn,
   'error': errorEn,
   'lang': langEn,
