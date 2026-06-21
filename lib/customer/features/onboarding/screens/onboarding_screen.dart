@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
+import 'package:lottie/lottie.dart';
 import 'package:model_viewer_plus/model_viewer_plus.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -40,8 +41,17 @@ class OnboardingScreen extends StatefulWidget {
   State<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen> {
+class _OnboardingScreenState extends State<OnboardingScreen>
+    with SingleTickerProviderStateMixin {
   final PageController _controller = PageController();
+
+  // Drives page 2's autonomous cinematic pan-and-zoom. It is NOT tied to the
+  // swipe — it plays itself once the swipe fully settles on page 2 (see
+  // _handlePageScroll) and rewinds when the user drifts off so it replays on
+  // every visit.
+  late final AnimationController _panController;
+  late final CurvedAnimation _panAnimation;
+
   int _index = 0;
 
   static const int _pageCount = 3;
@@ -51,8 +61,37 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   bool _finishing = false;
 
   @override
+  void initState() {
+    super.initState();
+    _panController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    );
+    _panAnimation = CurvedAnimation(
+      parent: _panController,
+      curve: Curves.easeInOutCubic,
+    );
+    _controller.addListener(_handlePageScroll);
+  }
+
+  /// Plays the page-2 pan-and-zoom the moment the swipe fully settles on page 2
+  /// (PageController snaps `page` to an exact integer once idle), and rewinds it
+  /// as soon as the user drifts off so it replays on the next visit.
+  void _handlePageScroll() {
+    if (!_controller.hasClients) return;
+    if (_controller.page == 1.0) {
+      _panController.forward();
+    } else {
+      _panController.reset();
+    }
+  }
+
+  @override
   void dispose() {
+    _controller.removeListener(_handlePageScroll);
     _controller.dispose();
+    _panAnimation.dispose();
+    _panController.dispose();
     super.dispose();
   }
 
@@ -104,31 +143,27 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         body: Column(
           children: [
             Expanded(
-              child: Stack(
-                fit: StackFit.expand,
+              child: PageView(
+                controller: _controller,
+                onPageChanged: (i) => setState(() => _index = i),
                 children: [
-                  // Shared ultra-wide room photo behind pages 2-3. It pans
-                  // left→right in lockstep with the swipe (staircase on page 2,
-                  // sofa on page 3) and is faded out on page 1, which keeps its
-                  // own 3D showroom stage.
-                  _ParallaxPanorama(controller: _controller),
-                  PageView(
-                    controller: _controller,
-                    onPageChanged: (i) => setState(() => _index = i),
-                    children: [
-                      _ModelOnboardingPage(
-                        title: tr('intro.page1_title'),
-                        body: tr('intro.page1_body'),
-                      ),
-                      _PanoramaPage(
-                        title: tr('intro.page2_title'),
-                        body: tr('intro.page2_body'),
-                      ),
-                      _PanoramaPage(
-                        title: tr('intro.page3_title'),
-                        body: tr('intro.page3_body'),
-                      ),
-                    ],
+                  _ModelOnboardingPage(
+                    title: tr('intro.page1_title'),
+                    body: tr('intro.page1_body'),
+                  ),
+                  // Page 2 owns the ultra-wide room photo and plays its own
+                  // autonomous pan-and-zoom (staircase → sofa) on landing.
+                  _PanoramaPage(
+                    animation: _panAnimation,
+                    title: tr('intro.page2_title'),
+                    body: tr('intro.page2_body'),
+                  ),
+                  // Page 3 is a fully separate layout with its own background —
+                  // no panorama, ready for its own asset.
+                  _StaticImagePage(
+                    asset: 'assets/images/onboarding_3.png',
+                    title: tr('intro.page3_title'),
+                    body: tr('intro.page3_body'),
                   ),
                 ],
               ),
@@ -166,81 +201,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 }
 
-/// Shared parallax backdrop for pages 2-3: one ultra-wide room photo that pans
-/// horizontally off the live [PageController]. `BoxFit.cover` pins it to the
-/// screen height and leaves a wide horizontal surplus that the alignment scrubs
-/// across — `centerLeft` (staircase + windows) at page 2, `centerRight` (the
-/// sofa) at page 3 — so the background slides proportionally with the swipe
-/// gesture while the page copy slides at the PageView's own rate. The whole
-/// backdrop fades out across the page1→2 swipe so page 1 keeps its own 3D
-/// showroom stage untouched.
-class _ParallaxPanorama extends StatelessWidget {
-  const _ParallaxPanorama({required this.controller});
-
-  final PageController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    final pt = PremiumTokens.of(context);
-    return AnimatedBuilder(
-      animation: controller,
-      builder: (context, _) {
-        // `page` is null until the first layout — fall back to the resting
-        // index so the first frame can't throw.
-        final page = controller.hasClients && controller.page != null
-            ? controller.page!
-            : controller.initialPage.toDouble();
-        // page 1.0 (page 2) → centerLeft, page 2.0 (page 3) → centerRight.
-        final alignX = (-1.0 + 2.0 * (page - 1.0)).clamp(-1.0, 1.0);
-        // Fade in across the page1→2 swipe; invisible (and unpainted) on page 1.
-        final opacity = page.clamp(0.0, 1.0);
-        return Opacity(
-          opacity: opacity,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              Image.asset(
-                'assets/images/onboarding_panorama.webp',
-                fit: BoxFit.cover,
-                alignment: Alignment(alignX, 0),
-                // Degrade to a neutral stage if the photo can't decode (also
-                // keeps widget tests, which have no asset bundle, from throwing).
-                errorBuilder: (context, _, _) => ColoredBox(color: pt.imageBg),
-              ),
-              // Same melt-to-background gradient as page 1: clear through the
-              // upper room, fading to the solid app background so the copy reads
-              // cleanly and the photo dissolves into the footer beneath.
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    // Fade from the bg colour (alpha 0 → 1) — never
-                    // Colors.transparent, which would bleed grey mid-fade.
-                    colors: [
-                      pt.background.withValues(alpha: 0),
-                      pt.background.withValues(alpha: 0),
-                      pt.background,
-                    ],
-                    stops: const [0.0, 0.6, 0.86],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-/// Pages 2-3 over the shared [_ParallaxPanorama]: a transparent overlay that
-/// carries only the page copy, anchored just above the footer. The panorama
-/// behind pans on swipe while this text slides with the PageView — the gap
-/// between those two rates is the parallax.
+/// Page 2's autonomous cinematic backdrop: one ultra-wide room photo that pans
+/// and zooms by itself once the user lands on the page. The [animation] (a
+/// curved 0→1 the parent plays on arrival) drives both a 1.0→1.15 push-in and a
+/// `centerLeft`→`centerRight` pan, so the camera glides from the staircase on
+/// the left to the pink sofa on the right with a slow zoom. `BoxFit.cover` pins
+/// the photo to the screen height; the Stack clips the zoom overflow.
 class _PanoramaPage extends StatelessWidget {
-  const _PanoramaPage({required this.title, required this.body});
+  const _PanoramaPage({
+    required this.animation,
+    required this.title,
+    required this.body,
+  });
 
+  final Animation<double> animation;
   final String title;
   final String body;
 
@@ -250,46 +224,152 @@ class _PanoramaPage extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(28, 0, 28, 6),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 26,
-                    height: 1.15,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.4,
-                    color: pt.dark,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  body,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 15,
-                    height: 1.5,
-                    fontWeight: FontWeight.w500,
-                    color: pt.grey,
-                  ),
-                ),
-                const SizedBox(height: 8),
-              ],
-            ),
-          ),
+        AnimatedBuilder(
+          animation: animation,
+          builder: (context, _) {
+            final v = animation.value;
+            return Transform.scale(
+              // Slow push-in across the pan.
+              scale: 1.0 + 0.15 * v,
+              child: Image.asset(
+                'assets/images/onboarding_panorama.webp',
+                fit: BoxFit.cover,
+                // Glide the framing left→right: staircase → sofa.
+                alignment: Alignment.lerp(
+                  Alignment.centerLeft,
+                  Alignment.centerRight,
+                  v,
+                )!,
+                // Degrade to a neutral stage if the photo can't decode (also
+                // keeps widget tests, which have no asset bundle, from throwing).
+                errorBuilder: (context, _, _) => ColoredBox(color: pt.imageBg),
+              ),
+            );
+          },
         ),
+        const _MeltGradient(),
+        _PageCopy(title: title, body: body),
       ],
     );
   }
 }
+
+/// Page 3 — a fully separate layout from the page-2 panorama: its own static
+/// background image under the shared gradient + copy treatment. Swap [asset]
+/// for page 3's own art when it lands.
+class _StaticImagePage extends StatelessWidget {
+  const _StaticImagePage({
+    required this.asset,
+    required this.title,
+    required this.body,
+  });
+
+  final String asset;
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Image.asset(
+          asset,
+          fit: BoxFit.cover,
+          errorBuilder: (context, _, _) => ColoredBox(color: pt.imageBg),
+        ),
+        const _MeltGradient(),
+        _PageCopy(title: title, body: body),
+      ],
+    );
+  }
+}
+
+/// The melt-to-background gradient shared by the image pages: clear through the
+/// upper room, fading to the solid app background so the copy reads cleanly and
+/// the photo dissolves into the footer beneath. Same treatment as page 1.
+class _MeltGradient extends StatelessWidget {
+  const _MeltGradient();
+
+  @override
+  Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
+    return IgnorePointer(
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            // Fade from the bg colour (alpha 0 → 1) — never Colors.transparent,
+            // which would bleed grey mid-fade.
+            colors: [
+              pt.background.withValues(alpha: 0),
+              pt.background.withValues(alpha: 0),
+              pt.background,
+            ],
+            stops: const [0.0, 0.6, 0.86],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Title + body copy for the image pages (2-3), anchored just above the footer
+/// over the bottom gradient. Mirrors page 1's copy block (minus the arc).
+class _PageCopy extends StatelessWidget {
+  const _PageCopy({required this.title, required this.body});
+
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 0,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(28, 0, 28, 6),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 26,
+                height: 1.15,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.4,
+                color: pt.dark,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              body,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 15,
+                height: 1.5,
+                fontWeight: FontWeight.w500,
+                color: pt.grey,
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// JS→Dart bridge: the page-1 `<model-viewer>` posts "ready" over this channel
+/// the moment its `load` event fires, so the Lottie loader can fade out exactly
+/// when the interactive 3D chair is on screen.
+const String _onbReadyChannel = 'WoodyOnbState';
 
 // Arc-slider geometry. The track is a shallow downward "smile" the white thumb
 // rides; the thumb sits at the lowest (centre) point on first load.
@@ -328,6 +408,21 @@ class _ModelOnboardingPage extends StatefulWidget {
 
 class _ModelOnboardingPageState extends State<_ModelOnboardingPage> {
   WebViewController? _web;
+
+  /// True once `<model-viewer>` fires its `load` event — the cue to fade the
+  /// Lottie loader out.
+  bool _modelReady = false;
+
+  /// Set after the fade-out finishes so the looping Lottie is dropped from the
+  /// tree entirely (no idle animation ticking behind the live model).
+  bool _loaderGone = false;
+
+  /// "ready" arrives once the model's `load` event fires — reveal the chair by
+  /// fading the loader.
+  void _onModelState(JavaScriptMessage message) {
+    if (!mounted || _modelReady) return;
+    if (message.message == 'ready') setState(() => _modelReady = true);
+  }
 
   /// Pushes the live camera yaw to the model. [yaw] is degrees, centre = 0,
   /// −180 (full left) … +180 (full right). Pitch stays pinned at 90deg.
@@ -379,10 +474,6 @@ class _ModelOnboardingPageState extends State<_ModelOnboardingPage> {
               child: ModelViewer(
                 src: 'assets/models/onboarding_chair.glb',
                 alt: 'Woody 3D furniture',
-                // A 2D render of the chair shown instantly while the WebGL
-                // engine spins up — kills the blank pop-in before the .glb
-                // paints. Bundled via the `assets/images/` directory entry.
-                poster: 'assets/images/chair_poster.png',
                 ar: false,
                 autoRotate: false,
                 cameraControls: false,
@@ -398,6 +489,23 @@ class _ModelOnboardingPageState extends State<_ModelOnboardingPage> {
                 cameraTarget: 'auto 0.35m auto',
                 // Transparent WebView → the showroom photo shows through.
                 backgroundColor: Colors.transparent,
+                // Post "ready" the instant the model's `load` event fires so the
+                // Lottie loader can fade out exactly when the chair is on screen.
+                // Attached at parse time, before model-viewer upgrades the
+                // element, so the listener is in place well before `load`.
+                relatedJs:
+                    '(function(){var mv=document.querySelector("model-viewer");'
+                    'if(!mv){return;}'
+                    'var fire=function(){try{$_onbReadyChannel.postMessage("ready");}'
+                    'catch(e){}};'
+                    'if(mv.loaded){fire();}'
+                    'mv.addEventListener("load",fire);})();',
+                javascriptChannels: {
+                  JavascriptChannel(
+                    _onbReadyChannel,
+                    onMessageReceived: _onModelState,
+                  ),
+                },
                 onWebViewCreated: (controller) => _web = controller,
               ),
             ),
@@ -426,6 +534,45 @@ class _ModelOnboardingPageState extends State<_ModelOnboardingPage> {
                 ),
               ),
             ),
+            // Animated loader over the chair canvas: a looping Lottie that gives
+            // continuous feedback while the WebGL engine boots, then fades out
+            // the instant the model's `load` event lands (`_modelReady`) and is
+            // dropped from the tree once faded (`_loaderGone`) so it stops
+            // ticking. `<model-viewer>` can't render Lottie itself, so this
+            // Flutter overlay stands in for a native poster. IgnorePointer keeps
+            // it clear of the arc + swipe gestures.
+            if (!_loaderGone)
+              Positioned(
+                top: height * 0.18,
+                left: 0,
+                right: 0,
+                height: height * 0.6,
+                child: IgnorePointer(
+                  child: AnimatedOpacity(
+                    opacity: _modelReady ? 0 : 1,
+                    duration: const Duration(milliseconds: 400),
+                    onEnd: () {
+                      if (_modelReady && !_loaderGone) {
+                        setState(() => _loaderGone = true);
+                      }
+                    },
+                    child: Center(
+                      child: SizedBox(
+                        width: 140,
+                        height: 140,
+                        child: Lottie.asset(
+                          'assets/lottie/loading_onboarding.json',
+                          fit: BoxFit.contain,
+                          // No bundle in widget tests (and a corrupt file in
+                          // prod) must never throw — just show nothing.
+                          errorBuilder: (context, _, _) =>
+                              const SizedBox.shrink(),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             // Top layer: the curved arc scrub control + page copy, anchored just
             // above the footer.
             Positioned(
