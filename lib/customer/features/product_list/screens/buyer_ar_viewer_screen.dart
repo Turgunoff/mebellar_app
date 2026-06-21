@@ -154,6 +154,18 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
                 // toDataURL captures only the model canvas, not this
                 // Flutter-layer backdrop.
                 backgroundColor: Colors.transparent,
+                // `backgroundColor` only clears the <model-viewer> element; the
+                // host page + the loading "poster" still paint OPAQUE WHITE by
+                // default (model-viewer's `--poster-color` is `#fff`), which is
+                // the solid white block that covered the room backdrop — most
+                // visibly on products with no photo (no poster image to hide it)
+                // and during the .glb stream. Force every layer transparent so
+                // the Flutter backdrop shows through at all times. Injected at
+                // the template's `/* other-css */` slot by model_viewer_plus.
+                relatedCss:
+                    'html,body{background-color:transparent !important;}'
+                    'model-viewer{background-color:transparent !important;'
+                    '--poster-color:transparent !important;}',
                 loading: Loading.eager,
                 // Suppress <model-viewer>'s own bottom-right AR button. It is
                 // hidden whenever the device reports no AR support (emulators,
@@ -194,6 +206,10 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
             // Brand loading animation over the stage until the .glb is loaded;
             // fades out (and stops blocking taps) the moment the model is ready.
             ArModelLoadingOverlay(ready: _modelReady, background: _kViewerBg),
+            // Soft top scrim so the dark back/title/save controls keep their
+            // contrast over a bright spot in the room backdrop — fades to
+            // nothing well above the model. Never intercepts taps.
+            const _TopScrim(),
             _TopBar(
               productName: _product.name,
               canSave: ready,
@@ -435,6 +451,37 @@ int _bitmapTextWidth(img.BitmapFont font, String text) {
     if (ch != null) width += ch.xAdvance;
   }
   return width;
+}
+
+/// A subtle top-down scrim behind the top controls. The room backdrop can be
+/// bright where the controls sit, so a soft `_kViewerBg`→transparent fade keeps
+/// the dark glyphs/title legible without darkening the model below. Pinned to
+/// the top, sized past the controls, and wrapped in [IgnorePointer] so it never
+/// eats rotate/zoom gestures.
+class _TopScrim extends StatelessWidget {
+  const _TopScrim();
+
+  @override
+  Widget build(BuildContext context) {
+    final topInset = MediaQuery.of(context).padding.top;
+    return Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      height: topInset + 88,
+      child: const IgnorePointer(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xE6F4F5F7), Color(0x00F4F5F7)],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// Top overlay: back button, product name, and the save-to-gallery action.

@@ -146,6 +146,13 @@ void main() {
     // The canvas is transparent so the room photo behind shows through;
     // model_viewer_plus also forces the underlying WebView transparent.
     expect(viewer.backgroundColor, Colors.transparent);
+    // ...and relatedCss kills the default opaque-white poster + host page that
+    // would otherwise cover the backdrop while the .glb streams in (the "solid
+    // white block" bug). All three must read transparent.
+    final css = viewer.relatedCss ?? '';
+    expect(css, contains('--poster-color:transparent'));
+    expect(css, contains('model-viewer{background-color:transparent'));
+    expect(css, contains('html,body{background-color:transparent'));
 
     // The room-context backdrop asset is mounted behind the model.
     final backdropAssets = tester
