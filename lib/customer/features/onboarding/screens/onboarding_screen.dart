@@ -104,23 +104,31 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         body: Column(
           children: [
             Expanded(
-              child: PageView(
-                controller: _controller,
-                onPageChanged: (i) => setState(() => _index = i),
+              child: Stack(
+                fit: StackFit.expand,
                 children: [
-                  _ModelOnboardingPage(
-                    title: tr('intro.page1_title'),
-                    body: tr('intro.page1_body'),
-                  ),
-                  _OnboardingPage(
-                    title: tr('intro.page2_title'),
-                    body: tr('intro.page2_body'),
-                    hero: const _ImageHero('assets/images/onboarding_2.png'),
-                  ),
-                  _OnboardingPage(
-                    title: tr('intro.page3_title'),
-                    body: tr('intro.page3_body'),
-                    hero: const _ImageHero('assets/images/onboarding_3.png'),
+                  // Shared ultra-wide room photo behind pages 2-3. It pans
+                  // left→right in lockstep with the swipe (staircase on page 2,
+                  // sofa on page 3) and is faded out on page 1, which keeps its
+                  // own 3D showroom stage.
+                  _ParallaxPanorama(controller: _controller),
+                  PageView(
+                    controller: _controller,
+                    onPageChanged: (i) => setState(() => _index = i),
+                    children: [
+                      _ModelOnboardingPage(
+                        title: tr('intro.page1_title'),
+                        body: tr('intro.page1_body'),
+                      ),
+                      _PanoramaPage(
+                        title: tr('intro.page2_title'),
+                        body: tr('intro.page2_body'),
+                      ),
+                      _PanoramaPage(
+                        title: tr('intro.page3_title'),
+                        body: tr('intro.page3_body'),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -158,59 +166,127 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 }
 
-/// Shared page scaffold: a flexible hero on top, fixed title + body beneath.
-/// The hero takes all remaining space (no fixed height → no overflow on small
-/// screens); the text sizes to its content.
-class _OnboardingPage extends StatelessWidget {
-  const _OnboardingPage({
-    required this.title,
-    required this.body,
-    required this.hero,
-  });
+/// Shared parallax backdrop for pages 2-3: one ultra-wide room photo that pans
+/// horizontally off the live [PageController]. `BoxFit.cover` pins it to the
+/// screen height and leaves a wide horizontal surplus that the alignment scrubs
+/// across — `centerLeft` (staircase + windows) at page 2, `centerRight` (the
+/// sofa) at page 3 — so the background slides proportionally with the swipe
+/// gesture while the page copy slides at the PageView's own rate. The whole
+/// backdrop fades out across the page1→2 swipe so page 1 keeps its own 3D
+/// showroom stage untouched.
+class _ParallaxPanorama extends StatelessWidget {
+  const _ParallaxPanorama({required this.controller});
 
-  final String title;
-  final String body;
-  final Widget hero;
+  final PageController controller;
 
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
-    // The page fills the screen edge-to-edge, so SafeArea keeps the card clear of
-    // the status bar; a small top gap balances it against the footer below.
-    return SafeArea(
-      bottom: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(28, 16, 28, 12),
-        child: Column(
-          children: [
-            Expanded(child: hero),
-            const SizedBox(height: 28),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 26,
-                height: 1.15,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.4,
-                color: pt.dark,
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        // `page` is null until the first layout — fall back to the resting
+        // index so the first frame can't throw.
+        final page = controller.hasClients && controller.page != null
+            ? controller.page!
+            : controller.initialPage.toDouble();
+        // page 1.0 (page 2) → centerLeft, page 2.0 (page 3) → centerRight.
+        final alignX = (-1.0 + 2.0 * (page - 1.0)).clamp(-1.0, 1.0);
+        // Fade in across the page1→2 swipe; invisible (and unpainted) on page 1.
+        final opacity = page.clamp(0.0, 1.0);
+        return Opacity(
+          opacity: opacity,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.asset(
+                'assets/images/onboarding_panorama.webp',
+                fit: BoxFit.cover,
+                alignment: Alignment(alignX, 0),
+                // Degrade to a neutral stage if the photo can't decode (also
+                // keeps widget tests, which have no asset bundle, from throwing).
+                errorBuilder: (context, _, _) => ColoredBox(color: pt.imageBg),
               ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              body,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 15,
-                height: 1.5,
-                fontWeight: FontWeight.w500,
-                color: pt.grey,
+              // Same melt-to-background gradient as page 1: clear through the
+              // upper room, fading to the solid app background so the copy reads
+              // cleanly and the photo dissolves into the footer beneath.
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    // Fade from the bg colour (alpha 0 → 1) — never
+                    // Colors.transparent, which would bleed grey mid-fade.
+                    colors: [
+                      pt.background.withValues(alpha: 0),
+                      pt.background.withValues(alpha: 0),
+                      pt.background,
+                    ],
+                    stops: const [0.0, 0.6, 0.86],
+                  ),
+                ),
               ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Pages 2-3 over the shared [_ParallaxPanorama]: a transparent overlay that
+/// carries only the page copy, anchored just above the footer. The panorama
+/// behind pans on swipe while this text slides with the PageView — the gap
+/// between those two rates is the parallax.
+class _PanoramaPage extends StatelessWidget {
+  const _PanoramaPage({required this.title, required this.body});
+
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(28, 0, 28, 6),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 26,
+                    height: 1.15,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.4,
+                    color: pt.dark,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  body,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 15,
+                    height: 1.5,
+                    fontWeight: FontWeight.w500,
+                    color: pt.grey,
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
             ),
-            const SizedBox(height: 8),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 }
@@ -509,28 +585,6 @@ class _ArcSliderPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _ArcSliderPainter oldDelegate) =>
       oldDelegate.t != t;
-}
-
-/// Pages 2-3 — an aesthetic hero image filling a rounded card.
-class _ImageHero extends StatelessWidget {
-  const _ImageHero(this.asset);
-
-  final String asset;
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(28),
-      child: Image.asset(
-        asset,
-        fit: BoxFit.cover,
-        width: double.infinity,
-        height: double.infinity,
-        errorBuilder: (context, _, _) =>
-            ColoredBox(color: PremiumTokens.of(context).imageBg),
-      ),
-    );
-  }
 }
 
 /// Bottom controls: Skip (left, hidden on the last page), and a trailing action
