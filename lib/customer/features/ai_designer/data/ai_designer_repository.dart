@@ -1,0 +1,123 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import '../../../../core/i18n/i18n.dart';
+import '../../../../core/network/woody_api_client.dart';
+import '../models/ai_chat_message.dart';
+
+/// A product the AI surfaced as a recommendation for the user's room. Mirrors
+/// the `products[]` shape in the `POST /ai/chat` response (snake_case →
+/// camelCase).
+class AiRecommendedProduct {
+  const AiRecommendedProduct({
+    required this.id,
+    required this.name,
+    required this.price,
+    this.imageUrl,
+    this.shopName,
+  });
+
+  final String id;
+  final String name;
+  final double price;
+  final String? imageUrl;
+  final String? shopName;
+
+  factory AiRecommendedProduct.fromJson(Map<String, dynamic> json) {
+    return AiRecommendedProduct(
+      id: json['id'] as String,
+      name: json['name'] as String? ?? '',
+      price: (json['price'] as num?)?.toDouble() ?? 0,
+      imageUrl: json['image_url'] as String?,
+      shopName: json['shop_name'] as String?,
+    );
+  }
+}
+
+/// The parsed `POST /ai/chat` reply. [available] is false when the backend has
+/// the AI disabled / unconfigured or the model failed; the UI then shows
+/// [reply] (a friendly fallback) with no products.
+class AiDesignerReply {
+  const AiDesignerReply({
+    required this.available,
+    required this.reply,
+    required this.products,
+  });
+
+  final bool available;
+  final String reply;
+  final List<AiRecommendedProduct> products;
+
+  factory AiDesignerReply.fromJson(Map<String, dynamic> json) {
+    final rawProducts = json['products'];
+    final products = rawProducts is List
+        ? rawProducts
+              .whereType<Map<String, dynamic>>()
+              .map(AiRecommendedProduct.fromJson)
+              .toList(growable: false)
+        : const <AiRecommendedProduct>[];
+    return AiDesignerReply(
+      available: json['available'] as bool? ?? false,
+      reply: json['reply'] as String? ?? '',
+      products: products,
+    );
+  }
+}
+
+/// AI interior-designer chat over `POST /ai/chat`. Authenticated-only (the
+/// client attaches the bearer token); the guest gate lives in the UI so a
+/// signed-out tap opens the login flow instead of POSTing.
+abstract class AiDesignerRepository {
+  Future<AiDesignerReply> chat({
+    required String message,
+    Uint8List? imageBytes,
+    String? imageMime,
+    List<AiChatMessage> history = const [],
+  });
+}
+
+/// REST-backed implementation. Sends the room photo inline as raw base64 (no
+/// `data:` prefix, per the contract) and degrades gracefully — a network
+/// failure returns an unavailable reply instead of throwing, so the chat UI
+/// never crashes on a dropped connection.
+class WoodyAiDesignerRepository implements AiDesignerRepository {
+  WoodyAiDesignerRepository(this._api);
+
+  final WoodyApiClient _api;
+
+  @override
+  Future<AiDesignerReply> chat({
+    required String message,
+    Uint8List? imageBytes,
+    String? imageMime,
+    List<AiChatMessage> history = const [],
+  }) async {
+    try {
+      final body = <String, dynamic>{
+        'message': message,
+        if (imageBytes != null) 'image_base64': base64Encode(imageBytes),
+        if (imageBytes != null && imageMime != null) 'image_mime': imageMime,
+        if (history.isNotEmpty)
+          'history': history
+              .map(
+                (m) => {
+                  'role': m.isUser ? 'user' : 'assistant',
+                  'text': m.text,
+                },
+              )
+              .toList(growable: false),
+      };
+      final response = await _api.post<Map<String, dynamic>>(
+        '/ai/chat',
+        body: body,
+      );
+      return AiDesignerReply.fromJson(response);
+    } catch (_) {
+      return AiDesignerReply(
+        available: false,
+        reply: tr('ai_designer.error'),
+        products: const [],
+      );
+    }
+  }
+}

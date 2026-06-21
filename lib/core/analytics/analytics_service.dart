@@ -147,4 +147,10 @@ abstract class AnalyticsService {
   /// A notification was tapped (push or in-app inbox). [kind] is the
   /// snake_case wire type; [opened] is whether it resolved to a destination.
   Future<void> notificationOpened({required String kind, bool opened});
+
+  // ── AI interior designer ──────────────────────────────────────────────
+
+  /// The buyer sent a message to the AI interior designer. [hasImage] is true
+  /// when a room photo accompanied the turn.
+  Future<void> aiDesignerMessageSent({required bool hasImage});
 }

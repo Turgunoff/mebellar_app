@@ -311,6 +311,13 @@ class FirebaseAnalyticsService implements AnalyticsService {
     });
   }
 
+  @override
+  Future<void> aiDesignerMessageSent({required bool hasImage}) {
+    return _safeLog('ai_designer_message_sent', {
+      'has_image': hasImage ? 1 : 0,
+    });
+  }
+
   // ── seller ────────────────────────────────────────────────────────────
 
   @override

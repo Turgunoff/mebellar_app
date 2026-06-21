@@ -19,6 +19,7 @@ import '../../../widgets/view_mode_toggle.dart';
 import '../../categories/bloc/categories_bloc.dart';
 import '../../favorites/bloc/favorites_bloc.dart';
 import '../../notifications/cubit/notifications_cubit.dart';
+import '../../ai_designer/widgets/ai_chat_fab.dart';
 import '../bloc/home_bloc.dart';
 import '../widgets/premium/glass_banner.dart';
 import '../widgets/premium/premium_product_card.dart';
@@ -63,59 +64,36 @@ class _HomeScreenState extends State<HomeScreen> {
     // channel; we just hand the same instance down the tree.
     return BlocProvider<NotificationsCubit>.value(
       value: sl<NotificationsCubit>(),
-      child: ColoredBox(
-        color: pt.background,
-        child: NetworkErrorGate<HomeBloc, HomeState>(
-          isActive: (ctx) => CustomerShellScope.of(ctx).index == 0,
-          isCritical: (s) =>
-              s.status == HomeStatus.failure &&
-              s.banners.isEmpty &&
-              s.recommended.isEmpty,
-          isRecovered: (s) => s.status == HomeStatus.ready,
-          isRetrying: (s) => s.status == HomeStatus.loading,
-          onRetry: (bloc) => bloc.add(const HomeRequested(refresh: true)),
-          backgroundError: (s) =>
-              s.status == HomeStatus.ready && s.error != null ? s.error : null,
-          child: BlocBuilder<HomeBloc, HomeState>(
-            buildWhen: (a, b) => a.status != b.status,
-            builder: (context, state) {
-              final showError =
-                  state.status == HomeStatus.failure &&
-                  state.banners.isEmpty &&
-                  state.recommended.isEmpty;
+      // Transparent Scaffold layered over the home feed so the animated AI FAB
+      // floats bottom-right above the shell's bottom nav without disturbing the
+      // existing feed layout.
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        floatingActionButton: const AiChatFab(),
+        body: ColoredBox(
+          color: pt.background,
+          child: NetworkErrorGate<HomeBloc, HomeState>(
+            isActive: (ctx) => CustomerShellScope.of(ctx).index == 0,
+            isCritical: (s) =>
+                s.status == HomeStatus.failure &&
+                s.banners.isEmpty &&
+                s.recommended.isEmpty,
+            isRecovered: (s) => s.status == HomeStatus.ready,
+            isRetrying: (s) => s.status == HomeStatus.loading,
+            onRetry: (bloc) => bloc.add(const HomeRequested(refresh: true)),
+            backgroundError: (s) =>
+                s.status == HomeStatus.ready && s.error != null
+                ? s.error
+                : null,
+            child: BlocBuilder<HomeBloc, HomeState>(
+              buildWhen: (a, b) => a.status != b.status,
+              builder: (context, state) {
+                final showError =
+                    state.status == HomeStatus.failure &&
+                    state.banners.isEmpty &&
+                    state.recommended.isEmpty;
 
-              if (showError) {
-                return CustomScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  slivers: [
-                    const _HomeAppBar(),
-                    CupertinoSliverRefreshControl(
-                      onRefresh: () => _handleRefresh(context),
-                    ),
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(0, 20, 0, 0),
-                        child: const _PremiumSearchBar(),
-                      ),
-                    ),
-                    SliverFillRemaining(
-                      child: _HomeErrorState(
-                        onRetry: () => context.read<HomeBloc>().add(
-                          const HomeRequested(refresh: true),
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              }
-
-              // Rebuild the scroll view when the view mode flips so the feed
-              // sliver swaps between masonry grid and full-width list. Toggling
-              // is rare; banners/categories ride their own cached BlocBuilders,
-              // so the rebuild is cheap.
-              return ValueListenableBuilder<ProductViewMode>(
-                valueListenable: _viewMode,
-                builder: (context, viewMode, _) {
+                if (showError) {
                   return CustomScrollView(
                     physics: const BouncingScrollPhysics(),
                     slivers: [
@@ -124,60 +102,92 @@ class _HomeScreenState extends State<HomeScreen> {
                         onRefresh: () => _handleRefresh(context),
                       ),
                       SliverToBoxAdapter(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 20),
-                            const _PremiumSearchBar(),
-                            const SizedBox(height: 12),
-                            BlocBuilder<HomeBloc, HomeState>(
-                              buildWhen: (prev, curr) =>
-                                  prev.status != curr.status ||
-                                  prev.banners != curr.banners,
-                              builder: (context, s) {
-                                if (s.status == HomeStatus.loading ||
-                                    s.status == HomeStatus.initial) {
-                                  return const GlassBannerShimmer();
-                                }
-                                final banners = s.banners.isNotEmpty
-                                    ? s.banners
-                                    : _fallbackBanners;
-                                // The seller-promo slide rides ahead of the
-                                // editorial banners on every load.
-                                return GlassBanner(
-                                  banners: [
-                                    GlassBanner.sellerPromoBanner,
-                                    ...banners,
-                                  ],
-                                );
-                              },
-                            ),
-                            const SizedBox(height: 16),
-                            _SectionHeader(
-                              title: tr('home.categories'),
-                              actionLabel: tr('home.see_all'),
-                              onAction: () =>
-                                  CustomerShellScope.of(context).goToTab(1),
-                            ),
-                            const SizedBox(height: 16),
-                            const _CategoriesRow(),
-                            const SizedBox(height: 32),
-                            _RecommendedHeader(
-                              viewMode: viewMode,
-                              onViewModeChanged: _viewMode.set,
-                            ),
-                            const SizedBox(height: 16),
-                          ],
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(0, 20, 0, 0),
+                          child: const _PremiumSearchBar(),
                         ),
                       ),
-                      _RecommendedFeed(viewMode: viewMode),
-                      const _RecommendedFeedFooter(),
-                      const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                      SliverFillRemaining(
+                        child: _HomeErrorState(
+                          onRetry: () => context.read<HomeBloc>().add(
+                            const HomeRequested(refresh: true),
+                          ),
+                        ),
+                      ),
                     ],
                   );
-                },
-              );
-            },
+                }
+
+                // Rebuild the scroll view when the view mode flips so the feed
+                // sliver swaps between masonry grid and full-width list. Toggling
+                // is rare; banners/categories ride their own cached BlocBuilders,
+                // so the rebuild is cheap.
+                return ValueListenableBuilder<ProductViewMode>(
+                  valueListenable: _viewMode,
+                  builder: (context, viewMode, _) {
+                    return CustomScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      slivers: [
+                        const _HomeAppBar(),
+                        CupertinoSliverRefreshControl(
+                          onRefresh: () => _handleRefresh(context),
+                        ),
+                        SliverToBoxAdapter(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 20),
+                              const _PremiumSearchBar(),
+                              const SizedBox(height: 12),
+                              BlocBuilder<HomeBloc, HomeState>(
+                                buildWhen: (prev, curr) =>
+                                    prev.status != curr.status ||
+                                    prev.banners != curr.banners,
+                                builder: (context, s) {
+                                  if (s.status == HomeStatus.loading ||
+                                      s.status == HomeStatus.initial) {
+                                    return const GlassBannerShimmer();
+                                  }
+                                  final banners = s.banners.isNotEmpty
+                                      ? s.banners
+                                      : _fallbackBanners;
+                                  // The seller-promo slide rides ahead of the
+                                  // editorial banners on every load.
+                                  return GlassBanner(
+                                    banners: [
+                                      GlassBanner.sellerPromoBanner,
+                                      ...banners,
+                                    ],
+                                  );
+                                },
+                              ),
+                              const SizedBox(height: 16),
+                              _SectionHeader(
+                                title: tr('home.categories'),
+                                actionLabel: tr('home.see_all'),
+                                onAction: () =>
+                                    CustomerShellScope.of(context).goToTab(1),
+                              ),
+                              const SizedBox(height: 16),
+                              const _CategoriesRow(),
+                              const SizedBox(height: 32),
+                              _RecommendedHeader(
+                                viewMode: viewMode,
+                                onViewModeChanged: _viewMode.set,
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+                          ),
+                        ),
+                        _RecommendedFeed(viewMode: viewMode),
+                        const _RecommendedFeedFooter(),
+                        const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                      ],
+                    );
+                  },
+                );
+              },
+            ),
           ),
         ),
       ),

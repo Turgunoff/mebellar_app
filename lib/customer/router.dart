@@ -19,7 +19,11 @@ import '../core/logging/talker.dart';
 import '../shared/models/cart_item_model.dart';
 import '../shared/widgets/brand_refresh_indicator.dart';
 import '../shared/widgets/notification_simulator_screen.dart';
+import '../core/analytics/analytics_service.dart';
 import 'customer_app.dart';
+import 'features/ai_designer/cubit/ai_designer_cubit.dart';
+import 'features/ai_designer/data/ai_designer_repository.dart';
+import 'features/ai_designer/screens/ai_assistant_chat_screen.dart';
 import 'features/broadcasts/screens/broadcast_placeholder_screen.dart';
 import 'features/cart/screens/cart_screen.dart';
 import 'features/categories/screens/categories_screen.dart';
@@ -209,6 +213,18 @@ GoRouter buildCustomerRouter() {
       GoRoute(
         path: '/support',
         builder: (context, state) => const SupportChatScreen(),
+      ),
+      // AI interior-designer chat. The cubit loads persisted history instantly
+      // on construction, so it's built per-route here (no DI singleton needed).
+      GoRoute(
+        path: '/ai-designer-chat',
+        builder: (context, state) => BlocProvider(
+          create: (_) => AiDesignerCubit(
+            repository: sl<AiDesignerRepository>(),
+            analytics: sl<AnalyticsService>(),
+          ),
+          child: const AiAssistantChatScreen(),
+        ),
       ),
       GoRoute(path: '/cart', builder: (context, state) => const CartScreen()),
       GoRoute(

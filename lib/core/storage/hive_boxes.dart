@@ -1,5 +1,7 @@
 import 'package:hive_flutter/hive_flutter.dart';
 
+import '../../customer/features/ai_designer/models/ai_chat_message.dart';
+
 class HiveBoxes {
   const HiveBoxes._();
 
@@ -16,6 +18,10 @@ class HiveBoxes {
   /// user clears app data; that's an acceptable trade-off for marketing
   /// pings.
   static const String newsReads = 'news_reads';
+
+  /// Persisted AI interior-designer conversation. A typed box of
+  /// [AiChatMessage] so the chat reopens instantly on the next launch.
+  static const String aiChatHistory = 'ai_chat_history';
 }
 
 typedef CoreBoxes = ({
@@ -26,6 +32,7 @@ typedef CoreBoxes = ({
   Box favorites,
   Box cart,
   Box newsReads,
+  Box<AiChatMessage> aiChatHistory,
 });
 
 Future<CoreBoxes> openCoreBoxes() async {
@@ -37,6 +44,14 @@ Future<CoreBoxes> openCoreBoxes() async {
   final favorites = await Hive.openBox(HiveBoxes.favorites);
   final cart = await Hive.openBox(HiveBoxes.cart);
   final newsReads = await Hive.openBox(HiveBoxes.newsReads);
+  // The AI chat box is typed, so its adapter must be registered before it
+  // opens. typeId 1 is the first id used in the app.
+  if (!Hive.isAdapterRegistered(1)) {
+    Hive.registerAdapter(AiChatMessageAdapter());
+  }
+  final aiChatHistory = await Hive.openBox<AiChatMessage>(
+    HiveBoxes.aiChatHistory,
+  );
   return (
     settings: settings,
     cache: cache,
@@ -45,5 +60,6 @@ Future<CoreBoxes> openCoreBoxes() async {
     favorites: favorites,
     cart: cart,
     newsReads: newsReads,
+    aiChatHistory: aiChatHistory,
   );
 }

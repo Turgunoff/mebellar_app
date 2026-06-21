@@ -111,6 +111,9 @@ class NoopAnalyticsService implements AnalyticsService {
   }) async {}
 
   @override
+  Future<void> aiDesignerMessageSent({required bool hasImage}) async {}
+
+  @override
   Future<void> sellerModeEntered() async {}
 
   @override
