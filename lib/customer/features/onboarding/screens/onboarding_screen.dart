@@ -424,7 +424,8 @@ class _MarqueeColumn extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       padding: EdgeInsets.zero,
       itemBuilder: (context, index) {
-        final asset = _marqueeImages[(index + startOffset) % _marqueeImages.length];
+        final asset =
+            _marqueeImages[(index + startOffset) % _marqueeImages.length];
         return Padding(
           padding: const EdgeInsets.all(6),
           child: ClipRRect(
@@ -564,8 +565,16 @@ class _ModelOnboardingPage extends StatefulWidget {
   State<_ModelOnboardingPage> createState() => _ModelOnboardingPageState();
 }
 
-class _ModelOnboardingPageState extends State<_ModelOnboardingPage> {
+class _ModelOnboardingPageState extends State<_ModelOnboardingPage>
+    with AutomaticKeepAliveClientMixin {
   WebViewController? _web;
+
+  // Keep page 1 alive so the heavy WebGL ModelViewer isn't torn down + re-
+  // initialised (re-showing the Lottie loader) when the user swipes to page 3
+  // and back. PageView wraps each child in an AutomaticKeepAlive, so this is all
+  // it takes to preserve the live 3D scene + its current rotation.
+  @override
+  bool get wantKeepAlive => true;
 
   /// True once `<model-viewer>` fires its `load` event — the cue to fade the
   /// Lottie loader out.
@@ -600,6 +609,7 @@ class _ModelOnboardingPageState extends State<_ModelOnboardingPage> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // required by AutomaticKeepAliveClientMixin
     final pt = PremiumTokens.of(context);
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -647,10 +657,12 @@ class _ModelOnboardingPageState extends State<_ModelOnboardingPage> {
                 cameraTarget: 'auto 0.35m auto',
                 // Transparent WebView → the showroom photo shows through.
                 backgroundColor: Colors.transparent,
-                // Replace <model-viewer>'s default progress-bar slot with an
-                // empty div so its black loading bar never shows — our Lottie
-                // loader owns the loading state.
-                innerModelViewerHtml: '<div slot="progress-bar"></div>',
+                // Kill <model-viewer>'s default black progress bar at the source:
+                // zero out its shadow-DOM CSS variables (the slot override didn't
+                // take). Our Lottie loader owns the loading state instead.
+                relatedCss:
+                    'model-viewer { --progress-bar-height: 0px !important; '
+                    '--progress-bar-color: transparent !important; }',
                 // Post "ready" the instant the model's `load` event fires so the
                 // Lottie loader can fade out exactly when the chair is on screen.
                 // Attached at parse time, before model-viewer upgrades the
