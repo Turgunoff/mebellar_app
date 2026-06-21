@@ -227,9 +227,19 @@ class SellerPendingBanner extends StatelessWidget {
 
 /// Shown once the seller application is approved — routes into seller mode.
 class SellerApprovedBanner extends StatelessWidget {
-  const SellerApprovedBanner({super.key, required this.onOpenDashboard});
+  const SellerApprovedBanner({
+    super.key,
+    required this.onOpenDashboard,
+    this.unreadCount = 0,
+  });
 
   final VoidCallback onOpenDashboard;
+
+  /// Unread seller-panel notifications. When > 0 a count badge rides the
+  /// "Sotuvchi paneliga o'tish" CTA, so an approved seller browsing in customer
+  /// mode sees that the seller panel has unseen alerts (new order, product
+  /// approved, …) — which are deliberately kept out of the customer bell.
+  final int unreadCount;
 
   static const Color _accent = PremiumTokens.successStrong; // emerald
   static const Color _accentDeep = PremiumTokens.successStrongDeep;
@@ -305,40 +315,85 @@ class SellerApprovedBanner extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 18),
-          SizedBox(
-            height: 44,
-            child: Material(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              child: InkWell(
-                onTap: onOpenDashboard,
-                borderRadius: BorderRadius.circular(14),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 18),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        "Sotuvchi paneliga o'tish",
-                        style: PremiumTokens.body(
-                          size: 14,
-                          weight: FontWeight.w600,
-                          color: _accentDeep,
-                        ),
+          // Stack so the count badge can float on the button's top-right corner
+          // without being clipped (clipBehavior: none).
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              SizedBox(
+                height: 44,
+                child: Material(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  child: InkWell(
+                    onTap: onOpenDashboard,
+                    borderRadius: BorderRadius.circular(14),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 18),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            "Sotuvchi paneliga o'tish",
+                            style: PremiumTokens.body(
+                              size: 14,
+                              weight: FontWeight.w600,
+                              color: _accentDeep,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Icon(
+                            Iconsax.arrow_right_1,
+                            size: 16,
+                            color: _accentDeep,
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      const Icon(
-                        Iconsax.arrow_right_1,
-                        size: 16,
-                        color: _accentDeep,
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ),
+              if (unreadCount > 0)
+                Positioned(
+                  top: -7,
+                  right: -7,
+                  child: _SellerPanelBadge(count: unreadCount),
+                ),
+            ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Small red count chip for the "Sotuvchi paneliga o'tish" CTA. The white ring
+/// lifts it off both the green banner and the white button beneath.
+class _SellerPanelBadge extends StatelessWidget {
+  const _SellerPanelBadge({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+      constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE05A4A), // alert red (matches inbox accents)
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(color: Colors.white, width: 1.5),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        count > 99 ? '99+' : '$count',
+        textAlign: TextAlign.center,
+        style: PremiumTokens.body(
+          size: 9.5,
+          weight: FontWeight.w700,
+          color: Colors.white,
+          height: 1.1,
+        ),
       ),
     );
   }

@@ -13,6 +13,7 @@ import '../../support/bloc/support_unread_cubit.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/fullscreen_image_viewer.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
+import '../../notifications/cubit/notifications_cubit.dart';
 import '../../orders/cubit/profile_orders_cubit.dart';
 import '../cubit/profile_cubit.dart';
 import '../widgets/account_dialogs.dart';
@@ -188,6 +189,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SellerBannerShimmer()
             else if (profileState.isSellerApproved)
               SellerApprovedBanner(
+                // Live seller-panel unread, from the shared root cubit — kept
+                // out of the customer bell, surfaced here instead.
+                unreadCount: context.select<NotificationsCubit, int>(
+                  (c) => c.state.sellerUnreadCount,
+                ),
                 onOpenDashboard: () {
                   // Defence-in-depth: refresh the cached approval flag before
                   // flipping. The banner only renders when approved, but the

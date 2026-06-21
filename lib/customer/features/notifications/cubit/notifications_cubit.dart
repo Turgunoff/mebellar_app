@@ -24,7 +24,32 @@ class NotificationsState extends Equatable {
   final List<NotificationModel> items;
   final String? error;
 
+  /// Total unread across both surfaces. Prefer the audience-scoped getters
+  /// below for anything user-facing — a buyer surface must never count or
+  /// show seller-panel rows.
   int get unreadCount => items.where((n) => !n.isRead).length;
+
+  /// Customer-surface rows only (buyer-facing + global). Seller-panel alerts
+  /// (new order, product approved, verification, tariff, …) are excluded so
+  /// they never leak into the customer inbox or its bell. Audience is decided
+  /// by [NotificationModel.resolveTargetMode] — the same classifier the seller
+  /// inbox uses for its half, and the payload `mode` the backend stamps.
+  List<NotificationModel> get customerItems => items
+      .where((n) => n.resolveTargetMode() == AppMode.customer)
+      .toList(growable: false);
+
+  /// Unread count on the customer surface — drives the home bell badge and the
+  /// customer inbox's "mark all read" affordance.
+  int get customerUnreadCount => items
+      .where((n) => !n.isRead && n.resolveTargetMode() == AppMode.customer)
+      .length;
+
+  /// Unread count on the seller surface — drives the badge on the profile's
+  /// "Sotuvchi paneliga o'tish" CTA, so an approved seller browsing in customer
+  /// mode still learns the seller panel has unseen alerts.
+  int get sellerUnreadCount => items
+      .where((n) => !n.isRead && n.resolveTargetMode() == AppMode.seller)
+      .length;
 
   NotificationsState copyWith({
     NotificationsStatus? status,
@@ -88,11 +113,11 @@ class NotificationsCubit extends Cubit<NotificationsState> {
     // returns 401 for guests — not an empty list — so the personal fetch
     // legitimately fails when signed out; that's fine, news still renders.)
     final results = await Future.wait([
-      // Customer surface only: the buyer's inbox + home bell must never show
-      // seller-panel alerts (new order, product approved, …). The backend
-      // filters on data->>'mode'; seller-audience rows are surfaced separately
-      // by the profile's seller-panel badge ([SellerInboxBadgeCubit]).
-      _safeList(() => _repo.list(mode: AppMode.customer.name)),
+      // Fetch BOTH surfaces' rows — this cubit is root-scoped and shared by
+      // the customer inbox AND the seller inbox (each filters its own audience
+      // client-side via [NotificationsState.customerItems] / seller items). A
+      // mode-scoped fetch here would starve the other mode.
+      _safeList(_repo.list),
       if (_newsRepo != null)
         _safeList(_newsRepo.list)
       else
@@ -151,26 +176,36 @@ class NotificationsCubit extends Cubit<NotificationsState> {
     }
   }
 
-  Future<void> markAllRead() async {
-    if (state.unreadCount == 0) return;
+  /// Marks every unread notification on [mode]'s surface read (default:
+  /// customer). Scoped so "mark all read" on the customer inbox never clears
+  /// the seller panel's unread, and vice-versa — the seller inbox passes
+  /// `mode: 'seller'`. News is a customer-surface concern, so it's only marked
+  /// when clearing the customer surface.
+  Future<void> markAllRead({String mode = 'customer'}) async {
+    final isCustomer = mode != AppMode.seller.name;
+    bool onSurface(NotificationModel n) =>
+        (n.resolveTargetMode() == AppMode.customer) == isCustomer;
+
+    if (!state.items.any((n) => !n.isRead && onSurface(n))) return;
+
     final previous = state.items;
     final next = previous
-        .map((n) => n.isRead ? n : n.copyWith(isRead: true))
+        .map((n) => (!n.isRead && onSurface(n)) ? n.copyWith(isRead: true) : n)
         .toList(growable: false);
     emit(state.copyWith(items: next));
 
-    final visibleNewsIds = previous
-        .where((n) => n.kind == NotificationKind.news && !n.isRead)
-        .map((n) => n.id);
+    final visibleNewsIds = isCustomer
+        ? previous
+              .where((n) => n.kind == NotificationKind.news && !n.isRead)
+              .map((n) => n.id)
+        : const <String>[];
 
     // Personal table + local news set, persisted independently. A guest (or a
     // failing personal endpoint) must not roll back the news mark — so only
     // revert the optimistic update when EVERY write failed.
     final results = await Future.wait([
-      // Scope the bulk read to the customer surface so it never clears the
-      // seller panel's unread (which the user sees only in seller mode).
-      _safeRun(() => _repo.markAllRead(mode: AppMode.customer.name)),
-      if (_newsRepo != null)
+      _safeRun(() => _repo.markAllRead(mode: mode)),
+      if (_newsRepo != null && isCustomer)
         _safeRun(() => _newsRepo.markAllRead(visibleNewsIds))
       else
         Future.value(true),

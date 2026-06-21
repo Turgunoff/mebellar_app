@@ -307,9 +307,11 @@ class _NotificationBell extends StatelessWidget {
           boxShadow: PremiumTokens.softShadow,
         ),
         child: BlocBuilder<NotificationsCubit, NotificationsState>(
-          buildWhen: (a, b) => a.unreadCount != b.unreadCount,
+          // Customer surface only — seller-panel alerts are counted on the
+          // profile's seller-panel badge, never in the buyer's bell.
+          buildWhen: (a, b) => a.customerUnreadCount != b.customerUnreadCount,
           builder: (context, state) {
-            final count = state.unreadCount;
+            final count = state.customerUnreadCount;
             return Stack(
               clipBehavior: Clip.none,
               alignment: Alignment.center,

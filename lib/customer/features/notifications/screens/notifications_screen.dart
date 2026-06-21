@@ -282,12 +282,16 @@ class _NotificationsViewState extends State<_NotificationsView> {
             style: PremiumTokens.display(size: 22, letterSpacing: -0.4),
           ),
           actions: [
-            // Marks the whole inbox read (every tab), not just the visible
-            // one — the badge reflects total unread, so does this action.
+            // Marks the customer surface read (every tab), not just the
+            // visible one — matches the bell, which counts customer unread.
+            // Seller-panel rows are untouched (cleared from the seller inbox).
             BlocBuilder<NotificationsCubit, NotificationsState>(
-              buildWhen: (a, b) => a.unreadCount != b.unreadCount,
+              buildWhen: (a, b) =>
+                  a.customerUnreadCount != b.customerUnreadCount,
               builder: (context, state) {
-                if (state.unreadCount == 0) return const SizedBox.shrink();
+                if (state.customerUnreadCount == 0) {
+                  return const SizedBox.shrink();
+                }
                 return IconButton(
                   icon: const Icon(Icons.checklist_rounded),
                   color: PremiumTokens.accent,
@@ -360,8 +364,13 @@ class _NotificationsList extends StatelessWidget {
   }
 
   Widget _list(BuildContext context, NotificationsState state) {
+    // Customer surface only — seller-panel alerts (new order, product approved,
+    // …) are excluded here so the buyer's inbox never shows them. They live in
+    // the seller mode inbox + the profile's "Sotuvchi paneliga o'tish" badge.
+    final customerItems = state.customerItems;
+
     // Inbox totally empty → the inviting first-run empty state.
-    if (state.items.isEmpty) {
+    if (customerItems.isEmpty) {
       return EmptyState(
         icon: Iconsax.notification,
         title: tr('notifications.empty'),
@@ -369,8 +378,8 @@ class _NotificationsList extends StatelessWidget {
       );
     }
     final items = category == null
-        ? state.items
-        : state.items
+        ? customerItems
+        : customerItems
               .where((n) => n.category == category)
               .toList(growable: false);
     // Inbox has rows but none in this tab → a lighter "nothing here" empty.

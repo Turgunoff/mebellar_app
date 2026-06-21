@@ -119,5 +119,23 @@ void main() {
     final call = h.adapter.calls.single;
     expect(call.method, 'POST');
     expect(call.uri.path, endsWith('/notifications/mark-all-read'));
+    // No mode → no audience query param (older-build behaviour).
+    expect(call.uri.queryParameters.containsKey('mode'), isFalse);
+  });
+
+  test('mode scopes the audience query param on list/unread/mark-all', () async {
+    final list = make((_) => (200, '{"rows":[],"unread_count":0}'));
+    await list.ds.list(mode: 'customer');
+    expect(list.adapter.calls.single.uri.queryParameters['mode'], 'customer');
+
+    final unread = make((_) => (200, '{"rows":[],"unread_count":2}'));
+    await unread.ds.unreadCount(mode: 'seller');
+    expect(unread.adapter.calls.single.uri.queryParameters['mode'], 'seller');
+
+    final markAll = make((_) => (200, '{}'));
+    await markAll.ds.markAllRead(mode: 'customer');
+    final call = markAll.adapter.calls.single;
+    expect(call.method, 'POST');
+    expect(call.uri.queryParameters['mode'], 'customer');
   });
 }

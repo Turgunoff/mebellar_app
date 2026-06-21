@@ -217,8 +217,11 @@ class _NotificationsViewState extends State<_NotificationsView> {
             builder: (context, state) {
               if (_unreadFor(state) == 0) return const SizedBox.shrink();
               return TextButton(
-                onPressed: () =>
-                    context.read<NotificationsCubit>().markAllRead(),
+                // Seller surface only — never clears the customer inbox's
+                // unread (which the user sees back in customer mode).
+                onPressed: () => context
+                    .read<NotificationsCubit>()
+                    .markAllRead(mode: AppMode.seller.name),
                 child: Text(
                   tr('notifications.mark_all_read'),
                   style: const TextStyle(

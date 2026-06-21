@@ -41,6 +41,7 @@ import 'features/favorites/screens/favorites_screen.dart';
 import 'features/home/bloc/home_bloc.dart';
 import 'features/home/screens/home_screen.dart';
 import 'features/home/widgets/premium/premium_tokens.dart';
+import 'features/notifications/cubit/notifications_cubit.dart';
 import 'features/profile/screens/profile_guest_screen.dart';
 import 'features/profile/screens/profile_screen.dart';
 import 'router.dart';
@@ -179,6 +180,10 @@ class _CustomerAppState extends State<CustomerApp> with WidgetsBindingObserver {
           BlocProvider<SupportUnreadCubit>(
             create: (_) => SupportUnreadCubit(sl<SupportChatRepository>()),
           ),
+          // Root-scoped, shared with the home bell + inbox screens. Hoisted
+          // here too so the profile's "Sotuvchi paneliga o'tish" badge can read
+          // the live seller-surface unread count (state.sellerUnreadCount).
+          BlocProvider<NotificationsCubit>.value(value: sl<NotificationsCubit>()),
         ],
         child: MaterialApp.router(
           title: 'Woody',

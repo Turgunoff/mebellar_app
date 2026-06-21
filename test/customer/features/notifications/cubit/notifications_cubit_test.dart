@@ -18,6 +18,20 @@ NotificationModel _notif(String id, {bool isRead = false}) => NotificationModel(
       createdAt: DateTime.utc(2026, 5, 16),
     );
 
+// Seller-surface row (resolveTargetMode() == AppMode.seller) — must be kept
+// out of the customer inbox/bell and counted on the profile's seller badge.
+NotificationModel _sellerNotif(String id, {bool isRead = false}) =>
+    NotificationModel(
+      id: id,
+      userId: 'user-1',
+      title: 'Seller $id',
+      body: 'Body $id',
+      kind: NotificationKind.sellerNewOrder,
+      referenceId: null,
+      isRead: isRead,
+      createdAt: DateTime.utc(2026, 5, 16),
+    );
+
 void main() {
   late _MockNotificationsRepo repo;
 
@@ -85,5 +99,62 @@ void main() {
     act: (cubit) => cubit.markRead('n1'),
     expect: () => const <NotificationsState>[],
     verify: (_) => verifyNever(() => repo.markRead(any())),
+  );
+
+  test('audience getters split customer vs seller rows', () {
+    final state = NotificationsState(
+      status: NotificationsStatus.ready,
+      items: [
+        _notif('c1'), // customer, unread
+        _notif('c2', isRead: true), // customer, read
+        _sellerNotif('s1'), // seller, unread
+        _sellerNotif('s2'), // seller, unread
+      ],
+    );
+    // Customer surface excludes the seller rows entirely (the leak fix).
+    expect(state.customerItems.map((n) => n.id).toList(), ['c1', 'c2']);
+    expect(state.customerUnreadCount, 1);
+    expect(state.sellerUnreadCount, 2);
+    expect(state.unreadCount, 3);
+  });
+
+  blocTest<NotificationsCubit, NotificationsState>(
+    'markAllRead() clears only customer rows and scopes the backend call',
+    build: () {
+      when(() => repo.markAllRead(mode: any(named: 'mode')))
+          .thenAnswer((_) async {});
+      return NotificationsCubit(repo);
+    },
+    seed: () => NotificationsState(
+      status: NotificationsStatus.ready,
+      items: [_notif('c1'), _sellerNotif('s1')],
+    ),
+    act: (cubit) => cubit.markAllRead(),
+    expect: () => [
+      isA<NotificationsState>()
+          .having((s) => s.customerUnreadCount, 'customerUnread', 0)
+          .having((s) => s.sellerUnreadCount, 'sellerUnread', 1),
+    ],
+    verify: (_) => verify(() => repo.markAllRead(mode: 'customer')).called(1),
+  );
+
+  blocTest<NotificationsCubit, NotificationsState>(
+    'markAllRead(seller) clears only seller rows and scopes the backend call',
+    build: () {
+      when(() => repo.markAllRead(mode: any(named: 'mode')))
+          .thenAnswer((_) async {});
+      return NotificationsCubit(repo);
+    },
+    seed: () => NotificationsState(
+      status: NotificationsStatus.ready,
+      items: [_notif('c1'), _sellerNotif('s1')],
+    ),
+    act: (cubit) => cubit.markAllRead(mode: 'seller'),
+    expect: () => [
+      isA<NotificationsState>()
+          .having((s) => s.customerUnreadCount, 'customerUnread', 1)
+          .having((s) => s.sellerUnreadCount, 'sellerUnread', 0),
+    ],
+    verify: (_) => verify(() => repo.markAllRead(mode: 'seller')).called(1),
   );
 }
