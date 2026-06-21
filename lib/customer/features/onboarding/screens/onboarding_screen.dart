@@ -171,38 +171,51 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 ],
               ),
             ),
-            // Generic controls (dots + Skip + Next) ride above every page, but
-            // fade out and go inert on the final page — page 3 owns its own
-            // centred CTA there, so these would be redundant.
-            SafeArea(
-              top: false,
-              child: IgnorePointer(
-                ignoring: isLast,
+            // Generic controls (dots + Skip + Next) ride above pages 1-2. On
+            // page 3 they fade out, go inert (IgnorePointer) AND collapse their
+            // reserved height to zero (animated heightFactor) so page 3's own
+            // content can drop all the way to the bottom of the screen.
+            IgnorePointer(
+              ignoring: isLast,
+              child: TweenAnimationBuilder<double>(
+                tween: Tween<double>(end: isLast ? 0.0 : 1.0),
+                duration: const Duration(milliseconds: 320),
+                curve: Curves.easeInOut,
+                builder: (context, factor, child) => ClipRect(
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    heightFactor: factor,
+                    child: child,
+                  ),
+                ),
                 child: AnimatedOpacity(
                   opacity: isLast ? 0.0 : 1.0,
-                  duration: const Duration(milliseconds: 300),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const SizedBox(height: 8),
-                      SmoothPageIndicator(
-                        controller: _controller,
-                        count: _pageCount,
-                        effect: ExpandingDotsEffect(
-                          activeDotColor: PremiumTokens.accent,
-                          // Inactive: small, subtle light-grey dots.
-                          dotColor: pt.grey.withValues(alpha: 0.2),
-                          dotHeight: 7,
-                          dotWidth: 7,
-                          // Active swells into a clean terracotta pill.
-                          expansionFactor: 3.4,
-                          spacing: 7,
+                  duration: const Duration(milliseconds: 220),
+                  child: SafeArea(
+                    top: false,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(height: 8),
+                        SmoothPageIndicator(
+                          controller: _controller,
+                          count: _pageCount,
+                          effect: ExpandingDotsEffect(
+                            activeDotColor: PremiumTokens.accent,
+                            // Inactive: small, subtle light-grey dots.
+                            dotColor: pt.grey.withValues(alpha: 0.2),
+                            dotHeight: 7,
+                            dotWidth: 7,
+                            // Active swells into a clean terracotta pill.
+                            expansionFactor: 3.4,
+                            spacing: 7,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 20),
-                      _BottomBar(onSkip: _finish, onNext: _next),
-                      const SizedBox(height: 16),
-                    ],
+                        const SizedBox(height: 20),
+                        _BottomBar(onSkip: _finish, onNext: _next),
+                        const SizedBox(height: 16),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -419,33 +432,37 @@ class _MarqueePageState extends State<_MarqueePage>
           ),
         ),
         // Foreground: the copy (slide-up entrance) stacked over the centred
-        // "Get Started" CTA, anchored at the bottom of the page.
+        // "Get Started" CTA, anchored at the bottom of the page. The footer
+        // collapses on page 3, so this owns the bottom safe-area inset itself.
         Positioned(
           left: 0,
           right: 0,
           bottom: 0,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(28, 0, 28, 28),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _PageEntrance(
-                  active: widget.active,
-                  child: _CopyTexts(title: widget.title, body: widget.body),
-                ),
-                const SizedBox(height: 24),
-                // Pops in (scale 0→1, easeOutBack) when page 3 is reached; built
-                // only while active so it re-pops fresh on every visit.
-                if (widget.active)
-                  TweenAnimationBuilder<double>(
-                    tween: Tween(begin: 0.0, end: 1.0),
-                    duration: const Duration(milliseconds: 700),
-                    curve: Curves.easeOutBack,
-                    builder: (context, scale, child) =>
-                        Transform.scale(scale: scale, child: child),
-                    child: _GetStartedPill(onTap: widget.onGetStarted),
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(28, 0, 28, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _PageEntrance(
+                    active: widget.active,
+                    child: _CopyTexts(title: widget.title, body: widget.body),
                   ),
-              ],
+                  const SizedBox(height: 24),
+                  // Pops in (scale 0→1, easeOutBack) when page 3 is reached; built
+                  // only while active so it re-pops fresh on every visit.
+                  if (widget.active)
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0.0, end: 1.0),
+                      duration: const Duration(milliseconds: 700),
+                      curve: Curves.easeOutBack,
+                      builder: (context, scale, child) =>
+                          Transform.scale(scale: scale, child: child),
+                      child: _GetStartedPill(onTap: widget.onGetStarted),
+                    ),
+                ],
+              ),
             ),
           ),
         ),
@@ -490,6 +507,10 @@ class _MarqueeColumn extends StatelessWidget {
               child: Image.asset(
                 asset,
                 fit: BoxFit.cover,
+                // Decode at roughly column resolution, not the source size —
+                // a dozen looping tiles at full res would needlessly churn
+                // memory and jank the marquee.
+                cacheWidth: 400,
                 errorBuilder: (context, _, _) => ColoredBox(color: imageBg),
               ),
             ),
