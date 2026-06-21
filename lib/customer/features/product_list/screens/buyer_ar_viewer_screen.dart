@@ -144,6 +144,18 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
                 scale: scale,
                 autoRotate: true,
                 cameraControls: true,
+                // Pull the camera back + tighten the field of view so tall
+                // pieces (chairs, wardrobes) get breathing room top & bottom
+                // instead of model-viewer's default auto-framing zooming in so
+                // tight they read as stretched. The 140% orbit radius zooms out
+                // past the ~100% default; a 30° FOV swaps the wide-angle default
+                // for a flatter, catalogue-style projection (no fisheye on tall
+                // objects). cameraTarget "auto" recentres on the model's
+                // bounding box; zoom stays enabled so buyers can still pinch in.
+                cameraOrbit: '0deg 75deg 140%',
+                fieldOfView: '30deg',
+                cameraTarget: 'auto auto auto',
+                disableZoom: false,
                 // Neutral IBL gives the model even, showroom-style lighting.
                 environmentImage: 'neutral',
                 // A grounded contact shadow sells the "it's really here" feel.

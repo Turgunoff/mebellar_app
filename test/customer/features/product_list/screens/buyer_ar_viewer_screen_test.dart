@@ -71,6 +71,12 @@ void main() {
     expect(viewer.ar, isTrue);
     expect(viewer.arPlacement, ArPlacement.floor);
     expect(viewer.environmentImage, 'neutral');
+    // Camera is pulled back (140% radius) with a tight FOV so tall pieces look
+    // proportioned, not zoomed-in/stretched; manual zoom stays enabled.
+    expect(viewer.cameraOrbit, '0deg 75deg 140%');
+    expect(viewer.fieldOfView, '30deg');
+    expect(viewer.cameraTarget, 'auto auto auto');
+    expect(viewer.disableZoom, isFalse);
   });
 
   testWidgets('builds unscaled when dimensions are missing', (tester) async {
