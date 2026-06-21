@@ -97,99 +97,58 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         // backdrop can reach the absolute top and bottom edges.
         extendBody: true,
         extendBodyBehindAppBar: true,
-        body: Stack(
+        // The pages own the full screen (no top SafeArea) so the page-1 backdrop
+        // bleeds behind the status bar. The footer sits in normal flow below the
+        // PageView, so each page stops cleanly above it and the dots/buttons stay
+        // stationary across swipes.
+        body: Column(
           children: [
-            // The pages own the full screen (no top SafeArea) so the page-1
-            // backdrop bleeds behind the status bar. The footer sits in normal
-            // flow below the PageView, so each page stops cleanly above it — no
-            // overlay math, and the dots/buttons stay stationary across swipes.
-            Column(
-              children: [
-                Expanded(
-                  child: PageView(
-                    controller: _controller,
-                    onPageChanged: (i) => setState(() => _index = i),
-                    children: [
-                      _ModelOnboardingPage(
-                        title: tr('intro.page1_title'),
-                        body: tr('intro.page1_body'),
-                      ),
-                      _OnboardingPage(
-                        title: tr('intro.page2_title'),
-                        body: tr('intro.page2_body'),
-                        hero: const _ImageHero(
-                          'assets/images/onboarding_2.png',
-                        ),
-                      ),
-                      _OnboardingPage(
-                        title: tr('intro.page3_title'),
-                        body: tr('intro.page3_body'),
-                        hero: const _ImageHero(
-                          'assets/images/onboarding_3.png',
-                        ),
-                      ),
-                    ],
+            Expanded(
+              child: PageView(
+                controller: _controller,
+                onPageChanged: (i) => setState(() => _index = i),
+                children: [
+                  _ModelOnboardingPage(
+                    title: tr('intro.page1_title'),
+                    body: tr('intro.page1_body'),
                   ),
-                ),
-                SafeArea(
-                  top: false,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const SizedBox(height: 8),
-                      SmoothPageIndicator(
-                        controller: _controller,
-                        count: _pageCount,
-                        effect: ExpandingDotsEffect(
-                          activeDotColor: PremiumTokens.accent,
-                          // Inactive: small, subtle light-grey dots.
-                          dotColor: pt.grey.withValues(alpha: 0.2),
-                          dotHeight: 7,
-                          dotWidth: 7,
-                          // Active swells into a clean terracotta pill.
-                          expansionFactor: 3.4,
-                          spacing: 7,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      _BottomBar(
-                        isLast: isLast,
-                        onSkip: _finish,
-                        onNext: _next,
-                      ),
-                      const SizedBox(height: 16),
-                    ],
+                  _OnboardingPage(
+                    title: tr('intro.page2_title'),
+                    body: tr('intro.page2_body'),
+                    hero: const _ImageHero('assets/images/onboarding_2.png'),
                   ),
-                ),
-              ],
+                  _OnboardingPage(
+                    title: tr('intro.page3_title'),
+                    body: tr('intro.page3_body'),
+                    hero: const _ImageHero('assets/images/onboarding_3.png'),
+                  ),
+                ],
+              ),
             ),
-            // Stationary brand wordmark, inset into the status-bar safe area but
-            // floating over the page-1 backdrop (which extends up behind it).
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: SafeArea(
-                bottom: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(28, 12, 28, 0),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Woody',
-                      style: TextStyle(
-                        fontFamily: AppFonts.display,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.4,
-                        // Page 1 floats over the always-light showroom stage, so
-                        // it needs fixed dark ink; pages 2-3 sit on the themed
-                        // background, so they follow the theme (legible in dark).
-                        color: _index == 0 ? _kStageInk : pt.dark,
-                      ),
+            SafeArea(
+              top: false,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(height: 8),
+                  SmoothPageIndicator(
+                    controller: _controller,
+                    count: _pageCount,
+                    effect: ExpandingDotsEffect(
+                      activeDotColor: PremiumTokens.accent,
+                      // Inactive: small, subtle light-grey dots.
+                      dotColor: pt.grey.withValues(alpha: 0.2),
+                      dotHeight: 7,
+                      dotWidth: 7,
+                      // Active swells into a clean terracotta pill.
+                      expansionFactor: 3.4,
+                      spacing: 7,
                     ),
                   ),
-                ),
+                  const SizedBox(height: 20),
+                  _BottomBar(isLast: isLast, onSkip: _finish, onNext: _next),
+                  const SizedBox(height: 16),
+                ],
               ),
             ),
           ],
@@ -216,12 +175,12 @@ class _OnboardingPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
-    // The page now fills the screen behind the stationary wordmark, so clear the
-    // status-bar area (SafeArea) plus the wordmark band before the card starts.
+    // The page fills the screen edge-to-edge, so SafeArea keeps the card clear of
+    // the status bar; a small top gap balances it against the footer below.
     return SafeArea(
       bottom: false,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(28, 48, 28, 12),
+        padding: const EdgeInsets.fromLTRB(28, 16, 28, 12),
         child: Column(
           children: [
             Expanded(child: hero),
@@ -330,9 +289,14 @@ class _ModelOnboardingPageState extends State<_ModelOnboardingPage> {
               // keeps widget tests, which have no asset bundle, from throwing).
               errorBuilder: (context, _, _) => ColoredBox(color: pt.imageBg),
             ),
-            // The chair, framed in the upper area so it sits clear of the copy.
+            // The chair, pushed down the screen so its legs land on the floor
+            // highlight in the backdrop instead of floating mid-air. model-viewer
+            // centres the model in its canvas, so the canvas top offset (≈18% of
+            // the page) sets where the chair rests; tune it if the .glb's bounds
+            // change. cameraTarget lifts the focal point a touch more for the
+            // final grounded sit.
             Positioned(
-              top: 0,
+              top: height * 0.18,
               left: 0,
               right: 0,
               height: height * 0.6,
@@ -349,6 +313,9 @@ class _ModelOnboardingPageState extends State<_ModelOnboardingPage> {
                 // Seeds the initial centred framing (yaw 0); live yaw is driven
                 // over JS from the arc.
                 cameraOrbit: '0deg 90deg auto',
+                // Lifts the camera's focal point above the model centre, nudging
+                // the chair down in-frame so it settles onto the floor highlight.
+                cameraTarget: 'auto 0.35m auto',
                 // Transparent WebView → the showroom photo shows through.
                 backgroundColor: Colors.transparent,
                 onWebViewCreated: (controller) => _web = controller,
@@ -371,7 +338,9 @@ class _ModelOnboardingPageState extends State<_ModelOnboardingPage> {
                         pt.background.withValues(alpha: 0),
                         pt.background,
                       ],
-                      stops: const [0.0, 0.48, 0.82],
+                      // Stay clear through where the grounded chair sits (~60%)
+                      // so its legs read crisply, then fade to solid for the copy.
+                      stops: const [0.0, 0.6, 0.86],
                     ),
                   ),
                 ),
