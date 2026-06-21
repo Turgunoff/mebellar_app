@@ -154,13 +154,13 @@ void main() {
     expect(css, contains('model-viewer{background-color:transparent'));
     expect(css, contains('html,body{background-color:transparent'));
 
-    // The room-context backdrop asset is mounted behind the model.
+    // The room-context backdrop asset is mounted (as an Image.asset) behind
+    // the model — the sole visible backdrop under the transparent Scaffold.
     final backdropAssets = tester
-        .widgetList<DecoratedBox>(find.byType(DecoratedBox))
-        .map((d) => d.decoration)
-        .whereType<BoxDecoration>()
-        .where((d) => d.image?.image is AssetImage)
-        .map((d) => (d.image!.image as AssetImage).assetName)
+        .widgetList<Image>(find.byType(Image))
+        .map((i) => i.image)
+        .whereType<AssetImage>()
+        .map((a) => a.assetName)
         .toList();
     expect(backdropAssets, contains('assets/images/viewer_3d_bg.webp'));
   });

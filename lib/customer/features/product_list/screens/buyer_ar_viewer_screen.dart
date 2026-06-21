@@ -83,7 +83,6 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
       _product.heightCm,
       _product.depthCm,
     );
-    final bottomInset = MediaQuery.of(context).padding.bottom;
     final ready = _web != null && _modelReady;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -93,24 +92,25 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
         systemNavigationBarColor: _kViewerBg,
         systemNavigationBarIconBrightness: Brightness.dark,
       ),
+      // Transparent Scaffold so the Stack's own background image is the sole
+      // backdrop — no solid Scaffold colour can ever paint over the room photo.
       child: Scaffold(
-        backgroundColor: _kViewerBg,
+        backgroundColor: Colors.transparent,
         extendBodyBehindAppBar: true,
         body: Stack(
           children: [
-            // Room-context backdrop: a soft showroom photo behind the now-
-            // transparent model canvas, so the piece reads as placed in a real
-            // space instead of floating in a void. The flat _kViewerBg fills
-            // first (never a black flash) and stays visible if the asset ever
-            // fails to decode; BoxFit.cover keeps it edge-to-edge on any ratio.
-            const Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: _kViewerBg,
-                  image: DecorationImage(
-                    image: AssetImage('assets/images/viewer_3d_bg.webp'),
-                    fit: BoxFit.cover,
-                  ),
+            // LAYER 1 — room-context backdrop. A flat _kViewerBg base sits under
+            // the photo as a one-frame decode guard / asset-fail fallback (never
+            // a black flash); BoxFit.cover keeps the showroom photo edge-to-edge
+            // on any ratio so the model reads as placed in a real space.
+            Positioned.fill(
+              child: ColoredBox(
+                color: _kViewerBg,
+                child: Image.asset(
+                  'assets/images/viewer_3d_bg.webp',
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) =>
+                      const ColoredBox(color: _kViewerBg),
                 ),
               ),
             ),
@@ -210,19 +210,64 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
             // contrast over a bright spot in the room backdrop — fades to
             // nothing well above the model. Never intercepts taps.
             const _TopScrim(),
-            _TopBar(
-              productName: _product.name,
-              canSave: ready,
-              saving: _saving,
-              onSave: _saveToGallery,
-            ),
-            // The single, prominent call to action: a full-width AR launch
-            // button pinned above the system nav inset.
-            Positioned(
-              left: 16,
-              right: 16,
-              bottom: bottomInset + 16,
-              child: _ArPlaceButton(enabled: ready, onTap: _showArChoiceSheet),
+            // LAYER 3 — every control lives inside ONE SafeArea, so nothing can
+            // bleed into the notch / status bar. A spaceBetween Column pins the
+            // top row (back · title · save) to the top and the AR CTA to the
+            // bottom; the empty middle stays transparent and eats no hits, so
+            // rotate/zoom gestures fall straight through to the model below.
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Top controls — back, centered title, save-to-gallery.
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Row(
+                        children: [
+                          _CircleIconButton(
+                            icon: Iconsax.arrow_left_2_copy,
+                            onTap: () => Navigator.of(context).maybePop(),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              _product.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontFamily: AppFonts.body,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -0.2,
+                                color: _kInk,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          _CircleIconButton(
+                            icon: Icons.save_alt,
+                            busy: _saving,
+                            onTap: (ready && !_saving) ? _saveToGallery : null,
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Bottom CTA — sits comfortably above the gesture bar with a
+                    // generous all-round inset, like a modern full-width action.
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 0, 8, 24),
+                      child: _ArPlaceButton(
+                        enabled: ready,
+                        onTap: _showArChoiceSheet,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
@@ -478,61 +523,6 @@ class _TopScrim extends StatelessWidget {
               colors: [Color(0xE6F4F5F7), Color(0x00F4F5F7)],
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Top overlay: back button, product name, and the save-to-gallery action.
-/// Restyled for the light stage — solid surfaces + ink, fixed-for-light (not
-/// theme-driven), so it reads against the model on either OS theme.
-class _TopBar extends StatelessWidget {
-  const _TopBar({
-    required this.productName,
-    required this.canSave,
-    required this.saving,
-    required this.onSave,
-  });
-
-  final String productName;
-  final bool canSave;
-  final bool saving;
-  final Future<void> Function() onSave;
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-        child: Row(
-          children: [
-            _CircleIconButton(
-              icon: Iconsax.arrow_left_2_copy,
-              onTap: () => Navigator.of(context).maybePop(),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                productName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontFamily: AppFonts.body,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.2,
-                  color: _kInk,
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            _CircleIconButton(
-              icon: Icons.save_alt,
-              busy: saving,
-              onTap: (canSave && !saving) ? onSave : null,
-            ),
-          ],
         ),
       ),
     );
