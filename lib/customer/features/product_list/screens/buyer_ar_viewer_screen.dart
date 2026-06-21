@@ -341,7 +341,10 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
       MaterialPageRoute(
         fullscreenDialog: true,
         builder: (_) => Fallback2DCameraScreen(
-          imageUrl: _product.thumbnail,
+          // The real .glb (non-null here — the viewer only renders with an
+          // approved model), so the fallback floats the 3D model, not a photo.
+          modelUrl: _product.arModelUrl!,
+          posterUrl: _product.thumbnail,
           productName: _product.name,
         ),
       ),

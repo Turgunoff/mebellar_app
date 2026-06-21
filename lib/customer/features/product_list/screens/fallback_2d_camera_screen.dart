@@ -213,57 +213,6 @@ class _FullBleedCamera extends StatelessWidget {
   }
 }
 
-/// The product photo floated over the feed — a soft drop shadow lifts it off
-/// the live background so it reads as a placed object. Null/empty url shows a
-/// neutral placeholder so the screen is never broken.
-class _ProductOverlay extends StatelessWidget {
-  const _ProductOverlay({required this.url, required this.size});
-  final String? url;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    final hasUrl = url != null && url!.isNotEmpty;
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.35),
-            blurRadius: 24,
-            spreadRadius: 2,
-          ),
-        ],
-      ),
-      child: hasUrl
-          ? Image.network(
-              url!,
-              fit: BoxFit.contain,
-              errorBuilder: (_, _, _) => const _PlaceholderCard(),
-            )
-          : const _PlaceholderCard(),
-    );
-  }
-}
-
-class _PlaceholderCard extends StatelessWidget {
-  const _PlaceholderCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.9),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: const Center(
-        child: Icon(Iconsax.gallery, size: 40, color: Colors.black38),
-      ),
-    );
-  }
-}
-
 /// Top row: a single circular close button (left). Pinned clear of the notch.
 class _TopBar extends StatelessWidget {
   const _TopBar({required this.onClose});
