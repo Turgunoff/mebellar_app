@@ -3,6 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+/// Decode width shared with the detail gallery thumbnail
+/// (`PreviewAppBar` → `_ImageGallery`, `memCacheWidth: 1080`). Both Hero ends
+/// decode at this width so the flight reuses the bitmap the gallery already
+/// has in the image cache — it paints on the first frame instead of flashing
+/// through the placeholder while a fresh full-res decode runs. That decode lag
+/// was the asymmetric "jump on open" (smooth on close, because by then the
+/// full-res bitmap was already cached). Keep in sync with the gallery's value.
+const int _kHeroDecodeWidth = 1080;
+
 /// Opens the [FullscreenImageViewer] on the root navigator with a transparent
 /// page so the backdrop can fade in *inside* the route instead of fighting
 /// the Hero transition (the old version wrapped the page in a
@@ -163,20 +172,39 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer> {
                       tag: '${widget.heroTagPrefix}-$i',
                       // Keep the source-style BoxFit.cover during the Hero
                       // flight so the image doesn't snap between fit modes
-                      // as the rect grows. Once flight ends, the destination
-                      // builder takes over and renders the contain-fit
-                      // inside an InteractiveViewer.
+                      // as the rect grows. Decode at the gallery's width so the
+                      // shuttle paints instantly (see [_kHeroDecodeWidth]); a
+                      // transparent placeholder lets the backdrop show through
+                      // on the rare cache miss instead of flashing black.
                       flightShuttleBuilder: (_, _, _, _, _) {
                         return Material(
                           type: MaterialType.transparency,
-                          child: _NetworkImage(url: url, fit: BoxFit.cover),
+                          child: _NetworkImage(
+                            url: url,
+                            fit: BoxFit.cover,
+                            cacheWidth: _kHeroDecodeWidth,
+                            placeholder: _transparentPlaceholder,
+                          ),
                         );
                       },
                       child: InteractiveViewer(
                         minScale: 1,
                         maxScale: 4,
                         child: Center(
-                          child: _NetworkImage(url: url, fit: BoxFit.contain),
+                          child: _NetworkImage(
+                            url: url,
+                            fit: BoxFit.contain,
+                            // Land on the gallery's already-decoded 1080 bitmap
+                            // (no flash), then cross-fade up to the full-res
+                            // decode so pinch-zoom stays sharp.
+                            fadeIn: const Duration(milliseconds: 150),
+                            placeholder: (_, _) => _NetworkImage(
+                              url: url,
+                              fit: BoxFit.contain,
+                              cacheWidth: _kHeroDecodeWidth,
+                              placeholder: _transparentPlaceholder,
+                            ),
+                          ),
                         ),
                       ),
                     );
@@ -233,21 +261,47 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer> {
   }
 }
 
+/// Transparent placeholder for the Hero ends — on a cache miss the backdrop
+/// shows through instead of a black rectangle flashing mid-flight.
+Widget _transparentPlaceholder(BuildContext _, String _) =>
+    const ColoredBox(color: Colors.transparent);
+
 /// Network image used both for the destination and the flight shuttle. Kept
 /// as a thin wrapper so both ends of the Hero render via the exact same
 /// widget tree — any layout work (placeholder, error fallback) is shared.
 class _NetworkImage extends StatelessWidget {
-  const _NetworkImage({required this.url, required this.fit});
+  const _NetworkImage({
+    required this.url,
+    required this.fit,
+    this.cacheWidth,
+    this.fadeIn = Duration.zero,
+    this.placeholder,
+  });
 
   final String url;
   final BoxFit fit;
+
+  /// Decode width. The Hero ends pass [_kHeroDecodeWidth] so they reuse the
+  /// gallery's already-decoded bitmap and paint on the flight's first frame.
+  final int? cacheWidth;
+
+  /// Defaults to [Duration.zero]: a Hero end must not cross-fade from its
+  /// placeholder or the flight flickers. Only the destination's full-res
+  /// upgrade opts into a short fade.
+  final Duration fadeIn;
+
+  final Widget Function(BuildContext, String)? placeholder;
 
   @override
   Widget build(BuildContext context) {
     return CachedNetworkImage(
       imageUrl: url,
       fit: fit,
-      placeholder: (_, _) => const ColoredBox(color: Colors.black),
+      memCacheWidth: cacheWidth,
+      fadeInDuration: fadeIn,
+      placeholderFadeInDuration: Duration.zero,
+      placeholder:
+          placeholder ?? (_, _) => const ColoredBox(color: Colors.black),
       errorWidget: (_, _, _) => const Center(
         child: Icon(Iconsax.gallery_slash, color: Colors.white54, size: 64),
       ),
