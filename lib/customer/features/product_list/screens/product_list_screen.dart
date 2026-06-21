@@ -207,7 +207,7 @@ class _AppBar extends StatelessWidget {
       scrolledUnderElevation: 0,
       titleSpacing: 0,
       leading: IconButton(
-        icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: pt.dark),
+        icon: Icon(Iconsax.arrow_left_2_copy, size: 20, color: pt.dark),
         // The category list is reached by `push` from the Categories tab, so a
         // plain pop drops the user right back onto it (the home shell keeps that
         // tab alive). The fallback only fires when there's nothing to pop — a

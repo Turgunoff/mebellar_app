@@ -250,7 +250,7 @@ class _SeeAllButton extends StatelessWidget {
               ),
               SizedBox(width: 2),
               Icon(
-                Icons.chevron_right_rounded,
+                Iconsax.arrow_right_3_copy,
                 size: 18,
                 color: DashKit.indigo,
               ),

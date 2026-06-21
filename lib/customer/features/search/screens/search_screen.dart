@@ -96,7 +96,7 @@ class _SearchViewState extends State<_SearchView> {
         scrolledUnderElevation: 0,
         leading: IconButton(
           icon: Icon(
-            Icons.arrow_back_ios_new_rounded,
+            Iconsax.arrow_left_2_copy,
             size: 20,
             color: pt.dark,
           ),
@@ -331,7 +331,7 @@ class _ResultsHeader extends StatelessWidget {
                   child: Row(
                     children: [
                       Icon(
-                        sort == s ? Iconsax.tick_circle : Iconsax.arrow_right_3,
+                        sort == s ? Iconsax.tick_circle : Iconsax.arrow_right_3_copy,
                         size: 15,
                         color: sort == s ? PremiumTokens.accent : pt.grey,
                       ),

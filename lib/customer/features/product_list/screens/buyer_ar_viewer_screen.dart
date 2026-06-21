@@ -461,7 +461,7 @@ class _TopBar extends StatelessWidget {
         child: Row(
           children: [
             _CircleIconButton(
-              icon: Iconsax.arrow_left_2,
+              icon: Iconsax.arrow_left_2_copy,
               onTap: () => Navigator.of(context).maybePop(),
             ),
             const SizedBox(width: 12),
@@ -757,7 +757,7 @@ class _ArChoiceOption extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Icon(
-                Iconsax.arrow_right_3,
+                Iconsax.arrow_right_3_copy,
                 size: 18,
                 color: _kInk.withValues(alpha: 0.3),
               ),

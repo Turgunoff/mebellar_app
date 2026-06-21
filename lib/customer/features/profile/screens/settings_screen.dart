@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -233,7 +234,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       surfaceTintColor: Colors.transparent,
       leading: IconButton(
         onPressed: () => Navigator.of(context).pop(),
-        icon: Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: pt.dark),
+        icon: Icon(Iconsax.arrow_left_2_copy, size: 18, color: pt.dark),
       ),
       title: Text(
         tr('settings.title'),
@@ -458,9 +459,9 @@ class _NavRow extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 6),
-                Icon(Icons.chevron_right, size: 18, color: pt.greyLight),
+                Icon(Iconsax.arrow_right_3_copy, size: 18, color: pt.greyLight),
               ] else
-                Icon(Icons.chevron_right, size: 18, color: pt.greyLight),
+                Icon(Iconsax.arrow_right_3_copy, size: 18, color: pt.greyLight),
             ],
           ),
         ),
@@ -543,10 +544,9 @@ class _SwitchRow extends StatelessWidget {
               ],
             ),
           ),
-          Switch.adaptive(
+          CupertinoSwitch(
             value: value,
             onChanged: onChanged,
-            activeThumbColor: Colors.white,
             activeTrackColor: PremiumTokens.accent,
           ),
         ],

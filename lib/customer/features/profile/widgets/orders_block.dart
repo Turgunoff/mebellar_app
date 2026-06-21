@@ -86,7 +86,7 @@ class OrdersBlock extends StatelessWidget {
                       ),
                     ),
                     Icon(
-                      Iconsax.arrow_right_3,
+                      Iconsax.arrow_right_3_copy,
                       size: 18,
                       color: pt.greyLight,
                     ),

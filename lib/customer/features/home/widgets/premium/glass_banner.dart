@@ -365,7 +365,7 @@ class _CtaPill extends StatelessWidget {
           ),
           const SizedBox(width: 6),
           const Icon(
-            Icons.arrow_forward_rounded,
+            Iconsax.arrow_right_3_copy,
             size: 16,
             color: PremiumTokens.accentDeep,
           ),

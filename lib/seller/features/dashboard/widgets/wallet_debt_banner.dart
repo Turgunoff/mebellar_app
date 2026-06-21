@@ -151,7 +151,7 @@ class WalletDebtBanner extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 4),
-          Icon(Icons.chevron_right_rounded, size: 18, color: c.greyMid),
+          Icon(Iconsax.arrow_right_3_copy, size: 18, color: c.greyMid),
         ],
       ),
     );

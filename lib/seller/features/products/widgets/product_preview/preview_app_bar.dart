@@ -85,7 +85,7 @@ class PreviewAppBar extends StatelessWidget {
       leading: Padding(
         padding: const EdgeInsets.all(8),
         child: PreviewGlassIconButton(
-          icon: Iconsax.arrow_left_2,
+          icon: Iconsax.arrow_left_2_copy,
           onTap: () => Navigator.of(context).maybePop(),
         ),
       ),

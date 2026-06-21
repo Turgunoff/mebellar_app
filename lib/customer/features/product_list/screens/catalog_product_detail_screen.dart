@@ -920,7 +920,7 @@ class _BrandChevron extends StatelessWidget {
         color: accent.withValues(alpha: 0.12),
         shape: BoxShape.circle,
       ),
-      child: Icon(Iconsax.arrow_right_3, size: 17, color: accent),
+      child: Icon(Iconsax.arrow_right_3_copy, size: 17, color: accent),
     );
   }
 }

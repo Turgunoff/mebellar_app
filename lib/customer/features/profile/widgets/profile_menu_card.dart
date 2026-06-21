@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../../shared/chat/widgets/unread_count_badge.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
@@ -95,7 +96,7 @@ class _MenuRow extends StatelessWidget {
                 UnreadCountBadge(count: entry.badgeCount),
                 const SizedBox(width: 8),
               ],
-              Icon(Icons.chevron_right, size: 20, color: pt.greyLight),
+              Icon(Iconsax.arrow_right_3_copy, size: 20, color: pt.greyLight),
             ],
           ),
         ),

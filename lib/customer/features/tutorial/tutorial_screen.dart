@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:woody_app/core/i18n/i18n.dart';
 import 'package:flutter/material.dart';
+import 'package:iconsax_flutter/iconsax_flutter.dart';
 import '../../../core/theme/app_fonts.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
@@ -748,7 +749,7 @@ class _BottomCta extends StatelessWidget {
           width: double.infinity,
           child: FilledButton.icon(
             onPressed: onTap,
-            icon: const Icon(Icons.arrow_forward_rounded),
+            icon: const Icon(Iconsax.arrow_right_3_copy),
             label: Text(
               tr('tutorial.start'),
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
@@ -802,7 +803,7 @@ class _BottomCta extends StatelessWidget {
                   ],
                 ),
                 child: const Icon(
-                  Icons.arrow_forward_rounded,
+                  Iconsax.arrow_right_3_copy,
                   color: Colors.white,
                 ),
               ),

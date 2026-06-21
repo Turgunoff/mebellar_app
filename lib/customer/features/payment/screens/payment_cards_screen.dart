@@ -46,7 +46,7 @@ class _CardsView extends StatelessWidget {
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Iconsax.arrow_left, color: pt.dark),
+          icon: Icon(Iconsax.arrow_left_2_copy, color: pt.dark),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
         title: Text(

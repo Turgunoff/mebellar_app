@@ -1,5 +1,6 @@
 ﻿import 'package:woody_app/core/i18n/i18n.dart';
 import 'package:flutter/material.dart';
+import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/models/verification_status.dart';
@@ -52,7 +53,7 @@ class VerificationStatusBanner extends StatelessWidget {
                 ),
               ),
               if (onTap != null)
-                Icon(Icons.chevron_right, color: palette.fg),
+                Icon(Iconsax.arrow_right_3_copy, color: palette.fg),
             ],
           ),
         ),

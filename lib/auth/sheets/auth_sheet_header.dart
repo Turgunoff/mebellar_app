@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import 'auth_sheet_kit.dart';
 
@@ -22,7 +23,7 @@ class AuthSheetHeader extends StatelessWidget {
           if (onBack != null)
             Align(
               alignment: Alignment.centerLeft,
-              child: _IconBtn(icon: Icons.arrow_back_rounded, onTap: onBack!),
+              child: _IconBtn(icon: Iconsax.arrow_left_2_copy, onTap: onBack!),
             ),
           if (onClose != null)
             Align(

@@ -271,7 +271,7 @@ class _NotificationsViewState extends State<_NotificationsView> {
           scrolledUnderElevation: 0,
           leading: IconButton(
             icon: Icon(
-              Icons.arrow_back_ios_new_rounded,
+              Iconsax.arrow_left_2_copy,
               size: 20,
               color: pt.dark,
             ),
@@ -557,7 +557,7 @@ class _NotificationTileState extends State<_NotificationTile> {
                           ),
                           const SizedBox(width: 4),
                           Icon(
-                            Iconsax.arrow_right_3,
+                            Iconsax.arrow_right_3_copy,
                             size: 14,
                             color: kindAccent,
                           ),

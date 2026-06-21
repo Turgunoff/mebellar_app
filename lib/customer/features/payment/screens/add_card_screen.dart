@@ -67,7 +67,7 @@ class _AddCardView extends StatelessWidget {
             surfaceTintColor: Colors.transparent,
             elevation: 0,
             leading: IconButton(
-              icon: Icon(Iconsax.arrow_left, color: pt.dark),
+              icon: Icon(Iconsax.arrow_left_2_copy, color: pt.dark),
               onPressed: () {
                 if (state.step == AddCardStep.code) {
                   // Back from the SMS step returns to the form, not out.

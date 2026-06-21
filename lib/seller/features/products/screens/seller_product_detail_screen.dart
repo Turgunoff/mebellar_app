@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
 
@@ -1438,7 +1439,7 @@ class _ComponentTile extends StatelessWidget {
                   ],
                 ),
               ),
-              if (enabled) Icon(Icons.chevron_right, color: c.greyFaint),
+              if (enabled) Icon(Iconsax.arrow_right_3_copy, color: c.greyFaint),
             ],
           ),
         ),

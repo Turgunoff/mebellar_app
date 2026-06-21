@@ -36,7 +36,7 @@ class OrderAppBar extends StatelessWidget implements PreferredSizeWidget {
       leading: IconButton(
         onPressed: () => Navigator.of(context).maybePop(),
         splashRadius: 22,
-        icon: Icon(Iconsax.arrow_left_2, size: 22, color: c.ink),
+        icon: Icon(Iconsax.arrow_left_2_copy, size: 22, color: c.ink),
       ),
       titleSpacing: 0,
       title: Text(

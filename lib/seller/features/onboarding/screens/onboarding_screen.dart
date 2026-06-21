@@ -1,5 +1,6 @@
 ﻿import 'package:woody_app/core/i18n/i18n.dart';
 import 'package:flutter/material.dart';
+import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../auth/auth_bottom_sheet.dart';
 import '../../../../core/analytics/analytics_service.dart';
@@ -235,13 +236,13 @@ class _BottomBarState extends State<_BottomBar> {
     final (String label, IconData icon) = switch (state.step) {
       OnboardingStep.review => (
         tr('onboarding.go_to_documents'),
-        Icons.arrow_forward,
+        Iconsax.arrow_right_3_copy,
       ),
       OnboardingStep.documentUpload => (
         tr('onboarding.submit'),
         Icons.send_outlined,
       ),
-      _ => (tr('common.next'), Icons.arrow_forward),
+      _ => (tr('common.next'), Iconsax.arrow_right_3_copy),
     };
 
     // Fixed height ensures the Back and Next buttons never disagree, even

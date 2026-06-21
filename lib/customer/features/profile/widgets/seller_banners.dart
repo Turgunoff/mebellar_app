@@ -153,7 +153,7 @@ class BecomeSellerBanner extends StatelessWidget {
                   ),
                   alignment: Alignment.center,
                   child: const Icon(
-                    Iconsax.arrow_right_1,
+                    Iconsax.arrow_right_3_copy,
                     size: 16,
                     color: Colors.white,
                   ),

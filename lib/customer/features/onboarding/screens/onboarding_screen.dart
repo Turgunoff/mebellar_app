@@ -1091,7 +1091,7 @@ class _NextCircle extends StatelessWidget {
         child: const SizedBox(
           width: 56,
           height: 56,
-          child: Icon(Iconsax.arrow_right_1, color: Colors.white, size: 24),
+          child: Icon(Iconsax.arrow_right_3_copy, color: Colors.white, size: 24),
         ),
       ),
     );
@@ -1133,7 +1133,7 @@ class _GetStartedPill extends StatelessWidget {
                 ),
                 const SizedBox(width: 10),
                 const Icon(
-                  Iconsax.arrow_right_1,
+                  Iconsax.arrow_right_3_copy,
                   color: Colors.white,
                   size: 20,
                 ),

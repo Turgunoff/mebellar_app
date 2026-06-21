@@ -36,7 +36,7 @@ class BroadcastPlaceholderScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+          icon: const Icon(Iconsax.arrow_left_2_copy, size: 20),
           onPressed: () =>
               context.canPop() ? context.pop() : context.go('/'),
         ),

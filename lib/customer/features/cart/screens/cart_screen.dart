@@ -527,7 +527,7 @@ class _StickyCheckout extends StatelessWidget {
                         ),
                         const SizedBox(width: 10),
                         const Icon(
-                          Iconsax.arrow_right_1,
+                          Iconsax.arrow_right_3_copy,
                           color: Colors.white,
                           size: 18,
                         ),

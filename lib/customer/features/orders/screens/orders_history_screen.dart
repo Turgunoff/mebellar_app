@@ -209,7 +209,7 @@ class _Header extends StatelessWidget {
               child: Row(
                 children: [
                   _CircleIconButton(
-                    icon: Iconsax.arrow_left,
+                    icon: Iconsax.arrow_left_2_copy,
                     onTap: onBack,
                     pt: pt,
                   ),
@@ -725,7 +725,7 @@ class _FeePendingBanner extends StatelessWidget {
               ),
             ),
           ),
-          Icon(Iconsax.arrow_right_3, size: 13, color: warning),
+          Icon(Iconsax.arrow_right_3_copy, size: 13, color: warning),
         ],
       ),
     );
@@ -778,7 +778,7 @@ class _RateCta extends StatelessWidget {
               ),
             ),
             const Icon(
-              Iconsax.arrow_right_3,
+              Iconsax.arrow_right_3_copy,
               size: 14,
               color: PremiumTokens.accent,
             ),

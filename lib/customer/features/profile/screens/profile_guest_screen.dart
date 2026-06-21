@@ -263,7 +263,7 @@ class _SellOnWoodyRow extends StatelessWidget {
                 ),
               ),
               const Icon(
-                Icons.chevron_right,
+                Iconsax.arrow_right_3_copy,
                 size: 22,
                 color: PremiumTokens.accent,
               ),
@@ -311,7 +311,7 @@ class _MenuRow extends StatelessWidget {
                   style: PremiumTokens.body(size: 14, weight: FontWeight.w500),
                 ),
               ),
-              Icon(Icons.chevron_right, size: 20, color: pt.greyLight),
+              Icon(Iconsax.arrow_right_3_copy, size: 20, color: pt.greyLight),
             ],
           ),
         ),

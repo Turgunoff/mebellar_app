@@ -103,7 +103,7 @@ class _TariffAppBar extends StatelessWidget implements PreferredSizeWidget {
       scrolledUnderElevation: 0,
       foregroundColor: c.ink,
       leading: IconButton(
-        icon: Icon(Iconsax.arrow_left_2, size: 22, color: c.ink),
+        icon: Icon(Iconsax.arrow_left_2_copy, size: 22, color: c.ink),
         onPressed: () => Navigator.of(context).maybePop(),
       ),
       title: Text(
@@ -283,7 +283,7 @@ class _PendingBanner extends StatelessWidget {
                 ),
               ),
               Icon(
-                Iconsax.arrow_right_3,
+                Iconsax.arrow_right_3_copy,
                 size: 18,
                 color: c.onPrimarySoft,
               ),

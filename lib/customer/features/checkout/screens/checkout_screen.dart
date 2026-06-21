@@ -84,7 +84,7 @@ class _CheckoutView extends StatelessWidget {
             elevation: 0,
             scrolledUnderElevation: 0,
             leading: IconButton(
-              icon: Icon(Iconsax.arrow_left, color: pt.dark),
+              icon: Icon(Iconsax.arrow_left_2_copy, color: pt.dark),
               onPressed: () => context.pop(),
             ),
             title: Text(
@@ -271,7 +271,7 @@ class _DeliveryCard extends StatelessWidget {
                       pt: pt,
                     ),
                   ),
-                  Icon(Iconsax.arrow_right_3, size: 16, color: pt.greyLight),
+                  Icon(Iconsax.arrow_right_3_copy, size: 16, color: pt.greyLight),
                 ],
               ),
               const SizedBox(height: 14),
@@ -875,7 +875,7 @@ class _ItemRow extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 2),
-              Icon(Iconsax.arrow_right_3, size: 13, color: pt.greyLight),
+              Icon(Iconsax.arrow_right_3_copy, size: 13, color: pt.greyLight),
             ],
           ),
         ),
@@ -1024,7 +1024,7 @@ class _ConfirmBar extends StatelessWidget {
                     ),
                     const SizedBox(width: 10),
                     const Icon(
-                      Iconsax.arrow_right_1,
+                      Iconsax.arrow_right_3_copy,
                       color: Colors.white,
                       size: 18,
                     ),

@@ -1003,7 +1003,7 @@ class _TariffArchiveBanner extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(Iconsax.arrow_right_3, size: 18, color: c.warning),
+              Icon(Iconsax.arrow_right_3_copy, size: 18, color: c.warning),
             ],
           ),
         ),

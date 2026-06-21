@@ -192,7 +192,7 @@ class _NotificationsViewState extends State<_NotificationsView> {
         titleSpacing: 0,
         leading: IconButton(
           icon: Icon(
-            Icons.arrow_back_ios_new_rounded,
+            Iconsax.arrow_left_2_copy,
             size: 20,
             color: c.ink,
           ),

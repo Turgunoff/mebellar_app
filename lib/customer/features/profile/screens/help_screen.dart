@@ -25,7 +25,7 @@ class HelpScreen extends StatelessWidget {
       leading: IconButton(
         onPressed: () => Navigator.of(context).pop(),
         icon: Icon(
-          Icons.arrow_back_ios_new_rounded,
+          Iconsax.arrow_left_2_copy,
           size: 18,
           color: pt.dark,
         ),
@@ -309,7 +309,7 @@ class _ContactCard extends StatelessWidget {
                 ),
               ),
               Icon(
-                Icons.arrow_forward_ios_rounded,
+                Iconsax.arrow_right_3_copy,
                 size: 14,
                 color: color,
               ),

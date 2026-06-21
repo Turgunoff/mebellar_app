@@ -522,7 +522,7 @@ class _CardArrowButton extends StatelessWidget {
             ),
           ),
           child: const Icon(
-            Icons.arrow_forward_ios,
+            Iconsax.arrow_right_3_copy,
             size: 14,
             color: Colors.white,
           ),

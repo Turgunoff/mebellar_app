@@ -173,7 +173,7 @@ class _SettingsAppBar extends StatelessWidget implements PreferredSizeWidget {
       scrolledUnderElevation: 0,
       foregroundColor: c.ink,
       leading: IconButton(
-        icon: Icon(Iconsax.arrow_left_2, size: 22, color: c.ink),
+        icon: Icon(Iconsax.arrow_left_2_copy, size: 22, color: c.ink),
         onPressed: () => Navigator.of(context).maybePop(),
       ),
       title: Text(
@@ -320,7 +320,7 @@ class _NavRow extends StatelessWidget {
                 ),
               ],
               const SizedBox(width: 8),
-              Icon(Iconsax.arrow_right_3, size: 18, color: c.greyMid),
+              Icon(Iconsax.arrow_right_3_copy, size: 18, color: c.greyMid),
             ],
           ),
         ),

@@ -352,7 +352,7 @@ class _ThreadAppBar extends StatelessWidget implements PreferredSizeWidget {
       toolbarHeight: 64,
       titleSpacing: 0,
       leading: IconButton(
-        icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: pt.dark),
+        icon: Icon(Iconsax.arrow_left_2_copy, size: 20, color: pt.dark),
         onPressed: () => _handleBack(context),
       ),
       title: Row(

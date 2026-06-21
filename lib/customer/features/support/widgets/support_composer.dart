@@ -396,7 +396,7 @@ class _RecordingBar extends StatelessWidget {
           ),
           const Spacer(),
           Icon(
-            cancelled ? Iconsax.trash : Iconsax.arrow_left_2,
+            cancelled ? Iconsax.trash : Iconsax.arrow_left_2_copy,
             size: 16,
             color: cancelled ? const Color(0xFFE5484D) : pt.grey,
           ),

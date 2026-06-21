@@ -381,7 +381,7 @@ class _MapAddressPickerScreenState extends State<MapAddressPickerScreen> {
                     _GlassButton(
                       onTap: () => Navigator.of(context).pop(),
                       child: const Icon(
-                        Icons.arrow_back_ios_new_rounded,
+                        Iconsax.arrow_left_2_copy,
                         size: 18,
                         color: Colors.black87,
                       ),

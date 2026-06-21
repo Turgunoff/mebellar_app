@@ -125,7 +125,7 @@ class _ServicesAppBar extends StatelessWidget implements PreferredSizeWidget {
       scrolledUnderElevation: 0,
       foregroundColor: c.ink,
       leading: IconButton(
-        icon: Icon(Iconsax.arrow_left_2, size: 22, color: c.ink),
+        icon: Icon(Iconsax.arrow_left_2_copy, size: 22, color: c.ink),
         onPressed: () => Navigator.of(context).maybePop(),
       ),
       title: Text(

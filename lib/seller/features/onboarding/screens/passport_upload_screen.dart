@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../customer/features/home/widgets/premium/premium_tokens.dart';
@@ -105,7 +106,7 @@ class _PassportUploadScreenState extends State<PassportUploadScreen> {
       backgroundColor: pt.background,
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Iconsax.arrow_left_2_copy),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
         title: const Text('Sotuvchi onboarding'),

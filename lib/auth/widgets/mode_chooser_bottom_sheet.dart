@@ -1,5 +1,6 @@
 ﻿import 'package:woody_app/core/i18n/i18n.dart';
 import 'package:flutter/material.dart';
+import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../config/app_mode.dart';
 
@@ -102,7 +103,7 @@ class _ModeCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right),
+              const Icon(Iconsax.arrow_right_3_copy),
             ],
           ),
         ),

@@ -269,7 +269,7 @@ class _BackCircle extends StatelessWidget {
         child: SizedBox(
           width: 40,
           height: 40,
-          child: Icon(Iconsax.arrow_left_2, size: 20, color: pt.dark),
+          child: Icon(Iconsax.arrow_left_2_copy, size: 20, color: pt.dark),
         ),
       ),
     );

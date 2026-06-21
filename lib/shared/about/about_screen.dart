@@ -159,7 +159,7 @@ class _AboutScreenState extends State<AboutScreen> {
       surfaceTintColor: Colors.transparent,
       leading: IconButton(
         onPressed: () => Navigator.of(context).pop(),
-        icon: Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: pt.dark),
+        icon: Icon(Iconsax.arrow_left_2_copy, size: 18, color: pt.dark),
       ),
       title: Text(
         'Ilova haqida',
@@ -220,7 +220,7 @@ class _LinkRow extends StatelessWidget {
                 ),
               ),
               Icon(
-                Icons.arrow_forward_ios_rounded,
+                Iconsax.arrow_right_3_copy,
                 size: 14,
                 color: pt.greyLight,
               ),
@@ -260,7 +260,7 @@ class StaticContentScreen extends StatelessWidget {
         leading: IconButton(
           onPressed: () => Navigator.of(context).pop(),
           icon: Icon(
-            Icons.arrow_back_ios_new_rounded,
+            Iconsax.arrow_left_2_copy,
             size: 18,
             color: pt.dark,
           ),

@@ -237,7 +237,7 @@ class _Body extends StatelessWidget {
                           ),
                           const SizedBox(width: 2),
                           Icon(
-                            Icons.chevron_right,
+                            Iconsax.arrow_right_3_copy,
                             size: 18,
                             color: pt.greyLight,
                           ),

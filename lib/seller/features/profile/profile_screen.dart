@@ -871,7 +871,7 @@ class _SettingsItem extends StatelessWidget {
               ],
               if (showTrailing) ...[
                 const SizedBox(width: 8),
-                Icon(Iconsax.arrow_right_3, size: 18, color: c.greyMid),
+                Icon(Iconsax.arrow_right_3_copy, size: 18, color: c.greyMid),
               ],
             ],
           ),
