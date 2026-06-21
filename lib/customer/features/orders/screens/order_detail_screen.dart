@@ -85,7 +85,7 @@ class _Body extends StatelessWidget {
         actions: [
           IconButton(
             tooltip: tr('chat.open_for_order'),
-            icon: const Icon(Iconsax.message),
+            icon: const Icon(Iconsax.message_copy),
             onPressed: () => context.push('/orders/${order.id}/chat'),
           ),
           if (state.realtimeConnected)

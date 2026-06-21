@@ -96,6 +96,12 @@ class _SimilarSectionState extends State<_SimilarSection> {
                           discountPercent: p.discountPercent,
                           isFavorite: isFav,
                           customImageHeight: _kSimilarImageHeight,
+                          // Guard against a rec that echoes the current product:
+                          // its tag would collide with this screen's own gallery
+                          // Hero (`product-${id}-0`) and crash the transition.
+                          heroTag: p.id == widget.productId
+                              ? null
+                              : 'product-${p.id}-0',
                           onTap: () =>
                               context.push('/product-detail/${p.id}', extra: p),
                           onFavoriteToggle: () => context

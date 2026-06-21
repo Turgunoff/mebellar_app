@@ -95,11 +95,7 @@ class _SearchViewState extends State<_SearchView> {
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: Icon(
-            Iconsax.arrow_left_2_copy,
-            size: 20,
-            color: pt.dark,
-          ),
+          icon: Icon(Iconsax.arrow_left_2_copy, size: 20, color: pt.dark),
           onPressed: () => context.pop(),
         ),
         titleSpacing: 0,
@@ -203,7 +199,7 @@ class _SearchField extends StatelessWidget {
       child: Row(
         children: [
           const SizedBox(width: 14),
-          Icon(Iconsax.search_normal_1, color: pt.grey, size: 17),
+          Icon(Iconsax.search_normal_1_copy, color: pt.grey, size: 17),
           const SizedBox(width: 10),
           Expanded(
             // The app's global `inputDecorationTheme` (see app_theme.dart)
@@ -331,7 +327,9 @@ class _ResultsHeader extends StatelessWidget {
                   child: Row(
                     children: [
                       Icon(
-                        sort == s ? Iconsax.tick_circle : Iconsax.arrow_right_3_copy,
+                        sort == s
+                            ? Iconsax.tick_circle
+                            : Iconsax.arrow_right_3_copy,
                         size: 15,
                         color: sort == s ? PremiumTokens.accent : pt.grey,
                       ),
@@ -478,7 +476,7 @@ class _EmptyHero extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             child: const Icon(
-              Iconsax.search_normal_1,
+              Iconsax.search_normal_1_copy,
               size: 38,
               color: PremiumTokens.accent,
             ),
@@ -867,6 +865,7 @@ class _ResultsGrid extends StatelessWidget {
             oldPrice: p.hasDiscount ? _formatPrice(p.price) : null,
             discountPercent: p.discountPercent,
             isFavorite: isFav,
+            heroTag: 'product-${p.id}-0',
             onTap: () => onItemTap(p),
             onFavoriteToggle: () => context.read<FavoritesBloc>().add(
               FavoriteToggled(Product.fromModel(p)),

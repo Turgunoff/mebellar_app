@@ -455,6 +455,7 @@ class _ProductListView extends StatelessWidget {
                 : null,
             discountPercent: product.discountPercent,
             isFavorite: isFav,
+            heroTag: 'product-${product.id}-0',
             onTap: () =>
                 context.push('/product-detail/${product.id}', extra: product),
             onFavoriteToggle: () => context.read<FavoritesBloc>().add(
@@ -495,22 +496,27 @@ class _ProductCard extends StatelessWidget {
                   fit: StackFit.expand,
                   children: [
                     if (product.thumbnail != null)
-                      CachedNetworkImage(
-                        imageUrl: product.thumbnail!,
-                        // ROADMAP B.7 — 2-column grid product card.
-                        memCacheWidth: 600,
-                        fit: BoxFit.cover,
-                        placeholder: (_, _) => Shimmer.fromColors(
-                          baseColor: pt.imageBg,
-                          highlightColor: pt.surface,
-                          child: Container(color: pt.imageBg),
-                        ),
-                        errorWidget: (_, _, _) => Container(
-                          color: pt.imageBg,
-                          child: Icon(
-                            Iconsax.gallery,
-                            color: pt.greyLight,
-                            size: 28,
+                      // First-image tag matches the detail gallery's Hero so
+                      // the thumbnail glides into the full-screen banner.
+                      Hero(
+                        tag: 'product-${product.id}-0',
+                        child: CachedNetworkImage(
+                          imageUrl: product.thumbnail!,
+                          // ROADMAP B.7 — 2-column grid product card.
+                          memCacheWidth: 600,
+                          fit: BoxFit.cover,
+                          placeholder: (_, _) => Shimmer.fromColors(
+                            baseColor: pt.imageBg,
+                            highlightColor: pt.surface,
+                            child: Container(color: pt.imageBg),
+                          ),
+                          errorWidget: (_, _, _) => Container(
+                            color: pt.imageBg,
+                            child: Icon(
+                              Iconsax.gallery,
+                              color: pt.greyLight,
+                              size: 28,
+                            ),
                           ),
                         ),
                       )

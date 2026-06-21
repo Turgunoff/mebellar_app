@@ -25,7 +25,7 @@ class DangerZone extends StatelessWidget {
           height: 52,
           child: OutlinedButton.icon(
             onPressed: onSignOut,
-            icon: Icon(Iconsax.logout, size: 18, color: pt.dark),
+            icon: Icon(Iconsax.logout_copy, size: 18, color: pt.dark),
             label: Text(
               'Chiqish',
               style: PremiumTokens.body(

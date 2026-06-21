@@ -339,7 +339,7 @@ class _NotificationBell extends StatelessWidget {
               clipBehavior: Clip.none,
               alignment: Alignment.center,
               children: [
-                Icon(Iconsax.notification, color: pt.dark, size: 22),
+                Icon(Iconsax.notification_copy, color: pt.dark, size: 22),
                 if (count > 0)
                   Positioned(
                     top: 8,
@@ -414,7 +414,7 @@ class _PremiumSearchBar extends StatelessWidget {
           child: Row(
             children: [
               const SizedBox(width: 18),
-              Icon(Iconsax.search_normal_1, color: pt.grey, size: 20),
+              Icon(Iconsax.search_normal_1_copy, color: pt.grey, size: 20),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
@@ -790,6 +790,7 @@ class _RecommendedFeed extends StatelessWidget {
               discountPercent: p.discountPercent,
               isFavorite: isFav,
               customImageHeight: i.isEven ? 180.0 : 240.0,
+              heroTag: 'product-${p.id}-0',
               onTap: () => context.push('/product-detail/${p.id}', extra: p),
               onFavoriteToggle: () => context.read<FavoritesBloc>().add(
                 FavoriteToggled(Product.fromModel(p)),
@@ -820,6 +821,7 @@ class _RecommendedFeed extends StatelessWidget {
               oldPrice: p.hasDiscount ? formatUzsPrice(p.price) : null,
               discountPercent: p.discountPercent,
               isFavorite: isFav,
+              heroTag: 'product-${p.id}-0',
               onTap: () => context.push('/product-detail/${p.id}', extra: p),
               onFavoriteToggle: () => context.read<FavoritesBloc>().add(
                 FavoriteToggled(Product.fromModel(p)),

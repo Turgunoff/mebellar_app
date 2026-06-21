@@ -40,7 +40,7 @@ Future<void> showSignOutDialog(BuildContext context) async {
               ),
               alignment: Alignment.center,
               child: Icon(
-                Iconsax.logout,
+                Iconsax.logout_copy,
                 size: 24,
                 color: Theme.of(context).colorScheme.error,
               ),

@@ -20,6 +20,7 @@ class _ShopProductCard extends StatelessWidget {
         oldPrice: product.hasDiscount ? '${_money(product.price)} UZS' : null,
         discountPercent: product.discountPercent,
         isFavorite: isFav,
+        heroTag: 'product-${product.id}-0',
         onTap: () =>
             context.push('/product-detail/${product.id}', extra: product),
         onFavoriteToggle: () => context.read<FavoritesBloc>().add(

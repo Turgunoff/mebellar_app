@@ -66,10 +66,7 @@ GoRouter buildSellerRouter() {
         _SellerRouteError(location: state.uri.toString()),
     routes: [
       // Bare `/seller` → land on the dashboard tab.
-      GoRoute(
-        path: '/seller',
-        redirect: (_, _) => '/seller/dashboard',
-      ),
+      GoRoute(path: '/seller', redirect: (_, _) => '/seller/dashboard'),
 
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
@@ -125,8 +122,7 @@ GoRouter buildSellerRouter() {
                       }
                       return SellerProductDetailScreen(
                         product: product,
-                        onEdit: () =>
-                            context.push('/seller/products/$id/edit'),
+                        onEdit: () => context.push('/seller/products/$id/edit'),
                       );
                     },
                     routes: [
@@ -218,7 +214,11 @@ GoRouter buildSellerRouter() {
                 sl<AuthRepository>()
                     .setSellerAlertFlags(bonusScreenSeen: true)
                     .catchError((Object e, StackTrace st) {
-                      talker.handle(e, st, 'seller welcome: mark bonus seen failed');
+                      talker.handle(
+                        e,
+                        st,
+                        'seller welcome: mark bonus seen failed',
+                      );
                     }),
               );
               if (context.canPop()) {
@@ -260,8 +260,7 @@ GoRouter buildSellerRouter() {
         builder: (context, state) => ChatThreadScreen(
           viewer: ChatSenderRole.seller,
           chatId: state.pathParameters['chatId']!,
-          onOpenOrder: (orderId) =>
-              context.push('/seller/orders/$orderId'),
+          onOpenOrder: (orderId) => context.push('/seller/orders/$orderId'),
         ),
       ),
       // Seller's order detail jumps here — chat row must already exist
@@ -325,7 +324,8 @@ class _SellerRouterShellState extends State<SellerRouterShell> {
       final me = await sl<AuthRepository>().fetchMe();
       if (!mounted) return;
       final seller = me.sellerProfile;
-      if (seller == null || !seller.isApproved || seller.bonusScreenSeen) return;
+      if (seller == null || !seller.isApproved || seller.bonusScreenSeen)
+        return;
       GoRouter.of(context).push('/seller/welcome', extra: auth.userId);
     } catch (e, st) {
       talker.handle(e, st, 'seller welcome gate /me failed');
@@ -397,31 +397,33 @@ class _SellerRouterShellState extends State<SellerRouterShell> {
                   // A tap that actually changes tabs resets the exit gesture so
                   // a stale Dashboard back-press can't bleed into the new tab.
                   if (i != shell.currentIndex) _lastBackPress = null;
-                  shell.goBranch(
-                    i,
-                    initialLocation: i == shell.currentIndex,
-                  );
+                  shell.goBranch(i, initialLocation: i == shell.currentIndex);
                 },
                 items: [
                   SellerNavItem(
-                    icon: Iconsax.element_3,
+                    icon: Iconsax.element_3_copy,
+                    activeIcon: Iconsax.element_3,
                     label: tr('seller.tab_dashboard'),
                   ),
                   SellerNavItem(
-                    icon: Iconsax.box,
+                    icon: Iconsax.box_copy,
+                    activeIcon: Iconsax.box,
                     label: tr('seller.tab_products'),
                   ),
                   SellerNavItem(
-                    icon: Iconsax.shopping_bag,
+                    icon: Iconsax.shopping_bag_copy,
+                    activeIcon: Iconsax.shopping_bag,
                     label: tr('seller.tab_orders'),
                     badge: ordersState.badgeCount,
                   ),
                   SellerNavItem(
-                    icon: Iconsax.chart_2,
+                    icon: Iconsax.chart_2_copy,
+                    activeIcon: Iconsax.chart_2,
                     label: tr('seller.tab_analytics'),
                   ),
                   SellerNavItem(
-                    icon: Iconsax.user,
+                    icon: Iconsax.user_copy,
+                    activeIcon: Iconsax.user,
                     label: tr('profile.title'),
                     badge: unreadChats,
                   ),

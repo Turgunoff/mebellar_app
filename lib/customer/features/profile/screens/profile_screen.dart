@@ -111,30 +111,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
         onTap: _openSellerOnboarding,
       ),
     MenuEntry(
-      icon: Iconsax.message,
+      icon: Iconsax.message_copy,
       label: tr('chat.title'),
       badgeCount: unreadChats,
       onTap: () => context.push('/chats'),
     ),
     if (AppConfig.hasPayme)
       MenuEntry(
-        icon: Iconsax.card,
+        icon: Iconsax.card_copy,
         label: tr('payment.cards_title'),
         onTap: () => context.push('/payment-cards'),
       ),
     MenuEntry(
-      icon: Iconsax.setting_2,
+      icon: Iconsax.setting_2_copy,
       label: 'Sozlamalar',
       onTap: () => _push(context, const SettingsScreen()),
     ),
     MenuEntry(
-      icon: Iconsax.message_question,
+      icon: Iconsax.message_question_copy,
       label: "Yordam va Qo'llab-quvvatlash",
       badgeCount: unreadSupport,
       onTap: () => context.push('/support'),
     ),
     MenuEntry(
-      icon: Iconsax.info_circle,
+      icon: Iconsax.info_circle_copy,
       label: 'Ilova haqida',
       onTap: () => _push(context, const AboutScreen()),
     ),

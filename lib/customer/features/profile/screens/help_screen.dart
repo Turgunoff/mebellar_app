@@ -116,7 +116,7 @@ class HelpScreen extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           _ContactCard(
-            icon: Iconsax.message,
+            icon: Iconsax.message_copy,
             label: 'Telegram orqali',
             subtitle: '@woody_support',
             color: const Color(0xFF2AABEE),

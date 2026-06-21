@@ -195,6 +195,7 @@ class _FavoriteProductTile extends StatelessWidget {
       oldPrice: onSale ? '${_formatPrice(product.oldPrice!)} so\'m' : null,
       discountPercent: percent,
       isFavorite: true,
+      heroTag: 'product-${product.id}-0',
       onTap: () => context.push('/product-detail/${product.id}'),
       onFavoriteToggle: () =>
           context.read<FavoritesBloc>().add(FavoriteToggled(product)),

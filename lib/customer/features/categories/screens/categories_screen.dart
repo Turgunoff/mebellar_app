@@ -154,7 +154,7 @@ class _SearchIconButton extends StatelessWidget {
             width: 44,
             height: 44,
             child: Icon(
-              Iconsax.search_normal_1,
+              Iconsax.search_normal_1_copy,
               size: 19,
               color: PremiumTokens.accent,
             ),

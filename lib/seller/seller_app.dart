@@ -219,23 +219,28 @@ class _SellerHomeShellState extends State<SellerHomeShell> {
             onChanged: (i) => setState(() => _index = i),
             items: [
               SellerNavItem(
-                icon: Iconsax.element_3,
+                icon: Iconsax.element_3_copy,
+                activeIcon: Iconsax.element_3,
                 label: tr('seller.tab_dashboard'),
               ),
               SellerNavItem(
-                icon: Iconsax.box,
+                icon: Iconsax.box_copy,
+                activeIcon: Iconsax.box,
                 label: tr('seller.tab_products'),
               ),
               SellerNavItem(
-                icon: Iconsax.shopping_bag,
+                icon: Iconsax.shopping_bag_copy,
+                activeIcon: Iconsax.shopping_bag,
                 label: tr('seller.tab_orders'),
               ),
               SellerNavItem(
-                icon: Iconsax.chart_2,
+                icon: Iconsax.chart_2_copy,
+                activeIcon: Iconsax.chart_2,
                 label: tr('seller.tab_analytics'),
               ),
               SellerNavItem(
-                icon: Iconsax.user,
+                icon: Iconsax.user_copy,
+                activeIcon: Iconsax.user,
                 label: tr('profile.title'),
                 badge: unreadChats,
               ),

@@ -81,20 +81,20 @@ class _SellerProfileView extends StatelessWidget {
                         _SettingsCard(
                           items: [
                             _SettingsItem(
-                              icon: Iconsax.shop,
+                              icon: Iconsax.shop_copy,
                               title: "Do'kon sozlamalari",
                               subtitle: "Logo, ish vaqti, ko'rinish",
                               onTap: () => _openShopSettings(context),
                             ),
                             _SettingsItem(
-                              icon: Iconsax.truck_fast,
+                              icon: Iconsax.truck_fast_copy,
                               title: "Do'kon xizmatlari",
                               subtitle: 'Yetkazib berish, kafolat',
                               onTap: () =>
                                   _push(context, const SellerServicesScreen()),
                             ),
                             _SettingsItem(
-                              icon: Iconsax.messages_2,
+                              icon: Iconsax.messages_2_copy,
                               title: 'Sharhlar va Baholar',
                               subtitle: 'Mijozlar fikri va javoblar',
                               onTap: () =>
@@ -103,14 +103,14 @@ class _SellerProfileView extends StatelessWidget {
                             // Promoted out of "Ilova sozlamalari" — chats are a
                             // core shop-management surface, not an app setting.
                             _SettingsItem(
-                              icon: Iconsax.message,
+                              icon: Iconsax.message_copy,
                               title: 'Suhbatlar',
                               subtitle: 'Mijozlar bilan yozishuvlar',
                               badgeCount: unreadChats,
                               onTap: () => context.push('/seller/chats'),
                             ),
                             _SettingsItem(
-                              icon: Iconsax.wallet_3,
+                              icon: Iconsax.wallet_3_copy,
                               iconColor: state.wallet?.isHealthy == false
                                   ? AppColors.danger
                                   : null,
@@ -122,7 +122,7 @@ class _SellerProfileView extends StatelessWidget {
                             // switched off (RemoteConfig.tariffEnabled).
                             if (RemoteConfig.instance.tariffEnabled)
                               _SettingsItem(
-                                icon: Iconsax.crown_1,
+                                icon: Iconsax.crown_1_copy,
                                 iconColor: SellerColors.of(context).gold,
                                 title: 'Tarif',
                                 subtitle: _planSubtitle(state),
@@ -140,7 +140,7 @@ class _SellerProfileView extends StatelessWidget {
                             // Bildirishnomalar entry removed — the dashboard
                             // bell icon is the canonical entry point.
                             _SettingsItem(
-                              icon: Iconsax.setting_2,
+                              icon: Iconsax.setting_2_copy,
                               title: 'Sozlamalar',
                               subtitle: 'Til, mavzu va bildirishnomalar',
                               onTap: () =>
@@ -154,7 +154,7 @@ class _SellerProfileView extends StatelessWidget {
                         _SettingsCard(
                           items: [
                             _SettingsItem(
-                              icon: Iconsax.user_octagon,
+                              icon: Iconsax.user_octagon_copy,
                               iconColor: AppColors.sellerPrimary,
                               title: 'Xaridor rejimi',
                               titleColor: AppColors.sellerPrimary,
@@ -162,7 +162,7 @@ class _SellerProfileView extends StatelessWidget {
                                   switchAppMode(context, AppMode.customer),
                             ),
                             _SettingsItem(
-                              icon: Iconsax.logout,
+                              icon: Iconsax.logout_copy,
                               iconColor: _logoutRed,
                               title: 'Chiqish',
                               titleColor: _logoutRed,
@@ -430,7 +430,7 @@ class _CoverBanner extends StatelessWidget {
             right: -18,
             bottom: -26,
             child: Icon(
-              Iconsax.shop,
+              Iconsax.shop_copy,
               size: 120,
               color: Colors.white.withValues(alpha: 0.10),
             ),
@@ -487,7 +487,7 @@ class _CoverEditButton extends StatelessWidget {
         child: const SizedBox(
           width: 34,
           height: 34,
-          child: Icon(Iconsax.edit_2, size: 16, color: Colors.white),
+          child: Icon(Iconsax.edit_2_copy, size: 16, color: Colors.white),
         ),
       ),
     );
@@ -524,7 +524,11 @@ class _Avatar extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         alignment: Alignment.center,
         child: (url == null || url.isEmpty)
-            ? const Icon(Iconsax.shop, size: 34, color: AppColors.sellerPrimary)
+            ? const Icon(
+                Iconsax.shop_copy,
+                size: 34,
+                color: AppColors.sellerPrimary,
+              )
             : CachedNetworkImage(
                 imageUrl: url,
                 fit: BoxFit.cover,
@@ -532,7 +536,7 @@ class _Avatar extends StatelessWidget {
                 height: _kAvatarSize,
                 memCacheWidth: 240,
                 errorWidget: (_, _, _) => const Icon(
-                  Iconsax.shop,
+                  Iconsax.shop_copy,
                   size: 34,
                   color: AppColors.sellerPrimary,
                 ),
@@ -568,7 +572,7 @@ class _PlanChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Iconsax.crown_1, size: 13, color: c.gold),
+          Icon(Iconsax.crown_1_copy, size: 13, color: c.gold),
           const SizedBox(width: 5),
           Text(
             '${plan.label} tarif',
@@ -698,25 +702,25 @@ class _StatusBadge extends StatelessWidget {
         'Tasdiqlangan sotuvchi',
         c.positiveBg,
         c.positive,
-        Iconsax.tick_circle,
+        Iconsax.tick_circle_copy,
       ),
       VerificationStatus.pending || VerificationStatus.inReview => (
         'Tasdiqlash kutilmoqda',
         c.warningBg,
         c.warning,
-        Iconsax.clock,
+        Iconsax.clock_copy,
       ),
       VerificationStatus.rejected => (
         'Tasdiqlash rad etilgan',
         c.negativeBg,
         c.negative,
-        Iconsax.close_circle,
+        Iconsax.close_circle_copy,
       ),
       VerificationStatus.none => (
         'Tasdiqlanmagan',
         c.neutralBg,
         c.neutralFg,
-        Iconsax.info_circle,
+        Iconsax.info_circle_copy,
       ),
     };
   }

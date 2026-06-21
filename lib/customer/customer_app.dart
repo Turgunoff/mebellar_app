@@ -183,7 +183,9 @@ class _CustomerAppState extends State<CustomerApp> with WidgetsBindingObserver {
           // Root-scoped, shared with the home bell + inbox screens. Hoisted
           // here too so the profile's "Sotuvchi paneliga o'tish" badge can read
           // the live seller-surface unread count (state.sellerUnreadCount).
-          BlocProvider<NotificationsCubit>.value(value: sl<NotificationsCubit>()),
+          BlocProvider<NotificationsCubit>.value(
+            value: sl<NotificationsCubit>(),
+          ),
         ],
         child: MaterialApp.router(
           title: 'Woody',
@@ -391,20 +393,35 @@ class _CustomerHomeShellState extends State<CustomerHomeShell> {
           // The connectivity banner is mounted globally by NetworkOverlayWrapper
           // in MaterialApp.builder, so it survives route changes and we don't
           // need a per-shell Column wrapper here.
-          body: IndexedStack(index: _index, children: tabs),
+          // Every tab is mounted at once, so a product that appears in two tabs
+          // (e.g. a favourite that's also in the home feed) would otherwise put
+          // two Heroes with the same `product-<id>-0` tag in the live tree and
+          // crash the detail transition. HeroMode gates all but the visible tab
+          // out of the Hero scan, so only the active tab's image flies.
+          body: IndexedStack(
+            index: _index,
+            children: [
+              for (var i = 0; i < tabs.length; i++)
+                HeroMode(enabled: i == _index, child: tabs[i]),
+            ],
+          ),
           bottomNavigationBar: GlassBottomNav(
             currentIndex: _index,
             onTap: _goToTab,
             items: [
               GlassNavItem(
                 label: tr('nav.home'),
-                iconBuilder: (_, active) =>
-                    _NavIcon(icon: Iconsax.home_2, isActive: active),
+                iconBuilder: (_, active) => _NavIcon(
+                  icon: active ? Iconsax.home_2 : Iconsax.home_2_copy,
+                  isActive: active,
+                ),
               ),
               GlassNavItem(
                 label: tr('nav.catalog'),
-                iconBuilder: (_, active) =>
-                    _NavIcon(icon: Iconsax.element_3, isActive: active),
+                iconBuilder: (_, active) => _NavIcon(
+                  icon: active ? Iconsax.element_3 : Iconsax.element_3_copy,
+                  isActive: active,
+                ),
               ),
               GlassNavItem(
                 label: tr('nav.cart'),
@@ -413,7 +430,9 @@ class _CustomerHomeShellState extends State<CustomerHomeShell> {
                   builder: (context, state) {
                     final units = state.totalUnits;
                     final icon = _NavIcon(
-                      icon: Iconsax.shopping_bag,
+                      icon: active
+                          ? Iconsax.shopping_bag
+                          : Iconsax.shopping_bag_copy,
                       isActive: active,
                     );
                     if (units == 0) return icon;
@@ -423,14 +442,18 @@ class _CustomerHomeShellState extends State<CustomerHomeShell> {
               ),
               GlassNavItem(
                 label: tr('nav.favorites'),
-                iconBuilder: (_, active) =>
-                    _NavIcon(icon: Iconsax.heart, isActive: active),
+                iconBuilder: (_, active) => _NavIcon(
+                  icon: active ? Iconsax.heart : Iconsax.heart_copy,
+                  isActive: active,
+                ),
               ),
               GlassNavItem(
                 label: tr('nav.profile'),
                 iconBuilder: (context, active) {
                   final icon = _NavIcon(
-                    icon: Iconsax.profile_circle,
+                    icon: active
+                        ? Iconsax.profile_circle
+                        : Iconsax.profile_circle_copy,
                     isActive: active,
                   );
                   return BlocBuilder<TotalUnreadChatsCubit, int>(
@@ -460,9 +483,7 @@ class _NavIcon extends StatelessWidget {
     return Icon(
       icon,
       size: 24,
-      color: isActive
-          ? PremiumTokens.accent
-          : PremiumTokens.of(context).grey,
+      color: isActive ? PremiumTokens.accent : PremiumTokens.of(context).grey,
     );
   }
 }

@@ -67,14 +67,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _SettingsCard(
             children: [
               _NavRow(
-                icon: Iconsax.language_square,
+                icon: Iconsax.language_square_copy,
                 title: tr('settings.language_row'),
                 trailingText: languageLabel,
                 onTap: () => showLanguagePicker(context),
               ),
               const _RowDivider(),
               _NavRow(
-                icon: Iconsax.moon,
+                icon: Iconsax.moon_copy,
                 title: tr('settings.theme'),
                 trailingText: themeModeLabel(themeMode),
                 onTap: () => showThemeModePicker(context),
@@ -87,7 +87,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _SettingsCard(
             children: [
               _SwitchRow(
-                icon: Iconsax.shopping_bag,
+                icon: Iconsax.shopping_bag_copy,
                 title: tr('settings.new_orders'),
                 subtitle: tr('settings.push_messages'),
                 value: _newOrders,
@@ -95,7 +95,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const _RowDivider(),
               _SwitchRow(
-                icon: Iconsax.message,
+                icon: Iconsax.message_copy,
                 title: tr('settings.customer_messages'),
                 subtitle: tr('settings.push_messages'),
                 value: _customerMessages,
@@ -103,7 +103,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const _RowDivider(),
               _SwitchRow(
-                icon: Iconsax.warning_2,
+                icon: Iconsax.warning_2_copy,
                 title: tr('settings.system_alerts'),
                 subtitle: tr('settings.system_alerts_subtitle'),
                 value: _systemAlerts,
@@ -118,7 +118,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               BlocBuilder<AppCacheCubit, AppCacheState>(
                 builder: (context, cache) => _NavRow(
-                  icon: Iconsax.trash,
+                  icon: Iconsax.trash_copy,
                   iconColor: c.grey,
                   title: tr('settings.clear_cache'),
                   trailingText: cache.isBusy
@@ -133,7 +133,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               FutureBuilder<PackageInfo>(
                 future: appPackageInfo(),
                 builder: (context, snap) => _NavRow(
-                  icon: Iconsax.info_circle,
+                  icon: Iconsax.info_circle_copy,
                   title: tr('settings.about'),
                   trailingText: snap.hasData
                       ? 'v${snap.data!.version} (${snap.data!.buildNumber})'
