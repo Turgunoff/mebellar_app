@@ -10,7 +10,9 @@ import 'package:image/image.dart' as img;
 import 'package:model_viewer_plus/model_viewer_plus.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
+import '../../../../core/services/facebook_analytics_service.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/ar/ar_loading_overlay.dart';
 import '../../../../shared/ar/ar_scale.dart';
@@ -325,6 +327,13 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
       builder: (sheetContext) => _ArChoiceSheet(
         onPick3d: () {
           Navigator.of(sheetContext).pop();
+          if (sl.isRegistered<FacebookAnalyticsService>()) {
+            unawaited(
+              sl<FacebookAnalyticsService>().logCustomEvent('ar_model_viewed', {
+                'product_id': widget.product.id,
+              }),
+            );
+          }
           unawaited(_activateAr());
         },
         onPick2d: () {

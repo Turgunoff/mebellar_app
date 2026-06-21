@@ -5,6 +5,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/analytics/analytics_service.dart';
+import '../../../../core/services/facebook_analytics_service.dart';
 import '../data/ai_chat_store.dart';
 import '../data/ai_designer_repository.dart';
 import '../models/ai_chat_message.dart';
@@ -65,9 +66,11 @@ class AiDesignerCubit extends Cubit<AiDesignerState> {
     required AiDesignerRepository repository,
     AiChatStore? store,
     AnalyticsService? analytics,
+    FacebookAnalyticsService? facebookAnalytics,
   }) : _repo = repository,
        _store = store ?? AiChatStore(),
        _analytics = analytics,
+       _facebookAnalytics = facebookAnalytics,
        super(const AiDesignerState()) {
     _loadHistory();
   }
@@ -75,6 +78,7 @@ class AiDesignerCubit extends Cubit<AiDesignerState> {
   final AiDesignerRepository _repo;
   final AiChatStore _store;
   final AnalyticsService? _analytics;
+  final FacebookAnalyticsService? _facebookAnalytics;
 
   int _localSeq = 0;
 
@@ -115,6 +119,11 @@ class AiDesignerCubit extends Cubit<AiDesignerState> {
     );
     unawaited(_store.append(userMessage));
     unawaited(_analytics?.aiDesignerMessageSent(hasImage: imageBytes != null));
+    unawaited(
+      _facebookAnalytics?.logCustomEvent('ai_designer_used', {
+        'has_image': imageBytes != null,
+      }),
+    );
 
     final reply = await _repo.chat(
       message: trimmed,

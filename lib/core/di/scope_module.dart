@@ -4,6 +4,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../analytics/analytics_service.dart';
 import '../auth/auth_repository.dart';
 import '../realtime/woody_realtime_service.dart';
+import '../services/facebook_analytics_service.dart';
 import '../../customer/features/cart/bloc/cart_bloc.dart';
 import '../../customer/features/categories/bloc/categories_bloc.dart';
 import '../../customer/features/favorites/bloc/favorites_bloc.dart';
@@ -58,6 +59,9 @@ void registerCustomerScope(GetIt sl) {
     () => CartBloc(
       sl<CartRepository>(),
       analytics: sl<AnalyticsService>(),
+      facebookAnalytics: sl.isRegistered<FacebookAnalyticsService>()
+          ? sl<FacebookAnalyticsService>()
+          : null,
       localeController: sl<AppLocaleController>(),
     )..add(const LoadCart()),
     dispose: (bloc) => bloc.close(),

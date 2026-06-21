@@ -40,6 +40,30 @@
 		<string>mailto</string>
 		<string>https</string>
 		<string>http</string>
+		<!-- Facebook SDK: lets the SDK detect the Facebook / Messenger apps. -->
+		<string>fbapi</string>
+		<string>fb-messenger-share-api</string>
+		<string>fbauth2</string>
+		<string>fbshareextension</string>
+	</array>
+	<!-- Facebook SDK (facebook_app_events). PLACEHOLDER values — replace
+	     YOUR_FB_APP_ID / YOUR_FB_CLIENT_TOKEN with the real values from the
+	     Facebook App dashboard before a production release. The URL scheme
+	     below must be fb<AppID> (e.g. fb1234567890). -->
+	<key>FacebookAppID</key>
+	<string>YOUR_FB_APP_ID</string>
+	<key>FacebookClientToken</key>
+	<string>YOUR_FB_CLIENT_TOKEN</string>
+	<key>FacebookDisplayName</key>
+	<string>Woody</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>fbYOUR_FB_APP_ID</string>
+			</array>
+		</dict>
 	</array>
 	<!-- The app uses only standard HTTPS (exempt encryption); declaring this
 	     skips the export-compliance prompt on every App Store / TestFlight upload. -->

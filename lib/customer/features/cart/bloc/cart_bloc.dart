@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/analytics/analytics_service.dart';
+import '../../../../core/services/facebook_analytics_service.dart';
 import '../../../../core/i18n/app_locale_controller.dart';
 import '../../../../core/i18n/locale_refetch.dart';
 import '../../../../core/network/api_error_messages.dart';
@@ -132,8 +133,10 @@ class CartBloc extends Bloc<CartEvent, CartState>
   CartBloc(
     this._repo, {
     AnalyticsService? analytics,
+    FacebookAnalyticsService? facebookAnalytics,
     AppLocaleController? localeController,
   }) : _analytics = analytics,
+       _facebookAnalytics = facebookAnalytics,
        super(const CartState()) {
     watchLocale(localeController);
     on<LoadCart>(_onLoad);
@@ -158,6 +161,7 @@ class CartBloc extends Bloc<CartEvent, CartState>
 
   final CartRepository _repo;
   final AnalyticsService? _analytics;
+  final FacebookAnalyticsService? _facebookAnalytics;
   StreamSubscription<List<CartItemModel>>? _sub;
 
   // Cart lines carry backend-localised product names; reload them in the
@@ -232,6 +236,12 @@ class CartBloc extends Bloc<CartEvent, CartState>
           productId: event.product.id,
           price: event.product.effectivePrice,
           quantity: qtyClamped,
+        ),
+      );
+      unawaited(
+        _facebookAnalytics?.logAddToCart(
+          event.product.id,
+          event.product.effectivePrice,
         ),
       );
     } catch (e) {

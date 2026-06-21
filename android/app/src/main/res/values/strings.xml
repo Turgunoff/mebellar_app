@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Facebook SDK (facebook_app_events). PLACEHOLDER values — replace
+        YOUR_FB_APP_ID / YOUR_FB_CLIENT_TOKEN with the real values from the
+        Facebook App dashboard (Settings → Basic) before a production release.
+        Referenced from AndroidManifest.xml via @string/facebook_app_id and
+        @string/facebook_client_token.
+    -->
+    <string name="facebook_app_id">YOUR_FB_APP_ID</string>
+    <string name="facebook_client_token">YOUR_FB_CLIENT_TOKEN</string>
+    <string name="fb_login_protocol_scheme">fbYOUR_FB_APP_ID</string>
+</resources>

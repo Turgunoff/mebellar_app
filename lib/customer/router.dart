@@ -20,6 +20,7 @@ import '../shared/models/cart_item_model.dart';
 import '../shared/widgets/brand_refresh_indicator.dart';
 import '../shared/widgets/notification_simulator_screen.dart';
 import '../core/analytics/analytics_service.dart';
+import '../core/services/facebook_analytics_service.dart';
 import 'customer_app.dart';
 import 'features/ai_designer/cubit/ai_designer_cubit.dart';
 import 'features/ai_designer/data/ai_designer_repository.dart';
@@ -222,6 +223,9 @@ GoRouter buildCustomerRouter() {
           create: (_) => AiDesignerCubit(
             repository: sl<AiDesignerRepository>(),
             analytics: sl<AnalyticsService>(),
+            facebookAnalytics: sl.isRegistered<FacebookAnalyticsService>()
+                ? sl<FacebookAnalyticsService>()
+                : null,
           ),
           child: const AiAssistantChatScreen(),
         ),

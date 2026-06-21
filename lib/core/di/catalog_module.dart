@@ -7,6 +7,7 @@ import '../../customer/widgets/view_mode_toggle.dart';
 import '../analytics/analytics_service.dart';
 import '../analytics/firebase_analytics_service.dart';
 import '../analytics/noop_analytics_service.dart';
+import '../services/facebook_analytics_service.dart';
 import '../../shared/repositories/banner_repository.dart';
 import '../../shared/repositories/cached_banner_repository.dart';
 import '../../shared/repositories/cached_category_repository.dart';
@@ -155,6 +156,14 @@ void registerCatalogModule(GetIt sl) {
       return const NoopAnalyticsService();
     }
   });
+
+  // Facebook App Events — a SEPARATE conversion sink (installs + standard
+  // events + custom AR / AI signals) for ad-campaign attribution. One lazy
+  // singleton in the root scope, shared by customer + seller call sites. Its
+  // methods are non-throwing, so call sites never need to null-check.
+  sl.registerLazySingleton<FacebookAnalyticsService>(
+    FacebookAnalyticsService.new,
+  );
 
   // NotificationsCubit lives in the ROOT scope so a single instance feeds
   // both the customer inbox + bell badge AND the seller inbox + bell badge,

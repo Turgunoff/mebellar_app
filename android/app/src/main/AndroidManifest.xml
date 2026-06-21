@@ -141,6 +141,18 @@
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_color"
             android:resource="@color/notification_accent" />
+
+        <!-- Facebook SDK (facebook_app_events). The App ID + Client Token live
+             in res/values/strings.xml as placeholders (YOUR_FB_APP_ID /
+             YOUR_FB_CLIENT_TOKEN) — replace them with the real Facebook App
+             dashboard values before shipping. The INTERNET permission the SDK
+             needs is already declared at the top of this manifest. -->
+        <meta-data
+            android:name="com.facebook.sdk.ApplicationId"
+            android:value="@string/facebook_app_id" />
+        <meta-data
+            android:name="com.facebook.sdk.ClientToken"
+            android:value="@string/facebook_client_token" />
     </application>
 
     <queries>

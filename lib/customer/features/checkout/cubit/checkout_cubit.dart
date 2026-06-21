@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/network/api_error_messages.dart';
+import '../../../../core/services/facebook_analytics_service.dart';
 import '../../../../shared/models/cart_item_model.dart';
 import '../../../../shared/repositories/cart_repository.dart';
 import '../../../../shared/repositories/checkout_repository.dart';
@@ -166,10 +167,12 @@ class CheckoutCubit extends Cubit<CheckoutState> {
     required CartRepository cartRepo,
     PaymentCardsRepository? cards,
     AnalyticsService? analytics,
+    FacebookAnalyticsService? facebookAnalytics,
   }) : _checkout = checkout,
        _cartRepo = cartRepo,
        _cards = cards,
        _analytics = analytics,
+       _facebookAnalytics = facebookAnalytics,
        super(CheckoutState(groups: _groupByShop(items))) {
     // Funnel start — one event per checkout session, regardless of how
     // many shops the cart spans. Per-shop conversion is logged in submit.
@@ -190,6 +193,7 @@ class CheckoutCubit extends Cubit<CheckoutState> {
   final CartRepository _cartRepo;
   final PaymentCardsRepository? _cards;
   final AnalyticsService? _analytics;
+  final FacebookAnalyticsService? _facebookAnalytics;
 
   void selectPayment(CheckoutPayment payment) {
     // Switching to cash drops any chosen card.
@@ -279,6 +283,7 @@ class CheckoutCubit extends Cubit<CheckoutState> {
             itemsCount: group.items.length,
           ),
         );
+        unawaited(_facebookAnalytics?.logPurchase(group.subtotal.toDouble(), 'UZS'));
       }
 
       // Orders now exist server-side, so the cart is empty regardless of what

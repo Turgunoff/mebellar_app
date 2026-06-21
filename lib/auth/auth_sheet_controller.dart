@@ -9,6 +9,7 @@ import '../core/di/service_locator.dart';
 import '../core/i18n/app_locale_controller.dart';
 import '../core/logging/talker.dart';
 import '../core/network/api_error.dart';
+import '../core/services/facebook_analytics_service.dart';
 import '../customer/features/profile/cubit/profile_cubit.dart';
 import 'auth_error_messages.dart';
 import 'sheets/auth_sheet_kit.dart';
@@ -213,6 +214,9 @@ class AuthSheetController extends ChangeNotifier {
           name: me.fullName ?? name,
           phone: me.phone ?? currentPhone,
         );
+      }
+      if (sl.isRegistered<FacebookAnalyticsService>()) {
+        unawaited(sl<FacebookAnalyticsService>().logRegistration());
       }
       onCompleted?.call();
     } on ApiError catch (e, st) {

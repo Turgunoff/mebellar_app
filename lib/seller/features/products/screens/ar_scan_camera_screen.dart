@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/services/facebook_analytics_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../data/ar_scan_repository.dart';
@@ -214,6 +215,14 @@ class _ArScanCameraScreenState extends State<ArScanCameraScreen>
         widthCm: widget.widthCm,
         lengthCm: widget.lengthCm,
       );
+      if (sl.isRegistered<FacebookAnalyticsService>()) {
+        unawaited(
+          sl<FacebookAnalyticsService>().logCustomEvent(
+            'seller_ar_model_generated',
+            {'product_id': widget.productId},
+          ),
+        );
+      }
       if (mounted) Navigator.of(context).pop(true);
     } catch (_) {
       if (mounted) {

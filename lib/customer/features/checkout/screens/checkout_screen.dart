@@ -10,6 +10,7 @@ import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/auth/auth_cubit.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
+import '../../../../core/services/facebook_analytics_service.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 import '../../orders/cubit/profile_orders_cubit.dart';
 import '../../payment/cubit/payment_cards_cubit.dart';
@@ -43,6 +44,9 @@ class CheckoutScreen extends StatelessWidget {
             cartRepo: sl<CartRepository>(),
             cards: AppConfig.hasPayme ? sl<PaymentCardsRepository>() : null,
             analytics: sl<AnalyticsService>(),
+            facebookAnalytics: sl.isRegistered<FacebookAnalyticsService>()
+                ? sl<FacebookAnalyticsService>()
+                : null,
           ),
         ),
         if (AppConfig.hasPayme)
