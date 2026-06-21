@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
 
@@ -65,10 +65,9 @@ class VisibilityCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Switch.adaptive(
+              CupertinoSwitch(
                 value: isPublic,
                 onChanged: onChanged,
-                activeThumbColor: Colors.white,
                 activeTrackColor: AppColors.sellerPrimary,
               ),
             ],

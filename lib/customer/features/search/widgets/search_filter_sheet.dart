@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
@@ -62,9 +63,9 @@ class FilterAvailability {
   /// "Show everything" — used as the safe default when the caller hasn't
   /// loaded results yet, so the sheet behaves like the unfiltered palette.
   const FilterAvailability.unrestricted()
-      : colorSlugs = const _UnrestrictedColorSet(),
-        hasDiscounted = true,
-        hasDelivery = true;
+    : colorSlugs = const _UnrestrictedColorSet(),
+      hasDiscounted = true,
+      hasDelivery = true;
 
   final Set<String> colorSlugs;
   final bool hasDiscounted;
@@ -139,7 +140,9 @@ class _SearchFilterSheetState extends State<_SearchFilterSheet> {
   List<ProductColorOption> get _visibleColors {
     final available = widget.availability.colorSlugs;
     return kProductColors
-        .where((c) => available.contains(c.slug) || _draft.colors.contains(c.slug))
+        .where(
+          (c) => available.contains(c.slug) || _draft.colors.contains(c.slug),
+        )
         .toList(growable: false);
   }
 
@@ -178,16 +181,12 @@ class _SearchFilterSheetState extends State<_SearchFilterSheet> {
         return Container(
           decoration: BoxDecoration(
             color: pt.background,
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(28),
-            ),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
           ),
           child: Column(
             children: [
               _Handle(color: pt.greyLight),
-              _Header(
-                onReset: _draft.isNotEmpty ? _reset : null,
-              ),
+              _Header(onReset: _draft.isNotEmpty ? _reset : null),
               Expanded(
                 child: ListView(
                   controller: scrollController,
@@ -203,12 +202,8 @@ class _SearchFilterSheetState extends State<_SearchFilterSheet> {
                       onChanged: (v) => _patch((f) => f.copyWith(sort: v)),
                     ),
                     const SizedBox(height: 20),
-                    _PriceSection(
-                      minCtrl: _minCtrl,
-                      maxCtrl: _maxCtrl,
-                    ),
-                    if (widget.showCategories &&
-                        _categoriesFuture != null) ...[
+                    _PriceSection(minCtrl: _minCtrl, maxCtrl: _maxCtrl),
+                    if (widget.showCategories && _categoriesFuture != null) ...[
                       const SizedBox(height: 20),
                       _CategoriesSection(
                         future: _categoriesFuture!,
@@ -231,9 +226,11 @@ class _SearchFilterSheetState extends State<_SearchFilterSheet> {
                       inStockOnly: _draft.inStockOnly,
                       discountedOnly: _draft.discountedOnly,
                       deliveryOnly: _draft.deliveryOnly,
-                      showDiscounted: widget.availability.hasDiscounted ||
+                      showDiscounted:
+                          widget.availability.hasDiscounted ||
                           _draft.discountedOnly,
-                      showDelivery: widget.availability.hasDelivery ||
+                      showDelivery:
+                          widget.availability.hasDelivery ||
                           _draft.deliveryOnly,
                       onInStockChanged: (v) =>
                           _patch((f) => f.copyWith(inStockOnly: v)),
@@ -354,10 +351,10 @@ class _SortSection extends StatelessWidget {
   }
 
   String _label(ProductSearchSort s) => switch (s) {
-        ProductSearchSort.newest => tr('search.filter.sort_newest'),
-        ProductSearchSort.priceAsc => tr('search.filter.sort_price_asc'),
-        ProductSearchSort.priceDesc => tr('search.filter.sort_price_desc'),
-      };
+    ProductSearchSort.newest => tr('search.filter.sort_newest'),
+    ProductSearchSort.priceAsc => tr('search.filter.sort_price_asc'),
+    ProductSearchSort.priceDesc => tr('search.filter.sort_price_desc'),
+  };
 }
 
 // ── Price ─────────────────────────────────────────────────────────────────
@@ -613,8 +610,7 @@ class _ColorSwatch extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: PremiumTokens.body(
                 size: 11,
-                weight:
-                    selected ? FontWeight.w700 : FontWeight.w500,
+                weight: selected ? FontWeight.w700 : FontWeight.w500,
                 color: selected ? pt.dark : pt.grey,
               ),
             ),
@@ -683,13 +679,15 @@ class _OptionsSection extends StatelessWidget {
     // bottom border by rebuilding it without `divider: true`. Keeps the
     // section's bottom edge clean regardless of which rows got hidden.
     final lastRow = rows.removeLast() as _OptionRow;
-    rows.add(_OptionRow(
-      icon: lastRow.icon,
-      label: lastRow.label,
-      value: lastRow.value,
-      onChanged: lastRow.onChanged,
-      divider: false,
-    ));
+    rows.add(
+      _OptionRow(
+        icon: lastRow.icon,
+        label: lastRow.label,
+        value: lastRow.value,
+        onChanged: lastRow.onChanged,
+        divider: false,
+      ),
+    );
     return _Section(
       icon: Iconsax.setting_4,
       title: tr('search.filter.options'),
@@ -722,9 +720,9 @@ class _OptionRow extends StatelessWidget {
             ? Border(bottom: BorderSide(color: pt.divider, width: 0.6))
             : null,
       ),
-      child: SwitchListTile.adaptive(
-        contentPadding: EdgeInsets.zero,
-        title: Row(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
           children: [
             Container(
               width: 36,
@@ -752,11 +750,14 @@ class _OptionRow extends StatelessWidget {
                 ),
               ),
             ),
+            const SizedBox(width: 12),
+            CupertinoSwitch(
+              value: value,
+              onChanged: onChanged,
+              activeTrackColor: PremiumTokens.accent,
+            ),
           ],
         ),
-        value: value,
-        onChanged: onChanged,
-        activeThumbColor: PremiumTokens.accent,
       ),
     );
   }
@@ -795,9 +796,7 @@ class _Chip extends StatelessWidget {
                 : pt.surface,
             borderRadius: BorderRadius.circular(11),
             border: Border.all(
-              color: selected
-                  ? PremiumTokens.accent
-                  : pt.divider,
+              color: selected ? PremiumTokens.accent : pt.divider,
               width: selected ? 1.3 : 1,
             ),
           ),
@@ -831,11 +830,7 @@ class _Chip extends StatelessWidget {
 // ── Section wrapper ───────────────────────────────────────────────────────
 
 class _Section extends StatelessWidget {
-  const _Section({
-    required this.title,
-    required this.child,
-    this.icon,
-  });
+  const _Section({required this.title, required this.child, this.icon});
 
   final String title;
   final Widget child;

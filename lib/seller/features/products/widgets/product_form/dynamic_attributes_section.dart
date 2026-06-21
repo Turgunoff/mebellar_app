@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -491,9 +492,9 @@ class _BoolToggle extends StatelessWidget {
         Expanded(
           child: _FieldLabel(label: label, isRequired: isRequired),
         ),
-        Switch.adaptive(
+        CupertinoSwitch(
           value: value,
-          activeThumbColor: primary,
+          activeTrackColor: primary,
           onChanged: onChanged,
         ),
       ],

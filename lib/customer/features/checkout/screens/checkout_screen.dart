@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -271,7 +272,11 @@ class _DeliveryCard extends StatelessWidget {
                       pt: pt,
                     ),
                   ),
-                  Icon(Iconsax.arrow_right_3_copy, size: 16, color: pt.greyLight),
+                  Icon(
+                    Iconsax.arrow_right_3_copy,
+                    size: 16,
+                    color: pt.greyLight,
+                  ),
                 ],
               ),
               const SizedBox(height: 14),
@@ -795,20 +800,32 @@ class _InstallationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SwitchListTile.adaptive(
-      value: state.wantsInstallation,
-      onChanged: (v) => context.read<CheckoutCubit>().toggleInstallation(v),
-      activeThumbColor: PremiumTokens.accent,
-      contentPadding: EdgeInsets.zero,
-      visualDensity: VisualDensity.compact,
-      title: Text(
-        "Ustamiz o'rnatib berishini xohlaysizmi?",
-        style: PremiumTokens.body(size: 14, weight: FontWeight.w600),
-      ),
-      subtitle: Text(
-        '+${_fmt(state.installationFee)} UZS',
-        style: PremiumTokens.body(size: 13, color: pt.grey),
-      ),
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                "Ustamiz o'rnatib berishini xohlaysizmi?",
+                style: PremiumTokens.body(size: 14, weight: FontWeight.w600),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '+${_fmt(state.installationFee)} UZS',
+                style: PremiumTokens.body(size: 13, color: pt.grey),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        CupertinoSwitch(
+          value: state.wantsInstallation,
+          onChanged: (v) => context.read<CheckoutCubit>().toggleInstallation(v),
+          activeTrackColor: PremiumTokens.accent,
+        ),
+      ],
     );
   }
 }

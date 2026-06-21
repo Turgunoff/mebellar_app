@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
 
@@ -144,7 +145,7 @@ class _DayRow extends StatelessWidget {
                   ),
           ),
           const SizedBox(width: 8),
-          Switch.adaptive(
+          CupertinoSwitch(
             value: !hours.closed,
             onChanged: (open) {
               onChanged(
@@ -156,7 +157,6 @@ class _DayRow extends StatelessWidget {
                     : DayHours.closedDay,
               );
             },
-            activeThumbColor: Colors.white,
             activeTrackColor: AppColors.sellerPrimary,
           ),
         ],

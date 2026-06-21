@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -393,13 +394,10 @@ class _SwitchRow extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Switch.adaptive(
+              CupertinoSwitch(
                 value: value,
                 onChanged: onChanged,
-                activeThumbColor: AppColors.sellerPrimary,
-                activeTrackColor: AppColors.sellerPrimary.withValues(
-                  alpha: 0.4,
-                ),
+                activeTrackColor: AppColors.sellerPrimary,
               ),
             ],
           ),

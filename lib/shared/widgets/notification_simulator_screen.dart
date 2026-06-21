@@ -1,4 +1,5 @@
-﻿import 'package:woody_app/core/i18n/i18n.dart';
+import 'package:woody_app/core/i18n/i18n.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../config/app_mode.dart';
@@ -40,8 +41,10 @@ class NotificationSimulatorScreen extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      tr('notifications.simulator_hint',
-                          args: [tr('mode.${currentMode.name}')]),
+                      tr(
+                        'notifications.simulator_hint',
+                        args: [tr('mode.${currentMode.name}')],
+                      ),
                     ),
                   ),
                 ],
@@ -147,13 +150,17 @@ class _ScenarioTile extends StatelessWidget {
     switch (scenario.action) {
       case _SimAction.tapForeground:
         if (!context.mounted) return;
-        await handler.handleTap(notification,
-            currentMode: currentMode, context: context);
+        await handler.handleTap(
+          notification,
+          currentMode: currentMode,
+          context: context,
+        );
         if (notification.kind.mode == currentMode.name && context.mounted) {
-          messenger.showSnackBar(SnackBar(
-            content:
-                Text(tr('notifications.simulator_done_same_mode')),
-          ));
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text(tr('notifications.simulator_done_same_mode')),
+            ),
+          );
         }
       case _SimAction.stashOnly:
         handler.savePendingRoute(
@@ -162,9 +169,9 @@ class _ScenarioTile extends StatelessWidget {
           kind: notification.kind.code,
         );
         if (context.mounted) {
-          messenger.showSnackBar(SnackBar(
-            content: Text(tr('notifications.simulator_done_stash')),
-          ));
+          messenger.showSnackBar(
+            SnackBar(content: Text(tr('notifications.simulator_done_stash'))),
+          );
         }
       case _SimAction.coldStart:
         handler.savePendingRoute(
@@ -173,9 +180,9 @@ class _ScenarioTile extends StatelessWidget {
           kind: notification.kind.code,
         );
         if (context.mounted) {
-          messenger.showSnackBar(SnackBar(
-            content: Text(tr('notifications.simulator_done_cold')),
-          ));
+          messenger.showSnackBar(
+            SnackBar(content: Text(tr('notifications.simulator_done_cold'))),
+          );
         }
         // Switch app mode to mirror what would happen on cold start when
         // the saved app_mode differs from the payload's target mode.
@@ -195,14 +202,11 @@ class _ScenarioTile extends StatelessWidget {
         side: BorderSide(color: scheme.outlineVariant),
       ),
       child: ListTile(
-        leading: Icon(
-          switch (scenario.action) {
-            _SimAction.tapForeground => Icons.touch_app_outlined,
-            _SimAction.stashOnly => Icons.cloud_download_outlined,
-            _SimAction.coldStart => Icons.power_settings_new,
-          },
-          color: scheme.primary,
-        ),
+        leading: Icon(switch (scenario.action) {
+          _SimAction.tapForeground => Icons.touch_app_outlined,
+          _SimAction.stashOnly => Icons.cloud_download_outlined,
+          _SimAction.coldStart => Icons.power_settings_new,
+        }, color: scheme.primary),
         title: Text(scenario.title),
         subtitle: Text(scenario.body),
         trailing: const Icon(Icons.play_arrow),
@@ -233,21 +237,42 @@ class _ConnectivityToggleCard extends StatelessWidget {
         initialData: service.status,
         builder: (context, snap) {
           final online = snap.data == ConnectivityStatus.online;
-          return SwitchListTile(
-            secondary: Icon(
-              online ? Icons.wifi : Icons.wifi_off,
-              color: online ? scheme.primary : scheme.error,
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                Icon(
+                  online ? Icons.wifi : Icons.wifi_off,
+                  color: online ? scheme.primary : scheme.error,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(tr('offline.toggle_title')),
+                      const SizedBox(height: 2),
+                      Text(
+                        online
+                            ? tr('offline.toggle_online')
+                            : tr('offline.toggle_offline'),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                CupertinoSwitch(
+                  value: online,
+                  onChanged: (next) => service.overrideStatus(
+                    next
+                        ? ConnectivityStatus.online
+                        : ConnectivityStatus.offline,
+                  ),
+                  activeTrackColor: scheme.primary,
+                ),
+              ],
             ),
-            value: online,
-            onChanged: (next) => service.overrideStatus(
-              next
-                  ? ConnectivityStatus.online
-                  : ConnectivityStatus.offline,
-            ),
-            title: Text(tr('offline.toggle_title')),
-            subtitle: Text(online
-                ? tr('offline.toggle_online')
-                : tr('offline.toggle_offline')),
           );
         },
       ),
@@ -266,8 +291,9 @@ class _DeepLinkTesterCard extends StatefulWidget {
 }
 
 class _DeepLinkTesterCardState extends State<_DeepLinkTesterCard> {
-  late final TextEditingController _ctrl =
-      TextEditingController(text: 'woody://orders/ord-1001');
+  late final TextEditingController _ctrl = TextEditingController(
+    text: 'woody://orders/ord-1001',
+  );
 
   @override
   void dispose() {
@@ -280,11 +306,15 @@ class _DeepLinkTesterCardState extends State<_DeepLinkTesterCard> {
     sl<DeepLinkService>().handleUri(_ctrl.text.trim());
     final parsed = MockDeepLinkService.parse(_ctrl.text.trim());
     final messenger = ScaffoldMessenger.of(context);
-    messenger.showSnackBar(SnackBar(
-      content: Text(parsed == null
-          ? tr('deep_links.unrecognised')
-          : tr('deep_links.routed', args: [parsed.mode.name, parsed.route])),
-    ));
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          parsed == null
+              ? tr('deep_links.unrecognised')
+              : tr('deep_links.routed', args: [parsed.mode.name, parsed.route]),
+        ),
+      ),
+    );
   }
 
   @override
@@ -326,9 +356,9 @@ class _DeepLinkTesterCardState extends State<_DeepLinkTesterCard> {
             const SizedBox(height: 4),
             Text(
               tr('deep_links.tester_hint'),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: scheme.outline,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: scheme.outline),
             ),
           ],
         ),
@@ -342,19 +372,19 @@ class _DeepLinkTesterCardState extends State<_DeepLinkTesterCard> {
 // simulator stays self-contained and the fixtures package can live under
 // `test/`.
 AppNotification _newOrderTemplate() => AppNotification(
-      id: 'notif-${DateTime.now().millisecondsSinceEpoch}',
-      kind: NotificationKind.orderPlaced,
-      title: 'Yangi buyurtma',
-      body: 'Sizning do\'koningizga yangi buyurtma keldi',
-      route: '/orders/ord-1001',
-      createdAt: DateTime.now(),
-    );
+  id: 'notif-${DateTime.now().millisecondsSinceEpoch}',
+  kind: NotificationKind.orderPlaced,
+  title: 'Yangi buyurtma',
+  body: 'Sizning do\'koningizga yangi buyurtma keldi',
+  route: '/orders/ord-1001',
+  createdAt: DateTime.now(),
+);
 
 AppNotification _orderDeliveredTemplate() => AppNotification(
-      id: 'notif-${DateTime.now().millisecondsSinceEpoch}',
-      kind: NotificationKind.orderUpdated,
-      title: 'Buyurtma yetkazildi',
-      body: 'M-2026-002 raqamli buyurtma manzilingizga yetkazib berildi',
-      route: '/orders/ord-1002',
-      createdAt: DateTime.now(),
-    );
+  id: 'notif-${DateTime.now().millisecondsSinceEpoch}',
+  kind: NotificationKind.orderUpdated,
+  title: 'Buyurtma yetkazildi',
+  body: 'M-2026-002 raqamli buyurtma manzilingizga yetkazib berildi',
+  route: '/orders/ord-1002',
+  createdAt: DateTime.now(),
+);

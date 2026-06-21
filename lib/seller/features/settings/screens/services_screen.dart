@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -387,12 +388,11 @@ class _ServiceTile extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Switch.adaptive(
+              CupertinoSwitch(
                 value: config.enabled,
                 onChanged: (v) => context.read<ServicesBloc>().add(
                   ServiceToggled(service: config.service, enabled: v),
                 ),
-                activeThumbColor: Colors.white,
                 activeTrackColor: AppColors.sellerPrimary,
               ),
             ],

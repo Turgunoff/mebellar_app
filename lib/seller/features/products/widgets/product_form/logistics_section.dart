@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
@@ -190,10 +191,9 @@ class _ToggleRow extends StatelessWidget {
             ],
           ),
         ),
-        Switch.adaptive(
+        CupertinoSwitch(
           value: value,
           onChanged: onChanged,
-          activeThumbColor: Colors.white,
           activeTrackColor: primary,
         ),
       ],

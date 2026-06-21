@@ -1,4 +1,5 @@
-﻿import 'package:woody_app/core/i18n/i18n.dart';
+import 'package:woody_app/core/i18n/i18n.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../shared/models/working_hours.dart';
@@ -44,18 +45,18 @@ class _DayRow extends StatelessWidget {
   final DayHours hours;
   final ValueChanged<DayHours> onChanged;
 
-  Future<void> _pickTime(
-    BuildContext context, {
-    required bool isOpen,
-  }) async {
-    final initial = _parseHHmm(isOpen ? hours.open : hours.close) ??
+  Future<void> _pickTime(BuildContext context, {required bool isOpen}) async {
+    final initial =
+        _parseHHmm(isOpen ? hours.open : hours.close) ??
         const TimeOfDay(hour: 9, minute: 0);
     final picked = await showTimePicker(context: context, initialTime: initial);
     if (picked == null) return;
     final formatted = _formatHHmm(picked);
-    onChanged(isOpen
-        ? hours.copyWith(open: formatted, closed: false)
-        : hours.copyWith(close: formatted, closed: false));
+    onChanged(
+      isOpen
+          ? hours.copyWith(open: formatted, closed: false)
+          : hours.copyWith(close: formatted, closed: false),
+    );
   }
 
   @override
@@ -77,9 +78,9 @@ class _DayRow extends StatelessWidget {
             Expanded(
               child: Text(
                 tr('shop_settings.closed'),
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: scheme.outline,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: scheme.outline),
               ),
             )
           else
@@ -105,18 +106,21 @@ class _DayRow extends StatelessWidget {
               ),
             ),
           const SizedBox(width: 8),
-          Switch(
+          CupertinoSwitch(
             value: !hours.closed,
             onChanged: (open) {
               if (open) {
-                onChanged(DayHours(
-                  open: hours.open ?? '09:00',
-                  close: hours.close ?? '18:00',
-                ));
+                onChanged(
+                  DayHours(
+                    open: hours.open ?? '09:00',
+                    close: hours.close ?? '18:00',
+                  ),
+                );
               } else {
                 onChanged(DayHours.closedDay);
               }
             },
+            activeTrackColor: scheme.primary,
           ),
         ],
       ),
