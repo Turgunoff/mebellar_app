@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:model_viewer_plus/model_viewer_plus.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
@@ -11,6 +12,11 @@ import '../../../../core/i18n/i18n.dart';
 import '../../../../core/storage/app_settings.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
+
+/// Fixed dark ink for chrome that floats over page 1's always-light showroom
+/// stage (the brand wordmark, the arc track) — it must stay legible there and
+/// not flip with the OS theme, the same convention as the buyer AR viewer.
+const Color _kStageInk = Color(0xFF17171C);
 
 /// Hive-backed first-launch flag. Mirrors the tutorial's `isTutorialSeen`
 /// pattern — the router gates the customer's first navigation on this so the
@@ -72,68 +78,120 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isLast = _index == _pageCount - 1;
 
-    return Scaffold(
-      backgroundColor: pt.background,
-      body: SafeArea(
-        child: Column(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      // The page-1 showroom runs behind the status bar, so dark glyphs read
+      // against its light stage.
+      value: SystemUiOverlayStyle.dark.copyWith(
+        statusBarColor: Colors.transparent,
+        systemNavigationBarColor: pt.background,
+        systemNavigationBarIconBrightness: isDark
+            ? Brightness.light
+            : Brightness.dark,
+      ),
+      child: Scaffold(
+        backgroundColor: pt.background,
+        // No app bar / bottom nav: the body owns the whole screen, so page 1's
+        // backdrop can reach the absolute top and bottom edges.
+        extendBody: true,
+        extendBodyBehindAppBar: true,
+        body: Stack(
           children: [
-            // Brand wordmark — present from the first frame.
-            Padding(
-              padding: const EdgeInsets.fromLTRB(28, 16, 28, 0),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Woody',
-                  style: TextStyle(
-                    fontFamily: AppFonts.display,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.4,
-                    color: pt.dark,
+            // The pages own the full screen (no top SafeArea) so the page-1
+            // backdrop bleeds behind the status bar. The footer sits in normal
+            // flow below the PageView, so each page stops cleanly above it — no
+            // overlay math, and the dots/buttons stay stationary across swipes.
+            Column(
+              children: [
+                Expanded(
+                  child: PageView(
+                    controller: _controller,
+                    onPageChanged: (i) => setState(() => _index = i),
+                    children: [
+                      _ModelOnboardingPage(
+                        title: tr('intro.page1_title'),
+                        body: tr('intro.page1_body'),
+                      ),
+                      _OnboardingPage(
+                        title: tr('intro.page2_title'),
+                        body: tr('intro.page2_body'),
+                        hero: const _ImageHero(
+                          'assets/images/onboarding_2.png',
+                        ),
+                      ),
+                      _OnboardingPage(
+                        title: tr('intro.page3_title'),
+                        body: tr('intro.page3_body'),
+                        hero: const _ImageHero(
+                          'assets/images/onboarding_3.png',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SafeArea(
+                  top: false,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(height: 8),
+                      SmoothPageIndicator(
+                        controller: _controller,
+                        count: _pageCount,
+                        effect: ExpandingDotsEffect(
+                          activeDotColor: PremiumTokens.accent,
+                          // Inactive: small, subtle light-grey dots.
+                          dotColor: pt.grey.withValues(alpha: 0.2),
+                          dotHeight: 7,
+                          dotWidth: 7,
+                          // Active swells into a clean terracotta pill.
+                          expansionFactor: 3.4,
+                          spacing: 7,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      _BottomBar(
+                        isLast: isLast,
+                        onSkip: _finish,
+                        onNext: _next,
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            // Stationary brand wordmark, inset into the status-bar safe area but
+            // floating over the page-1 backdrop (which extends up behind it).
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(28, 12, 28, 0),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Woody',
+                      style: TextStyle(
+                        fontFamily: AppFonts.display,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.4,
+                        // Page 1 floats over the always-light showroom stage, so
+                        // it needs fixed dark ink; pages 2-3 sit on the themed
+                        // background, so they follow the theme (legible in dark).
+                        color: _index == 0 ? _kStageInk : pt.dark,
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
-            Expanded(
-              child: PageView(
-                controller: _controller,
-                onPageChanged: (i) => setState(() => _index = i),
-                children: [
-                  _ModelOnboardingPage(
-                    title: tr('intro.page1_title'),
-                    body: tr('intro.page1_body'),
-                  ),
-                  _OnboardingPage(
-                    title: tr('intro.page2_title'),
-                    body: tr('intro.page2_body'),
-                    hero: const _ImageHero('assets/images/onboarding_2.png'),
-                  ),
-                  _OnboardingPage(
-                    title: tr('intro.page3_title'),
-                    body: tr('intro.page3_body'),
-                    hero: const _ImageHero('assets/images/onboarding_3.png'),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            SmoothPageIndicator(
-              controller: _controller,
-              count: _pageCount,
-              effect: ExpandingDotsEffect(
-                activeDotColor: PremiumTokens.accent,
-                dotColor: pt.grey.withValues(alpha: 0.28),
-                dotHeight: 8,
-                dotWidth: 8,
-                expansionFactor: 3,
-                spacing: 6,
-              ),
-            ),
-            const SizedBox(height: 20),
-            _BottomBar(isLast: isLast, onSkip: _finish, onNext: _next),
-            const SizedBox(height: 24),
           ],
         ),
       ),
@@ -158,57 +216,71 @@ class _OnboardingPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(28, 16, 28, 0),
-      child: Column(
-        children: [
-          Expanded(child: hero),
-          const SizedBox(height: 28),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 26,
-              height: 1.15,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.4,
-              color: pt.dark,
+    // The page now fills the screen behind the stationary wordmark, so clear the
+    // status-bar area (SafeArea) plus the wordmark band before the card starts.
+    return SafeArea(
+      bottom: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(28, 48, 28, 12),
+        child: Column(
+          children: [
+            Expanded(child: hero),
+            const SizedBox(height: 28),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 26,
+                height: 1.15,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.4,
+                color: pt.dark,
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            body,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 15,
-              height: 1.5,
-              fontWeight: FontWeight.w500,
-              color: pt.grey,
+            const SizedBox(height: 12),
+            Text(
+              body,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 15,
+                height: 1.5,
+                fontWeight: FontWeight.w500,
+                color: pt.grey,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-        ],
+            const SizedBox(height: 8),
+          ],
+        ),
       ),
     );
   }
 }
 
-/// Page 1 — a full-bleed showroom photo with a static 3D chair the buyer scrubs
-/// by hand: the screen leads with the "see it in your space" promise and hands
-/// the user a precise rotation control instead of a passive spin.
+// Arc-slider geometry. The track is a shallow downward "smile" the white thumb
+// rides; the thumb sits at the lowest (centre) point on first load.
+const double _kArcHeight = 72;
+const double _kArcInset = 30; // keeps the thumb + end dots off the edges
+const double _kArcSag = 26; // how far the centre dips below the ends
+const double _kArcThumbRadius = 11;
+const double _kArcEndDotRadius = 3.5;
+
+/// Page 1 — a true full-screen showroom photo (it bleeds behind the status bar)
+/// with a static 3D chair the buyer scrubs by hand via a curved arc control.
 ///
 /// The chair never auto-rotates and ignores direct touch
 /// (`cameraControls`/`disableZoom`/`disableTap`/`disablePan` all off) so a stray
 /// swipe can't tip or zoom it; the pitch is pinned to `90deg` so it stays dead
-/// level. Yaw is the only free axis, driven solely by the bottom slider. The
+/// level. Yaw is the only free axis, driven solely by the arc slider. The
 /// WebView is transparent so the showroom photo behind it shows through, and the
 /// stage is fixed-for-light (doesn't flip with dark mode) — same convention as
 /// the buyer AR viewer.
 ///
 /// model_viewer_plus (1.10.0) has no `didUpdateWidget`, so rebuilding with a new
-/// `cameraOrbit` never reaches the live `<model-viewer>`. The slider therefore
-/// drives the camera straight over JS on the captured [WebViewController]; the
-/// `cameraOrbit` param only seeds the initial framing.
+/// `cameraOrbit` never reaches the live `<model-viewer>`. The arc therefore
+/// drives the camera straight over JS on the captured [WebViewController] (and
+/// crucially does NOT setState the page, so the heavy model never rebuilds and
+/// the framing can't jump mid-drag); the `cameraOrbit` param only seeds the
+/// initial centred framing.
 class _ModelOnboardingPage extends StatefulWidget {
   const _ModelOnboardingPage({required this.title, required this.body});
 
@@ -222,20 +294,18 @@ class _ModelOnboardingPage extends StatefulWidget {
 class _ModelOnboardingPageState extends State<_ModelOnboardingPage> {
   WebViewController? _web;
 
-  /// Horizontal camera angle in degrees (0–360), driven by the bottom slider.
-  double _cameraOrbitYaw = 0;
-
-  void _onYawChanged(double value) {
-    setState(() => _cameraOrbitYaw = value);
+  /// Pushes the live camera yaw to the model. [yaw] is degrees, centre = 0,
+  /// −180 (full left) … +180 (full right). Pitch stays pinned at 90deg.
+  void _onYawChanged(double yaw) {
     final web = _web;
     if (web == null) return;
     // Set the attribute (not the JS property) so it's honoured even before the
-    // element upgrades; pitch stays locked at 90deg so only the yaw scrubs.
+    // element upgrades.
     unawaited(
       web.runJavaScript(
         "var mv=document.querySelector('model-viewer');"
         "if(mv){mv.setAttribute('camera-orbit',"
-        "'${value.toStringAsFixed(1)}deg 90deg auto');}",
+        "'${yaw.toStringAsFixed(1)}deg 90deg auto');}",
       ),
     );
   }
@@ -249,7 +319,8 @@ class _ModelOnboardingPageState extends State<_ModelOnboardingPage> {
         return Stack(
           fit: StackFit.expand,
           children: [
-            // Lowest layer: the full-bleed showroom backdrop.
+            // Lowest layer: the full-bleed showroom backdrop, edge to edge (the
+            // page has no top SafeArea, so this reaches the absolute top).
             Image.asset(
               'assets/images/onboarding_viewer_1.webp',
               fit: BoxFit.cover,
@@ -264,7 +335,7 @@ class _ModelOnboardingPageState extends State<_ModelOnboardingPage> {
               top: 0,
               left: 0,
               right: 0,
-              height: height * 0.62,
+              height: height * 0.6,
               child: ModelViewer(
                 src: 'assets/models/onboarding_chair.glb',
                 alt: 'Woody 3D furniture',
@@ -275,19 +346,18 @@ class _ModelOnboardingPageState extends State<_ModelOnboardingPage> {
                 disableTap: true,
                 disablePan: true,
                 interactionPrompt: InteractionPrompt.none,
-                cameraOrbit: '${_cameraOrbitYaw}deg 90deg auto',
+                // Seeds the initial centred framing (yaw 0); live yaw is driven
+                // over JS from the arc.
+                cameraOrbit: '0deg 90deg auto',
                 // Transparent WebView → the showroom photo shows through.
                 backgroundColor: Colors.transparent,
                 onWebViewCreated: (controller) => _web = controller,
               ),
             ),
-            // Gradient overlay: transparent up top, solid app background at the
-            // bottom, so the photo melts into the copy + the page's button area.
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              height: height * 0.55,
+            // Gradient: completely transparent through the upper half, fading to
+            // the solid app background by the lower third so the copy reads
+            // cleanly and the photo melts seamlessly into the footer below.
+            Positioned.fill(
               child: IgnorePointer(
                 child: DecoratedBox(
                   decoration: BoxDecoration(
@@ -298,29 +368,31 @@ class _ModelOnboardingPageState extends State<_ModelOnboardingPage> {
                       // Colors.transparent, which would bleed grey mid-fade.
                       colors: [
                         pt.background.withValues(alpha: 0),
+                        pt.background.withValues(alpha: 0),
                         pt.background,
                       ],
-                      stops: const [0.0, 0.7],
+                      stops: const [0.0, 0.48, 0.82],
                     ),
                   ),
                 ),
               ),
             ),
-            // Top layer: the scrubbable rotation slider + page copy.
+            // Top layer: the curved arc scrub control + page copy, anchored just
+            // above the footer.
             Positioned(
               left: 0,
               right: 0,
               bottom: 0,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(28, 0, 28, 4),
+                padding: const EdgeInsets.fromLTRB(28, 0, 28, 6),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _RotationSlider(
-                      value: _cameraOrbitYaw,
-                      onChanged: _onYawChanged,
+                    _ArcRotationControl(
+                      key: const Key('onboarding_rotation_arc'),
+                      onYawChanged: _onYawChanged,
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 10),
                     Text(
                       widget.title,
                       textAlign: TextAlign.center,
@@ -355,37 +427,115 @@ class _ModelOnboardingPageState extends State<_ModelOnboardingPage> {
   }
 }
 
-/// Minimalist scrub control for the page-1 chair: a 360° hint glyph and a
-/// terracotta slider that maps 0–360° onto the model's yaw.
-class _RotationSlider extends StatelessWidget {
-  const _RotationSlider({required this.value, required this.onChanged});
+/// Custom curved "arc" scrub control for the page-1 chair. A thin smile-shaped
+/// track with limit dots at each end and a pure-white thumb that starts dead
+/// centre. Horizontal drags slide the thumb along the curve; the centre maps to
+/// 0°, full-left to −180° and full-right to +180° of model yaw.
+///
+/// It owns its own position state and repaints only the [CustomPaint] on drag,
+/// so scrubbing never rebuilds the parent (and the 3D framing can't jump).
+class _ArcRotationControl extends StatefulWidget {
+  const _ArcRotationControl({super.key, required this.onYawChanged});
 
-  final double value;
-  final ValueChanged<double> onChanged;
+  final ValueChanged<double> onYawChanged;
+
+  @override
+  State<_ArcRotationControl> createState() => _ArcRotationControlState();
+}
+
+class _ArcRotationControlState extends State<_ArcRotationControl> {
+  /// Position along the arc, 0..1. Starts dead-centre (yaw 0).
+  double _t = 0.5;
+
+  void _onDrag(DragUpdateDetails details, double trackWidth) {
+    final next = (_t + details.delta.dx / trackWidth).clamp(0.0, 1.0);
+    if (next == _t) return;
+    setState(() => _t = next);
+    // Centre = 0°, full-left = −180°, full-right = +180°.
+    widget.onYawChanged((_t - 0.5) * 360);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final pt = PremiumTokens.of(context);
-    return Row(
-      children: [
-        Icon(Icons.threesixty, size: 20, color: pt.grey),
-        Expanded(
-          child: SliderTheme(
-            data: SliderTheme.of(context).copyWith(
-              trackHeight: 3,
-              activeTrackColor: PremiumTokens.accent,
-              inactiveTrackColor: pt.grey.withValues(alpha: 0.22),
-              thumbColor: PremiumTokens.accent,
-              overlayColor: PremiumTokens.accent.withValues(alpha: 0.12),
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 9),
-              overlayShape: const RoundSliderOverlayShape(overlayRadius: 18),
-            ),
-            child: Slider(min: 0, max: 360, value: value, onChanged: onChanged),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final trackWidth = width - _kArcInset * 2;
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onHorizontalDragUpdate: (details) => _onDrag(details, trackWidth),
+          child: CustomPaint(
+            size: Size(width, _kArcHeight),
+            painter: _ArcSliderPainter(t: _t),
           ),
-        ),
-      ],
+        );
+      },
     );
   }
+}
+
+/// Paints the smile-shaped arc track, its end limit dots, and the white thumb
+/// at the bezier point for [t]. The control point's x is the track midpoint, so
+/// the bezier's x is linear in `t` — the thumb tracks the finger 1:1 while
+/// gliding along the curve's dip.
+class _ArcSliderPainter extends CustomPainter {
+  const _ArcSliderPainter({required this.t});
+
+  final double t;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final x0 = _kArcInset;
+    final x1 = w - _kArcInset;
+    final cx = w / 2;
+    final yEnd = size.height / 2 - _kArcSag / 2;
+    final cy = yEnd + 2 * _kArcSag; // dips the centre downward (a smile)
+
+    final track = Path()
+      ..moveTo(x0, yEnd)
+      ..quadraticBezierTo(cx, cy, x1, yEnd);
+    canvas.drawPath(
+      track,
+      Paint()
+        ..color = _kStageInk.withValues(alpha: 0.28)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.6
+        ..strokeCap = StrokeCap.round,
+    );
+
+    final endDot = Paint()..color = _kStageInk.withValues(alpha: 0.32);
+    canvas.drawCircle(Offset(x0, yEnd), _kArcEndDotRadius, endDot);
+    canvas.drawCircle(Offset(x1, yEnd), _kArcEndDotRadius, endDot);
+
+    // Thumb position on the quadratic bezier at t.
+    final mt = 1 - t;
+    final tx = mt * mt * x0 + 2 * mt * t * cx + t * t * x1;
+    final ty = mt * mt * yEnd + 2 * mt * t * cy + t * t * yEnd;
+    final thumb = Offset(tx, ty);
+
+    // Soft drop shadow so the pure-white thumb reads on the light stage.
+    canvas.drawCircle(
+      thumb.translate(0, 1.5),
+      _kArcThumbRadius,
+      Paint()
+        ..color = const Color(0x33000000)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+    );
+    canvas.drawCircle(thumb, _kArcThumbRadius, Paint()..color = Colors.white);
+    canvas.drawCircle(
+      thumb,
+      _kArcThumbRadius,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..color = _kStageInk.withValues(alpha: 0.08),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _ArcSliderPainter oldDelegate) =>
+      oldDelegate.t != t;
 }
 
 /// Pages 2-3 — an aesthetic hero image filling a rounded card.

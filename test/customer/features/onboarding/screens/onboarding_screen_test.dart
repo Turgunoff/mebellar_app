@@ -35,28 +35,42 @@ void main() {
     installFakeWebViewPlatform();
   });
 
-  testWidgets('page 1 renders a static, slider-scrubbed 3D model', (
-    tester,
-  ) async {
+  testWidgets('page 1 renders a static, arc-scrubbed 3D model', (tester) async {
     await _pump(tester);
     await tester.pump();
 
     final viewer = tester.widget<ModelViewer>(find.byType(ModelViewer));
     expect(viewer.src, 'assets/models/onboarding_chair.glb');
     // Static: no auto-spin and no direct-touch controls — rotation comes only
-    // from the slider, so a stray swipe can't tip, spin or zoom the chair.
+    // from the arc, so a stray swipe can't tip, spin or zoom the chair.
     expect(viewer.ar, isFalse);
     expect(viewer.autoRotate, isFalse);
     expect(viewer.cameraControls, isFalse);
     expect(viewer.disableZoom, isTrue);
-    // Pitch is pinned to 90deg (chair stays level); yaw seeds at 0.
-    expect(viewer.cameraOrbit, '0.0deg 90deg auto');
+    // Pitch is pinned to 90deg (chair stays level); yaw seeds centred at 0.
+    expect(viewer.cameraOrbit, '0deg 90deg auto');
 
-    // The scrub control maps 0–360° onto the model's yaw.
-    final slider = tester.widget<Slider>(find.byType(Slider));
-    expect(slider.min, 0);
-    expect(slider.max, 360);
-    expect(slider.value, 0);
+    // The Material slider is gone, replaced by the custom curved arc control.
+    expect(find.byType(Slider), findsNothing);
+    expect(find.byKey(const Key('onboarding_rotation_arc')), findsOneWidget);
+  });
+
+  testWidgets('dragging the arc control updates without throwing', (
+    tester,
+  ) async {
+    await _pump(tester);
+    await tester.pump();
+
+    final arc = find.byKey(const Key('onboarding_rotation_arc'));
+    // A horizontal scrub must not crash or trip a layout error (no rebuild of
+    // the model, so the framing can't jump).
+    await tester.drag(arc, const Offset(80, 0));
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+
+    await tester.drag(arc, const Offset(-160, 0));
+    await tester.pump();
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('shows Skip, animated page indicator and first-page copy', (

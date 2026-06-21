@@ -54,6 +54,11 @@ class _FakeWebViewController extends PlatformWebViewController {
 
   @override
   Future<void> loadRequest(LoadRequestParams params) async {}
+
+  // The onboarding arc slider drives the live model's camera-orbit by running
+  // JS on the controller; no-op it so a drag in a widget test doesn't throw.
+  @override
+  Future<void> runJavaScript(String javaScript) async {}
 }
 
 class _FakeNavigationDelegate extends PlatformNavigationDelegate {
