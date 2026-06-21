@@ -457,6 +457,7 @@ class _OrderCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: pt.surface,
         borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: pt.divider),
         boxShadow: PremiumTokens.softShadow,
       ),
       child: Material(
@@ -835,19 +836,26 @@ class _CancelButtonState extends State<_CancelButton> {
     return GestureDetector(
       onTap: _open,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: danger.withValues(alpha: 0.08),
+          color: danger.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: danger.withValues(alpha: 0.25)),
+          border: Border.all(color: danger.withValues(alpha: 0.30)),
         ),
-        child: Text(
-          'Bekor qilish',
-          style: PremiumTokens.body(
-            size: 12,
-            weight: FontWeight.w600,
-            color: danger,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Iconsax.close_circle, size: 14, color: danger),
+            const SizedBox(width: 5),
+            Text(
+              'Bekor qilish',
+              style: PremiumTokens.body(
+                size: 12.5,
+                weight: FontWeight.w600,
+                color: danger,
+              ),
+            ),
+          ],
         ),
       ),
     );

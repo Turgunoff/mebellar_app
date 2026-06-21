@@ -153,102 +153,99 @@ class _Body extends StatelessWidget {
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
-          Card(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.storefront_outlined,
-                        size: 18,
-                        color: scheme.primary,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        order.shop.name.get(lang),
-                        style: Theme.of(context).textTheme.titleSmall,
-                      ),
-                    ],
-                  ),
-                  const Divider(),
-                  for (final item in order.items)
-                    InkWell(
-                      // Tap a line to open its product page. Disabled only when
-                      // the product id is missing (shouldn't happen for a real
-                      // order line, but keeps the row inert rather than 404ing).
-                      onTap: item.productId.isEmpty
-                          ? null
-                          : () => context.push('/product/${item.productId}'),
-                      borderRadius: BorderRadius.circular(8),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 6),
-                        child: Row(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: SizedBox(
-                                width: 48,
-                                height: 48,
-                                child: item.thumbnail.isEmpty
-                                    ? ColoredBox(color: pt.imageBg)
-                                    : CachedNetworkImage(
-                                        imageUrl: item.thumbnail,
-                                        // ROADMAP B.7 — 48px order-item thumbnail.
-                                        memCacheWidth: 150,
-                                        fit: BoxFit.cover,
-                                      ),
-                              ),
+          _SectionCard(
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.storefront_outlined,
+                      size: 18,
+                      color: scheme.primary,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      order.shop.name.get(lang),
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                  ],
+                ),
+                Divider(color: pt.divider, height: 24),
+                for (final item in order.items)
+                  InkWell(
+                    // Tap a line to open its product page. Disabled only when
+                    // the product id is missing (shouldn't happen for a real
+                    // order line, but keeps the row inert rather than 404ing).
+                    onTap: item.productId.isEmpty
+                        ? null
+                        : () => context.push('/product/${item.productId}'),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Row(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: SizedBox(
+                              width: 48,
+                              height: 48,
+                              child: item.thumbnail.isEmpty
+                                  ? ColoredBox(color: pt.imageBg)
+                                  : CachedNetworkImage(
+                                      imageUrl: item.thumbnail,
+                                      // ROADMAP B.7 — 48px order-item thumbnail.
+                                      memCacheWidth: 150,
+                                      fit: BoxFit.cover,
+                                    ),
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    item.productName.get(lang),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  Text(
-                                    '${item.quantity} Г— ${priceFormat.format(item.unitPrice)}',
-                                    style: Theme.of(
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item.productName.get(lang),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context).textTheme.bodyMedium
+                                      ?.copyWith(fontWeight: FontWeight.w600),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '${item.quantity} × ${priceFormat.format(item.unitPrice)}',
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                                if (item.colorSlug.isNotEmpty) ...[
+                                  const SizedBox(height: 3),
+                                  ProductColorChip(
+                                    slug: item.colorSlug,
+                                    swatchSize: 12,
+                                    labelStyle: Theme.of(
                                       context,
                                     ).textTheme.bodySmall,
                                   ),
-                                  if (item.colorSlug.isNotEmpty) ...[
-                                    const SizedBox(height: 3),
-                                    ProductColorChip(
-                                      slug: item.colorSlug,
-                                      swatchSize: 12,
-                                      labelStyle: Theme.of(
-                                        context,
-                                      ).textTheme.bodySmall,
-                                    ),
-                                  ],
                                 ],
-                              ),
+                              ],
                             ),
-                            Icon(
-                              Icons.chevron_right,
-                              size: 18,
-                              color: pt.greyLight,
-                            ),
-                            const SizedBox(width: 2),
-                            Text(
-                              '${priceFormat.format(item.lineTotal)} so\'m',
-                              style: Theme.of(context).textTheme.bodyMedium,
-                            ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${priceFormat.format(item.lineTotal)} so\'m',
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(width: 2),
+                          Icon(
+                            Icons.chevron_right,
+                            size: 18,
+                            color: pt.greyLight,
+                          ),
+                        ],
                       ),
                     ),
-                ],
-              ),
+                  ),
+              ],
             ),
           ),
           const SizedBox(height: 16),
@@ -258,54 +255,64 @@ class _Body extends StatelessWidget {
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
-          Card(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: ListTile(
-              leading: const Icon(Icons.location_on_outlined),
-              title: Text(order.address.label),
-              subtitle: Text(
-                [
-                  if (order.address.recipientName.isNotEmpty)
-                    order.address.recipientName,
-                  if (order.address.phone.isNotEmpty) order.address.phone,
-                  order.address.formatted(lang),
-                ].join('\n'),
-              ),
-              isThreeLine: true,
+          _SectionCard(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.location_on_outlined, size: 20, color: pt.grey),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        order.address.label,
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        [
+                          if (order.address.recipientName.isNotEmpty)
+                            order.address.recipientName,
+                          if (order.address.phone.isNotEmpty)
+                            order.address.phone,
+                          order.address.formatted(lang),
+                        ].join('\n'),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: pt.grey,
+                          height: 1.45,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 16),
           // Totals
-          Card(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                children: [
-                  _row(
-                    context,
-                    tr('checkout.items_total'),
-                    '${priceFormat.format(order.itemsTotal)} so\'m',
-                  ),
-                  const SizedBox(height: 6),
-                  _row(
-                    context,
-                    tr('checkout.delivery_fee'),
-                    '${priceFormat.format(order.deliveryFee)} so\'m',
-                  ),
-                  const Divider(),
-                  _row(
-                    context,
-                    tr('checkout.total'),
-                    '${priceFormat.format(order.grandTotal)} so\'m',
-                    isBold: true,
-                  ),
-                ],
-              ),
+          _SectionCard(
+            child: Column(
+              children: [
+                _row(
+                  context,
+                  tr('checkout.items_total'),
+                  '${priceFormat.format(order.itemsTotal)} so\'m',
+                ),
+                const SizedBox(height: 10),
+                _row(
+                  context,
+                  tr('checkout.delivery_fee'),
+                  '${priceFormat.format(order.deliveryFee)} so\'m',
+                ),
+                Divider(color: pt.divider, height: 24),
+                _row(
+                  context,
+                  tr('checkout.total'),
+                  '${priceFormat.format(order.grandTotal)} so\'m',
+                  isBold: true,
+                ),
+              ],
             ),
           ),
           if (order.feeAdjustmentStatus ==
@@ -364,6 +371,38 @@ class _Body extends StatelessWidget {
         const Spacer(),
         Text(value, style: style),
       ],
+    );
+  }
+}
+
+/// A light, theme-aware container for the order-detail sections. Uses the
+/// `surface` token (white in light mode, dark surface in dark mode) with a
+/// hairline border + soft shadow, so the section text keeps full contrast in
+/// both themes — unlike the brand "inverted" [Card], which is dark in light
+/// mode and was rendering dark text on a near-black panel here.
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({
+    required this.child,
+    this.padding = const EdgeInsets.all(16),
+  });
+
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+
+  @override
+  Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
+    return Container(
+      // Clip the child so an InkWell ripple inside a row stays within the
+      // rounded border (the box shadow paints behind the clip, so it survives).
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: pt.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: pt.divider),
+        boxShadow: PremiumTokens.softShadow,
+      ),
+      child: Padding(padding: padding, child: child),
     );
   }
 }
@@ -573,40 +612,37 @@ class _DeliveredReviewsCardState extends State<_DeliveredReviewsCard> {
     final theme = Theme.of(context);
     final allRated = items.every(_isRated);
 
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 14, 14, 6),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(
-                  Icons.star_rounded,
-                  size: 22,
-                  color: Color(0xFFF5A623),
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  'Mahsulotlarni baholang',
-                  style: theme.textTheme.titleMedium,
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              allRated
-                  ? 'Barcha mahsulotlar baholandi. Rahmat!'
-                  : 'Fikringiz boshqa xaridorlarga tanlovda yordam beradi.',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.outline,
+    return _SectionCard(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.star_rounded,
+                size: 22,
+                color: Color(0xFFF5A623),
               ),
+              const SizedBox(width: 6),
+              Text(
+                'Mahsulotlarni baholang',
+                style: theme.textTheme.titleMedium,
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            allRated
+                ? 'Barcha mahsulotlar baholandi. Rahmat!'
+                : 'Fikringiz boshqa xaridorlarga tanlovda yordam beradi.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.outline,
             ),
-            const SizedBox(height: 6),
-            for (final item in items) _itemRow(item, theme),
-          ],
-        ),
+          ),
+          const SizedBox(height: 6),
+          for (final item in items) _itemRow(item, theme),
+        ],
       ),
     );
   }
