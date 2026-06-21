@@ -20,7 +20,7 @@ class TotalUnreadChatsCubit extends Cubit<int> {
   StreamSubscription<List<Chat>>? _sub;
 
   void _subscribe() {
-    _sub = _repo.myChatsStream().listen(
+    _sub = _repo.myChatsStream(as: _viewer).listen(
       (chats) =>
           emit(chats.fold<int>(0, (sum, c) => sum + c.unreadFor(_viewer))),
       // Keep the last good count on a transient stream error — a badge that

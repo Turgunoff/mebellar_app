@@ -26,7 +26,9 @@ void main() {
   setUp(() {
     repo = _MockRepo();
     stream = StreamController<List<Chat>>();
-    when(() => repo.myChatsStream()).thenAnswer((_) => stream.stream);
+    when(
+      () => repo.myChatsStream(as: any(named: 'as')),
+    ).thenAnswer((_) => stream.stream);
   });
 
   tearDown(() => stream.close());

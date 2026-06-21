@@ -49,7 +49,7 @@ class ChatsListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
     return BlocProvider(
-      create: (_) => ChatsListCubit(sl<ChatRepository>()),
+      create: (_) => ChatsListCubit(sl<ChatRepository>(), viewer),
       child: Scaffold(
         backgroundColor: pt.background,
         appBar: AppBar(
@@ -59,7 +59,7 @@ class ChatsListScreen extends StatelessWidget {
           elevation: 0,
           scrolledUnderElevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios_new_rounded,
+            icon: Icon(Iconsax.arrow_left_2_copy,
                 size: 20, color: pt.dark),
             onPressed: () => _handleBack(context),
           ),

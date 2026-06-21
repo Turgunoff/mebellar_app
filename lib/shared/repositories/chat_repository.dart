@@ -15,9 +15,13 @@ abstract class ChatRepository {
   /// hasn't opened a thread, there's nothing to fetch.
   Future<Chat> openChatForOrder({required String orderId});
 
-  /// Chats visible to the current user (customer or seller), newest
-  /// first by last_message_at then created_at.
-  Future<List<Chat>> listMyChats();
+  /// Chats visible to the current user, newest first by last_message_at
+  /// then created_at. A single account can be both a buyer and a shop
+  /// owner, so [as] scopes the list to the active app surface — customer
+  /// mode lists only the user's buyer chats, seller mode only the user's
+  /// shop chats. Omitting [as] returns both sides (kept for callers that
+  /// don't carry a viewer role).
+  Future<List<Chat>> listMyChats({ChatSenderRole? as});
 
   Future<Chat> getChat(String chatId);
 
@@ -67,7 +71,9 @@ abstract class ChatRepository {
   /// Live stream of the current user's chats — emits the full list
   /// whenever any participating chat row changes (last_message_at,
   /// unread counts). Used by the list screen to badge in real time.
-  Stream<List<Chat>> myChatsStream();
+  /// [as] scopes the list to the active app surface, exactly like
+  /// [listMyChats]; each re-fetch carries the same role.
+  Stream<List<Chat>> myChatsStream({ChatSenderRole? as});
 
   /// Belt-and-suspenders refresh signal for the chat list. The realtime
   /// socket is the primary path, but a foreground FCM push for a new message
@@ -110,7 +116,8 @@ class MockChatRepository implements ChatRepository {
   }
 
   @override
-  Future<List<Chat>> listMyChats() async => List.unmodifiable(_chats);
+  Future<List<Chat>> listMyChats({ChatSenderRole? as}) async =>
+      List.unmodifiable(_chats);
 
   @override
   Future<Chat> getChat(String chatId) async =>
@@ -190,7 +197,8 @@ class MockChatRepository implements ChatRepository {
       .stream;
 
   @override
-  Stream<List<Chat>> myChatsStream() => _chatsListCtrl.stream;
+  Stream<List<Chat>> myChatsStream({ChatSenderRole? as}) =>
+      _chatsListCtrl.stream;
 
   @override
   void nudgeFromPush() => _chatsListCtrl.add(List.unmodifiable(_chats));

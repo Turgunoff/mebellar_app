@@ -25,14 +25,16 @@ void main() {
   setUp(() {
     repo = _MockRepo();
     stream = StreamController<List<Chat>>();
-    when(() => repo.myChatsStream()).thenAnswer((_) => stream.stream);
+    when(
+      () => repo.myChatsStream(as: any(named: 'as')),
+    ).thenAnswer((_) => stream.stream);
   });
 
   tearDown(() => stream.close());
 
   blocTest<ChatsListCubit, ChatsListState>(
     'a snapshot from the stream flips the cubit to ready',
-    build: () => ChatsListCubit(repo),
+    build: () => ChatsListCubit(repo, ChatSenderRole.customer),
     act: (_) => stream.add([_chat('c1')]),
     verify: (cubit) {
       expect(cubit.state.status, ChatsListStatus.ready);
@@ -42,8 +44,18 @@ void main() {
   );
 
   blocTest<ChatsListCubit, ChatsListState>(
+    'scopes the stream to the seller viewer so buyer chats stay out',
+    build: () => ChatsListCubit(repo, ChatSenderRole.seller),
+    act: (_) => stream.add([_chat('c1')]),
+    verify: (_) {
+      verify(() => repo.myChatsStream(as: ChatSenderRole.seller)).called(1);
+      verifyNever(() => repo.myChatsStream(as: ChatSenderRole.customer));
+    },
+  );
+
+  blocTest<ChatsListCubit, ChatsListState>(
     'a stream error surfaces a localized failure message, not a raw exception',
-    build: () => ChatsListCubit(repo),
+    build: () => ChatsListCubit(repo, ChatSenderRole.customer),
     act: (_) async {
       stream.addError(ApiError(status: 0, code: 'network_error'));
       await Future<void>.delayed(Duration.zero);

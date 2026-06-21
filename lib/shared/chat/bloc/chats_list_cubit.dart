@@ -44,12 +44,15 @@ class ChatsListState extends Equatable {
 
 /// Live list of the current user's chats. Subscribes to Woody Realtime
 /// so unread counters and `last_message_at` updates land without polling.
+/// [_viewer] scopes the list to the active app surface so a buyer never
+/// sees their incoming shop chats and vice versa.
 class ChatsListCubit extends Cubit<ChatsListState> {
-  ChatsListCubit(this._repo) : super(const ChatsListState()) {
+  ChatsListCubit(this._repo, this._viewer) : super(const ChatsListState()) {
     _subscribe();
   }
 
   final ChatRepository _repo;
+  final ChatSenderRole _viewer;
   StreamSubscription<List<Chat>>? _sub;
 
   void _subscribe() {
@@ -57,7 +60,7 @@ class ChatsListCubit extends Cubit<ChatsListState> {
     // `myChatsStream` primes itself with a snapshot on subscribe, so we
     // don't need a separate initial `listMyChats` call — first emission
     // doubles as the loaded state.
-    _sub = _repo.myChatsStream().listen(
+    _sub = _repo.myChatsStream(as: _viewer).listen(
       (chats) =>
           emit(state.copyWith(status: ChatsListStatus.ready, chats: chats)),
       onError: (Object e) => emit(
@@ -68,7 +71,7 @@ class ChatsListCubit extends Cubit<ChatsListState> {
 
   Future<void> refresh() async {
     try {
-      final chats = await _repo.listMyChats();
+      final chats = await _repo.listMyChats(as: _viewer);
       emit(state.copyWith(status: ChatsListStatus.ready, chats: chats));
     } catch (e) {
       emit(state.copyWith(

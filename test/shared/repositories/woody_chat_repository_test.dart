@@ -166,6 +166,16 @@ void main() {
     expect(chats.single.id, 'ch1');
     expect(chats.single.orderId, 'o1');
     expect(h.adapter.calls.single.uri.path, endsWith('/chats'));
+    // No viewer role → no scope param, the backend returns both sides.
+    expect(h.adapter.calls.single.uri.queryParameters, isEmpty);
+  });
+
+  test('listMyChats scopes to the viewer role via ?mode=', () async {
+    final h = make((_) => (200, jsonEncode([_chat('ch1')])));
+
+    await h.repo.listMyChats(as: ChatSenderRole.seller);
+
+    expect(h.adapter.calls.single.uri.queryParameters['mode'], 'seller');
   });
 
   test('listMyChats maps the last-message read-receipt fields', () async {

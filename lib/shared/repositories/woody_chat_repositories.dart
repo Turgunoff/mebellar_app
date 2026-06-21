@@ -69,8 +69,14 @@ class WoodyChatRepository implements ChatRepository {
   }
 
   @override
-  Future<List<Chat>> listMyChats() async {
-    final rows = await _api.get<List<dynamic>>('/chats');
+  Future<List<Chat>> listMyChats({ChatSenderRole? as}) async {
+    // `mode` scopes the list server-side to one app surface (customer →
+    // buyer chats, seller → shop chats). Omitted for a null viewer so the
+    // backend keeps returning both sides.
+    final rows = await _api.get<List<dynamic>>(
+      '/chats',
+      query: as == null ? null : {'mode': as.value},
+    );
     return rows
         .whereType<Map<String, dynamic>>()
         .map(_rowToChat)
@@ -207,13 +213,15 @@ class WoodyChatRepository implements ChatRepository {
   }
 
   @override
-  Stream<List<Chat>> myChatsStream() {
+  Stream<List<Chat>> myChatsStream({ChatSenderRole? as}) {
     late final StreamController<List<Chat>> out;
     StreamSubscription<void>? dirtySub;
 
     Future<void> pull({required bool initial}) async {
       try {
-        if (!out.isClosed) out.add(await listMyChats());
+        // Every re-fetch carries the subscription's role so a realtime
+        // nudge can't widen the scope back to both sides.
+        if (!out.isClosed) out.add(await listMyChats(as: as));
       } catch (e, st) {
         // Surface a genuine first-load failure to the cubit; on a later
         // realtime re-fetch keep the last good list instead of tearing the
