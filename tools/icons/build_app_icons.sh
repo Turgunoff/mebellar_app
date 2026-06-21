@@ -1,24 +1,33 @@
 #!/usr/bin/env bash
 #
-# build_app_icons.sh — regenerate Woody's launcher icons from the SVG masters.
+# build_app_icons.sh — regenerate Woody's launcher + notification icons from the
+# SVG masters in design/logo/.
+#
+# Unified brand mark: a WHITE cabinet glyph centered on a solid terracotta
+# (#C27A5F) background — identical on Android and iOS, light and dark. There are
+# deliberately NO iOS dark/tinted appearance variants (dropped for strict brand
+# consistency) — the single "any appearance" set flutter_launcher_icons emits is
+# the whole story now.
 #
 # Pipeline (default `all`):
-#   1. sources  — rasterise the SVG masters in design/logo/ to the 1024 PNG
-#                 sources that flutter_launcher_icons consumes (foreground +
-#                 monochrome land in both design/logo/ and assets/logo/).
-#   2. flutter  — `dart run flutter_launcher_icons`: Android adaptive +
-#                 monochrome (themed, A13+) and the iOS "any appearance" set.
-#   3. ios      — render the three 1024 iOS appearance masters (any / dark /
-#                 tinted) into AppIcon.appiconset and rewrite Contents.json to
-#                 the single-size universal format with an `appearances` array
-#                 per variant. flutter_launcher_icons does NOT emit iOS 18
-#                 dark/tinted, so this step is what makes them real — and it
-#                 MUST run after step 2, which reverts the iOS set to legacy.
+#   1. sources       — rasterise the SVG masters to the 1024 PNG sources that
+#                      flutter_launcher_icons consumes (foreground + monochrome
+#                      land in both design/logo/ and assets/logo/; the full,
+#                      terracotta-baked master becomes woody_logo_full.png).
+#   2. flutter       — `dart run flutter_launcher_icons`: Android adaptive +
+#                      monochrome (themed, A13+) and the iOS AppIcon set. Then we
+#                      sweep any stale custom-format appearance PNGs from the
+#                      appiconset (left over from the retired iOS-18 variants).
+#   3. notification  — rasterise woody_notification.svg into the white-on-
+#                      transparent ic_stat_woody.png status-bar icon at every
+#                      Android density. Android draws only the alpha, so the
+#                      silhouette must stay white-on-transparent.
 #
 # Usage:
-#   tools/icons/build_app_icons.sh            # all three steps
-#   tools/icons/build_app_icons.sh sources    # just refresh the PNG sources
-#   tools/icons/build_app_icons.sh ios        # just re-apply the iOS-18 patch
+#   tools/icons/build_app_icons.sh                # all three steps
+#   tools/icons/build_app_icons.sh sources        # just refresh the PNG sources
+#   tools/icons/build_app_icons.sh flutter        # just re-run FLI + iOS sweep
+#   tools/icons/build_app_icons.sh notification   # just rebuild the status icon
 #
 # Requires: rsvg-convert (brew install librsvg) + python3 with Pillow.
 set -euo pipefail
@@ -27,18 +36,18 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 DESIGN="$REPO_ROOT/design/logo"
 ASSETS="$REPO_ROOT/assets/logo"
 APPICON="$REPO_ROOT/ios/Runner/Assets.xcassets/AppIcon.appiconset"
+ANDROID_RES="$REPO_ROOT/android/app/src/main/res"
 
-# Brand colours (must match pubspec flutter_launcher_icons + the SVGs).
-NAVY_LIGHT="#1F2933"     # Android legacy + FLI source background (woody_logo_full.png)
-IOS_LIGHT_BG="#FFFFFF"   # iOS "any / light" appearance background — bright, distinct
-NAVY_DARK="#11181F"      # iOS dark-appearance background
+# Brand background (must match flutter_launcher_icons in pubspec + the SVGs +
+# @color/ic_launcher_background). Terracotta = the CLAUDE.md brand accent.
+TERRACOTTA="#C27A5F"
 
 need() { command -v "$1" >/dev/null 2>&1 || { echo "✗ missing dependency: $1" >&2; exit 1; }; }
 need rsvg-convert
 need python3
 
-# render <svg> <out.png>  — crisp 1024×1024 RGBA rasterisation.
-render() { rsvg-convert -w 1024 -h 1024 "$1" -o "$2"; }
+# render <svg> <out.png> [size]  — crisp square RGBA rasterisation (default 1024).
+render() { local s="${3:-1024}"; rsvg-convert -w "$s" -h "$s" "$1" -o "$2"; }
 
 # flatten <in.png> <out.png> <hex-bg>  — composite onto an opaque background and
 # drop the alpha channel (App Store rejects an alpha channel on the icon).
@@ -61,9 +70,9 @@ build_sources() {
   render "$DESIGN/woody_logo_monochrome.svg" "$DESIGN/woody_logo_monochrome.png"
   cp "$DESIGN/woody_logo_foreground.png" "$ASSETS/woody_logo_foreground.png"
   cp "$DESIGN/woody_logo_monochrome.png" "$ASSETS/woody_logo_monochrome.png"
-  # Full (navy-baked) master used as the FLI image_path — flattened, no alpha.
+  # Full (terracotta-baked) master used as the FLI image_path — flattened, no alpha.
   render "$DESIGN/woody_icon_full.svg" "$DESIGN/.tmp_full.png"
-  flatten "$DESIGN/.tmp_full.png" "$DESIGN/woody_logo_full.png" "$NAVY_LIGHT"
+  flatten "$DESIGN/.tmp_full.png" "$DESIGN/woody_logo_full.png" "$TERRACOTTA"
   rm -f "$DESIGN/.tmp_full.png"
   echo "  ✓ foreground / monochrome / full"
 }
@@ -71,75 +80,30 @@ build_sources() {
 run_flutter_launcher_icons() {
   echo "▸ flutter — dart run flutter_launcher_icons"
   ( cd "$REPO_ROOT" && dart run flutter_launcher_icons )
+  # Sweep retired iOS-18 appearance PNGs (custom AppIcon-*-1024 single-size
+  # format). FLI rewrites Contents.json to its standard multi-size set and emits
+  # Icon-App-*.png, so these would otherwise linger as unreferenced orphans.
+  find "$APPICON" -maxdepth 1 -name 'AppIcon-*.png' -delete
+  echo "  ✓ FLI run + stale appearance PNGs swept"
 }
 
-build_ios_appearances() {
-  echo "▸ ios — rendering appearance masters + rewriting Contents.json"
-  # Any / light: WHITE background + terracotta glyph, alpha removed (doubles as
-  # the App Store marketing icon, which must be opaque). Bright + distinct from
-  # the dark home screen — woody_icon_full.svg's navy read as dark in light mode.
-  render "$DESIGN/woody_icon_light.svg" "$APPICON/.tmp.png"
-  flatten "$APPICON/.tmp.png" "$APPICON/AppIcon-1024.png" "$IOS_LIGHT_BG"
-  # Dark: deeper navy background baked, alpha removed.
-  render "$DESIGN/woody_icon_dark.svg" "$APPICON/.tmp.png"
-  flatten "$APPICON/.tmp.png" "$APPICON/AppIcon-Dark-1024.png" "$NAVY_DARK"
-  # Tinted: white grayscale glyph on TRANSPARENT — the system supplies the dark
-  # plate and applies the user's tint by luminance. Alpha is kept on purpose.
-  render "$DESIGN/woody_logo_monochrome.svg" "$APPICON/AppIcon-Tinted-1024.png"
-  rm -f "$APPICON/.tmp.png"
-
-  # Drop the legacy per-size PNGs flutter_launcher_icons emitted — the
-  # single-size universal format downsamples the 1024 masters at build time.
-  find "$APPICON" -maxdepth 1 -name 'Icon-App-*.png' -delete
-
-  cat > "$APPICON/Contents.json" <<'JSON'
-{
-  "images" : [
-    {
-      "filename" : "AppIcon-1024.png",
-      "idiom" : "universal",
-      "platform" : "ios",
-      "size" : "1024x1024"
-    },
-    {
-      "appearances" : [
-        {
-          "appearance" : "luminosity",
-          "value" : "dark"
-        }
-      ],
-      "filename" : "AppIcon-Dark-1024.png",
-      "idiom" : "universal",
-      "platform" : "ios",
-      "size" : "1024x1024"
-    },
-    {
-      "appearances" : [
-        {
-          "appearance" : "luminosity",
-          "value" : "tinted"
-        }
-      ],
-      "filename" : "AppIcon-Tinted-1024.png",
-      "idiom" : "universal",
-      "platform" : "ios",
-      "size" : "1024x1024"
-    }
-  ],
-  "info" : {
-    "author" : "xcode",
-    "version" : 1
-  }
-}
-JSON
-  echo "  ✓ AppIcon-1024 / -Dark-1024 / -Tinted-1024 + Contents.json"
+build_notification() {
+  echo "▸ notification — rasterising white silhouette ic_stat_woody per density"
+  # Standard 24dp notification icon scaled per density bucket.
+  local densities=("mdpi:24" "hdpi:36" "xhdpi:48" "xxhdpi:72" "xxxhdpi:96")
+  for d in "${densities[@]}"; do
+    local bucket="${d%%:*}" px="${d##*:}"
+    render "$DESIGN/woody_notification.svg" \
+           "$ANDROID_RES/drawable-$bucket/ic_stat_woody.png" "$px"
+  done
+  echo "  ✓ ic_stat_woody @ mdpi/hdpi/xhdpi/xxhdpi/xxxhdpi"
 }
 
 case "${1:-all}" in
-  sources) build_sources ;;
-  flutter) run_flutter_launcher_icons ;;
-  ios)     build_ios_appearances ;;
-  all)     build_sources; run_flutter_launcher_icons; build_ios_appearances ;;
-  *) echo "usage: $0 [sources|flutter|ios|all]" >&2; exit 2 ;;
+  sources)      build_sources ;;
+  flutter)      run_flutter_launcher_icons ;;
+  notification) build_notification ;;
+  all)          build_sources; run_flutter_launcher_icons; build_notification ;;
+  *) echo "usage: $0 [sources|flutter|notification|all]" >&2; exit 2 ;;
 esac
 echo "✓ done (${1:-all})"

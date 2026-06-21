@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#1F2933</color>
+    <!-- Adaptive launcher icon background — solid brand terracotta behind the
+         white cabinet glyph (matches background_color_ios in pubspec). -->
+    <color name="ic_launcher_background">#C27A5F</color>
     <!-- FCM notification accent (brand terracotta). Referenced by the
          default_notification_color meta-data in AndroidManifest. -->
-    <color name="notification_accent">#C2703D</color>
+    <color name="notification_accent">#C27A5F</color>
 </resources>

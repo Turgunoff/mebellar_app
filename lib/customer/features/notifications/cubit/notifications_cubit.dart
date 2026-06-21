@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../config/app_mode.dart';
 import '../../../../core/auth/auth_repository.dart';
 import '../../../../core/network/api_error_messages.dart';
 import '../../../../core/network/token_store.dart';
@@ -87,7 +88,11 @@ class NotificationsCubit extends Cubit<NotificationsState> {
     // returns 401 for guests — not an empty list — so the personal fetch
     // legitimately fails when signed out; that's fine, news still renders.)
     final results = await Future.wait([
-      _safeList(_repo.list),
+      // Customer surface only: the buyer's inbox + home bell must never show
+      // seller-panel alerts (new order, product approved, …). The backend
+      // filters on data->>'mode'; seller-audience rows are surfaced separately
+      // by the profile's seller-panel badge ([SellerInboxBadgeCubit]).
+      _safeList(() => _repo.list(mode: AppMode.customer.name)),
       if (_newsRepo != null)
         _safeList(_newsRepo.list)
       else
@@ -162,7 +167,9 @@ class NotificationsCubit extends Cubit<NotificationsState> {
     // failing personal endpoint) must not roll back the news mark — so only
     // revert the optimistic update when EVERY write failed.
     final results = await Future.wait([
-      _safeRun(_repo.markAllRead),
+      // Scope the bulk read to the customer surface so it never clears the
+      // seller panel's unread (which the user sees only in seller mode).
+      _safeRun(() => _repo.markAllRead(mode: AppMode.customer.name)),
       if (_newsRepo != null)
         _safeRun(() => _newsRepo.markAllRead(visibleNewsIds))
       else

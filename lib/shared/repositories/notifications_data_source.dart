@@ -1,19 +1,31 @@
+import '../../config/app_mode.dart';
 import '../../core/network/woody_api_client.dart';
 import '../models/notification_model.dart';
 
 abstract class NotificationDataSource {
-  /// Returns every notification for the *currently authenticated* user,
-  /// newest first. Returns an empty list when there is no session.
-  Future<List<NotificationModel>> list();
+  /// Returns the authenticated user's notifications, newest first; empty when
+  /// there is no session.
+  ///
+  /// [mode] scopes the result to one app surface — `'customer'` (buyer-facing
+  /// + global rows) or `'seller'` (seller-panel rows only) — matching the
+  /// backend's `data->>'mode'` audience filter. Omit it for the unfiltered
+  /// inbox. The customer inbox passes `'customer'` so seller alerts never leak
+  /// into the buyer's bell.
+  Future<List<NotificationModel>> list({String? mode});
 
   /// Same as [list] but lets the caller pass an explicit user id. Useful
   /// when the cubit holds the id from auth state and wants to avoid the
   /// implicit `currentUser` lookup.
   Future<List<NotificationModel>> fetchNotifications(String userId);
 
-  Future<int> unreadCount();
+  /// Unread count for the given [mode] (the backend scopes `unread_count` to
+  /// the audience). Omit [mode] for the all-surfaces total.
+  Future<int> unreadCount({String? mode});
   Future<void> markRead(String id);
-  Future<void> markAllRead();
+
+  /// Marks every unread notification read. [mode] scopes the bulk read to one
+  /// surface, so clearing the customer inbox never wipes the seller panel.
+  Future<void> markAllRead({String? mode});
 }
 
 /// Reads / mutates the customer inbox via `GET /notifications`,
@@ -26,8 +38,11 @@ class WoodyNotificationDataSource implements NotificationDataSource {
   final WoodyApiClient _api;
 
   @override
-  Future<List<NotificationModel>> list() async {
-    final body = await _api.get<Map<String, dynamic>>('/notifications');
+  Future<List<NotificationModel>> list({String? mode}) async {
+    final body = await _api.get<Map<String, dynamic>>(
+      '/notifications',
+      query: mode == null ? null : {'mode': mode},
+    );
     final rows = body['rows'] as List<dynamic>? ?? const [];
     return rows
         .whereType<Map<String, dynamic>>()
@@ -39,8 +54,11 @@ class WoodyNotificationDataSource implements NotificationDataSource {
   Future<List<NotificationModel>> fetchNotifications(String userId) => list();
 
   @override
-  Future<int> unreadCount() async {
-    final body = await _api.get<Map<String, dynamic>>('/notifications');
+  Future<int> unreadCount({String? mode}) async {
+    final body = await _api.get<Map<String, dynamic>>(
+      '/notifications',
+      query: mode == null ? null : {'mode': mode},
+    );
     return (body['unread_count'] as num?)?.toInt() ?? 0;
   }
 
@@ -50,8 +68,11 @@ class WoodyNotificationDataSource implements NotificationDataSource {
   }
 
   @override
-  Future<void> markAllRead() async {
-    await _api.post<dynamic>('/notifications/mark-all-read');
+  Future<void> markAllRead({String? mode}) async {
+    await _api.post<dynamic>(
+      '/notifications/mark-all-read',
+      query: mode == null ? null : {'mode': mode},
+    );
   }
 
   NotificationModel _toModel(Map<String, dynamic> r) {
@@ -115,10 +136,19 @@ class MockNotificationDataSource implements NotificationDataSource {
     ),
   ];
 
+  /// Mirrors the backend audience filter client-side: `'seller'` keeps only
+  /// seller-surface rows, anything else keeps the buyer surface. `null` keeps
+  /// all. Lets the mock behave like the real `?mode=` query in tests.
+  bool _inMode(NotificationModel n, String? mode) {
+    if (mode == null) return true;
+    final isSeller = n.resolveTargetMode() == AppMode.seller;
+    return mode == AppMode.seller.name ? isSeller : !isSeller;
+  }
+
   @override
-  Future<List<NotificationModel>> list() async {
+  Future<List<NotificationModel>> list({String? mode}) async {
     await Future<void>.delayed(_delay);
-    return List.unmodifiable(_items);
+    return List.unmodifiable(_items.where((n) => _inMode(n, mode)));
   }
 
   @override
@@ -130,9 +160,9 @@ class MockNotificationDataSource implements NotificationDataSource {
   }
 
   @override
-  Future<int> unreadCount() async {
+  Future<int> unreadCount({String? mode}) async {
     await Future<void>.delayed(_delay);
-    return _items.where((n) => !n.isRead).length;
+    return _items.where((n) => !n.isRead && _inMode(n, mode)).length;
   }
 
   @override
@@ -144,10 +174,12 @@ class MockNotificationDataSource implements NotificationDataSource {
   }
 
   @override
-  Future<void> markAllRead() async {
+  Future<void> markAllRead({String? mode}) async {
     await Future<void>.delayed(_delay);
     for (var i = 0; i < _items.length; i++) {
-      if (!_items[i].isRead) _items[i] = _items[i].copyWith(isRead: true);
+      if (!_items[i].isRead && _inMode(_items[i], mode)) {
+        _items[i] = _items[i].copyWith(isRead: true);
+      }
     }
   }
 }
