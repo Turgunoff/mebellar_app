@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:model_viewer_plus/model_viewer_plus.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
@@ -98,10 +101,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 controller: _controller,
                 onPageChanged: (i) => setState(() => _index = i),
                 children: [
-                  _OnboardingPage(
+                  _ModelOnboardingPage(
                     title: tr('intro.page1_title'),
                     body: tr('intro.page1_body'),
-                    hero: const _ModelHero(),
                   ),
                   _OnboardingPage(
                     title: tr('intro.page2_title'),
@@ -191,47 +193,197 @@ class _OnboardingPage extends StatelessWidget {
   }
 }
 
-/// Page 1 — a live, elegantly spinning 3D chair previewed inside a warm
-/// showroom room. `cameraControls`/`disableZoom`/`ar` are all off so it rotates
-/// on its own without the user disrupting the framing; the WebView is
-/// transparent so the room backdrop behind it shows through (the chair reads as
-/// "see it in your space"). The fixed photographic stage isn't a themeable
-/// surface, so it doesn't flip with dark mode — same convention as the buyer
-/// AR viewer's showroom stage.
-class _ModelHero extends StatelessWidget {
-  const _ModelHero();
+/// Page 1 — a full-bleed showroom photo with a static 3D chair the buyer scrubs
+/// by hand: the screen leads with the "see it in your space" promise and hands
+/// the user a precise rotation control instead of a passive spin.
+///
+/// The chair never auto-rotates and ignores direct touch
+/// (`cameraControls`/`disableZoom`/`disableTap`/`disablePan` all off) so a stray
+/// swipe can't tip or zoom it; the pitch is pinned to `90deg` so it stays dead
+/// level. Yaw is the only free axis, driven solely by the bottom slider. The
+/// WebView is transparent so the showroom photo behind it shows through, and the
+/// stage is fixed-for-light (doesn't flip with dark mode) — same convention as
+/// the buyer AR viewer.
+///
+/// model_viewer_plus (1.10.0) has no `didUpdateWidget`, so rebuilding with a new
+/// `cameraOrbit` never reaches the live `<model-viewer>`. The slider therefore
+/// drives the camera straight over JS on the captured [WebViewController]; the
+/// `cameraOrbit` param only seeds the initial framing.
+class _ModelOnboardingPage extends StatefulWidget {
+  const _ModelOnboardingPage({required this.title, required this.body});
+
+  final String title;
+  final String body;
+
+  @override
+  State<_ModelOnboardingPage> createState() => _ModelOnboardingPageState();
+}
+
+class _ModelOnboardingPageState extends State<_ModelOnboardingPage> {
+  WebViewController? _web;
+
+  /// Horizontal camera angle in degrees (0–360), driven by the bottom slider.
+  double _cameraOrbitYaw = 0;
+
+  void _onYawChanged(double value) {
+    setState(() => _cameraOrbitYaw = value);
+    final web = _web;
+    if (web == null) return;
+    // Set the attribute (not the JS property) so it's honoured even before the
+    // element upgrades; pitch stays locked at 90deg so only the yaw scrubs.
+    unawaited(
+      web.runJavaScript(
+        "var mv=document.querySelector('model-viewer');"
+        "if(mv){mv.setAttribute('camera-orbit',"
+        "'${value.toStringAsFixed(1)}deg 90deg auto');}",
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(28),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Image.asset(
-            'assets/images/viewer_3d_bg.webp',
-            fit: BoxFit.cover,
-            // Degrade to a neutral stage if the backdrop can't decode (also
-            // keeps widget tests, which have no asset bundle, from throwing).
-            errorBuilder: (context, _, _) =>
-                ColoredBox(color: PremiumTokens.of(context).imageBg),
+    final pt = PremiumTokens.of(context);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final height = constraints.maxHeight;
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            // Lowest layer: the full-bleed showroom backdrop.
+            Image.asset(
+              'assets/images/onboarding_viewer_1.webp',
+              fit: BoxFit.cover,
+              width: double.infinity,
+              height: double.infinity,
+              // Degrade to a neutral stage if the backdrop can't decode (also
+              // keeps widget tests, which have no asset bundle, from throwing).
+              errorBuilder: (context, _, _) => ColoredBox(color: pt.imageBg),
+            ),
+            // The chair, framed in the upper area so it sits clear of the copy.
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              height: height * 0.62,
+              child: ModelViewer(
+                src: 'assets/models/onboarding_chair.glb',
+                alt: 'Woody 3D furniture',
+                ar: false,
+                autoRotate: false,
+                cameraControls: false,
+                disableZoom: true,
+                disableTap: true,
+                disablePan: true,
+                interactionPrompt: InteractionPrompt.none,
+                cameraOrbit: '${_cameraOrbitYaw}deg 90deg auto',
+                // Transparent WebView → the showroom photo shows through.
+                backgroundColor: Colors.transparent,
+                onWebViewCreated: (controller) => _web = controller,
+              ),
+            ),
+            // Gradient overlay: transparent up top, solid app background at the
+            // bottom, so the photo melts into the copy + the page's button area.
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: height * 0.55,
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      // Fade from the same bg colour (alpha 0 → 1) — never
+                      // Colors.transparent, which would bleed grey mid-fade.
+                      colors: [
+                        pt.background.withValues(alpha: 0),
+                        pt.background,
+                      ],
+                      stops: const [0.0, 0.7],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            // Top layer: the scrubbable rotation slider + page copy.
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(28, 0, 28, 4),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _RotationSlider(
+                      value: _cameraOrbitYaw,
+                      onChanged: _onYawChanged,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      widget.title,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 26,
+                        height: 1.15,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.4,
+                        color: pt.dark,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      widget.body,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 15,
+                        height: 1.5,
+                        fontWeight: FontWeight.w500,
+                        color: pt.grey,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// Minimalist scrub control for the page-1 chair: a 360° hint glyph and a
+/// terracotta slider that maps 0–360° onto the model's yaw.
+class _RotationSlider extends StatelessWidget {
+  const _RotationSlider({required this.value, required this.onChanged});
+
+  final double value;
+  final ValueChanged<double> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
+    return Row(
+      children: [
+        Icon(Icons.threesixty, size: 20, color: pt.grey),
+        Expanded(
+          child: SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              trackHeight: 3,
+              activeTrackColor: PremiumTokens.accent,
+              inactiveTrackColor: pt.grey.withValues(alpha: 0.22),
+              thumbColor: PremiumTokens.accent,
+              overlayColor: PremiumTokens.accent.withValues(alpha: 0.12),
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 9),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 18),
+            ),
+            child: Slider(min: 0, max: 360, value: value, onChanged: onChanged),
           ),
-          const ModelViewer(
-            src: 'assets/models/onboarding_chair.glb',
-            alt: 'Woody 3D furniture',
-            ar: false,
-            autoRotate: true,
-            autoRotateDelay: 0,
-            cameraControls: false,
-            disableZoom: true,
-            disableTap: true,
-            disablePan: true,
-            // Transparent WebView → the room backdrop shows through.
-            backgroundColor: Colors.transparent,
-            interactionPrompt: InteractionPrompt.none,
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
