@@ -131,10 +131,32 @@ void main() {
     expect(find.byType(ListView), findsNWidgets(3));
     expect(find.text(tr('intro.page3_title')), findsOneWidget);
 
+    // Page 3 owns a centred "Get Started" CTA that pops in.
+    expect(find.text(tr('intro.get_started')), findsOneWidget);
+
+    // The generic bottom controls fade out + go inert on page 3 (Task 3): their
+    // AnimatedOpacity — the one wrapping the page indicator — settles to 0.
+    final footerOpacity = tester.widget<AnimatedOpacity>(
+      find.ancestor(
+        of: find.byType(SmoothPageIndicator),
+        matching: find.byType(AnimatedOpacity),
+      ),
+    );
+    expect(footerOpacity.opacity, 0.0);
+
     // A few frames of the auto-scroll ticker must not throw (jumpTo on the
     // unbounded lists, missing grid assets degrading via errorBuilder, etc.).
     await tester.pump(const Duration(milliseconds: 300));
     await tester.pump(const Duration(milliseconds: 300));
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('generic Get Started CTA is absent on page 1', (tester) async {
+    await _pump(tester);
+    await tester.pump();
+
+    // The final CTA lives inside page 3 now — page 1 shows only Skip + Next.
+    expect(find.text(tr('intro.get_started')), findsNothing);
+    expect(find.text(tr('common.skip')), findsOneWidget);
   });
 }

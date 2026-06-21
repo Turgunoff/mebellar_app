@@ -148,49 +148,63 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 onPageChanged: (i) => setState(() => _index = i),
                 children: [
                   _ModelOnboardingPage(
+                    active: _index == 0,
                     title: tr('intro.page1_title'),
                     body: tr('intro.page1_body'),
                   ),
                   // Page 2 owns the ultra-wide room photo and plays its own
                   // autonomous pan-and-zoom (staircase → sofa) on landing.
                   _PanoramaPage(
+                    active: _index == 1,
                     animation: _panAnimation,
                     title: tr('intro.page2_title'),
                     body: tr('intro.page2_body'),
                   ),
                   // Page 3 is a fully separate layout: an infinite, tilted
-                  // marquee of furniture photos behind the final CTA.
+                  // marquee behind its own centred, popping "Get Started" CTA.
                   _MarqueePage(
+                    active: _index == 2,
+                    onGetStarted: _finish,
                     title: tr('intro.page3_title'),
                     body: tr('intro.page3_body'),
                   ),
                 ],
               ),
             ),
+            // Generic controls (dots + Skip + Next) ride above every page, but
+            // fade out and go inert on the final page — page 3 owns its own
+            // centred CTA there, so these would be redundant.
             SafeArea(
               top: false,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const SizedBox(height: 8),
-                  SmoothPageIndicator(
-                    controller: _controller,
-                    count: _pageCount,
-                    effect: ExpandingDotsEffect(
-                      activeDotColor: PremiumTokens.accent,
-                      // Inactive: small, subtle light-grey dots.
-                      dotColor: pt.grey.withValues(alpha: 0.2),
-                      dotHeight: 7,
-                      dotWidth: 7,
-                      // Active swells into a clean terracotta pill.
-                      expansionFactor: 3.4,
-                      spacing: 7,
-                    ),
+              child: IgnorePointer(
+                ignoring: isLast,
+                child: AnimatedOpacity(
+                  opacity: isLast ? 0.0 : 1.0,
+                  duration: const Duration(milliseconds: 300),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(height: 8),
+                      SmoothPageIndicator(
+                        controller: _controller,
+                        count: _pageCount,
+                        effect: ExpandingDotsEffect(
+                          activeDotColor: PremiumTokens.accent,
+                          // Inactive: small, subtle light-grey dots.
+                          dotColor: pt.grey.withValues(alpha: 0.2),
+                          dotHeight: 7,
+                          dotWidth: 7,
+                          // Active swells into a clean terracotta pill.
+                          expansionFactor: 3.4,
+                          spacing: 7,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      _BottomBar(onSkip: _finish, onNext: _next),
+                      const SizedBox(height: 16),
+                    ],
                   ),
-                  const SizedBox(height: 20),
-                  _BottomBar(isLast: isLast, onSkip: _finish, onNext: _next),
-                  const SizedBox(height: 16),
-                ],
+                ),
               ),
             ),
           ],
@@ -208,11 +222,13 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 /// the photo to the screen height; the Stack clips the zoom overflow.
 class _PanoramaPage extends StatelessWidget {
   const _PanoramaPage({
+    required this.active,
     required this.animation,
     required this.title,
     required this.body,
   });
 
+  final bool active;
   final Animation<double> animation;
   final String title;
   final String body;
@@ -247,7 +263,7 @@ class _PanoramaPage extends StatelessWidget {
           },
         ),
         const _MeltGradient(),
-        _PageCopy(title: title, body: body),
+        _PageCopy(active: active, title: title, body: body),
       ],
     );
   }
@@ -279,8 +295,17 @@ const List<String> _marqueeImages = [
 /// `index % images.length`, so they stream forever. A bottom gradient melts the
 /// moving grid into the solid app background so the copy stays readable.
 class _MarqueePage extends StatefulWidget {
-  const _MarqueePage({required this.title, required this.body});
+  const _MarqueePage({
+    required this.active,
+    required this.onGetStarted,
+    required this.title,
+    required this.body,
+  });
 
+  /// Whether page 3 is the current page — gates the entrance + CTA pop so they
+  /// replay fresh each time the user lands here.
+  final bool active;
+  final VoidCallback onGetStarted;
   final String title;
   final String body;
 
@@ -393,7 +418,37 @@ class _MarqueePageState extends State<_MarqueePage>
             ),
           ),
         ),
-        _PageCopy(title: widget.title, body: widget.body),
+        // Foreground: the copy (slide-up entrance) stacked over the centred
+        // "Get Started" CTA, anchored at the bottom of the page.
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(28, 0, 28, 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _PageEntrance(
+                  active: widget.active,
+                  child: _CopyTexts(title: widget.title, body: widget.body),
+                ),
+                const SizedBox(height: 24),
+                // Pops in (scale 0→1, easeOutBack) when page 3 is reached; built
+                // only while active so it re-pops fresh on every visit.
+                if (widget.active)
+                  TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    duration: const Duration(milliseconds: 700),
+                    curve: Curves.easeOutBack,
+                    builder: (context, scale, child) =>
+                        Transform.scale(scale: scale, child: child),
+                    child: _GetStartedPill(onTap: widget.onGetStarted),
+                  ),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -476,9 +531,39 @@ class _MeltGradient extends StatelessWidget {
 }
 
 /// Title + body copy for the image pages (2-3), anchored just above the footer
-/// over the bottom gradient. Mirrors page 1's copy block (minus the arc).
+/// over the bottom gradient, with the shared fade-in + slide-up entrance.
 class _PageCopy extends StatelessWidget {
-  const _PageCopy({required this.title, required this.body});
+  const _PageCopy({
+    required this.active,
+    required this.title,
+    required this.body,
+  });
+
+  final bool active;
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 0,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(28, 0, 28, 14),
+        child: _PageEntrance(
+          active: active,
+          child: _CopyTexts(title: title, body: body),
+        ),
+      ),
+    );
+  }
+}
+
+/// The two stacked copy lines (title + subtitle) shared by every page. Mirrors
+/// page 1's copy block so all three pages read identically.
+class _CopyTexts extends StatelessWidget {
+  const _CopyTexts({required this.title, required this.body});
 
   final String title;
   final String body;
@@ -486,41 +571,62 @@ class _PageCopy extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
-    return Positioned(
-      left: 0,
-      right: 0,
-      bottom: 0,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(28, 0, 28, 6),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 26,
-                height: 1.15,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.4,
-                color: pt.dark,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              body,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 15,
-                height: 1.5,
-                fontWeight: FontWeight.w500,
-                color: pt.grey,
-              ),
-            ),
-            const SizedBox(height: 8),
-          ],
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          title,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 26,
+            height: 1.15,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.4,
+            color: pt.dark,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          body,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 15,
+            height: 1.5,
+            fontWeight: FontWeight.w500,
+            color: pt.grey,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Fade-in + slide-up entrance for a page's copy: opacity 0→1 and a 30px upward
+/// slide over 600ms (easeOutCubic). It stays hidden while the page is inactive
+/// and re-inserts the builder the moment [active] flips true — so the entrance
+/// replays fresh every time the page becomes the current one (rather than only
+/// on first build, which keep-alive pages would never repeat).
+class _PageEntrance extends StatelessWidget {
+  const _PageEntrance({required this.active, required this.child});
+
+  final bool active;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!active) return Opacity(opacity: 0, child: child);
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 600),
+      curve: Curves.easeOutCubic,
+      builder: (context, t, child) => Opacity(
+        opacity: t,
+        child: Transform.translate(
+          offset: Offset(0, 30 * (1 - t)),
+          child: child,
         ),
       ),
+      child: child,
     );
   }
 }
@@ -556,8 +662,15 @@ const double _kArcEndDotRadius = 3.5;
 /// the framing can't jump mid-drag); the `cameraOrbit` param only seeds the
 /// initial centred framing.
 class _ModelOnboardingPage extends StatefulWidget {
-  const _ModelOnboardingPage({required this.title, required this.body});
+  const _ModelOnboardingPage({
+    required this.active,
+    required this.title,
+    required this.body,
+  });
 
+  /// Whether page 1 is the current page — gates the copy's slide-up entrance so
+  /// it replays whenever the user returns to this (keep-alive) page.
+  final bool active;
   final String title;
   final String body;
 
@@ -763,27 +876,9 @@ class _ModelOnboardingPageState extends State<_ModelOnboardingPage>
                       onYawChanged: _onYawChanged,
                     ),
                     const SizedBox(height: 10),
-                    Text(
-                      widget.title,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 26,
-                        height: 1.15,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.4,
-                        color: pt.dark,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      widget.body,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 15,
-                        height: 1.5,
-                        fontWeight: FontWeight.w500,
-                        color: pt.grey,
-                      ),
+                    _PageEntrance(
+                      active: widget.active,
+                      child: _CopyTexts(title: widget.title, body: widget.body),
                     ),
                     const SizedBox(height: 8),
                   ],
@@ -908,16 +1003,12 @@ class _ArcSliderPainter extends CustomPainter {
       oldDelegate.t != t;
 }
 
-/// Bottom controls: Skip (left, hidden on the last page), and a trailing action
-/// that morphs from a circular Next arrow into a "Get Started" pill.
+/// Generic bottom controls for pages 1-2: Skip on the left, a circular Next
+/// arrow on the right. The whole row fades out on page 3 (see the parent), where
+/// page 3 owns its own centred "Get Started" CTA — so this never morphs.
 class _BottomBar extends StatelessWidget {
-  const _BottomBar({
-    required this.isLast,
-    required this.onSkip,
-    required this.onNext,
-  });
+  const _BottomBar({required this.onSkip, required this.onNext});
 
-  final bool isLast;
   final VoidCallback onSkip;
   final VoidCallback onNext;
 
@@ -928,48 +1019,32 @@ class _BottomBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Row(
         children: [
-          // Fixed slot keeps the layout stable as the trailing action grows.
+          // Fixed slot keeps the Next arrow centred against the screen edge.
           SizedBox(
             width: 84,
-            child: AnimatedOpacity(
-              duration: const Duration(milliseconds: 180),
-              opacity: isLast ? 0 : 1,
-              child: IgnorePointer(
-                ignoring: isLast,
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton(
-                    onPressed: onSkip,
-                    style: TextButton.styleFrom(
-                      foregroundColor: pt.grey,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 8,
-                      ),
-                    ),
-                    child: Text(
-                      tr('common.skip'),
-                      style: const TextStyle(
-                        fontFamily: AppFonts.body,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                onPressed: onSkip,
+                style: TextButton.styleFrom(
+                  foregroundColor: pt.grey,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 8,
+                  ),
+                ),
+                child: Text(
+                  tr('common.skip'),
+                  style: const TextStyle(
+                    fontFamily: AppFonts.body,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
             ),
           ),
           const Spacer(),
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 260),
-            switchInCurve: Curves.easeOutBack,
-            switchOutCurve: Curves.easeIn,
-            transitionBuilder: (child, anim) =>
-                ScaleTransition(scale: anim, child: child),
-            child: isLast
-                ? _GetStartedPill(onTap: onNext)
-                : _NextCircle(onTap: onNext),
-          ),
+          _NextCircle(onTap: onNext),
         ],
       ),
     );
