@@ -337,8 +337,8 @@ class SellerApprovedBanner extends StatelessWidget {
                         shape: BoxShape.circle,
                       ),
                       alignment: Alignment.center,
-                      child: const Icon(
-                        Iconsax.arrow_right_1,
+                      child: Icon(
+                        Iconsax.arrow_right_3_copy,
                         size: 17,
                         color: _accentDeep,
                       ),
