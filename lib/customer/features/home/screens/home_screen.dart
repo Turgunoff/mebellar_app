@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
@@ -37,6 +38,22 @@ class _HomeScreenState extends State<HomeScreen> {
   // when it's kept alive in the shell. Not disposed: it's a DI singleton.
   final ProductViewModeController _viewMode = sl<ProductViewModeController>();
 
+  /// Pull-to-refresh handler shared by the error and content scroll views.
+  /// [CupertinoSliverRefreshControl] holds its spinner up until this future
+  /// settles, so we fire a full refresh and wait for the feed to land (or
+  /// fail). The timeout sits just past the bloc's own 5s load ceiling so an
+  /// unchanged-payload refetch — which Bloc de-dupes and never re-emits —
+  /// can't pin the spinner open forever.
+  Future<void> _handleRefresh(BuildContext context) async {
+    final bloc = context.read<HomeBloc>();
+    bloc.add(const HomeRequested(refresh: true));
+    await bloc.stream
+        .firstWhere(
+          (s) => s.status == HomeStatus.ready || s.status == HomeStatus.failure,
+        )
+        .timeout(const Duration(seconds: 6), onTimeout: () => bloc.state);
+  }
+
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
@@ -72,6 +89,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   physics: const BouncingScrollPhysics(),
                   slivers: [
                     const _HomeAppBar(),
+                    CupertinoSliverRefreshControl(
+                      onRefresh: () => _handleRefresh(context),
+                    ),
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(0, 20, 0, 0),
@@ -100,6 +120,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     physics: const BouncingScrollPhysics(),
                     slivers: [
                       const _HomeAppBar(),
+                      CupertinoSliverRefreshControl(
+                        onRefresh: () => _handleRefresh(context),
+                      ),
                       SliverToBoxAdapter(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -740,9 +763,7 @@ class _RecommendedFeed extends StatelessWidget {
         if (state.recommended.isEmpty) {
           return const SliverToBoxAdapter(child: _RecommendedEmpty());
         }
-        return viewMode == ProductViewMode.grid
-            ? _grid(state)
-            : _list(state);
+        return viewMode == ProductViewMode.grid ? _grid(state) : _list(state);
       },
     );
   }
