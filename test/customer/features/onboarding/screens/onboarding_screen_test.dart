@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lottie/lottie.dart';
 import 'package:model_viewer_plus/model_viewer_plus.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
@@ -53,6 +54,21 @@ void main() {
     // The Material slider is gone, replaced by the custom curved arc control.
     expect(find.byType(Slider), findsNothing);
     expect(find.byKey(const Key('onboarding_rotation_arc')), findsOneWidget);
+
+    // The static-image poster is gone — a Flutter Lottie overlay covers the
+    // load instead (model-viewer can't render Lottie natively).
+    expect(viewer.poster, isNull);
+  });
+
+  testWidgets('page 1 shows the animated Lottie loader until the model loads', (
+    tester,
+  ) async {
+    await _pump(tester);
+    await tester.pump();
+
+    // The model never fires `load` under the fake webview, so the loader stays
+    // mounted (it only fades + unmounts on the real "ready" signal).
+    expect(find.byType(LottieBuilder), findsOneWidget);
   });
 
   testWidgets('dragging the arc control updates without throwing', (

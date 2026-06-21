@@ -33,6 +33,7 @@ class AssetGoogle_fonts {
 class AssetLottie {
 	static const String aiAnimation = 'assets/lottie/ai_animation.json';
 	static const String aiAnimation2 = 'assets/lottie/ai_animation2.json';
+	static const String loadingOnboarding = 'assets/lottie/loading_onboarding.json';
 	static const String searchLottie = 'assets/lottie/search_lottie.json';
 }
 
@@ -41,6 +42,7 @@ class AssetModels {
 }
 
 class AssetImages {
+	static const String chairPoster = 'assets/images/chair_poster.png';
 	static const String onboarding2 = 'assets/images/onboarding_2.png';
 	static const String onboarding3 = 'assets/images/onboarding_3.png';
 	static const String onboardingPanorama = 'assets/images/onboarding_panorama.webp';
