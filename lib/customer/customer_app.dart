@@ -393,18 +393,7 @@ class _CustomerHomeShellState extends State<CustomerHomeShell> {
           // The connectivity banner is mounted globally by NetworkOverlayWrapper
           // in MaterialApp.builder, so it survives route changes and we don't
           // need a per-shell Column wrapper here.
-          // Every tab is mounted at once, so a product that appears in two tabs
-          // (e.g. a favourite that's also in the home feed) would otherwise put
-          // two Heroes with the same `product-<id>-0` tag in the live tree and
-          // crash the detail transition. HeroMode gates all but the visible tab
-          // out of the Hero scan, so only the active tab's image flies.
-          body: IndexedStack(
-            index: _index,
-            children: [
-              for (var i = 0; i < tabs.length; i++)
-                HeroMode(enabled: i == _index, child: tabs[i]),
-            ],
-          ),
+          body: IndexedStack(index: _index, children: tabs),
           bottomNavigationBar: GlassBottomNav(
             currentIndex: _index,
             onTap: _goToTab,

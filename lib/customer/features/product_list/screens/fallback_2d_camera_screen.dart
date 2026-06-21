@@ -1,32 +1,37 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:iconsax_flutter/iconsax_flutter.dart';
+import 'package:model_viewer_plus/model_viewer_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../../core/i18n/i18n.dart';
 import '../../../../core/logging/talker.dart';
 import '../../../../core/theme/app_fonts.dart';
 
-/// Graceful 2D fallback for the buyer AR viewer on devices that can't run
-/// ARCore (Scene Viewer would otherwise bounce the user to the Play Store for
-/// a "Google Play Services for AR" build that won't run here).
+/// Graceful "manual AR" fallback for the buyer AR viewer on devices that can't
+/// run ARCore (Scene Viewer would otherwise bounce the user to the Play Store
+/// for a "Google Play Services for AR" build that won't run here).
 ///
-/// Shows a full-screen live camera feed with the product's main photo floated
-/// on top. The photo is freely draggable, pinch-to-zoom and two-finger
-/// rotatable via a [Matrix4] composed from the scale gesture — so the buyer can
-/// still eyeball the piece against their room, manually. No AR, no store
-/// redirect, no native ARCore dependency.
+/// Shows a full-screen live camera feed with the product's REAL 3D model
+/// floated on top via a transparent `<model-viewer>` — the same `.glb` an AR
+/// session would have placed, not a flat gallery photo. The buyer orbits and
+/// pinch-zooms the model over their room with model-viewer's own camera
+/// controls. No AR, no store redirect, no native ARCore dependency.
 class Fallback2DCameraScreen extends StatefulWidget {
   const Fallback2DCameraScreen({
     super.key,
-    required this.imageUrl,
+    required this.modelUrl,
     required this.productName,
+    this.posterUrl,
   });
 
-  /// The product's main image (a normal photo). May be null/empty — then a
-  /// neutral placeholder card is floated instead.
-  final String? imageUrl;
+  /// The approved `.glb` rendered over the camera feed — the product's real 3D
+  /// model (what AR would have placed), not a 2D photo.
+  final String modelUrl;
   final String productName;
+
+  /// The product's 2D photo, shown by `<model-viewer>` as a placeholder while
+  /// the `.glb` streams in. Null → the model just fades in over the bare feed.
+  final String? posterUrl;
 
   @override
   State<Fallback2DCameraScreen> createState() => _Fallback2DCameraScreenState();
@@ -41,12 +46,6 @@ class _Fallback2DCameraScreenState extends State<Fallback2DCameraScreen>
   /// screen. [_permanentlyDenied] adds an "open settings" affordance.
   String? _error;
   bool _permanentlyDenied = false;
-
-  // Live transform for the floated product image: drag (focal translation) +
-  // pinch-zoom (scale) + two-finger rotate (rotation), composed each gesture.
-  Matrix4 _matrix = Matrix4.identity();
-  Matrix4 _sessionMatrix = Matrix4.identity();
-  Offset _sessionFocal = Offset.zero;
 
   @override
   void initState() {
@@ -97,23 +96,6 @@ class _Fallback2DCameraScreenState extends State<Fallback2DCameraScreen>
     }
   }
 
-  void _onScaleStart(ScaleStartDetails d) {
-    _sessionMatrix = _matrix;
-    _sessionFocal = d.localFocalPoint;
-  }
-
-  void _onScaleUpdate(ScaleUpdateDetails d) {
-    // Scale + rotate about the gesture's focal point, then translate the focal
-    // point to where it is now — natural pan/zoom/rotate. Composed onto the
-    // matrix captured at gesture start.
-    final transform = Matrix4.identity()
-      ..translateByDouble(d.localFocalPoint.dx, d.localFocalPoint.dy, 0, 1)
-      ..rotateZ(d.rotation)
-      ..scaleByDouble(d.scale, d.scale, 1, 1)
-      ..translateByDouble(-_sessionFocal.dx, -_sessionFocal.dy, 0, 1);
-    setState(() => _matrix = transform.multiplied(_sessionMatrix));
-  }
-
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.inactive) {
@@ -138,7 +120,6 @@ class _Fallback2DCameraScreenState extends State<Fallback2DCameraScreen>
 
   @override
   Widget build(BuildContext context) {
-    final imgW = MediaQuery.of(context).size.width * 0.55;
     return Scaffold(
       backgroundColor: Colors.black,
       body: FutureBuilder<void>(
@@ -162,19 +143,42 @@ class _Fallback2DCameraScreenState extends State<Fallback2DCameraScreen>
             children: [
               _FullBleedCamera(controller: c),
 
-              // The floated, manipulable product image. The opaque gesture
-              // layer fills the screen so a drag can start anywhere.
+              // The product's REAL 3D model floated over the live feed via a
+              // transparent <model-viewer>. Full-bleed so the buyer can orbit /
+              // pinch-zoom the piece anywhere over their room; the transparent
+              // canvas + CSS let the camera show through everywhere but the model
+              // itself. model-viewer's own camera controls handle the gestures,
+              // so no Flutter gesture layer sits above it to steal touches.
               Positioned.fill(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onScaleStart: _onScaleStart,
-                  onScaleUpdate: _onScaleUpdate,
-                  child: Transform(
-                    transform: _matrix,
-                    child: Center(
-                      child: _ProductOverlay(url: widget.imageUrl, size: imgW),
-                    ),
-                  ),
+                child: ModelViewer(
+                  src: widget.modelUrl,
+                  // The 2D photo as a placeholder while the (multi-MB) .glb
+                  // streams in; null degrades to a fade-in over the bare feed.
+                  poster: widget.posterUrl,
+                  alt: widget.productName,
+                  // No native AR launcher — THIS screen is the AR fallback for
+                  // devices that can't run ARCore, so a Scene-Viewer button would
+                  // just dead-end at the Play Store.
+                  ar: false,
+                  // The buyer drives rotation + pinch-zoom by hand over the feed.
+                  cameraControls: true,
+                  disableZoom: false,
+                  loading: Loading.eager,
+                  // Pull the camera back so the model reads at a natural size
+                  // over the room instead of filling the frame edge-to-edge.
+                  cameraOrbit: '0deg 80deg 130%',
+                  // Even, showroom-style lighting + a grounding contact shadow.
+                  environmentImage: 'neutral',
+                  shadowIntensity: 1,
+                  // Transparent so the live camera behind shows through: the
+                  // WebView (forced transparent by model_viewer_plus), the
+                  // <model-viewer> element, and its default-white poster/page
+                  // (killed via --poster-color so it never masks the feed).
+                  backgroundColor: Colors.transparent,
+                  relatedCss:
+                      'html,body{background-color:transparent !important;}'
+                      'model-viewer{background-color:transparent !important;'
+                      '--poster-color:transparent !important;}',
                 ),
               ),
 

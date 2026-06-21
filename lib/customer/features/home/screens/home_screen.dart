@@ -790,7 +790,6 @@ class _RecommendedFeed extends StatelessWidget {
               discountPercent: p.discountPercent,
               isFavorite: isFav,
               customImageHeight: i.isEven ? 180.0 : 240.0,
-              heroTag: 'product-${p.id}-0',
               onTap: () => context.push('/product-detail/${p.id}', extra: p),
               onFavoriteToggle: () => context.read<FavoritesBloc>().add(
                 FavoriteToggled(Product.fromModel(p)),
@@ -821,7 +820,6 @@ class _RecommendedFeed extends StatelessWidget {
               oldPrice: p.hasDiscount ? formatUzsPrice(p.price) : null,
               discountPercent: p.discountPercent,
               isFavorite: isFav,
-              heroTag: 'product-${p.id}-0',
               onTap: () => context.push('/product-detail/${p.id}', extra: p),
               onFavoriteToggle: () => context.read<FavoritesBloc>().add(
                 FavoriteToggled(Product.fromModel(p)),

@@ -29,7 +29,6 @@ class PremiumProductCard extends StatelessWidget {
     this.onTap,
     this.onFavoriteToggle,
     this.customImageHeight,
-    this.heroTag,
   });
 
   final String imageUrl;
@@ -62,42 +61,29 @@ class PremiumProductCard extends StatelessWidget {
   /// Fixed image height that switches the card into masonry mode.
   final double? customImageHeight;
 
-  /// Shared-element tag for the card → product-detail image transition. Pass
-  /// `'product-${id}-0'` to match the detail gallery's first-image [Hero]
-  /// (`PreviewAppBar.heroTagPrefix`), so tapping the card glides the thumbnail
-  /// straight into the full-screen banner. Null disables the Hero (the card is
-  /// then a plain tap target).
-  final String? heroTag;
-
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
-
-    // Only the photo rides the Hero — the heart + discount badge stay with the
-    // card and fade out with the route, so the flight reads as a clean image
-    // expansion rather than the whole card flying.
-    Widget image = CachedNetworkImage(
-      imageUrl: imageUrl,
-      width: double.infinity,
-      // ROADMAP B.7 — bound the in-memory decode for the home feed cards.
-      memCacheWidth: 600,
-      fit: BoxFit.cover,
-      placeholder: (_, _) => Shimmer.fromColors(
-        baseColor: pt.imageBg,
-        // Token, not a hardcoded near-white — otherwise the shimmer sweeps
-        // a bright band across the dark card in dark mode.
-        highlightColor: pt.surface,
-        child: Container(color: pt.surface),
-      ),
-      errorWidget: (_, _, _) => const ImageErrorPlaceholder(iconSize: 32),
-    );
-    if (heroTag != null) image = Hero(tag: heroTag!, child: image);
 
     final imageStack = Stack(
       fit: StackFit.expand,
       children: [
         Container(color: pt.imageBg),
-        image,
+        CachedNetworkImage(
+          imageUrl: imageUrl,
+          width: double.infinity,
+          // ROADMAP B.7 — bound the in-memory decode for the home feed cards.
+          memCacheWidth: 600,
+          fit: BoxFit.cover,
+          placeholder: (_, _) => Shimmer.fromColors(
+            baseColor: pt.imageBg,
+            // Token, not a hardcoded near-white — otherwise the shimmer sweeps
+            // a bright band across the dark card in dark mode.
+            highlightColor: pt.surface,
+            child: Container(color: pt.surface),
+          ),
+          errorWidget: (_, _, _) => const ImageErrorPlaceholder(iconSize: 32),
+        ),
         Positioned(
           top: 12,
           right: 12,

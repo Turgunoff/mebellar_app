@@ -23,7 +23,6 @@ class PremiumProductListCard extends StatelessWidget {
     this.isFavorite = false,
     this.onTap,
     this.onFavoriteToggle,
-    this.heroTag,
   });
 
   final String imageUrl;
@@ -45,11 +44,6 @@ class PremiumProductListCard extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onFavoriteToggle;
 
-  /// Shared-element tag for the row → product-detail image transition. Pass
-  /// `'product-${id}-0'` to match the detail gallery's first-image [Hero]; null
-  /// disables it. See [PremiumProductCard.heroTag].
-  final String? heroTag;
-
   /// Strict square thumbnail. A fixed box (not a content-driven strip) is what
   /// keeps every list row's image at the same 1:1 proportion — so a 1-line and a
   /// 2-line product read as one uniform column instead of a mix of tall and
@@ -65,29 +59,25 @@ class PremiumProductListCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
 
-    // Only the photo rides the Hero — the discount badge stays with the row.
-    Widget photo = CachedNetworkImage(
-      imageUrl: imageUrl,
-      // cover crops to fill the square box instead of letter-boxing or
-      // distorting, so portrait and landscape source images both sit flush.
-      fit: BoxFit.cover,
-      memCacheWidth: 400,
-      placeholder: (_, _) => Shimmer.fromColors(
-        baseColor: pt.imageBg,
-        // Token, not a hardcoded near-white — keeps the sweep subtle on the
-        // dark imageBg in dark mode.
-        highlightColor: pt.surface,
-        child: Container(color: pt.surface),
-      ),
-      errorWidget: (_, _, _) => const ImageErrorPlaceholder(iconSize: 28),
-    );
-    if (heroTag != null) photo = Hero(tag: heroTag!, child: photo);
-
     final image = Stack(
       fit: StackFit.expand,
       children: [
         Container(color: pt.imageBg),
-        photo,
+        CachedNetworkImage(
+          imageUrl: imageUrl,
+          // cover crops to fill the square box instead of letter-boxing or
+          // distorting, so portrait and landscape source images both sit flush.
+          fit: BoxFit.cover,
+          memCacheWidth: 400,
+          placeholder: (_, _) => Shimmer.fromColors(
+            baseColor: pt.imageBg,
+            // Token, not a hardcoded near-white — keeps the sweep subtle on the
+            // dark imageBg in dark mode.
+            highlightColor: pt.surface,
+            child: Container(color: pt.surface),
+          ),
+          errorWidget: (_, _, _) => const ImageErrorPlaceholder(iconSize: 28),
+        ),
         if (discountPercent > 0)
           Positioned(
             top: 10,
