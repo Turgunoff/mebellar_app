@@ -303,6 +303,10 @@ class _ModelOnboardingPageState extends State<_ModelOnboardingPage> {
               child: ModelViewer(
                 src: 'assets/models/onboarding_chair.glb',
                 alt: 'Woody 3D furniture',
+                // A 2D render of the chair shown instantly while the WebGL
+                // engine spins up — kills the blank pop-in before the .glb
+                // paints. Bundled via the `assets/images/` directory entry.
+                poster: 'assets/images/chair_poster.png',
                 ar: false,
                 autoRotate: false,
                 cameraControls: false,
