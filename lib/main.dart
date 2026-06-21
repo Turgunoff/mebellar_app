@@ -28,6 +28,7 @@ import 'customer/features/notifications/cubit/notifications_cubit.dart';
 import 'customer/features/profile/cubit/profile_cubit.dart';
 import 'shared/models/notification_model.dart';
 import 'shared/repositories/chat_repository.dart';
+import 'core/storage/app_settings.dart';
 import 'core/storage/hive_boxes.dart';
 import 'core/theme/theme_cubit.dart';
 import 'core/widgets/app_splash_screen.dart';
@@ -153,6 +154,15 @@ Future<void> _bootstrapAndRun() async {
   final initialMode = getInitialMode();
   await initModeScope(initialMode);
 
+  // First launch only: warm the onboarding 3D model into the asset cache during
+  // the splash dwell so its first `<model-viewer>` frame renders without a load
+  // stall. Fire-and-forget — it rides alongside the splash timer and the other
+  // boot tasks below, never extending boot. Returning users (onboarding already
+  // seen) skip the ~5 MB read entirely, so launch stays lean for them.
+  if (!sl<AppSettings>().onboardingSeen) {
+    unawaited(_precacheOnboardingModel());
+  }
+
   // Wire the foreground push listener at boot, but defer the OS permission
   // prompt until the user reaches the customer home shell (see
   // `_CustomerHomeShellState.initState`). Asking on splash / onboarding
@@ -225,6 +235,24 @@ Future<void> _bootstrapAndRun() async {
       child: _AppRoot(localeController: localeController),
     ),
   );
+}
+
+/// First-launch only: warms the onboarding 3D model into the root asset cache
+/// (`rootBundle`) so the first `<model-viewer>` frame on the onboarding screen
+/// renders without the multi-MB `.glb` decode stalling it. The model_viewer_plus
+/// WebView reads the same bundled asset, so a warm cache turns the first paint
+/// instant.
+///
+/// Best-effort: a failed read just means the model streams in normally on the
+/// onboarding screen, so the error is logged, never thrown. Only ever called
+/// behind the `!onboardingSeen` gate — returning users never pay this cost.
+Future<void> _precacheOnboardingModel() async {
+  try {
+    await rootBundle.load('assets/models/onboarding_chair.glb');
+    talker.info('Precached onboarding 3D model into asset cache');
+  } catch (e, st) {
+    talker.handle(e, st, 'Onboarding 3D model precache failed');
+  }
 }
 
 /// Tells [PushService] how to nudge app state when a foreground push lands.
