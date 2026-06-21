@@ -158,10 +158,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                     title: tr('intro.page2_title'),
                     body: tr('intro.page2_body'),
                   ),
-                  // Page 3 is a fully separate layout with its own background —
-                  // no panorama, ready for its own asset.
-                  _StaticImagePage(
-                    asset: 'assets/images/onboarding_3.png',
+                  // Page 3 is a fully separate layout: an infinite, tilted
+                  // marquee of furniture photos behind the final CTA.
+                  _MarqueePage(
                     title: tr('intro.page3_title'),
                     body: tr('intro.page3_body'),
                   ),
@@ -254,19 +253,84 @@ class _PanoramaPage extends StatelessWidget {
   }
 }
 
-/// Page 3 — a fully separate layout from the page-2 panorama: its own static
-/// background image under the shared gradient + copy treatment. Swap [asset]
-/// for page 3's own art when it lands.
-class _StaticImagePage extends StatelessWidget {
-  const _StaticImagePage({
-    required this.asset,
-    required this.title,
-    required this.body,
-  });
+/// The 12 furniture photos that fill the page-3 marquee, loaded from the
+/// `assets/images/onboarding/` folder. Each column wraps over this list with
+/// `index % length`, so the streams loop forever.
+const List<String> _marqueeImages = [
+  'assets/images/onboarding/grid_1.jpeg',
+  'assets/images/onboarding/grid_2.jpeg',
+  'assets/images/onboarding/grid_3.jpeg',
+  'assets/images/onboarding/grid_4.jpeg',
+  'assets/images/onboarding/grid_5.jpeg',
+  'assets/images/onboarding/grid_6.jpeg',
+  'assets/images/onboarding/grid_7.jpeg',
+  'assets/images/onboarding/grid_8.jpeg',
+  'assets/images/onboarding/grid_9.jpeg',
+  'assets/images/onboarding/grid_10.jpeg',
+  'assets/images/onboarding/grid_11.jpeg',
+  'assets/images/onboarding/grid_12.jpeg',
+];
 
-  final String asset;
+/// Page 3 — a fully separate layout from the page-2 panorama: an infinite,
+/// diagonally-tilted marquee of furniture photos behind the final CTA. Three
+/// columns auto-scroll on their own (the middle one in the opposite direction,
+/// each at its own speed) via a single [Ticker] that nudges each column's
+/// [ScrollController] every frame. The lists are unbounded and wrap with
+/// `index % images.length`, so they stream forever. A bottom gradient melts the
+/// moving grid into the solid app background so the copy stays readable.
+class _MarqueePage extends StatefulWidget {
+  const _MarqueePage({required this.title, required this.body});
+
   final String title;
   final String body;
+
+  @override
+  State<_MarqueePage> createState() => _MarqueePageState();
+}
+
+class _MarqueePageState extends State<_MarqueePage>
+    with SingleTickerProviderStateMixin {
+  // One scroll controller per column.
+  final List<ScrollController> _controllers = List.generate(
+    3,
+    (_) => ScrollController(),
+  );
+
+  // Per-column scroll speed in logical px/ms, deliberately mismatched so the
+  // columns never line up.
+  static const List<double> _speeds = [0.045, 0.06, 0.035];
+  // The middle column runs reversed, so the grid reads as alternating up/down
+  // streams. (Reversed lists are driven by the SAME positive offset — `reverse`
+  // flips the visual direction, sidestepping negative-offset clamping.)
+  static const List<bool> _reversed = [false, true, false];
+
+  // Inferred type avoids importing the scheduler library just to name `Ticker`.
+  // `late` lets the initializer reference the instance method `_tick`.
+  late final _ticker = createTicker(_tick);
+
+  @override
+  void initState() {
+    super.initState();
+    _ticker.start();
+  }
+
+  void _tick(Duration elapsed) {
+    final ms = elapsed.inMicroseconds / 1000.0;
+    for (var i = 0; i < _controllers.length; i++) {
+      final c = _controllers[i];
+      // hasClients guards the first frames before the ListViews have laid out.
+      if (c.hasClients) c.jumpTo(ms * _speeds[i]);
+    }
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    for (final c in _controllers) {
+      c.dispose();
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -274,14 +338,108 @@ class _StaticImagePage extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        Image.asset(
-          asset,
-          fit: BoxFit.cover,
-          errorBuilder: (context, _, _) => ColoredBox(color: pt.imageBg),
+        // Oversized + tilted so the −0.2 rad rotation still covers the corners;
+        // ClipRect trims the overflow back to the page bounds.
+        ClipRect(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final gridW = constraints.maxWidth * 1.5;
+              final gridH = constraints.maxHeight * 1.7;
+              return OverflowBox(
+                minWidth: gridW,
+                maxWidth: gridW,
+                minHeight: gridH,
+                maxHeight: gridH,
+                child: Transform.rotate(
+                  angle: -0.2,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (var i = 0; i < _controllers.length; i++)
+                        Expanded(
+                          child: _MarqueeColumn(
+                            controller: _controllers[i],
+                            reverse: _reversed[i],
+                            // Stagger each column's first image so the three
+                            // streams don't show the same photos in a row.
+                            startOffset: i * 4,
+                            imageBg: pt.imageBg,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
         ),
-        const _MeltGradient(),
-        _PageCopy(title: title, body: body),
+        // Melt the moving grid into the solid app background across the bottom
+        // ~45% so the CTA copy reads cleanly.
+        IgnorePointer(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                // Fade from the bg colour (alpha 0 → 1) — never
+                // Colors.transparent, which would bleed grey mid-fade.
+                colors: [
+                  pt.background.withValues(alpha: 0),
+                  pt.background.withValues(alpha: 0),
+                  pt.background,
+                ],
+                stops: const [0.0, 0.35, 0.58],
+              ),
+            ),
+          ),
+        ),
+        _PageCopy(title: widget.title, body: widget.body),
       ],
+    );
+  }
+}
+
+/// One auto-scrolling column of the page-3 marquee: an unbounded
+/// [ListView.builder] (user scroll disabled — the parent ticker drives it) whose
+/// items wrap with `index % images.length` so it never runs out.
+class _MarqueeColumn extends StatelessWidget {
+  const _MarqueeColumn({
+    required this.controller,
+    required this.reverse,
+    required this.startOffset,
+    required this.imageBg,
+  });
+
+  final ScrollController controller;
+  final bool reverse;
+  final int startOffset;
+  final Color imageBg;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      controller: controller,
+      reverse: reverse,
+      // The ticker owns the scroll; the user can't drag the background.
+      physics: const NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.zero,
+      itemBuilder: (context, index) {
+        final asset = _marqueeImages[(index + startOffset) % _marqueeImages.length];
+        return Padding(
+          padding: const EdgeInsets.all(6),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: AspectRatio(
+              aspectRatio: 3 / 4,
+              child: Image.asset(
+                asset,
+                fit: BoxFit.cover,
+                errorBuilder: (context, _, _) => ColoredBox(color: imageBg),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -489,6 +647,10 @@ class _ModelOnboardingPageState extends State<_ModelOnboardingPage> {
                 cameraTarget: 'auto 0.35m auto',
                 // Transparent WebView → the showroom photo shows through.
                 backgroundColor: Colors.transparent,
+                // Replace <model-viewer>'s default progress-bar slot with an
+                // empty div so its black loading bar never shows — our Lottie
+                // loader owns the loading state.
+                innerModelViewerHtml: '<div slot="progress-bar"></div>',
                 // Post "ready" the instant the model's `load` event fires so the
                 // Lottie loader can fade out exactly when the chair is on screen.
                 // Attached at parse time, before model-viewer upgrades the

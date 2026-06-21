@@ -229,6 +229,9 @@ flutter:
     # 3D onboarding: rotating chair model (page 1) + placeholder hero images.
     - assets/models/
     - assets/images/
+    # Folder declarations aren't recursive — the page-3 marquee grid needs its
+    # own entry.
+    - assets/images/onboarding/
     - shorebird.yaml
 
   # Native Flutter font registration — replaces the `google_fonts` package.

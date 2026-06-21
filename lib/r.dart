@@ -42,11 +42,25 @@ class AssetModels {
 }
 
 class AssetImages {
-	static const String chairPoster = 'assets/images/chair_poster.png';
 	static const String onboarding2 = 'assets/images/onboarding_2.png';
 	static const String onboarding3 = 'assets/images/onboarding_3.png';
 	static const String onboardingPanorama = 'assets/images/onboarding_panorama.webp';
 	static const String onboardingViewer1 = 'assets/images/onboarding_viewer_1.webp';
 	static const String viewer3dBg = 'assets/images/viewer_3d_bg.webp';
+}
+
+class AssetOnboarding {
+	static const String grid1 = 'assets/images/onboarding/grid_1.jpeg';
+	static const String grid10 = 'assets/images/onboarding/grid_10.jpeg';
+	static const String grid11 = 'assets/images/onboarding/grid_11.jpeg';
+	static const String grid12 = 'assets/images/onboarding/grid_12.jpeg';
+	static const String grid2 = 'assets/images/onboarding/grid_2.jpeg';
+	static const String grid3 = 'assets/images/onboarding/grid_3.jpeg';
+	static const String grid4 = 'assets/images/onboarding/grid_4.jpeg';
+	static const String grid5 = 'assets/images/onboarding/grid_5.jpeg';
+	static const String grid6 = 'assets/images/onboarding/grid_6.jpeg';
+	static const String grid7 = 'assets/images/onboarding/grid_7.jpeg';
+	static const String grid8 = 'assets/images/onboarding/grid_8.jpeg';
+	static const String grid9 = 'assets/images/onboarding/grid_9.jpeg';
 }
 

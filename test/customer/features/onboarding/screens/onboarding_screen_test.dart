@@ -111,4 +111,30 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text(tr('common.skip')), findsOneWidget);
   });
+
+  testWidgets('page 3 runs the infinite marquee without crashing', (
+    tester,
+  ) async {
+    await _pump(tester);
+    await tester.pump();
+
+    // Swipe past page 2 to the marquee. Start the drags near the top edge so
+    // they hit the PageView, not page 1's model / arc control. No
+    // pumpAndSettle — the marquee ticker never settles.
+    await tester.dragFrom(const Offset(400, 20), const Offset(-600, 0));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.dragFrom(const Offset(400, 20), const Offset(-600, 0));
+    await tester.pump(const Duration(milliseconds: 400));
+
+    // Three tilted, auto-scrolling columns are live; the final CTA reads over
+    // the gradient.
+    expect(find.byType(ListView), findsNWidgets(3));
+    expect(find.text(tr('intro.page3_title')), findsOneWidget);
+
+    // A few frames of the auto-scroll ticker must not throw (jumpTo on the
+    // unbounded lists, missing grid assets degrading via errorBuilder, etc.).
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(tester.takeException(), isNull);
+  });
 }
