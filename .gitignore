@@ -32,6 +32,8 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+# Release artifacts copied out of build/ by tools/shorebird.sh (aab + ipa).
+/dist/
 
 # Hive boxes created at runtime by the test suite (zero-byte, timestamped).
 /test/.hive/

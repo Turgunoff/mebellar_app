@@ -21,12 +21,17 @@
 #
 # Usage:
 #   ./tools/shorebird.sh check  [<base-ref>]                      # classify changes, no build
-#   ./tools/shorebird.sh release [android|ios|all] [--note "…"]   # build + log to ledger
+#   ./tools/shorebird.sh release [android|ios|all] [--note "…"]   # build + copy to dist/ + log
 #   ./tools/shorebird.sh patch   [android|ios|all] [--release-version X] [--note "…"] [--force]
 #   ./tools/shorebird.sh record  <version> [--note "…"]           # log a release built elsewhere
 #   ./tools/shorebird.sh log                                      # print the ledger
 #
-# `all` / no target = Android only (iOS needs a Mac + signing — run `ios`).
+# `all` / no target = BOTH Android (aab) and iOS (ipa) in one Shorebird release
+# (Shorebird builds for every `-p` passed). iOS needs a Mac + Xcode signing, so
+# `all` only works on macOS; use `android` on a non-Mac box.
+# `release` copies the built artifacts out of build/ into `dist/` (gitignored)
+# named `woody-<version>.aab` / `woody-<version>.ipa` so you don't have to dig
+# through build/app/outputs and build/ios/ipa to find the store upload.
 # Bump `version:` in pubspec.yaml before each new release (stores reject a
 # duplicate build number; Shorebird keys patches off the release version).
 
@@ -36,6 +41,7 @@ cd "$(dirname "$0")/.."
 
 ENV_FILE="env/prod.json"
 SYMBOLS_DIR="build/symbols"
+DIST_DIR="dist"                       # store uploads land here (gitignored)
 LEDGER="tools/shorebird/releases.md"  # .md, not .log — *.log is gitignored
 
 # ── shorebird on PATH ─────────────────────────────────────────────────────
@@ -117,6 +123,7 @@ classify_changes() {
         flutter="${flutter}${f}"$'\n'; n_flutter=$((n_flutter+1)) ;;
       lib/*|*.dart)
         dart="${dart}${f}"$'\n'; n_dart=$((n_dart+1)) ;;
+      dist/*|\
       tools/*|docs/*|.github/*|.claude/*|.vscode/*|.history/*|screenshots/*|\
       env/*|*.md|*.png|*.jpg|*.jpeg|analysis_options.yaml|dart_test.yaml|\
       .gitignore|firebase.json|flutter_native_splash.yaml|shorebird.yaml|\
@@ -215,6 +222,41 @@ warn_if_dirty() {
   fi
 }
 
+# ── artifact copy (release → dist/) ───────────────────────────────────────
+# Newest file matching the glob(s), by mtime; empty string if none match.
+newest_file() {
+  # shellcheck disable=SC2012  # ls -t is the simplest portable mtime sort here
+  ls -t "$@" 2>/dev/null | head -1
+}
+
+# Copy each platform's store artifact out of build/ into dist/, version-stamped
+# so successive releases don't clobber each other. Shorebird drops the aab at
+# build/app/outputs/bundle/release and the ipa at build/ios/ipa — same paths as
+# `flutter build appbundle/ipa`.
+copy_artifacts() {
+  local version="$1"; shift
+  local platforms=("$@")
+  mkdir -p "$DIST_DIR"
+  local p src dest
+  for p in "${platforms[@]}"; do
+    case "$p" in
+      android)
+        src="$(newest_file build/app/outputs/bundle/release/*.aab)"
+        dest="$DIST_DIR/woody-${version}.aab" ;;
+      ios)
+        src="$(newest_file build/ios/ipa/*.ipa)"
+        dest="$DIST_DIR/woody-${version}.ipa" ;;
+      *) continue ;;
+    esac
+    if [ -n "$src" ] && [ -f "$src" ]; then
+      cp -f "$src" "$dest"
+      echo "  → $dest"
+    else
+      echo "⚠️  $p artifakti topilmadi (build/ ostida) — do'kon faylini qo'lda qidiring." >&2
+    fi
+  done
+}
+
 # ── arg parse ─────────────────────────────────────────────────────────────
 CMD="${1:-help}"; shift || true
 
@@ -241,11 +283,15 @@ while [ $# -gt 0 ]; do
   shift
 done
 
-# Resolve platform list (all = Android only, like build_release.sh).
+# Resolve platform list (all = both). Build a repeated `-p` flag list so a
+# single `shorebird release`/`patch` covers every platform in one operation.
 case "$TARGET" in
-  android|all) PLATFORM="android" ;;
-  ios)         PLATFORM="ios" ;;
+  android) PLATFORMS=(android) ;;
+  ios)     PLATFORMS=(ios) ;;
+  all)     PLATFORMS=(android ios) ;;
 esac
+PLATFORM_FLAGS=()
+for _p in "${PLATFORMS[@]}"; do PLATFORM_FLAGS+=(-p "$_p"); done
 
 FLUTTER_ARGS=(
   --dart-define-from-file="$ENV_FILE"
@@ -271,25 +317,33 @@ case "$CMD" in
     ;;
 
   release)
-    [ "$PLATFORM" = "ios" ] && [ "$(uname)" != "Darwin" ] && {
-      echo "✗ iOS release faqat macOS + Xcode'da." >&2; exit 1; }
-    [ "$PLATFORM" = "android" ] && [ ! -f android/key.properties ] && {
-      echo "✗ android/key.properties yo'q — release debug kalit bilan imzolanadi." >&2; exit 1; }
+    # Per-platform preconditions before we spend minutes building.
+    for _p in "${PLATFORMS[@]}"; do
+      [ "$_p" = "ios" ] && [ "$(uname)" != "Darwin" ] && {
+        echo "✗ iOS release faqat macOS + Xcode'da. Bu mashinada 'android' ishlating." >&2; exit 1; }
+      [ "$_p" = "android" ] && [ ! -f android/key.properties ] && {
+        echo "✗ android/key.properties yo'q — release debug kalit bilan imzolanadi." >&2; exit 1; }
+    done
     require_env
     warn_if_dirty
     local_version="$(pubspec_version)"
-    echo "→ Shorebird release  $local_version  ($PLATFORM)"
+    echo "→ Shorebird release  $local_version  (${PLATFORMS[*]})"
     echo "  env: $ENV_FILE"
     echo
-    shorebird release "$PLATFORM" -- "${FLUTTER_ARGS[@]}"
+    shorebird release "${PLATFORM_FLAGS[@]}" -- "${FLUTTER_ARGS[@]}"
     echo
-    record_release "$local_version" "$PLATFORM" "$NOTE"
-    echo "✓ Release tayyor. Do'konga shorebird chiqargan artifaktni yuklang."
+    echo "→ Artifaktlarni '$DIST_DIR/' ga nusxalash:"
+    copy_artifacts "$local_version" "${PLATFORMS[@]}"
+    echo
+    record_release "$local_version" "${PLATFORMS[*]}" "$NOTE"
+    echo "✓ Release tayyor. Do'kon fayllari: $DIST_DIR/"
     ;;
 
   patch)
-    [ "$PLATFORM" = "ios" ] && [ "$(uname)" != "Darwin" ] && {
-      echo "✗ iOS patch faqat macOS'da." >&2; exit 1; }
+    for _p in "${PLATFORMS[@]}"; do
+      [ "$_p" = "ios" ] && [ "$(uname)" != "Darwin" ] && {
+        echo "✗ iOS patch faqat macOS'da. Bu mashinada 'android' ishlating." >&2; exit 1; }
+    done
     require_env
     [ -z "$RELEASE_VERSION" ] && RELEASE_VERSION="$(pubspec_version)"
 
@@ -311,15 +365,15 @@ case "$CMD" in
       echo
     fi
 
-    echo "→ Shorebird patch  release-version=$RELEASE_VERSION  ($PLATFORM)"
-    shorebird patch -p "$PLATFORM" --release-version "$RELEASE_VERSION" -- "${FLUTTER_ARGS[@]}"
+    echo "→ Shorebird patch  release-version=$RELEASE_VERSION  (${PLATFORMS[*]})"
+    shorebird patch "${PLATFORM_FLAGS[@]}" --release-version "$RELEASE_VERSION" -- "${FLUTTER_ARGS[@]}"
     echo "✓ Patch yuborildi."
     ;;
 
   record)
     [ -z "$REC_VERSION" ] && { echo "✗ versiya bering: tools/shorebird.sh record 1.0.18+18" >&2; exit 2; }
     warn_if_dirty
-    record_release "$REC_VERSION" "${TARGET}" "$NOTE"
+    record_release "$REC_VERSION" "${PLATFORMS[*]}" "$NOTE"
     ;;
 
   log)
@@ -327,7 +381,9 @@ case "$CMD" in
     ;;
 
   help|-h|--help)
-    sed -n '2,40p' "$0" | sed 's/^# \{0,1\}//'
+    # Print the contiguous header comment block (skip the shebang, stop at the
+    # first non-comment line) so help never depends on a hard-coded line range.
+    awk 'NR==1 {next} /^#/ {sub(/^# ?/, ""); print; next} {exit}' "$0"
     ;;
 
   *)
