@@ -36,3 +36,13 @@ class AssetLottie {
 	static const String searchLottie = 'assets/lottie/search_lottie.json';
 }
 
+class AssetModels {
+	static const String onboardingChair = 'assets/models/onboarding_chair.glb';
+}
+
+class AssetImages {
+	static const String onboarding2 = 'assets/images/onboarding_2.png';
+	static const String onboarding3 = 'assets/images/onboarding_3.png';
+	static const String viewer3dBg = 'assets/images/viewer_3d_bg.webp';
+}
+
