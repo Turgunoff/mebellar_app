@@ -6,6 +6,7 @@ import 'package:clock/clock.dart';
 import 'package:woody_app/core/error/failure.dart';
 import 'package:woody_app/core/result/result.dart';
 import 'package:woody_app/shared/models/tariff.dart';
+import 'package:woody_app/shared/repositories/payment_repository.dart';
 import 'package:woody_app/shared/repositories/tariff_repository.dart';
 import 'mock_seller_state.dart';
 
@@ -189,6 +190,18 @@ class MockTariffRepository implements TariffRepository {
     // Mock admin behaviour: resolves after 12s.
     Future<void>.delayed(const Duration(seconds: 12), _resolvePending);
     return Ok(subscription);
+  }
+
+  @override
+  Future<Result<String>> buyPlan({
+    required TariffPlan plan,
+    required BillingPeriod period,
+    required PaymentProvider provider,
+  }) async {
+    await Future<void>.delayed(_delay);
+    return Ok(
+      'https://checkout.${provider.slug}.uz/mock-${plan.code}-${period.code}',
+    );
   }
 
   @override

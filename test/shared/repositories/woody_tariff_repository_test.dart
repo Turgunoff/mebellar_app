@@ -9,6 +9,8 @@ import 'package:woody_app/core/auth/auth_repository.dart';
 import 'package:woody_app/core/network/token_store.dart';
 import 'package:woody_app/core/network/woody_api_client.dart';
 import 'package:woody_app/core/storage/r2_upload_client.dart';
+import 'package:woody_app/shared/models/tariff.dart';
+import 'package:woody_app/shared/repositories/payment_repository.dart';
 import 'package:woody_app/shared/repositories/woody_tariff_repository.dart';
 
 class _MockSecureStorage extends Mock implements FlutterSecureStorage {}
@@ -115,6 +117,43 @@ void main() {
     final h = make((_) => (500, '{"detail":"boom"}'));
 
     final result = await h.repo.fetchPlans();
+
+    expect(result.isOk, isFalse);
+    expect(result.valueOrNull, isNull);
+  });
+
+  test('buyPlan posts to /seller/tariff/buy and returns the checkout url',
+      () async {
+    final h = make(
+      (_) => (
+        200,
+        jsonEncode({
+          'provider': 'payme',
+          'checkout_url': 'https://checkout.paycom.uz/abc',
+          'amount': 299000,
+        }),
+      ),
+    );
+
+    final result = await h.repo.buyPlan(
+      plan: TariffPlan.pro,
+      period: BillingPeriod.monthly,
+      provider: PaymentProvider.payme,
+    );
+
+    expect(result.isOk, isTrue);
+    expect(result.valueOrNull, 'https://checkout.paycom.uz/abc');
+    expect(h.adapter.calls.single.uri.path, endsWith('/seller/tariff/buy'));
+  });
+
+  test('buyPlan surfaces a 503 (provider unconfigured) as Err', () async {
+    final h = make((_) => (503, '{"detail":"payments_unavailable"}'));
+
+    final result = await h.repo.buyPlan(
+      plan: TariffPlan.pro,
+      period: BillingPeriod.yearly,
+      provider: PaymentProvider.click,
+    );
 
     expect(result.isOk, isFalse);
     expect(result.valueOrNull, isNull);

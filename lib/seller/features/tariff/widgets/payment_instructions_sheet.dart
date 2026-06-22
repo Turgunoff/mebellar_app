@@ -10,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/result/result.dart';
 import '../../../../shared/models/tariff.dart';
+import '../../../../shared/repositories/payment_repository.dart';
 import '../../../../shared/repositories/tariff_repository.dart';
 import '../../../../shared/utils/image_upload.dart';
 import '../bloc/tariff_upgrade_bloc.dart';
@@ -44,10 +45,81 @@ class _SheetBody extends StatefulWidget {
 class _SheetBodyState extends State<_SheetBody> {
   late Future<Result<TariffPaymentInstructions>> _instructions;
 
+  /// Which provider's checkout is currently being minted (disables both
+  /// buttons + shows the spinner on the tapped one). Null = idle.
+  PaymentProvider? _launchingProvider;
+
   @override
   void initState() {
     super.initState();
     _instructions = sl<TariffRepository>().paymentInstructions();
+  }
+
+  /// Self-serve path: mint a Payme/Click deep-link for the selected plan and
+  /// hand off to the payment app. The webhook activates the plan on
+  /// confirmation, so we just pop back to the tariff screen on a successful
+  /// launch (the pending/current poll picks up the change).
+  Future<void> _payOnline(PaymentProvider provider) async {
+    if (_launchingProvider != null) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    final state = context.read<TariffUpgradeBloc>().state;
+    final plan = state.plan;
+    if (plan == null) return;
+
+    setState(() => _launchingProvider = provider);
+    final result = await sl<TariffRepository>().buyPlan(
+      plan: plan,
+      period: state.period,
+      provider: provider,
+    );
+    if (!mounted) return;
+
+    final url = result.valueOrNull;
+    if (url == null || url.isEmpty) {
+      setState(() => _launchingProvider = null);
+      messenger.showSnackBar(SnackBar(
+        content: Text(
+          result.failureOrNull?.message ?? tr('tariff.pay_launch_failed'),
+        ),
+      ));
+      return;
+    }
+
+    final uri = Uri.tryParse(url);
+    final ok = uri != null &&
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!mounted) return;
+    if (ok) {
+      navigator.pop();
+    } else {
+      setState(() => _launchingProvider = null);
+      messenger.showSnackBar(
+        SnackBar(content: Text(tr('tariff.pay_launch_failed'))),
+      );
+    }
+  }
+
+  Widget _payButton(PaymentProvider provider, String label, Color color) {
+    final busy = _launchingProvider != null;
+    return FilledButton(
+      onPressed: busy ? null : () => _payOnline(provider),
+      style: FilledButton.styleFrom(
+        backgroundColor: color,
+        foregroundColor: Colors.white,
+        minimumSize: const Size.fromHeight(50),
+      ),
+      child: _launchingProvider == provider
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            )
+          : Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
+    );
   }
 
   Future<void> _copyCard(String number) async {
@@ -162,6 +234,50 @@ class _SheetBodyState extends State<_SheetBody> {
                         ]),
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
+                    const SizedBox(height: 20),
+                    Text(
+                      tr('tariff.pay_online_title'),
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      tr('tariff.pay_online_hint'),
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _payButton(
+                            PaymentProvider.payme,
+                            'Payme',
+                            const Color(0xFF33B5C6),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _payButton(
+                            PaymentProvider.click,
+                            'Click',
+                            const Color(0xFF0098EB),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        const Expanded(child: Divider()),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text(
+                            tr('tariff.pay_or_manual'),
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ),
+                        const Expanded(child: Divider()),
+                      ],
+                    ),
                     const SizedBox(height: 20),
                     _CardWidget(
                       number: ins.cardNumber,

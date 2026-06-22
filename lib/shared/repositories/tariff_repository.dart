@@ -2,6 +2,7 @@ import 'dart:io';
 
 import '../../core/result/result.dart';
 import '../models/tariff.dart';
+import 'payment_repository.dart';
 
 class TariffPaymentInstructions {
   const TariffPaymentInstructions({
@@ -60,4 +61,15 @@ abstract class TariffRepository {
 
   Future<Result<TariffSubscription>> upgrade(TariffUpgradeInput input);
   Future<Result<void>> cancelPending(String subscriptionId);
+
+  /// Mint a Payme/Click checkout deep-link for a self-serve tariff payment
+  /// (`POST /seller/tariff/buy`) and return the URL the seller opens to pay.
+  /// The Merchant webhook activates the plan on confirmation — there is no
+  /// screenshot and no admin step. Throws `ApiError` on 404 (unknown plan) /
+  /// 400 (free plan) / 503 (provider unconfigured).
+  Future<Result<String>> buyPlan({
+    required TariffPlan plan,
+    required BillingPeriod period,
+    required PaymentProvider provider,
+  });
 }

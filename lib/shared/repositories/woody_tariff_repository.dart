@@ -6,6 +6,7 @@ import '../../core/network/woody_api_client.dart';
 import '../../core/result/result.dart';
 import '../../core/storage/r2_upload_client.dart';
 import '../models/tariff.dart';
+import 'payment_repository.dart';
 import 'tariff_repository.dart';
 
 /// REST-backed tariff surface — `/seller/tariff/*`. Payment screenshots upload
@@ -122,6 +123,23 @@ class WoodyTariffRepository implements TariffRepository {
           '/seller/tariff/receipts/$subscriptionId/cancel',
         );
       });
+
+  @override
+  Future<Result<String>> buyPlan({
+    required TariffPlan plan,
+    required BillingPeriod period,
+    required PaymentProvider provider,
+  }) => runCatching(() async {
+    final body = await _api.post<Map<String, dynamic>>(
+      '/seller/tariff/buy',
+      body: {
+        'plan_code': plan.code,
+        'billing_period': period.code,
+        'provider': provider.slug,
+      },
+    );
+    return body['checkout_url'] as String? ?? '';
+  });
 
   @override
   Stream<TariffSubscription?> watchPending() async* {
