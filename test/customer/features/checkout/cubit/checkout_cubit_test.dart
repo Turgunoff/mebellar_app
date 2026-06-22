@@ -60,7 +60,8 @@ void main() {
     quantity: 1,
   );
 
-  // A line that offers paid installation, used to exercise the toggle.
+  // A line that offers paid installation, used to exercise the toggle. No
+  // shopId → it pools under the '' group key.
   const installItem = CartItemModel(
     id: 'c2',
     productId: 'p2',
@@ -70,6 +71,33 @@ void main() {
     quantity: 1,
     hasInstallation: true,
     installationPrice: 500000,
+  );
+
+  // Two installable lines in two different shops, to prove the installation
+  // opt-in is tracked per shop.
+  const installItemA = CartItemModel(
+    id: 'a1',
+    productId: 'pa',
+    productName: 'Stol',
+    productImage: '',
+    productPrice: 2000000,
+    quantity: 1,
+    shopId: 'shopA',
+    shopName: 'Alfa',
+    hasInstallation: true,
+    installationPrice: 300000,
+  );
+  const installItemB = CartItemModel(
+    id: 'b1',
+    productId: 'pb',
+    productName: 'Divan',
+    productImage: '',
+    productPrice: 3000000,
+    quantity: 1,
+    shopId: 'shopB',
+    shopName: 'Beta',
+    hasInstallation: true,
+    installationPrice: 700000,
   );
 
   test('grandTotal equals subtotal when there are no fees', () {
@@ -129,16 +157,91 @@ void main() {
   );
 
   blocTest<CheckoutCubit, CheckoutState>(
-    'toggleInstallation adds the installation fee to the grand total',
+    'toggleInstallation adds the shop installation fee to the grand total',
     build: () => build(items: const [installItem]),
-    act: (cubit) => cubit.toggleInstallation(true),
+    // installItem has no shopId, so it pools under the '' group key.
+    act: (cubit) => cubit.toggleInstallation('', true),
     expect: () => [
       isA<CheckoutState>()
-          .having((s) => s.wantsInstallation, 'wantsInstallation', true)
+          .having((s) => s.wantsInstallationFor(''), 'wants for shop', true)
           .having((s) => s.installationAvailable, 'available', true)
           // subtotal 1_000_000 + installation 500_000, no delivery.
           .having((s) => s.grandTotal, 'grandTotal', 1500000),
     ],
+  );
+
+  blocTest<CheckoutCubit, CheckoutState>(
+    "toggling one shop's installation leaves the other shop's total untouched",
+    build: () => build(items: const [installItemA, installItemB]),
+    act: (cubit) => cubit.toggleInstallation('shopA', true),
+    expect: () => [
+      isA<CheckoutState>()
+          .having((s) => s.wantsInstallationFor('shopA'), 'A opted in', true)
+          .having((s) => s.wantsInstallationFor('shopB'), 'B untouched', false)
+          // shopA: 2_000_000 products + 300_000 installation.
+          .having(
+            (s) => s.groupTotal(
+              s.groups.firstWhere((g) => g.shopId == 'shopA'),
+            ),
+            'shopA total',
+            2300000,
+          )
+          // shopB: 3_000_000 products, installation NOT applied.
+          .having(
+            (s) => s.groupTotal(
+              s.groups.firstWhere((g) => g.shopId == 'shopB'),
+            ),
+            'shopB total',
+            3000000,
+          )
+          // Grand total = 5_000_000 products + only shopA's 300_000 install.
+          .having((s) => s.grandTotal, 'grandTotal', 5300000),
+    ],
+  );
+
+  blocTest<CheckoutCubit, CheckoutState>(
+    'submit places one order per shop, each with its own installation flag',
+    build: () {
+      when(
+        () => checkout.placeOrder(
+          lines: any(named: 'lines'),
+          deliveryAddress: any(named: 'deliveryAddress'),
+          wantInstallation: any(named: 'wantInstallation'),
+        ),
+      ).thenAnswer((_) async => 'order');
+      when(() => cartRepo.clear()).thenAnswer((_) async => const Cart());
+      return build(items: const [installItemA, installItemB]);
+    },
+    act: (cubit) {
+      cubit.toggleInstallation('shopA', true);
+      cubit.submit('user-1');
+    },
+    skip: 2, // the toggle emit + the submitting emit
+    expect: () => [
+      isA<CheckoutState>().having(
+        (s) => s.status,
+        'status',
+        CheckoutStatus.success,
+      ),
+    ],
+    verify: (_) {
+      // shopA opted in → its order carries want_installation=true.
+      verify(
+        () => checkout.placeOrder(
+          lines: any(named: 'lines'),
+          deliveryAddress: any(named: 'deliveryAddress'),
+          wantInstallation: true,
+        ),
+      ).called(1);
+      // shopB never opted in → its order carries want_installation=false.
+      verify(
+        () => checkout.placeOrder(
+          lines: any(named: 'lines'),
+          deliveryAddress: any(named: 'deliveryAddress'),
+          wantInstallation: false,
+        ),
+      ).called(1);
+    },
   );
 
   blocTest<CheckoutCubit, CheckoutState>(

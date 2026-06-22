@@ -656,7 +656,9 @@ class _OrderGroupsCard extends StatelessWidget {
         children: [
           _SectionHeader(
             icon: Iconsax.receipt,
-            label: multiShop ? '${groups.length} ta buyurtma' : 'Buyurtma jami',
+            label: multiShop
+                ? '${groups.length} ta buyurtma'
+                : 'Buyurtma tarkibi',
             pt: pt,
           ),
           if (multiShop) ...[
@@ -677,7 +679,7 @@ class _OrderGroupsCard extends StatelessWidget {
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      'Har bir do\'kondan alohida buyurtma joylashtiriladi',
+                      'Har bir do\'kon uchun yetkazib berish va o\'rnatish alohida hisoblanadi',
                       style: PremiumTokens.body(
                         size: 12,
                         color: PremiumTokens.accent,
@@ -722,14 +724,6 @@ class _OrderGroupsCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  Text(
-                    '${_fmt(groups[i].subtotal)} UZS',
-                    style: PremiumTokens.body(
-                      size: 13,
-                      weight: FontWeight.w700,
-                      color: PremiumTokens.accent,
-                    ),
-                  ),
                 ],
               ),
               const SizedBox(height: 8),
@@ -738,14 +732,149 @@ class _OrderGroupsCard extends StatelessWidget {
               _ItemRow(item: item, pt: pt),
               const SizedBox(height: 6),
             ],
+            const SizedBox(height: 6),
+            // Per-shop fees live with the shop's products: its subtotal, its
+            // delivery, and its own installation switch — so toggling one
+            // seller's installation never changes another seller's total.
+            _GroupFees(
+              state: state,
+              group: groups[i],
+              multiShop: multiShop,
+              pt: pt,
+            ),
             if (multiShop && i < groups.length - 1) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 14),
               Divider(color: pt.divider, height: 1),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
             ],
           ],
         ],
       ),
+    );
+  }
+}
+
+/// Per-shop fee breakdown rendered under each seller's products: that shop's
+/// product subtotal, its delivery fee, an opt-in installation switch, and (in a
+/// multi-shop cart) the shop's all-in order total.
+class _GroupFees extends StatelessWidget {
+  const _GroupFees({
+    required this.state,
+    required this.group,
+    required this.multiShop,
+    required this.pt,
+  });
+
+  final CheckoutState state;
+  final ShopOrderGroup group;
+  final bool multiShop;
+  final PremiumTokens pt;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Divider(color: pt.divider, height: 1),
+        const SizedBox(height: 12),
+        _SummaryRow(
+          label: 'Mahsulotlar',
+          value: '${_fmt(group.subtotal)} UZS',
+          pt: pt,
+        ),
+        const SizedBox(height: 10),
+        _DeliveryRow(
+          deliveryFee: state.deliveryFeeFor(group),
+          deliveryPriced: group.deliveryPriced,
+          pt: pt,
+        ),
+        if (state.installationAvailableFor(group)) ...[
+          const SizedBox(height: 4),
+          _InstallationTile(state: state, group: group, pt: pt),
+        ],
+        // Only multi-shop carts need the per-shop total — for a single shop the
+        // summary card's "Jami" already is this number.
+        if (multiShop) ...[
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Jami',
+                  style: PremiumTokens.body(
+                    size: 14,
+                    weight: FontWeight.w700,
+                    color: pt.dark,
+                  ),
+                ),
+              ),
+              Text(
+                '${_fmt(state.groupTotal(group))} UZS',
+                style: PremiumTokens.body(
+                  size: 14,
+                  weight: FontWeight.w700,
+                  color: PremiumTokens.accent,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// A delivery line: the amount, "Tekin" when every line prices its own delivery
+/// to zero, or "Sotuvchi belgilaydi" when no product pre-prices it.
+class _DeliveryRow extends StatelessWidget {
+  const _DeliveryRow({
+    required this.deliveryFee,
+    required this.deliveryPriced,
+    required this.pt,
+  });
+
+  final double deliveryFee;
+  final bool deliveryPriced;
+  final PremiumTokens pt;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            'Yetkazib berish',
+            style: PremiumTokens.body(size: 14, color: pt.grey),
+          ),
+        ),
+        if (deliveryFee > 0)
+          Text(
+            '${_fmt(deliveryFee)} UZS',
+            style: PremiumTokens.body(
+              size: 14,
+              weight: FontWeight.w600,
+              color: pt.dark,
+            ),
+          )
+        else if (deliveryPriced)
+          Text(
+            'Tekin',
+            style: PremiumTokens.body(
+              size: 14,
+              weight: FontWeight.w700,
+              color: pt.success,
+            ),
+          )
+        else
+          Text(
+            'Sotuvchi belgilaydi',
+            style: PremiumTokens.body(
+              size: 13,
+              weight: FontWeight.w500,
+              color: context.customColors.warning,
+            ),
+          ),
+      ],
     );
   }
 }
@@ -759,8 +888,6 @@ class _OrderSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final deliveryFee = state.deliveryFee;
-    final deliveryPriced = state.deliveryPriced;
     return _SectionCard(
       pt: pt,
       child: Column(
@@ -773,50 +900,9 @@ class _OrderSummaryCard extends StatelessWidget {
             value: '${_fmt(state.subtotal)} UZS',
             pt: pt,
           ),
-          const SizedBox(height: 10),
-          // Delivery is fetched from the backend (per address); when no product
-          // pre-prices it, the seller proposes it after placement.
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Yetkazib berish',
-                  style: PremiumTokens.body(size: 14, color: pt.grey),
-                ),
-              ),
-              if (deliveryFee > 0)
-                Text(
-                  '${_fmt(deliveryFee)} UZS',
-                  style: PremiumTokens.body(
-                    size: 14,
-                    weight: FontWeight.w600,
-                    color: pt.dark,
-                  ),
-                )
-              else if (deliveryPriced)
-                // Every line's product prices its own delivery and the total is
-                // zero → genuinely free, not "to be determined".
-                Text(
-                  'Tekin',
-                  style: PremiumTokens.body(
-                    size: 14,
-                    weight: FontWeight.w700,
-                    color: pt.success,
-                  ),
-                )
-              else
-                Text(
-                  'Sotuvchi belgilaydi',
-                  style: PremiumTokens.body(
-                    size: 13,
-                    weight: FontWeight.w500,
-                    color: context.customColors.warning,
-                  ),
-                ),
-            ],
-          ),
-          if (state.installationAvailable)
-            _InstallationTile(state: state, pt: pt),
+          // Delivery and installation are shown per seller in the order cards
+          // above; "Jami" is the dynamic sum of every shop's all-in order total,
+          // counting installation only for the shops that opted in.
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 14),
             child: Divider(color: pt.divider, height: 1),
@@ -833,11 +919,18 @@ class _OrderSummaryCard extends StatelessWidget {
   }
 }
 
-/// Opt-in installation row. Flipping it recomputes the grand total instantly —
-/// the fee is already known from the quote, so no refetch happens.
+/// Opt-in installation row for one shop. Flipping it recomputes that shop's
+/// total — and the grand total — instantly; the fee is already known from the
+/// quote, so no refetch happens, and only this shop's order is affected.
 class _InstallationTile extends StatelessWidget {
-  const _InstallationTile({required this.state, required this.pt});
+  const _InstallationTile({
+    required this.state,
+    required this.group,
+    required this.pt,
+  });
+
   final CheckoutState state;
+  final ShopOrderGroup group;
   final PremiumTokens pt;
 
   @override
@@ -855,7 +948,7 @@ class _InstallationTile extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                '+${_fmt(state.installationFee)} UZS',
+                '+${_fmt(state.installationFeeFor(group))} UZS',
                 style: PremiumTokens.body(size: 13, color: pt.grey),
               ),
             ],
@@ -863,8 +956,9 @@ class _InstallationTile extends StatelessWidget {
         ),
         const SizedBox(width: 12),
         CupertinoSwitch(
-          value: state.wantsInstallation,
-          onChanged: (v) => context.read<CheckoutCubit>().toggleInstallation(v),
+          value: state.wantsInstallationFor(group.shopId),
+          onChanged: (v) =>
+              context.read<CheckoutCubit>().toggleInstallation(group.shopId, v),
           activeTrackColor: PremiumTokens.accent,
         ),
       ],

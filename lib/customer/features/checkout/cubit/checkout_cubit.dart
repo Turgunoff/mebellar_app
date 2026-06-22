@@ -40,6 +40,13 @@ class ShopOrderGroup extends Equatable {
   double get installationFee =>
       items.fold(0.0, (s, it) => s + it.installationFee);
 
+  /// Whether every line in this group prices its own delivery (even when that
+  /// price is 0 = free). When false, no product pre-prices delivery, so the
+  /// seller proposes it after placement and the card shows "Sotuvchi
+  /// belgilaydi" rather than a misleading "Tekin".
+  bool get deliveryPriced =>
+      items.isNotEmpty && items.every((it) => it.hasDelivery);
+
   @override
   List<Object?> get props => [shopId, items];
 }
@@ -52,8 +59,8 @@ class CheckoutState extends Equatable {
     this.checkoutUrl,
     this.deliveryAddress = '',
     this.placedOrderIds = const [],
-    this.wantsInstallation = false,
-    this.quote,
+    this.installationByShop = const {},
+    this.quotesByShop = const {},
     this.error,
   });
 
@@ -70,13 +77,17 @@ class CheckoutState extends Equatable {
   /// Order IDs created during [submit] — populated on success.
   final List<String> placedOrderIds;
 
-  /// Whether the customer toggled "Ustamiz o'rnatib berishini xohlaysizmi?".
-  final bool wantsInstallation;
+  /// Per-shop installation opt-in, keyed by [ShopOrderGroup.shopId]. A shop's
+  /// "Ustamiz o'rnatib berishini xohlaysizmi?" switch flips only its own entry,
+  /// so one seller's installation never bleeds into another's order total.
+  /// Missing key = not opted in.
+  final Map<String, bool> installationByShop;
 
-  /// The latest server invoice (`POST /orders/quote`). Null until it returns —
-  /// the getters fall back to a local estimate computed from the cart items so
-  /// the card paints instantly.
-  final CheckoutQuote? quote;
+  /// The latest server invoice per shop (`POST /orders/quote`, one call per
+  /// shop — matching how each shop becomes its own order). Empty until the
+  /// quotes return; the per-group getters fall back to a local estimate from
+  /// the cart snapshots so each card paints instantly.
+  final Map<String, CheckoutQuote> quotesByShop;
 
   final String? error;
 
@@ -93,36 +104,55 @@ class CheckoutState extends Equatable {
     CheckoutPayment.cash => null,
   };
 
+  // ── Per-shop fees (authoritative server quote or local snapshot estimate) ──
+  // Each shop is priced independently because it becomes its own order; the
+  // backend rejects a multi-shop order, so the aggregate is just the sum of
+  // these per-shop figures — never a single blended invoice.
+
+  /// Whether this shop's installation switch is on.
+  bool wantsInstallationFor(String shopId) =>
+      installationByShop[shopId] ?? false;
+
+  /// This shop's authoritative delivery fee (its server quote) or the local
+  /// estimate until the quote returns.
+  double deliveryFeeFor(ShopOrderGroup g) =>
+      quotesByShop[g.shopId]?.deliveryFee ?? g.deliveryFee;
+
+  /// This shop's full available installation fee — independent of the switch,
+  /// so flipping it adds/removes the amount with no refetch (the server quote
+  /// always returns the potential amount).
+  double installationFeeFor(ShopOrderGroup g) =>
+      quotesByShop[g.shopId]?.installationFee ?? g.installationFee;
+
+  /// Whether this shop offers installation (so its switch should be shown).
+  bool installationAvailableFor(ShopOrderGroup g) =>
+      quotesByShop[g.shopId]?.installationAvailable ?? (g.installationFee > 0);
+
+  /// This shop's all-in order total: products + delivery + (installation if
+  /// that shop opted in).
+  double groupTotal(ShopOrderGroup g) =>
+      g.subtotal +
+      deliveryFeeFor(g) +
+      (wantsInstallationFor(g.shopId) ? installationFeeFor(g) : 0);
+
+  // ── Cart-wide aggregates (sum of the per-shop figures above) ───────────────
+
   double get subtotal => groups.fold(0.0, (s, g) => s + g.subtotal);
 
-  // Local fallbacks from the cart-item snapshots, used until the server quote
-  // arrives (and if it never does — graceful degrade).
-  double get _deliveryFeeLocal => groups.fold(0.0, (s, g) => s + g.deliveryFee);
-  double get _installationFeeLocal =>
-      groups.fold(0.0, (s, g) => s + g.installationFee);
+  /// Total delivery across every shop.
+  double get deliveryFee => groups.fold(0.0, (s, g) => s + deliveryFeeFor(g));
 
-  /// Authoritative delivery fee (server quote) or the local estimate.
-  double get deliveryFee => quote?.deliveryFee ?? _deliveryFeeLocal;
+  /// Total available installation across every shop (independent of toggles).
+  double get installationFee =>
+      groups.fold(0.0, (s, g) => s + installationFeeFor(g));
 
-  /// Full installation fee available for the cart — independent of the toggle,
-  /// so flipping the switch adds/removes it with no refetch.
-  double get installationFee => quote?.installationFee ?? _installationFeeLocal;
-
-  /// Whether any item offers installation (so the switch should be shown).
+  /// Whether any shop offers installation.
   bool get installationAvailable =>
-      quote?.installationAvailable ?? (_installationFeeLocal > 0);
+      groups.any((g) => installationAvailableFor(g));
 
-  /// Whether the delivery fee shown is authoritative — every line's product
-  /// prices its own delivery (even when that price is 0 = free). When false,
-  /// no product pre-prices delivery, so the seller proposes it after the order
-  /// is placed and the invoice shows "Sotuvchi belgilaydi" rather than a
-  /// misleading "Tekin".
-  bool get deliveryPriced =>
-      groups.isNotEmpty && allItems.every((it) => it.hasDelivery);
-
-  /// Instantly recomputed: subtotal + delivery + (installation if opted in).
-  double get grandTotal =>
-      subtotal + deliveryFee + (wantsInstallation ? installationFee : 0);
+  /// Grand total — the dynamic sum of each shop's all-in order total, so only
+  /// the shops whose switch is on contribute their installation fee.
+  double get grandTotal => groups.fold(0.0, (s, g) => s + groupTotal(g));
 
   List<CartItemModel> get allItems => [for (final g in groups) ...g.items];
 
@@ -133,8 +163,8 @@ class CheckoutState extends Equatable {
     String? checkoutUrl,
     String? deliveryAddress,
     List<String>? placedOrderIds,
-    bool? wantsInstallation,
-    CheckoutQuote? quote,
+    Map<String, bool>? installationByShop,
+    Map<String, CheckoutQuote>? quotesByShop,
     String? error,
     bool clearError = false,
   }) => CheckoutState(
@@ -144,8 +174,8 @@ class CheckoutState extends Equatable {
     checkoutUrl: checkoutUrl ?? this.checkoutUrl,
     deliveryAddress: deliveryAddress ?? this.deliveryAddress,
     placedOrderIds: placedOrderIds ?? this.placedOrderIds,
-    wantsInstallation: wantsInstallation ?? this.wantsInstallation,
-    quote: quote ?? this.quote,
+    installationByShop: installationByShop ?? this.installationByShop,
+    quotesByShop: quotesByShop ?? this.quotesByShop,
     error: clearError ? null : (error ?? this.error),
   );
 
@@ -157,8 +187,8 @@ class CheckoutState extends Equatable {
     checkoutUrl,
     deliveryAddress,
     placedOrderIds,
-    wantsInstallation,
-    quote,
+    installationByShop,
+    quotesByShop,
     error,
   ];
 }
@@ -213,32 +243,56 @@ class CheckoutCubit extends Cubit<CheckoutState> {
     unawaited(_refreshQuote());
   }
 
-  /// Toggles the installation opt-in. The grand total recomputes instantly via
-  /// [CheckoutState.grandTotal] (the installation fee is already known), so no
-  /// network round-trip is needed.
-  void toggleInstallation(bool value) {
-    emit(state.copyWith(wantsInstallation: value));
+  /// Toggles one shop's installation opt-in. The grand total recomputes
+  /// instantly via [CheckoutState.grandTotal] (the installation fee is already
+  /// known from the quote), so no network round-trip is needed, and flipping
+  /// one shop never touches another's total.
+  void toggleInstallation(String shopId, bool value) {
+    final next = Map<String, bool>.from(state.installationByShop);
+    next[shopId] = value;
+    emit(state.copyWith(installationByShop: next));
   }
 
-  /// Fetches the server-computed invoice and merges it into the state. Failures
-  /// are swallowed: the local estimate stays on screen and the order is priced
-  /// server-side at submit time regardless.
+  /// Fetches the server-computed invoice for each shop and merges them into the
+  /// state. One quote per shop, because each shop becomes its own order — the
+  /// backend rejects a multi-shop order, so a single aggregate quote would be a
+  /// fiction. Failures are swallowed per-shop: that shop keeps its local
+  /// estimate and is priced server-side at submit time regardless.
   Future<void> _refreshQuote() async {
-    final items = state.allItems;
-    if (items.isEmpty) return;
+    final groups = state.groups;
+    if (groups.isEmpty) return;
+    final quotes = await Future.wait(groups.map(_quoteGroup));
+    if (isClosed) return;
+    // Merge onto the previous map so a shop whose quote failed this round keeps
+    // its last-known-good figure instead of dropping back to the local estimate.
+    final merged = Map<String, CheckoutQuote>.from(state.quotesByShop);
+    var changed = false;
+    for (var i = 0; i < groups.length; i++) {
+      final q = quotes[i];
+      if (q != null) {
+        merged[groups[i].shopId] = q;
+        changed = true;
+      }
+    }
+    if (changed) emit(state.copyWith(quotesByShop: merged));
+  }
+
+  /// Quotes a single shop group, or null if the call fails. The server quote
+  /// always returns the *potential* installation fee, so the per-shop switch
+  /// can add/remove it locally — [wantInstallation] only sets which figure the
+  /// (unused-here) `grand_total` reflects.
+  Future<CheckoutQuote?> _quoteGroup(ShopOrderGroup group) async {
     try {
-      final quote = await _checkout.quote(
+      return await _checkout.quote(
         lines: [
-          for (final it in items)
+          for (final it in group.items)
             CheckoutOrderLine(productId: it.productId, quantity: it.quantity),
         ],
         deliveryAddress: state.deliveryAddress,
-        wantInstallation: state.wantsInstallation,
+        wantInstallation: state.wantsInstallationFor(group.shopId),
       );
-      if (isClosed) return;
-      emit(state.copyWith(quote: quote));
     } catch (_) {
-      // Keep the local estimate; nothing to surface to the customer here.
+      return null;
     }
   }
 
@@ -260,7 +314,9 @@ class CheckoutCubit extends Cubit<CheckoutState> {
               CheckoutOrderLine(productId: it.productId, quantity: it.quantity),
           ],
           deliveryAddress: state.deliveryAddress,
-          wantInstallation: state.wantsInstallation,
+          // Each shop carries its own installation opt-in, so its order is
+          // priced exactly as that shop's card shows — never the global flag.
+          wantInstallation: state.wantsInstallationFor(group.shopId),
         );
         placedIds.add(orderId);
 
