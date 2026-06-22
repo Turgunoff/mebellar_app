@@ -7,6 +7,7 @@ const Map<String, dynamic> aiDesignerUz = {
       'Salom! Men sizning interyer dizayneringizman. Xonangizni tasvirlab '
       'bering yoki rasmini yuboring — men mos mebellarni tavsiya qilaman.',
   'composer_hint': 'Xonangizni tasvirlab bering...',
+  'image_only_prompt': 'Ushbu xonaga mos mebellarni tavsiya qiling.',
   'send': 'Yuborish',
   'attach_photo': 'Rasm biriktirish',
   'photo_added': 'Rasm qo\'shildi',
@@ -33,6 +34,7 @@ const Map<String, dynamic> aiDesignerRu = {
       'Здравствуйте! Я ваш дизайнер интерьера. Опишите вашу комнату или '
       'пришлите фото — я подберу подходящую мебель.',
   'composer_hint': 'Опишите вашу комнату...',
+  'image_only_prompt': 'Посоветуйте мебель, подходящую для этой комнаты.',
   'send': 'Отправить',
   'attach_photo': 'Прикрепить фото',
   'photo_added': 'Фото добавлено',
@@ -58,6 +60,7 @@ const Map<String, dynamic> aiDesignerEn = {
       'Hi! I\'m your interior designer. Describe your room or send a photo — '
       'I\'ll recommend furniture that fits.',
   'composer_hint': 'Describe your room...',
+  'image_only_prompt': 'Recommend furniture that suits this room.',
   'send': 'Send',
   'attach_photo': 'Attach photo',
   'photo_added': 'Photo added',

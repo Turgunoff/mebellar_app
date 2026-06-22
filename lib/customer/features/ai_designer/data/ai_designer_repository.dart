@@ -122,19 +122,29 @@ class WoodyAiDesignerRepository implements AiDesignerRepository {
     List<AiChatMessage> history = const [],
   }) async {
     try {
+      // The backend `AiChatBody` requires `message` (min_length=1), caps
+      // `history` at 20 turns, and rejects any history turn with empty text
+      // (`AiChatHistoryTurn.text` min_length=1). Locally we store image-only
+      // user turns and degraded/empty AI replies with empty text, and the
+      // history grows unbounded — so sanitize at this boundary or FastAPI 422s
+      // (which the catch below silently turns into the fallback error reply).
+      final outMessage = message.trim().isEmpty
+          ? tr('ai_designer.image_only_prompt')
+          : message;
+      final cleanHistory = [
+        for (final m in history)
+          if (m.text.trim().isNotEmpty)
+            {'role': m.isUser ? 'user' : 'assistant', 'text': m.text},
+      ];
+      // Newest 20 turns only (backend max_length=20; recent turns matter most).
+      final recentHistory = cleanHistory.length > 20
+          ? cleanHistory.sublist(cleanHistory.length - 20)
+          : cleanHistory;
       final body = <String, dynamic>{
-        'message': message,
+        'message': outMessage,
         if (imageBytes != null) 'image_base64': base64Encode(imageBytes),
         if (imageBytes != null && imageMime != null) 'image_mime': imageMime,
-        if (history.isNotEmpty)
-          'history': history
-              .map(
-                (m) => {
-                  'role': m.isUser ? 'user' : 'assistant',
-                  'text': m.text,
-                },
-              )
-              .toList(growable: false),
+        if (recentHistory.isNotEmpty) 'history': recentHistory,
       };
       final response = await _api.post<Map<String, dynamic>>(
         '/ai/chat',
@@ -167,7 +177,8 @@ class WoodyAiDesignerRepository implements AiDesignerRepository {
       final logId = raw['log_id'] as String?;
       if (logId == null) continue;
       final ts =
-          DateTime.tryParse(raw['created_at'] as String? ?? '') ?? DateTime.now();
+          DateTime.tryParse(raw['created_at'] as String? ?? '') ??
+          DateTime.now();
       out.add(
         AiChatMessage(
           id: '$logId-u',

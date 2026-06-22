@@ -8,6 +8,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:woody_app/core/network/token_store.dart';
 import 'package:woody_app/core/network/woody_api_client.dart';
 import 'package:woody_app/customer/features/ai_designer/data/ai_designer_repository.dart';
+import 'package:woody_app/customer/features/ai_designer/models/ai_chat_message.dart';
 
 class _MockSecureStorage extends Mock implements FlutterSecureStorage {}
 
@@ -42,10 +43,15 @@ void main() {
   setUp(() async {
     final storage = _MockSecureStorage();
     final mem = <String, String>{};
-    when(() => storage.read(key: any(named: 'key')))
-        .thenAnswer((i) async => mem[i.namedArguments[#key] as String]);
-    when(() => storage.write(key: any(named: 'key'), value: any(named: 'value')))
-        .thenAnswer((i) async {
+    when(
+      () => storage.read(key: any(named: 'key')),
+    ).thenAnswer((i) async => mem[i.namedArguments[#key] as String]);
+    when(
+      () => storage.write(
+        key: any(named: 'key'),
+        value: any(named: 'value'),
+      ),
+    ).thenAnswer((i) async {
       mem[i.namedArguments[#key] as String] =
           i.namedArguments[#value] as String;
     });
@@ -70,54 +76,57 @@ void main() {
     return (repo: WoodyAiDesignerRepository(api), adapter: adapter);
   }
 
-  test('fetchHistory expands each turn into a user + AI message, oldest-first', () async {
-    final h = make(
-      (_) => (
-        200,
-        jsonEncode({
-          'turns': [
-            {
-              'log_id': 'log-1',
-              'user_message': 'salom',
-              'has_image': false,
-              'ai_response': 'Qanday yordam bera olaman?',
-              'user_rating': null,
-              'created_at': '2026-01-01T10:00:00.000Z',
-            },
-            {
-              'log_id': 'log-2',
-              'user_message': 'divan kerak',
-              'has_image': true,
-              'ai_response': 'Mana mos divanlar',
-              'user_rating': 'liked',
-              'created_at': '2026-01-01T10:05:00.000Z',
-            },
-          ],
-        }),
-      ),
-    );
+  test(
+    'fetchHistory expands each turn into a user + AI message, oldest-first',
+    () async {
+      final h = make(
+        (_) => (
+          200,
+          jsonEncode({
+            'turns': [
+              {
+                'log_id': 'log-1',
+                'user_message': 'salom',
+                'has_image': false,
+                'ai_response': 'Qanday yordam bera olaman?',
+                'user_rating': null,
+                'created_at': '2026-01-01T10:00:00.000Z',
+              },
+              {
+                'log_id': 'log-2',
+                'user_message': 'divan kerak',
+                'has_image': true,
+                'ai_response': 'Mana mos divanlar',
+                'user_rating': 'liked',
+                'created_at': '2026-01-01T10:05:00.000Z',
+              },
+            ],
+          }),
+        ),
+      );
 
-    final msgs = await h.repo.fetchHistory();
+      final msgs = await h.repo.fetchHistory();
 
-    final call = h.adapter.calls.single;
-    expect(call.method, 'GET');
-    expect(call.uri.path, endsWith('/ai/chat/history'));
-    // 2 turns → 4 messages, oldest-first, user before its AI reply.
-    expect(msgs.map((m) => m.text).toList(), [
-      'salom',
-      'Qanday yordam bera olaman?',
-      'divan kerak',
-      'Mana mos divanlar',
-    ]);
-    expect(msgs[0].isUser, isTrue);
-    expect(msgs[1].isUser, isFalse);
-    // The AI reply keeps its backend log id (so 👍/👎 still works) + rating.
-    expect(msgs[1].logId, 'log-1');
-    expect(msgs[3].logId, 'log-2');
-    expect(msgs[3].userRating, 'liked');
-    // The AI bubble sorts strictly AFTER its question (created_at + 1ms).
-    expect(msgs[1].timestamp.isAfter(msgs[0].timestamp), isTrue);
-  });
+      final call = h.adapter.calls.single;
+      expect(call.method, 'GET');
+      expect(call.uri.path, endsWith('/ai/chat/history'));
+      // 2 turns → 4 messages, oldest-first, user before its AI reply.
+      expect(msgs.map((m) => m.text).toList(), [
+        'salom',
+        'Qanday yordam bera olaman?',
+        'divan kerak',
+        'Mana mos divanlar',
+      ]);
+      expect(msgs[0].isUser, isTrue);
+      expect(msgs[1].isUser, isFalse);
+      // The AI reply keeps its backend log id (so 👍/👎 still works) + rating.
+      expect(msgs[1].logId, 'log-1');
+      expect(msgs[3].logId, 'log-2');
+      expect(msgs[3].userRating, 'liked');
+      // The AI bubble sorts strictly AFTER its question (created_at + 1ms).
+      expect(msgs[1].timestamp.isAfter(msgs[0].timestamp), isTrue);
+    },
+  );
 
   test('fetchHistory drops the AI bubble when ai_response is null', () async {
     final h = make(
@@ -144,8 +153,72 @@ void main() {
     expect(msgs.single.text, 'salom');
   });
 
-  test('fetchHistory throws on a server error so the cubit can fall back', () async {
-    final h = make((_) => (500, '{}'));
-    await expectLater(h.repo.fetchHistory(), throwsA(anything));
+  test(
+    'fetchHistory throws on a server error so the cubit can fall back',
+    () async {
+      final h = make((_) => (500, '{}'));
+      await expectLater(h.repo.fetchHistory(), throwsA(anything));
+    },
+  );
+
+  // Regression: the backend AiChatBody rejects empty history-turn text
+  // (min_length=1). Image-only user turns + degraded AI replies are stored
+  // locally with empty text; the repo must drop them so the request isn't 422'd.
+  test('chat drops blank-text history turns from the payload', () async {
+    final h = make(
+      (_) => (200, jsonEncode({'available': true, 'reply': 'ok'})),
+    );
+    final ts = DateTime(2026, 1, 1);
+    await h.repo.chat(
+      message: 'need a sofa',
+      history: [
+        AiChatMessage(id: '1', text: 'hi', isUser: true, timestamp: ts),
+        AiChatMessage(
+          id: '2',
+          text: '',
+          isUser: false,
+          timestamp: ts,
+        ), // empty AI reply
+        AiChatMessage(
+          id: '3',
+          text: '   ',
+          isUser: true,
+          timestamp: ts,
+        ), // image-only
+        AiChatMessage(
+          id: '4',
+          text: 'show sofas',
+          isUser: false,
+          timestamp: ts,
+        ),
+      ],
+    );
+    final data = h.adapter.calls.single.data;
+    final body = (data is String ? jsonDecode(data) : data) as Map;
+    expect(body['message'], 'need a sofa');
+    final sent = (body['history'] as List).cast<Map>();
+    expect(sent.map((t) => t['text']).toList(), ['hi', 'show sofas']);
+    expect(sent.map((t) => t['role']).toList(), ['user', 'assistant']);
+  });
+
+  // Regression: the backend caps history at 20 turns (max_length=20). The local
+  // thread grows unbounded, so the repo must send only the most recent 20.
+  test('chat caps history to the most recent 20 turns', () async {
+    final h = make(
+      (_) => (200, jsonEncode({'available': true, 'reply': 'ok'})),
+    );
+    final ts = DateTime(2026, 1, 1);
+    final history = [
+      for (var i = 0; i < 25; i++)
+        AiChatMessage(id: '$i', text: 'm$i', isUser: i.isEven, timestamp: ts),
+    ];
+    await h.repo.chat(message: 'hello', history: history);
+    final data = h.adapter.calls.single.data;
+    final body = (data is String ? jsonDecode(data) : data) as Map;
+    final sent = (body['history'] as List).cast<Map>();
+    expect(sent, hasLength(20));
+    // The newest 20 → m5..m24 (the oldest 5 are dropped).
+    expect(sent.first['text'], 'm5');
+    expect(sent.last['text'], 'm24');
   });
 }
