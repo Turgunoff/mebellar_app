@@ -91,4 +91,33 @@ void main() {
     // Unmount to dispose the typing animation's ticker before the test ends.
     await tester.pumpWidget(const SizedBox.shrink());
   });
+
+  testWidgets('opens pinned to the newest message (no manual scroll needed)', (
+    tester,
+  ) async {
+    // A long history that overflows the viewport. `reverse: true` must open the
+    // thread at the bottom, so the NEWEST message is visible and the oldest is
+    // scrolled off the top (the lazy ListView never even builds it).
+    final history = List.generate(
+      40,
+      (i) => AiChatMessage(
+        id: 'm$i',
+        text: 'xabar-$i',
+        isUser: i.isEven,
+        timestamp: DateTime(2026, 1, 1).add(Duration(minutes: i)),
+      ),
+    );
+    when(() => store.load()).thenReturn(history);
+
+    final cubit = AiDesignerCubit(repository: repo, store: store);
+    addTearDown(cubit.close);
+
+    await tester.pumpWidget(_Harness(cubit));
+    await tester.pump();
+
+    expect(find.text('xabar-39'), findsOneWidget); // newest, at the bottom
+    expect(find.text('xabar-0'), findsNothing); // oldest, off-screen at the top
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 }

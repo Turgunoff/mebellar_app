@@ -131,10 +131,13 @@ class _MessageListState extends State<_MessageList> {
       listenWhen: (a, b) =>
           a.messages.length != b.messages.length || a.sending != b.sending,
       listener: (context, state) {
+        // With `reverse: true` the newest turn sits at offset 0 (the bottom), so
+        // jumping there re-pins the user to the latest message after a send even
+        // if they had scrolled up into history.
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!_scroll.hasClients) return;
           _scroll.animateTo(
-            _scroll.position.maxScrollExtent,
+            _scroll.position.minScrollExtent,
             duration: const Duration(milliseconds: 240),
             curve: Curves.easeOut,
           );
@@ -144,16 +147,23 @@ class _MessageListState extends State<_MessageList> {
         if (state.messages.isEmpty && !state.sending) {
           return const _Greeting();
         }
-        // +1 trailing slot for the typing indicator while a reply is in flight.
-        final itemCount = state.messages.length + (state.sending ? 1 : 0);
+        final count = state.messages.length;
+        final sending = state.sending;
+        // +1 bottom slot for the typing indicator while a reply is in flight.
+        final itemCount = count + (sending ? 1 : 0);
+        // `reverse: true` indexes newest-first from the bottom, so the thread
+        // opens already pinned to the latest message with no post-load scroll
+        // hop — the same pattern the per-order + support chat screens use. The
+        // typing bubble takes the bottom-most slot (i == 0) while a reply lands.
         return ListView.builder(
           controller: _scroll,
+          reverse: true,
           physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.symmetric(vertical: 12),
           itemCount: itemCount,
           itemBuilder: (context, i) {
-            if (i >= state.messages.length) return const _TypingBubble();
-            final message = state.messages[i];
+            if (sending && i == 0) return const _TypingBubble();
+            final message = state.messages[sending ? count - i : count - 1 - i];
             return _MessageRow(
               message: message,
               products: state.products[message.id] ?? const [],
