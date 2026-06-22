@@ -9,6 +9,7 @@ import '../auth/auth_repository.dart';
 import '../auth/sign_out.dart';
 import '../logging/talker.dart';
 import '../storage/hive_boxes.dart';
+import '../../customer/features/ai_designer/models/ai_chat_message.dart';
 import 'auth_module.dart';
 import 'catalog_module.dart';
 import 'core_module.dart';
@@ -103,6 +104,20 @@ Future<void> performLogout(BuildContext context) async {
     } catch (e, st) {
       talker.handle(e, st, 'performLogout: clear $boxName failed');
     }
+  }
+
+  // The AI designer chat box is typed (`Box<AiChatMessage>`), so it isn't in
+  // the `sl<Box>` loop above — clear it directly. This guarantees the previous
+  // user's conversation is wiped on logout even if the chat cubit was never
+  // built this session (the cubit also clears on the auth stream, but it's a
+  // lazy singleton that may not exist). The history re-fetches from the backend
+  // on the next login.
+  try {
+    if (Hive.isBoxOpen(HiveBoxes.aiChatHistory)) {
+      await Hive.box<AiChatMessage>(HiveBoxes.aiChatHistory).clear();
+    }
+  } catch (e, st) {
+    talker.handle(e, st, 'performLogout: clear aiChatHistory failed');
   }
 
   // The `settings` box is shared with device-wide prefs (theme, language)

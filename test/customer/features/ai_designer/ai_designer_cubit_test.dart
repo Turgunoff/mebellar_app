@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:woody_app/core/auth/auth_cubit.dart';
 import 'package:woody_app/customer/features/ai_designer/cubit/ai_designer_cubit.dart';
 import 'package:woody_app/customer/features/ai_designer/data/ai_chat_store.dart';
 import 'package:woody_app/customer/features/ai_designer/data/ai_designer_repository.dart';
@@ -11,6 +13,8 @@ import 'package:woody_app/customer/features/ai_designer/models/ai_chat_message.d
 class _MockRepo extends Mock implements AiDesignerRepository {}
 
 class _MockStore extends Mock implements AiChatStore {}
+
+class _MockAuthCubit extends MockCubit<AppAuthState> implements AuthCubit {}
 
 void main() {
   setUpAll(() {
@@ -22,13 +26,24 @@ void main() {
 
   late _MockRepo repo;
   late _MockStore store;
+  late _MockAuthCubit auth;
 
   setUp(() {
     repo = _MockRepo();
     store = _MockStore();
+    auth = _MockAuthCubit();
+    // Signed-out auth: the cubit starts from a clean greeting and never fires a
+    // history restore, keeping these tests focused on send/rate behaviour.
+    whenListen(
+      auth,
+      const Stream<AppAuthState>.empty(),
+      initialState: const AppAuthUnauthenticated(),
+    );
     when(() => store.load()).thenReturn(const <AiChatMessage>[]);
     when(() => store.append(any())).thenAnswer((_) async {});
     when(() => store.clear()).thenAnswer((_) async {});
+    when(() => store.replaceAll(any())).thenAnswer((_) async {});
+    when(() => repo.fetchHistory()).thenAnswer((_) async => <AiChatMessage>[]);
     when(
       () => repo.chat(
         message: any(named: 'message'),
@@ -43,7 +58,8 @@ void main() {
     when(() => repo.rateMessage(any(), any())).thenAnswer((_) async => true);
   });
 
-  AiDesignerCubit build() => AiDesignerCubit(repository: repo, store: store);
+  AiDesignerCubit build() =>
+      AiDesignerCubit(repository: repo, authCubit: auth, store: store);
 
   test('appends the user turn then the AI reply', () async {
     final cubit = build();
@@ -200,6 +216,115 @@ void main() {
 
     expect(cubit.state.messages.every((m) => m.userRating == null), isTrue);
     verifyNever(() => repo.rateMessage(any(), any()));
+  });
+
+  group('per-user history (auth-reactive)', () {
+    test('restores history from the backend on login', () async {
+      final history = [
+        AiChatMessage(
+          id: 'log1-u',
+          text: 'eski savol',
+          isUser: true,
+          timestamp: DateTime(2026, 1, 1),
+        ),
+        AiChatMessage(
+          id: 'log1-a',
+          text: 'eski javob',
+          isUser: false,
+          timestamp: DateTime(2026, 1, 1, 0, 0, 0, 1),
+          logId: 'log1',
+        ),
+      ];
+      when(() => repo.fetchHistory()).thenAnswer((_) async => history);
+      // Authenticated at construction → the cubit restores immediately.
+      whenListen(
+        auth,
+        const Stream<AppAuthState>.empty(),
+        initialState: const AppAuthAuthenticated('u-1'),
+      );
+
+      final cubit = AiDesignerCubit(
+        repository: repo,
+        authCubit: auth,
+        store: store,
+      );
+      addTearDown(cubit.close);
+      await pumpEventQueue();
+
+      expect(cubit.state.messages.map((m) => m.text), [
+        'eski savol',
+        'eski javob',
+      ]);
+      verify(() => repo.fetchHistory()).called(1);
+      verify(() => store.replaceAll(any())).called(1);
+    });
+
+    test('clears the thread + local cache on logout', () async {
+      final controller = StreamController<AppAuthState>();
+      addTearDown(controller.close);
+      whenListen(
+        auth,
+        controller.stream,
+        initialState: const AppAuthAuthenticated('u-1'),
+      );
+
+      final cubit = AiDesignerCubit(
+        repository: repo,
+        authCubit: auth,
+        store: store,
+      );
+      addTearDown(cubit.close);
+      await pumpEventQueue();
+      await cubit.sendMessage(text: 'salom');
+      expect(cubit.state.messages, isNotEmpty);
+
+      controller.add(const AppAuthUnauthenticated());
+      await pumpEventQueue();
+
+      expect(cubit.state.messages, isEmpty);
+      verify(() => store.clear()).called(1); // the logout wipe
+    });
+
+    test('a guest (signed out) starts from an empty thread, no fetch', () async {
+      // The default setUp auth is Unauthenticated.
+      final cubit = build();
+      addTearDown(cubit.close);
+      await pumpEventQueue();
+
+      expect(cubit.state.messages, isEmpty);
+      verifyNever(() => repo.fetchHistory());
+    });
+
+    test('falls back to the local cache when the fetch fails, no clobber', () async {
+      final cached = [
+        AiChatMessage(
+          id: 'c1-u',
+          text: 'kesh savol',
+          isUser: true,
+          timestamp: DateTime(2026),
+        ),
+      ];
+      when(() => store.load()).thenReturn(cached);
+      when(() => repo.fetchHistory()).thenThrow(Exception('offline'));
+      whenListen(
+        auth,
+        const Stream<AppAuthState>.empty(),
+        initialState: const AppAuthAuthenticated('u-1'),
+      );
+
+      final cubit = AiDesignerCubit(
+        repository: repo,
+        authCubit: auth,
+        store: store,
+      );
+      addTearDown(cubit.close);
+      await pumpEventQueue();
+
+      // The offline thread shows the cached copy…
+      expect(cubit.state.messages.map((m) => m.text), ['kesh savol']);
+      // …and a failed fetch must NOT wipe the cache.
+      verifyNever(() => store.replaceAll(any()));
+    });
   });
 
   test('persists an in-flight reply even after the cubit is closed (pop)', () async {

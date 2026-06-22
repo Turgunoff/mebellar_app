@@ -19,5 +19,14 @@ class AiChatStore {
 
   Future<void> append(AiChatMessage message) => _box.put(message.id, message);
 
+  /// Replaces the whole cached thread with [messages] (server-authoritative
+  /// restore after login): clears the box, then writes the fresh set keyed by
+  /// id. The box only ever holds the current user's data because [clear] runs
+  /// on logout, so this never mixes two users' conversations.
+  Future<void> replaceAll(List<AiChatMessage> messages) async {
+    await _box.clear();
+    await _box.putAll({for (final m in messages) m.id: m});
+  }
+
   Future<void> clear() => _box.clear();
 }

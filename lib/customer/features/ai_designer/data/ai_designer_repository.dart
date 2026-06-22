@@ -96,6 +96,13 @@ abstract class AiDesignerRepository {
   /// — the rating is a soft signal, so a failure is swallowed and the caller
   /// keeps the optimistic local state.
   Future<bool> rateMessage(String logId, String rating);
+
+  /// The authenticated user's persisted chat history (oldest-first),
+  /// reconstructed into renderable [AiChatMessage]s so the thread restores
+  /// after login. Each backend turn expands into a user message + an AI reply
+  /// (carrying its log id so the 👍/👎 affordance keeps working). THROWS on a
+  /// network/HTTP failure so the cubit can fall back to its local cache.
+  Future<List<AiChatMessage>> fetchHistory();
 }
 
 /// REST-backed implementation. Sends the room photo inline as raw base64 (no
@@ -141,6 +148,51 @@ class WoodyAiDesignerRepository implements AiDesignerRepository {
         products: const [],
       );
     }
+  }
+
+  @override
+  Future<List<AiChatMessage>> fetchHistory() async {
+    // No try/catch: a network/HTTP failure propagates so the cubit falls back
+    // to its local cache instead of wrongly showing an empty thread.
+    final resp = await _api.get<Map<String, dynamic>>('/ai/chat/history');
+    final rawTurns = resp['turns'];
+    if (rawTurns is! List) {
+      // A 200 with no parseable `turns` is a malformed / partial response, not
+      // a genuine empty history — throw so the cubit keeps the local cache
+      // rather than wiping it. (A real empty history is `turns: []`, a List.)
+      throw const FormatException('ai/chat/history: missing "turns" list');
+    }
+    final out = <AiChatMessage>[];
+    for (final raw in rawTurns.whereType<Map<String, dynamic>>()) {
+      final logId = raw['log_id'] as String?;
+      if (logId == null) continue;
+      final ts =
+          DateTime.tryParse(raw['created_at'] as String? ?? '') ?? DateTime.now();
+      out.add(
+        AiChatMessage(
+          id: '$logId-u',
+          text: raw['user_message'] as String? ?? '',
+          isUser: true,
+          timestamp: ts,
+        ),
+      );
+      final aiText = raw['ai_response'] as String?;
+      if (aiText != null && aiText.isNotEmpty) {
+        out.add(
+          AiChatMessage(
+            id: '$logId-a',
+            text: aiText,
+            isUser: false,
+            // +1ms so the reply sorts AFTER its paired question when the local
+            // store re-sorts equal-`created_at` turns by timestamp.
+            timestamp: ts.add(const Duration(milliseconds: 1)),
+            logId: logId,
+            userRating: raw['user_rating'] as String?,
+          ),
+        );
+      }
+    }
+    return out;
   }
 
   @override

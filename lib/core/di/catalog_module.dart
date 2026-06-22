@@ -40,6 +40,7 @@ import '../../customer/features/ai_designer/cubit/ai_designer_cubit.dart';
 import '../../customer/features/ai_designer/data/ai_designer_repository.dart';
 import '../../customer/features/support/repository/support_chat_repository.dart';
 import '../../customer/features/support/repository/woody_support_chat_repository.dart';
+import '../auth/auth_cubit.dart';
 import '../auth/auth_repository.dart';
 import '../network/token_store.dart';
 import '../network/woody_api_client.dart';
@@ -245,6 +246,9 @@ void registerCatalogModule(GetIt sl) {
   sl.registerLazySingleton<AiDesignerCubit>(
     () => AiDesignerCubit(
       repository: sl<AiDesignerRepository>(),
+      // Drives the per-user history restore-on-login / clear-on-logout. Auth is
+      // registered in auth_module (before this module), so it's always ready.
+      authCubit: sl<AuthCubit>(),
       analytics: sl<AnalyticsService>(),
       facebookAnalytics: sl.isRegistered<FacebookAnalyticsService>()
           ? sl<FacebookAnalyticsService>()

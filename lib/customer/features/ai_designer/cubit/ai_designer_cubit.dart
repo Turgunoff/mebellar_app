@@ -5,6 +5,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/analytics/analytics_service.dart';
+import '../../../../core/auth/auth_cubit.dart';
 import '../../../../core/services/facebook_analytics_service.dart';
 import '../data/ai_chat_store.dart';
 import '../data/ai_designer_repository.dart';
@@ -68,32 +69,104 @@ class AiDesignerState extends Equatable {
 /// Registered as a ROOT-scope GetIt singleton (see `catalog_module`) and handed
 /// to the screen via `BlocProvider.value` — so popping the chat screen does NOT
 /// close the cubit. An in-flight request therefore keeps running in the
-/// background, appends its reply, and persists it to Hive; reopening the chat
-/// shows the reply (background-execution resilience).
+/// background, appends its reply, and persists it to Hive (background-execution
+/// resilience).
+///
+/// History is **per-user and server-authoritative**: the cubit watches the auth
+/// stream and, on a sign-in, restores that user's conversation from the backend
+/// (`GET /ai/chat/history`); on a sign-out it wipes the in-memory thread + the
+/// local cache so the next user (or a guest) starts from a clean greeting.
 class AiDesignerCubit extends Cubit<AiDesignerState> {
   AiDesignerCubit({
     required AiDesignerRepository repository,
+    required AuthCubit authCubit,
     AiChatStore? store,
     AnalyticsService? analytics,
     FacebookAnalyticsService? facebookAnalytics,
   }) : _repo = repository,
+       _authCubit = authCubit,
        _store = store ?? AiChatStore(),
        _analytics = analytics,
        _facebookAnalytics = facebookAnalytics,
        super(const AiDesignerState()) {
-    _loadHistory();
+    _handleAuth(_authCubit.state);
+    _authSub = _authCubit.stream.listen(_handleAuth);
   }
 
   final AiDesignerRepository _repo;
+  final AuthCubit _authCubit;
   final AiChatStore _store;
   final AnalyticsService? _analytics;
   final FacebookAnalyticsService? _facebookAnalytics;
 
+  StreamSubscription<AppAuthState>? _authSub;
+
+  /// The user id we last restored for — so a token refresh (authed→authed, same
+  /// user) doesn't re-fetch, while a real sign-in/out (or account switch) does.
+  /// Null while signed out.
+  String? _restoredUserId;
+
   int _localSeq = 0;
 
-  void _loadHistory() {
-    final history = _store.load();
-    if (history.isNotEmpty) emit(state.copyWith(messages: history));
+  void _handleAuth(AppAuthState authState) {
+    if (authState is AppAuthAuthenticated) {
+      if (authState.userId == _restoredUserId) return; // token refresh
+      final switchingUser =
+          _restoredUserId != null && _restoredUserId != authState.userId;
+      _restoredUserId = authState.userId;
+      // A direct account switch with no sign-out between (shouldn't happen —
+      // logout clears first — but guard anyway): wipe the previous user's
+      // thread before the restore so it can't leak into the merge below.
+      if (switchingUser) {
+        if (!isClosed) emit(const AiDesignerState());
+        unawaited(_store.clear());
+      }
+      unawaited(_restore(authState.userId));
+    } else {
+      // Signed out: clear the in-memory thread + the local cache. (performLogout
+      // also wipes the Hive box, so this holds even if the cubit never existed.)
+      _restoredUserId = null;
+      if (!isClosed) emit(const AiDesignerState());
+      unawaited(_store.clear());
+    }
+  }
+
+  /// Restores [userId]'s thread from the backend (the source of truth). On a
+  /// network failure, falls back to the local cache — which only ever holds the
+  /// current user's data, since logout clears it. Any message the user fired
+  /// DURING the fetch (signing in from the composer) is kept: logout already
+  /// emptied the state, so anything present now is genuinely new.
+  Future<void> _restore(String userId) async {
+    final List<AiChatMessage> restored;
+    try {
+      restored = await _repo.fetchHistory();
+    } catch (_) {
+      // Network/HTTP failure (or a malformed body) — DON'T clobber the cache.
+      // Show the local copy, which only ever holds THIS user's data (logout
+      // clears it); it re-syncs on the next successful login. Fold in any
+      // just-sent message not yet flushed to the box, deduped by id.
+      if (isClosed || userId != _restoredUserId) return;
+      final cached = _store.load();
+      final ids = cached.map((m) => m.id).toSet();
+      final extra = state.messages.where((m) => !ids.contains(m.id));
+      emit(state.copyWith(messages: [...cached, ...extra]));
+      return;
+    }
+    if (isClosed || userId != _restoredUserId) return;
+    // Anything in the state now was fired DURING the fetch (signing in from the
+    // composer) — logout already emptied the thread, so it's genuinely new.
+    // Persist the SAME list we emit so that in-flight turn isn't lost from the
+    // cache by the clear inside replaceAll.
+    final merged = [...restored, ...state.messages];
+    await _store.replaceAll(merged);
+    if (isClosed || userId != _restoredUserId) return;
+    emit(state.copyWith(messages: merged));
+  }
+
+  @override
+  Future<void> close() {
+    _authSub?.cancel();
+    return super.close();
   }
 
   Future<void> sendMessage({
@@ -151,9 +224,10 @@ class AiDesignerCubit extends Cubit<AiDesignerState> {
         timestamp: DateTime.now(),
         logId: reply.logId,
       );
-      // Persist FIRST so the reply survives even if the cubit was closed while
-      // the request was in flight (e.g. app teardown) — on the next open
-      // `_loadHistory` reads it back from Hive.
+      // Persist to the local cache before emitting so the reply isn't lost if
+      // the cubit is closed mid-flight (app teardown). The backend also logged
+      // this turn (the /ai/chat call), so the next login's restore re-fetches
+      // it regardless; the cache is the instant-paint + offline mirror.
       await _store.append(aiMessage);
       if (isClosed) return;
       final products = {...state.products};
