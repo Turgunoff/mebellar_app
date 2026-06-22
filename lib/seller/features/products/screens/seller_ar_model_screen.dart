@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:model_viewer_plus/model_viewer_plus.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
@@ -56,6 +59,25 @@ class _SellerArModelScreenState extends State<SellerArModelScreen> {
   /// to fade out the loading overlay (onWebViewCreated alone is too early).
   bool _modelReady = false;
 
+  /// True once the load gave up (error event or watchdog timeout) — shows the
+  /// retry surface instead of an endless spinner.
+  bool _loadFailed = false;
+
+  /// Catches stalls model-viewer can't report (script blocked, silent mid-
+  /// stream stall) where no `load`/`error` event ever arrives.
+  Timer? _watchdog;
+
+  /// Bumped on retry to give [ModelViewer] a fresh key (new WebView + reload).
+  int _reloadToken = 0;
+
+  static const Duration _loadTimeout = Duration(seconds: 25);
+
+  @override
+  void dispose() {
+    _watchdog?.cancel();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
@@ -83,6 +105,7 @@ class _SellerArModelScreenState extends State<SellerArModelScreen> {
       body: Stack(
         children: [
           Positioned.fill(
+            key: ValueKey(_reloadToken),
             child: ModelViewer(
               src: widget.modelUrl,
               // The product's 2D photo as a placeholder while the .glb
@@ -116,29 +139,75 @@ class _SellerArModelScreenState extends State<SellerArModelScreen> {
               // Fire `ready` over [_arChannel] once the model's `load` event
               // lands. Runs at parse time, before model-viewer.min.js upgrades
               // the element, so the listener is attached well before `load`.
+              // Listen for both `load` (→ "ready") and `error` (→ "error", on
+              // 404 / decode / WebGL failure) so a failed load surfaces the
+              // retry UI instead of spinning forever.
               relatedJs:
                   '(function(){var mv=document.querySelector("model-viewer");'
                   'if(!mv){return;}'
                   'var fire=function(){try{$_arChannel.postMessage("ready");}'
                   'catch(e){}};'
+                  'var fail=function(){try{$_arChannel.postMessage("error");}'
+                  'catch(e){}};'
                   'if(mv.loaded){fire();}'
-                  'mv.addEventListener("load",fire);})();',
+                  'mv.addEventListener("load",fire);'
+                  'mv.addEventListener("error",fail);})();',
               javascriptChannels: {
-                JavascriptChannel(
-                  _arChannel,
-                  onMessageReceived: (_) {
-                    if (mounted && !_modelReady) {
-                      setState(() => _modelReady = true);
-                    }
-                  },
-                ),
+                JavascriptChannel(_arChannel, onMessageReceived: _onArState),
               },
+              onWebViewCreated: (_) => _startWatchdog(),
             ),
           ),
-          // Brand loading animation over the stage until the .glb is loaded.
-          ArModelLoadingOverlay(ready: _modelReady, background: c.background),
+          // Brand loading animation over the stage until the .glb is loaded, or
+          // a retry surface if the load fails/stalls.
+          ArModelLoadingOverlay(
+            ready: _modelReady && !_loadFailed,
+            background: c.background,
+            failed: _loadFailed,
+            onRetry: _retryLoad,
+            errorText: 'Modelni yuklab bo\'lmadi. Qayta urinib ko\'ring',
+            retryText: 'Qayta urinish',
+            foreground: c.ink,
+          ),
         ],
       ),
     );
+  }
+
+  void _onArState(JavaScriptMessage message) {
+    if (!mounted) return;
+    switch (message.message) {
+      case 'ready':
+        _watchdog?.cancel();
+        if (!_modelReady || _loadFailed) {
+          setState(() {
+            _modelReady = true;
+            _loadFailed = false;
+          });
+        }
+      case 'error':
+        _failLoad();
+    }
+  }
+
+  void _startWatchdog() {
+    _watchdog?.cancel();
+    _watchdog = Timer(_loadTimeout, () {
+      if (mounted && !_modelReady) _failLoad();
+    });
+  }
+
+  void _failLoad() {
+    _watchdog?.cancel();
+    if (mounted && !_loadFailed) setState(() => _loadFailed = true);
+  }
+
+  void _retryLoad() {
+    if (!mounted) return;
+    setState(() {
+      _loadFailed = false;
+      _modelReady = false;
+      _reloadToken++;
+    });
   }
 }

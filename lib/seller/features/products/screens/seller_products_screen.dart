@@ -12,6 +12,7 @@ import '../../../../shared/repositories/seller_product_repository.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/error_state.dart';
 import '../../../../shared/widgets/product_ar_badge.dart';
+import '../../sets/screens/seller_sets_screen.dart';
 import '../../tariff/screens/tariff_screen.dart';
 import '../bloc/seller_products_bloc.dart';
 import '../widgets/product_status_chip.dart';
@@ -97,6 +98,14 @@ class _SellerProductsViewState extends State<_SellerProductsView> {
     }
   }
 
+  // Furniture sets (garnitur) live off the products surface — reached via the
+  // app-bar action here, not a bottom tab.
+  void _openSets(BuildContext context) {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const SellerSetsScreen()));
+  }
+
   // Opens the customer-style preview of the seller's product. The "Edit" CTA
   // pops the preview and opens the form prefilled with this product.
   void _openPreview(BuildContext context, SellerProduct product) {
@@ -167,6 +176,14 @@ class _SellerProductsViewState extends State<_SellerProductsView> {
                 height: 1.15,
               ),
             ),
+            actions: [
+              IconButton(
+                onPressed: () => _openSets(context),
+                tooltip: 'Setlar',
+                icon: Icon(Iconsax.box, size: 22, color: c.ink),
+              ),
+              const SizedBox(width: 8),
+            ],
             bottom: PreferredSize(
               preferredSize: const Size.fromHeight(110),
               child: Column(

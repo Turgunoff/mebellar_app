@@ -35,6 +35,7 @@ import '../../shared/repositories/woody_category_repository.dart';
 import '../../shared/repositories/woody_chat_repositories.dart';
 import '../../shared/repositories/woody_customer_repositories.dart';
 import '../../shared/repositories/woody_product_repository.dart';
+import '../../shared/repositories/woody_set_repository.dart';
 import '../../shared/repositories/woody_shop_repository.dart';
 import '../../customer/features/ai_designer/cubit/ai_designer_cubit.dart';
 import '../../customer/features/ai_designer/data/ai_designer_repository.dart';
@@ -137,6 +138,12 @@ void registerCatalogModule(GetIt sl) {
     // Public shop/seller profile (`/catalog/shops/{id}` + its product list).
     sl.registerLazySingleton<ShopRepository>(
       () => WoodyShopRepository(api: sl<WoodyApiClient>()),
+    );
+
+    // Furniture sets (garnitur) — public `/catalog/sets*`. Drives the buyer
+    // "view the whole set in your room" AR / 2D experience.
+    sl.registerLazySingleton<WoodySetRepository>(
+      () => WoodySetRepository(api: sl<WoodyApiClient>()),
     );
 
     // NewsDataSource — public broadcast feed; only when the Woody API is live.

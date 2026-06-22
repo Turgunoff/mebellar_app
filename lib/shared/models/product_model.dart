@@ -32,6 +32,7 @@ class ProductModel extends Equatable {
     this.arModelUrl,
     this.usdzUrl,
     this.arStatus = 'none',
+    this.setId,
   });
 
   final String id;
@@ -99,6 +100,15 @@ class ProductModel extends Equatable {
   /// AR pipeline state (mirrors backend `ArStatus`): `none | processing |
   /// pending_review | approved | rejected`.
   final String arStatus;
+
+  /// The product's primary set membership (`product_sets.id`), if it belongs to
+  /// a furniture set/garnitur — drives the "view the whole set in your room"
+  /// entry on the detail page. Null when the product is not part of any set.
+  final String? setId;
+
+  /// True when this product is part of a furniture set the buyer can view as a
+  /// whole in AR / 2D.
+  bool get hasSet => setId != null && setId!.isNotEmpty;
 
   String? get thumbnail => images.isNotEmpty ? images.first : null;
   bool get inStock => stock > 0;
@@ -183,6 +193,9 @@ class ProductModel extends Equatable {
           ? (json['ar_usdz_url'] as String).trim()
           : null,
       arStatus: json['ar_status'] as String? ?? 'none',
+      setId: (json['set_id'] as String?)?.trim().isNotEmpty == true
+          ? (json['set_id'] as String).trim()
+          : null,
     );
   }
 
@@ -219,6 +232,7 @@ class ProductModel extends Equatable {
     if (arModelUrl != null) 'ar_model_url': arModelUrl,
     if (usdzUrl != null) 'ar_usdz_url': usdzUrl,
     'ar_status': arStatus,
+    if (setId != null) 'set_id': setId,
     if (discountPrice != null)
       'product_variants': [
         {'price': price, 'discount_price': discountPrice},

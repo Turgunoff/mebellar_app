@@ -351,6 +351,13 @@ class _CatalogProductDetailScreenState
                           padding: const EdgeInsets.only(top: 14),
                           child: ArPromoCard(product: product),
                         ),
+                      // Whole-set "view in your room" entry — shown when this
+                      // product belongs to a furniture set (garnitur).
+                      if (product.hasSet)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 14),
+                          child: SetArPromoCard(product: product),
+                        ),
                       for (final card in [
                         // Colours sit right under the price — they are the
                         // first thing a furniture buyer looks for, and the

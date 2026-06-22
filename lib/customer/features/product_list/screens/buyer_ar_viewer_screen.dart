@@ -77,7 +77,30 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
 
   bool _saving = false;
 
+  /// True once the load gave up — either `<model-viewer>` fired its `error`
+  /// event (404 / decode / WebGL failure) or the [_watchdog] elapsed with no
+  /// `load`. Drives the overlay's retry surface so a failed load never spins
+  /// forever (the infinite-blank-loading bug this guards against).
+  bool _loadFailed = false;
+
+  /// Fires if neither `ready` nor `error` arrives in time — catches the cases
+  /// model-viewer can't report (model-viewer.min.js itself blocked, the WebView
+  /// silently stalling mid-stream) where no JS event ever comes back.
+  Timer? _watchdog;
+
+  /// Bumped on retry to give [ModelViewer] a fresh key, forcing a brand-new
+  /// WebView + reload — the cleanest way to re-attempt a failed `.glb` load.
+  int _reloadToken = 0;
+
+  static const Duration _loadTimeout = Duration(seconds: 25);
+
   ProductModel get _product => widget.product;
+
+  @override
+  void dispose() {
+    _watchdog?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -86,7 +109,13 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
       _product.heightCm,
       _product.depthCm,
     );
-    final ready = _web != null && _modelReady;
+    final modelUrl = _product.arModelUrl;
+    final hasModel = modelUrl != null && modelUrl.isNotEmpty;
+    // A missing URL is itself a (defensive) failure — show the retry surface
+    // rather than crashing on a force-unwrap if the viewer is ever opened for
+    // a product without an approved model (stale list / deep link).
+    final failed = _loadFailed || !hasModel;
+    final ready = _web != null && _modelReady && !failed;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       // Dark glyphs read against the light stage.
@@ -117,110 +146,128 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
                 ),
               ),
             ),
-            Positioned.fill(
-              child: ModelViewer(
-                src: _product.arModelUrl!,
-                // iOS AR Quick Look source (.usdz). Passed straight through —
-                // model_viewer_plus writes the `ios-src` attribute only when
-                // non-null (see html_builder), so a null usdz simply omits it and
-                // iOS falls back to the in-page WebGL view of `src`. No
-                // Platform.isIOS branching: the package picks src vs iosSrc by OS.
-                iosSrc: _product.usdzUrl,
-                // The product's 2D photo as a placeholder while the (multi-MB)
-                // .glb streams in — model-viewer shows it + a progress bar over
-                // the light stage instead of a blank canvas. Null (no image)
-                // degrades to the plain stage, never a crash.
-                poster: _product.thumbnail,
-                alt: _product.name,
-                ar: true,
-                // All three launchers offered; model-viewer auto-selects per
-                // platform (WebXR / Scene Viewer on Android, Quick Look on iOS
-                // when a usdz is present).
-                arModes: const ['webxr', 'scene-viewer', 'quick-look'],
-                // Lock AR scale to true size so buyers can't pinch-resize the
-                // model and misjudge whether it fits their room.
-                arScale: scale != null ? ArScale.fixed : null,
-                // Furniture is placed on the floor (horizontal surface).
-                arPlacement: ArPlacement.floor,
-                // `scale` is the native <model-viewer> attribute ('x y z' metre
-                // multipliers); the package exposes it as a typed param.
-                scale: scale,
-                autoRotate: true,
-                cameraControls: true,
-                // Pull the camera back + tighten the field of view so tall
-                // pieces (chairs, wardrobes) get breathing room top & bottom
-                // instead of model-viewer's default auto-framing zooming in so
-                // tight they read as stretched. The 140% orbit radius zooms out
-                // past the ~100% default; a 30° FOV swaps the wide-angle default
-                // for a flatter, catalogue-style projection (no fisheye on tall
-                // objects). cameraTarget "auto" recentres on the model's
-                // bounding box; zoom stays enabled so buyers can still pinch in.
-                cameraOrbit: '0deg 75deg 140%',
-                fieldOfView: '30deg',
-                cameraTarget: 'auto auto auto',
-                disableZoom: false,
-                // Neutral IBL gives the model even, showroom-style lighting.
-                environmentImage: 'neutral',
-                // A grounded contact shadow sells the "it's really here" feel.
-                shadowIntensity: 1,
-                // Transparent canvas (model_viewer_plus also forces the WebView
-                // itself transparent) so the room backdrop behind shows through.
-                // The saved screenshot still flattens onto _kViewerBg —
-                // toDataURL captures only the model canvas, not this
-                // Flutter-layer backdrop.
-                backgroundColor: Colors.transparent,
-                // `backgroundColor` only clears the <model-viewer> element; the
-                // host page + the loading "poster" still paint OPAQUE WHITE by
-                // default (model-viewer's `--poster-color` is `#fff`), which is
-                // the solid white block that covered the room backdrop — most
-                // visibly on products with no photo (no poster image to hide it)
-                // and during the .glb stream. Force every layer transparent so
-                // the Flutter backdrop shows through at all times. Injected at
-                // the template's `/* other-css */` slot by model_viewer_plus.
-                relatedCss:
-                    'html,body{background-color:transparent !important;}'
-                    'model-viewer{background-color:transparent !important;'
-                    '--poster-color:transparent !important;}',
-                loading: Loading.eager,
-                // Suppress <model-viewer>'s own bottom-right AR button. It is
-                // hidden whenever the device reports no AR support (emulators,
-                // ARCore-less phones) — the exact failure this screen works
-                // around — so we drive AR from the always-visible Flutter CTA
-                // below via activateAR() instead. Replacing the slot's default
-                // content with a hidden button removes the native chrome.
-                innerModelViewerHtml:
-                    '<button slot="ar-button" style="display:none"></button>',
-                // Signal real readiness over [_arChannel] when the model's
-                // `load` event fires — onWebViewCreated alone is too early
-                // (the element isn't upgraded and the .glb hasn't streamed).
-                // Runs at parse time, before model-viewer.min.js upgrades the
-                // element, so the listener is attached well before `load`.
-                relatedJs:
-                    '(function(){var mv=document.querySelector("model-viewer");'
-                    'if(!mv){return;}'
-                    'var fire=function(){try{$_arChannel.postMessage("ready");}'
-                    'catch(e){}};'
-                    'if(mv.loaded){fire();}'
-                    'mv.addEventListener("load",fire);})();',
-                javascriptChannels: {
-                  JavascriptChannel(
-                    _shotChannel,
-                    onMessageReceived: _onShotMessage,
-                  ),
-                  JavascriptChannel(
-                    _arChannel,
-                    onMessageReceived: _onArStateMessage,
-                  ),
-                },
-                onWebViewCreated: (controller) {
-                  _web = controller;
-                  if (mounted) setState(() {});
-                },
+            if (hasModel)
+              Positioned.fill(
+                key: ValueKey(_reloadToken),
+                child: ModelViewer(
+                  src: modelUrl,
+                  // iOS AR Quick Look source (.usdz). Passed straight through —
+                  // model_viewer_plus writes the `ios-src` attribute only when
+                  // non-null (see html_builder), so a null usdz simply omits it and
+                  // iOS falls back to the in-page WebGL view of `src`. No
+                  // Platform.isIOS branching: the package picks src vs iosSrc by OS.
+                  iosSrc: _product.usdzUrl,
+                  // The product's 2D photo as a placeholder while the (multi-MB)
+                  // .glb streams in — model-viewer shows it + a progress bar over
+                  // the light stage instead of a blank canvas. Null (no image)
+                  // degrades to the plain stage, never a crash.
+                  poster: _product.thumbnail,
+                  alt: _product.name,
+                  ar: true,
+                  // All three launchers offered; model-viewer auto-selects per
+                  // platform (WebXR / Scene Viewer on Android, Quick Look on iOS
+                  // when a usdz is present).
+                  arModes: const ['webxr', 'scene-viewer', 'quick-look'],
+                  // Lock AR scale to true size so buyers can't pinch-resize the
+                  // model and misjudge whether it fits their room.
+                  arScale: scale != null ? ArScale.fixed : null,
+                  // Furniture is placed on the floor (horizontal surface).
+                  arPlacement: ArPlacement.floor,
+                  // `scale` is the native <model-viewer> attribute ('x y z' metre
+                  // multipliers); the package exposes it as a typed param.
+                  scale: scale,
+                  autoRotate: true,
+                  cameraControls: true,
+                  // Pull the camera back + tighten the field of view so tall
+                  // pieces (chairs, wardrobes) get breathing room top & bottom
+                  // instead of model-viewer's default auto-framing zooming in so
+                  // tight they read as stretched. The 140% orbit radius zooms out
+                  // past the ~100% default; a 30° FOV swaps the wide-angle default
+                  // for a flatter, catalogue-style projection (no fisheye on tall
+                  // objects). cameraTarget "auto" recentres on the model's
+                  // bounding box; zoom stays enabled so buyers can still pinch in.
+                  cameraOrbit: '0deg 75deg 140%',
+                  fieldOfView: '30deg',
+                  cameraTarget: 'auto auto auto',
+                  disableZoom: false,
+                  // Neutral IBL gives the model even, showroom-style lighting.
+                  environmentImage: 'neutral',
+                  // A grounded contact shadow sells the "it's really here" feel.
+                  shadowIntensity: 1,
+                  // Transparent canvas (model_viewer_plus also forces the WebView
+                  // itself transparent) so the room backdrop behind shows through.
+                  // The saved screenshot still flattens onto _kViewerBg —
+                  // toDataURL captures only the model canvas, not this
+                  // Flutter-layer backdrop.
+                  backgroundColor: Colors.transparent,
+                  // `backgroundColor` only clears the <model-viewer> element; the
+                  // host page + the loading "poster" still paint OPAQUE WHITE by
+                  // default (model-viewer's `--poster-color` is `#fff`), which is
+                  // the solid white block that covered the room backdrop — most
+                  // visibly on products with no photo (no poster image to hide it)
+                  // and during the .glb stream. Force every layer transparent so
+                  // the Flutter backdrop shows through at all times. Injected at
+                  // the template's `/* other-css */` slot by model_viewer_plus.
+                  relatedCss:
+                      'html,body{background-color:transparent !important;}'
+                      'model-viewer{background-color:transparent !important;'
+                      '--poster-color:transparent !important;}',
+                  loading: Loading.eager,
+                  // Suppress <model-viewer>'s own bottom-right AR button. It is
+                  // hidden whenever the device reports no AR support (emulators,
+                  // ARCore-less phones) — the exact failure this screen works
+                  // around — so we drive AR from the always-visible Flutter CTA
+                  // below via activateAR() instead. Replacing the slot's default
+                  // content with a hidden button removes the native chrome.
+                  innerModelViewerHtml:
+                      '<button slot="ar-button" style="display:none"></button>',
+                  // Signal real readiness over [_arChannel] when the model's
+                  // `load` event fires — onWebViewCreated alone is too early
+                  // (the element isn't upgraded and the .glb hasn't streamed).
+                  // Runs at parse time, before model-viewer.min.js upgrades the
+                  // element, so the listener is attached well before `load`.
+                  // Listen for BOTH `load` (success → "ready") and `error`
+                  // (404 / decode / WebGL failure → "error"). Without the error
+                  // listener a failed load fires nothing, so "ready" never
+                  // arrives and the overlay spins forever — the bug this fixes.
+                  relatedJs:
+                      '(function(){var mv=document.querySelector("model-viewer");'
+                      'if(!mv){return;}'
+                      'var fire=function(){try{$_arChannel.postMessage("ready");}'
+                      'catch(e){}};'
+                      'var fail=function(){try{$_arChannel.postMessage("error");}'
+                      'catch(e){}};'
+                      'if(mv.loaded){fire();}'
+                      'mv.addEventListener("load",fire);'
+                      'mv.addEventListener("error",fail);})();',
+                  javascriptChannels: {
+                    JavascriptChannel(
+                      _shotChannel,
+                      onMessageReceived: _onShotMessage,
+                    ),
+                    JavascriptChannel(
+                      _arChannel,
+                      onMessageReceived: _onArStateMessage,
+                    ),
+                  },
+                  onWebViewCreated: (controller) {
+                    _web = controller;
+                    _startWatchdog();
+                    if (mounted) setState(() {});
+                  },
+                ),
               ),
-            ),
             // Brand loading animation over the stage until the .glb is loaded;
-            // fades out (and stops blocking taps) the moment the model is ready.
-            ArModelLoadingOverlay(ready: _modelReady, background: _kViewerBg),
+            // fades out (and stops blocking taps) the moment the model is ready,
+            // or swaps to an actionable retry surface if the load fails/stalls.
+            ArModelLoadingOverlay(
+              ready: ready,
+              background: _kViewerBg,
+              failed: failed,
+              onRetry: _retryLoad,
+              errorText: tr('product.ar_load_failed'),
+              retryText: tr('product.retry'),
+            ),
             // Soft top scrim so the dark back/title/save controls keep their
             // contrast over a bright spot in the room backdrop — fades to
             // nothing well above the model. Never intercepts taps.
@@ -386,15 +433,52 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
     if (!mounted) return;
     switch (message.message) {
       // The model finished loading — only now are activateAR / canActivateAR /
-      // toDataURL meaningful, so reveal the CTA + save action.
+      // toDataURL meaningful, so reveal the CTA + save action. A late `ready`
+      // also recovers from an over-eager watchdog timeout.
       case 'ready':
-        if (!_modelReady) setState(() => _modelReady = true);
+        _watchdog?.cancel();
+        if (!_modelReady || _loadFailed) {
+          setState(() {
+            _modelReady = true;
+            _loadFailed = false;
+          });
+        }
+      // <model-viewer> couldn't load/decode the .glb — surface the retry UI.
+      case 'error':
+        _failLoad();
       // Reached only once the model is loaded (the CTA is gated on readiness),
       // so this is a genuine "no AR on this device" — open the 2D fallback
       // rather than dead-ending on a toast.
       case 'unsupported':
         _openFallback();
     }
+  }
+
+  /// Arms the load watchdog for a fresh WebView; a prior timer is replaced so a
+  /// retry never leaves two running.
+  void _startWatchdog() {
+    _watchdog?.cancel();
+    _watchdog = Timer(_loadTimeout, () {
+      if (mounted && !_modelReady) _failLoad();
+    });
+  }
+
+  void _failLoad() {
+    _watchdog?.cancel();
+    if (mounted && !_loadFailed) setState(() => _loadFailed = true);
+  }
+
+  /// Re-attempts the load: a bumped [_reloadToken] gives [ModelViewer] a new
+  /// key, so Flutter tears down the stalled WebView and builds a fresh one that
+  /// re-runs the load (and re-arms the watchdog via onWebViewCreated).
+  void _retryLoad() {
+    if (!mounted) return;
+    setState(() {
+      _loadFailed = false;
+      _modelReady = false;
+      _web = null;
+      _reloadToken++;
+    });
   }
 
   /// Captures the live 3D canvas, watermarks it, and writes it to the camera

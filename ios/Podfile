@@ -1,6 +1,8 @@
-# Firebase 11.x (resolved 11.15.0) sets iOS 13 as its floor; pin the project's
-# global platform to match so CocoaPods resolves a consistent deployment target.
-platform :ios, '13.0'
+# ar_flutter_plugin_plus (native ARKit) requires an iOS 15.0 floor — it links
+# ARCore/CloudAnchors + GLTFSceneKit, which won't resolve below 15. That is the
+# binding minimum (above Firebase 11.x's iOS 13 floor); pin the project's global
+# platform to match so CocoaPods resolves a consistent deployment target.
+platform :ios, '15.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
@@ -50,6 +52,9 @@ post_install do |installer|
     # uses (camera → AR / 2D try-in-room; microphone → support voice messages);
     # both already carry a matching NS*UsageDescription in Info.plist.
     target.build_configurations.each do |config|
+      # Match the AR plugin's iOS 15 floor on every pod — some Flutter plugin
+      # pods default to a lower target and would otherwise warn/fail to link.
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
       config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= [
         '$(inherited)',
         'PERMISSION_CAMERA=1',

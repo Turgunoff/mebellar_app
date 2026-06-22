@@ -6,6 +6,7 @@ import '../../seller/features/products/data/ar_scan_repository.dart';
 import '../../seller/features/products/data/ar_token_repository.dart';
 import '../../seller/features/products/data/attributes_repository.dart';
 import '../../seller/features/products/data/exchange_rate_service.dart';
+import '../../seller/features/sets/data/seller_set_repository.dart';
 import '../../shared/repositories/seller_analytics_repository.dart';
 import '../../shared/repositories/seller_dashboard_repository.dart';
 import '../../shared/repositories/seller_onboarding_repository.dart';
@@ -58,6 +59,12 @@ void registerSellerModule(GetIt sl) {
   // Products — Woody REST (`/seller/products`).
   sl.registerLazySingleton<SellerProductRepository>(
     () => WoodySellerProductRepository(api: sl<WoodyApiClient>()),
+  );
+
+  // Furniture sets (garnitur) — Woody REST (`/seller/sets`). Concrete repo
+  // (no abstract interface / mock pair) over the shared API client.
+  sl.registerLazySingleton<WoodySellerSetRepository>(
+    () => WoodySellerSetRepository(api: sl<WoodyApiClient>()),
   );
 
   // Add-product flow owns its own repository so the cubit stays free of the

@@ -1,14 +1,23 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
+import '../../../../core/logging/talker.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/ar/ar_scale.dart';
+import '../../../../shared/ar/ar_set_piece.dart';
 import '../../../../shared/models/product_model.dart';
+import '../../../../shared/models/product_set.dart';
+import '../../../../shared/repositories/woody_set_repository.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../screens/buyer_ar_viewer_screen.dart';
+import '../screens/set_ar_viewer_screen.dart';
+import '../screens/set_sticker_screen.dart';
 
 /// Buyer-facing AR entry points for the product detail page — the carousel
 /// glass badge ([ArGlassBadge]) and the premium action card ([ArPromoCard]).
@@ -248,6 +257,362 @@ class ArPromoCard extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Furniture set (garnitur) — "view the WHOLE set in your room" entry.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Fetches the set [setId] (its member products + their approved AR models) and
+/// launches the multi-object placement experience: a choice sheet for native
+/// true-size 3D AR (every piece independently movable/rotatable) or the
+/// universal 2D sticker overlay. A set with no approved model skips straight to
+/// 2D; a fetch failure surfaces a soft snackbar — never a dead end.
+Future<void> openSetArExperience(
+  BuildContext context, {
+  required String setId,
+  String? setName,
+}) async {
+  final messenger = ScaffoldMessenger.of(context);
+  final navigator = Navigator.of(context);
+  showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => const Center(child: CircularProgressIndicator()),
+  );
+  SetDetail? set;
+  try {
+    set = await sl<WoodySetRepository>().fetchSet(setId);
+  } catch (e, st) {
+    talker.handle(e, st, '[set-ar] set fetch failed');
+  }
+  if (!context.mounted) return;
+  navigator.pop(); // dismiss the loader
+  if (set == null) {
+    messenger.showSnackBar(
+      SnackBar(content: Text(tr('product.ar_load_failed'))),
+    );
+    return;
+  }
+  final pieces = set.toPieces();
+  if (pieces.isEmpty) {
+    messenger.showSnackBar(SnackBar(content: Text(tr('product.set_2d_empty'))));
+    return;
+  }
+  final name = setName ?? set.name;
+  // No approved 3D models in the set → AR has nothing to place; go to 2D.
+  if (!pieces.any((p) => p.hasModel)) {
+    _pushSetSticker(navigator, pieces, name);
+    return;
+  }
+  await showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    isScrollControlled: true,
+    builder: (sheetCtx) => _SetChoiceSheet(
+      onPick3d: () {
+        Navigator.of(sheetCtx).pop();
+        _pushSetAr(navigator, pieces, name);
+      },
+      onPick2d: () {
+        Navigator.of(sheetCtx).pop();
+        _pushSetSticker(navigator, pieces, name);
+      },
+    ),
+  );
+}
+
+void _pushSetAr(
+  NavigatorState navigator,
+  List<ArSetPiece> pieces,
+  String name,
+) {
+  navigator.push(
+    MaterialPageRoute(
+      fullscreenDialog: true,
+      builder: (_) => SetArViewerScreen(pieces: pieces, setName: name),
+    ),
+  );
+}
+
+void _pushSetSticker(
+  NavigatorState navigator,
+  List<ArSetPiece> pieces,
+  String name,
+) {
+  navigator.push(
+    MaterialPageRoute(
+      fullscreenDialog: true,
+      builder: (_) => SetStickerScreen(pieces: pieces, setName: name),
+    ),
+  );
+}
+
+/// Compact CTA shown on a product's detail page when it belongs to a set —
+/// launches the whole-set AR / 2D experience. Render only when
+/// `product.hasSet`.
+class SetArPromoCard extends StatelessWidget {
+  const SetArPromoCard({super.key, required this.product});
+
+  final ProductModel product;
+
+  @override
+  Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
+    return Material(
+      color: pt.surface,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: product.setId == null
+            ? null
+            : () => openSetArExperience(context, setId: product.setId!),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: PremiumTokens.accent.withValues(alpha: 0.3),
+              width: 1.2,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: PremiumTokens.accent.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Iconsax.d_cube_scan,
+                  size: 22,
+                  color: PremiumTokens.accent,
+                ),
+              ),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      tr('product.set_view_in_room'),
+                      style: TextStyle(
+                        fontFamily: AppFonts.seller,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.2,
+                        color: pt.dark,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      tr('product.set_choice_subtitle'),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: AppFonts.seller,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        height: 1.3,
+                        color: pt.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                Iconsax.arrow_right_3_copy,
+                size: 18,
+                color: pt.grey.withValues(alpha: 0.7),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Bottom sheet for the set experience: native true-size 3D AR vs the universal
+/// 2D camera overlay.
+class _SetChoiceSheet extends StatelessWidget {
+  const _SetChoiceSheet({required this.onPick3d, required this.onPick2d});
+
+  final VoidCallback onPick3d;
+  final VoidCallback onPick2d;
+
+  @override
+  Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        color: pt.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: pt.grey.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(100),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 22),
+              Text(
+                tr('product.set_choice_title'),
+                style: TextStyle(
+                  fontFamily: AppFonts.body,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.3,
+                  color: pt.dark,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                tr('product.set_choice_subtitle'),
+                style: TextStyle(
+                  fontFamily: AppFonts.body,
+                  fontSize: 14,
+                  height: 1.35,
+                  fontWeight: FontWeight.w500,
+                  color: pt.grey,
+                ),
+              ),
+              const SizedBox(height: 22),
+              _SetChoiceOption(
+                icon: Iconsax.d_cube_scan,
+                title: tr('product.ar_choice_3d_title'),
+                subtitle: tr('product.ar_choice_3d_subtitle'),
+                highlighted: true,
+                onTap: onPick3d,
+              ),
+              const SizedBox(height: 12),
+              _SetChoiceOption(
+                icon: Iconsax.camera,
+                title: tr('product.ar_choice_2d_title'),
+                subtitle: tr('product.ar_choice_2d_subtitle'),
+                highlighted: false,
+                onTap: onPick2d,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SetChoiceOption extends StatelessWidget {
+  const _SetChoiceOption({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.highlighted,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool highlighted;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
+    const accent = PremiumTokens.accent;
+    return Material(
+      color: highlighted ? accent.withValues(alpha: 0.07) : pt.background,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(
+          color: highlighted
+              ? accent.withValues(alpha: 0.5)
+              : pt.grey.withValues(alpha: 0.2),
+          width: 1.5,
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          child: Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: highlighted ? accent : accent.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  icon,
+                  size: 24,
+                  color: highlighted ? Colors.white : accent,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: AppFonts.body,
+                        fontSize: 15.5,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.2,
+                        color: pt.dark,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: AppFonts.body,
+                        fontSize: 12.5,
+                        height: 1.3,
+                        fontWeight: FontWeight.w500,
+                        color: pt.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Icon(
+                Iconsax.arrow_right_3_copy,
+                size: 18,
+                color: pt.grey.withValues(alpha: 0.7),
+              ),
+            ],
+          ),
         ),
       ),
     );
