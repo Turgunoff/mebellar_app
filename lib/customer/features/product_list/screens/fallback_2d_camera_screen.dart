@@ -61,6 +61,11 @@ class _Fallback2DCameraScreenState extends State<Fallback2DCameraScreen>
   String? _error;
   bool _permanentlyDenied = false;
 
+  /// Guards against a second [_setup] running while one is in flight — e.g. the
+  /// `resumed` lifecycle event that fires when the iOS permission alert (itself
+  /// an app-inactive transition) is dismissed would otherwise start a duplicate.
+  bool _settingUp = false;
+
   /// The model-viewer WebView controller — needed to run `toDataURL()` for the
   /// save-the-room shot. Set once the WebView exists (not a readiness signal).
   WebViewController? _web;
@@ -81,12 +86,19 @@ class _Fallback2DCameraScreenState extends State<Fallback2DCameraScreen>
   }
 
   Future<void> _setup() async {
+    if (_settingUp) return;
+    _settingUp = true;
     try {
+      // The native OS popup fires here on the first request. iOS reports a
+      // never-asked permission as `denied` until the alert is answered, so we
+      // only treat `permanentlyDenied`/`restricted` as the "go to Settings"
+      // state — a plain denial just leaves the bare error, re-askable later.
       final status = await Permission.camera.request();
       if (!status.isGranted) {
         if (mounted) {
           setState(() {
-            _permanentlyDenied = status.isPermanentlyDenied;
+            _permanentlyDenied =
+                status.isPermanentlyDenied || status.isRestricted;
             _error = tr('product.ar_fallback_camera_error');
           });
         }
@@ -119,6 +131,8 @@ class _Fallback2DCameraScreenState extends State<Fallback2DCameraScreen>
       if (mounted) {
         setState(() => _error = tr('product.ar_fallback_camera_error'));
       }
+    } finally {
+      _settingUp = false;
     }
   }
 
@@ -131,8 +145,17 @@ class _Fallback2DCameraScreenState extends State<Fallback2DCameraScreen>
         _controller = null;
       }
     } else if (state == AppLifecycleState.resumed) {
-      if (_controller == null && _error == null && mounted) {
-        setState(() => _initFuture = _setup());
+      // Re-arm the camera on resume. This covers both a normal app background
+      // and — crucially — a return from the OS Settings page after the buyer
+      // flipped the camera permission on: we clear any prior permission error
+      // first so the screen recovers straight into the live camera instead of
+      // stranding the user on the "open Settings" surface.
+      if (mounted && _controller == null && !_settingUp) {
+        setState(() {
+          _error = null;
+          _permanentlyDenied = false;
+          _initFuture = _setup();
+        });
       }
     }
   }

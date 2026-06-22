@@ -40,5 +40,21 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+
+    # permission_handler compiles every iOS permission handler behind a
+    # PERMISSION_* macro that defaults to 0 (see PermissionHandlerEnums.h). When
+    # a permission is left at 0 its handler is stripped at compile time, so
+    # Permission.<x>.request() returns `denied` WITHOUT ever presenting the
+    # native iOS dialog — which is exactly why the camera flow jumped straight to
+    # the "open Settings" fallback. Enable only the permissions the app actually
+    # uses (camera → AR / 2D try-in-room; microphone → support voice messages);
+    # both already carry a matching NS*UsageDescription in Info.plist.
+    target.build_configurations.each do |config|
+      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= [
+        '$(inherited)',
+        'PERMISSION_CAMERA=1',
+        'PERMISSION_MICROPHONE=1',
+      ]
+    end
   end
 end

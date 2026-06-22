@@ -8,6 +8,7 @@ import 'package:gal/gal.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:image/image.dart' as img;
 import 'package:model_viewer_plus/model_viewer_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../../../core/di/service_locator.dart';
@@ -334,14 +335,35 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
               }),
             );
           }
-          unawaited(_activateAr());
+          unawaited(_ensureCameraThen(() => unawaited(_activateAr())));
         },
         onPick2d: () {
           Navigator.of(sheetContext).pop();
-          _openFallback();
+          unawaited(_ensureCameraThen(_openFallback));
         },
       ),
     );
+  }
+
+  /// Camera-permission gate for both in-room preview paths. AR launch and the
+  /// 2D overlay each put the buyer's live camera on screen, so we request the OS
+  /// permission up front — over this viewer, before navigating — instead of
+  /// letting the destination ask only after a jarring jump to a black page (the
+  /// bug this fixes). The native popup therefore appears on the very first tap.
+  ///
+  /// - granted → run [onGranted] (launch AR / open the 2D overlay);
+  /// - denied (the OS popup was just shown and declined; re-askable on Android)
+  ///   → do nothing, so the buyer can simply tap again;
+  /// - permanentlyDenied / restricted → open the fallback, which surfaces the
+  ///   "Sozlamalarni ochish" affordance.
+  Future<void> _ensureCameraThen(VoidCallback onGranted) async {
+    final status = await Permission.camera.request();
+    if (!mounted) return;
+    if (status.isGranted) {
+      onGranted();
+    } else if (status.isPermanentlyDenied || status.isRestricted) {
+      _openFallback();
+    }
   }
 
   /// Opens the 2D camera overlay fallback for the product's main photo.

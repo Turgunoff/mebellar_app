@@ -18,7 +18,7 @@
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Manzilingizni xaritada belgilash uchun joriy joylashuvingiz kerak.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Mahsulot rasmlari va 3D modelini yaratish uchun rasmga olishda kamera kerak.</string>
+	<string>Mebelni o'z xonangizda sinab ko'rish (AR) va mahsulot rasmga olish uchun kameradan foydalaniladi.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Yordam chatida ovozli xabar yozib yuborish uchun mikrofonga ruxsat berishingiz kerak.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
