@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lottie/lottie.dart';
 
@@ -83,19 +84,6 @@ class AiAssistantChatScreen extends StatelessWidget {
             ),
           ],
         ),
-        actions: [
-          BlocBuilder<AiDesignerCubit, AiDesignerState>(
-            buildWhen: (a, b) => a.messages.isEmpty != b.messages.isEmpty,
-            builder: (context, state) {
-              if (state.messages.isEmpty) return const SizedBox.shrink();
-              return IconButton(
-                tooltip: tr('ai_designer.clear_history'),
-                icon: Icon(Iconsax.trash, size: 20, color: pt.grey),
-                onPressed: () => context.read<AiDesignerCubit>().clearHistory(),
-              );
-            },
-          ),
-        ],
       ),
       body: SafeArea(
         top: false,
@@ -583,13 +571,32 @@ class _ComposerState extends State<_Composer> {
     }
     final picked = file;
     if (picked == null) return;
-    final bytes = await picked.readAsBytes();
-    final mime = _mimeFromName(picked.name);
+    final original = await picked.readAsBytes();
+    // Heavily downscale + recompress BEFORE base64: a multi-MB base64 image
+    // overruns the AI endpoint / its nginx body limit, which surfaced as the
+    // "Hozir javob bera olmadim..." failure. 800px @ q60 JPEG keeps the payload
+    // tiny while staying legible for the vision model.
+    final bytes = await _compress(original);
     if (!mounted) return;
     setState(() {
       _pendingImage = bytes;
-      _pendingMime = mime;
+      _pendingMime = 'image/jpeg';
     });
+  }
+
+  static Future<Uint8List> _compress(Uint8List input) async {
+    try {
+      final out = await FlutterImageCompress.compressWithList(
+        input,
+        minWidth: 800,
+        minHeight: 800,
+        quality: 60,
+        format: CompressFormat.jpeg,
+      );
+      return out.isNotEmpty ? out : input;
+    } catch (_) {
+      return input; // never block sending on a compression hiccup
+    }
   }
 
   Future<ImageSource?> _pickSource() {
@@ -724,14 +731,6 @@ class _ComposerState extends State<_Composer> {
         ],
       ),
     );
-  }
-
-  static String _mimeFromName(String name) {
-    final lower = name.toLowerCase();
-    if (lower.endsWith('.png')) return 'image/png';
-    if (lower.endsWith('.webp')) return 'image/webp';
-    if (lower.endsWith('.gif')) return 'image/gif';
-    return 'image/jpeg';
   }
 }
 
