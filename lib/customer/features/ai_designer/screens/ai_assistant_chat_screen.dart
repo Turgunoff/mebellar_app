@@ -39,17 +39,20 @@ class AiAssistantChatScreen extends StatelessWidget {
         titleSpacing: 0,
         title: Row(
           children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: PremiumTokens.accent.withValues(alpha: 0.12),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Iconsax.magicpen,
-                size: 20,
-                color: PremiumTokens.accent,
+            // Static robot avatar — the same bot shown mid-thread, frozen on
+            // its first frame (animate:false) and clipped into a clean circle.
+            CircleAvatar(
+              radius: 19,
+              backgroundColor: PremiumTokens.accent.withValues(alpha: 0.10),
+              child: ClipOval(
+                child: Padding(
+                  padding: const EdgeInsets.all(3),
+                  child: Lottie.asset(
+                    'assets/lottie/ai_chat_bot.json',
+                    animate: false,
+                    fit: BoxFit.contain,
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: 10),
@@ -640,8 +643,24 @@ class _ComposerState extends State<_Composer> {
   Uint8List? _pendingImage;
   String? _pendingMime;
 
+  /// Drives the dynamic send button: it only appears once there's something to
+  /// send (typed text or an attached photo), so the empty bar stays clean.
+  bool _hasText = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl.addListener(_onTextChanged);
+  }
+
+  void _onTextChanged() {
+    final has = _ctrl.text.trim().isNotEmpty;
+    if (has != _hasText) setState(() => _hasText = has);
+  }
+
   @override
   void dispose() {
+    _ctrl.removeListener(_onTextChanged);
     _ctrl.dispose();
     super.dispose();
   }
@@ -766,14 +785,24 @@ class _ComposerState extends State<_Composer> {
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
+    // The send affordance only shows once there's something to send.
+    final canSend = _hasText || _pendingImage != null;
     // No BlocBuilder + no `sending` gate: the input stays live so the user can
     // fire consecutive messages while a reply is still in flight. The in-list
     // typing bubble is the only "busy" affordance — the field never freezes.
+    final pill = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(30),
+      borderSide: BorderSide.none,
+    );
     return Container(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+      // Compact footer that reads as part of the thread: a hairline top divider
+      // instead of a drop shadow, and no floating send FAB.
+      padding: const EdgeInsets.fromLTRB(12, 6, 12, 8),
       decoration: BoxDecoration(
         color: pt.surface,
-        boxShadow: PremiumTokens.softShadow,
+        border: Border(
+          top: BorderSide(color: pt.greyLight.withValues(alpha: 0.4)),
+        ),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -786,38 +815,64 @@ class _ComposerState extends State<_Composer> {
                 _pendingMime = null;
               }),
             ),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              _IconButton(icon: Icons.camera_alt, onTap: _pickImage),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Container(
-                  constraints: const BoxConstraints(maxHeight: 120),
-                  decoration: BoxDecoration(
-                    color: pt.background,
-                    borderRadius: BorderRadius.circular(22),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: TextField(
-                    controller: _ctrl,
-                    minLines: 1,
-                    maxLines: 5,
-                    textInputAction: TextInputAction.newline,
-                    style: PremiumTokens.body(size: 14, color: pt.dark),
-                    decoration: InputDecoration(
-                      isDense: true,
-                      border: InputBorder.none,
-                      hintText: tr('ai_designer.composer_hint'),
-                      hintStyle: PremiumTokens.body(size: 14, color: pt.grey),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                  ),
+          // ONE merged pill: camera (prefix, always shown) → text field → send
+          // (suffix, only while there's something to send). No external FAB.
+          TextField(
+            controller: _ctrl,
+            minLines: 1,
+            maxLines: 5,
+            textInputAction: TextInputAction.newline,
+            textCapitalization: TextCapitalization.sentences,
+            style: PremiumTokens.body(size: 14, color: pt.dark),
+            decoration: InputDecoration(
+              isDense: true,
+              filled: true,
+              fillColor: pt.background,
+              hintText: tr('ai_designer.composer_hint'),
+              hintStyle: PremiumTokens.body(size: 14, color: pt.grey),
+              contentPadding: const EdgeInsets.symmetric(vertical: 12),
+              prefixIcon: Padding(
+                padding: const EdgeInsets.only(left: 8, right: 4),
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: _pickImage,
+                  child: Icon(Icons.camera_alt, size: 22, color: pt.grey),
                 ),
               ),
-              const SizedBox(width: 6),
-              _SendButton(onTap: _send),
-            ],
+              prefixIconConstraints: const BoxConstraints(
+                minWidth: 44,
+                minHeight: 44,
+              ),
+              suffixIcon: canSend
+                  ? Padding(
+                      padding: const EdgeInsets.only(left: 4, right: 6),
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: _send,
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: const BoxDecoration(
+                            color: PremiumTokens.accent,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.arrow_upward,
+                            size: 20,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    )
+                  : null,
+              suffixIconConstraints: const BoxConstraints(
+                minWidth: 44,
+                minHeight: 44,
+              ),
+              border: pill,
+              enabledBorder: pill,
+              focusedBorder: pill,
+            ),
           ),
         ],
       ),
@@ -871,53 +926,3 @@ class _ImagePreview extends StatelessWidget {
   }
 }
 
-class _IconButton extends StatelessWidget {
-  const _IconButton({required this.icon, this.onTap});
-
-  final IconData icon;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final pt = PremiumTokens.of(context);
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-        width: 44,
-        height: 44,
-        alignment: Alignment.center,
-        child: Icon(
-          icon,
-          size: 22,
-          color: onTap == null ? pt.greyLight : pt.grey,
-        ),
-      ),
-    );
-  }
-}
-
-class _SendButton extends StatelessWidget {
-  const _SendButton({required this.onTap});
-
-  final Future<void> Function() onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    // Always active — the busy state is shown by the in-list typing bubble, not
-    // by disabling send. The user can queue consecutive messages.
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => onTap(),
-      child: Container(
-        width: 44,
-        height: 44,
-        decoration: const BoxDecoration(
-          color: PremiumTokens.accent,
-          shape: BoxShape.circle,
-        ),
-        child: const Icon(Iconsax.send_1, size: 20, color: Colors.white),
-      ),
-    );
-  }
-}
