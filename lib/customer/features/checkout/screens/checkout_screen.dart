@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -22,6 +23,7 @@ import '../../../../shared/repositories/payment_repository.dart';
 import '../../../../shared/widgets/product_color_chip.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../cubit/checkout_cubit.dart';
+import '../../../../r.dart';
 import 'map_address_picker_screen.dart';
 
 class CheckoutScreen extends StatelessWidget {
@@ -422,7 +424,8 @@ class _PaymentCard extends StatelessWidget {
           const SizedBox(height: 8),
           _ProviderTile(
             brand: _kPaymeTeal,
-            wordmark: 'Payme',
+            assetPath: AssetLogo.payme,
+            chipColor: _kPaymeChip,
             title: tr('payment.pay_with_payme'),
             selected: state.payment == CheckoutPayment.payme,
             onTap: () => context.read<CheckoutCubit>().selectPayment(
@@ -433,7 +436,8 @@ class _PaymentCard extends StatelessWidget {
           const SizedBox(height: 8),
           _ProviderTile(
             brand: _kClickBlue,
-            wordmark: 'Click',
+            assetPath: AssetLogo.click,
+            chipColor: _kClickChip,
             title: tr('payment.pay_with_click'),
             selected: state.payment == CheckoutPayment.click,
             onTap: () => context.read<CheckoutCubit>().selectPayment(
@@ -452,14 +456,20 @@ class _PaymentCard extends StatelessWidget {
 const Color _kPaymeTeal = Color(0xFF00A19A);
 const Color _kClickBlue = Color(0xFF0073FF);
 
-/// A prominent payment-provider tile: a branded logo placeholder (the provider
-/// wordmark on its official colour), the action label, and a selection ring in
-/// the brand colour. Swap the wordmark box for the official SVG/PNG when the
-/// asset is added.
+// Per-brand logo-chip backgrounds. Each official SVG renders best on its own
+// backing, so these stay constant across light/dark: Payme's self-contained
+// cyan wordmark sits on white; Click's white-text wordmark needs a dark navy
+// to stay legible (it would vanish on the light tile fill).
+const Color _kPaymeChip = Colors.white;
+const Color _kClickChip = Color(0xFF0A1730);
+
+/// A prominent payment-provider tile: the official provider logo on its brand
+/// chip, the action label, and a selection ring in the brand colour.
 class _ProviderTile extends StatelessWidget {
   const _ProviderTile({
     required this.brand,
-    required this.wordmark,
+    required this.assetPath,
+    required this.chipColor,
     required this.title,
     required this.selected,
     required this.onTap,
@@ -467,7 +477,8 @@ class _ProviderTile extends StatelessWidget {
   });
 
   final Color brand;
-  final String wordmark;
+  final String assetPath;
+  final Color chipColor;
   final String title;
   final bool selected;
   final VoidCallback onTap;
@@ -491,24 +502,18 @@ class _ProviderTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Row(
           children: [
-            // Logo placeholder — the provider wordmark on its brand colour.
+            // Official provider logo on its brand chip (uniform footprint so
+            // both tiles align; BoxFit.contain keeps each wordmark's ratio).
             Container(
-              width: 56,
-              height: 34,
+              width: 68,
+              height: 38,
               alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               decoration: BoxDecoration(
-                color: brand,
-                borderRadius: BorderRadius.circular(8),
+                color: chipColor,
+                borderRadius: BorderRadius.circular(10),
               ),
-              child: Text(
-                wordmark,
-                style: PremiumTokens.body(
-                  size: 12.5,
-                  weight: FontWeight.w800,
-                  color: Colors.white,
-                  letterSpacing: 0.2,
-                ),
-              ),
+              child: SvgPicture.asset(assetPath, fit: BoxFit.contain),
             ),
             const SizedBox(width: 14),
             Expanded(

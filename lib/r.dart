@@ -1,4 +1,6 @@
 class AssetLogo {
+	static const String click = 'assets/logo/click.svg';
+	static const String payme = 'assets/logo/payme.svg';
 	static const String woodyLogo = 'assets/logo/woody_logo.png';
 	static const String woodyLogo1024 = 'assets/logo/woody_logo_1024.png';
 	static const String woodyLogoCard = 'assets/logo/woody_logo_card.png';
