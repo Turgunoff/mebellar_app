@@ -21,24 +21,33 @@ class ProfileGuestScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
-    return ColoredBox(
-      color: pt.background,
-      child: SafeArea(
-        bottom: false,
-        child: ListView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          children: [
-            const _GuestHeader(),
-            const SizedBox(height: 24),
-            _WelcomeHeroCard(onContinue: () => showAuthScreen(context)),
-            const SizedBox(height: 24),
-            _GuestMenuListCard(
-              items: _guestMenuItems(context),
-              onSell: () => _openSellerOnboarding(context),
-            ),
-          ],
+    // Scaffold + AppBar so the "Profil" title stays pinned at the top — the
+    // authenticated [ProfileScreen] does the same; a header scrolled inside
+    // the ListView would slide away under the status bar.
+    return Scaffold(
+      backgroundColor: pt.background,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: false,
+        title: Text(
+          'Profil',
+          style: PremiumTokens.display(size: 28, letterSpacing: -0.5),
         ),
+      ),
+      body: ListView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        children: [
+          _WelcomeHeroCard(onContinue: () => showAuthScreen(context)),
+          const SizedBox(height: 24),
+          _GuestMenuListCard(
+            items: _guestMenuItems(context),
+            onSell: () => _openSellerOnboarding(context),
+          ),
+        ],
       ),
     );
   }
@@ -47,25 +56,6 @@ class ProfileGuestScreen extends StatelessWidget {
     Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (_) => const OnboardingScreen()));
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Header
-// ---------------------------------------------------------------------------
-
-class _GuestHeader extends StatelessWidget {
-  const _GuestHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 4, 0, 0),
-      child: Text(
-        'Profil',
-        style: PremiumTokens.display(size: 32, letterSpacing: -0.6),
-      ),
-    );
   }
 }
 

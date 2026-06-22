@@ -31,9 +31,10 @@ class PremiumEmptyState extends StatelessWidget {
         return SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
           child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: constraints.maxHeight - bottomPadding,
-            ),
+            // Fill the whole viewport — the bottom inset is applied once, as
+            // padding below. Subtracting it from minHeight too would double-
+            // count it and lift the centred content up by `bottomPadding`.
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
             child: Padding(
               padding: EdgeInsets.fromLTRB(32, 0, 32, bottomPadding),
               child: Column(
