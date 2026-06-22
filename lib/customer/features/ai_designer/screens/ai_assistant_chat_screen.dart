@@ -37,6 +37,14 @@ class AiAssistantChatScreen extends StatelessWidget {
         scrolledUnderElevation: 0,
         toolbarHeight: 64,
         titleSpacing: 0,
+        // Explicit back so the affordance never depends on the framework's
+        // implicit leading: a plain pop returns to the calling tab (the home
+        // shell keeps it alive), and the fallback only fires for a history-less
+        // cold deep-link, landing on Home instead of dead-ending.
+        leading: IconButton(
+          icon: Icon(Iconsax.arrow_left_2_copy, size: 20, color: pt.dark),
+          onPressed: () => context.canPop() ? context.pop() : context.go('/'),
+        ),
         title: Row(
           children: [
             // Static robot avatar — the same bot shown mid-thread, frozen on
@@ -836,7 +844,7 @@ class _ComposerState extends State<_Composer> {
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: _pickImage,
-                  child: Icon(Icons.camera_alt, size: 22, color: pt.grey),
+                  child: Icon(Iconsax.gallery, size: 22, color: pt.grey),
                 ),
               ),
               prefixIconConstraints: const BoxConstraints(
@@ -857,7 +865,7 @@ class _ComposerState extends State<_Composer> {
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
-                            Icons.arrow_upward,
+                            Iconsax.send_1_copy,
                             size: 20,
                             color: Colors.white,
                           ),
@@ -925,4 +933,3 @@ class _ImagePreview extends StatelessWidget {
     );
   }
 }
-
