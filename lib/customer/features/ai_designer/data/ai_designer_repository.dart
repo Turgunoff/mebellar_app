@@ -42,11 +42,17 @@ class AiDesignerReply {
     required this.available,
     required this.reply,
     required this.products,
+    this.logId,
   });
 
   final bool available;
   final String reply;
   final List<AiRecommendedProduct> products;
+
+  /// Id of the persisted chat-log row, echoed back so the UI can rate this
+  /// reply later. Null when the backend's log write failed (the chat still
+  /// succeeds) — the rating affordance is then simply absent.
+  final String? logId;
 
   factory AiDesignerReply.fromJson(Map<String, dynamic> json) {
     final rawProducts = json['products'];
@@ -60,6 +66,7 @@ class AiDesignerReply {
       available: json['available'] as bool? ?? false,
       reply: json['reply'] as String? ?? '',
       products: products,
+      logId: json['log_id'] as String?,
     );
   }
 }
@@ -74,6 +81,12 @@ abstract class AiDesignerRepository {
     String? imageMime,
     List<AiChatMessage> history = const [],
   });
+
+  /// Records the user's 👍/👎 verdict on an AI reply.
+  /// [rating] is "liked" or "disliked". Returns true on success; never throws
+  /// — the rating is a soft signal, so a failure is swallowed and the caller
+  /// keeps the optimistic local state.
+  Future<bool> rateMessage(String logId, String rating);
 }
 
 /// REST-backed implementation. Sends the room photo inline as raw base64 (no
@@ -118,6 +131,20 @@ class WoodyAiDesignerRepository implements AiDesignerRepository {
         reply: tr('ai_designer.error'),
         products: const [],
       );
+    }
+  }
+
+  @override
+  Future<bool> rateMessage(String logId, String rating) async {
+    try {
+      await _api.patch<dynamic>(
+        '/ai/chat/logs/$logId/rate',
+        body: {'rating': rating},
+      );
+      return true;
+    } catch (_) {
+      // Rating is a soft signal — never surface a failure to the user.
+      return false;
     }
   }
 }

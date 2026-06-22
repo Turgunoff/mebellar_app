@@ -149,6 +149,7 @@ class AiDesignerCubit extends Cubit<AiDesignerState> {
         text: reply.reply,
         isUser: false,
         timestamp: DateTime.now(),
+        logId: reply.logId,
       );
       // Persist FIRST so the reply survives even if the cubit was closed while
       // the request was in flight (e.g. app teardown) — on the next open
@@ -169,6 +170,24 @@ class AiDesignerCubit extends Cubit<AiDesignerState> {
       // so this only guards unexpected errors — never leak the typing counter.
       if (!isClosed) emit(state.copyWith(pending: state.pending - 1));
     }
+  }
+
+  /// Records the user's 👍/👎 verdict on the AI message whose [logId] matches.
+  /// Optimistic: the local message + Hive update happen first (instant UI), then
+  /// the backend PATCH fires best-effort. A failed PATCH keeps the optimistic
+  /// state — the rating is a soft signal, not worth a rollback.
+  Future<void> rateAiMessage(String logId, String rating) async {
+    final index = state.messages.indexWhere((m) => m.logId == logId);
+    if (index < 0) return;
+
+    final updated = state.messages[index].copyWith(userRating: rating);
+    final messages = [...state.messages];
+    messages[index] = updated;
+    if (!isClosed) emit(state.copyWith(messages: messages));
+    // append() does put(message.id, message), so it overwrites the stored row.
+    unawaited(_store.append(updated));
+
+    await _repo.rateMessage(logId, rating);
   }
 
   Future<void> clearHistory() async {

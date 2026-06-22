@@ -22,6 +22,8 @@ const Map<String, dynamic> aiDesignerUz = {
   'pick_from_gallery': 'Galereyadan tanlash',
   'pick_from_camera': 'Kameradan olish',
   'clear_history': 'Suhbatni tozalash',
+  'rate_like': 'Foydali',
+  'rate_dislike': 'Foydasiz',
 };
 
 const Map<String, dynamic> aiDesignerRu = {
@@ -45,6 +47,8 @@ const Map<String, dynamic> aiDesignerRu = {
   'pick_from_gallery': 'Выбрать из галереи',
   'pick_from_camera': 'Сделать фото',
   'clear_history': 'Очистить переписку',
+  'rate_like': 'Полезно',
+  'rate_dislike': 'Бесполезно',
 };
 
 const Map<String, dynamic> aiDesignerEn = {
@@ -68,4 +72,6 @@ const Map<String, dynamic> aiDesignerEn = {
   'pick_from_gallery': 'From gallery',
   'pick_from_camera': 'Take photo',
   'clear_history': 'Clear chat',
+  'rate_like': 'Helpful',
+  'rate_dislike': 'Not helpful',
 };

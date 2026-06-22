@@ -15,6 +15,8 @@ class AiChatMessage {
     required this.isUser,
     required this.timestamp,
     this.imageUrl,
+    this.logId,
+    this.userRating,
   });
 
   final String id;
@@ -23,12 +25,24 @@ class AiChatMessage {
   final String? imageUrl;
   final DateTime timestamp;
 
+  /// The persisted backend chat-log row id for an AI reply (null for user
+  /// turns, or when the backend's log write failed). Drives the 👍/👎 rating
+  /// row — no log id, no rating affordance.
+  final String? logId;
+
+  /// The user's verdict on this AI reply: "liked" / "disliked" / null. Set
+  /// optimistically on tap and PATCHed to the backend; persisted so the choice
+  /// survives a relaunch.
+  final String? userRating;
+
   AiChatMessage copyWith({
     String? id,
     String? text,
     bool? isUser,
     String? imageUrl,
     DateTime? timestamp,
+    String? logId,
+    String? userRating,
   }) {
     return AiChatMessage(
       id: id ?? this.id,
@@ -36,6 +50,8 @@ class AiChatMessage {
       isUser: isUser ?? this.isUser,
       imageUrl: imageUrl ?? this.imageUrl,
       timestamp: timestamp ?? this.timestamp,
+      logId: logId ?? this.logId,
+      userRating: userRating ?? this.userRating,
     );
   }
 }
@@ -56,12 +72,27 @@ class AiChatMessageAdapter extends TypeAdapter<AiChatMessage> {
     final hasImage = reader.readBool();
     final imageUrl = hasImage ? reader.readString() : null;
     final millis = reader.readInt();
+    // BACKWARD COMPATIBILITY: records written before logId/userRating existed
+    // have no bytes past the timestamp. A reader on an old record sees zero
+    // remaining bytes, so guard the new fields — reading them would otherwise
+    // throw a RangeError and lose the whole conversation. New records carry
+    // both as the usual leading-bool + optional-string nullable protocol.
+    String? logId;
+    String? userRating;
+    if (reader.availableBytes > 0) {
+      final hasLogId = reader.readBool();
+      logId = hasLogId ? reader.readString() : null;
+      final hasRating = reader.readBool();
+      userRating = hasRating ? reader.readString() : null;
+    }
     return AiChatMessage(
       id: id,
       text: text,
       isUser: isUser,
       imageUrl: imageUrl,
       timestamp: DateTime.fromMillisecondsSinceEpoch(millis),
+      logId: logId,
+      userRating: userRating,
     );
   }
 
@@ -74,5 +105,11 @@ class AiChatMessageAdapter extends TypeAdapter<AiChatMessage> {
     writer.writeBool(imageUrl != null);
     if (imageUrl != null) writer.writeString(imageUrl);
     writer.writeInt(obj.timestamp.millisecondsSinceEpoch);
+    final logId = obj.logId;
+    writer.writeBool(logId != null);
+    if (logId != null) writer.writeString(logId);
+    final userRating = obj.userRating;
+    writer.writeBool(userRating != null);
+    if (userRating != null) writer.writeString(userRating);
   }
 }

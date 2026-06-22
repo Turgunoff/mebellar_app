@@ -211,9 +211,100 @@ class _MessageRow extends StatelessWidget {
         children: [
           _Bubble(message: message, localImage: localImage),
           if (products.isNotEmpty) _ProductShelf(products: products),
+          if (!mine && message.logId != null)
+            _RatingRow(logId: message.logId!, rating: message.userRating),
         ],
       ),
     );
+  }
+}
+
+/// A subtle 👍/👎 row under an AI bubble. Once the user picks a verdict both
+/// buttons lock and the chosen side is accented — the rating is a one-shot
+/// soft signal, not a toggle.
+class _RatingRow extends StatelessWidget {
+  const _RatingRow({required this.logId, required this.rating});
+
+  final String logId;
+
+  /// "liked" / "disliked" / null.
+  final String? rating;
+
+  @override
+  Widget build(BuildContext context) {
+    final rated = rating != null;
+    final liked = rating == 'liked';
+    final disliked = rating == 'disliked';
+    return Padding(
+      padding: const EdgeInsets.only(top: 6, left: 4, bottom: 2),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _RatingButton(
+            icon: Iconsax.like_1,
+            tooltip: tr('ai_designer.rate_like'),
+            active: liked,
+            enabled: !rated,
+            onTap: () =>
+                context.read<AiDesignerCubit>().rateAiMessage(logId, 'liked'),
+          ),
+          const SizedBox(width: 4),
+          _RatingButton(
+            icon: Iconsax.dislike,
+            tooltip: tr('ai_designer.rate_dislike'),
+            active: disliked,
+            enabled: !rated,
+            onTap: () => context.read<AiDesignerCubit>().rateAiMessage(
+              logId,
+              'disliked',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RatingButton extends StatelessWidget {
+  const _RatingButton({
+    required this.icon,
+    required this.tooltip,
+    required this.active,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final bool active;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
+    // Accented when chosen; muted otherwise. A rated-but-not-chosen button
+    // fades to greyLight so the picked side reads as the single answer.
+    final color = active
+        ? PremiumTokens.accent
+        : (enabled ? pt.grey : pt.greyLight);
+    final button = GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: enabled ? onTap : null,
+      child: Container(
+        width: 34,
+        height: 34,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: active
+              ? PremiumTokens.accent.withValues(alpha: 0.12)
+              : Colors.transparent,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, size: 17, color: color),
+      ),
+    );
+    return Tooltip(message: tooltip, child: button);
   }
 }
 

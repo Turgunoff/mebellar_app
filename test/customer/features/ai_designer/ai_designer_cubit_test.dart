@@ -40,6 +40,7 @@ void main() {
       (_) async =>
           const AiDesignerReply(available: true, reply: 'ok', products: []),
     );
+    when(() => repo.rateMessage(any(), any())).thenAnswer((_) async => true);
   });
 
   AiDesignerCubit build() => AiDesignerCubit(repository: repo, store: store);
@@ -156,6 +157,49 @@ void main() {
     expect(cubit.state.pending, 0);
     expect(cubit.state.sending, isFalse);
     expect(cubit.state.messages.length, 4); // 2 user + 2 ai
+  });
+
+  test('rateAiMessage sets userRating on the matching reply and calls the repo', () async {
+    when(
+      () => repo.chat(
+        message: any(named: 'message'),
+        imageBytes: any(named: 'imageBytes'),
+        imageMime: any(named: 'imageMime'),
+        history: any(named: 'history'),
+      ),
+    ).thenAnswer(
+      (_) async => const AiDesignerReply(
+        available: true,
+        reply: 'ok',
+        products: [],
+        logId: 'log-42',
+      ),
+    );
+
+    final cubit = build();
+    await cubit.sendMessage(text: 'salom');
+
+    // The AI reply carries the backend log id.
+    final aiMsg = cubit.state.messages.last;
+    expect(aiMsg.isUser, isFalse);
+    expect(aiMsg.logId, 'log-42');
+    expect(aiMsg.userRating, isNull);
+
+    await cubit.rateAiMessage('log-42', 'liked');
+
+    final rated = cubit.state.messages.firstWhere((m) => m.logId == 'log-42');
+    expect(rated.userRating, 'liked');
+    verify(() => repo.rateMessage('log-42', 'liked')).called(1);
+  });
+
+  test('rateAiMessage no-ops when no message matches the log id', () async {
+    final cubit = build();
+    await cubit.sendMessage(text: 'salom'); // reply has no logId (mock default)
+
+    await cubit.rateAiMessage('missing', 'disliked');
+
+    expect(cubit.state.messages.every((m) => m.userRating == null), isTrue);
+    verifyNever(() => repo.rateMessage(any(), any()));
   });
 
   test('persists an in-flight reply even after the cubit is closed (pop)', () async {
