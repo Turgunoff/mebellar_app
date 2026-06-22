@@ -22,3 +22,4 @@ Yozuvlar avtomatik qo'shiladi:
 | 2026-06-21 | 1.0.22+22 | ec4ad22d26c0 | ios | 1.0.22: AI Interyer Dizayner + onboarding/AR backlog |
 | 2026-06-21 | 1.0.23+23 | 5751400339b0 | android | 1.0.23: Facebook SDK + AI persona/chat overhaul |
 | 2026-06-22 | 1.0.24+24 | 6b330b281c3c | android | — |
+| 2026-06-22 | 1.0.24+24 | 0ca7e14d10c3 | ios | — |
