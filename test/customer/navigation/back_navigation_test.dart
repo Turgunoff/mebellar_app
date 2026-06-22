@@ -14,10 +14,16 @@ import 'package:go_router/go_router.dart';
 ///   * `/` reads its initial tab from `?tab=` exactly like the real builder, and
 ///     re-applies a *non-null* `initialTab` in didUpdateWidget.
 ///
-/// The back-button code is copied verbatim from the screens — both use the
-/// standardized `canPop() ? pop() : go(...)` pattern:
+/// The back-button code is copied verbatim from the screens:
 ///   * AI chat → `canPop() ? pop() : go('/')`;
-///   * product-list → `canPop() ? pop() : go('/?tab=categories')`.
+///   * product-list → `canPop() ? pop() : go('/?tab=categories')`;
+///   * support → `canPop() ? pop() : go('/')`
+///     (support_chat_screen.dart's `_handleBack`);
+///   * product detail → `Navigator.of(context).maybePop()` — the back button
+///     baked into [PreviewAppBar] (shared with seller mode), a plain Material
+///     pop, NOT a `context.go`. The detail and support cases pin the two
+///     screens the bug report named, which the AI-chat / product-list cases
+///     above did not exercise.
 const _cartTab = 2;
 
 int? _tabFromQuery(String? tab) => switch (tab) {
@@ -46,6 +52,11 @@ GoRouter _router({String initialLocation = '/'}) {
         path: '/product-list',
         builder: (_, _) => const _ProductListReplica(),
       ),
+      GoRoute(
+        path: '/product-detail/:id',
+        builder: (_, _) => const _ProductDetailReplica(),
+      ),
+      GoRoute(path: '/support', builder: (_, _) => const _SupportReplica()),
     ],
   );
 }
@@ -130,6 +141,44 @@ class _ProductListReplica extends StatelessWidget {
   );
 }
 
+/// `Navigator.of(context).maybePop()` — verbatim with [PreviewAppBar]'s back
+/// button (lib/seller/.../product_preview/preview_app_bar.dart), which the
+/// customer product detail screen reuses. A plain Material pop, not a
+/// `context.go`: it must return to the origin tab, never reset the shell.
+class _ProductDetailReplica extends StatelessWidget {
+  const _ProductDetailReplica();
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(
+      leading: IconButton(
+        key: const Key('detail-back'),
+        icon: const Icon(Icons.arrow_back),
+        onPressed: () => Navigator.of(context).maybePop(),
+      ),
+      title: const Text('detail'),
+    ),
+    body: const Center(child: Text('product-detail')),
+  );
+}
+
+/// `canPop() ? pop() : go('/')` — verbatim with support_chat_screen.dart's
+/// `_handleBack`.
+class _SupportReplica extends StatelessWidget {
+  const _SupportReplica();
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(
+      leading: IconButton(
+        key: const Key('support-back'),
+        icon: const Icon(Icons.arrow_back),
+        onPressed: () => context.canPop() ? context.pop() : context.go('/'),
+      ),
+      title: const Text('support'),
+    ),
+    body: const Center(child: Text('support-screen')),
+  );
+}
+
 void main() {
   testWidgets('AI chat back from Home returns to Home, NOT the Cart tab', (
     tester,
@@ -201,6 +250,71 @@ void main() {
     expect(find.text('ai-chat'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('ai-back')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('shell-tab-0'), findsOneWidget);
+    expect(find.text('shell-tab-$_cartTab'), findsNothing);
+  });
+
+  // The bug report named these two screens specifically. They pop back to the
+  // home shell (a sibling of `/`), so the shell's State — and `_index` — stays
+  // mounted; the rebuilt `/` carries no `?tab=`, so the null-guard in
+  // didUpdateWidget leaves the tab alone. These pin the deployment steps.
+  testWidgets(
+    'Product detail back from Home returns to Home, NOT the Cart tab',
+    (tester) async {
+      final router = _router();
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      await tester.pumpAndSettle();
+      expect(find.text('shell-tab-0'), findsOneWidget);
+
+      router.push('/product-detail/p1');
+      await tester.pumpAndSettle();
+      expect(find.text('product-detail'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('detail-back')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('shell-tab-0'), findsOneWidget);
+      expect(find.text('shell-tab-$_cartTab'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'Support back from the Profile tab returns to Profile, NOT the Cart tab',
+    (tester) async {
+      final router = _router();
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      await tester.pumpAndSettle();
+
+      // Land on Profile (tab 4) the way a deep-link / push tap would.
+      router.go('/?tab=profile');
+      await tester.pumpAndSettle();
+      expect(find.text('shell-tab-4'), findsOneWidget);
+
+      router.push('/support');
+      await tester.pumpAndSettle();
+      expect(find.text('support-screen'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('support-back')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('shell-tab-4'), findsOneWidget);
+      expect(find.text('shell-tab-$_cartTab'), findsNothing);
+    },
+  );
+
+  testWidgets('Support cold deep-link back falls through to Home', (
+    tester,
+  ) async {
+    // Push-tap into support with no `/` underneath: the fallback lands on Home,
+    // never the Cart tab.
+    final router = _router(initialLocation: '/support');
+    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+    await tester.pumpAndSettle();
+    expect(find.text('support-screen'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('support-back')));
     await tester.pumpAndSettle();
 
     expect(find.text('shell-tab-0'), findsOneWidget);
