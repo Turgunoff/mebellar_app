@@ -30,8 +30,7 @@ class PremiumEmptyState extends StatelessWidget {
     // header/status bar and the bottom nav). The scroll view + min-height
     // constraint keeps it centred on tall screens yet lets it scroll instead
     // of overflowing on short ones (landscape / split-screen).
-    return Container(
-      width: 
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,

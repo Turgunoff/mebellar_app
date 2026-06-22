@@ -385,11 +385,7 @@ class _CustomerContactSheet extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Icon(
-                    Iconsax.warning_2,
-                    size: 18,
-                    color: c.warning,
-                  ),
+                  Icon(Iconsax.warning_2, size: 18, color: c.warning),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -487,23 +483,33 @@ class _CustomerContactSheet extends StatelessWidget {
             ],
             Row(
               children: [
+                // Call the customer — same footprint as Accept. Disabled (greyed)
+                // only when the order carries no phone; the dialer opens the
+                // external app, so this never dismisses the sheet — the seller
+                // calls, confirms details, then taps Accept.
                 Expanded(
                   child: SizedBox(
                     height: 50,
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.of(context).pop(false),
+                    child: OutlinedButton.icon(
+                      onPressed: phone.isNotEmpty
+                          ? () => launchUrl(Uri.parse('tel:$phone'))
+                          : null,
+                      icon: const Icon(Iconsax.call, size: 18),
+                      label: const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text("Qo'ng'iroq qilish"),
+                      ),
                       style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: c.outline),
+                        foregroundColor: AppColors.sellerPrimary,
+                        side: const BorderSide(color: AppColors.sellerPrimary),
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        textStyle: const TextStyle(
+                          fontFamily: AppFonts.seller,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      child: Text(
-                        'Yopish',
-                        style: TextStyle(
-                          fontFamily: AppFonts.seller,
-                          fontWeight: FontWeight.w600,
-                          color: c.grey,
                         ),
                       ),
                     ),
@@ -511,7 +517,6 @@ class _CustomerContactSheet extends StatelessWidget {
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  flex: 2,
                   child: SizedBox(
                     height: 50,
                     child: FilledButton(
