@@ -10,7 +10,6 @@ import '../../customer/features/categories/bloc/categories_bloc.dart';
 import '../../customer/features/favorites/bloc/favorites_bloc.dart';
 import '../../customer/features/home/bloc/home_bloc.dart';
 import '../../customer/features/orders/cubit/profile_orders_cubit.dart';
-import '../../customer/features/payment/cubit/payment_cards_cubit.dart';
 import '../../customer/features/profile/cubit/profile_cubit.dart';
 import '../../customer/services/order_tracking_service.dart';
 import '../../seller/features/dashboard/bloc/seller_dashboard_cubit.dart';
@@ -19,7 +18,6 @@ import '../../seller/features/profile/cubit/seller_profile_cubit.dart';
 import '../../seller/features/profile/data/seller_identity_cache.dart';
 import '../../seller/features/reviews/cubit/reviews_cubit.dart';
 import '../../seller/services/new_orders_listener.dart';
-import '../../shared/repositories/payment_cards_repository.dart';
 import '../../shared/repositories/seller_order_repository.dart';
 import '../../shared/repositories/seller_profile_repository.dart';
 import '../../shared/repositories/profile_orders_repository.dart';
@@ -96,11 +94,6 @@ void registerCustomerScope(GetIt sl) {
   );
   sl.registerLazySingleton<ProfileCubit>(
     () => ProfileCubit(sl<AuthRepository>()),
-    dispose: (c) => c.close(),
-  );
-  // Saved-cards list (profile → "My cards", and the checkout card picker).
-  sl.registerLazySingleton<PaymentCardsCubit>(
-    () => PaymentCardsCubit(sl<PaymentCardsRepository>()),
     dispose: (c) => c.close(),
   );
   // NotificationsCubit is root-scoped (see registerCatalogModule) so seller

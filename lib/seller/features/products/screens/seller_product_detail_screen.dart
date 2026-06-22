@@ -101,27 +101,25 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
     }
   }
 
-  /// Opens the token top-up sheet; on a successful purchase refreshes the
-  /// balance and confirms with the new total.
+  /// Opens the token top-up sheet; when a checkout deep-link is launched, the
+  /// payment app opens — tokens land once the provider confirms the payment
+  /// (webhook). Refresh the balance + remind the seller to finish paying.
   Future<void> _openBuyTokens() async {
     final balance = _arBalance;
     if (balance == null) return;
-    final bought = await showArTokenBuySheet(
+    final started = await showArTokenBuySheet(
       context,
       packages: balance.packages,
     );
-    if (!mounted || !bought) return;
-    final result = takeLastArTokenPurchase();
+    if (!mounted || !started) return;
     await _loadArBalance();
     if (!mounted) return;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text(
-            result != null
-                ? '+${result.tokensAdded} token qo‘shildi. Balans: ${result.balance}'
-                : 'Tokenlar qo‘shildi.',
+            'To‘lovni ilovada yakunlang — tasdiqlangach tokenlar qo‘shiladi.',
           ),
         ),
       );

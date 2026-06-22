@@ -6,25 +6,28 @@ import 'package:woody_app/shared/models/cart.dart';
 import 'package:woody_app/shared/models/cart_item_model.dart';
 import 'package:woody_app/shared/repositories/cart_repository.dart';
 import 'package:woody_app/shared/repositories/checkout_repository.dart';
-import 'package:woody_app/shared/repositories/payment_cards_repository.dart';
+import 'package:woody_app/shared/repositories/payment_repository.dart';
 
 class _MockCheckoutRepo extends Mock implements CheckoutRepository {}
 
 class _MockCartRepo extends Mock implements CartRepository {}
 
-class _MockCardsRepo extends Mock implements PaymentCardsRepository {}
+class _MockPaymentRepo extends Mock implements PaymentRepository {}
 
 void main() {
-  setUpAll(() => registerFallbackValue(const <CheckoutOrderLine>[]));
+  setUpAll(() {
+    registerFallbackValue(const <CheckoutOrderLine>[]);
+    registerFallbackValue(PaymentProvider.payme);
+  });
 
   late _MockCheckoutRepo checkout;
   late _MockCartRepo cartRepo;
-  late _MockCardsRepo cardsRepo;
+  late _MockPaymentRepo payments;
 
   setUp(() {
     checkout = _MockCheckoutRepo();
     cartRepo = _MockCartRepo();
-    cardsRepo = _MockCardsRepo();
+    payments = _MockPaymentRepo();
     // Default: the construction-time quote refresh is a no-op (swallowed),
     // so tests that don't care about quoting stay deterministic.
     when(
@@ -39,13 +42,13 @@ void main() {
   CheckoutCubit build({List<CartItemModel> items = const <CartItemModel>[]}) =>
       CheckoutCubit(items: items, checkout: checkout, cartRepo: cartRepo);
 
-  CheckoutCubit buildWithCards({
+  CheckoutCubit buildWithPayments({
     List<CartItemModel> items = const <CartItemModel>[],
   }) => CheckoutCubit(
     items: items,
     checkout: checkout,
     cartRepo: cartRepo,
-    cards: cardsRepo,
+    payments: payments,
   );
 
   const item = CartItemModel(
@@ -79,12 +82,12 @@ void main() {
   blocTest<CheckoutCubit, CheckoutState>(
     'selectPayment switches the payment method',
     build: build,
-    act: (cubit) => cubit.selectPayment(CheckoutPayment.card),
+    act: (cubit) => cubit.selectPayment(CheckoutPayment.payme),
     expect: () => [
       isA<CheckoutState>().having(
         (s) => s.payment,
         'payment',
-        CheckoutPayment.card,
+        CheckoutPayment.payme,
       ),
     ],
   );
@@ -139,19 +142,7 @@ void main() {
   );
 
   blocTest<CheckoutCubit, CheckoutState>(
-    'selectCard flips the method to card and stores the chosen card',
-    build: build,
-    act: (cubit) => cubit.selectCard('card-1'),
-    expect: () => [
-      isA<CheckoutState>()
-          .having((s) => s.payment, 'payment', CheckoutPayment.card)
-          .having((s) => s.selectedCardId, 'card', 'card-1')
-          .having((s) => s.isCardPayment, 'isCardPayment', true),
-    ],
-  );
-
-  blocTest<CheckoutCubit, CheckoutState>(
-    'card payment places then charges each order with the chosen card',
+    'payme payment places the order then mints a checkout deep-link',
     build: () {
       when(
         () => checkout.placeOrder(
@@ -162,36 +153,51 @@ void main() {
       ).thenAnswer((_) async => 'order-1');
       when(() => cartRepo.clear()).thenAnswer((_) async => const Cart());
       when(
-        () => cardsRepo.payOrder(
+        () => payments.checkoutUrl(
           orderId: any(named: 'orderId'),
-          cardId: any(named: 'cardId'),
+          provider: any(named: 'provider'),
         ),
       ).thenAnswer(
-        (_) async =>
-            const OrderPayResult(paymentStatus: 'paid', provider: 'payme'),
+        (_) async => const CheckoutLink(
+          provider: 'payme',
+          checkoutUrl: 'https://checkout.paycom.uz/x',
+          amount: 4500000,
+        ),
       );
-      return buildWithCards(items: const [item]);
+      return buildWithPayments(items: const [item]);
     },
     act: (cubit) {
-      cubit.selectCard('card-1');
+      cubit.selectPayment(CheckoutPayment.payme);
       cubit.submit('user-1');
     },
     expect: () => [
-      isA<CheckoutState>().having((s) => s.selectedCardId, 'card', 'card-1'),
-      isA<CheckoutState>()
-          .having((s) => s.status, 'status', CheckoutStatus.submitting),
+      isA<CheckoutState>().having(
+        (s) => s.payment,
+        'payment',
+        CheckoutPayment.payme,
+      ),
+      isA<CheckoutState>().having(
+        (s) => s.status,
+        'status',
+        CheckoutStatus.submitting,
+      ),
       isA<CheckoutState>()
           .having((s) => s.status, 'status', CheckoutStatus.success)
-          .having((s) => s.placedOrderIds, 'orders', ['order-1']),
+          .having((s) => s.placedOrderIds, 'orders', ['order-1'])
+          .having((s) => s.checkoutUrl, 'url', 'https://checkout.paycom.uz/x'),
     ],
     verify: (_) {
-      verify(() => cardsRepo.payOrder(orderId: 'order-1', cardId: 'card-1'))
-          .called(1);
+      verify(
+        () => payments.checkoutUrl(
+          orderId: 'order-1',
+          provider: PaymentProvider.payme,
+        ),
+      ).called(1);
     },
   );
 
   blocTest<CheckoutCubit, CheckoutState>(
-    'card payment emits failure when the charge is declined',
+    'payme order still succeeds when the checkout link cannot be minted',
     build: () {
       when(
         () => checkout.placeOrder(
@@ -202,24 +208,33 @@ void main() {
       ).thenAnswer((_) async => 'order-1');
       when(() => cartRepo.clear()).thenAnswer((_) async => const Cart());
       when(
-        () => cardsRepo.payOrder(
+        () => payments.checkoutUrl(
           orderId: any(named: 'orderId'),
-          cardId: any(named: 'cardId'),
+          provider: any(named: 'provider'),
         ),
-      ).thenThrow(Exception('declined'));
-      return buildWithCards(items: const [item]);
+      ).thenThrow(Exception('provider unavailable'));
+      return buildWithPayments(items: const [item]);
     },
     act: (cubit) {
-      cubit.selectCard('card-1');
+      cubit.selectPayment(CheckoutPayment.click);
       cubit.submit('user-1');
     },
     expect: () => [
-      isA<CheckoutState>().having((s) => s.selectedCardId, 'card', 'card-1'),
+      isA<CheckoutState>().having(
+        (s) => s.payment,
+        'payment',
+        CheckoutPayment.click,
+      ),
+      isA<CheckoutState>().having(
+        (s) => s.status,
+        'status',
+        CheckoutStatus.submitting,
+      ),
+      // The order is placed (success); only the convenience link is missing.
       isA<CheckoutState>()
-          .having((s) => s.status, 'status', CheckoutStatus.submitting),
-      isA<CheckoutState>()
-          .having((s) => s.status, 'status', CheckoutStatus.failure)
-          .having((s) => s.error, 'error', isNotNull),
+          .having((s) => s.status, 'status', CheckoutStatus.success)
+          .having((s) => s.placedOrderIds, 'orders', ['order-1'])
+          .having((s) => s.checkoutUrl, 'url', isNull),
     ],
   );
 

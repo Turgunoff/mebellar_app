@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -5,7 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
-import '../../../../config/app_config.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/auth/auth_cubit.dart';
 import '../../../../core/di/service_locator.dart';
@@ -13,13 +15,10 @@ import '../../../../core/i18n/i18n.dart';
 import '../../../../core/services/facebook_analytics_service.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 import '../../orders/cubit/profile_orders_cubit.dart';
-import '../../payment/cubit/payment_cards_cubit.dart';
-import '../../payment/screens/add_card_screen.dart';
-import '../../payment/widgets/payment_pin.dart';
 import '../../../../shared/models/cart_item_model.dart';
 import '../../../../shared/repositories/cart_repository.dart';
 import '../../../../shared/repositories/checkout_repository.dart';
-import '../../../../shared/repositories/payment_cards_repository.dart';
+import '../../../../shared/repositories/payment_repository.dart';
 import '../../../../shared/widgets/product_color_chip.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../cubit/checkout_cubit.dart';
@@ -32,26 +31,17 @@ class CheckoutScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Preload the saved-card list so the card picker paints instantly when the
-    // user opens the payment section.
-    if (AppConfig.hasPayme) sl<PaymentCardsCubit>().load();
-    return MultiBlocProvider(
-      providers: [
-        BlocProvider(
-          create: (_) => CheckoutCubit(
-            items: items,
-            checkout: sl<CheckoutRepository>(),
-            cartRepo: sl<CartRepository>(),
-            cards: AppConfig.hasPayme ? sl<PaymentCardsRepository>() : null,
-            analytics: sl<AnalyticsService>(),
-            facebookAnalytics: sl.isRegistered<FacebookAnalyticsService>()
-                ? sl<FacebookAnalyticsService>()
-                : null,
-          ),
-        ),
-        if (AppConfig.hasPayme)
-          BlocProvider.value(value: sl<PaymentCardsCubit>()),
-      ],
+    return BlocProvider(
+      create: (_) => CheckoutCubit(
+        items: items,
+        checkout: sl<CheckoutRepository>(),
+        cartRepo: sl<CartRepository>(),
+        payments: sl<PaymentRepository>(),
+        analytics: sl<AnalyticsService>(),
+        facebookAnalytics: sl.isRegistered<FacebookAnalyticsService>()
+            ? sl<FacebookAnalyticsService>()
+            : null,
+      ),
       child: const _CheckoutView(),
     );
   }
@@ -68,7 +58,7 @@ class _CheckoutView extends StatelessWidget {
       listener: (ctx, state) {
         if (state.status == CheckoutStatus.success) {
           sl<ProfileOrdersCubit>().fetch();
-          _showSuccessDialog(ctx, state.placedOrderIds.length);
+          unawaited(_onCheckoutSuccess(ctx, state));
         }
         if (state.status == CheckoutStatus.failure) {
           ScaffoldMessenger.of(ctx).showSnackBar(
@@ -130,6 +120,26 @@ class _CheckoutView extends StatelessWidget {
         );
       },
     );
+  }
+
+  /// On success, hand off to the Payme/Click app (when a deep-link was minted)
+  /// before showing the receipt dialog, so the customer lands in the payment
+  /// app to complete payment. Cash orders skip straight to the dialog.
+  Future<void> _onCheckoutSuccess(
+    BuildContext context,
+    CheckoutState state,
+  ) async {
+    final url = state.checkoutUrl;
+    if (url != null && url.isNotEmpty) {
+      final uri = Uri.tryParse(url);
+      // externalApplication forces the OS to open the Payme/Click app rather
+      // than an in-app WebView.
+      if (uri != null) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    }
+    if (!context.mounted) return;
+    _showSuccessDialog(context, state.placedOrderIds.length);
   }
 
   void _showSuccessDialog(BuildContext context, int orderCount) {
@@ -386,15 +396,6 @@ class _PaymentCard extends StatelessWidget {
   final CheckoutState state;
   final PremiumTokens pt;
 
-  Future<void> _addCard(BuildContext context) async {
-    final added = await Navigator.of(
-      context,
-    ).push<bool>(MaterialPageRoute(builder: (_) => const AddCardScreen()));
-    if (added == true && context.mounted) {
-      context.read<PaymentCardsCubit>().load(refresh: true);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return _SectionCard(
@@ -419,86 +420,118 @@ class _PaymentCard extends StatelessWidget {
             pt: pt,
           ),
           const SizedBox(height: 8),
-          if (AppConfig.hasPayme)
-            ..._cardOptions(context)
-          else
-            _PaymentTile(
-              icon: Iconsax.card,
-              title: tr('payment.card'),
-              subtitle: tr('payment.card_disabled'),
-              selected: false,
-              onTap: null,
-              pt: pt,
+          _ProviderTile(
+            brand: _kPaymeTeal,
+            wordmark: 'Payme',
+            title: tr('payment.pay_with_payme'),
+            selected: state.payment == CheckoutPayment.payme,
+            onTap: () => context.read<CheckoutCubit>().selectPayment(
+              CheckoutPayment.payme,
             ),
+            pt: pt,
+          ),
+          const SizedBox(height: 8),
+          _ProviderTile(
+            brand: _kClickBlue,
+            wordmark: 'Click',
+            title: tr('payment.pay_with_click'),
+            selected: state.payment == CheckoutPayment.click,
+            onTap: () => context.read<CheckoutCubit>().selectPayment(
+              CheckoutPayment.click,
+            ),
+            pt: pt,
+          ),
         ],
       ),
     );
   }
-
-  List<Widget> _cardOptions(BuildContext context) {
-    return [
-      BlocBuilder<PaymentCardsCubit, PaymentCardsState>(
-        builder: (context, cardsState) {
-          return Column(
-            children: [
-              for (final card in cardsState.cards) ...[
-                _PaymentTile(
-                  icon: Iconsax.card,
-                  title: card.maskedNumber,
-                  subtitle: tr('payment.card_hint'),
-                  selected:
-                      state.payment == CheckoutPayment.card &&
-                      state.selectedCardId == card.id,
-                  onTap: () =>
-                      context.read<CheckoutCubit>().selectCard(card.id),
-                  pt: pt,
-                ),
-                const SizedBox(height: 8),
-              ],
-            ],
-          );
-        },
-      ),
-      // Always offer adding a (another) card.
-      _AddCardTile(pt: pt, onTap: () => _addCard(context)),
-    ];
-  }
 }
 
-/// Dashed-style "add a card" row inside the checkout payment section.
-class _AddCardTile extends StatelessWidget {
-  const _AddCardTile({required this.pt, required this.onTap});
-  final PremiumTokens pt;
+// Official provider brand colours (used for the checkout tiles + selection
+// ring). Constants — they don't flip in dark mode, by design.
+const Color _kPaymeTeal = Color(0xFF00A19A);
+const Color _kClickBlue = Color(0xFF0073FF);
+
+/// A prominent payment-provider tile: a branded logo placeholder (the provider
+/// wordmark on its official colour), the action label, and a selection ring in
+/// the brand colour. Swap the wordmark box for the official SVG/PNG when the
+/// asset is added.
+class _ProviderTile extends StatelessWidget {
+  const _ProviderTile({
+    required this.brand,
+    required this.wordmark,
+    required this.title,
+    required this.selected,
+    required this.onTap,
+    required this.pt,
+  });
+
+  final Color brand;
+  final String wordmark;
+  final String title;
+  final bool selected;
   final VoidCallback onTap;
+  final PremiumTokens pt;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
         decoration: BoxDecoration(
-          color: pt.imageBg,
+          color: selected ? brand.withValues(alpha: 0.08) : pt.imageBg,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: PremiumTokens.accent.withValues(alpha: 0.4),
+            color: selected ? brand : Colors.transparent,
+            width: 1.5,
           ),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Row(
           children: [
-            const Icon(
-              Iconsax.add_circle,
-              size: 22,
-              color: PremiumTokens.accent,
+            // Logo placeholder — the provider wordmark on its brand colour.
+            Container(
+              width: 56,
+              height: 34,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: brand,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                wordmark,
+                style: PremiumTokens.body(
+                  size: 12.5,
+                  weight: FontWeight.w800,
+                  color: Colors.white,
+                  letterSpacing: 0.2,
+                ),
+              ),
             ),
             const SizedBox(width: 14),
-            Text(
-              tr('payment.add_card'),
-              style: PremiumTokens.body(
-                size: 14,
-                weight: FontWeight.w700,
-                color: PremiumTokens.accent,
+            Expanded(
+              child: Text(
+                title,
+                style: PremiumTokens.body(size: 14, weight: FontWeight.w600),
               ),
+            ),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: selected ? brand : Colors.transparent,
+                border: Border.all(
+                  color: selected ? brand : pt.greyLight,
+                  width: 2,
+                ),
+              ),
+              child: selected
+                  ? const Icon(Icons.check, size: 12, color: Colors.white)
+                  : null,
             ),
           ],
         ),
@@ -1056,36 +1089,16 @@ class _ConfirmBar extends StatelessWidget {
     );
   }
 
-  Future<void> _onConfirm(BuildContext context) async {
+  void _onConfirm(BuildContext context) {
     HapticFeedback.mediumImpact();
     if (!state.hasAddress) {
       _toast(context, tr('checkout.address_required'));
       return;
     }
-    // Card method chosen but no card picked yet.
-    if (state.isCardPayment && state.selectedCardId == null) {
-      _toast(context, tr('payment.select_card'));
-      return;
-    }
-    // Guard against a stale selection: the chosen card may have been removed
-    // (e.g. from Profile → My cards) while this screen stayed open. Validate it
-    // still exists BEFORE any order is placed, so a deleted card can't leave
-    // orphaned unpaid orders behind.
-    if (state.isCardPayment) {
-      final cards = context.read<PaymentCardsCubit>().state.cards;
-      if (!cards.any((c) => c.id == state.selectedCardId)) {
-        _toast(context, tr('payment.select_card'));
-        return;
-      }
-    }
     final authState = context.read<AuthCubit>().state;
     if (authState is! AppAuthAuthenticated) return;
-    // Card payments pass a local PIN gate before the token is charged
-    // (Payme-recommended for token-based charges).
-    if (state.isCardPayment) {
-      final ok = await showPaymentPinGate(context);
-      if (!ok || !context.mounted) return;
-    }
+    // The order is placed first; for Payme/Click the success listener then
+    // opens the checkout deep-link in the payment app.
     context.read<CheckoutCubit>().submit(authState.userId);
   }
 

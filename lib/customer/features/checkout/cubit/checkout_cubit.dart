@@ -9,9 +9,11 @@ import '../../../../core/services/facebook_analytics_service.dart';
 import '../../../../shared/models/cart_item_model.dart';
 import '../../../../shared/repositories/cart_repository.dart';
 import '../../../../shared/repositories/checkout_repository.dart';
-import '../../../../shared/repositories/payment_cards_repository.dart';
+import '../../../../shared/repositories/payment_repository.dart';
 
-enum CheckoutPayment { cash, card }
+/// How the customer pays. `payme` / `click` mint a checkout deep-link the app
+/// opens after the order is placed; `cash` is COD (no link).
+enum CheckoutPayment { cash, payme, click }
 
 enum CheckoutStatus { idle, submitting, success, failure }
 
@@ -47,7 +49,7 @@ class CheckoutState extends Equatable {
     this.status = CheckoutStatus.idle,
     this.groups = const [],
     this.payment = CheckoutPayment.cash,
-    this.selectedCardId,
+    this.checkoutUrl,
     this.deliveryAddress = '',
     this.placedOrderIds = const [],
     this.wantsInstallation = false,
@@ -59,9 +61,10 @@ class CheckoutState extends Equatable {
   final List<ShopOrderGroup> groups;
   final CheckoutPayment payment;
 
-  /// Saved card chosen for a card payment. Null when paying cash, or when card
-  /// is selected but no card is picked yet (blocks confirm).
-  final String? selectedCardId;
+  /// The checkout deep-link to open after a successful Payme/Click order. Null
+  /// for cash, or until [CheckoutCubit.submit] mints it; the screen launches it
+  /// externally.
+  final String? checkoutUrl;
   final String deliveryAddress;
 
   /// Order IDs created during [submit] — populated on success.
@@ -79,13 +82,16 @@ class CheckoutState extends Equatable {
 
   bool get hasAddress => deliveryAddress.trim().isNotEmpty;
 
-  /// Whether the order is ready to submit: address set, and — for card
-  /// payments — a card chosen.
-  bool get canSubmit =>
-      hasAddress &&
-      (payment == CheckoutPayment.cash || selectedCardId != null);
+  /// Whether the order is ready to submit — every method only needs a delivery
+  /// address (Payme/Click open their app after the order is placed).
+  bool get canSubmit => hasAddress;
 
-  bool get isCardPayment => payment == CheckoutPayment.card;
+  /// The repository provider for the chosen method, or null for cash.
+  PaymentProvider? get provider => switch (payment) {
+    CheckoutPayment.payme => PaymentProvider.payme,
+    CheckoutPayment.click => PaymentProvider.click,
+    CheckoutPayment.cash => null,
+  };
 
   double get subtotal => groups.fold(0.0, (s, g) => s + g.subtotal);
 
@@ -124,8 +130,7 @@ class CheckoutState extends Equatable {
     CheckoutStatus? status,
     List<ShopOrderGroup>? groups,
     CheckoutPayment? payment,
-    String? selectedCardId,
-    bool clearSelectedCard = false,
+    String? checkoutUrl,
     String? deliveryAddress,
     List<String>? placedOrderIds,
     bool? wantsInstallation,
@@ -136,9 +141,7 @@ class CheckoutState extends Equatable {
     status: status ?? this.status,
     groups: groups ?? this.groups,
     payment: payment ?? this.payment,
-    selectedCardId: clearSelectedCard
-        ? null
-        : (selectedCardId ?? this.selectedCardId),
+    checkoutUrl: checkoutUrl ?? this.checkoutUrl,
     deliveryAddress: deliveryAddress ?? this.deliveryAddress,
     placedOrderIds: placedOrderIds ?? this.placedOrderIds,
     wantsInstallation: wantsInstallation ?? this.wantsInstallation,
@@ -151,7 +154,7 @@ class CheckoutState extends Equatable {
     status,
     groups,
     payment,
-    selectedCardId,
+    checkoutUrl,
     deliveryAddress,
     placedOrderIds,
     wantsInstallation,
@@ -165,12 +168,12 @@ class CheckoutCubit extends Cubit<CheckoutState> {
     required List<CartItemModel> items,
     required CheckoutRepository checkout,
     required CartRepository cartRepo,
-    PaymentCardsRepository? cards,
+    PaymentRepository? payments,
     AnalyticsService? analytics,
     FacebookAnalyticsService? facebookAnalytics,
   }) : _checkout = checkout,
        _cartRepo = cartRepo,
-       _cards = cards,
+       _payments = payments,
        _analytics = analytics,
        _facebookAnalytics = facebookAnalytics,
        super(CheckoutState(groups: _groupByShop(items))) {
@@ -191,25 +194,13 @@ class CheckoutCubit extends Cubit<CheckoutState> {
 
   final CheckoutRepository _checkout;
   final CartRepository _cartRepo;
-  final PaymentCardsRepository? _cards;
+  final PaymentRepository? _payments;
   final AnalyticsService? _analytics;
   final FacebookAnalyticsService? _facebookAnalytics;
 
   void selectPayment(CheckoutPayment payment) {
-    // Switching to cash drops any chosen card.
-    emit(
-      state.copyWith(
-        payment: payment,
-        clearSelectedCard: payment == CheckoutPayment.cash,
-      ),
-    );
+    emit(state.copyWith(payment: payment));
     unawaited(_analytics?.paymentInfoAdded(paymentType: payment.name));
-  }
-
-  /// Picks a saved card and flips the method to card in one step.
-  void selectCard(String cardId) {
-    emit(state.copyWith(payment: CheckoutPayment.card, selectedCardId: cardId));
-    unawaited(_analytics?.paymentInfoAdded(paymentType: 'card'));
   }
 
   void updateAddress(String address) {
@@ -287,23 +278,31 @@ class CheckoutCubit extends Cubit<CheckoutState> {
       }
 
       // Orders now exist server-side, so the cart is empty regardless of what
-      // happens next — clear it BEFORE charging so a card decline can't leave
-      // a stale cart that re-checks-out into duplicate orders.
+      // happens next — clear it BEFORE minting the checkout link so a failed
+      // hand-off can't leave a stale cart that re-checks-out into duplicates.
       await _cartRepo.clear();
 
-      // Card payment: charge each placed order with the chosen saved card. A
-      // decline surfaces as `failure` (the declined order stays `unpaid` — the
-      // customer can retry payment later); cash orders skip this entirely.
+      // Payme / Click: mint a checkout deep-link the screen opens in the
+      // payment app. The order is already placed (unpaid) — the link is a
+      // convenience, so failing to mint it still counts as success (the
+      // customer can pay later). Confirmation of the actual payment is a
+      // provider-webhook concern, a documented follow-up.
       //
       // KNOWN LIMITATION (multi-shop): the cart fans out into one order per
-      // shop, charged independently. If shop A's charge succeeds and shop B's
-      // declines, A stays paid and B stays unpaid — there is no cross-order
-      // rollback (that needs a Payme refund/combined-receipt flow, a follow-up).
-      // Single-shop carts — the common case — are unaffected.
-      final cardId = state.selectedCardId;
-      if (state.isCardPayment && cardId != null && _cards != null) {
-        for (final orderId in placedIds) {
-          await _cards.payOrder(orderId: orderId, cardId: cardId);
+      // shop; a single checkout app can only be opened for ONE of them, so we
+      // link the first order. The rest stay unpaid (single-shop carts — the
+      // common case — are unaffected).
+      String? checkoutUrl;
+      final provider = state.provider;
+      if (provider != null && _payments != null && placedIds.isNotEmpty) {
+        try {
+          final link = await _payments.checkoutUrl(
+            orderId: placedIds.first,
+            provider: provider,
+          );
+          checkoutUrl = link.checkoutUrl;
+        } catch (_) {
+          // Order placed; opening the payment app just isn't available now.
         }
       }
 
@@ -312,6 +311,7 @@ class CheckoutCubit extends Cubit<CheckoutState> {
         state.copyWith(
           status: CheckoutStatus.success,
           placedOrderIds: placedIds,
+          checkoutUrl: checkoutUrl,
         ),
       );
     } catch (e) {

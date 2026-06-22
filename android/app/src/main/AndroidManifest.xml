@@ -176,6 +176,17 @@
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="tg" />
         </intent>
+        <!-- url_launcher: Payme / Click checkout deep links. The backend returns
+             https:// checkout URLs (covered by the https entry above); these
+             custom schemes let the app also query/open the native payment apps. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="payme" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="click" />
+        </intent>
     </queries>
 
 </manifest>

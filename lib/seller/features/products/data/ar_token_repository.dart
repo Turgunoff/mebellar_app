@@ -1,4 +1,5 @@
 import '../../../../core/network/woody_api_client.dart';
+import '../../../../shared/repositories/payment_repository.dart';
 
 /// One purchasable AR-token bundle (mirrors backend `ArTokenPackage`).
 class ArTokenPackage {
@@ -37,37 +38,19 @@ class ArTokenBalance {
   );
 }
 
-/// Result of a successful token purchase (`POST /seller/ar-tokens/buy`).
-class ArTokenPurchaseResult {
-  const ArTokenPurchaseResult({
-    required this.tokensAdded,
-    required this.balance,
-    required this.paymentId,
-  });
-
-  final int tokensAdded;
-  final int balance;
-  final String paymentId;
-
-  factory ArTokenPurchaseResult.fromJson(Map<String, dynamic> json) =>
-      ArTokenPurchaseResult(
-        tokensAdded: (json['tokens_added'] as num?)?.toInt() ?? 0,
-        balance: (json['balance'] as num?)?.toInt() ?? 0,
-        paymentId: json['payment_id'] as String? ?? '',
-      );
-}
-
 /// Data layer for AR tokenisation. Abstract so the seller UI depends on the
 /// contract (and tests mock it), not the REST impl.
 abstract class ArTokenRepository {
   Future<ArTokenBalance> balance();
 
-  /// Buy a package with a saved Payme card. The backend charges the card and
-  /// credits the tokens in one transaction; throws [ApiError] on a payment
-  /// failure (402) / unknown package (404) / unverified card.
-  Future<ArTokenPurchaseResult> buy({
+  /// Start a top-up: mint a Payme/Click checkout deep-link for the package and
+  /// return the URL the seller opens to pay (`POST /seller/ar-tokens/buy`).
+  /// Tokens are credited when the provider confirms the payment (webhook — a
+  /// documented follow-up). Throws `ApiError` on 404 (unknown package) / 503
+  /// (provider unconfigured).
+  Future<String> buy({
     required String packageCode,
-    required String cardId,
+    required PaymentProvider provider,
   });
 }
 
@@ -85,14 +68,14 @@ class WoodyArTokenRepository implements ArTokenRepository {
   }
 
   @override
-  Future<ArTokenPurchaseResult> buy({
+  Future<String> buy({
     required String packageCode,
-    required String cardId,
+    required PaymentProvider provider,
   }) async {
     final res = await _api.post<Map<String, dynamic>>(
       '/seller/ar-tokens/buy',
-      body: {'package_code': packageCode, 'card_id': cardId},
+      body: {'package_code': packageCode, 'provider': provider.slug},
     );
-    return ArTokenPurchaseResult.fromJson(res);
+    return res['checkout_url'] as String? ?? '';
   }
 }

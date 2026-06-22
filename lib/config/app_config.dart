@@ -33,40 +33,9 @@ class AppConfig {
     defaultValue: true,
   );
 
-  /// Payme (Paycom) Subscribe API base for DIRECT card tokenisation from the
-  /// app (X-Auth: merchant_id only — no key in the app). Test:
-  /// `https://checkout.test.paycom.uz/api`, prod: `https://checkout.paycom.uz/api`.
-  /// Optional: when unset, card payments are hidden and the app stays COD-only,
-  /// so a build with no Payme config still boots (unlike the required keys).
-  static const String paymeApiUrl = String.fromEnvironment('PAYME_API_URL');
-
-  /// Payme merchant id (public-side identifier sent as the `X-Auth` header for
-  /// card tokenisation). The merchant KEY is NEVER in the app — only the
-  /// backend holds it.
-  static const String paymeMerchantId = String.fromEnvironment(
-    'PAYME_MERCHANT_ID',
-  );
-
-  /// Routes card payments through an in-app MOCK of Payme — the full add-card +
-  /// pay flow runs end-to-end with NO real Payme credentials (demos / QA).
-  /// When true, [hasPayme] lights up the card UI and `core_module.dart` swaps
-  /// `MockPaymeClient` in for the real client (and the backend must run with its
-  /// own `PAYME_MOCK=true`). Defaults OFF so production is never silently
-  /// mocked.
-  static const bool paymeMock = bool.fromEnvironment(
-    'PAYME_MOCK',
-    defaultValue: false,
-  );
-
   static bool get isProd => environment == 'prod';
 
   static bool get hasWoodyApi => woodyApiUrl.isNotEmpty;
-
-  /// Whether card payments are available. True when either the mock is on
-  /// ([paymeMock]) or real Payme tokenisation is configured. False → the app
-  /// shows only Cash on Delivery.
-  static bool get hasPayme =>
-      paymeMock || (paymeApiUrl.isNotEmpty && paymeMerchantId.isNotEmpty);
 
   /// Required keys that have no safe fallback. Missing any of these is a build
   /// misconfiguration, not a recoverable runtime state.

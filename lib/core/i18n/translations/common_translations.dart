@@ -64,12 +64,8 @@ const Map<String, dynamic> errorUz = {
   'multi_shop_cart': 'Har do\'kon mahsulotlari alohida buyurtma qilinadi',
   'attachment_invalid': 'Rasmni yuborib bo\'lmadi. Qaytadan urinib ko\'ring',
   'wallet_suspended': 'Hisobingiz qarz tufayli vaqtincha muzlatilgan',
-  'payment_failed': 'To\'lov amalga oshmadi. Boshqa kartani sinab ko\'ring',
   'order_not_found': 'Buyurtma topilmadi',
   'order_not_payable': 'Bu buyurtma uchun to\'lov qilib bo\'lmaydi',
-  'card_not_found': 'Karta topilmadi',
-  'card_not_verified': 'Karta tasdiqlanmagan',
-  'card_token_rejected': 'Karta qabul qilinmadi. Boshqa kartani sinab ko\'ring',
   'payments_unavailable': 'Onlayn to\'lov hozircha mavjud emas',
 };
 
@@ -87,12 +83,8 @@ const Map<String, dynamic> errorRu = {
   'multi_shop_cart': 'Товары каждого магазина оформляются отдельным заказом',
   'attachment_invalid': 'Не удалось отправить изображение. Попробуйте снова',
   'wallet_suspended': 'Ваш счёт временно заморожен из-за задолженности',
-  'payment_failed': 'Оплата не прошла. Попробуйте другую карту',
   'order_not_found': 'Заказ не найден',
   'order_not_payable': 'Этот заказ нельзя оплатить',
-  'card_not_found': 'Карта не найдена',
-  'card_not_verified': 'Карта не подтверждена',
-  'card_token_rejected': 'Карта не принята. Попробуйте другую карту',
   'payments_unavailable': 'Онлайн-оплата пока недоступна',
 };
 
@@ -110,12 +102,8 @@ const Map<String, dynamic> errorEn = {
   'multi_shop_cart': 'Items from each shop are ordered separately',
   'attachment_invalid': 'Couldn\'t send the image. Please try again',
   'wallet_suspended': 'Your account is temporarily frozen due to debt',
-  'payment_failed': 'Payment failed. Try another card',
   'order_not_found': 'Order not found',
   'order_not_payable': 'This order can\'t be paid',
-  'card_not_found': 'Card not found',
-  'card_not_verified': 'Card not verified',
-  'card_token_rejected': 'Card was rejected. Try another card',
   'payments_unavailable': 'Online payment is not available yet',
 };
 

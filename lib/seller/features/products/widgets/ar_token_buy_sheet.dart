@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
-import '../../../../shared/repositories/payment_cards_repository.dart';
+import '../../../../shared/repositories/payment_repository.dart';
 import '../data/ar_token_repository.dart';
 
-/// Opens the AR-token top-up sheet. Returns `true` when a purchase succeeded so
-/// the caller can refresh the balance + re-enable the scan CTA.
+/// Official provider brand colours for the top-up tiles.
+const Color _kPaymeTeal = Color(0xFF00A19A);
+const Color _kClickBlue = Color(0xFF0073FF);
+
+/// Opens the AR-token top-up sheet. Returns `true` when a checkout deep-link was
+/// launched so the caller can refresh + remind the seller to finish paying.
 Future<bool> showArTokenBuySheet(
   BuildContext context, {
   required List<ArTokenPackage> packages,
@@ -41,16 +46,14 @@ class _ArTokenBuySheet extends StatefulWidget {
 }
 
 class _ArTokenBuySheetState extends State<_ArTokenBuySheet> {
-  late Future<List<SavedCard>> _cardsFuture;
   String? _packageCode;
-  String? _cardId;
+  PaymentProvider _provider = PaymentProvider.payme;
   bool _buying = false;
   String? _error;
 
   @override
   void initState() {
     super.initState();
-    _cardsFuture = sl<PaymentCardsRepository>().list();
     // Default to the middle/most-popular package when present, else the first.
     if (widget.packages.isNotEmpty) {
       final mid = widget.packages.length ~/ 2;
@@ -58,34 +61,33 @@ class _ArTokenBuySheetState extends State<_ArTokenBuySheet> {
     }
   }
 
-  Future<void> _buy() async {
+  Future<void> _pay() async {
     final pkg = _packageCode;
-    final card = _cardId;
-    if (pkg == null || card == null || _buying) return;
+    if (pkg == null || _buying) return;
     setState(() {
       _buying = true;
       _error = null;
     });
     try {
-      final result = await sl<ArTokenRepository>().buy(
+      final url = await sl<ArTokenRepository>().buy(
         packageCode: pkg,
-        cardId: card,
+        provider: _provider,
       );
+      final uri = Uri.tryParse(url);
+      if (uri != null && url.isNotEmpty) {
+        // externalApplication forces the OS to open the Payme/Click app.
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
       if (mounted) Navigator.of(context).pop(true);
-      // Surface the new balance to the caller via a snackbar after the pop.
-      _result = result;
     } catch (_) {
       if (mounted) {
         setState(() {
           _buying = false;
-          _error = 'To‘lov amalga oshmadi. Boshqa karta bilan urinib ko‘ring.';
+          _error = 'To‘lovni boshlab bo‘lmadi. Birozdan so‘ng urinib ko‘ring.';
         });
       }
     }
   }
-
-  // Carried out so the caller's context can show the confirmation toast.
-  static ArTokenPurchaseResult? _result;
 
   @override
   Widget build(BuildContext context) {
@@ -152,9 +154,9 @@ class _ArTokenBuySheetState extends State<_ArTokenBuySheet> {
                 ),
               const SizedBox(height: 16),
 
-              // ── Saved-card picker ──
+              // ── Payment app picker ──
               Text(
-                'To‘lov kartasi',
+                'To‘lov usuli',
                 style: TextStyle(
                   fontFamily: AppFonts.seller,
                   fontWeight: FontWeight.w700,
@@ -163,38 +165,20 @@ class _ArTokenBuySheetState extends State<_ArTokenBuySheet> {
                 ),
               ),
               const SizedBox(height: 8),
-              FutureBuilder<List<SavedCard>>(
-                future: _cardsFuture,
-                builder: (context, snap) {
-                  if (snap.connectionState != ConnectionState.done) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12),
-                      child: Center(
-                        child: SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(strokeWidth: 2.4),
-                        ),
-                      ),
-                    );
-                  }
-                  final cards = snap.data ?? const <SavedCard>[];
-                  if (cards.isEmpty) {
-                    return _EmptyCards(color: c);
-                  }
-                  // Auto-select the first card once loaded.
-                  _cardId ??= cards.first.id;
-                  return Column(
-                    children: [
-                      for (final card in cards)
-                        _CardTile(
-                          card: card,
-                          selected: card.id == _cardId,
-                          onTap: () => setState(() => _cardId = card.id),
-                        ),
-                    ],
-                  );
-                },
+              _ProviderChoice(
+                brand: _kPaymeTeal,
+                wordmark: 'Payme',
+                label: 'Payme ilovasi orqali to‘lash',
+                selected: _provider == PaymentProvider.payme,
+                onTap: () => setState(() => _provider = PaymentProvider.payme),
+              ),
+              const SizedBox(height: 8),
+              _ProviderChoice(
+                brand: _kClickBlue,
+                wordmark: 'Click',
+                label: 'Click ilovasi orqali to‘lash',
+                selected: _provider == PaymentProvider.click,
+                onTap: () => setState(() => _provider = PaymentProvider.click),
               ),
 
               if (_error != null) ...[
@@ -214,10 +198,7 @@ class _ArTokenBuySheetState extends State<_ArTokenBuySheet> {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
-                  onPressed:
-                      (_packageCode != null && _cardId != null && !_buying)
-                      ? _buy
-                      : null,
+                  onPressed: (_packageCode != null && !_buying) ? _pay : null,
                   style: FilledButton.styleFrom(
                     backgroundColor: c.primary,
                     disabledBackgroundColor: c.primary.withValues(alpha: 0.4),
@@ -241,7 +222,7 @@ class _ArTokenBuySheetState extends State<_ArTokenBuySheet> {
                             color: Colors.white,
                           ),
                         )
-                      : const Text('Sotib olish'),
+                      : const Text('To‘lash'),
                 ),
               ),
             ],
@@ -250,14 +231,6 @@ class _ArTokenBuySheetState extends State<_ArTokenBuySheet> {
       ),
     );
   }
-}
-
-/// Pulls the last purchase result back out (set just before the sheet pops) so
-/// the caller can show a "+N token" confirmation. Returns null when none.
-ArTokenPurchaseResult? takeLastArTokenPurchase() {
-  final r = _ArTokenBuySheetState._result;
-  _ArTokenBuySheetState._result = null;
-  return r;
 }
 
 class _PackageTile extends StatelessWidget {
@@ -330,14 +303,19 @@ class _PackageTile extends StatelessWidget {
   }
 }
 
-class _CardTile extends StatelessWidget {
-  const _CardTile({
-    required this.card,
+/// A branded payment-app choice (logo placeholder wordmark + label + ring).
+class _ProviderChoice extends StatelessWidget {
+  const _ProviderChoice({
+    required this.brand,
+    required this.wordmark,
+    required this.label,
     required this.selected,
     required this.onTap,
   });
 
-  final SavedCard card;
+  final Color brand;
+  final String wordmark;
+  final String label;
   final bool selected;
   final VoidCallback onTap;
 
@@ -347,67 +325,57 @@ class _CardTile extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
-        color: c.fillFaint,
+        color: selected ? brand.withValues(alpha: 0.08) : c.fillFaint,
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
           onTap: onTap,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: selected ? c.primary : c.divider,
+                color: selected ? brand : c.divider,
                 width: selected ? 1.6 : 1,
               ),
             ),
             child: Row(
               children: [
-                Icon(Icons.credit_card, color: c.grey, size: 20),
+                // Logo placeholder — the provider wordmark on its brand colour.
+                Container(
+                  width: 54,
+                  height: 32,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: brand,
+                    borderRadius: BorderRadius.circular(7),
+                  ),
+                  child: Text(
+                    wordmark,
+                    style: const TextStyle(
+                      fontFamily: AppFonts.seller,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 12,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    card.maskedNumber,
+                    label,
                     style: TextStyle(
                       fontFamily: AppFonts.seller,
                       fontWeight: FontWeight.w600,
-                      fontSize: 14,
+                      fontSize: 13.5,
                       color: c.ink,
                     ),
                   ),
                 ),
-                if (selected)
-                  Icon(Icons.check_circle, color: c.primary, size: 20),
+                if (selected) Icon(Icons.check_circle, color: brand, size: 20),
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _EmptyCards extends StatelessWidget {
-  const _EmptyCards({required this.color});
-  final SellerColors color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: color.fillFaint,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        'Saqlangan karta yo‘q. Profil → To‘lov kartalari bo‘limidan karta '
-        'qo‘shing, so‘ng token sotib oling.',
-        style: TextStyle(
-          fontFamily: AppFonts.seller,
-          fontSize: 12.5,
-          color: color.grey,
-          height: 1.35,
         ),
       ),
     );

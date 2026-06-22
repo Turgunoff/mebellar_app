@@ -16,13 +16,9 @@ const Map<String, String> _codeMessages = {
   'multi_shop_cart_not_supported': 'error.multi_shop_cart',
   'invalid_attachment_url': 'error.attachment_invalid',
   'wallet_suspended': 'error.wallet_suspended',
-  // Payme card payments (POST /orders/{id}/pay, /customer/payment-cards).
-  'payment_failed': 'error.payment_failed',
+  // Checkout deep-links (POST /orders/{id}/pay/payme · /pay/click).
   'order_not_found': 'error.order_not_found',
   'order_not_payable': 'error.order_not_payable',
-  'card_not_found': 'error.card_not_found',
-  'card_not_verified': 'error.card_not_verified',
-  'card_token_rejected': 'error.card_token_rejected',
   'payments_unavailable': 'error.payments_unavailable',
 };
 

@@ -8,6 +8,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:woody_app/core/network/token_store.dart';
 import 'package:woody_app/core/network/woody_api_client.dart';
 import 'package:woody_app/seller/features/products/data/ar_token_repository.dart';
+import 'package:woody_app/shared/repositories/payment_repository.dart';
 
 class _MockSecureStorage extends Mock implements FlutterSecureStorage {}
 
@@ -94,22 +95,27 @@ void main() {
     expect(h.adapter.calls.single.uri.path, endsWith('/seller/ar-tokens/balance'));
   });
 
-  test('buy posts package_code + card_id and parses the result', () async {
+  test('buy posts package_code + provider and returns the checkout url', () async {
     final h = make(
       (_) => (
         200,
-        jsonEncode({'tokens_added': 5, 'balance': 9, 'payment_id': 'rcpt_1'}),
+        jsonEncode({
+          'provider': 'payme',
+          'checkout_url': 'https://checkout.paycom.uz/abc',
+          'amount': 45000,
+        }),
       ),
     );
 
-    final result = await h.repo.buy(packageCode: 'pack5', cardId: 'card-1');
+    final url = await h.repo.buy(
+      packageCode: 'pack5',
+      provider: PaymentProvider.payme,
+    );
 
-    expect(result.tokensAdded, 5);
-    expect(result.balance, 9);
-    expect(result.paymentId, 'rcpt_1');
+    expect(url, 'https://checkout.paycom.uz/abc');
     final call = h.adapter.calls.single;
     expect(call.method, 'POST');
     expect(call.uri.path, endsWith('/seller/ar-tokens/buy'));
-    expect(call.data, {'package_code': 'pack5', 'card_id': 'card-1'});
+    expect(call.data, {'package_code': 'pack5', 'provider': 'payme'});
   });
 }

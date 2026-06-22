@@ -40,6 +40,10 @@
 		<string>mailto</string>
 		<string>https</string>
 		<string>http</string>
+		<!-- Payme / Click checkout deep links. The backend returns https URLs;
+		     these let the app also query/open the native payment apps. -->
+		<string>payme</string>
+		<string>click</string>
 		<!-- Facebook SDK: lets the SDK detect the Facebook / Messenger apps. -->
 		<string>fbapi</string>
 		<string>fb-messenger-share-api</string>

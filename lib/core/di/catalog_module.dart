@@ -24,7 +24,7 @@ import '../../shared/repositories/hybrid_favorites_repository.dart';
 import '../../shared/repositories/news_repository.dart';
 import '../../shared/repositories/notifications_repository.dart';
 import '../../shared/repositories/order_repository.dart';
-import '../../shared/repositories/payment_cards_repository.dart';
+import '../../shared/repositories/payment_repository.dart';
 import '../../shared/repositories/profile_orders_repository.dart';
 import '../../shared/repositories/category_data_source.dart';
 import '../../shared/repositories/notifications_data_source.dart';
@@ -223,10 +223,10 @@ void registerCatalogModule(GetIt sl) {
   sl.registerLazySingleton<CheckoutRepository>(
     () => WoodyCheckoutRepository(sl<WoodyApiClient>()),
   );
-  // Saved Payme cards + order charging (backend `/customer/payment-cards`,
-  // `/orders/{id}/pay`). The token tokenisation is done app-side via PaymeClient.
-  sl.registerLazySingleton<PaymentCardsRepository>(
-    () => WoodyPaymentCardsRepository(api: sl<WoodyApiClient>()),
+  // Checkout deep-links: mints a Payme/Click checkout URL for an order
+  // (backend `/orders/{id}/pay/{provider}`), opened in the payment app.
+  sl.registerLazySingleton<PaymentRepository>(
+    () => WoodyPaymentRepository(api: sl<WoodyApiClient>()),
   );
   sl.registerLazySingleton<NotificationsRepository>(
     () => WoodyNotificationsRepository(api: sl<WoodyApiClient>()),
