@@ -15,6 +15,7 @@ class AiRecommendedProduct {
     required this.price,
     this.imageUrl,
     this.shopName,
+    this.arModelUrl,
   });
 
   final String id;
@@ -23,6 +24,13 @@ class AiRecommendedProduct {
   final String? imageUrl;
   final String? shopName;
 
+  /// Public URL of the QC-approved 3D model. The backend only sends it for an
+  /// approved model, so a non-null value drives the "3D / AR" card badge.
+  final String? arModelUrl;
+
+  /// True when this recommendation has a published AR model.
+  bool get hasAr => arModelUrl != null && arModelUrl!.isNotEmpty;
+
   factory AiRecommendedProduct.fromJson(Map<String, dynamic> json) {
     return AiRecommendedProduct(
       id: json['id'] as String,
@@ -30,6 +38,7 @@ class AiRecommendedProduct {
       price: (json['price'] as num?)?.toDouble() ?? 0,
       imageUrl: json['image_url'] as String?,
       shopName: json['shop_name'] as String?,
+      arModelUrl: json['ar_model_url'] as String?,
     );
   }
 }

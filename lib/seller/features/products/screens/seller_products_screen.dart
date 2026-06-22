@@ -11,6 +11,7 @@ import '../../../../shared/models/seller_product.dart';
 import '../../../../shared/repositories/seller_product_repository.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/error_state.dart';
+import '../../../../shared/widgets/product_ar_badge.dart';
 import '../../tariff/screens/tariff_screen.dart';
 import '../bloc/seller_products_bloc.dart';
 import '../widgets/product_status_chip.dart';
@@ -569,7 +570,11 @@ class _ProductTile extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _ProductThumbnail(hero: hero, muted: isArchived),
+                _ProductThumbnail(
+                  hero: hero,
+                  muted: isArchived,
+                  hasAr: product.hasAr,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -1196,13 +1201,21 @@ class _FilteredEmptyState extends StatelessWidget {
 }
 
 class _ProductThumbnail extends StatelessWidget {
-  const _ProductThumbnail({required this.hero, this.muted = false});
+  const _ProductThumbnail({
+    required this.hero,
+    this.muted = false,
+    this.hasAr = false,
+  });
 
   final String? hero;
 
   /// Archived products desaturate + dim the thumbnail so an inactive listing
   /// reads as "filed away" at a glance, not as a live catalogue item.
   final bool muted;
+
+  /// Shows the "3D / AR" badge so the seller sees which items have a published
+  /// AR model.
+  final bool hasAr;
 
   // Luminance-preserving greyscale matrix — drains all colour while keeping the
   // image legible, so an archived photo looks intentionally retired.
@@ -1245,7 +1258,22 @@ class _ProductThumbnail extends StatelessWidget {
     }
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
-      child: SizedBox(width: 76, height: 76, child: image),
+      child: SizedBox(
+        width: 76,
+        height: 76,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            image,
+            if (hasAr)
+              const Positioned(
+                bottom: 4,
+                left: 4,
+                child: ProductArBadge(compact: true),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

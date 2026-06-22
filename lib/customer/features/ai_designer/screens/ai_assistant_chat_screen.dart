@@ -12,6 +12,7 @@ import 'package:lottie/lottie.dart';
 import '../../../../auth/auth_bottom_sheet.dart';
 import '../../../../core/auth/auth_cubit.dart';
 import '../../../../core/i18n/i18n.dart';
+import '../../../../shared/widgets/product_ar_badge.dart';
 import '../../../widgets/price_format.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../cubit/ai_designer_cubit.dart';
@@ -491,26 +492,39 @@ class _ProductCard extends StatelessWidget {
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(16),
               ),
-              child: AspectRatio(
-                aspectRatio: 1.2,
-                child: product.imageUrl == null
-                    ? Container(
-                        color: pt.imageBg,
-                        child: Icon(Iconsax.gallery_slash, color: pt.greyLight),
-                      )
-                    : CachedNetworkImage(
-                        imageUrl: product.imageUrl!,
-                        fit: BoxFit.cover,
-                        memCacheWidth: 400,
-                        placeholder: (_, _) => Container(color: pt.imageBg),
-                        errorWidget: (_, _, _) => Container(
-                          color: pt.imageBg,
-                          child: Icon(
-                            Iconsax.gallery_slash,
-                            color: pt.greyLight,
+              child: Stack(
+                children: [
+                  AspectRatio(
+                    aspectRatio: 1.2,
+                    child: product.imageUrl == null
+                        ? Container(
+                            color: pt.imageBg,
+                            child: Icon(
+                              Iconsax.gallery_slash,
+                              color: pt.greyLight,
+                            ),
+                          )
+                        : CachedNetworkImage(
+                            imageUrl: product.imageUrl!,
+                            fit: BoxFit.cover,
+                            memCacheWidth: 400,
+                            placeholder: (_, _) => Container(color: pt.imageBg),
+                            errorWidget: (_, _, _) => Container(
+                              color: pt.imageBg,
+                              child: Icon(
+                                Iconsax.gallery_slash,
+                                color: pt.greyLight,
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
+                  ),
+                  if (product.hasAr)
+                    const Positioned(
+                      bottom: 8,
+                      left: 8,
+                      child: ProductArBadge(compact: true),
+                    ),
+                ],
               ),
             ),
             Padding(

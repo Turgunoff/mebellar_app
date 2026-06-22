@@ -8,6 +8,7 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../../core/analytics/analytics_service.dart';
+import '../../../../core/auth/auth_cubit.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../core/result/result.dart';
@@ -410,7 +411,17 @@ class _CatalogProductDetailScreenState
             left: 0,
             right: 0,
             bottom: 0,
-            child: _BottomBar(product: product, onAddToCart: _handleAddToCart),
+            // Grey out the buy actions on the viewer's OWN product. Surgical
+            // rebuild: only the bar reacts to auth, not the whole detail.
+            child: BlocSelector<AuthCubit, AppAuthState, bool>(
+              selector: (s) =>
+                  s is AppAuthAuthenticated && product.isOwnedBy(s.userId),
+              builder: (context, isOwnProduct) => _BottomBar(
+                product: product,
+                onAddToCart: _handleAddToCart,
+                isOwnProduct: isOwnProduct,
+              ),
+            ),
           ),
         ],
       ),

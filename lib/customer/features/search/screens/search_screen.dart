@@ -865,6 +865,7 @@ class _ResultsGrid extends StatelessWidget {
             oldPrice: p.hasDiscount ? _formatPrice(p.price) : null,
             discountPercent: p.discountPercent,
             isFavorite: isFav,
+            hasAr: p.hasAr,
             onTap: () => onItemTap(p),
             onFavoriteToggle: () => context.read<FavoritesBloc>().add(
               FavoriteToggled(Product.fromModel(p)),

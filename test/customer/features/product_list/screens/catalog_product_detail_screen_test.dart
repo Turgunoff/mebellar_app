@@ -8,7 +8,9 @@ import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:woody_app/core/analytics/analytics_service.dart';
 import 'package:woody_app/core/analytics/noop_analytics_service.dart';
+import 'package:woody_app/core/auth/auth_cubit.dart';
 import 'package:woody_app/core/di/service_locator.dart';
+import 'package:woody_app/core/i18n/i18n.dart';
 import 'package:woody_app/core/result/result.dart';
 import 'package:woody_app/customer/features/cart/bloc/cart_bloc.dart';
 import 'package:woody_app/customer/features/favorites/bloc/favorites_bloc.dart';
@@ -29,6 +31,8 @@ class _MockCartBloc extends MockBloc<CartEvent, CartState> implements CartBloc {
 
 class _MockFavoritesBloc extends MockBloc<FavoritesEvent, FavoritesState>
     implements FavoritesBloc {}
+
+class _MockAuthCubit extends MockCubit<AppAuthState> implements AuthCubit {}
 
 /// `reviewsForProduct` stays pending forever so the reviews FutureBuilder
 /// renders nothing — keeps the test focused on the attribute/dimension cards.
@@ -66,13 +70,21 @@ AttributeDefinition _dimDef(String key, String labelUz) => AttributeDefinition(
 );
 
 void main() {
+  setUpAll(() {
+    // The bottom bar's CTAs use tr(); init so the self-purchase copy resolves.
+    AppTranslations.setInstance(AppTranslations.forLocale(const Locale('uz')));
+  });
+
   late _MockCartBloc cart;
   late _MockFavoritesBloc favorites;
+  late _MockAuthCubit auth;
 
-  // A bedroom set: two per-piece bed dimensions + one select attribute.
+  // A bedroom set: two per-piece bed dimensions + one select attribute. Owned
+  // by seller 'u-7' so the self-purchase test can match the logged-in user.
   final product = ProductModel(
     id: 'p1',
     categoryId: 'cat-1',
+    sellerId: 'u-7',
     name: "LONDON yotoq to'plami",
     price: 1000000,
     images: const [],
@@ -125,6 +137,7 @@ void main() {
   setUp(() {
     cart = _MockCartBloc();
     favorites = _MockFavoritesBloc();
+    auth = _MockAuthCubit();
     whenListen(
       cart,
       const Stream<CartState>.empty(),
@@ -134,6 +147,13 @@ void main() {
       favorites,
       const Stream<FavoritesState>.empty(),
       initialState: const FavoritesState(),
+    );
+    // Default: a guest — the buy CTA stays normal. The self-purchase test
+    // overrides this with an authenticated owner before pumping.
+    whenListen(
+      auth,
+      const Stream<AppAuthState>.empty(),
+      initialState: const AppAuthUnauthenticated(),
     );
   });
 
@@ -156,6 +176,7 @@ void main() {
             providers: [
               BlocProvider<CartBloc>.value(value: cart),
               BlocProvider<FavoritesBloc>.value(value: favorites),
+              BlocProvider<AuthCubit>.value(value: auth),
             ],
             child: CatalogProductDetailScreen(product: product),
           ),
@@ -205,5 +226,45 @@ void main() {
     // humanised key rather than throwing.
     expect(find.byType(CatalogProductDetailScreen), findsOneWidget);
     expect(find.text('Bed width cm'), findsOneWidget);
+  });
+
+  testWidgets('greys out the buy CTA on the viewer\'s OWN product', (
+    tester,
+  ) async {
+    registerCommon();
+    sl.registerSingleton<AttributesRepository>(
+      _FakeAttributesRepository(const []),
+    );
+    // The logged-in user IS the product's seller (sellerId 'u-7').
+    whenListen(
+      auth,
+      const Stream<AppAuthState>.empty(),
+      initialState: const AppAuthAuthenticated('u-7'),
+    );
+
+    await pumpScreen(tester);
+
+    // The disabled "your own product" CTA replaces the add-to-cart button.
+    expect(find.text("O'zingizning mahsulotingiz"), findsOneWidget);
+    expect(find.text("Savatchaga qo'shish"), findsNothing);
+  });
+
+  testWidgets('keeps the normal add-to-cart CTA for a different user', (
+    tester,
+  ) async {
+    registerCommon();
+    sl.registerSingleton<AttributesRepository>(
+      _FakeAttributesRepository(const []),
+    );
+    whenListen(
+      auth,
+      const Stream<AppAuthState>.empty(),
+      initialState: const AppAuthAuthenticated('someone-else'),
+    );
+
+    await pumpScreen(tester);
+
+    expect(find.text("O'zingizning mahsulotingiz"), findsNothing);
+    expect(find.text("Savatchaga qo'shish"), findsOneWidget);
   });
 }

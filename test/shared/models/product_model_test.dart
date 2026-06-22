@@ -67,4 +67,39 @@ void main() {
       expect(roundTripped.usdzUrl, original.usdzUrl);
     });
   });
+
+  group('ProductModel ownership (self-purchase block)', () {
+    test('parses seller_id', () {
+      final p = ProductModel.fromJson({..._baseJson(), 'seller_id': 'u-7'});
+      expect(p.sellerId, 'u-7');
+    });
+
+    test('sellerId is null when seller_id is absent', () {
+      expect(ProductModel.fromJson(_baseJson()).sellerId, isNull);
+    });
+
+    test('isOwnedBy is true only for the matching seller id', () {
+      final p = ProductModel.fromJson({..._baseJson(), 'seller_id': 'u-7'});
+      expect(p.isOwnedBy('u-7'), isTrue);
+      expect(p.isOwnedBy('u-8'), isFalse);
+    });
+
+    test('isOwnedBy is false for a guest (null) or unknown seller', () {
+      final guest = ProductModel.fromJson(_baseJson()); // no seller_id
+      expect(guest.isOwnedBy(null), isFalse);
+      expect(guest.isOwnedBy('u-7'), isFalse); // sellerId null → never owned
+
+      final owned = ProductModel.fromJson({..._baseJson(), 'seller_id': 'u-7'});
+      expect(owned.isOwnedBy(null), isFalse);
+    });
+
+    test('toJson round-trips seller_id', () {
+      final original = ProductModel.fromJson({
+        ..._baseJson(),
+        'seller_id': 'u-7',
+      });
+      expect(original.toJson()['seller_id'], 'u-7');
+      expect(ProductModel.fromJson(original.toJson()).sellerId, 'u-7');
+    });
+  });
 }

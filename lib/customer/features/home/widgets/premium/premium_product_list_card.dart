@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../../../shared/widgets/image_error_placeholder.dart';
+import '../../../../../shared/widgets/product_ar_badge.dart';
 import 'premium_card_parts.dart';
 import 'premium_tokens.dart';
 
@@ -23,6 +24,7 @@ class PremiumProductListCard extends StatelessWidget {
     this.isFavorite = false,
     this.onTap,
     this.onFavoriteToggle,
+    this.hasAr = false,
   });
 
   final String imageUrl;
@@ -43,6 +45,9 @@ class PremiumProductListCard extends StatelessWidget {
   final bool isFavorite;
   final VoidCallback? onTap;
   final VoidCallback? onFavoriteToggle;
+
+  /// Shows the "3D / AR available" badge when the product has a published model.
+  final bool hasAr;
 
   /// Strict square thumbnail. A fixed box (not a content-driven strip) is what
   /// keeps every list row's image at the same 1:1 proportion — so a 1-line and a
@@ -83,6 +88,12 @@ class PremiumProductListCard extends StatelessWidget {
             top: 10,
             left: 10,
             child: PremiumDiscountBadge(percent: discountPercent),
+          ),
+        if (hasAr)
+          const Positioned(
+            bottom: 10,
+            left: 10,
+            child: ProductArBadge(compact: true),
           ),
       ],
     );

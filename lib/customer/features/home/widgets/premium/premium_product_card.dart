@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../../../shared/widgets/image_error_placeholder.dart';
+import '../../../../../shared/widgets/product_ar_badge.dart';
 import 'premium_card_parts.dart';
 import 'premium_tokens.dart';
 
@@ -29,6 +30,7 @@ class PremiumProductCard extends StatelessWidget {
     this.onTap,
     this.onFavoriteToggle,
     this.customImageHeight,
+    this.hasAr = false,
   });
 
   final String imageUrl;
@@ -60,6 +62,9 @@ class PremiumProductCard extends StatelessWidget {
 
   /// Fixed image height that switches the card into masonry mode.
   final double? customImageHeight;
+
+  /// Shows the "3D / AR available" badge when the product has a published model.
+  final bool hasAr;
 
   @override
   Widget build(BuildContext context) {
@@ -98,6 +103,8 @@ class PremiumProductCard extends StatelessWidget {
             left: 12,
             child: PremiumDiscountBadge(percent: discountPercent),
           ),
+        if (hasAr)
+          const Positioned(bottom: 12, left: 12, child: ProductArBadge()),
       ],
     );
 

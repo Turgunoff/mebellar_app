@@ -234,6 +234,12 @@ class SellerProduct extends Equatable {
   /// AR status badge at all (a never-scanned product shows just the CTA).
   bool get hasArScan => arStatus != 'none';
 
+  /// True when a QC-approved, viewable 3D model exists — same rule as the buyer
+  /// `ProductModel.hasAr`. Drives the "3D / AR" badge on the seller list card so
+  /// the seller sees exactly which items have a published model (not ones still
+  /// processing / rejected). Narrower than [hasArScan] on purpose.
+  bool get hasAr => (arModelUrl?.isNotEmpty ?? false) && arStatus == 'approved';
+
   String? get heroImage {
     if (images.isEmpty) return null;
     final primary = primaryImageId == null

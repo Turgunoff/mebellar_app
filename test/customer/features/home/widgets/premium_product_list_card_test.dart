@@ -66,6 +66,39 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('AR badge shows only when hasAr is true', (tester) async {
+    await tester.pumpWidget(
+      wrap(
+        const SizedBox(
+          width: 360,
+          child: PremiumProductListCard(
+            imageUrl: 'https://example.com/x.jpg',
+            name: 'X',
+            price: '1 UZS',
+            hasAr: true,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(find.byIcon(Icons.view_in_ar), findsOneWidget);
+
+    await tester.pumpWidget(
+      wrap(
+        const SizedBox(
+          width: 360,
+          child: PremiumProductListCard(
+            imageUrl: 'https://example.com/x.jpg',
+            name: 'X',
+            price: '1 UZS', // hasAr defaults to false
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(find.byIcon(Icons.view_in_ar), findsNothing);
+  });
+
   testWidgets('heart toggle and card tap fire their callbacks', (tester) async {
     var fav = 0;
     var tapped = 0;

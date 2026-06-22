@@ -95,6 +95,7 @@ class _SimilarSectionState extends State<_SimilarSection> {
                           price: '${_money(p.effectivePrice)} UZS',
                           discountPercent: p.discountPercent,
                           isFavorite: isFav,
+                          hasAr: p.hasAr,
                           customImageHeight: _kSimilarImageHeight,
                           onTap: () =>
                               context.push('/product-detail/${p.id}', extra: p),
@@ -160,10 +161,20 @@ class _SimilarSkeleton extends StatelessWidget {
 /// "go to cart" pair so repeat adds never leave the screen. The favourite
 /// toggle lives in the app bar, not here.
 class _BottomBar extends StatelessWidget {
-  const _BottomBar({required this.product, required this.onAddToCart});
+  const _BottomBar({
+    required this.product,
+    required this.onAddToCart,
+    this.isOwnProduct = false,
+  });
 
   final ProductModel product;
   final VoidCallback onAddToCart;
+
+  /// The viewer is the seller who owns this product — the buy actions are
+  /// replaced by a disabled "your own product" CTA. The catalog stays fully
+  /// browsable (gallery, AR viewer, specs); only buying is blocked, and the
+  /// backend cart/order endpoints enforce the same rule.
+  final bool isOwnProduct;
 
   int _quantityOf(CartState state) {
     for (final item in state.items) {
@@ -192,34 +203,39 @@ class _BottomBar extends StatelessWidget {
           ),
         ],
       ),
-      child: BlocBuilder<CartBloc, CartState>(
-        buildWhen: (prev, curr) => _quantityOf(prev) != _quantityOf(curr),
-        builder: (context, state) {
-          final quantity = _quantityOf(state);
-          return AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            switchInCurve: Curves.easeOutCubic,
-            switchOutCurve: Curves.easeInCubic,
-            transitionBuilder: (child, animation) => FadeTransition(
-              opacity: animation,
-              child: ScaleTransition(
-                scale: Tween<double>(begin: 0.96, end: 1).animate(animation),
-                child: child,
-              ),
-            ),
-            child: quantity == 0
-                ? _AddToCartCta(
-                    key: const ValueKey('cta-add'),
-                    onPressed: onAddToCart,
-                  )
-                : _InCartControls(
-                    key: const ValueKey('cta-in-cart'),
-                    productId: product.id,
-                    quantity: quantity,
+      child: isOwnProduct
+          ? const _OwnProductCta()
+          : BlocBuilder<CartBloc, CartState>(
+              buildWhen: (prev, curr) => _quantityOf(prev) != _quantityOf(curr),
+              builder: (context, state) {
+                final quantity = _quantityOf(state);
+                return AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  transitionBuilder: (child, animation) => FadeTransition(
+                    opacity: animation,
+                    child: ScaleTransition(
+                      scale: Tween<double>(
+                        begin: 0.96,
+                        end: 1,
+                      ).animate(animation),
+                      child: child,
+                    ),
                   ),
-          );
-        },
-      ),
+                  child: quantity == 0
+                      ? _AddToCartCta(
+                          key: const ValueKey('cta-add'),
+                          onPressed: onAddToCart,
+                        )
+                      : _InCartControls(
+                          key: const ValueKey('cta-in-cart'),
+                          productId: product.id,
+                          quantity: quantity,
+                        ),
+                );
+              },
+            ),
     );
   }
 }
@@ -247,6 +263,38 @@ class _AddToCartCta extends StatelessWidget {
           Text(
             tr('cart.add'),
             style: _ts(size: 15, weight: FontWeight.w700, color: Colors.white),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Disabled buy CTA shown on the seller's OWN product — greyed out with the
+/// "your own product" copy. The rest of the detail (gallery, AR viewer, specs)
+/// stays interactive; only the purchase action is blocked.
+class _OwnProductCta extends StatelessWidget {
+  const _OwnProductCta();
+
+  @override
+  Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
+    return FilledButton(
+      onPressed: null,
+      style: FilledButton.styleFrom(
+        disabledBackgroundColor: pt.imageBg,
+        minimumSize: const Size.fromHeight(54),
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Iconsax.box, size: 19, color: pt.grey),
+          const SizedBox(width: 9),
+          Text(
+            tr('product.your_own_product'),
+            style: _ts(size: 15, weight: FontWeight.w700, color: pt.grey),
           ),
         ],
       ),

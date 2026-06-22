@@ -8,6 +8,7 @@ class ProductModel extends Equatable {
     this.subcategoryId,
     this.subcategoryName,
     this.shopId,
+    this.sellerId,
     this.shopName,
     required this.name,
     this.description,
@@ -44,6 +45,11 @@ class ProductModel extends Equatable {
   /// Resolved subcategory display name (joined `subcategories.name`).
   final String? subcategoryName;
   final String? shopId;
+
+  /// The owning seller's id (= `sellers.id`, 1:1 with `profiles.id` / the JWT
+  /// `sub`). Used to grey out the buy actions on the buyer's OWN product. Null
+  /// for older cached rows or feeds that don't carry it.
+  final String? sellerId;
   final String? shopName;
   final String name;
   final String? description;
@@ -100,6 +106,12 @@ class ProductModel extends Equatable {
   /// True when a published 3D model is available for the buyer AR viewer.
   bool get hasAr => (arModelUrl?.isNotEmpty ?? false) && arStatus == 'approved';
 
+  /// True when [userId] is the seller who owns this product — drives the
+  /// "your own product" buy-block on the detail screen. False for a guest
+  /// (`userId == null`) or when `seller_id` wasn't sent.
+  bool isOwnedBy(String? userId) =>
+      userId != null && sellerId != null && sellerId == userId;
+
   /// True when a real discount applies — a positive discounted price strictly
   /// below the list price.
   bool get hasDiscount =>
@@ -123,7 +135,8 @@ class ProductModel extends Equatable {
     return ProductModel(
       id: json['id'] as String,
       categoryId: json['category_id'] as String,
-      categoryName: (json['category_name'] as String?)?.trim().isNotEmpty == true
+      categoryName:
+          (json['category_name'] as String?)?.trim().isNotEmpty == true
           ? (json['category_name'] as String).trim()
           : null,
       subcategoryId: json['subcategory_id'] as String?,
@@ -132,6 +145,7 @@ class ProductModel extends Equatable {
           ? (json['subcategory_name'] as String).trim()
           : null,
       shopId: json['shop_id'] as String?,
+      sellerId: json['seller_id'] as String?,
       shopName: shopEmbed?['name'] as String?,
       name: json['name'] as String,
       description: json['description'] as String?,
@@ -182,6 +196,7 @@ class ProductModel extends Equatable {
     'subcategory_id': subcategoryId,
     if (subcategoryName != null) 'subcategory_name': subcategoryName,
     'shop_id': shopId,
+    if (sellerId != null) 'seller_id': sellerId,
     if (shopName != null) 'shops': {'name': shopName},
     'name': name,
     'description': description,

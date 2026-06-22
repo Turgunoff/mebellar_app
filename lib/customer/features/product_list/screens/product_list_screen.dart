@@ -12,6 +12,7 @@ import '../../../../core/i18n/i18n.dart';
 import '../../../../shared/models/category_model.dart';
 import '../../../../shared/models/product.dart';
 import '../../../../shared/models/product_model.dart';
+import '../../../../shared/widgets/product_ar_badge.dart';
 import '../../../features/favorites/bloc/favorites_bloc.dart';
 import '../../../widgets/filter/active_filters_bar.dart';
 import '../../../widgets/filter/filter_button.dart';
@@ -455,6 +456,7 @@ class _ProductListView extends StatelessWidget {
                 : null,
             discountPercent: product.discountPercent,
             isFavorite: isFav,
+            hasAr: product.hasAr,
             onTap: () =>
                 context.push('/product-detail/${product.id}', extra: product),
             onFavoriteToggle: () => context.read<FavoritesBloc>().add(
@@ -544,6 +546,12 @@ class _ProductCard extends StatelessWidget {
                             ),
                           ),
                         ),
+                      ),
+                    if (product.hasAr)
+                      const Positioned(
+                        bottom: 8,
+                        left: 8,
+                        child: ProductArBadge(),
                       ),
                   ],
                 ),
