@@ -55,7 +55,9 @@ void main() {
     await tester.pump();
 
     expect(find.text("Sevimlilar ro'yxati bo'sh"), findsOneWidget);
-    // CTA back to the catalog is part of the empty state.
-    expect(find.text("Mahsulotlarni ko'rish"), findsOneWidget);
+    // Premium typography-driven empty state: no action button — the user
+    // navigates away via the bottom bar.
+    expect(find.text("Mahsulotlarni ko'rish"), findsNothing);
+    expect(find.byType(FilledButton), findsNothing);
   });
 }

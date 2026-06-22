@@ -76,8 +76,6 @@ class CartScreen extends StatelessWidget {
                 icon: Iconsax.shopping_bag,
                 title: tr('cart.empty'),
                 subtitle: tr('cart.empty_hint'),
-                buttonText: tr('cart.empty_cta'),
-                onButtonPressed: () => context.go('/?tab=categories'),
                 bottomPadding: 24,
               ),
             );

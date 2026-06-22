@@ -91,8 +91,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 icon: Iconsax.heart,
                 title: tr('favorites.empty'),
                 subtitle: tr('favorites.empty_hint'),
-                buttonText: tr('favorites.empty_cta'),
-                onButtonPressed: () => context.go('/?tab=categories'),
                 bottomPadding: bottomPad,
               ),
             );

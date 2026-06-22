@@ -39,34 +39,40 @@ class PremiumEmptyState extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: PremiumTokens.accent.withValues(alpha: 0.10),
-                    ),
-                    alignment: Alignment.center,
-                    child: Icon(icon, size: 44, color: PremiumTokens.accent),
+                  // Bare glyph, no circular fill — a soft, low-opacity brand
+                  // tint keeps it present without competing with the title.
+                  Icon(
+                    icon,
+                    size: 64,
+                    color: PremiumTokens.accent.withValues(alpha: 0.45),
                   ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 24),
                   Text(
                     title,
                     textAlign: TextAlign.center,
-                    style: PremiumTokens.display(size: 22, letterSpacing: -0.3),
+                    style: PremiumTokens.display(
+                      size: 26,
+                      color: pt.dark,
+                      height: 1.2,
+                      letterSpacing: 0.5,
+                    ),
                   ),
                   const SizedBox(height: 12),
-                  Text(
-                    subtitle,
-                    textAlign: TextAlign.center,
-                    // 3 lines — uz copy regularly needs the third; a mid-word
-                    // "…" cut reads broken on the customer's main tabs.
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: PremiumTokens.body(
-                      size: 14,
-                      color: pt.grey,
-                      height: 1.5,
+                  // Narrower measure than the title — extra inset gives the
+                  // body copy an editorial column. 3 lines: uz copy regularly
+                  // needs the third; a mid-word "…" cut reads broken.
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      subtitle,
+                      textAlign: TextAlign.center,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: PremiumTokens.body(
+                        size: 15,
+                        color: pt.grey,
+                        height: 1.5,
+                      ),
                     ),
                   ),
                   if (buttonText != null && onButtonPressed != null) ...[

@@ -51,8 +51,10 @@ void main() {
     await tester.pumpWidget(harness());
     await tester.pump();
     expect(find.text("Savatcha bo'sh"), findsOneWidget);
-    // CTA back to the catalog is part of the empty state.
-    expect(find.text("Katalogga o'tish"), findsOneWidget);
+    // Premium typography-driven empty state: no action button — the user
+    // navigates away via the bottom bar.
+    expect(find.text("Katalogga o'tish"), findsNothing);
+    expect(find.byType(FilledButton), findsNothing);
   });
 
   testWidgets('renders a row for each loaded cart item', (tester) async {
