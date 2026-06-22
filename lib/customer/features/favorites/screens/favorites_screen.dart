@@ -91,7 +91,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 icon: Iconsax.heart,
                 title: tr('favorites.empty'),
                 subtitle: tr('favorites.empty_hint'),
-                bottomPadding: bottomPad,
+                // No bottom bar in the empty state — leave bottomPadding at 0
+                // so the content sits dead-centre between header and nav.
               ),
             );
           }

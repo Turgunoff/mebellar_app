@@ -76,7 +76,8 @@ class CartScreen extends StatelessWidget {
                 icon: Iconsax.shopping_bag,
                 title: tr('cart.empty'),
                 subtitle: tr('cart.empty_hint'),
-                bottomPadding: 24,
+                // No bottom bar in the empty state — leave bottomPadding at 0
+                // so the content sits dead-centre between header and nav.
               ),
             );
           }
