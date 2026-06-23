@@ -18,12 +18,15 @@ import '../../../../core/i18n/i18n.dart';
 import '../../../../core/services/facebook_analytics_service.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/ar/ar_loading_overlay.dart';
+import '../../../../shared/ar/ar_set_piece.dart';
 import '../../../../shared/ar/glb_cache_manager.dart';
 import '../../../../shared/models/product_model.dart';
 import '../../../../shared/repositories/woody_set_repository.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../cubit/ar_viewer_cubit.dart';
 import 'fallback_2d_camera_screen.dart';
+import 'set_ar_viewer_screen.dart';
+import 'set_sticker_screen.dart';
 
 /// Clean light "showroom" backdrop behind the model — a flat, premium
 /// e-commerce stage (think IKEA/Wayfair) rather than a dark void. Fixed in both
@@ -441,11 +444,33 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
               }),
             );
           }
-          unawaited(_ensureCameraThen(() => unawaited(_activateAr())));
+          // A garnitur (≥2 model-bearing parts) can't be placed by model-viewer's
+          // OS AR — that accepts a single .glb. Hand the whole part list to the
+          // native multi-object scene so every piece lands together; a true
+          // single product keeps the (correct) single-model activateAR() path.
+          if (_cubit.state.hasMultipleParts) {
+            unawaited(
+              _ensureCameraThen(
+                _openMultiObjectAr,
+                onBlocked: _openMultiObject2d,
+              ),
+            );
+          } else {
+            unawaited(_ensureCameraThen(() => unawaited(_activateAr())));
+          }
         },
         onPick2d: () {
           Navigator.of(sheetContext).pop();
-          unawaited(_ensureCameraThen(_openFallback));
+          if (_cubit.state.hasMultipleParts) {
+            unawaited(
+              _ensureCameraThen(
+                _openMultiObject2d,
+                onBlocked: _openMultiObject2d,
+              ),
+            );
+          } else {
+            unawaited(_ensureCameraThen(_openFallback));
+          }
         },
       ),
     );
@@ -460,15 +485,20 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
   /// - granted → run [onGranted] (launch AR / open the 2D overlay);
   /// - denied (the OS popup was just shown and declined; re-askable on Android)
   ///   → do nothing, so the buyer can simply tap again;
-  /// - permanentlyDenied / restricted → open the fallback, which surfaces the
-  ///   "Sozlamalarni ochish" affordance.
-  Future<void> _ensureCameraThen(VoidCallback onGranted) async {
+  /// - permanentlyDenied / restricted → run [onBlocked] (defaults to the
+  ///   single-model fallback, which surfaces the "Sozlamalarni ochish"
+  ///   affordance); the multi-object paths pass their own 2D scene so a garnitur
+  ///   never collapses back to a single piece on a denial.
+  Future<void> _ensureCameraThen(
+    VoidCallback onGranted, {
+    VoidCallback? onBlocked,
+  }) async {
     final status = await Permission.camera.request();
     if (!mounted) return;
     if (status.isGranted) {
       onGranted();
     } else if (status.isPermanentlyDenied || status.isRestricted) {
-      _openFallback();
+      (onBlocked ?? _openFallback)();
     }
   }
 
@@ -485,6 +515,43 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
           modelUrl: part.glbUrl,
           posterUrl: part.posterUrl,
           productName: part.name,
+        ),
+      ),
+    );
+  }
+
+  /// Every togglable part as a native-placement piece — a garnitur's bed/
+  /// wardrobe/dresser, or a set's sibling products. Only model-bearing parts are
+  /// on screen, so each carries a real `.glb`.
+  List<ArSetPiece> _setPieces() =>
+      _cubit.state.parts.map((p) => p.toSetPiece()).toList(growable: false);
+
+  /// Hands the whole part list to the native multi-object AR scene so every
+  /// piece lands as a separate, independently movable node — the experience
+  /// model-viewer's single-`.glb` OS AR can't deliver.
+  void _openMultiObjectAr() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        settings: const RouteSettings(name: '/set-ar-viewer'),
+        fullscreenDialog: true,
+        builder: (_) => SetArViewerScreen(
+          pieces: _setPieces(),
+          setName: widget.product.name,
+        ),
+      ),
+    );
+  }
+
+  /// The universal 2D dock-based overlay for the whole part list — every device
+  /// can run it, and it shares the same piece picker as the AR scene.
+  void _openMultiObject2d() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        settings: const RouteSettings(name: '/set-sticker'),
+        fullscreenDialog: true,
+        builder: (_) => SetStickerScreen(
+          pieces: _setPieces(),
+          setName: widget.product.name,
         ),
       ),
     );

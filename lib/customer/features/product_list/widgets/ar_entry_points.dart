@@ -165,6 +165,14 @@ class ArPromoCard extends StatelessWidget {
     final trueScale =
         arScaleString(product.widthCm, product.heightCm, product.depthCm) !=
         null;
+    // A garnitur (≥2 model-bearing parts) lands as a whole set in the AR scene,
+    // so the card promises that rather than a single piece.
+    final multiPart = product.hasMultiPartAr;
+    final subtitleKey = multiPart
+        ? 'product.set_choice_subtitle'
+        : (trueScale
+              ? 'product.ar_card_subtitle'
+              : 'product.ar_card_subtitle_plain');
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -216,11 +224,7 @@ class ArPromoCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 5),
                       Text(
-                        tr(
-                          trueScale
-                              ? 'product.ar_card_subtitle'
-                              : 'product.ar_card_subtitle_plain',
-                        ),
+                        tr(subtitleKey),
                         style: TextStyle(
                           fontFamily: AppFonts.seller,
                           fontSize: 12.5,

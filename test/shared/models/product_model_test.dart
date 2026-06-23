@@ -102,4 +102,47 @@ void main() {
       expect(ProductModel.fromJson(original.toJson()).sellerId, 'u-7');
     });
   });
+
+  group('ProductModel.hasMultiPartAr (garnitur multi-object gate)', () {
+    Map<String, dynamic> withParts(List<Map<String, dynamic>> parts) => {
+      ..._baseJson(arModelUrl: 'https://cdn/primary.glb'),
+      'ar_parts': parts,
+    };
+
+    test('true with ≥2 model-bearing parts', () {
+      final p = ProductModel.fromJson(
+        withParts([
+          {'id': 'bed', 'label': 'Krovat', 'ar_model_url': 'https://cdn/bed.glb'},
+          {'id': 'wd', 'label': 'Shkaf', 'ar_model_url': 'https://cdn/wd.glb'},
+          {'id': 'mr', 'label': 'Tryumo', 'ar_model_url': 'https://cdn/mr.glb'},
+        ]),
+      );
+      expect(p.arParts.length, 3);
+      expect(p.hasMultiPartAr, isTrue);
+    });
+
+    test('false with a single model-bearing part', () {
+      final p = ProductModel.fromJson(
+        withParts([
+          {'id': 'bed', 'label': 'Krovat', 'ar_model_url': 'https://cdn/bed.glb'},
+        ]),
+      );
+      expect(p.hasMultiPartAr, isFalse);
+    });
+
+    test('false with no parts (plain single product)', () {
+      final p = ProductModel.fromJson(_baseJson(arModelUrl: 'https://cdn/m.glb'));
+      expect(p.hasMultiPartAr, isFalse);
+    });
+
+    test('parts without a model URL do not count', () {
+      final p = ProductModel.fromJson(
+        withParts([
+          {'id': 'bed', 'label': 'Krovat', 'ar_model_url': 'https://cdn/bed.glb'},
+          {'id': 'rug', 'label': 'Gilam'}, // image-only, no model
+        ]),
+      );
+      expect(p.hasMultiPartAr, isFalse);
+    });
+  });
 }

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/logging/talker.dart';
 import '../../../../shared/ar/ar_scale.dart';
+import '../../../../shared/ar/ar_set_piece.dart';
 import '../../../../shared/ar/glb_cache_manager.dart';
 import '../../../../shared/models/ar_part.dart';
 import '../../../../shared/models/product_model.dart';
@@ -79,6 +80,21 @@ class ArViewerPart extends Equatable {
     widthCm: p.widthCm,
     heightCm: p.heightCm,
     depthCm: p.depthCm,
+  );
+
+  /// Maps this togglable model to the native multi-object placement value type.
+  /// Lets the inline viewer hand its whole part list (a garnitur's bed/wardrobe/
+  /// dresser, OR a set's sibling products) to [SetArViewerScreen] so every piece
+  /// is placed together — `<model-viewer>`'s OS AR can only push one `.glb`, so
+  /// a true multi-object scene must go through the native plugin instead.
+  ArSetPiece toSetPiece() => ArSetPiece(
+    id: id,
+    name: name,
+    glbUrl: glbUrl.isNotEmpty ? glbUrl : null,
+    imageUrl: posterUrl,
+    widthCm: widthCm,
+    heightCm: heightCm,
+    depthCm: depthCm,
   );
 
   @override

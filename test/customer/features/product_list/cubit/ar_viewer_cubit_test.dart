@@ -307,6 +307,37 @@ void main() {
     );
   });
 
+  group('ArViewerPart.toSetPiece (native multi-object hand-off)', () {
+    test('maps a model-bearing part to a placeable piece', () {
+      const part = ArViewerPart(
+        id: 'bed',
+        name: 'Krovat',
+        glbUrl: 'https://cdn/bed.glb',
+        usdzUrl: 'https://cdn/bed.usdz',
+        posterUrl: 'https://cdn/bed.jpg',
+        widthCm: 180,
+        heightCm: 90,
+        depthCm: 200,
+      );
+      final piece = part.toSetPiece();
+      expect(piece.id, 'bed');
+      expect(piece.name, 'Krovat');
+      expect(piece.glbUrl, 'https://cdn/bed.glb');
+      expect(piece.imageUrl, 'https://cdn/bed.jpg'); // poster → dock thumbnail
+      expect(piece.widthCm, 180);
+      expect(piece.heightCm, 90);
+      expect(piece.depthCm, 200);
+      expect(piece.hasModel, isTrue);
+    });
+
+    test('an empty glb yields a non-placeable piece (glbUrl null)', () {
+      const part = ArViewerPart(id: 'x', name: 'X', glbUrl: '');
+      final piece = part.toSetPiece();
+      expect(piece.glbUrl, isNull);
+      expect(piece.hasModel, isFalse);
+    });
+  });
+
   group('ArViewerCubit — multi-part product', () {
     blocTest<ArViewerCubit, ArViewerState>(
       'hydrates the product own parts and keeps the primary selected',

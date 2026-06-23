@@ -125,6 +125,12 @@ class ProductModel extends Equatable {
   /// True when a published 3D model is available for the buyer AR viewer.
   bool get hasAr => (arModelUrl?.isNotEmpty ?? false) && arStatus == 'approved';
 
+  /// True when this product carries ≥2 model-bearing AR parts — a garnitur whose
+  /// pieces (krovat/shkaf/tryumo) can be placed together in the multi-object AR
+  /// scene rather than one-at-a-time via OS AR.
+  bool get hasMultiPartAr =>
+      arParts.where((p) => p.hasModel).length >= 2;
+
   /// True when [userId] is the seller who owns this product — drives the
   /// "your own product" buy-block on the detail screen. False for a guest
   /// (`userId == null`) or when `seller_id` wasn't sent.

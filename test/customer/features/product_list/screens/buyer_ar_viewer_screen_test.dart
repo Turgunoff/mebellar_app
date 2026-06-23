@@ -6,6 +6,7 @@ import 'package:woody_app/core/i18n/i18n.dart';
 import 'package:woody_app/core/theme/app_theme.dart';
 import 'package:woody_app/customer/features/product_list/screens/buyer_ar_viewer_screen.dart';
 import 'package:woody_app/shared/ar/glb_cache_manager.dart';
+import 'package:woody_app/shared/models/ar_part.dart';
 import 'package:woody_app/shared/models/product_model.dart';
 import 'package:woody_app/shared/models/product_set.dart';
 import 'package:woody_app/shared/repositories/woody_set_repository.dart';
@@ -40,6 +41,7 @@ ProductModel _product({
   String? usdzUrl,
   String? setId,
   List<String> images = const [],
+  List<ArPart> arParts = const [],
 }) => ProductModel(
   id: id,
   categoryId: 'cat-1',
@@ -51,6 +53,7 @@ ProductModel _product({
   arModelUrl: 'https://example.com/model.glb',
   usdzUrl: usdzUrl,
   arStatus: 'approved',
+  arParts: arParts,
   setId: setId,
   widthCm: widthCm,
   heightCm: heightCm,
@@ -211,6 +214,35 @@ void main() {
     // Single product → the name shows once (top-bar title), with no second
     // selector chip echoing it.
     expect(find.text('Stol'), findsOneWidget);
+  });
+
+  testWidgets('multi-part product (garnitur) shows the part selector', (
+    tester,
+  ) async {
+    // A single listing carrying its own bed/wardrobe parts (product_ar_parts,
+    // not a product_set). The primary part shares the product's model URL so it
+    // stays selected without a duplicate chip.
+    await _pump(
+      tester,
+      _product(
+        id: 'bed',
+        name: 'Krovat',
+        arParts: const [
+          ArPart(
+            id: 'bed',
+            label: 'Krovat',
+            arModelUrl: 'https://example.com/model.glb',
+          ),
+          ArPart(id: 'wd', label: 'Shkaf', arModelUrl: 'https://cdn/wd.glb'),
+        ],
+      ),
+    );
+
+    // The primary 'Krovat' part is selected (title + chip); Shkaf is a chip.
+    // hasMultipleParts is true here — the gate that routes the AR CTA to the
+    // native multi-object scene instead of single-model OS AR.
+    expect(find.text('Krovat'), findsNWidgets(2));
+    expect(find.text('Shkaf'), findsOneWidget);
   });
 
   testWidgets('shows a part selector and toggles models for a set', (

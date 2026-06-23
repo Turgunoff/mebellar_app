@@ -11,6 +11,7 @@ import 'package:ar_flutter_plugin_plus/models/ar_anchor.dart';
 import 'package:ar_flutter_plugin_plus/models/ar_hittest_result.dart';
 import 'package:ar_flutter_plugin_plus/models/ar_node.dart';
 import 'package:ar_flutter_plugin_plus/widgets/ar_view.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:gal/gal.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
@@ -25,14 +26,36 @@ import '../../../../shared/ar/ar_scale.dart';
 import '../../../../shared/ar/ar_set_piece.dart';
 import 'set_sticker_screen.dart';
 
-/// True native multi-object AR placement for a whole furniture SET. One ARCore
-/// (Android, Filament) / ARKit (iOS) session detects the floor; the FIRST tap
-/// drops every model-bearing piece of the set side-by-side as separate anchored
-/// nodes, each then independently draggable (handlePans) and rotatable
-/// (handleRotation) by the user. Models are placed true-to-size from each
-/// piece's real cm dimensions (`ar_flutter_plugin_plus` treats a `.glb` unit as
-/// one metre, and Meshy normalises every mesh into a unit cube, so cm/100 per
-/// axis restores the real footprint — same normalisation as the model-viewer).
+/// Brand terracotta — the active-dock / selected-node accent. Fixed in both
+/// themes (this screen is its own immersive camera surface, never theme-driven).
+const Color _kAccent = Color(0xFFC27A5F);
+
+/// One model-bearing piece placed in the scene: its node, the anchor it rides,
+/// and the source piece (for the label shown when it's tapped/selected). A
+/// "place all" batch shares one anchor across several nodes; a dock-driven add
+/// gives each node its own anchor.
+class _PlacedNode {
+  const _PlacedNode({
+    required this.node,
+    required this.anchor,
+    required this.piece,
+  });
+
+  final ARNode node;
+  final ARAnchor anchor;
+  final ArSetPiece piece;
+}
+
+/// True native multi-object AR placement for a whole furniture SET / garnitur.
+/// One ARCore (Android, Filament) / ARKit (iOS) session detects the floor; the
+/// first floor tap drops every model-bearing piece side-by-side as separate
+/// anchored nodes (a fast "see the whole set" start), and from there the buyer
+/// can keep adding pieces one-by-one from the bottom dock, drag/rotate any node
+/// independently (handlePans / handleRotation), and tap a placed node to select
+/// and delete it. Models are placed true-to-size from each piece's real cm
+/// dimensions (`ar_flutter_plugin_plus` treats a `.glb` unit as one metre, and
+/// Meshy normalises every mesh into a unit cube, so cm/100 per axis restores the
+/// real footprint — same normalisation as the model-viewer).
 ///
 /// This is a NATIVE feature: it ships only in a full store release, never a
 /// Shorebird patch. Devices without ARCore/ARKit fall back to the 2D sticker
@@ -56,12 +79,21 @@ class _SetArViewerScreenState extends State<SetArViewerScreen> {
   ARObjectManager? _objects;
   ARAnchorManager? _anchors;
 
-  final List<ARNode> _nodes = [];
-  final List<ARAnchor> _placedAnchors = [];
+  /// Every placed node, keyed by its unique node name (the key `onNodeTap`
+  /// returns). The single source of truth for what's in the scene.
+  final Map<String, _PlacedNode> _placed = {};
 
-  /// Monotonic suffix so re-placing the set never collides node names.
+  /// Monotonic suffix so re-placing / adding never collides node names.
   int _placeCounter = 0;
-  bool _placed = false;
+
+  /// The dock piece armed to drop on the next floor tap. Null → a floor tap
+  /// either places the whole set (nothing placed yet) or is ignored (use the
+  /// dock to add more).
+  ArSetPiece? _activePiece;
+
+  /// The placed node the buyer tapped — shows its delete/deselect control.
+  String? _selectedNodeName;
+
   bool _saving = false;
 
   /// Only model-bearing pieces are 3D-placeable; image-only members are skipped
@@ -69,6 +101,8 @@ class _SetArViewerScreenState extends State<SetArViewerScreen> {
   late final List<ArSetPiece> _placeable = widget.pieces
       .where((p) => p.hasModel)
       .toList(growable: false);
+
+  bool get _hasPlaced => _placed.isNotEmpty;
 
   @override
   void dispose() {
@@ -84,6 +118,11 @@ class _SetArViewerScreenState extends State<SetArViewerScreen> {
       return _NoModelsView(onUse2d: _open2d, onClose: _close);
     }
 
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+    final selected = _selectedNodeName == null
+        ? null
+        : _placed[_selectedNodeName];
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
@@ -97,23 +136,40 @@ class _SetArViewerScreenState extends State<SetArViewerScreen> {
             title: widget.setName,
             onClose: _close,
             onSwitch2d: _open2d,
-            onSave: _placed && !_saving ? _save : null,
-            onClear: _placed ? _clearAll : null,
+            onSave: _hasPlaced && !_saving ? _save : null,
+            onClear: _hasPlaced ? _clearAll : null,
             saving: _saving,
           ),
+          // A tapped node shows its own delete control in place of the hint;
+          // otherwise a contextual hint sits just above the dock.
           Positioned(
-            left: 24,
-            right: 24,
-            bottom: MediaQuery.of(context).padding.bottom + 28,
-            child: _HintPill(
-              text: _placed
-                  ? tr('product.set_2d_hint')
-                  : tr('product.set_ar_place_hint'),
-            ),
+            left: 20,
+            right: 20,
+            bottom: bottomInset + 116,
+            child: selected != null
+                ? _SelectedNodeCard(
+                    name: selected.piece.name,
+                    onDelete: _deleteSelected,
+                    onDeselect: () =>
+                        setState(() => _selectedNodeName = null),
+                  )
+                : _HintPill(text: _hintText()),
+          ),
+          // In-AR dock: tap a piece to arm it, then tap the floor to drop it.
+          _DockBar(
+            pieces: _placeable,
+            activeId: _activePiece?.id,
+            onPick: _setActivePiece,
           ),
         ],
       ),
     );
+  }
+
+  String _hintText() {
+    if (_activePiece != null) return tr('product.set_ar_tap_floor');
+    if (!_hasPlaced) return tr('product.set_ar_place_hint');
+    return tr('product.set_ar_add_hint');
   }
 
   void _onArViewCreated(
@@ -137,29 +193,43 @@ class _SetArViewerScreenState extends State<SetArViewerScreen> {
     // is the literal real-world size.
     objects.onInitialize(iosScaleFactor: 1.0, androidScaleFactor: 1.0);
     session.onPlaneOrPointTap = _onPlaneTap;
+    objects.onNodeTap = _onNodeTapped;
   }
 
   Future<void> _onPlaneTap(List<ARHitTestResult> hits) async {
-    if (_placed) return; // the set is placed once; "clear" re-arms placement
+    final plane = _firstPlane(hits);
+    if (plane == null) return;
+
+    final active = _activePiece;
+    if (active != null) {
+      // Dock-armed → drop that one piece at the tapped spot (cumulative add).
+      await _placeSingle(active, plane);
+      return;
+    }
+    if (!_hasPlaced) {
+      // First tap, nothing armed → drop the whole set so the buyer sees it all.
+      await _placeAll(plane);
+    }
+    // Already placed with nothing armed → ignore; the dock drives further adds.
+  }
+
+  ARHitTestResult? _firstPlane(List<ARHitTestResult> hits) {
+    for (final h in hits) {
+      if (h.type == ARHitTestResultType.plane) return h;
+    }
+    return null;
+  }
+
+  /// Drops every placeable piece in one centred row along the anchor's local X,
+  /// all sharing a single anchor — the "whole set at once" start.
+  Future<void> _placeAll(ARHitTestResult plane) async {
     final objects = _objects;
     final anchors = _anchors;
     if (objects == null || anchors == null) return;
 
-    ARHitTestResult? plane;
-    for (final h in hits) {
-      if (h.type == ARHitTestResultType.plane) {
-        plane = h;
-        break;
-      }
-    }
-    if (plane == null) return;
-
     final anchor = ARPlaneAnchor(transformation: plane.worldTransform);
     if (await anchors.addAnchor(anchor) != true) return;
-    _placedAnchors.add(anchor);
 
-    // Lay the pieces out in a centred row along the anchor's local X so the
-    // whole set lands at once; each node is then independently movable.
     final widthsM = _placeable
         .map((p) => ((p.widthCm ?? 60) / 100).clamp(0.2, 3.0))
         .toList(growable: false);
@@ -167,7 +237,6 @@ class _SetArViewerScreenState extends State<SetArViewerScreen> {
     final total =
         widthsM.fold<double>(0, (a, b) => a + b) + gap * (widthsM.length - 1);
     var cursor = -total / 2;
-    final batch = _placeCounter++;
     var any = false;
 
     for (var i = 0; i < _placeable.length; i++) {
@@ -176,16 +245,17 @@ class _SetArViewerScreenState extends State<SetArViewerScreen> {
       final x = cursor + half;
       cursor += widthsM[i] + gap;
 
+      final name = 'piece_${_placeCounter++}';
       final node = ARNode(
         type: NodeType.webGLB,
         uri: piece.glbUrl!,
-        name: 'set_${batch}_$i',
+        name: name,
         scale: arScaleVector3(piece.widthCm, piece.heightCm, piece.depthCm),
         position: Vector3(x, 0, 0),
       );
       try {
         if (await objects.addNode(node, planeAnchor: anchor) == true) {
-          _nodes.add(node);
+          _placed[name] = _PlacedNode(node: node, anchor: anchor, piece: piece);
           any = true;
         }
       } catch (e, st) {
@@ -193,26 +263,105 @@ class _SetArViewerScreenState extends State<SetArViewerScreen> {
       }
     }
 
-    if (any && mounted) {
-      setState(() => _placed = true);
+    if (any) {
+      if (mounted) setState(() {});
     } else {
-      anchors.removeAnchor(anchor);
-      _placedAnchors.remove(anchor);
+      await anchors.removeAnchor(anchor);
     }
+  }
+
+  /// Drops a single armed piece at the tapped spot, each on its own anchor so it
+  /// can be deleted independently later.
+  Future<void> _placeSingle(ArSetPiece piece, ARHitTestResult plane) async {
+    final objects = _objects;
+    final anchors = _anchors;
+    final glb = piece.glbUrl;
+    if (objects == null || anchors == null || glb == null) return;
+
+    final anchor = ARPlaneAnchor(transformation: plane.worldTransform);
+    if (await anchors.addAnchor(anchor) != true) return;
+
+    final name = 'piece_${_placeCounter++}';
+    final node = ARNode(
+      type: NodeType.webGLB,
+      uri: glb,
+      name: name,
+      scale: arScaleVector3(piece.widthCm, piece.heightCm, piece.depthCm),
+      position: Vector3(0, 0, 0),
+    );
+    try {
+      if (await objects.addNode(node, planeAnchor: anchor) == true) {
+        _placed[name] = _PlacedNode(node: node, anchor: anchor, piece: piece);
+        if (mounted) setState(() {});
+      } else {
+        await anchors.removeAnchor(anchor);
+      }
+    } catch (e, st) {
+      talker.handle(e, st, '[set-ar] addNode failed');
+      await anchors.removeAnchor(anchor);
+    }
+  }
+
+  /// `onNodeTap` returns the names of nodes under the tap. Select the first one
+  /// we own so its delete control appears; arming a placement is cleared so the
+  /// next floor tap doesn't accidentally add while the buyer adjusts.
+  void _onNodeTapped(List<String> names) {
+    String? hit;
+    for (final n in names) {
+      if (_placed.containsKey(n)) {
+        hit = n;
+        break;
+      }
+    }
+    if (hit == null || !mounted) return;
+    setState(() {
+      _selectedNodeName = hit;
+      _activePiece = null;
+    });
+  }
+
+  /// Arms / disarms a dock piece for the next floor tap. Re-tapping the armed
+  /// piece disarms it; arming always drops any node selection.
+  void _setActivePiece(ArSetPiece piece) {
+    setState(() {
+      _activePiece = _activePiece?.id == piece.id ? null : piece;
+      _selectedNodeName = null;
+    });
+  }
+
+  /// Removes just the selected node. Its anchor is dropped only when no sibling
+  /// node still rides it (the "place all" batch shares one anchor).
+  void _deleteSelected() {
+    final name = _selectedNodeName;
+    if (name == null) return;
+    final placed = _placed.remove(name);
+    if (placed == null) return;
+    _objects?.removeNode(placed.node);
+    final anchorStillUsed = _placed.values.any(
+      (p) => identical(p.anchor, placed.anchor),
+    );
+    if (!anchorStillUsed) _anchors?.removeAnchor(placed.anchor);
+    if (mounted) setState(() => _selectedNodeName = null);
   }
 
   void _clearAll() {
     final objects = _objects;
     final anchors = _anchors;
-    for (final n in _nodes) {
-      objects?.removeNode(n);
+    final seenAnchors = <ARAnchor>{};
+    for (final p in _placed.values) {
+      objects?.removeNode(p.node);
+      seenAnchors.add(p.anchor);
     }
-    for (final a in _placedAnchors) {
+    for (final a in seenAnchors) {
       anchors?.removeAnchor(a);
     }
-    _nodes.clear();
-    _placedAnchors.clear();
-    if (mounted) setState(() => _placed = false);
+    _placed.clear();
+    if (mounted) {
+      setState(() {
+        _selectedNodeName = null;
+        _activePiece = null;
+      });
+    }
   }
 
   Future<void> _save() async {
@@ -427,7 +576,7 @@ class _PillButton extends StatelessWidget {
   }
 }
 
-/// Bottom instruction chip (place hint before the set lands, manipulation hint
+/// Bottom instruction chip (place hint before the set lands, add/manipulate hint
 /// after).
 class _HintPill extends StatelessWidget {
   const _HintPill({required this.text});
@@ -453,6 +602,207 @@ class _HintPill extends StatelessWidget {
             fontWeight: FontWeight.w600,
             height: 1.35,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Floating control for a tapped node — its name plus a delete action and a
+/// deselect (✕). Drag and two-finger rotate already work on the node itself;
+/// this only adds the per-node delete the gestures can't.
+class _SelectedNodeCard extends StatelessWidget {
+  const _SelectedNodeCard({
+    required this.name,
+    required this.onDelete,
+    required this.onDeselect,
+  });
+
+  final String name;
+  final VoidCallback onDelete;
+  final VoidCallback onDeselect;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.62),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _kAccent.withValues(alpha: 0.8), width: 1.2),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontFamily: AppFonts.body,
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Material(
+            color: const Color(0xFFD9534F),
+            borderRadius: BorderRadius.circular(12),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: onDelete,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Iconsax.trash, color: Colors.white, size: 16),
+                    const SizedBox(width: 6),
+                    Text(
+                      tr('product.set_ar_node_delete'),
+                      style: const TextStyle(
+                        fontFamily: AppFonts.body,
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          IconButton(
+            onPressed: onDeselect,
+            icon: const Icon(Icons.close, color: Colors.white70, size: 20),
+            splashRadius: 20,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// In-AR piece dock pinned to the bottom: every placeable piece as a tappable
+/// thumbnail. Tapping arms the piece (accent ring) for the next floor tap.
+class _DockBar extends StatelessWidget {
+  const _DockBar({
+    required this.pieces,
+    required this.activeId,
+    required this.onPick,
+  });
+
+  final List<ArSetPiece> pieces;
+  final String? activeId;
+  final ValueChanged<ArSetPiece> onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 0,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.55),
+          border: Border(
+            top: BorderSide(color: Colors.white.withValues(alpha: 0.14)),
+          ),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+            child: SizedBox(
+              height: 78,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: pieces.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 12),
+                itemBuilder: (context, i) => _DockChip(
+                  piece: pieces[i],
+                  selected: pieces[i].id == activeId,
+                  onTap: () => onPick(pieces[i]),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One ~58px rounded thumbnail + name in the dock; an accent ring marks the
+/// armed piece. Pieces with no photo fall back to a cube glyph.
+class _DockChip extends StatelessWidget {
+  const _DockChip({
+    required this.piece,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final ArSetPiece piece;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = selected ? _kAccent : Colors.white70;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: SizedBox(
+        width: 58,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(13),
+                border: Border.all(
+                  color: selected
+                      ? _kAccent
+                      : Colors.white.withValues(alpha: 0.25),
+                  width: selected ? 2.4 : 1,
+                ),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: piece.hasImage
+                  ? CachedNetworkImage(
+                      imageUrl: piece.imageUrl!,
+                      fit: BoxFit.cover,
+                      errorWidget: (_, _, _) => Icon(
+                        Iconsax.d_cube_scan,
+                        color: fg,
+                        size: 20,
+                      ),
+                    )
+                  : Icon(Iconsax.d_cube_scan, color: fg, size: 20),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              piece.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: AppFonts.body,
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: selected ? _kAccent : Colors.white,
+              ),
+            ),
+          ],
         ),
       ),
     );
