@@ -14,7 +14,7 @@ import '../shared/chat/screens/chats_list_screen.dart';
 import '../shared/models/chat.dart';
 import '../shared/repositories/category_data_source.dart';
 import '../shared/repositories/product_data_source.dart';
-import '../core/logging/console_nav_observer.dart';
+import '../core/logging/app_navigation_logger.dart';
 import '../core/logging/talker.dart';
 import '../shared/models/cart_item_model.dart';
 import '../shared/widgets/brand_refresh_indicator.dart';
@@ -75,7 +75,7 @@ GoRouter buildCustomerRouter() {
     navigatorKey: customerNavigatorKey,
     observers: [
       TalkerRouteObserver(talker),
-      ConsoleNavObserver(),
+      AppNavigationLogger(),
       // Auto screen_view + Crashlytics breadcrumbs on every route push.
       FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
     ],

@@ -12,7 +12,7 @@ import '../core/connectivity/network_cubit.dart';
 import '../core/deep_links/deep_link_service.dart';
 import '../core/di/service_locator.dart';
 import '../core/i18n/i18n.dart';
-import '../core/logging/console_nav_observer.dart';
+import '../core/logging/app_navigation_logger.dart';
 import '../core/logging/talker.dart';
 import '../core/notifications/notification_handler.dart';
 import '../core/theme/app_theme.dart' show appSystemOverlay;
@@ -154,7 +154,7 @@ class _SellerAppState extends State<SellerApp> with WidgetsBindingObserver {
       darkTheme: sellerDarkTheme,
       themeMode: themeMode,
       navigatorKey: sellerNavigatorKey,
-      navigatorObservers: [TalkerRouteObserver(talker), ConsoleNavObserver()],
+      navigatorObservers: [TalkerRouteObserver(talker), AppNavigationLogger()],
       localizationsDelegates: _localizationsDelegates,
       supportedLocales: AppTranslations.supportedLocales,
       locale: AppLocaleScope.of(context).value,
@@ -194,6 +194,16 @@ class SellerHomeShell extends StatefulWidget {
 class _SellerHomeShellState extends State<SellerHomeShell> {
   int _index = 0;
 
+  /// Stable English tab names for the nav log — independent of the active UI
+  /// language so the console stream reads consistently while debugging.
+  static const _tabNames = [
+    'Dashboard',
+    'Products',
+    'Orders',
+    'Analytics',
+    'Profile',
+  ];
+
   Widget _bodyForTab(int i) {
     // Mock-mode: every seller tab is unlocked regardless of verification
     // status, so the populated dashboard isn't undercut by lock screens on
@@ -223,7 +233,10 @@ class _SellerHomeShellState extends State<SellerHomeShell> {
         bottomNavigationBar: BlocBuilder<TotalUnreadChatsCubit, int>(
           builder: (context, unreadChats) => SellerBottomNav(
             currentIndex: _index,
-            onChanged: (i) => setState(() => _index = i),
+            onChanged: (i) {
+              if (i != _index) AppNavigationLogger.logTabSwitch(i, _tabNames[i]);
+              setState(() => _index = i);
+            },
             items: [
               SellerNavItem(
                 icon: Iconsax.element_3_copy,

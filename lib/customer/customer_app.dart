@@ -13,6 +13,7 @@ import '../config/screenshot_mode.dart';
 import '../core/deep_links/deep_link_service.dart';
 import '../core/di/service_locator.dart';
 import '../core/i18n/i18n.dart';
+import '../core/logging/app_navigation_logger.dart';
 import '../core/logging/debug_talker_overlay.dart';
 import '../core/logging/talker.dart';
 import '../core/notifications/notification_handler.dart';
@@ -283,6 +284,16 @@ class CustomerHomeShell extends StatefulWidget {
 class _CustomerHomeShellState extends State<CustomerHomeShell> {
   late int _index = widget.initialTab ?? 0;
 
+  /// Stable English tab names for the nav log — independent of the active UI
+  /// language so the console stream reads consistently while debugging.
+  static const _tabNames = [
+    'Home',
+    'Catalog',
+    'Cart',
+    'Favorites',
+    'Profile',
+  ];
+
   /// Timestamp of the last back press while the Home tab was active. Drives
   /// the double-back-to-exit gesture; reset whenever the tab changes so the
   /// two presses must be consecutive on Home.
@@ -316,6 +327,7 @@ class _CustomerHomeShellState extends State<CustomerHomeShell> {
   void _goToTab(int i) {
     if (i == _index) return;
     _lastBackPress = null;
+    AppNavigationLogger.logTabSwitch(i, _tabNames[i]);
     setState(() => _index = i);
   }
 

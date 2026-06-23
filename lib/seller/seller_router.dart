@@ -12,7 +12,7 @@ import '../core/auth/auth_cubit.dart';
 import '../core/auth/auth_repository.dart';
 import '../core/di/service_locator.dart';
 import '../core/i18n/i18n.dart';
-import '../core/logging/console_nav_observer.dart';
+import '../core/logging/app_navigation_logger.dart';
 import '../core/logging/talker.dart';
 import '../core/storage/app_settings.dart';
 import 'features/welcome/screens/seller_welcome_screen.dart';
@@ -59,7 +59,7 @@ GoRouter buildSellerRouter() {
     initialLocation: '/seller/dashboard',
     observers: [
       TalkerRouteObserver(talker),
-      ConsoleNavObserver(),
+      AppNavigationLogger(),
       FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
     ],
     errorBuilder: (context, state) =>
@@ -296,6 +296,16 @@ class _SellerRouterShellState extends State<SellerRouterShell> {
   /// switch so the two presses must be consecutive on Dashboard.
   DateTime? _lastBackPress;
 
+  /// Stable English tab names for the nav log — independent of the active UI
+  /// language so the console stream reads consistently while debugging.
+  static const _tabNames = [
+    'Dashboard',
+    'Products',
+    'Orders',
+    'Analytics',
+    'Profile',
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -397,7 +407,10 @@ class _SellerRouterShellState extends State<SellerRouterShell> {
                 onChanged: (i) {
                   // A tap that actually changes tabs resets the exit gesture so
                   // a stale Dashboard back-press can't bleed into the new tab.
-                  if (i != shell.currentIndex) _lastBackPress = null;
+                  if (i != shell.currentIndex) {
+                    _lastBackPress = null;
+                    AppNavigationLogger.logTabSwitch(i, _tabNames[i]);
+                  }
                   shell.goBranch(i, initialLocation: i == shell.currentIndex);
                 },
                 items: [
