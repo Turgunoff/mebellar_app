@@ -10,7 +10,10 @@ enum PendingPaymentKind {
   arTokens('ar_tokens'),
 
   /// A seller tariff subscription (`GET /seller/tariff/receipts/{id}/status`).
-  subscription('subscription');
+  subscription('subscription'),
+
+  /// A seller wallet top-up (`GET /seller/wallet/deposit/{id}/status`).
+  walletDeposit('wallet_deposit');
 
   const PendingPaymentKind(this.code);
 

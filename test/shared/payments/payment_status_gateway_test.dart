@@ -148,6 +148,38 @@ void main() {
     });
   });
 
+  group('wallet deposit', () {
+    test('paid:true → paid, hitting the deposit-status endpoint', () async {
+      final h =
+          make((_) => (200, jsonEncode({'status': 'paid', 'paid': true})));
+      final outcome = await h.gateway.check(
+        const PendingPayment(
+          kind: PendingPaymentKind.walletDeposit,
+          reference: 'dep-9',
+          createdAtMs: 0,
+        ),
+      );
+      expect(outcome, PaymentOutcome.paid);
+      expect(
+        h.adapter.calls.single.uri.path,
+        endsWith('/seller/wallet/deposit/dep-9/status'),
+      );
+    });
+
+    test('paid:false → pending', () async {
+      final h =
+          make((_) => (200, jsonEncode({'status': 'pending', 'paid': false})));
+      final outcome = await h.gateway.check(
+        const PendingPayment(
+          kind: PendingPaymentKind.walletDeposit,
+          reference: 'dep-9',
+          createdAtMs: 0,
+        ),
+      );
+      expect(outcome, PaymentOutcome.pending);
+    });
+  });
+
   test('a server/network error resolves to unknown (never paid)', () async {
     final h = make((_) => (500, '{}'));
     final outcome = await h.gateway.check(

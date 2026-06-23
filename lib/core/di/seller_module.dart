@@ -137,12 +137,8 @@ void registerSellerModule(GetIt sl) {
     ),
   );
 
-  // Wallet — balance/debt state + top-up requests (`/seller/wallet*`).
+  // Wallet — balance/debt state + automated Payme/Click top-ups (`/seller/wallet*`).
   sl.registerLazySingleton<SellerWalletRepository>(
-    () => WoodySellerWalletRepository(
-      api: sl<WoodyApiClient>(),
-      auth: sl<AuthRepository>(),
-      uploads: sl<R2UploadClient>(),
-    ),
+    () => WoodySellerWalletRepository(api: sl<WoodyApiClient>()),
   );
 }

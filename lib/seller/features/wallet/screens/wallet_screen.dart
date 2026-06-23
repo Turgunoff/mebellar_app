@@ -1,35 +1,32 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/models/seller_wallet.dart';
+import '../../../../shared/payments/pending_payment.dart';
+import '../../../../shared/payments/pending_payment_service.dart';
+import '../../../../shared/repositories/payment_repository.dart';
 import '../../../../shared/repositories/seller_wallet_repository.dart';
-import '../../../../shared/repositories/tariff_repository.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../products/widgets/product_form/thousands_formatter.dart';
 import '../bloc/seller_wallet_cubit.dart';
 import '../widgets/wallet_info_bottom_sheet.dart';
 
-/// Local fallback for the Woody top-up card — used only when the backend
-/// hasn't published payment instructions yet ([state.instructions] == null or
-/// an empty card number). When the backend returns a card it always wins, so
-/// the till stays server-owned (same source the tariff flow reads).
-const _kFallbackCardNumber = '9860 1501 0444 6953';
-const _kFallbackCardHolder = 'WOODY XIZMATI';
+/// Official provider brand colours for the top-up tiles.
+const Color _kPaymeTeal = Color(0xFF00A19A);
+const Color _kClickBlue = Color(0xFF0073FF);
 
-/// Seller wallet — balance, debt state, top-up by card + screenshot, ledger.
-/// The top-up trust model mirrors the tariff flow: pay to the Woody card,
-/// upload the receipt, an admin approves and the balance is credited (a
-/// clearing balance also lifts the debt freeze automatically).
+/// Seller wallet — balance, debt state, automated Payme/Click top-up, ledger.
+/// A top-up opens the payment app via a deep-link; the balance is credited by
+/// the Merchant webhook and reconciled on return (the global PaymentRecoveryGate
+/// shows the settled outcome, and the screen refreshes the balance once the
+/// deposit confirms — see [SellerWalletCubit.reconcileDeposit]).
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
 
@@ -37,16 +34,37 @@ class WalletScreen extends StatefulWidget {
   State<WalletScreen> createState() => _WalletScreenState();
 }
 
-class _WalletScreenState extends State<WalletScreen> {
+class _WalletScreenState extends State<WalletScreen>
+    with WidgetsBindingObserver {
   /// Persisted flag — the explainer auto-opens only on the seller's first
   /// visit; afterwards it stays reachable via the "Hamyon qanday ishlaydi?"
   /// link on the balance card.
   static const _seenInfoKey = 'has_seen_wallet_info';
 
+  late final SellerWalletCubit _cubit;
+
   @override
   void initState() {
     super.initState();
+    _cubit = SellerWalletCubit(sl<SellerWalletRepository>())..load();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) => _maybeAutoShowInfo());
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _cubit.close();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Returning from the Payme/Click app: poll the deposit + refresh the balance
+    // the instant the webhook credits it (no-op when nothing is in flight).
+    if (state == AppLifecycleState.resumed) {
+      _cubit.reconcileDeposit();
+    }
   }
 
   Future<void> _maybeAutoShowInfo() async {
@@ -62,11 +80,8 @@ class _WalletScreenState extends State<WalletScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<SellerWalletCubit>(
-      create: (_) => SellerWalletCubit(
-        sl<SellerWalletRepository>(),
-        tariffs: sl<TariffRepository>(),
-      )..load(),
+    return BlocProvider<SellerWalletCubit>.value(
+      value: _cubit,
       child: const _WalletView(),
     );
   }
@@ -96,24 +111,16 @@ class _WalletView extends StatelessWidget {
         iconTheme: IconThemeData(color: c.ink),
       ),
       body: BlocConsumer<SellerWalletCubit, SellerWalletState>(
-        listenWhen: (prev, next) => prev.topUpStatus != next.topUpStatus,
+        listenWhen: (prev, next) => prev.depositStatus != next.depositStatus,
         listener: (context, state) {
-          if (state.topUpStatus == TopUpStatus.success) {
+          if (state.depositStatus == DepositStatus.failure) {
             _showSnack(
               context,
-              "So'rov yuborildi — admin tasdiqlagach balans yangilanadi.",
-              icon: Iconsax.tick_circle,
-              tone: _SnackTone.success,
-            );
-            context.read<SellerWalletCubit>().acknowledgeTopUpResult();
-          } else if (state.topUpStatus == TopUpStatus.failure) {
-            _showSnack(
-              context,
-              "To'lov so'rovini yuborib bo'lmadi. Qayta urinib ko'ring.",
+              "To'lovni boshlab bo'lmadi. Qayta urinib ko'ring.",
               icon: Iconsax.close_circle,
               tone: _SnackTone.error,
             );
-            context.read<SellerWalletCubit>().acknowledgeTopUpResult();
+            context.read<SellerWalletCubit>().acknowledgeDepositResult();
           }
         },
         builder: (context, state) {
@@ -500,6 +507,7 @@ class _TopUpSectionState extends State<_TopUpSection> {
         ? formatThousands(widget.suggestedAmount)
         : '',
   );
+  PaymentProvider _provider = PaymentProvider.payme;
 
   @override
   void dispose() {
@@ -507,18 +515,7 @@ class _TopUpSectionState extends State<_TopUpSection> {
     super.dispose();
   }
 
-  Future<void> _copyCard(String number) async {
-    await Clipboard.setData(ClipboardData(text: number.replaceAll(' ', '')));
-    if (!mounted) return;
-    _showSnack(
-      context,
-      'Karta raqami nusxalandi',
-      icon: Iconsax.copy_success,
-      tone: _SnackTone.success,
-    );
-  }
-
-  Future<void> _pickAndSubmit() async {
+  Future<void> _submit() async {
     final amount = int.tryParse(_amountCtrl.text.replaceAll(' ', '')) ?? 0;
     final cubit = context.read<SellerWalletCubit>();
     if (amount <= 0) {
@@ -530,34 +527,32 @@ class _TopUpSectionState extends State<_TopUpSection> {
       );
       return;
     }
-    final picked = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 88,
-      maxWidth: 1600,
-    );
-    if (picked == null) return;
-    final ext = picked.path.split('.').last;
-    await cubit.submitTopUp(
-      amount: amount,
-      screenshot: File(picked.path),
-      fileExtension: ext.length <= 4 ? ext : 'jpg',
-    );
+    FocusScope.of(context).unfocus();
+    final link = await cubit.startDeposit(amount: amount, provider: _provider);
+    if (link == null || !mounted) return;
+    // Mark the top-up in flight BEFORE handing off so the global
+    // PaymentRecoveryGate reconciles it (and shows the settled outcome) when the
+    // seller returns from the payment app.
+    final reference = link.reference;
+    if (reference != null &&
+        reference.isNotEmpty &&
+        sl.isRegistered<PendingPaymentService>()) {
+      await sl<PendingPaymentService>().mark(
+        kind: PendingPaymentKind.walletDeposit,
+        reference: reference,
+      );
+    }
+    final uri = Uri.tryParse(link.checkoutUrl);
+    if (uri != null && link.checkoutUrl.isNotEmpty) {
+      // externalApplication forces the OS to open the Payme/Click app.
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
-    final instructions = widget.state.instructions;
-    final submitting = widget.state.topUpStatus == TopUpStatus.submitting;
-
-    final hasBackendCard =
-        instructions != null && instructions.cardNumber.trim().isNotEmpty;
-    final cardNumber = hasBackendCard
-        ? instructions.cardNumber
-        : _kFallbackCardNumber;
-    final cardHolder = (instructions?.cardHolder.trim().isNotEmpty ?? false)
-        ? instructions!.cardHolder
-        : _kFallbackCardHolder;
+    final submitting = widget.state.depositStatus == DepositStatus.starting;
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -581,7 +576,8 @@ class _TopUpSectionState extends State<_TopUpSection> {
           ),
           const SizedBox(height: 6),
           Text(
-            "Quyidagi hisobga to'lov qiling va tasdiqlovchi chekni yuklang:",
+            "Summani kiriting va to'lov usulini tanlang — balans avtomatik "
+            "to'ldiriladi.",
             style: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 12.5,
@@ -589,13 +585,7 @@ class _TopUpSectionState extends State<_TopUpSection> {
               height: 1.35,
             ),
           ),
-          const SizedBox(height: 12),
-          _CardCopyPill(
-            number: cardNumber,
-            holder: cardHolder,
-            onCopy: () => _copyCard(cardNumber),
-          ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           TextField(
             controller: _amountCtrl,
             keyboardType: TextInputType.number,
@@ -636,7 +626,37 @@ class _TopUpSectionState extends State<_TopUpSection> {
               ),
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
+          Text(
+            "To'lov usuli",
+            style: TextStyle(
+              fontFamily: AppFonts.seller,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: c.ink,
+            ),
+          ),
+          const SizedBox(height: 10),
+          _ProviderTile(
+            brand: _kPaymeTeal,
+            wordmark: 'Payme',
+            label: 'Payme ilovasi orqali',
+            selected: _provider == PaymentProvider.payme,
+            onTap: submitting
+                ? null
+                : () => setState(() => _provider = PaymentProvider.payme),
+          ),
+          const SizedBox(height: 10),
+          _ProviderTile(
+            brand: _kClickBlue,
+            wordmark: 'Click',
+            label: 'Click ilovasi orqali',
+            selected: _provider == PaymentProvider.click,
+            onTap: submitting
+                ? null
+                : () => setState(() => _provider = PaymentProvider.click),
+          ),
+          const SizedBox(height: 18),
           DecoratedBox(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
@@ -655,7 +675,7 @@ class _TopUpSectionState extends State<_TopUpSection> {
               width: double.infinity,
               height: 54,
               child: FilledButton.icon(
-                onPressed: submitting ? null : _pickAndSubmit,
+                onPressed: submitting ? null : _submit,
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.sellerPrimary,
                   foregroundColor: Colors.white,
@@ -676,9 +696,9 @@ class _TopUpSectionState extends State<_TopUpSection> {
                           color: Colors.white,
                         ),
                       )
-                    : const Icon(Iconsax.receipt_2, size: 19),
+                    : const Icon(Iconsax.wallet_add_1, size: 19),
                 label: Text(
-                  submitting ? 'Yuborilmoqda…' : 'Chek yuklash va yuborish',
+                  submitting ? 'Ochilmoqda…' : "To'ldirish",
                   style: const TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 15,
@@ -694,111 +714,74 @@ class _TopUpSectionState extends State<_TopUpSection> {
   }
 }
 
-/// Tap-to-copy pill for the top-up card number — a distinct, brand-tinted
-/// interactive element with a trailing copy affordance.
-class _CardCopyPill extends StatelessWidget {
-  const _CardCopyPill({
-    required this.number,
-    required this.holder,
-    required this.onCopy,
+/// A branded payment-app choice (wordmark badge + label + selection ring),
+/// mirroring the AR-token / tariff top-up sheets.
+class _ProviderTile extends StatelessWidget {
+  const _ProviderTile({
+    required this.brand,
+    required this.wordmark,
+    required this.label,
+    required this.selected,
+    required this.onTap,
   });
 
-  final String number;
-  final String holder;
-  final VoidCallback onCopy;
+  final Color brand;
+  final String wordmark;
+  final String label;
+  final bool selected;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
     return Material(
-      color: c.primary.withValues(alpha: 0.06),
-      borderRadius: BorderRadius.circular(16),
+      color: selected ? brand.withValues(alpha: 0.08) : c.fillSoft,
+      borderRadius: BorderRadius.circular(14),
       child: InkWell(
-        onTap: onCopy,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: c.primary.withValues(alpha: 0.22)),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: selected ? brand : c.divider,
+              width: selected ? 1.6 : 1,
+            ),
           ),
           child: Row(
             children: [
               Container(
-                width: 40,
-                height: 40,
+                width: 54,
+                height: 32,
+                alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: c.primary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
+                  color: brand,
+                  borderRadius: BorderRadius.circular(7),
                 ),
-                child: Icon(Iconsax.card, color: c.primary, size: 20),
+                child: Text(
+                  wordmark,
+                  style: const TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12,
+                    color: Colors.white,
+                  ),
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // scaleDown keeps the full 16-digit number on one line on
-                    // any width — it shrinks to fit instead of truncating.
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        number,
-                        maxLines: 1,
-                        softWrap: false,
-                        style: TextStyle(
-                          fontFamily: AppFonts.seller,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: c.ink,
-                          letterSpacing: 1.5,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      holder,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: AppFonts.seller,
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w600,
-                        color: c.greyMid,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13.5,
+                    color: c.ink,
+                  ),
                 ),
               ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 7,
-                ),
-                decoration: BoxDecoration(
-                  color: c.primary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.copy_rounded, size: 15, color: c.primary),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Nusxa',
-                      style: TextStyle(
-                        fontFamily: AppFonts.seller,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: c.primary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              if (selected) Icon(Icons.check_circle, color: brand, size: 20),
             ],
           ),
         ),

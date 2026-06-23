@@ -37,6 +37,10 @@ class WoodyPaymentStatusGateway implements PaymentStatusGateway {
           return await _checkPaidFlag(
             '/seller/tariff/receipts/${payment.reference}/status',
           );
+        case PendingPaymentKind.walletDeposit:
+          return await _checkPaidFlag(
+            '/seller/wallet/deposit/${payment.reference}/status',
+          );
       }
     } catch (_) {
       // Network down, token expired, or a 404 — we can't tell. The caller
