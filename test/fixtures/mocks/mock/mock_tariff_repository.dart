@@ -193,14 +193,17 @@ class MockTariffRepository implements TariffRepository {
   }
 
   @override
-  Future<Result<String>> buyPlan({
+  Future<Result<TariffCheckout>> buyPlan({
     required TariffPlan plan,
     required BillingPeriod period,
     required PaymentProvider provider,
   }) async {
     await Future<void>.delayed(_delay);
     return Ok(
-      'https://checkout.${provider.slug}.uz/mock-${plan.code}-${period.code}',
+      TariffCheckout(
+        url: 'https://checkout.${provider.slug}.uz/mock-${plan.code}-${period.code}',
+        reference: 'mock-receipt-${plan.code}',
+      ),
     );
   }
 

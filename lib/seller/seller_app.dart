@@ -22,6 +22,7 @@ import '../core/updates/app_update_gate.dart';
 import '../main.dart' show AppLocaleScope;
 import '../shared/chat/bloc/total_unread_chats_cubit.dart';
 import '../shared/models/chat.dart';
+import '../shared/payments/payment_recovery_gate.dart';
 import '../shared/repositories/chat_repository.dart';
 import '../shared/widgets/network_overlay_wrapper.dart';
 import 'features/analytics/screens/analytics_screen.dart';
@@ -168,7 +169,13 @@ class _SellerAppState extends State<SellerApp> with WidgetsBindingObserver {
       // AppUpdateGate is outermost so its force-update overlay paints above
       // the network banner and every route.
       child: AppUpdateGate(
-        child: NetworkOverlayWrapper(child: child ?? const SizedBox.shrink()),
+        child: NetworkOverlayWrapper(
+          // Reconciles an in-flight AR-token / subscription payment on return
+          // (resume poll + cold-start probe). No deep-link target — the result
+          // card just confirms settlement; the seller's balance/tariff screens
+          // refresh on their own.
+          child: PaymentRecoveryGate(child: child ?? const SizedBox.shrink()),
+        ),
       ),
     );
   }

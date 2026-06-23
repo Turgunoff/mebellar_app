@@ -4,6 +4,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
+import '../../../../shared/payments/pending_payment.dart';
+import '../../../../shared/payments/pending_payment_service.dart';
 import '../../../../shared/repositories/payment_repository.dart';
 import '../data/ar_token_repository.dart';
 
@@ -69,12 +71,23 @@ class _ArTokenBuySheetState extends State<_ArTokenBuySheet> {
       _error = null;
     });
     try {
-      final url = await sl<ArTokenRepository>().buy(
+      final checkout = await sl<ArTokenRepository>().buy(
         packageCode: pkg,
         provider: _provider,
       );
-      final uri = Uri.tryParse(url);
-      if (uri != null && url.isNotEmpty) {
+      // Mark the top-up in flight BEFORE handing off so it's reconcilable when
+      // the seller returns (PaymentRecoveryGate polls the purchase status).
+      final reference = checkout.reference;
+      if (reference != null &&
+          reference.isNotEmpty &&
+          sl.isRegistered<PendingPaymentService>()) {
+        await sl<PendingPaymentService>().mark(
+          kind: PendingPaymentKind.arTokens,
+          reference: reference,
+        );
+      }
+      final uri = Uri.tryParse(checkout.url);
+      if (uri != null && checkout.url.isNotEmpty) {
         // externalApplication forces the OS to open the Payme/Click app.
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       }

@@ -17,16 +17,23 @@ class CheckoutLink {
     required this.provider,
     required this.checkoutUrl,
     required this.amount,
+    this.reference,
   });
 
   final String provider;
   final String checkoutUrl;
   final int amount;
 
+  /// The merchant account value the provider webhook keys on (the order id for
+  /// the checkout flow). Echoed by the backend so the app can persist it as a
+  /// pending-payment marker and poll the order's settlement on return.
+  final String? reference;
+
   factory CheckoutLink.fromJson(Map<String, dynamic> json) => CheckoutLink(
     provider: json['provider'] as String? ?? '',
     checkoutUrl: json['checkout_url'] as String? ?? '',
     amount: (json['amount'] as num?)?.toInt() ?? 0,
+    reference: json['reference'] as String?,
   );
 }
 

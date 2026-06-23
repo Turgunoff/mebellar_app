@@ -122,7 +122,7 @@ void main() {
     expect(result.valueOrNull, isNull);
   });
 
-  test('buyPlan posts to /seller/tariff/buy and returns the checkout url',
+  test('buyPlan posts to /seller/tariff/buy and returns the checkout url + reference',
       () async {
     final h = make(
       (_) => (
@@ -131,6 +131,7 @@ void main() {
           'provider': 'payme',
           'checkout_url': 'https://checkout.paycom.uz/abc',
           'amount': 299000,
+          'reference': 'receipt-7',
         }),
       ),
     );
@@ -142,7 +143,9 @@ void main() {
     );
 
     expect(result.isOk, isTrue);
-    expect(result.valueOrNull, 'https://checkout.paycom.uz/abc');
+    expect(result.valueOrNull?.url, 'https://checkout.paycom.uz/abc');
+    // The reference is surfaced so the caller can mark a pending payment.
+    expect(result.valueOrNull?.reference, 'receipt-7');
     expect(h.adapter.calls.single.uri.path, endsWith('/seller/tariff/buy'));
   });
 

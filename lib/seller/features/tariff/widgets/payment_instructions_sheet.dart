@@ -10,6 +10,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/result/result.dart';
 import '../../../../shared/models/tariff.dart';
+import '../../../../shared/payments/pending_payment.dart';
+import '../../../../shared/payments/pending_payment_service.dart';
 import '../../../../shared/repositories/payment_repository.dart';
 import '../../../../shared/repositories/tariff_repository.dart';
 import '../../../../shared/utils/image_upload.dart';
@@ -75,8 +77,8 @@ class _SheetBodyState extends State<_SheetBody> {
     );
     if (!mounted) return;
 
-    final url = result.valueOrNull;
-    if (url == null || url.isEmpty) {
+    final checkout = result.valueOrNull;
+    if (checkout == null || checkout.url.isEmpty) {
       setState(() => _launchingProvider = null);
       messenger.showSnackBar(SnackBar(
         content: Text(
@@ -86,7 +88,19 @@ class _SheetBodyState extends State<_SheetBody> {
       return;
     }
 
-    final uri = Uri.tryParse(url);
+    // Mark the subscription payment in flight BEFORE handing off so it's
+    // reconcilable on return (PaymentRecoveryGate polls the receipt status).
+    final reference = checkout.reference;
+    if (reference != null &&
+        reference.isNotEmpty &&
+        sl.isRegistered<PendingPaymentService>()) {
+      await sl<PendingPaymentService>().mark(
+        kind: PendingPaymentKind.subscription,
+        reference: reference,
+      );
+    }
+
+    final uri = Uri.tryParse(checkout.url);
     final ok = uri != null &&
         await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!mounted) return;

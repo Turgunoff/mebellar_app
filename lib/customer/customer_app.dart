@@ -28,6 +28,7 @@ import '../main.dart' show AppLocaleScope;
 import '../shared/chat/bloc/total_unread_chats_cubit.dart';
 import '../shared/models/chat.dart';
 import '../shared/models/notification_model.dart';
+import '../shared/payments/payment_recovery_gate.dart';
 import '../shared/repositories/chat_repository.dart';
 import '../shared/repositories/notifications_repository.dart';
 import '../shared/widgets/network_overlay_wrapper.dart';
@@ -210,7 +211,16 @@ class _CustomerAppState extends State<CustomerApp> with WidgetsBindingObserver {
               child: NetworkOverlayWrapper(
                 child: DebugTalkerOverlay(
                   navigatorKey: customerNavigatorKey,
-                  child: child,
+                  // Reconciles an in-flight Payme/Click order payment on
+                  // return (resume poll + cold-start probe), so success is
+                  // shown only after the server confirms — never on placement.
+                  child: PaymentRecoveryGate(
+                    onViewDetails: (_) {
+                      final ctx = customerNavigatorKey.currentContext;
+                      if (ctx != null) ctx.go('/orders');
+                    },
+                    child: child ?? const SizedBox.shrink(),
+                  ),
                 ),
               ),
             ),

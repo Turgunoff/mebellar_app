@@ -63,13 +63,24 @@ abstract class TariffRepository {
   Future<Result<void>> cancelPending(String subscriptionId);
 
   /// Mint a Payme/Click checkout deep-link for a self-serve tariff payment
-  /// (`POST /seller/tariff/buy`) and return the URL the seller opens to pay.
-  /// The Merchant webhook activates the plan on confirmation — there is no
-  /// screenshot and no admin step. Throws `ApiError` on 404 (unknown plan) /
-  /// 400 (free plan) / 503 (provider unconfigured).
-  Future<Result<String>> buyPlan({
+  /// (`POST /seller/tariff/buy`). Returns the URL the seller opens to pay plus
+  /// the receipt `reference` the Merchant webhook keys on — the app persists the
+  /// reference as a pending-payment marker and polls the receipt status on
+  /// return. The webhook activates the plan on confirmation — no screenshot, no
+  /// admin step. Throws `ApiError` on 404 (unknown plan) / 400 (free plan) /
+  /// 503 (provider unconfigured).
+  Future<Result<TariffCheckout>> buyPlan({
     required TariffPlan plan,
     required BillingPeriod period,
     required PaymentProvider provider,
   });
+}
+
+/// The result of a self-serve tariff payment hand-off: the checkout URL to open
+/// and the subscription-receipt id (`reference`) the app polls for settlement.
+class TariffCheckout {
+  const TariffCheckout({required this.url, required this.reference});
+
+  final String url;
+  final String? reference;
 }

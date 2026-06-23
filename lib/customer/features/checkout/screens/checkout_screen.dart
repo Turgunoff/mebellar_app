@@ -17,6 +17,8 @@ import '../../../../core/services/facebook_analytics_service.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 import '../../orders/cubit/profile_orders_cubit.dart';
 import '../../../../shared/models/cart_item_model.dart';
+import '../../../../shared/payments/pending_payment.dart';
+import '../../../../shared/payments/pending_payment_service.dart';
 import '../../../../shared/repositories/cart_repository.dart';
 import '../../../../shared/repositories/checkout_repository.dart';
 import '../../../../shared/repositories/payment_repository.dart';
@@ -124,22 +126,43 @@ class _CheckoutView extends StatelessWidget {
     );
   }
 
-  /// On success, hand off to the Payme/Click app (when a deep-link was minted)
-  /// before showing the receipt dialog, so the customer lands in the payment
-  /// app to complete payment. Cash orders skip straight to the dialog.
+  /// On success, branch on the payment method:
+  ///   * **External (Payme/Click):** the order is placed but UNPAID. We mark it
+  ///     as a pending payment BEFORE handing off (so a mid-payment app-kill is
+  ///     recoverable on cold start), launch the provider app, and land the
+  ///     customer on their orders list — NO premature "order accepted" modal.
+  ///     The [PaymentRecoveryGate] confirms settlement when they return.
+  ///   * **Cash on delivery:** there's no payment to confirm — the order is
+  ///     genuinely accepted, so we show the receipt dialog as before.
   Future<void> _onCheckoutSuccess(
     BuildContext context,
     CheckoutState state,
   ) async {
     final url = state.checkoutUrl;
-    if (url != null && url.isNotEmpty) {
+    final isExternal = url != null && url.isNotEmpty;
+
+    if (isExternal && state.placedOrderIds.isNotEmpty) {
+      // The backend keys the Payme/Click account on the order id, so the first
+      // placed order is the reference the status poll fetches.
+      if (sl.isRegistered<PendingPaymentService>()) {
+        await sl<PendingPaymentService>().mark(
+          kind: PendingPaymentKind.order,
+          reference: state.placedOrderIds.first,
+        );
+      }
       final uri = Uri.tryParse(url);
       // externalApplication forces the OS to open the Payme/Click app rather
       // than an in-app WebView.
       if (uri != null) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       }
+      if (!context.mounted) return;
+      // The order exists (unpaid) — surface it in the list instead of claiming
+      // success. The recovery overlay polls on top of this on return.
+      context.go('/orders');
+      return;
     }
+
     if (!context.mounted) return;
     _showSuccessDialog(context, state.placedOrderIds.length);
   }

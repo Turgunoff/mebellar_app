@@ -11,6 +11,9 @@ import '../deep_links/deep_link_service.dart';
 import '../i18n/app_locale_controller.dart';
 import '../network/token_store.dart';
 import '../network/woody_api_client.dart';
+import '../../shared/payments/payment_status_gateway.dart';
+import '../../shared/payments/pending_payment_service.dart';
+import '../../shared/payments/pending_payment_store.dart';
 import '../platform/location_facade.dart';
 import '../realtime/woody_realtime_service.dart';
 import '../storage/r2_upload_client.dart';
@@ -101,6 +104,21 @@ Future<void> registerCoreModule(GetIt sl) async {
   // KYC docs, tariff receipts).
   sl.registerLazySingleton<R2UploadClient>(
     () => R2UploadClient(api: sl<WoodyApiClient>()),
+  );
+
+  // Pending external-payment reconciliation. Root-scoped so both modes share
+  // it: the customer checkout (orders) and the seller AR-token / subscription
+  // top-ups all mark a payment in flight before handing off to Payme/Click,
+  // and the PaymentRecoveryGate reconciles it on return.
+  sl.registerLazySingleton<PendingPaymentStore>(() => PendingPaymentStore());
+  sl.registerLazySingleton<PaymentStatusGateway>(
+    () => WoodyPaymentStatusGateway(api: sl<WoodyApiClient>()),
+  );
+  sl.registerLazySingleton<PendingPaymentService>(
+    () => PendingPaymentService(
+      store: sl<PendingPaymentStore>(),
+      gateway: sl<PaymentStatusGateway>(),
+    ),
   );
 
   // Location facade — wraps geolocator's static API behind an injectable

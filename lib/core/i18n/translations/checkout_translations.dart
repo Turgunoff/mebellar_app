@@ -98,6 +98,31 @@ const Map<String, dynamic> paymentUz = {
   'cash_hint': 'Yetkazib bergan kuriyerga to\'lov',
   'pay_with_payme': 'Payme ilovasi orqali to\'lash',
   'pay_with_click': 'Click ilovasi orqali to\'lash',
+  // Pending external-payment reconciliation (PaymentRecoveryGate).
+  'recovery': {
+    'checking': 'To\'lov holati tekshirilmoqda...',
+    'paid_title': 'To\'lov muvaffaqiyatli!',
+    'pending_title': 'To\'lov jarayonda',
+    'paid_body_order': 'Buyurtmangiz uchun to\'lov qabul qilindi.',
+    'paid_body_account': 'To\'lovingiz muvaffaqiyatli qabul qilindi.',
+    'pending_body_order':
+        'To\'lov hali tasdiqlanmadi yoki jarayonda. Buni Buyurtmalar bo\'limida kuzatishingiz mumkin.',
+    'pending_body_account':
+        'To\'lov hali tasdiqlanmadi. Tasdiqlash biroz vaqt olishi mumkin.',
+    // Cold-start (app was killed during payment) variants.
+    'cold_paid_title': 'To\'lov qabul qilindi!',
+    'cold_pending_title': 'To\'lov holati',
+    'cold_paid_body_order':
+        'Oxirgi buyurtmangiz uchun to\'lov muvaffaqiyatli qabul qilindi!',
+    'cold_paid_body_account':
+        'Oxirgi to\'lovingiz muvaffaqiyatli qabul qilindi!',
+    'cold_pending_body_order':
+        'Oxirgi to\'lovingiz amalga oshmagan ko\'rinadi. Iltimos, Buyurtmalar bo\'limini tekshiring.',
+    'cold_pending_body_account':
+        'Oxirgi to\'lovingiz amalga oshmagan ko\'rinadi. Hisobingizni tekshiring.',
+    'view_orders': 'Buyurtmalarni ko\'rish',
+    'dismiss': 'Yopish',
+  },
 };
 
 const Map<String, dynamic> paymentRu = {
@@ -105,6 +130,27 @@ const Map<String, dynamic> paymentRu = {
   'cash_hint': 'Оплата курьеру при доставке',
   'pay_with_payme': 'Оплатить через приложение Payme',
   'pay_with_click': 'Оплатить через приложение Click',
+  'recovery': {
+    'checking': 'Проверяем статус оплаты...',
+    'paid_title': 'Оплата прошла успешно!',
+    'pending_title': 'Оплата обрабатывается',
+    'paid_body_order': 'Оплата вашего заказа принята.',
+    'paid_body_account': 'Ваш платёж успешно принят.',
+    'pending_body_order':
+        'Оплата ещё не подтверждена или обрабатывается. Вы можете отследить её в разделе «Заказы».',
+    'pending_body_account':
+        'Оплата ещё не подтверждена. Подтверждение может занять некоторое время.',
+    'cold_paid_title': 'Оплата принята!',
+    'cold_pending_title': 'Статус оплаты',
+    'cold_paid_body_order': 'Оплата вашего последнего заказа успешно принята!',
+    'cold_paid_body_account': 'Ваш последний платёж успешно принят!',
+    'cold_pending_body_order':
+        'Похоже, ваш последний платёж не прошёл. Пожалуйста, проверьте раздел «Заказы».',
+    'cold_pending_body_account':
+        'Похоже, ваш последний платёж не прошёл. Проверьте свой счёт.',
+    'view_orders': 'Перейти к заказам',
+    'dismiss': 'Закрыть',
+  },
 };
 
 const Map<String, dynamic> paymentEn = {
@@ -112,4 +158,26 @@ const Map<String, dynamic> paymentEn = {
   'cash_hint': 'Pay the courier on delivery',
   'pay_with_payme': 'Pay with the Payme app',
   'pay_with_click': 'Pay with the Click app',
+  'recovery': {
+    'checking': 'Checking payment status...',
+    'paid_title': 'Payment successful!',
+    'pending_title': 'Payment processing',
+    'paid_body_order': 'Payment for your order has been received.',
+    'paid_body_account': 'Your payment was received successfully.',
+    'pending_body_order':
+        "Payment isn't confirmed yet or is still processing. You can track it in the Orders section.",
+    'pending_body_account':
+        "Payment isn't confirmed yet. Confirmation may take a little while.",
+    'cold_paid_title': 'Payment received!',
+    'cold_pending_title': 'Payment status',
+    'cold_paid_body_order':
+        'Payment for your last order was received successfully!',
+    'cold_paid_body_account': 'Your last payment was received successfully!',
+    'cold_pending_body_order':
+        "Your last payment doesn't seem to have gone through. Please check the Orders section.",
+    'cold_pending_body_account':
+        "Your last payment doesn't seem to have gone through. Please check your account.",
+    'view_orders': 'View orders',
+    'dismiss': 'Close',
+  },
 };

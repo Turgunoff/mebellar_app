@@ -95,7 +95,8 @@ void main() {
     expect(h.adapter.calls.single.uri.path, endsWith('/seller/ar-tokens/balance'));
   });
 
-  test('buy posts package_code + provider and returns the checkout url', () async {
+  test('buy posts package_code + provider and returns the checkout url + reference',
+      () async {
     final h = make(
       (_) => (
         200,
@@ -103,16 +104,19 @@ void main() {
           'provider': 'payme',
           'checkout_url': 'https://checkout.paycom.uz/abc',
           'amount': 45000,
+          'reference': 'purchase-7',
         }),
       ),
     );
 
-    final url = await h.repo.buy(
+    final checkout = await h.repo.buy(
       packageCode: 'pack5',
       provider: PaymentProvider.payme,
     );
 
-    expect(url, 'https://checkout.paycom.uz/abc');
+    expect(checkout.url, 'https://checkout.paycom.uz/abc');
+    // The reference is surfaced so the caller can mark a pending payment.
+    expect(checkout.reference, 'purchase-7');
     final call = h.adapter.calls.single;
     expect(call.method, 'POST');
     expect(call.uri.path, endsWith('/seller/ar-tokens/buy'));

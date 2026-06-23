@@ -43,15 +43,25 @@ class ArTokenBalance {
 abstract class ArTokenRepository {
   Future<ArTokenBalance> balance();
 
-  /// Start a top-up: mint a Payme/Click checkout deep-link for the package and
-  /// return the URL the seller opens to pay (`POST /seller/ar-tokens/buy`).
-  /// Tokens are credited when the provider confirms the payment (webhook — a
-  /// documented follow-up). Throws `ApiError` on 404 (unknown package) / 503
-  /// (provider unconfigured).
-  Future<String> buy({
+  /// Start a top-up: mint a Payme/Click checkout deep-link for the package
+  /// (`POST /seller/ar-tokens/buy`). Returns the URL the seller opens to pay
+  /// plus the purchase `reference` the webhook keys on — the app persists the
+  /// reference as a pending-payment marker and polls the purchase status on
+  /// return. Tokens are credited when the provider confirms the payment.
+  /// Throws `ApiError` on 404 (unknown package) / 503 (provider unconfigured).
+  Future<ArTokenCheckout> buy({
     required String packageCode,
     required PaymentProvider provider,
   });
+}
+
+/// The result of an AR-token top-up hand-off: the checkout URL to open and the
+/// purchase id (`reference`) the app polls for settlement.
+class ArTokenCheckout {
+  const ArTokenCheckout({required this.url, required this.reference});
+
+  final String url;
+  final String? reference;
 }
 
 class WoodyArTokenRepository implements ArTokenRepository {
@@ -68,7 +78,7 @@ class WoodyArTokenRepository implements ArTokenRepository {
   }
 
   @override
-  Future<String> buy({
+  Future<ArTokenCheckout> buy({
     required String packageCode,
     required PaymentProvider provider,
   }) async {
@@ -76,6 +86,9 @@ class WoodyArTokenRepository implements ArTokenRepository {
       '/seller/ar-tokens/buy',
       body: {'package_code': packageCode, 'provider': provider.slug},
     );
-    return res['checkout_url'] as String? ?? '';
+    return ArTokenCheckout(
+      url: res['checkout_url'] as String? ?? '',
+      reference: res['reference'] as String?,
+    );
   }
 }

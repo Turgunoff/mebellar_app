@@ -125,7 +125,7 @@ class WoodyTariffRepository implements TariffRepository {
       });
 
   @override
-  Future<Result<String>> buyPlan({
+  Future<Result<TariffCheckout>> buyPlan({
     required TariffPlan plan,
     required BillingPeriod period,
     required PaymentProvider provider,
@@ -138,7 +138,10 @@ class WoodyTariffRepository implements TariffRepository {
         'provider': provider.slug,
       },
     );
-    return body['checkout_url'] as String? ?? '';
+    return TariffCheckout(
+      url: body['checkout_url'] as String? ?? '',
+      reference: body['reference'] as String?,
+    );
   });
 
   @override
