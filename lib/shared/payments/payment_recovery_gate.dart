@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 
@@ -200,37 +201,67 @@ class _CheckingOverlay extends StatelessWidget {
     return Positioned.fill(
       // Swallows every pointer event so the UI underneath is inert.
       child: AbsorbPointer(
-        child: ColoredBox(
-          color: Colors.black.withValues(alpha: 0.55),
-          child: Center(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 26),
-              decoration: BoxDecoration(
-                color: scheme.surface,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(
-                    width: 36,
-                    height: 36,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 3,
-                      valueColor: AlwaysStoppedAnimation<Color>(scheme.primary),
+        // Blur the app behind the scrim so the card lifts cleanly off the page.
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+          child: ColoredBox(
+            color: Colors.black.withValues(alpha: 0.45),
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 40),
+                // Material gives the card its DefaultTextStyle (no debug
+                // underline), rounded clip, and the lifted shadow.
+                child: Material(
+                  color: scheme.surface,
+                  elevation: 8,
+                  shadowColor: Colors.black.withValues(alpha: 0.25),
+                  borderRadius: BorderRadius.circular(24),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      minWidth: 240,
+                      maxWidth: 340,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(32, 34, 32, 30),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 72,
+                            height: 72,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: scheme.primary.withValues(alpha: 0.10),
+                              shape: BoxShape.circle,
+                            ),
+                            child: SizedBox(
+                              width: 40,
+                              height: 40,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 3.6,
+                                strokeCap: StrokeCap.round,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  scheme.primary,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 22),
+                          Text(
+                            message,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              height: 1.3,
+                              color: scheme.onSurface,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 18),
-                  Text(
-                    message,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: scheme.onSurface,
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ),
