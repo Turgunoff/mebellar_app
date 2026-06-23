@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:convert' show base64Decode;
 
-import 'package:flutter/foundation.dart' show Uint8List, compute;
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart' show Uint8List, compute, visibleForTesting;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gal/gal.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:image/image.dart' as img;
@@ -16,9 +18,11 @@ import '../../../../core/i18n/i18n.dart';
 import '../../../../core/services/facebook_analytics_service.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/ar/ar_loading_overlay.dart';
-import '../../../../shared/ar/ar_scale.dart';
-import '../../home/widgets/premium/premium_tokens.dart';
+import '../../../../shared/ar/glb_cache_manager.dart';
 import '../../../../shared/models/product_model.dart';
+import '../../../../shared/repositories/woody_set_repository.dart';
+import '../../home/widgets/premium/premium_tokens.dart';
+import '../cubit/ar_viewer_cubit.dart';
 import 'fallback_2d_camera_screen.dart';
 
 /// Clean light "showroom" backdrop behind the model — a flat, premium
@@ -46,76 +50,97 @@ const String _arChannel = 'WoodyArState';
 /// "save to gallery" action that watermarks the shot for the
 /// "place it → screenshot it → share it" viral loop.
 ///
+/// When the product belongs to a furniture set (garnitur) the viewer also
+/// surfaces a bottom selector to toggle between every model-bearing piece
+/// (e.g. Krovat · Shkaf · Tryumo) without leaving the screen — each `.glb` is
+/// pulled from a dedicated on-disk [GlbCacheService] file cache, so a part
+/// already seen switches back instantly with no redundant download.
+///
 /// When the product's real dimensions are known the model is rendered
 /// true-to-size in AR ([ArScale.fixed] + a per-axis `scale`): Meshy normalises
 /// every mesh into a unit cube, so mapping each axis to the measured cm restores
 /// the real footprint — a buyer can't pinch a sofa down to the size of a cat.
 /// Missing dimensions degrade gracefully to an unscaled model (never a crash).
 class BuyerArViewerScreen extends StatefulWidget {
-  const BuyerArViewerScreen({super.key, required this.product});
+  const BuyerArViewerScreen({
+    super.key,
+    required this.product,
+    @visibleForTesting this.glbCache,
+    @visibleForTesting this.setRepository,
+  });
 
   final ProductModel product;
+
+  /// Test seams: a fake file cache / set repository. In production both default
+  /// to the real [GlbCacheService] and the DI-registered [WoodySetRepository].
+  final GlbCacheService? glbCache;
+  final WoodySetRepository? setRepository;
 
   @override
   State<BuyerArViewerScreen> createState() => _BuyerArViewerScreenState();
 }
 
 class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
+  late final ArViewerCubit _cubit = ArViewerCubit(
+    product: widget.product,
+    cache: widget.glbCache ?? GlbCacheService(),
+    setRepository:
+        widget.setRepository ??
+        (sl.isRegistered<WoodySetRepository>()
+            ? sl<WoodySetRepository>()
+            : null),
+  );
+
   /// Set once the WebView controller exists — needed to run JS, but NOT a
   /// readiness signal (model_viewer_plus fires onWebViewCreated *before* it
   /// even loads the page).
   WebViewController? _web;
-
-  /// True only after `<model-viewer>` dispatches its `load` event. The AR + save
-  /// actions gate on this: before the model is loaded, `activateAR()` is a
-  /// no-op, `canActivateAR` is falsely false, and `toDataURL()` would capture an
-  /// empty/transparent frame — so the buttons stay dimmed until it's real.
-  bool _modelReady = false;
 
   /// Resolved by the [_shotChannel] message for the in-flight capture.
   Completer<String>? _shotCompleter;
 
   bool _saving = false;
 
-  /// True once the load gave up — either `<model-viewer>` fired its `error`
-  /// event (404 / decode / WebGL failure) or the [_watchdog] elapsed with no
-  /// `load`. Drives the overlay's retry surface so a failed load never spins
-  /// forever (the infinite-blank-loading bug this guards against).
-  bool _loadFailed = false;
-
   /// Fires if neither `ready` nor `error` arrives in time — catches the cases
   /// model-viewer can't report (model-viewer.min.js itself blocked, the WebView
-  /// silently stalling mid-stream) where no JS event ever comes back.
+  /// silently stalling mid-stream) where no JS event ever comes back. Re-armed
+  /// per mounted WebView; the cubit owns the actual ready/failed phase.
   Timer? _watchdog;
-
-  /// Bumped on retry to give [ModelViewer] a fresh key, forcing a brand-new
-  /// WebView + reload — the cleanest way to re-attempt a failed `.glb` load.
-  int _reloadToken = 0;
 
   static const Duration _loadTimeout = Duration(seconds: 25);
 
-  ProductModel get _product => widget.product;
+  ArViewerPart get _part => _cubit.state.selectedPart;
 
   @override
   void dispose() {
     _watchdog?.cancel();
+    _cubit.close();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final scale = arScaleString(
-      _product.widthCm,
-      _product.heightCm,
-      _product.depthCm,
+    return BlocProvider.value(
+      value: _cubit,
+      child: BlocConsumer<ArViewerCubit, ArViewerState>(
+        // A fresh render token means a new part is mounting: drop the stale
+        // WebView handle and cancel its load watchdog so a late event from the
+        // outgoing model can't flip the incoming one's phase. The new
+        // ModelViewer re-arms its own watchdog in onWebViewCreated.
+        listenWhen: (prev, curr) => prev.renderToken != curr.renderToken,
+        listener: (context, state) {
+          _watchdog?.cancel();
+          _web = null;
+        },
+        builder: _buildViewer,
+      ),
     );
-    final modelUrl = _product.arModelUrl;
-    final hasModel = modelUrl != null && modelUrl.isNotEmpty;
-    // A missing URL is itself a (defensive) failure — show the retry surface
-    // rather than crashing on a force-unwrap if the viewer is ever opened for
-    // a product without an approved model (stale list / deep link).
-    final failed = _loadFailed || !hasModel;
-    final ready = _web != null && _modelReady && !failed;
+  }
+
+  Widget _buildViewer(BuildContext context, ArViewerState state) {
+    final part = state.selectedPart;
+    final scale = part.scaleString;
+    final modelUrl = state.src;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       // Dark glyphs read against the light stage.
@@ -146,23 +171,30 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
                 ),
               ),
             ),
-            if (hasModel)
+            if (state.showModel && modelUrl != null)
               Positioned.fill(
-                key: ValueKey(_reloadToken),
+                // Keyed on the cubit's render token: switching parts / retrying
+                // gives a brand-new key, so Flutter tears down the previous
+                // WebView (releasing its WebGL context + local proxy) and mounts
+                // a fresh ModelViewer for the new `.glb` — a clean hand-off that
+                // never leaves the old model leaking behind the new one.
+                key: ValueKey(state.renderToken),
                 child: ModelViewer(
+                  // A `file://` path (cached) loads straight off disk; a remote
+                  // URL (cache miss / fallback) streams over the local proxy.
                   src: modelUrl,
                   // iOS AR Quick Look source (.usdz). Passed straight through —
                   // model_viewer_plus writes the `ios-src` attribute only when
                   // non-null (see html_builder), so a null usdz simply omits it and
                   // iOS falls back to the in-page WebGL view of `src`. No
                   // Platform.isIOS branching: the package picks src vs iosSrc by OS.
-                  iosSrc: _product.usdzUrl,
+                  iosSrc: part.usdzUrl,
                   // The product's 2D photo as a placeholder while the (multi-MB)
                   // .glb streams in — model-viewer shows it + a progress bar over
                   // the light stage instead of a blank canvas. Null (no image)
                   // degrades to the plain stage, never a crash.
-                  poster: _product.thumbnail,
-                  alt: _product.name,
+                  poster: part.posterUrl,
+                  alt: part.name,
                   ar: true,
                   // All three launchers offered; model-viewer auto-selects per
                   // platform (WebXR / Scene Viewer on Android, Quick Look on iOS
@@ -230,12 +262,21 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
                   // (404 / decode / WebGL failure → "error"). Without the error
                   // listener a failed load fires nothing, so "ready" never
                   // arrives and the overlay spins forever — the bug this fixes.
+                  // The render token is baked into the payload so a model that
+                  // has since been switched away can be identified and ignored:
+                  // tearing down the ModelViewer widget closes only its proxy,
+                  // not the WebView's JS context, so the outgoing model can
+                  // still fire late `load`/`error` (and closing its proxy makes
+                  // a stray `error` MORE likely as its in-flight fetches 404).
+                  // Without the token a stale event would flip the *incoming*
+                  // part's phase (false retry surface, or a premature "ready"
+                  // that also cancels the new model's watchdog).
                   relatedJs:
                       '(function(){var mv=document.querySelector("model-viewer");'
                       'if(!mv){return;}'
-                      'var fire=function(){try{$_arChannel.postMessage("ready");}'
+                      'var fire=function(){try{$_arChannel.postMessage("ready:${state.renderToken}");}'
                       'catch(e){}};'
-                      'var fail=function(){try{$_arChannel.postMessage("error");}'
+                      'var fail=function(){try{$_arChannel.postMessage("error:${state.renderToken}");}'
                       'catch(e){}};'
                       'if(mv.loaded){fire();}'
                       'mv.addEventListener("load",fire);'
@@ -257,13 +298,13 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
                   },
                 ),
               ),
-            // Brand loading animation over the stage until the .glb is loaded;
-            // fades out (and stops blocking taps) the moment the model is ready,
-            // or swaps to an actionable retry surface if the load fails/stalls.
+            // Brand loading animation over the stage while the .glb downloads /
+            // decodes; fades out (and stops blocking taps) the moment the model
+            // is ready, or swaps to an actionable retry surface if it fails.
             ArModelLoadingOverlay(
-              ready: ready,
+              ready: state.isReady,
               background: _kViewerBg,
-              failed: failed,
+              failed: state.isFailed,
               onRetry: _retryLoad,
               errorText: tr('product.ar_load_failed'),
               retryText: tr('product.retry'),
@@ -274,9 +315,10 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
             const _TopScrim(),
             // LAYER 3 — every control lives inside ONE SafeArea, so nothing can
             // bleed into the notch / status bar. A spaceBetween Column pins the
-            // top row (back · title · save) to the top and the AR CTA to the
-            // bottom; the empty middle stays transparent and eats no hits, so
-            // rotate/zoom gestures fall straight through to the model below.
+            // top row (back · title · save) to the top and the part selector +
+            // AR CTA to the bottom; the empty middle stays transparent and eats
+            // no hits, so rotate/zoom gestures fall straight through to the
+            // model below.
             SafeArea(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -296,7 +338,7 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              _product.name,
+                              part.name,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               textAlign: TextAlign.center,
@@ -313,19 +355,36 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
                           _CircleIconButton(
                             icon: Icons.save_alt,
                             busy: _saving,
-                            onTap: (ready && !_saving) ? _saveToGallery : null,
+                            onTap: (state.isReady && !_saving && _web != null)
+                                ? _saveToGallery
+                                : null,
                           ),
                         ],
                       ),
                     ),
-                    // Bottom CTA — sits comfortably above the gesture bar with a
-                    // generous all-round inset, like a modern full-width action.
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(8, 0, 8, 24),
-                      child: _ArPlaceButton(
-                        enabled: ready,
-                        onTap: _showArChoiceSheet,
-                      ),
+                    // Bottom — the part selector (set members only) sits just
+                    // above the full-width AR CTA. Both act on the selected part.
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (state.hasMultipleParts)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 14),
+                            child: _PartSelector(
+                              parts: state.parts,
+                              selectedIndex: state.selectedIndex,
+                              onSelect: _cubit.selectPart,
+                            ),
+                          ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(8, 0, 8, 24),
+                          child: _ArPlaceButton(
+                            enabled: state.isReady,
+                            onTap: _showArChoiceSheet,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -378,7 +437,7 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
           if (sl.isRegistered<FacebookAnalyticsService>()) {
             unawaited(
               sl<FacebookAnalyticsService>().logCustomEvent('ar_model_viewed', {
-                'product_id': widget.product.id,
+                'product_id': _part.id,
               }),
             );
           }
@@ -413,17 +472,18 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
     }
   }
 
-  /// Opens the 2D camera overlay fallback for the product's main photo.
+  /// Opens the 2D camera overlay fallback for the selected part's model.
   void _openFallback() {
+    final part = _part;
     Navigator.of(context).push(
       MaterialPageRoute(
         fullscreenDialog: true,
         builder: (_) => Fallback2DCameraScreen(
-          // The real .glb (non-null here — the viewer only renders with an
+          // The real .glb (non-empty here — the viewer only renders with an
           // approved model), so the fallback floats the 3D model, not a photo.
-          modelUrl: _product.arModelUrl!,
-          posterUrl: _product.thumbnail,
-          productName: _product.name,
+          modelUrl: part.glbUrl,
+          posterUrl: part.posterUrl,
+          productName: part.name,
         ),
       ),
     );
@@ -431,54 +491,56 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
 
   void _onArStateMessage(JavaScriptMessage message) {
     if (!mounted) return;
-    switch (message.message) {
+    final raw = message.message;
+    final sep = raw.indexOf(':');
+    final kind = sep < 0 ? raw : raw.substring(0, sep);
+    // `ready`/`error` carry the render token of the WebView that emitted them
+    // (see relatedJs). Drop any whose token isn't the current part's, so a
+    // model the buyer has switched away from can't flip the live part's phase.
+    if (kind == 'ready' || kind == 'error') {
+      final token = sep < 0 ? null : int.tryParse(raw.substring(sep + 1));
+      if (token != _cubit.state.renderToken) return;
+    }
+    switch (kind) {
       // The model finished loading — only now are activateAR / canActivateAR /
       // toDataURL meaningful, so reveal the CTA + save action. A late `ready`
       // also recovers from an over-eager watchdog timeout.
       case 'ready':
         _watchdog?.cancel();
-        if (!_modelReady || _loadFailed) {
-          setState(() {
-            _modelReady = true;
-            _loadFailed = false;
-          });
-        }
+        _cubit.onModelRendered();
       // <model-viewer> couldn't load/decode the .glb — surface the retry UI.
       case 'error':
         _failLoad();
       // Reached only once the model is loaded (the CTA is gated on readiness),
       // so this is a genuine "no AR on this device" — open the 2D fallback
-      // rather than dead-ending on a toast.
+      // rather than dead-ending on a toast. Posted by [_activateAr] against the
+      // live WebView, so it carries no token.
       case 'unsupported':
         _openFallback();
     }
   }
 
   /// Arms the load watchdog for a fresh WebView; a prior timer is replaced so a
-  /// retry never leaves two running.
+  /// retry / part-switch never leaves two running.
   void _startWatchdog() {
     _watchdog?.cancel();
     _watchdog = Timer(_loadTimeout, () {
-      if (mounted && !_modelReady) _failLoad();
+      if (mounted && !_cubit.state.isReady) _failLoad();
     });
   }
 
   void _failLoad() {
     _watchdog?.cancel();
-    if (mounted && !_loadFailed) setState(() => _loadFailed = true);
+    _cubit.onModelFailed();
   }
 
-  /// Re-attempts the load: a bumped [_reloadToken] gives [ModelViewer] a new
-  /// key, so Flutter tears down the stalled WebView and builds a fresh one that
-  /// re-runs the load (and re-arms the watchdog via onWebViewCreated).
+  /// Re-attempts the current part's load: drops the stalled WebView handle and
+  /// asks the cubit to re-resolve + bump the render token, which gives
+  /// [ModelViewer] a new key (fresh WebView, re-armed watchdog).
   void _retryLoad() {
-    if (!mounted) return;
-    setState(() {
-      _loadFailed = false;
-      _modelReady = false;
-      _web = null;
-      _reloadToken++;
-    });
+    _watchdog?.cancel();
+    _web = null;
+    unawaited(_cubit.retry());
   }
 
   /// Captures the live 3D canvas, watermarks it, and writes it to the camera
@@ -490,6 +552,10 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
     if (_saving) return;
     final web = _web;
     if (web == null) return;
+    // Bind the filename to the part being captured NOW: the selector stays
+    // tappable during the async capture/watermark, so reading _part.id later
+    // could label this PNG with a sibling the buyer switched to mid-save.
+    final partId = _part.id;
     setState(() => _saving = true);
     try {
       final dataUrl = await _captureCanvas(web);
@@ -501,7 +567,7 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
         _toast(tr('product.ar_save_denied'));
         return;
       }
-      await Gal.putImageBytes(framed, name: 'woody_ar_${_product.id}');
+      await Gal.putImageBytes(framed, name: 'woody_ar_$partId');
       _toast(tr('product.ar_saved'));
     } on GalException catch (e) {
       _toast(
@@ -652,6 +718,131 @@ class _TopScrim extends StatelessWidget {
               end: Alignment.bottomCenter,
               colors: [Color(0xE6F4F5F7), Color(0x00F4F5F7)],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Bottom selector for a furniture set: one tappable chip per model-bearing
+/// piece, scrolling horizontally. The selected chip is filled with the brand
+/// accent so the buyer always knows which model is on screen. Fixed-for-light to
+/// match the immersive viewer surface (which never flips with the OS theme).
+class _PartSelector extends StatelessWidget {
+  const _PartSelector({
+    required this.parts,
+    required this.selectedIndex,
+    required this.onSelect,
+  });
+
+  final List<ArViewerPart> parts;
+  final int selectedIndex;
+  final ValueChanged<int> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 52,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 2),
+        physics: const BouncingScrollPhysics(),
+        itemCount: parts.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 10),
+        itemBuilder: (context, i) => _PartChip(
+          part: parts[i],
+          selected: i == selectedIndex,
+          onTap: () => onSelect(i),
+        ),
+      ),
+    );
+  }
+}
+
+/// A single part chip — thumbnail + name. Filled accent + white text when
+/// selected; a white pill with ink text otherwise.
+class _PartChip extends StatelessWidget {
+  const _PartChip({
+    required this.part,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final ArViewerPart part;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    const accent = PremiumTokens.accent;
+    final fg = selected ? Colors.white : _kInk;
+    return Material(
+      color: selected ? accent : Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      elevation: selected ? 4 : 1.5,
+      shadowColor: selected
+          ? accent.withValues(alpha: 0.4)
+          : const Color(0x22000000),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 176),
+          padding: const EdgeInsets.fromLTRB(6, 6, 14, 6),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: selected ? accent : const Color(0x14000000),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(11),
+                child: SizedBox(
+                  width: 40,
+                  height: 40,
+                  child: ColoredBox(
+                    color: selected
+                        ? Colors.white.withValues(alpha: 0.18)
+                        : const Color(0xFFF0F1F3),
+                    child: part.posterUrl != null
+                        ? CachedNetworkImage(
+                            imageUrl: part.posterUrl!,
+                            fit: BoxFit.cover,
+                            errorWidget: (_, _, _) => Icon(
+                              Iconsax.d_cube_scan,
+                              size: 18,
+                              color: fg.withValues(alpha: 0.6),
+                            ),
+                          )
+                        : Icon(
+                            Iconsax.d_cube_scan,
+                            size: 18,
+                            color: fg.withValues(alpha: 0.6),
+                          ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 9),
+              Flexible(
+                child: Text(
+                  part.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: AppFonts.body,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.1,
+                    color: fg,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),

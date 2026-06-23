@@ -1,27 +1,47 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:model_viewer_plus/model_viewer_plus.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
 import 'package:woody_app/core/theme/app_theme.dart';
 import 'package:woody_app/customer/features/product_list/screens/buyer_ar_viewer_screen.dart';
+import 'package:woody_app/shared/ar/glb_cache_manager.dart';
 import 'package:woody_app/shared/models/product_model.dart';
+import 'package:woody_app/shared/models/product_set.dart';
+import 'package:woody_app/shared/repositories/woody_set_repository.dart';
 
 import '../../../../support/fake_webview_platform.dart';
 
 // ModelViewer wraps a WebView platform view that has no plugin in the
 // flutter_test harness, so its controller init asserts on a missing
 // WebViewPlatform.instance. A no-op fake platform (installed in setUpAll) lets
-// the widget mount; a single pump (no pumpAndSettle, which would hang on the
-// indefinite proxy bind) is enough to read the mounted ModelViewer's config.
+// the widget mount; pumping a few short frames (no pumpAndSettle, which would
+// hang on the indefinite proxy bind) lets the cubit resolve the model source so
+// the ModelViewer mounts, then reads its config.
+
+/// A cache stand-in that always "misses" and resolves to the remote URL — so
+/// the mounted ModelViewer's `src` is the network URL the assertions expect.
+/// Mirrors GlbCacheService's real fallback when a file can't be cached.
+class _UrlCache extends GlbCacheService {
+  @override
+  Future<String?> peek(String url) async => null;
+  @override
+  Future<String> resolve(String url) async => url;
+}
+
+class _MockSetRepo extends Mock implements WoodySetRepository {}
+
 ProductModel _product({
+  String id = 'p1',
   num? widthCm,
   num? heightCm,
   num? depthCm,
   String name = 'Krovat',
   String? usdzUrl,
+  String? setId,
   List<String> images = const [],
 }) => ProductModel(
-  id: 'p1',
+  id: id,
   categoryId: 'cat-1',
   name: name,
   price: 1000000,
@@ -31,18 +51,33 @@ ProductModel _product({
   arModelUrl: 'https://example.com/model.glb',
   usdzUrl: usdzUrl,
   arStatus: 'approved',
+  setId: setId,
   widthCm: widthCm,
   heightCm: heightCm,
   depthCm: depthCm,
 );
 
-Future<void> _pump(WidgetTester tester, ProductModel product) {
-  return tester.pumpWidget(
+Future<void> _pump(
+  WidgetTester tester,
+  ProductModel product, {
+  WoodySetRepository? setRepository,
+}) async {
+  await tester.pumpWidget(
     MaterialApp(
       theme: AppTheme.lightTheme,
-      home: BuyerArViewerScreen(product: product),
+      home: BuyerArViewerScreen(
+        product: product,
+        glbCache: _UrlCache(),
+        setRepository: setRepository,
+      ),
     ),
   );
+  // Drain the cubit's source-resolution microtasks (downloading → rendering)
+  // so the ModelViewer mounts. Plain pumps don't bind the model-viewer proxy
+  // (real socket I/O), so no load watchdog timer is armed.
+  for (var i = 0; i < 4; i++) {
+    await tester.pump(const Duration(milliseconds: 10));
+  }
 }
 
 void main() {
@@ -169,5 +204,53 @@ void main() {
         .map((a) => a.assetName)
         .toList();
     expect(backdropAssets, contains('assets/images/viewer_3d_bg.webp'));
+  });
+
+  testWidgets('no part selector for a standalone product', (tester) async {
+    await _pump(tester, _product(name: 'Stol'));
+    // Single product → the name shows once (top-bar title), with no second
+    // selector chip echoing it.
+    expect(find.text('Stol'), findsOneWidget);
+  });
+
+  testWidgets('shows a part selector and toggles models for a set', (
+    tester,
+  ) async {
+    final repo = _MockSetRepo();
+    when(() => repo.fetchSet(any())).thenAnswer(
+      (_) async => SetDetail(
+        info: const ProductSet(
+          id: 's1',
+          shopId: 'shop',
+          sellerId: 'seller',
+          name: 'Yotoqxona',
+        ),
+        items: [
+          _product(id: 'bed', name: 'Krovat', setId: 's1'),
+          _product(id: 'wardrobe', name: 'Shkaf', setId: 's1'),
+          _product(id: 'mirror', name: 'Tryumo', setId: 's1'),
+        ],
+      ),
+    );
+
+    await _pump(
+      tester,
+      _product(id: 'bed', name: 'Krovat', setId: 's1'),
+      setRepository: repo,
+    );
+
+    // The set's siblings each get a selector chip; the opened product (Krovat)
+    // is the active part, so its name shows twice (top-bar title + chip).
+    expect(find.text('Krovat'), findsNWidgets(2));
+    expect(find.text('Shkaf'), findsOneWidget);
+    expect(find.text('Tryumo'), findsOneWidget);
+
+    // Toggle to Shkaf → the active model (and the top-bar title) switches.
+    await tester.tap(find.text('Shkaf'));
+    for (var i = 0; i < 4; i++) {
+      await tester.pump(const Duration(milliseconds: 10));
+    }
+    expect(find.text('Shkaf'), findsNWidgets(2));
+    expect(find.text('Krovat'), findsOneWidget);
   });
 }
