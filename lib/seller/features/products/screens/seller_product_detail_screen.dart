@@ -259,7 +259,7 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
+            onPressed: () => Navigator.of(dialogContext, rootNavigator: true).pop(false),
             child: Text(
               'Bekor qilish',
               style: TextStyle(
@@ -270,7 +270,7 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
             ),
           ),
           FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
+            onPressed: () => Navigator.of(dialogContext, rootNavigator: true).pop(true),
             style: FilledButton.styleFrom(
               backgroundColor: destructive
                   ? AppColors.sellerNegative
@@ -475,8 +475,8 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
         primaryLabel: tr('product.ar_rescan_confirm_yes'),
         primaryColor: c.primary,
         cancelLabel: tr('product.ar_rescan_confirm_cancel'),
-        onPrimary: () => Navigator.of(dialogContext).pop(true),
-        onCancel: () => Navigator.of(dialogContext).pop(false),
+        onPrimary: () => Navigator.of(dialogContext, rootNavigator: true).pop(true),
+        onCancel: () => Navigator.of(dialogContext, rootNavigator: true).pop(false),
       ),
     );
   }
@@ -497,8 +497,8 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
         primaryLabel: tr('product.ar_no_tokens_buy'),
         primaryColor: c.primary,
         cancelLabel: tr('product.ar_rescan_confirm_cancel'),
-        onPrimary: () => Navigator.of(dialogContext).pop(true),
-        onCancel: () => Navigator.of(dialogContext).pop(false),
+        onPrimary: () => Navigator.of(dialogContext, rootNavigator: true).pop(true),
+        onCancel: () => Navigator.of(dialogContext, rootNavigator: true).pop(false),
       ),
     );
     if (goTopUp == true && mounted) await _openArTokens();
@@ -586,7 +586,7 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
+            onPressed: () => Navigator.of(dialogContext, rootNavigator: true).pop(false),
             child: Text(
               'Yopish',
               style: TextStyle(
@@ -597,7 +597,7 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
             ),
           ),
           FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
+            onPressed: () => Navigator.of(dialogContext, rootNavigator: true).pop(true),
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.sellerPrimary,
               foregroundColor: Colors.white,
