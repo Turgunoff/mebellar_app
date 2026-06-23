@@ -66,7 +66,7 @@ class _SellerProductsViewState extends State<_SellerProductsView> {
 
   Future<void> _openCreate(BuildContext context) async {
     final bloc = context.read<SellerProductsBloc>();
-    final created = await Navigator.of(context).push<bool>(
+    final created = await Navigator.of(context, rootNavigator: true).push<bool>(
       MaterialPageRoute(
         settings: const RouteSettings(name: '/product-form'),
         builder: (_) =>
@@ -85,7 +85,7 @@ class _SellerProductsViewState extends State<_SellerProductsView> {
   /// show the new pending state.
   Future<void> _openEdit(BuildContext context, SellerProduct product) async {
     final bloc = context.read<SellerProductsBloc>();
-    final saved = await Navigator.of(context).push<bool>(
+    final saved = await Navigator.of(context, rootNavigator: true).push<bool>(
       MaterialPageRoute(
         settings: const RouteSettings(name: '/product-form'),
         builder: (_) => BlocProvider.value(
@@ -105,6 +105,7 @@ class _SellerProductsViewState extends State<_SellerProductsView> {
   void _openSets(BuildContext context) {
     Navigator.of(
       context,
+      rootNavigator: true,
     ).push(
       MaterialPageRoute(
         settings: const RouteSettings(name: '/seller-sets'),
@@ -117,7 +118,7 @@ class _SellerProductsViewState extends State<_SellerProductsView> {
   // pops the preview and opens the form prefilled with this product.
   void _openPreview(BuildContext context, SellerProduct product) {
     final bloc = context.read<SellerProductsBloc>();
-    Navigator.of(context).push(
+    Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute(
         settings: const RouteSettings(name: '/seller-product-detail'),
         builder: (previewContext) => BlocProvider.value(
@@ -990,6 +991,7 @@ class _TariffArchiveBanner extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         onTap: () => Navigator.of(
           context,
+          rootNavigator: true,
         ).push(
           MaterialPageRoute(
             settings: const RouteSettings(name: '/seller-tariff'),

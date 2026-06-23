@@ -193,7 +193,7 @@ class _SellerProfileView extends StatelessWidget {
   }
 
   static void _push(BuildContext context, Widget screen) {
-    Navigator.of(context).push(
+    Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute(
         settings: RouteSettings(name: '/${screen.runtimeType}'),
         builder: (_) => screen,
@@ -227,7 +227,10 @@ final Color _logoutRed = Colors.red.shade600;
 /// renames show up the moment the settings screen pops, no manual refresh.
 Future<void> _openShopSettings(BuildContext context) async {
   final cubit = context.read<SellerProfileCubit>();
-  final saved = await Navigator.of(context).push<ShopSettings>(
+  final saved = await Navigator.of(
+    context,
+    rootNavigator: true,
+  ).push<ShopSettings>(
     MaterialPageRoute(
       settings: const RouteSettings(name: '/shop-settings'),
       builder: (_) => const ShopSettingsScreen(),

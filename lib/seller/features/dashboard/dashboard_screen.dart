@@ -168,7 +168,7 @@ class _DashboardContent extends StatelessWidget {
             title: 'Yutuqlar',
             subtitle: 'Bosqichlarni bosib oting',
             trailing: _SeeAllButton(
-              onTap: () => Navigator.of(context).push(
+              onTap: () => Navigator.of(context, rootNavigator: true).push(
                 MaterialPageRoute<void>(
                   builder: (_) =>
                       AchievementsScreen(achievements: data.achievements),
@@ -371,7 +371,7 @@ class _NotificationBell extends StatelessWidget {
   const _NotificationBell();
 
   void _open(BuildContext context) {
-    Navigator.of(context).push(
+    Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute<void>(builder: (_) => const NotificationsScreen()),
     );
   }
@@ -531,7 +531,7 @@ class _KpiGrid extends StatelessWidget {
           // especially when "Limit oshdi" is up. No quota with tariff off,
           // so the card stays inert there.
           onTap: tariffEnabled
-              ? () => Navigator.of(context).push(
+              ? () => Navigator.of(context, rootNavigator: true).push(
                   MaterialPageRoute<void>(builder: (_) => const TariffScreen()),
                 )
               : null,

@@ -21,6 +21,7 @@ class WalletDebtBanner extends StatelessWidget {
   void _openWallet(BuildContext context) {
     Navigator.of(
       context,
+      rootNavigator: true,
     ).push(MaterialPageRoute<void>(builder: (_) => const WalletScreen()));
   }
 

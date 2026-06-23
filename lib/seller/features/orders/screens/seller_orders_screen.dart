@@ -387,7 +387,7 @@ class _OrderCard extends StatelessWidget {
             // The list route stays mounted beneath the pushed detail, so its
             // bloc is a valid `onUpdated` sink for the detail's transitions.
             final ordersBloc = context.read<SellerOrdersBloc>();
-            Navigator.of(context).push(
+            Navigator.of(context, rootNavigator: true).push(
               MaterialPageRoute<void>(
                 builder: (_) => OrderDetailsScreen(
                   orderId: order.id,
