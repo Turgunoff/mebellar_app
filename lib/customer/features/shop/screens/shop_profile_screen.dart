@@ -27,6 +27,7 @@ import '../../favorites/bloc/favorites_bloc.dart';
 import '../cubit/shop_profile_cubit.dart';
 
 part 'shop_profile_cards.dart';
+part 'shop_profile_badges.dart';
 
 /// `color` is nullable: pass an adaptive `PremiumTokens.of(context).dark` from
 /// the call site (it can't be a const default).
@@ -241,6 +242,11 @@ class _ReadyContentState extends State<_ReadyContent> {
     final brandInk = _brandAccent(context, brand);
     final cards = <Widget>[
       _StatsCard(shop: shop, accent: brandInk),
+      if (shop.unlockedAchievements.isNotEmpty)
+        _AchievementsCard(
+          achievements: shop.unlockedAchievements,
+          accent: brandInk,
+        ),
       if ((shop.description ?? '').isNotEmpty)
         _AboutCard(text: shop.description!, accent: brandInk),
       if (shop.hasPhone || shop.hasTelegram)
