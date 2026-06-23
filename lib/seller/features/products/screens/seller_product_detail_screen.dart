@@ -17,7 +17,6 @@ import '../data/ar_scan_repository.dart';
 import '../data/ar_token_repository.dart';
 import '../widgets/ar_not_approved_card.dart';
 import '../widgets/ar_scan_onboarding_sheet.dart';
-import '../widgets/ar_token_buy_sheet.dart';
 import 'ar_scan_camera_screen.dart';
 import 'seller_ar_model_screen.dart';
 import '../widgets/product_preview/attributes_card.dart';
@@ -116,30 +115,6 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
       // scan endpoint still enforces the limit server-side.
       talker.handle(e, st, '[seller-product-detail] ar balance load failed');
     }
-  }
-
-  /// Opens the token top-up sheet; when a checkout deep-link is launched, the
-  /// payment app opens — tokens land once the provider confirms the payment
-  /// (webhook). Refresh the balance + remind the seller to finish paying.
-  Future<void> _openBuyTokens() async {
-    final balance = _arBalance;
-    if (balance == null) return;
-    final started = await showArTokenBuySheet(
-      context,
-      packages: balance.packages,
-    );
-    if (!mounted || !started) return;
-    await _loadArBalance();
-    if (!mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(
-          content: Text(
-            'To‘lovni ilovada yakunlang — tasdiqlangach tokenlar qo‘shiladi.',
-          ),
-        ),
-      );
   }
 
   @override
@@ -334,23 +309,59 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
   }
 
   /// Builds the AR card's rows: one per scannable component, merged with its
-  /// existing part (model state, visibility, free-scan spent) by `part_key`. A
-  /// part with no matching component (schema changed since it was scanned) is
-  /// still surfaced so its model stays manageable.
+  /// existing part (model state, visibility, free-scan spent) by `part_key`.
+  ///
+  /// A part whose key matches a derived component attaches to it directly. A
+  /// part with no matching component is an "orphan" — most importantly the
+  /// pre-per-part legacy model, which migration 0059 backfilled under the key
+  /// `single`: that key never matches a *set's* derived pieces (bed/wardrobe/
+  /// dresser), so the model would otherwise strand as a duplicate row while every
+  /// named piece wrongly offered "Yaratish". We adopt such a model-bearing orphan
+  /// onto the first piece that has no model yet, so the seller keeps their
+  /// existing model (view / hide / rescan) and is never asked to — or charged to —
+  /// regenerate it. An orphan is only surfaced standalone when no piece is free,
+  /// so a model is never hidden.
   List<_ArPartRow> _buildArRows(SellerProduct product) {
-    final rows = <String, _ArPartRow>{};
-    for (final comp in resolveArScanComponents(
-      schema: _schema,
-      product: product,
-    )) {
-      rows[comp.partKey] = _ArPartRow(component: comp, part: null);
-    }
+    final components = resolveArScanComponents(schema: _schema, product: product);
+    final rows = <String, _ArPartRow>{
+      for (final comp in components)
+        comp.partKey: _ArPartRow(component: comp, part: null),
+    };
+
+    final orphans = <ArPart>[];
     for (final part in _arParts) {
-      rows[part.partKey] = _ArPartRow(
-        component: rows[part.partKey]?.component,
-        part: part,
-      );
+      if (rows.containsKey(part.partKey)) {
+        rows[part.partKey] = _ArPartRow(
+          component: rows[part.partKey]!.component,
+          part: part,
+        );
+      } else {
+        orphans.add(part);
+      }
     }
+
+    for (final orphan in orphans) {
+      final adoptable =
+          orphan.hasModel || orphan.isProcessing || orphan.isFailed;
+      String? freeKey;
+      if (adoptable) {
+        for (final comp in components) {
+          if (rows[comp.partKey]?.part == null) {
+            freeKey = comp.partKey;
+            break;
+          }
+        }
+      }
+      if (freeKey != null) {
+        rows[freeKey] = _ArPartRow(
+          component: rows[freeKey]!.component,
+          part: orphan,
+        );
+      } else {
+        rows[orphan.partKey] = _ArPartRow(part: orphan);
+      }
+    }
+
     return rows.values.toList(growable: false);
   }
 
@@ -644,11 +655,9 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
                     rows: _buildArRows(product),
                     partsLoaded: _arPartsLoaded,
                     arCredits: _arBalance?.arCredits,
-                    canBuyTokens: _arBalance != null,
                     onScan: _scanPart,
                     onView: _openPartViewer,
                     onToggleVisibility: _toggleVisibility,
-                    onBuyTokens: _openBuyTokens,
                   ),
                   const SizedBox(height: 14),
                   MetaCard(
@@ -855,11 +864,9 @@ class _ArScanCard extends StatelessWidget {
     required this.rows,
     required this.partsLoaded,
     required this.arCredits,
-    required this.canBuyTokens,
     required this.onScan,
     required this.onView,
     required this.onToggleVisibility,
-    required this.onBuyTokens,
   });
 
   final SellerProduct product;
@@ -870,23 +877,13 @@ class _ArScanCard extends StatelessWidget {
   /// False until the parts fetch resolves — drives the in-card loading copy.
   final bool partsLoaded;
 
-  /// The seller's AR-token balance; null while still loading. A rescan costs a
-  /// token, so the chip + buy CTA surface once it's known.
+  /// The seller's AR-token balance; null while still loading. Display-only here:
+  /// the badge shows it, but topping up moved to the profile's AR-tokens screen.
   final int? arCredits;
-  final bool canBuyTokens;
 
   final ValueChanged<_ArPartRow> onScan;
   final ValueChanged<ArPart> onView;
   final ValueChanged<ArPart> onToggleVisibility;
-  final VoidCallback onBuyTokens;
-
-  /// `arCredits` is null while the balance loads — treat that as "not empty".
-  bool get _outOfTokens => (arCredits ?? 1) < 1;
-
-  /// True when at least one scanned part would need a token to rescan — gates
-  /// the "buy tokens" CTA so it only shows when it's actually relevant.
-  bool get _anyRescanNeedsToken =>
-      rows.any((r) => r.part?.freeScanUsed ?? false);
 
   @override
   Widget build(BuildContext context) {
@@ -945,7 +942,7 @@ class _ArScanCard extends StatelessWidget {
                   const SizedBox(width: 10),
                   _MetaChip(
                     icon: Icons.bolt_rounded,
-                    label: 'Token: $arCredits',
+                    label: 'Mavjud tokenlar: $arCredits',
                     fg: c.gold,
                     bg: c.goldBg,
                   ),
@@ -954,15 +951,6 @@ class _ArScanCard extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             _body(c),
-            if (_outOfTokens && canBuyTokens && _anyRescanNeedsToken) ...[
-              const SizedBox(height: 14),
-              _ArCtaButton(
-                icon: Icons.bolt_rounded,
-                label: 'AR Token sotib olish',
-                onPressed: onBuyTokens,
-                tone: _ArCtaTone.gold,
-              ),
-            ],
           ],
         ),
       ),
@@ -1265,81 +1253,6 @@ class _ScanPill extends StatelessWidget {
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                   color: enabled ? Colors.white : c.grey,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Visual weight for [_ArCtaButton]: the indigo brand action vs the gold
-/// token-economy action.
-enum _ArCtaTone { indigo, gold }
-
-/// Full-width gradient CTA for the AR card. Indigo = the brand action
-/// (scan / view / retry); gold = the token currency (buy AR tokens). The soft
-/// colour-matched drop shadow gives the card its premium, raised feel.
-class _ArCtaButton extends StatelessWidget {
-  const _ArCtaButton({
-    required this.icon,
-    required this.label,
-    required this.onPressed,
-    this.tone = _ArCtaTone.indigo,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onPressed;
-  final _ArCtaTone tone;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = SellerColors.of(context);
-    final isGold = tone == _ArCtaTone.gold;
-    // Gold is a light surface → ink text reads; indigo is dark → white text.
-    final fg = isGold ? AppColors.sellerInk : Colors.white;
-    final gradient = isGold
-        ? [c.goldBright, c.gold]
-        : [c.primaryBright, c.primaryDeep];
-    final glow = (isGold ? c.gold : c.primary).withValues(alpha: 0.30);
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onPressed,
-        child: Ink(
-          height: 52,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: gradient,
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: glow,
-                blurRadius: 16,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 20, color: fg),
-              const SizedBox(width: 10),
-              Text(
-                label,
-                style: TextStyle(
-                  fontFamily: AppFonts.seller,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 15,
-                  color: fg,
                 ),
               ),
             ],

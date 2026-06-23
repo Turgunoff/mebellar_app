@@ -24,6 +24,7 @@ import '../settings/screens/services_screen.dart';
 import '../settings/screens/settings_screen.dart';
 import '../settings/screens/shop_settings_screen.dart';
 import '../tariff/screens/tariff_screen.dart';
+import '../wallet/screens/ar_tokens_screen.dart';
 import '../wallet/screens/wallet_screen.dart';
 import 'cubit/seller_profile_cubit.dart';
 
@@ -117,6 +118,14 @@ class _SellerProfileView extends StatelessWidget {
                               title: 'Hamyon',
                               subtitle: _walletSubtitle(state),
                               onTap: () => _push(context, const WalletScreen()),
+                            ),
+                            _SettingsItem(
+                              icon: Iconsax.flash_1_copy,
+                              iconColor: SellerColors.of(context).gold,
+                              title: 'AR Tokenlar',
+                              subtitle: '3D skan uchun balans va to‘ldirish',
+                              onTap: () =>
+                                  _push(context, const ArTokensScreen()),
                             ),
                             // Tariff is hidden while the tariff system is
                             // switched off (RemoteConfig.tariffEnabled).
