@@ -100,7 +100,7 @@ class WoodyCartRepository implements CartRepository {
       body: {
         'product_id': product.id,
         'quantity': quantity.clamp(1, 99),
-        if (selectedColor != null) 'selected_color': selectedColor,
+        'selected_color': ?selectedColor,
         // Display snapshot (name/image/price) — without it the server row
         // has nothing to render and the cart shows a grey thumbnail + 0 UZS.
         'product_snapshot': CartItemModel.fromProduct(

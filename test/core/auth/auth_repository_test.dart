@@ -161,8 +161,9 @@ void main() {
     () async {
       await store.write(const TokenPair(accessToken: 'A', refreshToken: 'R'));
       final h = makeRepo((opts) {
-        if (opts.uri.path.endsWith('/auth/logout'))
+        if (opts.uri.path.endsWith('/auth/logout')) {
           return (400, '{"detail":"x"}');
+        }
         return (200, '{}');
       });
 

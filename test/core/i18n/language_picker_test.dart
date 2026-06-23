@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:woody_app/core/i18n/app_locale_controller.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
 import 'package:woody_app/core/i18n/language_picker.dart';
 

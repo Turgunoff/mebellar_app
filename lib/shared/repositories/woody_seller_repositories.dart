@@ -243,7 +243,7 @@ class WoodySellerOnboardingRepository implements SellerOnboardingRepository {
         if (draft.telegramUsername != null)
           'telegram_username': draft.telegramUsername,
         'shop_name': shopName,
-        if (shopDescription != null) 'shop_description': shopDescription,
+        'shop_description': ?shopDescription,
         if (draft.shopStreetLine != null) 'shop_address': draft.shopStreetLine,
         if (draft.shopLat != null) 'latitude': draft.shopLat,
         if (draft.shopLng != null) 'longitude': draft.shopLng,

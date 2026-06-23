@@ -7,7 +7,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:woody_app/core/network/token_store.dart';
 import 'package:woody_app/core/network/woody_api_client.dart';
-import 'package:woody_app/core/result/result.dart';
 import 'package:woody_app/shared/repositories/woody_shop_repository.dart';
 
 class _MockSecureStorage extends Mock implements FlutterSecureStorage {}

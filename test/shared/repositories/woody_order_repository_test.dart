@@ -48,7 +48,7 @@ Map<String, dynamic> _orderRow({
   'created_at': '2026-01-01T00:00:00Z',
   'total_amount': 250000,
   'delivery_address': 'Toshkent, Chilonzor',
-  if (cancelReason != null) 'cancellation_reason': cancelReason,
+  'cancellation_reason': ?cancelReason,
   'items': [
     {
       'id': 'i1',

@@ -1,3 +1,8 @@
+// Generated asset references — class names mirror the asset folder names
+// (e.g. `google_fonts` → `AssetGoogle_fonts`), so the UpperCamelCase lint
+// doesn't apply to this file.
+// ignore_for_file: camel_case_types
+
 class AssetLogo {
 	static const String click = 'assets/logo/click.svg';
 	static const String payme = 'assets/logo/payme.svg';

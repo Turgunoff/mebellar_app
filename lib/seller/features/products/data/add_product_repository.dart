@@ -407,7 +407,7 @@ class AddProductRepository {
       'name': input.name,
       if (input.description.isNotEmpty) 'description': input.description,
       'price': input.price,
-      if (discountPrice != null) 'discount_price': discountPrice,
+      'discount_price': ?discountPrice,
       'images': imageUrls,
       'attributes': input.attributes,
       'colors': input.colorSlugs,

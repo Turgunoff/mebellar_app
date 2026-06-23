@@ -118,7 +118,7 @@ class WoodySellerOrderRepository implements SellerOrderRepository {
       '$_ordersPath/$id/status',
       body: {
         'status': next.code,
-        if (reasonCode != null) 'cancel_reason_code': reasonCode,
+        'cancel_reason_code': ?reasonCode,
         if (reasonText != null && reasonText.isNotEmpty)
           'cancel_reason_text': reasonText,
       },

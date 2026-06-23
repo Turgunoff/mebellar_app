@@ -324,8 +324,9 @@ class _SellerRouterShellState extends State<SellerRouterShell> {
       final me = await sl<AuthRepository>().fetchMe();
       if (!mounted) return;
       final seller = me.sellerProfile;
-      if (seller == null || !seller.isApproved || seller.bonusScreenSeen)
+      if (seller == null || !seller.isApproved || seller.bonusScreenSeen) {
         return;
+      }
       GoRouter.of(context).push('/seller/welcome', extra: auth.userId);
     } catch (e, st) {
       talker.handle(e, st, 'seller welcome gate /me failed');
