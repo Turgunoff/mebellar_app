@@ -52,6 +52,8 @@ void main() {
 
     final result = await repo.uploadScanPhotos(
       productId: 'prod-1',
+      partKey: 'bed',
+      label: 'Krovat',
       photos: [Uint8List(3), Uint8List(3), Uint8List(3)],
       heightCm: 200,
       widthCm: 90,
@@ -96,6 +98,10 @@ void main() {
       'https://cdn/img-1.jpg',
       'https://cdn/img-2.jpg',
     ]);
+    // The part identity rides along so the backend keys the model to the right
+    // component (a garnitur's bed vs wardrobe).
+    expect(body['part_key'], 'bed');
+    expect(body['label'], 'Krovat');
     expect(body['height_cm'], 200);
     expect(body['width_cm'], 90);
     expect(body['length_cm'], 210);
@@ -114,6 +120,8 @@ void main() {
     await expectLater(
       repo.uploadScanPhotos(
         productId: 'prod-1',
+        partKey: 'single',
+        label: 'Asosiy',
         photos: [Uint8List(3)],
         heightCm: 200,
         widthCm: 90,
@@ -143,6 +151,8 @@ void main() {
 
     final result = await repo.uploadScanPhotos(
       productId: 'prod-1',
+      partKey: 'single',
+      label: 'Asosiy',
       photos: [Uint8List(3)],
       heightCm: 1,
       widthCm: 1,
@@ -151,5 +161,64 @@ void main() {
 
     expect(result.arStatus, 'processing');
     expect(result.taskId, '');
+  });
+
+  test('fetchArParts maps the seller parts payload', () async {
+    when(() => api.get<List<dynamic>>(any())).thenAnswer(
+      (_) async => [
+        {
+          'id': 'part-1',
+          'part_key': 'bed',
+          'label': 'Krovat',
+          'ar_status': 'approved',
+          'ar_model_url': 'https://cdn/bed.glb',
+          'is_ar_visible': true,
+          'free_scan_used': true,
+          'width_cm': 200,
+          'height_cm': 60,
+          'depth_cm': 90,
+        },
+        {
+          'id': 'part-2',
+          'part_key': 'wardrobe',
+          'label': 'Shkaf',
+          'ar_status': 'processing',
+          'is_ar_visible': true,
+          'free_scan_used': true,
+        },
+      ],
+    );
+
+    final parts = await repo.fetchArParts('prod-1');
+
+    verify(() => api.get<List<dynamic>>('/seller/products/prod-1/ar-parts'))
+        .called(1);
+    expect(parts.length, 2);
+    expect(parts.first.partKey, 'bed');
+    expect(parts.first.label, 'Krovat');
+    expect(parts.first.hasModel, isTrue);
+    expect(parts.first.widthCm, 200);
+    expect(parts[1].isProcessing, isTrue);
+    expect(parts[1].hasModel, isFalse);
+  });
+
+  test('setPartVisibility PATCHes the part visibility', () async {
+    when(
+      () => api.patch<void>(any(), body: any(named: 'body')),
+    ).thenAnswer((_) async {});
+
+    await repo.setPartVisibility(
+      productId: 'prod-1',
+      partId: 'part-1',
+      isVisible: false,
+    );
+
+    final body = verify(
+      () => api.patch<void>(
+        '/seller/products/prod-1/parts/part-1/visibility',
+        body: captureAny(named: 'body'),
+      ),
+    ).captured.single as Map<String, dynamic>;
+    expect(body['is_ar_visible'], false);
   });
 }

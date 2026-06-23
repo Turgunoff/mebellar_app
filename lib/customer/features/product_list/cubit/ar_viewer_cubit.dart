@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/logging/talker.dart';
 import '../../../../shared/ar/ar_scale.dart';
 import '../../../../shared/ar/glb_cache_manager.dart';
+import '../../../../shared/models/ar_part.dart';
 import '../../../../shared/models/product_model.dart';
 import '../../../../shared/models/product_set.dart';
 import '../../../../shared/repositories/woody_set_repository.dart';
@@ -62,6 +63,19 @@ class ArViewerPart extends Equatable {
     glbUrl: p.arModelUrl ?? '',
     usdzUrl: p.usdzUrl,
     posterUrl: p.thumbnail,
+    widthCm: p.widthCm,
+    heightCm: p.heightCm,
+    depthCm: p.depthCm,
+  );
+
+  /// One of a product's own per-part models (a garnitur's bed, wardrobe, …).
+  /// Parts carry no thumbnail, so the selector chip falls back to a cube glyph.
+  factory ArViewerPart.fromArPart(ArPart p, {String? posterUrl}) => ArViewerPart(
+    id: p.id,
+    name: p.label,
+    glbUrl: p.arModelUrl ?? '',
+    usdzUrl: p.usdzUrl,
+    posterUrl: posterUrl,
     widthCm: p.widthCm,
     heightCm: p.heightCm,
     depthCm: p.depthCm,
@@ -155,6 +169,8 @@ class ArViewerCubit extends Cubit<ArViewerState> {
   }) : _cache = cache,
        _setRepo = setRepository,
        _setId = product.hasSet ? product.setId : null,
+       _productParts = product.arParts,
+       _posterUrl = product.thumbnail,
        super(ArViewerState.initial(ArViewerPart.fromProduct(product))) {
     _bootstrap();
   }
@@ -163,6 +179,15 @@ class ArViewerCubit extends Cubit<ArViewerState> {
   final WoodySetRepository? _setRepo;
   final String? _setId;
 
+  /// This product's own per-part models (a garnitur listing's bed, wardrobe,
+  /// …). When ≥2 carry a model, the viewer toggles between them — taking
+  /// precedence over set-member hydration.
+  final List<ArPart> _productParts;
+
+  /// The product photo, reused as the poster for every part chip (parts have no
+  /// thumbnail of their own).
+  final String? _posterUrl;
+
   /// Monotonic guard so only the most recent selection's async resolution may
   /// emit — a fast tap-through of the selector can't let an earlier (slower)
   /// download land on top of a later one.
@@ -170,8 +195,33 @@ class ArViewerCubit extends Cubit<ArViewerState> {
 
   Future<void> _bootstrap() async {
     await _load(0);
+    // A multi-part product (a garnitur listing with its own bed/wardrobe/…
+    // models) drives the toggle directly. Only when the product isn't itself
+    // multi-part do we fall back to set-member hydration (sibling products).
+    if (_hydrateFromProductParts()) return;
     final setId = _setId;
     if (setId != null && _setRepo != null) await _hydrateSet(setId);
+  }
+
+  /// Builds the toggle from this product's own per-part models. Returns true
+  /// when it produced a multi-part viewer (so the caller skips set hydration).
+  /// The part matching the already-loaded primary stays selected, so the model
+  /// on screen never flickers.
+  bool _hydrateFromProductParts() {
+    if (isClosed) return false;
+    final parts = <ArViewerPart>[
+      for (final p in _productParts)
+        if (p.hasModel) ArViewerPart.fromArPart(p, posterUrl: _posterUrl),
+    ];
+    if (parts.length < 2) return false;
+    final selected = state.selectedPart;
+    var index = parts.indexWhere((p) => p.glbUrl == selected.glbUrl);
+    if (index < 0) {
+      parts.insert(0, selected);
+      index = 0;
+    }
+    emit(state.copyWith(parts: parts, selectedIndex: index));
+    return true;
   }
 
   /// Pulls the sibling set members (each an approved-model product) so the buyer

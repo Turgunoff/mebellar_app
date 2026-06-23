@@ -27,12 +27,19 @@ class ArScanCameraScreen extends StatefulWidget {
   const ArScanCameraScreen({
     super.key,
     required this.productId,
+    required this.partKey,
+    required this.label,
     required this.heightCm,
     required this.widthCm,
     required this.lengthCm,
   });
 
   final String productId;
+
+  /// The component being scanned ('single' for a one-piece product) + its
+  /// display label — threaded to the per-part scan endpoint.
+  final String partKey;
+  final String label;
   final int heightCm;
   final int widthCm;
   final int lengthCm;
@@ -210,6 +217,8 @@ class _ArScanCameraScreenState extends State<ArScanCameraScreen>
       }
       await sl<ArScanRepository>().uploadScanPhotos(
         productId: widget.productId,
+        partKey: widget.partKey,
+        label: widget.label,
         photos: photos,
         heightCm: widget.heightCm,
         widthCm: widget.widthCm,

@@ -13,12 +13,16 @@ import '../widgets/product_form/dimensions_card.dart';
 /// the backend requires all three to be present and positive.
 class ArScanComponent {
   const ArScanComponent({
+    required this.partKey,
     required this.label,
     this.heightCm,
     this.widthCm,
     this.lengthCm,
   });
 
+  /// Stable key the backend keys this part by — the dimension-piece prefix
+  /// ('bed', 'wardrobe', 'dresser', …) or 'single' for a one-piece product.
+  final String partKey;
   final String label;
   final int? heightCm;
   final int? widthCm;
@@ -53,6 +57,9 @@ List<ArScanComponent> resolveArScanComponents({
   // --- Per-piece set dimensions ("Krovat — uzunligi", "Shkaf — chuqurligi"). --
   final order = <String>[];
   final axesByPiece = <String, Map<String, int>>{};
+  // Stable backend part_key per piece (the attribute-key prefix, e.g. 'bed'),
+  // independent of the localised display label.
+  final keyByPiece = <String, String>{};
   for (final def in schema) {
     if (!DimensionsCard.isDimensionAttribute(def)) continue;
     final axis = _axisOf(def.key);
@@ -60,6 +67,7 @@ List<ArScanComponent> resolveArScanComponents({
     final piece = DimensionsCard.pieceLabel(def, locale);
     final bucket = axesByPiece.putIfAbsent(piece, () {
       order.add(piece);
+      keyByPiece[piece] = _pieceKeyOf(def.key);
       return <String, int>{};
     });
     final value = _positiveInt(product.attributes[def.key]);
@@ -71,7 +79,7 @@ List<ArScanComponent> resolveArScanComponents({
     return [
       for (final piece in order)
         if (axesByPiece[piece]!.isNotEmpty)
-          _componentFrom(piece, axesByPiece[piece]!),
+          _componentFrom(keyByPiece[piece]!, piece, axesByPiece[piece]!),
     ];
   }
 
@@ -93,6 +101,7 @@ List<ArScanComponent> resolveArScanComponents({
   if (height == null && width == null && length == null) return const [];
   return [
     ArScanComponent(
+      partKey: 'single',
       label: product.name.get(locale),
       heightCm: height,
       widthCm: width,
@@ -101,8 +110,9 @@ List<ArScanComponent> resolveArScanComponents({
   ];
 }
 
-ArScanComponent _componentFrom(String label, Map<String, int> axes) {
+ArScanComponent _componentFrom(String partKey, String label, Map<String, int> axes) {
   return ArScanComponent(
+    partKey: partKey,
     label: label,
     heightCm: axes['height'],
     widthCm: axes['width'],
@@ -110,6 +120,17 @@ ArScanComponent _componentFrom(String label, Map<String, int> axes) {
     // length axis (a bed declares length, not depth, but it's the same footprint).
     lengthCm: axes['depth'] ?? axes['length'],
   );
+}
+
+/// The stable part_key for a dimension attribute: the key with its axis suffix
+/// (`_height_cm` / `_width_cm` / `_depth_cm` / `_length_cm`) stripped, e.g.
+/// `bed_length_cm` → `bed`. Falls back to `single` if nothing remains.
+String _pieceKeyOf(String key) {
+  final stripped = key.replaceFirst(
+    RegExp(r'_(height|width|depth|length)_cm$'),
+    '',
+  );
+  return stripped.isEmpty ? 'single' : stripped;
 }
 
 /// Classifies a dimension attribute key by its measured axis. Keys are suffixed

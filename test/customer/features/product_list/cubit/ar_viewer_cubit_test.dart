@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:woody_app/customer/features/product_list/cubit/ar_viewer_cubit.dart';
 import 'package:woody_app/shared/ar/glb_cache_manager.dart';
+import 'package:woody_app/shared/models/ar_part.dart';
 import 'package:woody_app/shared/models/product_model.dart';
 import 'package:woody_app/shared/models/product_set.dart';
 import 'package:woody_app/shared/repositories/woody_set_repository.dart';
@@ -48,6 +49,7 @@ ProductModel _product({
   num? widthCm,
   num? heightCm,
   num? depthCm,
+  List<ArPart> arParts = const [],
 }) => ProductModel(
   id: id,
   categoryId: 'cat',
@@ -58,10 +60,17 @@ ProductModel _product({
   createdAt: DateTime(2026, 1, 1),
   arModelUrl: hasModel ? 'https://cdn/$id.glb' : null,
   arStatus: arStatus,
+  arParts: arParts,
   setId: setId,
   widthCm: widthCm,
   heightCm: heightCm,
   depthCm: depthCm,
+);
+
+ArPart _part(String id, {String? url}) => ArPart(
+  id: id,
+  label: id,
+  arModelUrl: url ?? 'https://cdn/$id.glb',
 );
 
 void main() {
@@ -295,6 +304,37 @@ void main() {
       },
       wait: const Duration(milliseconds: 20),
       verify: (cubit) => expect(cubit.state.phase, ArViewerPhase.ready),
+    );
+  });
+
+  group('ArViewerCubit — multi-part product', () {
+    blocTest<ArViewerCubit, ArViewerState>(
+      'hydrates the product own parts and keeps the primary selected',
+      build: () => ArViewerCubit(
+        // The primary model URL mirrors the 'bed' part, so that part stays
+        // selected after hydration.
+        product: _product(
+          id: 'bed',
+          arParts: [_part('bed'), _part('wardrobe')],
+        ),
+        cache: _FakeCache(),
+      ),
+      wait: const Duration(milliseconds: 20),
+      verify: (cubit) {
+        expect(cubit.state.hasMultipleParts, isTrue);
+        expect(cubit.state.parts.map((p) => p.name), ['bed', 'wardrobe']);
+        expect(cubit.state.selectedPart.name, 'bed');
+      },
+    );
+
+    blocTest<ArViewerCubit, ArViewerState>(
+      'a single part leaves the viewer without a selector',
+      build: () => ArViewerCubit(
+        product: _product(id: 'bed', arParts: [_part('bed')]),
+        cache: _FakeCache(),
+      ),
+      wait: const Duration(milliseconds: 20),
+      verify: (cubit) => expect(cubit.state.hasMultipleParts, isFalse),
     );
   });
 }

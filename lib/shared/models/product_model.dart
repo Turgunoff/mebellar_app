@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+import 'ar_part.dart';
+
 class ProductModel extends Equatable {
   const ProductModel({
     required this.id,
@@ -32,6 +34,7 @@ class ProductModel extends Equatable {
     this.arModelUrl,
     this.usdzUrl,
     this.arStatus = 'none',
+    this.arParts = const [],
     this.setId,
   });
 
@@ -98,8 +101,14 @@ class ProductModel extends Equatable {
   final String? usdzUrl;
 
   /// AR pipeline state (mirrors backend `ArStatus`): `none | processing |
-  /// pending_review | approved | rejected`.
+  /// pending_review | approved | rejected`. Reflects the PRIMARY visible part.
   final String arStatus;
+
+  /// Per-part AR models the buyer can place — a garnitur's bed, wardrobe, …
+  /// (only approved + visible parts; empty for a product with no published
+  /// parts). The viewer toggles between these; [arModelUrl] above mirrors the
+  /// primary one so the badge/CTA gate stays a single field.
+  final List<ArPart> arParts;
 
   /// The product's primary set membership (`product_sets.id`), if it belongs to
   /// a furniture set/garnitur — drives the "view the whole set in your room"
@@ -193,6 +202,12 @@ class ProductModel extends Equatable {
           ? (json['ar_usdz_url'] as String).trim()
           : null,
       arStatus: json['ar_status'] as String? ?? 'none',
+      arParts:
+          (json['ar_parts'] as List<dynamic>?)
+              ?.whereType<Map<String, dynamic>>()
+              .map(ArPart.fromCustomerJson)
+              .toList(growable: false) ??
+          const [],
       setId: (json['set_id'] as String?)?.trim().isNotEmpty == true
           ? (json['set_id'] as String).trim()
           : null,
@@ -232,6 +247,8 @@ class ProductModel extends Equatable {
     if (arModelUrl != null) 'ar_model_url': arModelUrl,
     if (usdzUrl != null) 'ar_usdz_url': usdzUrl,
     'ar_status': arStatus,
+    if (arParts.isNotEmpty)
+      'ar_parts': arParts.map((p) => p.toCustomerJson()).toList(growable: false),
     if (setId != null) 'set_id': setId,
     if (discountPrice != null)
       'product_variants': [

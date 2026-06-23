@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
 
@@ -7,13 +6,14 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/logging/talker.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
-import '../../../../core/theme/app_theme_extension.dart';
 import '../../../../shared/constants/product_colors.dart';
+import '../../../../shared/models/ar_part.dart';
 import '../../../../shared/models/attribute_definition.dart';
 import '../../../../shared/models/seller_product.dart';
 import '../bloc/seller_products_bloc.dart';
 import '../data/attributes_repository.dart';
 import '../data/ar_scan_components.dart';
+import '../data/ar_scan_repository.dart';
 import '../data/ar_token_repository.dart';
 import '../widgets/ar_not_approved_card.dart';
 import '../widgets/ar_scan_onboarding_sheet.dart';
@@ -55,22 +55,15 @@ class SellerProductDetailScreen extends StatefulWidget {
 
 class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
   List<AttributeDefinition> _schema = const [];
-  Future<void>? _schemaFuture;
   final ScrollController _scrollController = ScrollController();
   double _titleOpacity = 0;
 
-  // The product is an immutable snapshot, so a scan kicked off in-session can't
-  // flow back through it. We track the AR status locally and flip it to
-  // `processing` on a successful submit so the card reflects the in-flight scan
-  // (and blocks a second tap) without leaving the screen.
-  late String _arStatus = widget.product.arStatus;
-
-  // Per-product AR generation cap (mirrors backend AR_MAX_GENERATIONS_PER_PRODUCT).
-  static const int _maxArGenerations = 3;
-
-  // Live attempt count — bumped optimistically on a successful in-session scan
-  // so the "Urinishlar: N/3" counter updates without leaving the screen.
-  late int _arGenerationCount = widget.product.arGenerationCount;
+  // Per-part AR models, fetched on open and after every scan / visibility
+  // change. Each scannable component (Krovat, Shkaf, … or a single-piece
+  // product) maps to one part with its own model, customer visibility, and
+  // free-scan state. Null model = not yet scanned (first scan free).
+  List<ArPart> _arParts = const [];
+  bool _arPartsLoaded = false;
 
   // The seller's AR-token balance + the purchasable catalog, loaded once on
   // open. Null while loading; drives the balance label + the morph-to-buy CTA.
@@ -86,8 +79,32 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
   void initState() {
     super.initState();
     _scrollController.addListener(_handleScroll);
-    _schemaFuture = _loadSchema();
+    _loadSchema();
     _loadArBalance();
+    _loadArParts();
+  }
+
+  /// Loads the product's existing AR parts. Only approved products can scan, so
+  /// a non-published product skips the call (the card shows the locked state).
+  Future<void> _loadArParts() async {
+    if (!widget.product.status.isPublished) {
+      if (mounted) setState(() => _arPartsLoaded = true);
+      return;
+    }
+    try {
+      final parts = await sl<ArScanRepository>().fetchArParts(widget.product.id);
+      if (mounted) {
+        setState(() {
+          _arParts = parts;
+          _arPartsLoaded = true;
+        });
+      }
+    } catch (e, st) {
+      // Non-fatal: the card falls back to the derived components as not-yet-
+      // scanned. The scan endpoint still enforces ownership + limits server-side.
+      talker.handle(e, st, '[seller-product-detail] ar parts load failed');
+      if (mounted) setState(() => _arPartsLoaded = true);
+    }
   }
 
   Future<void> _loadArBalance() async {
@@ -316,45 +333,49 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
       );
   }
 
-  /// Entry point for the AR card's scan CTA. Resolves the product's scannable
-  /// pieces from its own dimension data (the seller never re-types them), then:
-  ///   * exactly one ready piece → straight into the camera,
-  ///   * no usable dimensions    → route to the edit form to add them,
-  ///   * two or more pieces      → ask which one to scan.
-  Future<void> _startArScan(SellerProduct product) async {
-    // A set's dimensions live only in the per-piece attribute schema, so resolve
-    // against an empty schema would falsely report "no dimensions". Wait for the
-    // in-flight load (if any) before deciding.
-    if (_schema.isEmpty && _schemaFuture != null) {
-      await _schemaFuture;
-      if (!mounted) return;
-    }
-    final components = resolveArScanComponents(
+  /// Builds the AR card's rows: one per scannable component, merged with its
+  /// existing part (model state, visibility, free-scan spent) by `part_key`. A
+  /// part with no matching component (schema changed since it was scanned) is
+  /// still surfaced so its model stays manageable.
+  List<_ArPartRow> _buildArRows(SellerProduct product) {
+    final rows = <String, _ArPartRow>{};
+    for (final comp in resolveArScanComponents(
       schema: _schema,
       product: product,
-    );
-
-    if (components.length == 1 && components.single.isComplete) {
-      await _launchArCamera(product.id, components.single);
-      return;
+    )) {
+      rows[comp.partKey] = _ArPartRow(component: comp, part: null);
     }
-    if (components.where((c) => c.isComplete).isEmpty) {
+    for (final part in _arParts) {
+      rows[part.partKey] = _ArPartRow(
+        component: rows[part.partKey]?.component,
+        part: part,
+      );
+    }
+    return rows.values.toList(growable: false);
+  }
+
+  /// Scans (or rescans) a single part. The part's FIRST generation is free; a
+  /// rescan costs 1 AR token, so we confirm before spending one. Incomplete
+  /// dimensions route to the edit form instead of firing a scan the backend
+  /// would reject.
+  Future<void> _scanPart(_ArPartRow row) async {
+    final component = row.component;
+    if (component == null || !component.isComplete) {
       await _showNeedDimensionsDialog();
       return;
     }
-
-    final picked = await _showComponentPicker(components);
-    if (picked != null) await _launchArCamera(product.id, picked);
+    // A spent free scan means the next generation is token-paid — confirm first.
+    if (row.part?.freeScanUsed ?? false) {
+      final ok = await _confirmRescan();
+      if (ok != true || !mounted) return;
+    }
+    await _launchArCamera(component);
   }
 
-  /// Opens the locked-down camera for [component], passing its real-world
-  /// dimensions straight through. On a successful submit the model is queued
-  /// for AI generation + admin QC, so we confirm and let the seller carry on
-  /// (the model appears once approved).
-  Future<void> _launchArCamera(
-    String productId,
-    ArScanComponent component,
-  ) async {
+  /// Opens the locked-down camera for [component], passing its part identity +
+  /// real-world dimensions. On a successful submit the model is queued for
+  /// generation, so we refresh the parts (the row flips to "processing").
+  Future<void> _launchArCamera(ArScanComponent component) async {
     // Surface the 3-photo "gold rules" (clean background / good lighting / three
     // distinct angles) before the immersive camera opens — they materially
     // improve the 3D result. Abort the scan if the seller dismisses it.
@@ -366,7 +387,9 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
         .push<bool>(
           MaterialPageRoute(
             builder: (_) => ArScanCameraScreen(
-              productId: productId,
+              productId: widget.product.id,
+              partKey: component.partKey,
+              label: component.label,
               heightCm: component.heightCm!,
               widthCm: component.widthCm!,
               lengthCm: component.lengthCm!,
@@ -374,82 +397,123 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
           ),
         );
     if (submitted == true && mounted) {
-      // Optimistically reflect the now-in-flight scan: flip to `processing`
-      // (spinner + copy, tap disabled) and bump the free-attempt counter (capped
-      // at the allowance — once it's spent, scans are token-paid and the count
-      // stays put) so "Urinishlar: N/3" updates without leaving the screen.
-      setState(() {
-        _arStatus = 'processing';
-        if (_arGenerationCount < _maxArGenerations) _arGenerationCount += 1;
-      });
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
           const SnackBar(
             content: Text(
-              '3D model yaratilmoqda. Tasdiqdan so‘ng ilovada ko‘rinadi.',
+              '3D model yaratilmoqda. Tayyor bo‘lgach mahsulotda ko‘rinadi.',
             ),
           ),
         );
-      // Refresh the balance — a post-free (token-paid) generation spent one.
+      // Re-pull the live part state (now processing) + the balance (a rescan
+      // may have spent a token).
+      await _loadArParts();
       await _loadArBalance();
     }
   }
 
-  /// Bottom sheet asking which furniture piece to 3D-scan (a bedroom set has a
-  /// bed + wardrobe + dresser). Pieces with incomplete dimensions are shown
-  /// disabled with a hint — the backend needs all three, so an under-specified
-  /// piece never gets through.
-  Future<ArScanComponent?> _showComponentPicker(
-    List<ArScanComponent> components,
-  ) {
+  /// Confirms a token-charged rescan before spending one. Returns true to go on.
+  Future<bool?> _confirmRescan() {
     final c = SellerColors.of(context);
-    return showModalBottomSheet<ArScanComponent>(
+    return showDialog<bool>(
       context: context,
-      backgroundColor: c.surface,
-      showDragHandle: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-      ),
-      builder: (sheetContext) => SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Qaysi qismini 3D skaner qilasiz?',
-                style: TextStyle(
-                  fontFamily: AppFonts.seller,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  color: c.ink,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Tanlangan qism o‘lchamlari modelga avtomatik qo‘shiladi.',
-                style: TextStyle(
-                  fontFamily: AppFonts.seller,
-                  fontSize: 13,
-                  color: c.grey,
-                  height: 1.35,
-                ),
-              ),
-              const SizedBox(height: 14),
-              for (final component in components) ...[
-                _ComponentTile(
-                  component: component,
-                  onTap: component.isComplete
-                      ? () => Navigator.of(sheetContext).pop(component)
-                      : null,
-                ),
-                const SizedBox(height: 10),
-              ],
-            ],
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: c.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: Text(
+          tr('product.ar_rescan_confirm_title'),
+          style: TextStyle(
+            fontFamily: AppFonts.seller,
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            color: c.ink,
           ),
+        ),
+        content: Text(
+          tr('product.ar_rescan_confirm_message'),
+          style: TextStyle(
+            fontFamily: AppFonts.seller,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: c.grey,
+            height: 1.4,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(
+              tr('product.ar_rescan_confirm_cancel'),
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
+                fontWeight: FontWeight.w600,
+                color: c.grey,
+              ),
+            ),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.sellerPrimary,
+              foregroundColor: Colors.white,
+            ),
+            child: Text(
+              tr('product.ar_rescan_confirm_yes'),
+              style: const TextStyle(
+                fontFamily: AppFonts.seller,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Optimistically flips a part's customer visibility (the eye icon) and PATCHes
+  /// it. On failure, reverts and warns — the toggle should feel instant.
+  Future<void> _toggleVisibility(ArPart part) async {
+    final next = !part.isArVisible;
+    setState(() {
+      _arParts = [
+        for (final p in _arParts)
+          if (p.id == part.id) p.copyWith(isArVisible: next) else p,
+      ];
+    });
+    try {
+      await sl<ArScanRepository>().setPartVisibility(
+        productId: widget.product.id,
+        partId: part.id,
+        isVisible: next,
+      );
+    } catch (e, st) {
+      talker.handle(e, st, '[seller-product-detail] ar visibility toggle failed');
+      if (!mounted) return;
+      setState(() {
+        _arParts = [
+          for (final p in _arParts)
+            if (p.id == part.id) p.copyWith(isArVisible: part.isArVisible) else p,
+        ];
+      });
+      _showSnack('Holatni o‘zgartirib bo‘lmadi', isError: true);
+    }
+  }
+
+  /// Opens a single part's approved 3D model full-screen for the seller.
+  void _openPartViewer(ArPart part) {
+    final url = part.arModelUrl;
+    if (url == null || url.isEmpty) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SellerArModelScreen(
+          modelUrl: url,
+          usdzUrl: part.usdzUrl,
+          posterUrl: widget.product.heroImage,
+          productName: part.label,
+          widthCm: part.widthCm ?? widget.product.widthCm,
+          heightCm: part.heightCm ?? widget.product.heightCm,
+          depthCm: part.depthCm ?? widget.product.lengthCm,
         ),
       ),
     );
@@ -517,40 +581,6 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
     if (goEdit == true) widget.onEdit?.call();
   }
 
-  /// Opens the seller's own QC-approved 3D model full-screen.
-  void _openModelViewer(SellerProduct product) {
-    final url = product.arModelUrl;
-    if (url == null || url.isEmpty) return;
-    // Prefer the resolver's dims so a set previews true-to-size: a set stores
-    // its dimensions only in per-piece attributes, where the typed columns the
-    // viewer would otherwise read are null. Fall back to the typed columns for
-    // single products.
-    final components = resolveArScanComponents(
-      schema: _schema,
-      product: product,
-    );
-    ArScanComponent? sized;
-    for (final component in components) {
-      if (component.isComplete) {
-        sized = component;
-        break;
-      }
-    }
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => SellerArModelScreen(
-          modelUrl: url,
-          usdzUrl: product.usdzUrl,
-          posterUrl: product.heroImage,
-          productName: product.name.get('uz'),
-          widthCm: sized?.widthCm ?? product.widthCm,
-          heightCm: sized?.heightCm ?? product.heightCm,
-          depthCm: sized?.lengthCm ?? product.lengthCm,
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final product = widget.product;
@@ -611,13 +641,13 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
                   const SizedBox(height: 14),
                   _ArScanCard(
                     product: product,
-                    arStatus: _arStatus,
-                    generationCount: _arGenerationCount,
-                    maxGenerations: _maxArGenerations,
+                    rows: _buildArRows(product),
+                    partsLoaded: _arPartsLoaded,
                     arCredits: _arBalance?.arCredits,
                     canBuyTokens: _arBalance != null,
-                    onScan: () => _startArScan(product),
-                    onViewModel: () => _openModelViewer(product),
+                    onScan: _scanPart,
+                    onView: _openPartViewer,
+                    onToggleVisibility: _toggleVisibility,
                     onBuyTokens: _openBuyTokens,
                   ),
                   const SizedBox(height: 14),
@@ -822,64 +852,52 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
 class _ArScanCard extends StatelessWidget {
   const _ArScanCard({
     required this.product,
-    required this.arStatus,
-    required this.generationCount,
-    required this.maxGenerations,
+    required this.rows,
+    required this.partsLoaded,
     required this.arCredits,
     required this.canBuyTokens,
     required this.onScan,
-    required this.onViewModel,
+    required this.onView,
+    required this.onToggleVisibility,
     required this.onBuyTokens,
   });
 
   final SellerProduct product;
 
-  /// The live AR status — the screen tracks it locally (it flips to
-  /// `processing` on an in-session scan), so the card reads this rather than
-  /// the immutable `product.arStatus` snapshot. The reason text still comes
-  /// from [product] (only meaningful for the failed/rejected snapshot).
-  final String arStatus;
+  /// One row per scannable component, merged with its existing part state.
+  final List<_ArPartRow> rows;
 
-  /// Live attempt count + the per-product cap → "Urinishlar: N/3".
-  final int generationCount;
-  final int maxGenerations;
+  /// False until the parts fetch resolves — drives the in-card loading copy.
+  final bool partsLoaded;
 
-  /// The seller's AR-token balance; null while still loading (then the balance
-  /// chip + morph-to-buy are suppressed and the scan CTA stays available — the
-  /// server still enforces the limit).
+  /// The seller's AR-token balance; null while still loading. A rescan costs a
+  /// token, so the chip + buy CTA surface once it's known.
   final int? arCredits;
   final bool canBuyTokens;
 
-  final VoidCallback onScan;
-  final VoidCallback onViewModel;
+  final ValueChanged<_ArPartRow> onScan;
+  final ValueChanged<ArPart> onView;
+  final ValueChanged<ArPart> onToggleVisibility;
   final VoidCallback onBuyTokens;
 
-  /// The first [maxGenerations] scans per product are free; past that each
-  /// costs a token. So the seller is only blocked (→ "buy tokens") once the free
-  /// allowance is spent AND the balance is empty.
-  bool get _freeAttemptsExhausted => generationCount >= maxGenerations;
-
-  /// `arCredits` is null while the balance loads — treat that as "not empty" so
-  /// the scan CTA stays available (the server still enforces the real rule).
+  /// `arCredits` is null while the balance loads — treat that as "not empty".
   bool get _outOfTokens => (arCredits ?? 1) < 1;
 
-  bool get _needsToken => _freeAttemptsExhausted && _outOfTokens;
+  /// True when at least one scanned part would need a token to rescan — gates
+  /// the "buy tokens" CTA so it only shows when it's actually relevant.
+  bool get _anyRescanNeedsToken =>
+      rows.any((r) => r.part?.freeScanUsed ?? false);
 
   @override
   Widget build(BuildContext context) {
-    // AR generation is gated to moderation-approved products (it runs a paid
-    // Meshy task — free for the first few attempts, token-paid after). A
-    // draft/pending/rejected/archived product shows the locked card with a "get
-    // it approved first" message instead of any scan controls. Backend enforces
-    // the same (403 product_not_approved).
+    // AR generation is gated to moderation-approved products (a paid Meshy
+    // task). A draft/pending/rejected/archived product shows the locked card.
     if (!product.status.isPublished) {
       return const ArNotApprovedCard();
     }
 
     final c = SellerColors.of(context);
-    final state = _arState(arStatus, c);
-    final fb = _feedback();
-    final isApproved = arStatus == 'approved';
+    final overall = _overallStatus();
 
     return Material(
       color: c.surface,
@@ -894,32 +912,25 @@ class _ArScanCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                _ArIconBadge(status: arStatus, color: state.color),
+                _ArIconBadge(status: overall, color: _arStatusColor(overall, c)),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Text(
-                            '3D skan (AR)',
-                            style: TextStyle(
-                              fontFamily: AppFonts.seller,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 15,
-                              color: c.ink,
-                            ),
-                          ),
-                          if (state.badge != null) ...[
-                            const SizedBox(width: 8),
-                            _ArBadge(label: state.badge!, color: state.color),
-                          ],
-                        ],
+                      Text(
+                        '3D skan (AR)',
+                        style: TextStyle(
+                          fontFamily: AppFonts.seller,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                          color: c.ink,
+                        ),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        state.subtitle,
+                        'Har bir qism uchun alohida model. Birinchi skan '
+                        'bepul, qaytasi 1 token.',
                         style: TextStyle(
                           fontFamily: AppFonts.seller,
                           fontSize: 12.5,
@@ -930,47 +941,26 @@ class _ArScanCard extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (arCredits != null) ...[
+                  const SizedBox(width: 10),
+                  _MetaChip(
+                    icon: Icons.bolt_rounded,
+                    label: 'Token: $arCredits',
+                    fg: c.gold,
+                    bg: c.goldBg,
+                  ),
+                ],
               ],
             ),
-
-            // Attempts + token balance — shown wherever a (re)scan is possible.
-            if (state.canScan) ...[
-              const SizedBox(height: 12),
-              _ArMetaRow(
-                generationCount: generationCount,
-                maxGenerations: maxGenerations,
-                arCredits: arCredits,
-              ),
-            ],
-
-            // Approved → primary "view the model" (always available).
-            if (isApproved) ...[
+            const SizedBox(height: 6),
+            _body(c),
+            if (_outOfTokens && canBuyTokens && _anyRescanNeedsToken) ...[
               const SizedBox(height: 14),
               _ArCtaButton(
-                icon: Icons.view_in_ar_rounded,
-                label: '3D modelni ko‘rish',
-                onPressed: onViewModel,
-              ),
-            ],
-
-            // Terminal-failure feedback — the "why" so the seller can fix it.
-            // `rejected` (human QC) uses the warningContainer tokens; `failed`
-            // (machine/Meshy) stays error-styled.
-            if (fb != null) ...[
-              const SizedBox(height: 12),
-              _ArFeedbackNote(
-                feedback: fb,
-                isRejection: arStatus == 'rejected',
-              ),
-            ],
-
-            // The gated scan action: cap message · buy-tokens CTA · (re)scan.
-            if (state.canScan) ...[
-              const SizedBox(height: 12),
-              _scanAction(
-                context,
-                isApproved: isApproved,
-                hasFeedback: fb != null,
+                icon: Icons.bolt_rounded,
+                label: 'AR Token sotib olish',
+                onPressed: onBuyTokens,
+                tone: _ArCtaTone.gold,
               ),
             ],
           ],
@@ -979,81 +969,309 @@ class _ArScanCard extends StatelessWidget {
     );
   }
 
-  /// The single, gated primary action for a scannable state:
-  ///   * free attempts spent + no tokens → "AR Token sotib olish" (morphed CTA);
-  ///   * otherwise → generate / re-scan / retry (free while attempts remain,
-  ///     token-paid once they're spent — the server meters it either way).
-  Widget _scanAction(
-    BuildContext context, {
-    required bool isApproved,
-    required bool hasFeedback,
-  }) {
-    final c = SellerColors.of(context);
-
-    if (_needsToken && canBuyTokens) {
-      // Token economy → gold, distinct from the indigo brand action above so
-      // "buy energy" reads as its own thing next to "view the model".
-      return _ArCtaButton(
-        icon: Icons.bolt_rounded,
-        label: 'AR Token sotib olish',
-        onPressed: onBuyTokens,
-        tone: _ArCtaTone.gold,
-      );
-    }
-
-    // Generate / (re)scan. Label + emphasis depend on the state: a fresh idle
-    // scan and a post-failure retry are primary; an approved re-scan is a quiet
-    // secondary.
-    final label = hasFeedback
-        ? 'Qayta urinish'
-        : (isApproved ? 'Qayta skanlash' : '3D Model yasash');
-    if (isApproved) {
-      return Align(
-        alignment: Alignment.center,
-        child: TextButton.icon(
-          onPressed: onScan,
-          icon: Icon(Icons.refresh, size: 17, color: c.grey),
-          label: Text(
-            label,
-            style: TextStyle(
-              fontFamily: AppFonts.seller,
-              fontWeight: FontWeight.w600,
-              color: c.grey,
-            ),
+  Widget _body(SellerColors c) {
+    if (rows.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Text(
+          partsLoaded
+              ? 'Avval mahsulot o‘lchamlarini qo‘shing — har bir qism '
+                    'o‘lchami 3D model uchun kerak.'
+              : 'Yuklanmoqda…',
+          style: TextStyle(
+            fontFamily: AppFonts.seller,
+            fontSize: 13,
+            color: c.grey,
+            height: 1.35,
           ),
         ),
       );
     }
-    return _ArCtaButton(
-      icon: hasFeedback ? Icons.refresh_rounded : Icons.view_in_ar_rounded,
-      label: label,
-      onPressed: onScan,
+    return Column(
+      children: [
+        for (var i = 0; i < rows.length; i++) ...[
+          if (i > 0) Divider(height: 1, color: c.divider),
+          _ArPartTile(
+            row: rows[i],
+            onScan: () => onScan(rows[i]),
+            onView: onView,
+            onToggleVisibility: onToggleVisibility,
+          ),
+        ],
+      ],
     );
   }
 
-  /// The feedback note for a terminal failure state, or null when the current
-  /// AR status carries no seller-actionable feedback.
-  _ArFeedback? _feedback() {
-    switch (arStatus) {
-      case 'failed':
-        return _ArFeedback(
-          title: 'Skan xatosi',
-          reason: product.arErrorReason?.trim().isNotEmpty == true
-              ? product.arErrorReason!.trim()
-              : 'Skan amalga oshmadi',
-          accent: AppColors.sellerNegative,
-        );
-      case 'rejected':
-        return _ArFeedback(
-          title: 'Rad etish sababi',
-          reason: product.arRejectionReason?.trim().isNotEmpty == true
-              ? product.arRejectionReason!.trim()
-              : 'Model rad etildi',
-          accent: AppColors.sellerNegative,
-        );
-      default:
-        return null;
+  /// The header glyph reflects the most "active" part: generating > ready >
+  /// error > idle.
+  String _overallStatus() {
+    var hasApproved = false;
+    var hasFailed = false;
+    for (final r in rows) {
+      final s = r.part?.arStatus;
+      if (s == 'processing') return 'processing';
+      if (s == 'approved') hasApproved = true;
+      if (s == 'failed') hasFailed = true;
     }
+    if (hasApproved) return 'approved';
+    if (hasFailed) return 'failed';
+    return 'none';
+  }
+}
+
+/// The status tint shared by the AR card glyph + the per-part rows.
+Color _arStatusColor(String status, SellerColors c) {
+  switch (status) {
+    case 'processing':
+      return c.warning;
+    case 'approved':
+      return c.positive;
+    case 'failed':
+      return c.negative;
+    default:
+      return AppColors.sellerPrimary;
+  }
+}
+
+/// One AR card row: a scannable component merged with its existing part state.
+/// Either may be null (a not-yet-scanned component has no part; a part whose
+/// component vanished from the schema has no component) but never both.
+class _ArPartRow {
+  const _ArPartRow({this.component, this.part});
+
+  final ArScanComponent? component;
+  final ArPart? part;
+
+  String get label => component?.label ?? part?.label ?? 'Asosiy';
+  bool get hasModel => part?.hasModel ?? false;
+  bool get isProcessing => part?.isProcessing ?? false;
+  bool get isFailed => part?.isFailed ?? false;
+  bool get dimsReady => component?.isComplete ?? false;
+}
+
+/// A slim per-part row: the part name + a contextual trailing action set —
+/// "Yaratish" when never scanned, a spinner while generating, or the
+/// visibility / view / rescan icons once a model exists.
+class _ArPartTile extends StatelessWidget {
+  const _ArPartTile({
+    required this.row,
+    required this.onScan,
+    required this.onView,
+    required this.onToggleVisibility,
+  });
+
+  final _ArPartRow row;
+  final VoidCallback onScan;
+  final ValueChanged<ArPart> onView;
+  final ValueChanged<ArPart> onToggleVisibility;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  row.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w700,
+                    color: c.ink,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  _subtitle(),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontSize: 12,
+                    color: row.isFailed ? c.negative : c.grey,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          _trailing(c),
+        ],
+      ),
+    );
+  }
+
+  String _subtitle() {
+    final part = row.part;
+    if (row.isProcessing) return 'AI 3D model yasamoqda…';
+    if (row.hasModel) {
+      return (part?.isArVisible ?? true)
+          ? 'Tayyor — mijozlarga ko‘rinadi'
+          : 'Tayyor — yashirilgan';
+    }
+    if (row.isFailed) {
+      final reason = part?.arErrorReason?.trim();
+      return (reason != null && reason.isNotEmpty)
+          ? reason
+          : 'Skan amalga oshmadi';
+    }
+    if (!row.dimsReady) return 'O‘lchamlar to‘liq emas';
+    return 'Skan qilishga tayyor';
+  }
+
+  Widget _trailing(SellerColors c) {
+    if (row.isProcessing) {
+      return SizedBox(
+        width: 22,
+        height: 22,
+        child: CircularProgressIndicator(
+          strokeWidth: 2.4,
+          valueColor: AlwaysStoppedAnimation<Color>(c.warning),
+        ),
+      );
+    }
+    final part = row.part;
+    if (row.hasModel && part != null) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _IconAction(
+            icon: part.isArVisible ? Icons.visibility : Icons.visibility_off,
+            color: part.isArVisible ? c.primary : c.grey,
+            onTap: () => onToggleVisibility(part),
+          ),
+          _IconAction(
+            icon: Icons.view_in_ar_rounded,
+            color: c.primary,
+            onTap: () => onView(part),
+          ),
+          // Rescan costs a token — the bolt badge signals that.
+          _RescanAction(badgeColor: c.gold, color: c.grey, onTap: onScan),
+        ],
+      );
+    }
+    // Never scanned or failed → a scan / retry pill.
+    return _ScanPill(
+      label: row.isFailed ? 'Qayta' : 'Yaratish',
+      enabled: row.dimsReady,
+      onTap: onScan,
+    );
+  }
+}
+
+/// A compact tappable icon button used in a part row's trailing actions.
+class _IconAction extends StatelessWidget {
+  const _IconAction({
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: onTap,
+      visualDensity: VisualDensity.compact,
+      iconSize: 20,
+      icon: Icon(icon, color: color),
+    );
+  }
+}
+
+/// The rescan action — a refresh glyph with a tiny token/bolt badge, signalling
+/// that a regenerate costs an AR token.
+class _RescanAction extends StatelessWidget {
+  const _RescanAction({
+    required this.badgeColor,
+    required this.color,
+    required this.onTap,
+  });
+
+  final Color badgeColor;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: onTap,
+      visualDensity: VisualDensity.compact,
+      iconSize: 20,
+      icon: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Icon(Icons.refresh_rounded, color: color),
+          Positioned(
+            right: -3,
+            top: -3,
+            child: Icon(Icons.bolt_rounded, size: 12, color: badgeColor),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A compact filled pill for the "scan / retry" action on a not-yet-modelled
+/// part. Greyed when the part's dimensions are incomplete (a tap then routes to
+/// the "add dimensions" dialog rather than firing a doomed scan).
+class _ScanPill extends StatelessWidget {
+  const _ScanPill({
+    required this.label,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    return Material(
+      color: enabled ? c.primary : c.fillFaint,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.view_in_ar_rounded,
+                size: 16,
+                color: enabled ? Colors.white : c.grey,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontFamily: AppFonts.seller,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: enabled ? Colors.white : c.grey,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -1132,45 +1350,6 @@ class _ArCtaButton extends StatelessWidget {
   }
 }
 
-/// "Urinishlar: N/3" + token-balance chips, shown in the scannable states.
-class _ArMetaRow extends StatelessWidget {
-  const _ArMetaRow({
-    required this.generationCount,
-    required this.maxGenerations,
-    required this.arCredits,
-  });
-
-  final int generationCount;
-  final int maxGenerations;
-  final int? arCredits;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = SellerColors.of(context);
-    final atCap = generationCount >= maxGenerations;
-    return Row(
-      children: [
-        _MetaChip(
-          icon: Icons.refresh_rounded,
-          label: 'Urinishlar: $generationCount/$maxGenerations',
-          fg: atCap ? c.warning : c.grey,
-          bg: atCap ? c.warningBg : c.fillFaint,
-        ),
-        if (arCredits != null) ...[
-          const SizedBox(width: 8),
-          // Tokens are the AR currency → always gold, like the dashboard medals.
-          _MetaChip(
-            icon: Icons.bolt_rounded,
-            label: 'Token: $arCredits',
-            fg: c.gold,
-            bg: c.goldBg,
-          ),
-        ],
-      ],
-    );
-  }
-}
-
 class _MetaChip extends StatelessWidget {
   const _MetaChip({
     required this.icon,
@@ -1207,240 +1386,6 @@ class _MetaChip extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// The terminal-failure note. A `rejected` (human QC) note uses the strict
-/// `warningContainer` / `onWarningContainer` theme tokens; a `failed`
-/// (machine/Meshy) note stays error-tinted off [_ArFeedback.accent].
-class _ArFeedbackNote extends StatelessWidget {
-  const _ArFeedbackNote({required this.feedback, required this.isRejection});
-
-  final _ArFeedback feedback;
-  final bool isRejection;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = SellerColors.of(context);
-    final custom = context.customColors;
-    final bg = isRejection
-        ? custom.warningContainer
-        : feedback.accent.withValues(alpha: 0.08);
-    final titleColor = isRejection
-        ? custom.onWarningContainer
-        : feedback.accent;
-    final bodyColor = isRejection ? custom.onWarningContainer : c.ink;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(12),
-        border: isRejection
-            ? Border.all(
-                color: custom.onWarningContainer.withValues(alpha: 0.2),
-              )
-            : null,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              if (isRejection) ...[
-                Icon(
-                  Icons.warning_amber_rounded,
-                  size: 15,
-                  color: custom.onWarningContainer,
-                ),
-                const SizedBox(width: 6),
-              ],
-              Text(
-                feedback.title,
-                style: TextStyle(
-                  fontFamily: AppFonts.seller,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
-                  color: titleColor,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            feedback.reason,
-            style: TextStyle(
-              fontFamily: AppFonts.seller,
-              fontSize: 13,
-              color: bodyColor,
-              height: 1.35,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// A terminal-state feedback note (failed / rejected) shown in [_ArScanCard].
-class _ArFeedback {
-  const _ArFeedback({
-    required this.title,
-    required this.reason,
-    required this.accent,
-  });
-  final String title;
-  final String reason;
-  final Color accent;
-}
-
-/// Per-status presentation for the seller AR card.
-class _ArCardState {
-  const _ArCardState({
-    required this.subtitle,
-    required this.canScan,
-    this.badge,
-    this.color = AppColors.sellerPrimary,
-  });
-  final String subtitle;
-  final bool canScan;
-  final String? badge;
-  final Color color;
-}
-
-_ArCardState _arState(String arStatus, SellerColors c) {
-  switch (arStatus) {
-    case 'processing':
-      return _ArCardState(
-        subtitle: 'AI 3D model yasamoqda (2-5 daqiqa)…',
-        canScan: false,
-        badge: 'Ishlanmoqda',
-        color: c.warning, // amber — matches ProductStatusChip pending
-      );
-    case 'pending_review':
-      return _ArCardState(
-        subtitle: 'Moderator tekshiruvida',
-        canScan: false,
-        badge: 'Tekshiruvda',
-        color: c.info, // blue, awaiting QC
-      );
-    case 'approved':
-      return _ArCardState(
-        subtitle: '3D model tayyor — ko‘rib chiqing yoki qayta skanlang.',
-        canScan: true,
-        badge: 'Tasdiqlangan',
-        color: c.positive, // green — matches ProductStatusChip approved
-      );
-    case 'rejected':
-      return _ArCardState(
-        subtitle: 'Skan rad etildi — sababini ko‘ring va qaytadan oling.',
-        canScan: true,
-        badge: 'Rad etilgan',
-        color: c.negative, // red — matches ProductStatusChip rejected
-      );
-    case 'failed':
-      // Pipeline/Meshy failure (machine), distinct from a human QC rejection.
-      return _ArCardState(
-        subtitle: 'Skan amalga oshmadi — qaytadan urinib ko‘ring.',
-        canScan: true,
-        badge: 'Xatolik',
-        color: AppColors.sellerNegative,
-      );
-    default:
-      return const _ArCardState(
-        subtitle:
-            'Mahsulotni 3 ta burchakdan rasmga oling — AI 3D model yasaydi.',
-        canScan: true,
-      );
-  }
-}
-
-class _ArBadge extends StatelessWidget {
-  const _ArBadge({required this.label, required this.color});
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(99),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontFamily: AppFonts.seller,
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          color: color,
-        ),
-      ),
-    );
-  }
-}
-
-/// One selectable furniture piece in the component picker. Disabled (no
-/// [onTap]) when its dimensions are incomplete, with a hint instead of dims.
-class _ComponentTile extends StatelessWidget {
-  const _ComponentTile({required this.component, required this.onTap});
-
-  final ArScanComponent component;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = SellerColors.of(context);
-    final enabled = onTap != null;
-    return Material(
-      color: enabled ? c.fillFaint : c.fillFaint.withValues(alpha: 0.5),
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          child: Row(
-            children: [
-              Icon(
-                Icons.view_in_ar,
-                size: 22,
-                color: enabled ? c.primary : c.greyFaint,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      component.label,
-                      style: TextStyle(
-                        fontFamily: AppFonts.seller,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: enabled ? c.ink : c.grey,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      enabled ? component.summary : 'O‘lchamlar to‘liq emas',
-                      style: TextStyle(
-                        fontFamily: AppFonts.seller,
-                        fontSize: 12.5,
-                        color: enabled ? c.grey : c.greyFaint,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (enabled) Icon(Iconsax.arrow_right_3_copy, color: c.greyFaint),
-            ],
-          ),
-        ),
       ),
     );
   }
