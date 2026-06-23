@@ -292,7 +292,10 @@ class _ResultCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final accent = success ? scheme.primary : scheme.tertiary;
+    // Both accents are brand tokens (primary / its deep container shade), so
+    // the card renders in the active app's colours — terracotta in customer,
+    // indigo in seller — never an off-brand Material default.
+    final accent = success ? scheme.primary : scheme.primaryContainer;
     return Positioned.fill(
       child: AbsorbPointer(
         absorbing: false,
