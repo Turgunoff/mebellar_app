@@ -19,6 +19,7 @@ import '../widgets/ar_not_approved_card.dart';
 import '../widgets/ar_scan_onboarding_sheet.dart';
 import 'ar_scan_camera_screen.dart';
 import 'seller_ar_model_screen.dart';
+import '../../wallet/screens/ar_tokens_screen.dart';
 import '../widgets/product_preview/attributes_card.dart';
 import '../widgets/product_preview/bottom_action_bar.dart';
 import '../widgets/product_preview/description_card.dart';
@@ -375,12 +376,29 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
       await _showNeedDimensionsDialog();
       return;
     }
-    // A spent free scan means the next generation is token-paid — confirm first.
+    // A spent free scan means the next generation is token-paid. Evaluate the
+    // balance before opening the modal: a known-empty wallet must NOT reach the
+    // camera — it routes the seller to top up instead of firing a doomed scan.
     if (row.part?.freeScanUsed ?? false) {
+      final tokens = _arBalance?.arCredits;
+      if (tokens != null && tokens <= 0) {
+        await _promptBuyTokens();
+        return;
+      }
       final ok = await _confirmRescan();
       if (ok != true || !mounted) return;
     }
     await _launchArCamera(component);
+  }
+
+  /// Opens the AR-token top-up screen and refreshes the balance on return, so a
+  /// successful purchase immediately unlocks the rescan flow + updates the card
+  /// banner. Shared by the header balance banner and the out-of-tokens dialog.
+  Future<void> _openArTokens() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const ArTokensScreen()),
+    );
+    if (mounted) await _loadArBalance();
   }
 
   /// Opens the locked-down camera for [component], passing its part identity +
@@ -425,61 +443,47 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
   }
 
   /// Confirms a token-charged rescan before spending one. Returns true to go on.
+  /// Only reached when the seller has ≥1 token (the empty case is intercepted in
+  /// [_scanPart] → [_promptBuyTokens]), so the primary CTA truly proceeds.
   Future<bool?> _confirmRescan() {
     final c = SellerColors.of(context);
     return showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: c.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: Text(
-          tr('product.ar_rescan_confirm_title'),
-          style: TextStyle(
-            fontFamily: AppFonts.seller,
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
-            color: c.ink,
-          ),
-        ),
-        content: Text(
-          tr('product.ar_rescan_confirm_message'),
-          style: TextStyle(
-            fontFamily: AppFonts.seller,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: c.grey,
-            height: 1.4,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(
-              tr('product.ar_rescan_confirm_cancel'),
-              style: TextStyle(
-                fontFamily: AppFonts.seller,
-                fontWeight: FontWeight.w600,
-                color: c.grey,
-              ),
-            ),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.sellerPrimary,
-              foregroundColor: Colors.white,
-            ),
-            child: Text(
-              tr('product.ar_rescan_confirm_yes'),
-              style: const TextStyle(
-                fontFamily: AppFonts.seller,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
+      builder: (dialogContext) => _PremiumActionDialog(
+        icon: Icons.autorenew_rounded,
+        iconColor: c.onPrimarySoft,
+        iconBg: c.primarySoft,
+        title: tr('product.ar_rescan_confirm_title'),
+        message: tr('product.ar_rescan_confirm_message'),
+        primaryLabel: tr('product.ar_rescan_confirm_yes'),
+        primaryColor: c.primary,
+        cancelLabel: tr('product.ar_rescan_confirm_cancel'),
+        onPrimary: () => Navigator.of(dialogContext).pop(true),
+        onCancel: () => Navigator.of(dialogContext).pop(false),
       ),
     );
+  }
+
+  /// Shown when a token-charged rescan is attempted with an empty wallet. The
+  /// primary CTA routes to the top-up screen — the camera is NEVER opened here.
+  Future<void> _promptBuyTokens() async {
+    final c = SellerColors.of(context);
+    final goTopUp = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => _PremiumActionDialog(
+        icon: Icons.bolt_rounded,
+        iconColor: c.gold,
+        iconBg: c.goldBg,
+        title: tr('product.ar_no_tokens_title'),
+        message: tr('product.ar_no_tokens_message'),
+        primaryLabel: tr('product.ar_no_tokens_buy'),
+        primaryColor: c.primary,
+        cancelLabel: tr('product.ar_rescan_confirm_cancel'),
+        onPrimary: () => Navigator.of(dialogContext).pop(true),
+        onCancel: () => Navigator.of(dialogContext).pop(false),
+      ),
+    );
+    if (goTopUp == true && mounted) await _openArTokens();
   }
 
   /// Optimistically flips a part's customer visibility (the eye icon) and PATCHes
@@ -658,6 +662,7 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
                     onScan: _scanPart,
                     onView: _openPartViewer,
                     onToggleVisibility: _toggleVisibility,
+                    onTopUp: _openArTokens,
                   ),
                   const SizedBox(height: 14),
                   MetaCard(
@@ -867,6 +872,7 @@ class _ArScanCard extends StatelessWidget {
     required this.onScan,
     required this.onView,
     required this.onToggleVisibility,
+    required this.onTopUp,
   });
 
   final SellerProduct product;
@@ -884,6 +890,9 @@ class _ArScanCard extends StatelessWidget {
   final ValueChanged<_ArPartRow> onScan;
   final ValueChanged<ArPart> onView;
   final ValueChanged<ArPart> onToggleVisibility;
+
+  /// Opens the AR-token top-up screen (header balance banner taps through here).
+  final VoidCallback onTopUp;
 
   @override
   Widget build(BuildContext context) {
@@ -907,49 +916,56 @@ class _ArScanCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Header: glyph + title on the left, the info action pinned right.
+            // The description moved OUT of this row (see below) so it no longer
+            // competes with a trailing chip and reads at full width.
             Row(
               children: [
                 _ArIconBadge(status: overall, color: _arStatusColor(overall, c)),
                 const SizedBox(width: 14),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '3D skan (AR)',
-                        style: TextStyle(
-                          fontFamily: AppFonts.seller,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15,
-                          color: c.ink,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Har bir qism uchun alohida model. Birinchi skan '
-                        'bepul, qaytasi 1 token.',
-                        style: TextStyle(
-                          fontFamily: AppFonts.seller,
-                          fontSize: 12.5,
-                          color: c.grey,
-                          height: 1.3,
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    '3D skan (AR)',
+                    style: TextStyle(
+                      fontFamily: AppFonts.seller,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                      color: c.ink,
+                    ),
                   ),
                 ),
-                if (arCredits != null) ...[
-                  const SizedBox(width: 10),
-                  _MetaChip(
-                    icon: Icons.bolt_rounded,
-                    label: 'Mavjud tokenlar: $arCredits',
-                    fg: c.gold,
-                    bg: c.goldBg,
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: () => _showArScanInfoSheet(context),
+                  visualDensity: VisualDensity.compact,
+                  iconSize: 20,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 36,
+                    minHeight: 36,
                   ),
-                ],
+                  tooltip: 'Ma’lumot',
+                  icon: Icon(Icons.info_outline_rounded, color: c.grey),
+                ),
               ],
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
+            // Full-width description — breathes now that nothing crowds it.
+            Text(
+              'Har bir qism uchun alohida model. Birinchi skan bepul, '
+              'qaytasi 1 token.',
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
+                fontSize: 13,
+                color: c.grey,
+                height: 1.45,
+              ),
+            ),
+            if (arCredits != null) ...[
+              const SizedBox(height: 12),
+              _ArTokenBanner(tokens: arCredits!, onTopUp: onTopUp),
+            ],
+            const SizedBox(height: 4),
             _body(c),
           ],
         ),
@@ -1263,45 +1279,366 @@ class _ScanPill extends StatelessWidget {
   }
 }
 
-class _MetaChip extends StatelessWidget {
-  const _MetaChip({
-    required this.icon,
-    required this.label,
-    required this.fg,
-    required this.bg,
-  });
+/// A full-width balance strip under the AR card header: the seller's AR-token
+/// count plus a tap-through to top up. Replaces the old cramped header chip so
+/// the description owns the full card width. Tints to a warning wash when the
+/// wallet is empty, nudging a top-up before the next (token-charged) rescan.
+class _ArTokenBanner extends StatelessWidget {
+  const _ArTokenBanner({required this.tokens, required this.onTopUp});
 
-  final IconData icon;
-  final String label;
-  final Color fg;
-  final Color bg;
+  final int tokens;
+  final VoidCallback onTopUp;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(10),
+    final c = SellerColors.of(context);
+    final depleted = tokens <= 0;
+    final fg = depleted ? c.warning : c.gold;
+    final bg = depleted ? c.warningBg : c.goldBg;
+    return Material(
+      color: bg,
+      borderRadius: BorderRadius.circular(12),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTopUp,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            children: [
+              Icon(Icons.bolt_rounded, size: 18, color: fg),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Mavjud tokenlar: $tokens',
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: fg,
+                  ),
+                ),
+              ),
+              Text(
+                'To‘ldirish',
+                style: TextStyle(
+                  fontFamily: AppFonts.seller,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: fg,
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, size: 18, color: fg),
+            ],
+          ),
+        ),
       ),
+    );
+  }
+}
+
+/// A premium centred dialog used for the AR rescan flow: a soft icon disc, a
+/// bold title, a readable body, a fully-rounded primary CTA, and a subtle text
+/// cancel. Parameterised so the same shell serves both the "confirm rescan" and
+/// the "out of tokens → buy" states.
+class _PremiumActionDialog extends StatelessWidget {
+  const _PremiumActionDialog({
+    required this.icon,
+    required this.iconColor,
+    required this.iconBg,
+    required this.title,
+    required this.message,
+    required this.primaryLabel,
+    required this.primaryColor,
+    required this.cancelLabel,
+    required this.onPrimary,
+    required this.onCancel,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final Color iconBg;
+  final String title;
+  final String message;
+  final String primaryLabel;
+  final Color primaryColor;
+  final String cancelLabel;
+  final VoidCallback onPrimary;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    return Dialog(
+      backgroundColor: c.surface,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 36, vertical: 24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
+              child: Icon(icon, size: 34, color: iconColor),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
+                fontSize: 19,
+                fontWeight: FontWeight.w800,
+                color: c.ink,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: c.grey,
+                height: 1.45,
+              ),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: FilledButton(
+                onPressed: onPrimary,
+                style: FilledButton.styleFrom(
+                  backgroundColor: primaryColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(26),
+                  ),
+                ),
+                child: Text(
+                  primaryLabel,
+                  style: const TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: TextButton(
+                onPressed: onCancel,
+                child: Text(
+                  cancelLabel,
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w600,
+                    color: c.grey,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// One row in the AR-info bottom sheet: a tinted icon disc + a title/body pair.
+class _ArInfoBullet extends StatelessWidget {
+  const _ArInfoBullet({
+    required this.icon,
+    required this.title,
+    required this.body,
+  });
+
+  final IconData icon;
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 14, color: fg),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              fontFamily: AppFonts.seller,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: fg,
+          Container(
+            width: 38,
+            height: 38,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: c.primarySoft,
+              borderRadius: BorderRadius.circular(11),
+            ),
+            child: Icon(icon, size: 19, color: c.onPrimarySoft),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: c.ink,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  body,
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w500,
+                    color: c.grey,
+                    height: 1.4,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
       ),
     );
   }
+}
+
+/// Explains the 3D/AR scan feature in a calm bottom sheet — opened from the
+/// card's header info icon. Pure copy + a close CTA; no side effects.
+Future<void> _showArScanInfoSheet(BuildContext context) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    backgroundColor: SellerColors.of(context).surface,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (sheetContext) {
+      final c = SellerColors.of(sheetContext);
+      return SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: c.primarySoft,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(
+                      Icons.view_in_ar_rounded,
+                      color: c.onPrimarySoft,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      '3D skan (AR) nima?',
+                      style: TextStyle(
+                        fontFamily: AppFonts.seller,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: c.ink,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Text(
+                'Mahsulotingizni 3 ta fotosurat orqali AI yordamida 3D modelga '
+                'aylantiramiz. Xaridorlar uni o‘z xonasida — telefon kamerasi '
+                'orqali, real o‘lchamda — joylashtirib ko‘ra oladi.',
+                style: TextStyle(
+                  fontFamily: AppFonts.seller,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w500,
+                  color: c.grey,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 18),
+              const _ArInfoBullet(
+                icon: Icons.dashboard_customize_rounded,
+                title: 'Har bir qism alohida',
+                body:
+                    'Garnitur bo‘lsa, krovat, shkaf va tryumo — har biri '
+                    'alohida skan qilinadi.',
+              ),
+              const _ArInfoBullet(
+                icon: Icons.bolt_rounded,
+                title: 'Birinchi skan bepul',
+                body:
+                    'Har bir qism uchun birinchi model bepul; qayta yaratish '
+                    '1 token.',
+              ),
+              const _ArInfoBullet(
+                icon: Icons.photo_camera_rounded,
+                title: 'Sifatli suratga oling',
+                body:
+                    'Toza fon, yaxshi yoritish va 3 xil burchak aniqroq model '
+                    'beradi.',
+              ),
+              const _ArInfoBullet(
+                icon: Icons.verified_rounded,
+                title: 'Mahsulotda ko‘rinadi',
+                body:
+                    'Tayyor model kartangizda 3D/AR belgisi bilan xaridorlarga '
+                    'ko‘rsatiladi.',
+              ),
+              const SizedBox(height: 6),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: FilledButton(
+                  onPressed: () => Navigator.of(sheetContext).pop(),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: c.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: const Text(
+                    'Tushunarli',
+                    style: TextStyle(
+                      fontFamily: AppFonts.seller,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
 }
 
 /// The 44×44 status glyph for the AR card. Idle pulses to invite the first

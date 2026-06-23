@@ -15,6 +15,11 @@ const Map<String, dynamic> productUz = {
       'Qayta yaratish 1 AR Token talab qiladi. Davom etasizmi?',
   'ar_rescan_confirm_yes': 'Ha, davom etish',
   'ar_rescan_confirm_cancel': 'Bekor qilish',
+  'ar_no_tokens_title': 'Token tugadi',
+  'ar_no_tokens_message':
+      'Qayta yaratish uchun AR token kerak, ammo hisobingizda token qolmadi. '
+      'Tokenlarni to\'ldiring va davom eting.',
+  'ar_no_tokens_buy': 'Token sotib olish',
   'ar_saved': 'Rasm galereyaga saqlandi',
   'ar_save_failed': 'Saqlab bo\'lmadi. Qayta urinib ko\'ring',
   'ar_save_denied': 'Galereyaga ruxsat berilmadi',
@@ -82,6 +87,11 @@ const Map<String, dynamic> productRu = {
       'Пересоздание потребует 1 AR токен. Продолжить?',
   'ar_rescan_confirm_yes': 'Да, продолжить',
   'ar_rescan_confirm_cancel': 'Отмена',
+  'ar_no_tokens_title': 'Токены закончились',
+  'ar_no_tokens_message':
+      'Для пересоздания нужен AR токен, но на счёте их не осталось. '
+      'Пополните токены и продолжите.',
+  'ar_no_tokens_buy': 'Купить токены',
   'ar_saved': 'Изображение сохранено в галерею',
   'ar_save_failed': 'Не удалось сохранить. Попробуйте снова',
   'ar_save_denied': 'Доступ к галерее не предоставлен',
@@ -150,6 +160,11 @@ const Map<String, dynamic> productEn = {
       'Regenerating costs 1 AR token. Continue?',
   'ar_rescan_confirm_yes': 'Yes, continue',
   'ar_rescan_confirm_cancel': 'Cancel',
+  'ar_no_tokens_title': 'Out of tokens',
+  'ar_no_tokens_message':
+      'Regenerating needs an AR token, but your balance is empty. '
+      'Top up tokens to continue.',
+  'ar_no_tokens_buy': 'Buy tokens',
   'ar_saved': 'Image saved to gallery',
   'ar_save_failed': 'Couldn\'t save. Try again',
   'ar_save_denied': 'Gallery access denied',
