@@ -104,7 +104,14 @@ class _ArScanOnboardingSheet extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: FilledButton(
-                onPressed: () => Navigator.of(context).pop(true),
+                // Pin the dismissal to the ROOT navigator — the sheet is mounted
+                // there (useRootNavigator: true in showArScanOnboardingSheet), so
+                // a bare Navigator.of(context).pop() resolves to the nearest
+                // (seller shell branch) navigator instead and pops the
+                // Product Details route underneath. Targeting root pops ONLY this
+                // sheet, leaving Product Details intact in the background.
+                onPressed: () =>
+                    Navigator.of(context, rootNavigator: true).pop(true),
                 style: FilledButton.styleFrom(
                   backgroundColor: c.primary,
                   foregroundColor: Colors.white,
