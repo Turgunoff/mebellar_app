@@ -25,10 +25,33 @@ void main() {
         'product_count': 12,
         'rating': 4.5,
         'review_count': 8,
+        'unlocked_achievements': [
+          {
+            'code': 'first_sale',
+            'title_uz': 'Birinchi savdo',
+            'title_ru': 'Первая продажа',
+            'description_uz': 'Do\'kon birinchi savdosini amalga oshirdi',
+            'icon': 'medal',
+          },
+          {
+            'code': 'ten_products',
+            'title_uz': '10 ta mahsulot',
+            'title_ru': '10 товаров',
+            'icon': 'box',
+          },
+        ],
       });
 
       expect(shop.name, 'New Mebel');
       expect(shop.isVerified, isTrue);
+      expect(shop.unlockedAchievements, hasLength(2));
+      expect(shop.unlockedAchievements.first.code, 'first_sale');
+      expect(shop.unlockedAchievements.first.icon, 'medal');
+      expect(
+        shop.unlockedAchievements.first.descriptionUz,
+        "Do'kon birinchi savdosini amalga oshirdi",
+      );
+      expect(shop.unlockedAchievements[1].descriptionUz, isNull);
       expect(shop.hasPhone, isTrue);
       expect(shop.hasTelegram, isTrue);
       expect(shop.hasAddress, isTrue);
@@ -58,6 +81,7 @@ void main() {
       expect(shop.hasTelegram, isFalse);
       expect(shop.hasLocation, isFalse);
       expect(shop.workingHours.hasAnyOpenDay, isFalse);
+      expect(shop.unlockedAchievements, isEmpty);
     });
   });
 }

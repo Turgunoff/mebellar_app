@@ -2,6 +2,51 @@ import 'package:equatable/equatable.dart';
 
 import 'working_hours.dart';
 
+/// One unlocked seller milestone, surfaced on the public store page as a
+/// gamified trust badge. Backend ships the catalogue copy in uz + ru (the
+/// store screen is Uzbek-only, so it reads [titleUz]/[descriptionUz]) plus the
+/// `icon` token the app maps to a glyph. Only unlocked badges ever arrive — the
+/// public endpoint returns persisted unlocks, never the locked catalogue.
+class ShopAchievement extends Equatable {
+  const ShopAchievement({
+    required this.code,
+    required this.titleUz,
+    required this.titleRu,
+    this.descriptionUz,
+    this.descriptionRu,
+    required this.icon,
+  });
+
+  final String code;
+  final String titleUz;
+  final String titleRu;
+  final String? descriptionUz;
+  final String? descriptionRu;
+
+  /// Server icon token (e.g. `medal`, `box`) — see `achievementBadgeIcon`.
+  final String icon;
+
+  factory ShopAchievement.fromJson(Map<String, dynamic> json) {
+    String? str(String key) {
+      final v = json[key];
+      if (v is String && v.trim().isNotEmpty) return v.trim();
+      return null;
+    }
+
+    return ShopAchievement(
+      code: json['code'] as String? ?? '',
+      titleUz: (json['title_uz'] as String?)?.trim() ?? '',
+      titleRu: (json['title_ru'] as String?)?.trim() ?? '',
+      descriptionUz: str('description_uz'),
+      descriptionRu: str('description_ru'),
+      icon: json['icon'] as String? ?? '',
+    );
+  }
+
+  @override
+  List<Object?> get props => [code, titleUz, icon];
+}
+
 /// Public, customer-facing view of a seller's shop — the payload behind
 /// `GET /catalog/shops/{id}`.
 ///
@@ -28,6 +73,7 @@ class ShopProfile extends Equatable {
     this.productCount = 0,
     this.rating,
     this.reviewCount = 0,
+    this.unlockedAchievements = const [],
   });
 
   final String id;
@@ -55,6 +101,10 @@ class ShopProfile extends Equatable {
   /// when the shop has no reviews yet.
   final double? rating;
   final int reviewCount;
+
+  /// Earned milestones shown as trust badges. Empty until the seller unlocks
+  /// any — the badges row is hidden in that case.
+  final List<ShopAchievement> unlockedAchievements;
 
   bool get hasPhone => (contactPhone ?? '').trim().isNotEmpty;
   bool get hasTelegram => (telegramUsername ?? '').trim().isNotEmpty;
@@ -90,6 +140,12 @@ class ShopProfile extends Equatable {
       productCount: (json['product_count'] as num?)?.toInt() ?? 0,
       rating: (json['rating'] as num?)?.toDouble(),
       reviewCount: (json['review_count'] as num?)?.toInt() ?? 0,
+      unlockedAchievements:
+          (json['unlocked_achievements'] as List?)
+              ?.whereType<Map<String, dynamic>>()
+              .map(ShopAchievement.fromJson)
+              .toList(growable: false) ??
+          const [],
     );
   }
 
@@ -101,5 +157,6 @@ class ShopProfile extends Equatable {
     productCount,
     rating,
     reviewCount,
+    unlockedAchievements.length,
   ];
 }
