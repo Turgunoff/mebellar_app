@@ -80,6 +80,7 @@ class _SettingsFormState extends State<SettingsForm> {
     if (s == null) return;
     final picked = await Navigator.of(context).push<PickedLocation>(
       MaterialPageRoute(
+        settings: const RouteSettings(name: '/map-address-picker'),
         builder: (_) => MapAddressPickerScreen(
           initialAddress: s.address,
           initialLatitude: s.lat,

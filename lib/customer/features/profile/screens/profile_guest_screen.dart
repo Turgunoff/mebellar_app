@@ -55,7 +55,12 @@ class ProfileGuestScreen extends StatelessWidget {
   void _openSellerOnboarding(BuildContext context) {
     Navigator.of(
       context,
-    ).push(MaterialPageRoute(builder: (_) => const OnboardingScreen()));
+    ).push(
+      MaterialPageRoute(
+        settings: const RouteSettings(name: '/onboarding'),
+        builder: (_) => const OnboardingScreen(),
+      ),
+    );
   }
 }
 
@@ -328,20 +333,35 @@ List<_MenuEntry> _guestMenuItems(BuildContext context) => [
     label: 'Sozlamalar',
     onTap: () => Navigator.of(
       context,
-    ).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
+    ).push(
+      MaterialPageRoute(
+        settings: const RouteSettings(name: '/settings'),
+        builder: (_) => const SettingsScreen(),
+      ),
+    ),
   ),
   _MenuEntry(
     icon: Iconsax.message_question,
     label: "Yordam va Qo'llab-quvvatlash",
     onTap: () => Navigator.of(
       context,
-    ).push(MaterialPageRoute(builder: (_) => const HelpScreen())),
+    ).push(
+      MaterialPageRoute(
+        settings: const RouteSettings(name: '/help'),
+        builder: (_) => const HelpScreen(),
+      ),
+    ),
   ),
   _MenuEntry(
     icon: Iconsax.info_circle,
     label: 'Ilova haqida',
     onTap: () => Navigator.of(
       context,
-    ).push(MaterialPageRoute(builder: (_) => const AboutScreen())),
+    ).push(
+      MaterialPageRoute(
+        settings: const RouteSettings(name: '/about'),
+        builder: (_) => const AboutScreen(),
+      ),
+    ),
   ),
 ];

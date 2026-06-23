@@ -44,7 +44,10 @@ Future<void> showTariffLimitDialog(
           onPressed: () {
             Navigator.pop(ctx);
             Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const TariffScreen()),
+              MaterialPageRoute(
+                settings: const RouteSettings(name: '/seller-tariff'),
+                builder: (_) => const TariffScreen(),
+              ),
             );
           },
           child: Text(tr('tariff.upgrade_cta')),

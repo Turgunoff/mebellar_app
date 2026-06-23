@@ -160,6 +160,9 @@ class _PendingViewState extends State<_PendingView> {
               OutlinedButton.icon(
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute(
+                    settings: const RouteSettings(
+                      name: '/seller-tariff-history',
+                    ),
                     builder: (_) => const TariffHistoryScreen(),
                   ),
                 ),

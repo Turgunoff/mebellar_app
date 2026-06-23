@@ -18,6 +18,7 @@ Future<File?> openImageCropScreen(
 }) {
   return Navigator.of(context, rootNavigator: true).push<File?>(
     MaterialPageRoute(
+      settings: const RouteSettings(name: '/image-crop'),
       fullscreenDialog: true,
       builder: (_) => _ImageCropScreen(
         file: file,

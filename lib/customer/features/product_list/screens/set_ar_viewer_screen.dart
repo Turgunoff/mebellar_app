@@ -248,6 +248,7 @@ class _SetArViewerScreenState extends State<SetArViewerScreen> {
   void _open2d() {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
+        settings: const RouteSettings(name: '/set-sticker'),
         fullscreenDialog: true,
         builder: (_) =>
             SetStickerScreen(pieces: widget.pieces, setName: widget.setName),

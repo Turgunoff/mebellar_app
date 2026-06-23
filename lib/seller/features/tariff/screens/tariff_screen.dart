@@ -121,7 +121,10 @@ class _TariffAppBar extends StatelessWidget implements PreferredSizeWidget {
           tooltip: tr('tariff.history'),
           icon: Icon(Iconsax.clock, size: 22, color: c.ink),
           onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const TariffHistoryScreen()),
+            MaterialPageRoute(
+              settings: const RouteSettings(name: '/seller-tariff-history'),
+              builder: (_) => const TariffHistoryScreen(),
+            ),
           ),
         ),
         const SizedBox(width: 4),
@@ -147,6 +150,7 @@ class _TariffBody extends StatelessWidget {
     if (result != null && context.mounted) {
       Navigator.of(context).push(
         MaterialPageRoute(
+          settings: const RouteSettings(name: '/seller-tariff-pending'),
           builder: (_) => TariffPendingScreen(subscription: result),
         ),
       );
@@ -226,6 +230,7 @@ class _PendingBanner extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(
+            settings: const RouteSettings(name: '/seller-tariff-pending'),
             builder: (_) => TariffPendingScreen(subscription: subscription),
           ),
         ),

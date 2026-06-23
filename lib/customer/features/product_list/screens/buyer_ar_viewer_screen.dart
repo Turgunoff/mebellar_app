@@ -477,6 +477,7 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
     final part = _part;
     Navigator.of(context).push(
       MaterialPageRoute(
+        settings: const RouteSettings(name: '/fallback-2d-camera'),
         fullscreenDialog: true,
         builder: (_) => Fallback2DCameraScreen(
           // The real .glb (non-empty here — the viewer only renders with an

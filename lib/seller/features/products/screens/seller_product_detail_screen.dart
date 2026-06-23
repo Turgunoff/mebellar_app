@@ -396,7 +396,10 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
   /// banner. Shared by the header balance banner and the out-of-tokens dialog.
   Future<void> _openArTokens() async {
     await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const ArTokensScreen()),
+      MaterialPageRoute(
+        settings: const RouteSettings(name: '/ar-tokens'),
+        builder: (_) => const ArTokensScreen(),
+      ),
     );
     if (mounted) await _loadArBalance();
   }
@@ -405,26 +408,39 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
   /// real-world dimensions. On a successful submit the model is queued for
   /// generation, so we refresh the parts (the row flips to "processing").
   Future<void> _launchArCamera(ArScanComponent component) async {
+    // Resolve the ROOT navigator up-front, BEFORE the onboarding sheet opens an
+    // async gap. The camera must cover the seller shell's bottom nav, so it
+    // rides the root navigator — but reaching for `Navigator.of(context,
+    // rootNavigator: true)` *after* the await (against a tree the sheet
+    // dismissal has been mutating) is what let the close bubble into the shell
+    // and tear down the product-detail route underneath ("over-pop"). Capture
+    // it once, here, and reuse the handle for the push.
+    final rootNavigator = Navigator.of(context, rootNavigator: true);
     // Surface the 3-photo "gold rules" (clean background / good lighting / three
     // distinct angles) before the immersive camera opens — they materially
-    // improve the 3D result. Abort the scan if the seller dismisses it.
+    // improve the 3D result. The sheet now mounts on this SAME root navigator
+    // (useRootNavigator: true), so the whole confirm → rules → camera sequence
+    // lives on one stack: the sheet pops cleanly first, THEN we push the camera.
+    // Abort the scan if the seller dismisses it.
     final proceed = await showArScanOnboardingSheet(context);
     if (!proceed || !mounted) return;
-    // Push on the ROOT navigator so the camera covers the seller shell's
-    // bottom navigation bar — a scanner must be a fully immersive surface.
-    final submitted = await Navigator.of(context, rootNavigator: true)
-        .push<bool>(
-          MaterialPageRoute(
-            builder: (_) => ArScanCameraScreen(
-              productId: widget.product.id,
-              partKey: component.partKey,
-              label: component.label,
-              heightCm: component.heightCm!,
-              widthCm: component.widthCm!,
-              lengthCm: component.lengthCm!,
-            ),
-          ),
-        );
+    // The sheet has fully popped (the await above completed) — only now push the
+    // camera, onto the captured root navigator. Closing the camera then pops
+    // exactly one route, landing back on Product Details without unmounting it.
+    final submitted = await rootNavigator.push<bool>(
+      MaterialPageRoute(
+        settings: const RouteSettings(name: '/ar-scan-camera'),
+        fullscreenDialog: true,
+        builder: (_) => ArScanCameraScreen(
+          productId: widget.product.id,
+          partKey: component.partKey,
+          label: component.label,
+          heightCm: component.heightCm!,
+          widthCm: component.widthCm!,
+          lengthCm: component.lengthCm!,
+        ),
+      ),
+    );
     if (submitted == true && mounted) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
@@ -449,6 +465,7 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
     final c = SellerColors.of(context);
     return showDialog<bool>(
       context: context,
+      routeSettings: const RouteSettings(name: '/ar-rescan-confirm'),
       builder: (dialogContext) => _PremiumActionDialog(
         icon: Icons.autorenew_rounded,
         iconColor: c.onPrimarySoft,
@@ -470,6 +487,7 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
     final c = SellerColors.of(context);
     final goTopUp = await showDialog<bool>(
       context: context,
+      routeSettings: const RouteSettings(name: '/ar-no-tokens'),
       builder: (dialogContext) => _PremiumActionDialog(
         icon: Icons.bolt_rounded,
         iconColor: c.gold,
@@ -521,6 +539,7 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
     if (url == null || url.isEmpty) return;
     Navigator.of(context).push(
       MaterialPageRoute(
+        settings: const RouteSettings(name: '/seller-ar-model'),
         builder: (_) => SellerArModelScreen(
           modelUrl: url,
           usdzUrl: part.usdzUrl,
@@ -541,6 +560,7 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
     final c = SellerColors.of(context);
     final goEdit = await showDialog<bool>(
       context: context,
+      routeSettings: const RouteSettings(name: '/ar-need-dimensions'),
       builder: (dialogContext) => AlertDialog(
         backgroundColor: c.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
@@ -1525,6 +1545,7 @@ Future<void> _showArScanInfoSheet(BuildContext context) {
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
+    routeSettings: const RouteSettings(name: '/ar-scan-info'),
     backgroundColor: SellerColors.of(context).surface,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),

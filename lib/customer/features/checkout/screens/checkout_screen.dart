@@ -285,6 +285,7 @@ class _DeliveryCard extends StatelessWidget {
           final picked = await Navigator.of(context, rootNavigator: true)
               .push<PickedLocation>(
                 MaterialPageRoute(
+                  settings: const RouteSettings(name: '/map-address-picker'),
                   builder: (_) => MapAddressPickerScreen(
                     initialAddress: state.deliveryAddress,
                   ),

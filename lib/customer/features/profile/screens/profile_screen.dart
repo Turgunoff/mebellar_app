@@ -65,6 +65,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final cubit = context.read<ProfileCubit>();
     Navigator.of(context).push(
       MaterialPageRoute(
+        settings: const RouteSettings(name: '/edit-profile'),
         builder: (_) => BlocProvider.value(
           value: cubit,
           child: EditProfileScreen(profile: profile),
@@ -74,7 +75,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _push(BuildContext context, Widget screen) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        settings: RouteSettings(name: '/${screen.runtimeType}'),
+        builder: (_) => screen,
+      ),
+    );
   }
 
   Future<void> _handleRefresh() async {

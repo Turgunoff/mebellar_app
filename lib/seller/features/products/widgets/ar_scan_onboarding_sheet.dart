@@ -34,6 +34,13 @@ Future<bool> showArScanOnboardingSheet(BuildContext context) async {
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
+    // Mount on the ROOT navigator — the same one the camera is pushed onto.
+    // Otherwise this sheet lands on the seller shell's branch navigator while
+    // the camera goes to root, and the cross-navigator split lets exiting the
+    // camera tear down the product-detail route underneath ("over-pop"). One
+    // navigator for the whole confirm → rules → camera sequence.
+    useRootNavigator: true,
+    routeSettings: const RouteSettings(name: '/ar-scan-onboarding'),
     builder: (_) => const _ArScanOnboardingSheet(),
   );
   return ok ?? false;

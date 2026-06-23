@@ -66,7 +66,10 @@ class _SellerSetsScreenState extends State<SellerSetsScreen> {
 
   Future<void> _openCreate() async {
     final created = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => const SellerSetEditorScreen()),
+      MaterialPageRoute(
+        settings: const RouteSettings(name: '/seller-set-editor'),
+        builder: (_) => const SellerSetEditorScreen(),
+      ),
     );
     if (!mounted) return;
     if (created == true) _load();

@@ -68,6 +68,7 @@ class _SellerProductsViewState extends State<_SellerProductsView> {
     final bloc = context.read<SellerProductsBloc>();
     final created = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
+        settings: const RouteSettings(name: '/product-form'),
         builder: (_) =>
             BlocProvider.value(value: bloc, child: const ProductFormScreen()),
       ),
@@ -86,6 +87,7 @@ class _SellerProductsViewState extends State<_SellerProductsView> {
     final bloc = context.read<SellerProductsBloc>();
     final saved = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
+        settings: const RouteSettings(name: '/product-form'),
         builder: (_) => BlocProvider.value(
           value: bloc,
           child: ProductFormScreen(initial: product),
@@ -103,7 +105,12 @@ class _SellerProductsViewState extends State<_SellerProductsView> {
   void _openSets(BuildContext context) {
     Navigator.of(
       context,
-    ).push(MaterialPageRoute(builder: (_) => const SellerSetsScreen()));
+    ).push(
+      MaterialPageRoute(
+        settings: const RouteSettings(name: '/seller-sets'),
+        builder: (_) => const SellerSetsScreen(),
+      ),
+    );
   }
 
   // Opens the customer-style preview of the seller's product. The "Edit" CTA
@@ -112,6 +119,7 @@ class _SellerProductsViewState extends State<_SellerProductsView> {
     final bloc = context.read<SellerProductsBloc>();
     Navigator.of(context).push(
       MaterialPageRoute(
+        settings: const RouteSettings(name: '/seller-product-detail'),
         builder: (previewContext) => BlocProvider.value(
           value: bloc,
           child: SellerProductDetailScreen(
@@ -982,7 +990,12 @@ class _TariffArchiveBanner extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         onTap: () => Navigator.of(
           context,
-        ).push(MaterialPageRoute(builder: (_) => const TariffScreen())),
+        ).push(
+          MaterialPageRoute(
+            settings: const RouteSettings(name: '/seller-tariff'),
+            builder: (_) => const TariffScreen(),
+          ),
+        ),
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Row(

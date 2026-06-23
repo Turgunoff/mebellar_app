@@ -30,6 +30,7 @@ import '../screens/set_sticker_screen.dart';
 void openBuyerArViewer(BuildContext context, ProductModel product) {
   Navigator.of(context).push(
     MaterialPageRoute(
+      settings: const RouteSettings(name: '/buyer-ar-viewer'),
       fullscreenDialog: true,
       builder: (_) => BuyerArViewerScreen(product: product),
     ),
@@ -333,6 +334,7 @@ void _pushSetAr(
 ) {
   navigator.push(
     MaterialPageRoute(
+      settings: const RouteSettings(name: '/set-ar-viewer'),
       fullscreenDialog: true,
       builder: (_) => SetArViewerScreen(pieces: pieces, setName: name),
     ),
@@ -346,6 +348,7 @@ void _pushSetSticker(
 ) {
   navigator.push(
     MaterialPageRoute(
+      settings: const RouteSettings(name: '/set-sticker'),
       fullscreenDialog: true,
       builder: (_) => SetStickerScreen(pieces: pieces, setName: name),
     ),

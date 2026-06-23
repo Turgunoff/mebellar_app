@@ -193,7 +193,12 @@ class _SellerProfileView extends StatelessWidget {
   }
 
   static void _push(BuildContext context, Widget screen) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        settings: RouteSettings(name: '/${screen.runtimeType}'),
+        builder: (_) => screen,
+      ),
+    );
   }
 
   static String _planSubtitle(SellerProfileState state) {
@@ -223,7 +228,10 @@ final Color _logoutRed = Colors.red.shade600;
 Future<void> _openShopSettings(BuildContext context) async {
   final cubit = context.read<SellerProfileCubit>();
   final saved = await Navigator.of(context).push<ShopSettings>(
-    MaterialPageRoute(builder: (_) => const ShopSettingsScreen()),
+    MaterialPageRoute(
+      settings: const RouteSettings(name: '/shop-settings'),
+      builder: (_) => const ShopSettingsScreen(),
+    ),
   );
   if (saved != null) cubit.applyShopSettings(saved);
 }
