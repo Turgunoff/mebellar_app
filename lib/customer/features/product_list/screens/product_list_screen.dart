@@ -17,6 +17,7 @@ import '../../../features/favorites/bloc/favorites_bloc.dart';
 import '../../../widgets/filter/active_filters_bar.dart';
 import '../../../widgets/filter/filter_button.dart';
 import '../../../widgets/network_error_gate.dart';
+import '../../../widgets/network_error_view.dart';
 import '../../../widgets/price_format.dart';
 import '../../../widgets/view_mode_toggle.dart';
 import '../../home/widgets/premium/premium_product_list_card.dart';
@@ -81,10 +82,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
     return Scaffold(
       backgroundColor: pt.background,
       body: NetworkErrorGate<ProductListCubit, ProductListState>(
-        isCritical: (s) =>
-            s.status == ProductListStatus.failure && s.products.isEmpty,
-        isRecovered: (s) => s.status == ProductListStatus.loaded,
-        isRetrying: (s) => s.status == ProductListStatus.loading,
         onRetry: (cubit) => cubit.load(
           categoryId: widget.categoryId,
           subcategoryId: widget.subcategoryId,
@@ -92,8 +89,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
         child: BlocBuilder<ProductListCubit, ProductListState>(
           builder: (context, state) {
             if (state.status == ProductListStatus.failure) {
-              return _ErrorView(
-                message: state.error ?? '',
+              return NetworkErrorView(
+                title: tr('product.list_error_title'),
+                message: state.error,
                 onRetry: () => context.read<ProductListCubit>().load(
                   categoryId: widget.categoryId,
                   subcategoryId: widget.subcategoryId,
@@ -764,52 +762,6 @@ class _EmptySliver extends StatelessWidget {
                 weight: FontWeight.w600,
                 color: pt.grey,
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ErrorView extends StatelessWidget {
-  const _ErrorView({required this.message, required this.onRetry});
-
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final pt = PremiumTokens.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Iconsax.warning_2, size: 48, color: pt.greyLight),
-            const SizedBox(height: 16),
-            Text(
-              tr('product.list_error_title'),
-              style: PremiumTokens.body(
-                size: 16,
-                weight: FontWeight.w600,
-                color: pt.dark,
-              ),
-            ),
-            if (message.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                message,
-                textAlign: TextAlign.center,
-                style: PremiumTokens.body(size: 13, color: pt.grey),
-              ),
-            ],
-            const SizedBox(height: 24),
-            TextButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: Text(tr('product.retry')),
             ),
           ],
         ),

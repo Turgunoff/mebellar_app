@@ -50,10 +50,6 @@ class _OrdersView extends StatelessWidget {
           ),
         ),
         body: NetworkErrorGate<OrdersBloc, OrdersState>(
-          isCritical: (s) =>
-              s.status == OrdersStatus.failure && s.orders.isEmpty,
-          isRecovered: (s) => s.status == OrdersStatus.ready,
-          isRetrying: (s) => s.status == OrdersStatus.loading,
           onRetry: (bloc) => bloc.add(const OrdersRequested()),
           backgroundError: (s) =>
               s.status == OrdersStatus.ready && s.error != null

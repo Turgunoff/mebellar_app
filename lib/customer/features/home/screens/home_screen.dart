@@ -14,6 +14,7 @@ import '../../../../shared/models/product.dart';
 import '../../../../shared/repositories/product_data_source.dart';
 import '../../../customer_app.dart';
 import '../../../widgets/network_error_gate.dart';
+import '../../../widgets/network_error_view.dart';
 import '../../../widgets/price_format.dart';
 import '../../../widgets/view_mode_toggle.dart';
 import '../../categories/bloc/categories_bloc.dart';
@@ -74,12 +75,6 @@ class _HomeScreenState extends State<HomeScreen> {
           color: pt.background,
           child: NetworkErrorGate<HomeBloc, HomeState>(
             isActive: (ctx) => CustomerShellScope.of(ctx).index == 0,
-            isCritical: (s) =>
-                s.status == HomeStatus.failure &&
-                s.banners.isEmpty &&
-                s.recommended.isEmpty,
-            isRecovered: (s) => s.status == HomeStatus.ready,
-            isRetrying: (s) => s.status == HomeStatus.loading,
             onRetry: (bloc) => bloc.add(const HomeRequested(refresh: true)),
             backgroundError: (s) =>
                 s.status == HomeStatus.ready && s.error != null
@@ -108,7 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       SliverFillRemaining(
-                        child: _HomeErrorState(
+                        child: NetworkErrorView(
                           onRetry: () => context.read<HomeBloc>().add(
                             const HomeRequested(refresh: true),
                           ),
@@ -189,84 +184,6 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────── Error state ───────────────────────────
-
-/// Premium "we couldn't load the feed" state.
-///
-/// Shown in place of the carousels + grid when [HomeBloc] reports
-/// `failure` and there's no cached payload to fall back on. Keeps the
-/// discover header and search bar above it so the user can navigate
-/// to Cart / Favorites / Profile via the bottom nav (all of which
-/// work offline thanks to Hive).
-class _HomeErrorState extends StatelessWidget {
-  const _HomeErrorState({required this.onRetry});
-
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final pt = PremiumTokens.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 88,
-              height: 88,
-              decoration: BoxDecoration(
-                color: PremiumTokens.accent.withValues(alpha: 0.10),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.wifi_off_rounded,
-                size: 40,
-                color: PremiumTokens.accent,
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              tr('home.error_title'),
-              textAlign: TextAlign.center,
-              style: PremiumTokens.display(size: 20, letterSpacing: -0.2),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              tr('home.error_subtitle'),
-              textAlign: TextAlign.center,
-              style: PremiumTokens.body(size: 14, color: pt.grey, height: 1.4),
-            ),
-            const SizedBox(height: 24),
-            FilledButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: Text(tr('home.error_retry')),
-              style: FilledButton.styleFrom(
-                backgroundColor: PremiumTokens.accent,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 28,
-                  vertical: 14,
-                ),
-                minimumSize: const Size(0, 48),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(100),
-                ),
-                textStyle: PremiumTokens.body(
-                  size: 14,
-                  weight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ],
         ),
       ),
     );

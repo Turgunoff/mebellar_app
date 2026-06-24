@@ -34,7 +34,7 @@ const Map<String, dynamic> updateEn = {
 
 const Map<String, dynamic> offlineUz = {
   'banner': 'Internet aloqasi yo\'q',
-  'restored': 'Aloqa tiklandi',
+  'restored': 'Tarmoq tiklandi',
   'toggle_title': 'Tarmoq holati',
   'toggle_online': 'Online — barcha so\'rovlar oddiy ketadi',
   'toggle_offline': 'Offline — banner ko\'rinadi, kesh fallback ishlatiladi',
@@ -56,28 +56,31 @@ const Map<String, dynamic> offlineEn = {
   'toggle_offline': 'Offline — the banner shows, cache fallback is used',
 };
 
-// Blocking "no connection" gate (FlashscoreNetworkModal) — shown only when a
-// critical fetch fails AND there is no cached data to fall back on. The retry
-// button reuses `common.retry`.
-const Map<String, dynamic> networkModalUz = {
+// Inline full-screen "no connection" placeholder (NetworkErrorView) — shown as
+// a screen's body when a critical fetch fails AND there is no cached data to
+// fall back on. Non-blocking; a reconnect repopulates it silently.
+const Map<String, dynamic> networkErrorUz = {
   'title': 'Internetga ulanib bo\'lmadi',
   'message':
       'Ma\'lumotlarni yuklab bo\'lmadi. Internet aloqangizni tekshirib, '
       'qayta urinib ko\'ring.',
+  'retry': 'Qayta urinish',
 };
 
-const Map<String, dynamic> networkModalRu = {
+const Map<String, dynamic> networkErrorRu = {
   'title': 'Нет подключения к интернету',
   'message':
       'Не удалось загрузить данные. Проверьте подключение к интернету и '
       'попробуйте снова.',
+  'retry': 'Повторить',
 };
 
-const Map<String, dynamic> networkModalEn = {
+const Map<String, dynamic> networkErrorEn = {
   'title': 'No internet connection',
   'message':
       'We couldn\'t load the latest data. Check your internet connection and '
       'try again.',
+  'retry': 'Retry',
 };
 
 const Map<String, dynamic> deepLinksUz = {

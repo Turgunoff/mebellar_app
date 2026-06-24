@@ -12,6 +12,7 @@ import '../../../../shared/models/category_model.dart';
 import '../../../../shared/widgets/image_error_placeholder.dart';
 import '../../../customer_app.dart';
 import '../../../widgets/network_error_gate.dart';
+import '../../../widgets/network_error_view.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../bloc/categories_bloc.dart';
 
@@ -35,11 +36,6 @@ class CategoriesScreen extends StatelessWidget {
             Expanded(
               child: NetworkErrorGate<CategoriesBloc, CategoriesState>(
                 isActive: (ctx) => CustomerShellScope.of(ctx).index == 1,
-                isCritical: (s) =>
-                    s.status == CategoriesStatus.failure &&
-                    s.categories.isEmpty,
-                isRecovered: (s) => s.status == CategoriesStatus.ready,
-                isRetrying: (s) => s.status == CategoriesStatus.loading,
                 onRetry: (bloc) =>
                     bloc.add(const CategoriesRequested(refresh: true)),
                 backgroundError: (s) =>
@@ -48,38 +44,39 @@ class CategoriesScreen extends StatelessWidget {
                     : null,
                 child: BlocBuilder<CategoriesBloc, CategoriesState>(
                   builder: (context, state) {
-                  // First-load failure with nothing cached → premium error
-                  // state. Subsequent failures while we still have stale items
-                  // keep the list visible (the global red banner already tells
-                  // the user about the connection).
-                  final isFailure = state.status == CategoriesStatus.failure;
-                  final hasItems = state.categories.isNotEmpty;
-                  if (isFailure && !hasItems) {
-                    return _CategoriesErrorState(
-                      onRetry: () => context.read<CategoriesBloc>().add(
-                        const CategoriesRequested(),
-                      ),
+                    // First-load failure with nothing cached → premium error
+                    // state. Subsequent failures while we still have stale items
+                    // keep the list visible (the global red banner already tells
+                    // the user about the connection).
+                    final isFailure = state.status == CategoriesStatus.failure;
+                    final hasItems = state.categories.isNotEmpty;
+                    if (isFailure && !hasItems) {
+                      return NetworkErrorView(
+                        title: tr('home.categories_error_title'),
+                        onRetry: () => context.read<CategoriesBloc>().add(
+                          const CategoriesRequested(),
+                        ),
+                      );
+                    }
+
+                    // Shimmer only while we're actively loading; once the bloc
+                    // emits failure (or ready) we never re-enter shimmer state.
+                    final isLoading =
+                        state.status == CategoriesStatus.loading ||
+                        state.status == CategoriesStatus.initial;
+                    final items = state.categories;
+
+                    return ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 48),
+                      physics: const BouncingScrollPhysics(),
+                      itemCount: isLoading ? 5 : items.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 14),
+                      itemBuilder: (context, i) {
+                        if (isLoading) return const _SkeletonCard();
+                        return _EditorialCategoryCard(category: items[i]);
+                      },
                     );
-                  }
-
-                  // Shimmer only while we're actively loading; once the bloc
-                  // emits failure (or ready) we never re-enter shimmer state.
-                  final isLoading =
-                      state.status == CategoriesStatus.loading ||
-                      state.status == CategoriesStatus.initial;
-                  final items = state.categories;
-
-                  return ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 48),
-                    physics: const BouncingScrollPhysics(),
-                    itemCount: isLoading ? 5 : items.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 14),
-                    itemBuilder: (context, i) {
-                      if (isLoading) return const _SkeletonCard();
-                      return _EditorialCategoryCard(category: items[i]);
-                    },
-                  );
-                },
+                  },
                 ),
               ),
             ),
@@ -319,81 +316,6 @@ class _SkeletonCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: pt.imageBg,
           borderRadius: BorderRadius.circular(20),
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Error state — premium centered offline / failure widget, matches
-// `_HomeErrorState` from the home feed so the customer flow has a single
-// visual vocabulary for "couldn't load".
-// ---------------------------------------------------------------------------
-
-class _CategoriesErrorState extends StatelessWidget {
-  const _CategoriesErrorState({required this.onRetry});
-
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final pt = PremiumTokens.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 88,
-              height: 88,
-              decoration: BoxDecoration(
-                color: PremiumTokens.accent.withValues(alpha: 0.10),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.wifi_off_rounded,
-                size: 40,
-                color: PremiumTokens.accent,
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              tr('home.categories_error_title'),
-              textAlign: TextAlign.center,
-              style: PremiumTokens.display(size: 20, letterSpacing: -0.2),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              tr('home.error_subtitle'),
-              textAlign: TextAlign.center,
-              style: PremiumTokens.body(size: 14, color: pt.grey, height: 1.4),
-            ),
-            const SizedBox(height: 24),
-            FilledButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: Text(tr('home.error_retry')),
-              style: FilledButton.styleFrom(
-                backgroundColor: PremiumTokens.accent,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 28,
-                  vertical: 14,
-                ),
-                minimumSize: const Size(0, 48),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(100),
-                ),
-                textStyle: PremiumTokens.body(
-                  size: 14,
-                  weight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ],
         ),
       ),
     );
