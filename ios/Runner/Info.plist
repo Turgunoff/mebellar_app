@@ -26,6 +26,11 @@
 	<!-- Write-only Photos access (gal) so the buyer can save the AR screenshot. -->
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>AR ko'rinishidagi mebel suratini galereyangizga saqlash uchun ruxsat kerak.</string>
+	<!-- App Tracking Transparency prompt copy. Shown by
+	     FacebookAnalyticsService.initialize(); declining keeps all Meta
+	     tracking off. -->
+	<key>NSUserTrackingUsageDescription</key>
+	<string>Reklamalarni qiziqishlaringizga moslashtirish va xizmatni yaxshilash uchun faoliyatingizni kuzatishga ruxsat bering.</string>
 	<!-- Required for Firebase Cloud Messaging background message processing. -->
 	<key>UIBackgroundModes</key>
 	<array>
@@ -50,21 +55,50 @@
 		<string>fbauth2</string>
 		<string>fbshareextension</string>
 	</array>
-	<!-- Facebook SDK (facebook_app_events) — DISABLED until launch. The real
-	     App ID / Client Token aren't set yet, so the fb<AppID> URL scheme is
-	     intentionally OMITTED: a literal "fbYOUR_FB_APP_ID" is an invalid URL
-	     scheme and FAILS App Store validation (RFC 1738, the 409 we hit). To
-	     enable FB later:
-	       1. set FacebookAppID / FacebookClientToken to the real dashboard values
-	       2. re-add a CFBundleURLTypes entry with the scheme fb<RealAppID>
-	     The placeholder App ID below is inert at runtime (FacebookAnalyticsService
-	     is non-throwing); events simply go nowhere until configured. -->
+	<!-- Facebook SDK (facebook_app_events) — production "Woody" Meta app. The
+	     Client Token ships in every binary by design (it is NOT the App Secret).
+	     Auto-init is held OFF (FacebookAutoLogAppEventsEnabled /
+	     FacebookAdvertiserIDCollectionEnabled = false) so the SDK never tracks
+	     before consent: FacebookAnalyticsService.initialize() surfaces the ATT
+	     prompt (NSUserTrackingUsageDescription above) and only then enables
+	     collection. On iOS 17+ the SDK also derives tracking consent from ATT
+	     automatically. -->
 	<key>FacebookAppID</key>
-	<string>YOUR_FB_APP_ID</string>
+	<string>1558560508989469</string>
 	<key>FacebookClientToken</key>
-	<string>YOUR_FB_CLIENT_TOKEN</string>
+	<string>cbc282c9f4fbee55fb7174fd4e6da40c</string>
 	<key>FacebookDisplayName</key>
 	<string>Woody</string>
+	<key>FacebookAutoLogAppEventsEnabled</key>
+	<false/>
+	<key>FacebookAdvertiserIDCollectionEnabled</key>
+	<false/>
+	<!-- fb<AppID> URL scheme — lets the OS hand Meta deferred app-link / install
+	     attribution back to the app. Now a valid scheme (real App ID), so it
+	     passes App Store validation. Harmless without Facebook Login. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>fb1558560508989469</string>
+			</array>
+		</dict>
+	</array>
+	<!-- SKAdNetwork — Apple's privacy-preserving install attribution. Meta's ad
+	     network IDs so campaign installs are credited even when the user declines
+	     ATT. The FBSDK pod also contributes these; the toolchain merges dupes. -->
+	<key>SKAdNetworkItems</key>
+	<array>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>v9wttpbfk9.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>n38lu8286q.skadnetwork</string>
+		</dict>
+	</array>
 	<!-- The app uses only standard HTTPS (exempt encryption); declaring this
 	     skips the export-compliance prompt on every App Store / TestFlight upload. -->
 	<key>ITSAppUsesNonExemptEncryption</key>

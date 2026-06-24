@@ -216,6 +216,14 @@ class CheckoutCubit extends Cubit<CheckoutState> {
     unawaited(
       _analytics?.beginCheckout(value: total, itemsCount: items.length),
     );
+    // Meta InitiateCheckout — one event per checkout session, mirroring the
+    // Firebase begin_checkout above.
+    unawaited(
+      _facebookAnalytics?.logInitiateCheckout(
+        numItems: items.length,
+        value: total,
+      ),
+    );
     // Pull the authoritative invoice (delivery + installation) from the server.
     // The card already shows a local estimate from the cart snapshots, so this
     // only refines the numbers when it returns.
@@ -330,7 +338,15 @@ class CheckoutCubit extends Cubit<CheckoutState> {
             itemsCount: group.items.length,
           ),
         );
-        unawaited(_facebookAnalytics?.logPurchase(group.subtotal.toDouble(), 'UZS'));
+        unawaited(
+          _facebookAnalytics?.logPurchase(
+            group.subtotal.toDouble(),
+            'UZS',
+            contentIds: [for (final it in group.items) it.productId],
+            numItems: group.items.length,
+            orderId: orderId,
+          ),
+        );
       }
 
       // Orders now exist server-side, so the cart is empty regardless of what

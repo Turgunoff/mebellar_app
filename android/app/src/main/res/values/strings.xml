@@ -1,15 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!--
-        Facebook SDK (facebook_app_events) — DISABLED until launch. The App ID /
-        Client Token are still placeholders, so FB is inert (events go nowhere;
-        FacebookAnalyticsService is non-throwing). These two strings MUST stay —
-        AndroidManifest.xml references @string/facebook_app_id and
-        @string/facebook_client_token. To enable FB, set both to the real
-        Facebook dashboard values (Settings → Basic). fb_login_protocol_scheme is
-        omitted (FB Login is unused — it held the invalid fbYOUR_FB_APP_ID
-        scheme); add it back as fb<RealAppID> only if you adopt Facebook Login.
+        Facebook SDK (facebook_app_events) — production App ID + Client Token for
+        the "Woody" Meta app. AndroidManifest.xml references
+        @string/facebook_app_id and @string/facebook_client_token. The Client
+        Token is NOT a secret — it ships in every Android binary by design; the
+        sensitive App Secret never lives in the app.
+
+        Collection is held OFF at boot: AndroidManifest sets
+        com.facebook.sdk.AutoLogAppEventsEnabled / AdvertiserIDCollectionEnabled
+        to false, and FacebookAnalyticsService.initialize() turns them on at
+        runtime (Android has no ATT gate). fb_login_protocol_scheme is omitted —
+        Facebook Login is unused; add it back as fb<AppID> only if adopted.
     -->
-    <string name="facebook_app_id">YOUR_FB_APP_ID</string>
-    <string name="facebook_client_token">YOUR_FB_CLIENT_TOKEN</string>
+    <string name="facebook_app_id">1558560508989469</string>
+    <string name="facebook_client_token">cbc282c9f4fbee55fb7174fd4e6da40c</string>
 </resources>

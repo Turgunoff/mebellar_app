@@ -142,17 +142,27 @@
             android:name="com.google.firebase.messaging.default_notification_color"
             android:resource="@color/notification_accent" />
 
-        <!-- Facebook SDK (facebook_app_events). The App ID + Client Token live
-             in res/values/strings.xml as placeholders (YOUR_FB_APP_ID /
-             YOUR_FB_CLIENT_TOKEN) — replace them with the real Facebook App
-             dashboard values before shipping. The INTERNET permission the SDK
-             needs is already declared at the top of this manifest. -->
+        <!-- Facebook SDK (facebook_app_events). The production App ID + Client
+             Token live in res/values/strings.xml. The INTERNET permission the
+             SDK needs is already declared at the top of this manifest.
+
+             Auto-logging + advertiser-ID collection are held OFF here so the
+             SDK never tracks before consent is resolved; FacebookAnalyticsService
+             .initialize() flips them on at runtime (Android has no ATT gate, so
+             it enables immediately). This mirrors the consent-delay pattern the
+             FB SDK documents for GDPR. -->
         <meta-data
             android:name="com.facebook.sdk.ApplicationId"
             android:value="@string/facebook_app_id" />
         <meta-data
             android:name="com.facebook.sdk.ClientToken"
             android:value="@string/facebook_client_token" />
+        <meta-data
+            android:name="com.facebook.sdk.AutoLogAppEventsEnabled"
+            android:value="false" />
+        <meta-data
+            android:name="com.facebook.sdk.AdvertiserIDCollectionEnabled"
+            android:value="false" />
     </application>
 
     <queries>

@@ -8,6 +8,7 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../../core/analytics/analytics_service.dart';
+import '../../../../core/services/facebook_analytics_service.dart';
 import '../../../../core/auth/auth_cubit.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
@@ -176,6 +177,16 @@ class _CatalogProductDetailScreenState
         price: widget.product.effectivePrice,
       ),
     );
+    // Meta ViewContent — same single-fire guard; feeds ad-campaign attribution.
+    if (sl.isRegistered<FacebookAnalyticsService>()) {
+      unawaited(
+        sl<FacebookAnalyticsService>().logViewContent(
+          contentId: widget.product.id,
+          contentName: widget.product.name,
+          value: widget.product.effectivePrice,
+        ),
+      );
+    }
   }
 
   @override

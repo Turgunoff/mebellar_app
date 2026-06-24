@@ -18,6 +18,7 @@ import '../core/logging/debug_talker_overlay.dart';
 import '../core/logging/talker.dart';
 import '../core/notifications/notification_handler.dart';
 import '../core/notifications/push_service.dart';
+import '../core/services/facebook_analytics_service.dart';
 import '../core/connectivity/network_cubit.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/theme_cubit.dart';
@@ -298,6 +299,10 @@ class _CustomerHomeShellState extends State<CustomerHomeShell> {
   /// asking earlier (splash / onboarding) lowers opt-in rates significantly.
   static const _permissionPromptDelay = Duration(seconds: 1);
 
+  /// ATT / Meta init lands a beat after the push prompt so the two iOS system
+  /// dialogs queue in order instead of stacking on the freshly-rendered feed.
+  static const _attPromptDelay = Duration(milliseconds: 1800);
+
   @override
   void initState() {
     super.initState();
@@ -309,6 +314,18 @@ class _CustomerHomeShellState extends State<CustomerHomeShell> {
       Future<void>.delayed(_permissionPromptDelay, () {
         if (!mounted) return;
         sl<PushService>().requestPermissionAndSubscribe();
+      });
+    }
+    // Bring Meta (Facebook) App Events online once the home feed is up. On iOS
+    // this surfaces the App Tracking Transparency prompt and gates ALL Meta
+    // tracking on the user's choice; on Android it initialises immediately.
+    // Deferred past the splash (and after the push prompt) so the system
+    // dialogs never stack on the brand splash. initialize() is idempotent and
+    // non-throwing, so a remount / mode switch can't double-prompt or crash.
+    if (sl.isRegistered<FacebookAnalyticsService>() && !kScreenshotMode) {
+      Future<void>.delayed(_attPromptDelay, () {
+        if (!mounted) return;
+        unawaited(sl<FacebookAnalyticsService>().initialize());
       });
     }
   }

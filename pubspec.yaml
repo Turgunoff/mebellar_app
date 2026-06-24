@@ -178,6 +178,11 @@ dependencies:
   internet_connection_checker_plus: ^2.5.2
   smart_auth: ^3.2.0
   facebook_app_events: ^0.30.1
+  # App Tracking Transparency — iOS gates Meta App Events (IDFA / advertiser
+  # tracking) on an explicit ATT grant. FacebookAnalyticsService.initialize()
+  # surfaces the prompt and only turns the SDK on when authorised; Android has
+  # no ATT and initialises straight away. iOS-only at runtime, inert elsewhere.
+  app_tracking_transparency: ^2.0.6
 
 dependency_overrides:
   # `record` 5.2.1 pins `record_linux` to `<1.0.0`, which resolves to the

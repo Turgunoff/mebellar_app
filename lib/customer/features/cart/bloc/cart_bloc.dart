@@ -242,6 +242,7 @@ class CartBloc extends Bloc<CartEvent, CartState>
         _facebookAnalytics?.logAddToCart(
           event.product.id,
           event.product.effectivePrice,
+          contentName: event.product.name,
         ),
       );
     } catch (e) {
