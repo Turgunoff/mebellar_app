@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../../auth/auth_bottom_sheet.dart';
+import '../../../../core/i18n/i18n.dart';
 import '../../../../seller/features/onboarding/screens/onboarding_screen.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../../../../shared/about/about_screen.dart';
@@ -33,7 +34,7 @@ class ProfileGuestScreen extends StatelessWidget {
         scrolledUnderElevation: 0,
         centerTitle: false,
         title: Text(
-          'Profil',
+          tr('profile.title'),
           style: PremiumTokens.display(size: 28, letterSpacing: -0.5),
         ),
       ),
@@ -99,19 +100,18 @@ class _WelcomeHeroCard extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           Text(
-            'Xush kelibsiz!',
+            tr('profile.guest_welcome_title'),
             textAlign: TextAlign.center,
             style: PremiumTokens.display(size: 24, letterSpacing: -0.3),
           ),
           const SizedBox(height: 10),
           Text(
-            "Buyurtmalarni boshqarish va do'koningiz savdosini "
-            "kuzatish uchun tizimga kiring yoki ro'yxatdan o'ting.",
+            tr('profile.guest_welcome_body'),
             textAlign: TextAlign.center,
             style: PremiumTokens.body(size: 14, color: pt.grey, height: 1.5),
           ),
           const SizedBox(height: 24),
-          _PrimaryCta(label: 'Davom etish', onTap: onContinue),
+          _PrimaryCta(label: tr('profile.continue'), onTap: onContinue),
         ],
       ),
     );
@@ -237,7 +237,7 @@ class _SellOnWoodyRow extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Woody'da soting",
+                      tr('profile.sell_on_woody_title'),
                       style: PremiumTokens.body(
                         size: 14,
                         weight: FontWeight.w700,
@@ -245,7 +245,7 @@ class _SellOnWoodyRow extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Biznesingizni minglab xaridorlarga yetkazing',
+                      tr('profile.sell_on_woody_subtitle'),
                       style: PremiumTokens.body(
                         size: 12,
                         color: pt.grey,
@@ -330,7 +330,7 @@ class _MenuEntry {
 List<_MenuEntry> _guestMenuItems(BuildContext context) => [
   _MenuEntry(
     icon: Iconsax.setting_2,
-    label: 'Sozlamalar',
+    label: tr('profile.menu_settings'),
     onTap: () => Navigator.of(
       context,
     ).push(
@@ -342,7 +342,7 @@ List<_MenuEntry> _guestMenuItems(BuildContext context) => [
   ),
   _MenuEntry(
     icon: Iconsax.message_question,
-    label: "Yordam va Qo'llab-quvvatlash",
+    label: tr('profile.help_title'),
     onTap: () => Navigator.of(
       context,
     ).push(
@@ -354,7 +354,7 @@ List<_MenuEntry> _guestMenuItems(BuildContext context) => [
   ),
   _MenuEntry(
     icon: Iconsax.info_circle,
-    label: 'Ilova haqida',
+    label: tr('profile.menu_about'),
     onTap: () => Navigator.of(
       context,
     ).push(

@@ -16,6 +16,9 @@ const Map<String, dynamic> commonUz = {
   'yes': 'Ha',
   'no': 'Yo\'q',
   'all': 'Hammasi',
+  'generic_error': 'Xatolik yuz berdi',
+  'sum_suffix': '{value} so\'m',
+  'currency_som': '{price} so\'m',
 };
 
 const Map<String, dynamic> commonRu = {
@@ -32,6 +35,9 @@ const Map<String, dynamic> commonRu = {
   'yes': 'Да',
   'no': 'Нет',
   'all': 'Все',
+  'generic_error': 'Произошла ошибка',
+  'sum_suffix': '{value} сум',
+  'currency_som': '{price} сум',
 };
 
 const Map<String, dynamic> commonEn = {
@@ -48,6 +54,9 @@ const Map<String, dynamic> commonEn = {
   'yes': 'Yes',
   'no': 'No',
   'all': 'All',
+  'generic_error': 'An error occurred',
+  'sum_suffix': '{value} so\'m',
+  'currency_som': '{price} so\'m',
 };
 
 const Map<String, dynamic> errorUz = {

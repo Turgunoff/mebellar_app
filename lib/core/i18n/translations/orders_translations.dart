@@ -32,6 +32,12 @@ const Map<String, dynamic> ordersUz = {
   'fee_confirm_body':
       'Yetkazish narxi: {fee} so\'m\nJami to\'lov: {total} so\'m\n\nRozilik bildirasizmi?',
   'fee_confirm_yes': 'Ha, tasdiqlayman',
+  'rate_products_title': 'Mahsulotlarni baholang',
+  'rate_all_done': 'Barcha mahsulotlar baholandi. Rahmat!',
+  'rate_prompt': 'Fikringiz boshqa xaridorlarga tanlovda yordam beradi.',
+  'not_rated_yet': 'Hali baholanmagan',
+  'rated_label': 'Baholangan',
+  'rate_action': 'Baholash',
 };
 
 const Map<String, dynamic> ordersRu = {
@@ -64,6 +70,12 @@ const Map<String, dynamic> ordersRu = {
   'fee_confirm_body':
       'Стоимость доставки: {fee} сум\nИтого к оплате: {total} сум\n\nПодтверждаете?',
   'fee_confirm_yes': 'Да, подтверждаю',
+  'rate_products_title': 'Оцените товары',
+  'rate_all_done': 'Все товары оценены. Спасибо!',
+  'rate_prompt': 'Ваш отзыв поможет другим покупателям с выбором.',
+  'not_rated_yet': 'Ещё не оценено',
+  'rated_label': 'Оценено',
+  'rate_action': 'Оценить',
 };
 
 const Map<String, dynamic> ordersEn = {
@@ -96,6 +108,12 @@ const Map<String, dynamic> ordersEn = {
   'fee_confirm_body':
       'Delivery fee: {fee} so\'m\nTotal: {total} so\'m\n\nDo you agree?',
   'fee_confirm_yes': 'Yes, confirm',
+  'rate_products_title': 'Rate the products',
+  'rate_all_done': 'All products have been rated. Thank you!',
+  'rate_prompt': 'Your feedback helps other shoppers choose.',
+  'not_rated_yet': 'Not rated yet',
+  'rated_label': 'Rated',
+  'rate_action': 'Rate',
 };
 
 const Map<String, dynamic> orderStatusUz = {

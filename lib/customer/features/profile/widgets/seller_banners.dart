@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:shimmer/shimmer.dart';
 
+import '../../../../core/i18n/i18n.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 
 /// Shimmer placeholder for the seller banner slot while `/me` is in flight —
@@ -122,7 +123,7 @@ class BecomeSellerBanner extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        "Sotuvchi bo'ling",
+                        tr('profile.become_seller_title'),
                         style: PremiumTokens.body(
                           size: 15.5,
                           weight: FontWeight.w700,
@@ -131,7 +132,7 @@ class BecomeSellerBanner extends StatelessWidget {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        "Woody'da o'z biznesingizni boshlang",
+                        tr('profile.become_seller_subtitle'),
                         style: PremiumTokens.body(
                           size: 12.5,
                           color: Colors.white.withValues(alpha: 0.85),
@@ -204,12 +205,12 @@ class SellerPendingBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Ko'rib chiqilmoqda",
+                  tr('profile.seller_pending_title'),
                   style: PremiumTokens.body(size: 15, weight: FontWeight.w600),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  "Arizangiz 24 soat ichida ko'rib chiqiladi.",
+                  tr('profile.seller_pending_body'),
                   style: PremiumTokens.body(
                     size: 13,
                     color: pt.grey,
@@ -298,7 +299,7 @@ class SellerApprovedBanner extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        "Do'koningiz tasdiqlandi!",
+                        tr('profile.seller_approved_title'),
                         style: PremiumTokens.body(
                           size: 15.5,
                           weight: FontWeight.w700,
@@ -310,7 +311,7 @@ class SellerApprovedBanner extends StatelessWidget {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        "Sotuvchi paneliga o'tish",
+                        tr('profile.seller_open_panel'),
                         style: PremiumTokens.body(
                           size: 12.5,
                           color: Colors.white.withValues(alpha: 0.9),
@@ -446,7 +447,7 @@ class SellerRejectedBanner extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Ariza rad etildi',
+                        tr('profile.seller_rejected_title'),
                         style: PremiumTokens.display(
                           size: 17,
                           letterSpacing: -0.2,
@@ -455,7 +456,7 @@ class SellerRejectedBanner extends StatelessWidget {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        "Ma'lumotlarni to'g'rilab qayta yuborishingiz mumkin",
+                        tr('profile.seller_rejected_subtitle'),
                         style: PremiumTokens.body(
                           size: 12.5,
                           color: pt.grey,
@@ -498,7 +499,7 @@ class SellerRejectedBanner extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'SABAB',
+                    tr('profile.seller_rejected_reason_label'),
                     style: PremiumTokens.body(
                       size: 10,
                       weight: FontWeight.w700,
@@ -526,7 +527,7 @@ class SellerRejectedBanner extends StatelessWidget {
             child: FilledButton.icon(
               onPressed: onEdit,
               icon: const Icon(Iconsax.refresh, size: 17),
-              label: const Text('Qayta topshirish'),
+              label: Text(tr('profile.seller_resubmit')),
               style: FilledButton.styleFrom(
                 backgroundColor: errorColor,
                 foregroundColor: Colors.white,

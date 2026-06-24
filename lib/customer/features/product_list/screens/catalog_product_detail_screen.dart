@@ -649,7 +649,7 @@ class _TitlePriceCard extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Sotuvda mavjud · buyurtma bo\'yicha tayyorlanadi',
+                  tr('product.in_stock_made_to_order'),
                   style: _ts(
                     size: 13,
                     weight: FontWeight.w600,
@@ -858,7 +858,10 @@ class _SellerInfo extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text('Sotuvchi', style: _ts(size: 11.5, color: pt.grey, height: 1.1)),
+        Text(
+          tr('product.seller_label'),
+          style: _ts(size: 11.5, color: pt.grey, height: 1.1),
+        ),
         const SizedBox(height: 3),
         Text(
           name,
@@ -885,7 +888,7 @@ class _SellerInfo extends StatelessWidget {
                     Icon(Iconsax.verify, size: 14, color: pt.success),
                     const SizedBox(width: 4),
                     Text(
-                      'Tasdiqlangan',
+                      tr('product.seller_verified'),
                       style: _ts(
                         size: 12,
                         weight: FontWeight.w600,
@@ -983,7 +986,7 @@ class _ColorsCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const _SectionTitle(text: 'Rang tanlang'),
+              _SectionTitle(text: tr('product.choose_color')),
               const Spacer(),
               if (selected != null)
                 Row(
@@ -1031,7 +1034,7 @@ class _ColorsCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 5),
                 Text(
-                  'Davom etish uchun rang tanlang',
+                  tr('product.choose_color_to_continue'),
                   style: _ts(
                     size: 12,
                     weight: FontWeight.w600,
@@ -1160,7 +1163,7 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const _SectionTitle(text: 'Sharhlar'),
+                _SectionTitle(text: tr('product.reviews_section_title')),
                 const SizedBox(height: 14),
                 _SummaryRow(summary: summary),
                 for (final review in shown) ...[
@@ -1172,7 +1175,7 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
                 if (summary.count > shown.length) ...[
                   const SizedBox(height: 12),
                   Text(
-                    'va yana ${summary.count - shown.length} ta sharh',
+                    tr('product.reviews_more_count', args: [summary.count - shown.length]),
                     style: _ts(
                       size: 12.5,
                       weight: FontWeight.w600,
@@ -1217,7 +1220,7 @@ class _SummaryRow extends StatelessWidget {
             StarRating(rating: summary.average, size: 16),
             const SizedBox(height: 4),
             Text(
-              '${summary.count} ta xaridor baho berdi',
+              tr('product.reviews_rated_by_count', args: [summary.count]),
               style: _ts(size: 12.5, color: pt.grey),
             ),
           ],
@@ -1266,7 +1269,7 @@ class _ReviewRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    name.isEmpty ? 'Xaridor' : name,
+                    name.isEmpty ? tr('product.review_anonymous_buyer') : name,
                     style: _ts(
                       size: 13.5,
                       weight: FontWeight.w600,
@@ -1307,7 +1310,7 @@ class _ReviewRow extends StatelessWidget {
                     Icon(Iconsax.shop, size: 12, color: pt.grey),
                     const SizedBox(width: 5),
                     Text(
-                      'Sotuvchi javobi',
+                      tr('product.seller_reply_label'),
                       style: _ts(
                         size: 11.5,
                         weight: FontWeight.w700,

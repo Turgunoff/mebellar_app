@@ -42,7 +42,7 @@ class _SimilarSectionState extends State<_SimilarSection> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Sizga yoqishi mumkin',
+                  tr('product.you_might_like'),
                   style: _ts(
                     size: 16,
                     weight: FontWeight.w700,
@@ -64,7 +64,7 @@ class _SimilarSectionState extends State<_SimilarSection> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Sizga yoqishi mumkin',
+                tr('product.you_might_like'),
                 style: _ts(
                   size: 16,
                   weight: FontWeight.w700,

@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/auth/app_mode_cubit.dart';
 import '../../../../core/auth/auth_repository.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/i18n/i18n.dart';
 import '../../../../core/logging/talker.dart';
 import '../../../../core/network/api_error.dart';
 import '../../../../shared/models/me.dart';
@@ -57,7 +58,7 @@ class ProfileState extends Equatable {
 
   bool get hasName => name != null && name!.isNotEmpty;
 
-  String get displayName => hasName ? name! : 'Ism kiritilmagan';
+  String get displayName => hasName ? name! : tr('profile.name_not_set');
 
   String? get secondaryLine =>
       (phone != null && phone!.isNotEmpty) ? phone : null;

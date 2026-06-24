@@ -396,7 +396,7 @@ class _HeroScene extends StatelessWidget {
           icon: Icons.weekend_rounded,
           chip: _Chip(
             icon: Icons.auto_awesome_rounded,
-            label: 'premium',
+            label: tr('tutorial.chip_premium'),
             accent: slide.accent,
           ),
         );
@@ -407,7 +407,7 @@ class _HeroScene extends StatelessWidget {
           icon: Icons.shopping_bag_rounded,
           chip: _Chip(
             icon: Icons.bolt_rounded,
-            label: '1-tap',
+            label: tr('tutorial.chip_one_tap'),
             accent: slide.accent,
           ),
         );
@@ -418,7 +418,7 @@ class _HeroScene extends StatelessWidget {
           icon: Icons.local_shipping_rounded,
           chip: _Chip(
             icon: Icons.verified_rounded,
-            label: 'safe',
+            label: tr('tutorial.chip_safe'),
             accent: slide.accent,
           ),
         );

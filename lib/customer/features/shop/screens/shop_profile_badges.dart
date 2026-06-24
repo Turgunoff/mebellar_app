@@ -41,7 +41,7 @@ class _AchievementsCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              _SectionTitle(text: 'Yutuqlar', accent: accent),
+              _SectionTitle(text: tr('shop.achievements_title'), accent: accent),
               const SizedBox(width: 8),
               Icon(Iconsax.medal_star, size: 15, color: _kBadgeGoldDeep),
             ],
@@ -216,7 +216,7 @@ class _AchievementSheet extends StatelessWidget {
                   Icon(Iconsax.verify, size: 15, color: _kBadgeGoldDeep),
                   const SizedBox(width: 6),
                   Text(
-                    'Qo\'lga kiritilgan nishon',
+                    tr('shop.earned_badge'),
                     style: _ts(
                       size: 12,
                       weight: FontWeight.w700,

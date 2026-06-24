@@ -4,6 +4,7 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/i18n/i18n.dart';
 import '../../../../core/logging/talker.dart';
 import '../../../../core/storage/r2_upload_client.dart';
 import '../../../../shared/utils/image_upload.dart';
@@ -82,7 +83,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     } catch (e, st) {
       talker.handle(e, st, '[edit-profile] avatar pick failed');
       messenger.showSnackBar(
-        const SnackBar(content: Text('Rasmni tanlab boʻlmadi')),
+        SnackBar(content: Text(tr('profile.avatar_pick_failed'))),
       );
     }
   }
@@ -132,7 +133,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (!mounted) return;
       setState(() => _saving = false);
       messenger.showSnackBar(
-        const SnackBar(content: Text('Saqlab boʻlmadi. Qayta urinib koʻring')),
+        SnackBar(content: Text(tr('profile.save_failed_retry'))),
       );
     }
   }
@@ -148,7 +149,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
         title: Text(
-          'Profilni tahrirlash',
+          tr('profile.edit_title'),
           style: PremiumTokens.display(size: 20, letterSpacing: -0.3),
         ),
       ),
@@ -170,7 +171,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               child: TextButton.icon(
                 onPressed: _saving ? null : _pickAvatar,
                 icon: const Icon(Iconsax.gallery_edit, size: 16),
-                label: const Text('Rasmni oʻzgartirish'),
+                label: Text(tr('profile.change_photo')),
                 style: TextButton.styleFrom(
                   foregroundColor: PremiumTokens.accent,
                   textStyle: PremiumTokens.body(
@@ -181,7 +182,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            _Label(pt: pt, text: 'Ism va familiya'),
+            _Label(pt: pt, text: tr('profile.label_full_name')),
             const SizedBox(height: 8),
             TextFormField(
               controller: _nameCtrl,
@@ -190,15 +191,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               textCapitalization: TextCapitalization.words,
               style: PremiumTokens.body(size: 14, weight: FontWeight.w500),
               validator: (v) =>
-                  (v == null || v.trim().length < 2) ? 'Ismni kiriting' : null,
+                  (v == null || v.trim().length < 2)
+                  ? tr('profile.validation_name_required')
+                  : null,
               decoration: _fieldDecoration(
                 pt,
-                hint: 'Toʻliq ismingiz',
+                hint: tr('profile.hint_full_name'),
                 prefix: Iconsax.user,
               ),
             ),
             const SizedBox(height: 16),
-            _Label(pt: pt, text: 'Email (ixtiyoriy)'),
+            _Label(pt: pt, text: tr('profile.label_email_optional')),
             const SizedBox(height: 8),
             TextFormField(
               controller: _emailCtrl,
@@ -210,7 +213,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               validator: (v) {
                 final t = (v ?? '').trim();
                 if (t.isEmpty) return null; // optional
-                return _emailRe.hasMatch(t) ? null : 'Email notoʻgʻri';
+                return _emailRe.hasMatch(t)
+                    ? null
+                    : tr('profile.validation_email_invalid');
               },
               onFieldSubmitted: (_) => _submit(),
               decoration: _fieldDecoration(
@@ -220,13 +225,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            _Label(pt: pt, text: 'Telefon raqam'),
+            _Label(pt: pt, text: tr('profile.label_phone')),
             const SizedBox(height: 8),
             _LockedPhoneField(pt: pt, phone: widget.profile.phone ?? ''),
             const SizedBox(height: 6),
             Text(
-              'Telefon raqam — bu sizning login identifikatoringiz, uni '
-              'oʻzgartirib boʻlmaydi.',
+              tr('profile.phone_locked_note'),
               style: PremiumTokens.body(size: 12, color: pt.greyLight),
             ),
             const SizedBox(height: 28),
@@ -256,7 +260,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         ),
                       )
                     : Text(
-                        'Saqlash',
+                        tr('profile.save'),
                         style: PremiumTokens.body(
                           size: 15,
                           weight: FontWeight.w700,

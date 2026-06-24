@@ -6,7 +6,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
-import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -14,6 +13,7 @@ import '../../../../auth/auth_bottom_sheet.dart';
 import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/auth/auth_cubit.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/i18n/i18n.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/models/product.dart';
 import '../../../../shared/models/product_model.dart';
@@ -280,7 +280,7 @@ class _ReadyContentState extends State<_ReadyContent> {
                     Row(
                       children: [
                         Text(
-                          'Mahsulotlar',
+                          tr('shop.products_section_title'),
                           style: _ts(
                             size: 17,
                             weight: FontWeight.w700,
@@ -464,8 +464,12 @@ class _SubtitleLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
     final parts = <String>[
-      if (shop.isVerified) 'Tasdiqlangan sotuvchi',
-      if (shop.createdAt != null) '${shop.createdAt!.year}-yildan beri',
+      if (shop.isVerified) tr('shop.verified'),
+      if (shop.createdAt != null)
+        tr(
+          'shop.since_year',
+          namedArgs: {'year': shop.createdAt!.year.toString()},
+        ),
     ];
     if (parts.isEmpty) return const SizedBox.shrink();
     return Row(
@@ -556,21 +560,21 @@ class _StatsCard extends StatelessWidget {
         children: [
           _Stat(
             value: '${shop.productCount}',
-            label: 'Mahsulot',
+            label: tr('shop.stat_products'),
             icon: Iconsax.box,
             accent: accent,
           ),
           const _StatDivider(),
           _Stat(
             value: shop.hasRating ? shop.rating!.toStringAsFixed(1) : '—',
-            label: 'Reyting',
+            label: tr('shop.stat_rating'),
             icon: Iconsax.star_1,
             accent: shop.hasRating ? const Color(0xFFE8A33D) : null,
           ),
           const _StatDivider(),
           _Stat(
             value: '${shop.reviewCount}',
-            label: 'Sharh',
+            label: tr('shop.stat_reviews'),
             icon: Iconsax.message_text_1,
             accent: accent,
           ),
@@ -673,7 +677,9 @@ class _ContactCard extends StatelessWidget {
       await Clipboard.setData(ClipboardData(text: phone));
       messenger.showSnackBar(
         SnackBar(
-          content: Text('Raqam nusxalandi: $phone'),
+          content: Text(
+            tr('shop.phone_copied_2', namedArgs: {'phone': phone}),
+          ),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -692,8 +698,8 @@ class _ContactCard extends StatelessWidget {
     );
     if (!ok) {
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Telegramni ochib bo\'lmadi'),
+        SnackBar(
+          content: Text(tr('shop.telegram_open_failed')),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -713,7 +719,7 @@ class _ContactCard extends StatelessWidget {
             Expanded(
               child: _ContactButton(
                 icon: Iconsax.call,
-                label: 'Qo\'ng\'iroq',
+                label: tr('shop.contact_call'),
                 background: brand,
                 foreground: _onBrand(brand),
                 onTap: () => _call(context),
@@ -724,7 +730,7 @@ class _ContactCard extends StatelessWidget {
             Expanded(
               child: _ContactButton(
                 icon: Iconsax.send_2,
-                label: 'Telegram',
+                label: tr('shop.telegram'),
                 background: pt.telegram,
                 foreground: pt.onTelegram,
                 onTap: () => _telegram(context),
@@ -801,7 +807,7 @@ class _AboutCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionTitle(text: 'Do\'kon haqida', accent: accent),
+          _SectionTitle(text: tr('shop.about_shop'), accent: accent),
           const SizedBox(height: 12),
           Text(text, style: _ts(size: 13.5, color: pt.dark, height: 1.5)),
         ],
@@ -838,8 +844,8 @@ class _LocationCard extends StatelessWidget {
     final ok = await launchUrl(web, mode: LaunchMode.externalApplication);
     if (!ok) {
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Xaritani ochib bo\'lmadi'),
+        SnackBar(
+          content: Text(tr('shop.map_open_failed')),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -853,7 +859,7 @@ class _LocationCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionTitle(text: 'Manzil', accent: accent),
+          _SectionTitle(text: tr('shop.address_section_title'), accent: accent),
           const SizedBox(height: 12),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -862,7 +868,7 @@ class _LocationCard extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  shop.hasAddress ? shop.address! : 'Xaritada belgilangan',
+                  shop.hasAddress ? shop.address! : tr('shop.marked_on_map'),
                   style: _ts(size: 13.5, color: pt.dark, height: 1.4),
                 ),
               ),
@@ -884,7 +890,7 @@ class _LocationCard extends StatelessWidget {
                       Icon(Iconsax.map_1, size: 17, color: pt.dark),
                       const SizedBox(width: 8),
                       Text(
-                        'Xaritada ko\'rish',
+                        tr('shop.view_on_map'),
                         style: _ts(
                           size: 13.5,
                           weight: FontWeight.w700,
@@ -907,14 +913,14 @@ class _LocationCard extends StatelessWidget {
 // Working hours card
 // ═══════════════════════════════════════════════════════════════════════════
 
-const Map<DayOfWeek, String> _dayNamesUz = {
-  DayOfWeek.monday: 'Dushanba',
-  DayOfWeek.tuesday: 'Seshanba',
-  DayOfWeek.wednesday: 'Chorshanba',
-  DayOfWeek.thursday: 'Payshanba',
-  DayOfWeek.friday: 'Juma',
-  DayOfWeek.saturday: 'Shanba',
-  DayOfWeek.sunday: 'Yakshanba',
+Map<DayOfWeek, String> get _dayNamesUz => {
+  DayOfWeek.monday: tr('shop.day_monday'),
+  DayOfWeek.tuesday: tr('shop.day_tuesday'),
+  DayOfWeek.wednesday: tr('shop.day_wednesday'),
+  DayOfWeek.thursday: tr('shop.day_thursday'),
+  DayOfWeek.friday: tr('shop.day_friday'),
+  DayOfWeek.saturday: tr('shop.day_saturday'),
+  DayOfWeek.sunday: tr('shop.day_sunday'),
 };
 
 class _HoursCard extends StatelessWidget {
@@ -936,7 +942,7 @@ class _HoursCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              _SectionTitle(text: 'Ish vaqti', accent: accent),
+              _SectionTitle(text: tr('shop.working_hours_title'), accent: accent),
               const Spacer(),
               _OpenPill(openNow: openNow),
             ],
@@ -987,7 +993,7 @@ class _OpenPill extends StatelessWidget {
           ),
           const SizedBox(width: 6),
           Text(
-            openNow ? 'Hozir ochiq' : 'Hozir yopiq',
+            openNow ? tr('shop.open_now') : tr('shop.closed_now'),
             style: _ts(size: 11.5, weight: FontWeight.w700, color: color),
           ),
         ],
@@ -1014,9 +1020,9 @@ class _HoursRow extends StatelessWidget {
     final pt = PremiumTokens.of(context);
     final String value;
     if (hours.closed || hours.open == null || hours.close == null) {
-      value = 'Dam olish kuni';
+      value = tr('shop.day_off');
     } else if (hours.isOpen24h) {
-      value = '24 soat';
+      value = tr('shop.open_24h');
     } else {
       value = '${hours.open} – ${hours.close}';
     }

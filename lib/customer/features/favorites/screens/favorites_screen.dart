@@ -190,8 +190,16 @@ class _FavoriteProductTile extends StatelessWidget {
       imageUrl: product.heroImage,
       name: product.name.get(lang),
       subtitle: shopName,
-      price: '${_formatPrice(product.price)} so\'m',
-      oldPrice: onSale ? '${_formatPrice(product.oldPrice!)} so\'m' : null,
+      price: tr(
+        'common.currency_som',
+        namedArgs: {'price': _formatPrice(product.price)},
+      ),
+      oldPrice: onSale
+          ? tr(
+              'common.currency_som',
+              namedArgs: {'price': _formatPrice(product.oldPrice!)},
+            )
+          : null,
       discountPercent: percent,
       isFavorite: true,
       onTap: () => context.push('/product-detail/${product.id}'),

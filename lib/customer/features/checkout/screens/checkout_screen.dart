@@ -67,7 +67,7 @@ class _CheckoutView extends StatelessWidget {
         if (state.status == CheckoutStatus.failure) {
           ScaffoldMessenger.of(ctx).showSnackBar(
             SnackBar(
-              content: Text(state.error ?? 'Xatolik yuz berdi'),
+              content: Text(state.error ?? tr('common.generic_error')),
               behavior: SnackBarBehavior.floating,
               backgroundColor: Theme.of(ctx).colorScheme.error,
             ),
@@ -87,7 +87,7 @@ class _CheckoutView extends StatelessWidget {
               onPressed: () => context.pop(),
             ),
             title: Text(
-              'Rasmiylashtirish',
+              tr('checkout.appbar_title'),
               style: PremiumTokens.display(size: 20, letterSpacing: -0.4),
             ),
             centerTitle: false,
@@ -202,16 +202,16 @@ class _CheckoutView extends StatelessWidget {
               const SizedBox(height: 20),
               Text(
                 multiOrder
-                    ? '$orderCount ta buyurtma qabul qilindi!'
-                    : 'Buyurtmangiz qabul qilindi!',
+                    ? tr('checkout.success_multi_title', args: [orderCount])
+                    : tr('checkout.success_single_title'),
                 textAlign: TextAlign.center,
                 style: PremiumTokens.display(size: 20, letterSpacing: -0.3),
               ),
               const SizedBox(height: 10),
               Text(
                 multiOrder
-                    ? 'Har bir do\'kondan alohida buyurtma joylashtirildi. Sotuvchilar tez orada siz bilan bog\'lanadi.'
-                    : 'Buyurtmangiz muvaffaqiyatli joylashtirildi. Tez orada siz bilan bog\'lanamiz.',
+                    ? tr('checkout.success_multi_body')
+                    : tr('checkout.success_single_body'),
                 textAlign: TextAlign.center,
                 style: PremiumTokens.body(
                   size: 14,
@@ -235,7 +235,7 @@ class _CheckoutView extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    'Buyurtmalarimni ko\'rish',
+                    tr('checkout.view_my_orders'),
                     style: PremiumTokens.body(
                       size: 15,
                       weight: FontWeight.w700,
@@ -251,7 +251,7 @@ class _CheckoutView extends StatelessWidget {
                   if (context.mounted) context.go('/');
                 },
                 child: Text(
-                  'Asosiy sahifaga qaytish',
+                  tr('checkout.back_to_home'),
                   style: PremiumTokens.body(
                     size: 14,
                     weight: FontWeight.w600,
@@ -308,7 +308,7 @@ class _DeliveryCard extends StatelessWidget {
                   Expanded(
                     child: _SectionHeader(
                       icon: Iconsax.location,
-                      label: 'Yetkazib berish manzili',
+                      label: tr('checkout.delivery_address'),
                       pt: pt,
                     ),
                   ),
@@ -356,7 +356,7 @@ class _DeliveryCard extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Manzilni kiriting...',
+                                tr('checkout.address_enter_prompt'),
                                 style: PremiumTokens.body(
                                   size: 14,
                                   weight: FontWeight.w500,
@@ -365,7 +365,7 @@ class _DeliveryCard extends StatelessWidget {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                'Yetkazib berish manzilini tanlang',
+                                tr('checkout.address_select_hint'),
                                 style: PremiumTokens.body(
                                   size: 12,
                                   color: pt.greyLight,
@@ -397,7 +397,7 @@ class _DeliveryCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        'Buyurtma uchun manzil talab qilinadi',
+                        tr('checkout.address_required_inline'),
                         style: PremiumTokens.body(
                           size: 12,
                           color: Theme.of(context).colorScheme.error,
@@ -681,8 +681,8 @@ class _OrderGroupsCard extends StatelessWidget {
           _SectionHeader(
             icon: Iconsax.receipt,
             label: multiShop
-                ? '${groups.length} ta buyurtma'
-                : 'Buyurtma tarkibi',
+                ? tr('checkout.order_count_header', args: [groups.length])
+                : tr('checkout.order_contents_header'),
             pt: pt,
           ),
           if (multiShop) ...[
@@ -703,7 +703,7 @@ class _OrderGroupsCard extends StatelessWidget {
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      'Har bir do\'kon uchun yetkazib berish va o\'rnatish alohida hisoblanadi',
+                      tr('checkout.multi_shop_fees_note'),
                       style: PremiumTokens.body(
                         size: 12,
                         color: PremiumTokens.accent,
@@ -741,7 +741,7 @@ class _OrderGroupsCard extends StatelessWidget {
                     child: Text(
                       groups[i].shopName.isNotEmpty
                           ? groups[i].shopName
-                          : 'Buyurtma ${i + 1}',
+                          : tr('checkout.order_index_label', args: [i + 1]),
                       style: PremiumTokens.body(
                         size: 13,
                         weight: FontWeight.w700,
@@ -802,7 +802,7 @@ class _GroupFees extends StatelessWidget {
         Divider(color: pt.divider, height: 1),
         const SizedBox(height: 12),
         _SummaryRow(
-          label: 'Mahsulotlar',
+          label: tr('checkout.items_total'),
           value: '${_fmt(group.subtotal)} UZS',
           pt: pt,
         ),
@@ -824,7 +824,7 @@ class _GroupFees extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Jami',
+                  tr('checkout.group_total'),
                   style: PremiumTokens.body(
                     size: 14,
                     weight: FontWeight.w700,
@@ -867,7 +867,7 @@ class _DeliveryRow extends StatelessWidget {
       children: [
         Expanded(
           child: Text(
-            'Yetkazib berish',
+            tr('checkout.delivery_fee'),
             style: PremiumTokens.body(size: 14, color: pt.grey),
           ),
         ),
@@ -882,7 +882,7 @@ class _DeliveryRow extends StatelessWidget {
           )
         else if (deliveryPriced)
           Text(
-            'Tekin',
+            tr('checkout.delivery_free'),
             style: PremiumTokens.body(
               size: 14,
               weight: FontWeight.w700,
@@ -891,7 +891,7 @@ class _DeliveryRow extends StatelessWidget {
           )
         else
           Text(
-            'Sotuvchi belgilaydi',
+            tr('checkout.delivery_seller_sets'),
             style: PremiumTokens.body(
               size: 13,
               weight: FontWeight.w500,
@@ -917,10 +917,14 @@ class _OrderSummaryCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionHeader(icon: Iconsax.receipt, label: 'Buyurtma jami', pt: pt),
+          _SectionHeader(
+            icon: Iconsax.receipt,
+            label: tr('checkout.order_summary_header'),
+            pt: pt,
+          ),
           const SizedBox(height: 16),
           _SummaryRow(
-            label: 'Mahsulotlar',
+            label: tr('checkout.items_total'),
             value: '${_fmt(state.subtotal)} UZS',
             pt: pt,
           ),
@@ -932,7 +936,7 @@ class _OrderSummaryCard extends StatelessWidget {
             child: Divider(color: pt.divider, height: 1),
           ),
           _SummaryRow(
-            label: 'Jami',
+            label: tr('checkout.group_total'),
             value: '${_fmt(state.grandTotal)} UZS',
             isBold: true,
             pt: pt,
@@ -967,7 +971,7 @@ class _InstallationTile extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                "Ustamiz o'rnatib berishini xohlaysizmi?",
+                tr('checkout.want_installation'),
                 style: PremiumTokens.body(size: 14, weight: FontWeight.w600),
               ),
               const SizedBox(height: 2),
@@ -1191,7 +1195,7 @@ class _ConfirmBar extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Buyurtmani tasdiqlash',
+                      tr('checkout.confirm_order'),
                       style: PremiumTokens.body(
                         size: 15,
                         weight: FontWeight.w700,

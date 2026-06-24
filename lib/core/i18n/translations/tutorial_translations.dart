@@ -11,6 +11,9 @@ const Map<String, dynamic> tutorialUz = {
   'slide3_body':
       'Buyurtmangizni uyingizgacha xavfsiz, tez va sifatli yetkazib beramiz.',
   'start': 'Boshlash',
+  'chip_premium': 'premium',
+  'chip_one_tap': '1-tap',
+  'chip_safe': 'xavfsiz',
 };
 
 const Map<String, dynamic> tutorialRu = {
@@ -24,6 +27,9 @@ const Map<String, dynamic> tutorialRu = {
   'slide3_body':
       'Доставим ваш заказ до дома быстро, бережно и с гарантией качества.',
   'start': 'Начать',
+  'chip_premium': 'премиум',
+  'chip_one_tap': '1 касание',
+  'chip_safe': 'безопасно',
 };
 
 const Map<String, dynamic> tutorialEn = {
@@ -37,4 +43,7 @@ const Map<String, dynamic> tutorialEn = {
   'slide3_body':
       'We deliver your order to your door — safe, fast, and with care.',
   'start': 'Get started',
+  'chip_premium': 'premium',
+  'chip_one_tap': '1-tap',
+  'chip_safe': 'safe',
 };

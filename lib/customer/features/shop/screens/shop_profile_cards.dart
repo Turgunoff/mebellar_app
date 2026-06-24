@@ -16,8 +16,13 @@ class _ShopProductCard extends StatelessWidget {
       builder: (context, isFav) => PremiumProductCard(
         imageUrl: product.thumbnail ?? '',
         name: product.name,
-        price: '${_money(product.effectivePrice)} UZS',
-        oldPrice: product.hasDiscount ? '${_money(product.price)} UZS' : null,
+        price: tr(
+          'shop.price_uzs',
+          namedArgs: {'price': _money(product.effectivePrice)},
+        ),
+        oldPrice: product.hasDiscount
+            ? tr('shop.price_uzs', namedArgs: {'price': _money(product.price)})
+            : null,
         discountPercent: product.discountPercent,
         isFavorite: isFav,
         hasAr: product.hasAr,
@@ -44,7 +49,7 @@ class _EmptyProducts extends StatelessWidget {
               Icon(Iconsax.box, size: 34, color: pt.greyLight),
               const SizedBox(height: 10),
               Text(
-                'Hozircha mahsulot yo\'q',
+                tr('shop.no_products_yet'),
                 style: _ts(size: 13.5, weight: FontWeight.w600, color: pt.grey),
               ),
             ],
@@ -135,7 +140,7 @@ class _ErrorState extends StatelessWidget {
             Icon(Iconsax.shop, size: 46, color: pt.greyLight),
             const SizedBox(height: 16),
             Text(
-              'Do\'kon ma\'lumotlarini yuklab bo\'lmadi',
+              tr('shop.load_failed'),
               textAlign: TextAlign.center,
               style: _ts(size: 15, weight: FontWeight.w700, color: pt.dark),
             ),
@@ -149,7 +154,7 @@ class _ErrorState extends StatelessWidget {
                 ),
               ),
               child: Text(
-                'Qayta urinish',
+                tr('shop.retry'),
                 style: _ts(
                   size: 14,
                   weight: FontWeight.w700,

@@ -112,7 +112,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (profile.isSellerRejected)
       MenuEntry(
         icon: Iconsax.refresh,
-        label: 'Ariza holati',
+        label: tr('profile.menu_application_status'),
         onTap: _openSellerOnboarding,
       ),
     MenuEntry(
@@ -123,18 +123,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     ),
     MenuEntry(
       icon: Iconsax.setting_2_copy,
-      label: 'Sozlamalar',
+      label: tr('profile.menu_settings'),
       onTap: () => _push(context, const SettingsScreen()),
     ),
     MenuEntry(
       icon: Iconsax.message_question_copy,
-      label: "Yordam va Qo'llab-quvvatlash",
+      label: tr('profile.help_title'),
       badgeCount: unreadSupport,
       onTap: () => context.push('/support'),
     ),
     MenuEntry(
       icon: Iconsax.info_circle_copy,
-      label: 'Ilova haqida',
+      label: tr('profile.menu_about'),
       onTap: () => _push(context, const AboutScreen()),
     ),
   ];
@@ -161,7 +161,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         scrolledUnderElevation: 0,
         centerTitle: false,
         title: Text(
-          'Profil',
+          tr('profile.title'),
           style: PremiumTokens.display(size: 28, letterSpacing: -0.5),
         ),
       ),

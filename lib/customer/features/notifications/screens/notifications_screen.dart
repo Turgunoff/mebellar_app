@@ -547,7 +547,7 @@ class _NotificationTileState extends State<_NotificationTile> {
                       Row(
                         children: [
                           Text(
-                            "Ko'rish",
+                            tr('notifications.view_cta'),
                             style: PremiumTokens.body(
                               size: 12,
                               weight: FontWeight.w700,

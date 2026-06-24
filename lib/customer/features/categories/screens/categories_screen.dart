@@ -106,7 +106,7 @@ class _CategoriesAppBar extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Kashf eting',
+                  tr('catalog.discover_eyebrow'),
                   style: PremiumTokens.body(
                     size: 12,
                     weight: FontWeight.w600,
@@ -116,7 +116,7 @@ class _CategoriesAppBar extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Kategoriyalar',
+                  tr('catalog.title_2'),
                   style: PremiumTokens.display(size: 32, letterSpacing: -0.6),
                 ),
               ],
@@ -240,7 +240,10 @@ class _EditorialCategoryCardState extends State<_EditorialCategoryCard> {
                       top: 14,
                       right: 14,
                       child: _GlassItemPill(
-                        label: '${cat.subcategoryCount} ta bo\'lim',
+                        label: tr(
+                          'catalog.subcategory_count',
+                          namedArgs: {'count': cat.subcategoryCount.toString()},
+                        ),
                       ),
                     ),
 

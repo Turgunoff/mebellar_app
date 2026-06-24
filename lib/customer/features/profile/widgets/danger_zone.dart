@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../core/i18n/i18n.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 
 /// Sign-out button + destructive "delete account" link at the bottom of the
@@ -27,7 +28,7 @@ class DangerZone extends StatelessWidget {
             onPressed: onSignOut,
             icon: Icon(Iconsax.logout_copy, size: 18, color: pt.dark),
             label: Text(
-              'Chiqish',
+              tr('profile.sign_out_action'),
               style: PremiumTokens.body(
                 size: 14,
                 weight: FontWeight.w600,
@@ -51,7 +52,7 @@ class DangerZone extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
           child: Text(
-            "Akkauntni o'chirish",
+            tr('profile.delete_account_title'),
             style: PremiumTokens.body(
               size: 13,
               weight: FontWeight.w500,

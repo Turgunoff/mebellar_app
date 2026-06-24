@@ -6,6 +6,7 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import '../../../../core/auth/auth_repository.dart';
 import '../../../../core/auth/sign_out.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/i18n/i18n.dart';
 import '../../../../core/logging/talker.dart';
 import '../../../../core/network/api_error.dart';
 import '../../../../core/network/woody_api_client.dart';
@@ -47,13 +48,13 @@ Future<void> showSignOutDialog(BuildContext context) async {
             ),
             const SizedBox(height: 20),
             Text(
-              'Hisobdan chiqish',
+              tr('profile.sign_out_title'),
               style: PremiumTokens.display(size: 20, letterSpacing: -0.2),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 10),
             Text(
-              'Hisobingizdan chiqmoqchimisiz?',
+              tr('profile.sign_out_confirm'),
               style: PremiumTokens.body(size: 14, color: pt.grey, height: 1.4),
               textAlign: TextAlign.center,
             ),
@@ -64,7 +65,7 @@ Future<void> showSignOutDialog(BuildContext context) async {
                   child: OutlinedButton(
                     onPressed: () => Navigator.of(ctx).pop(false),
                     style: _cancelButtonStyle(pt),
-                    child: _buttonLabel('Bekor qilish', color: pt.dark),
+                    child: _buttonLabel(tr('profile.cancel'), color: pt.dark),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -72,7 +73,10 @@ Future<void> showSignOutDialog(BuildContext context) async {
                   child: FilledButton(
                     onPressed: () => Navigator.of(ctx).pop(true),
                     style: _dangerButtonStyle(Theme.of(ctx).colorScheme.error),
-                    child: _buttonLabel('Chiqish', color: Colors.white),
+                    child: _buttonLabel(
+                      tr('profile.sign_out_action'),
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ],
@@ -147,15 +151,12 @@ Future<void> confirmAccountDeletion(BuildContext context) async {
               ),
               const SizedBox(height: 18),
               Text(
-                "Akkauntni o'chirish",
+                tr('profile.delete_account_title'),
                 style: PremiumTokens.display(size: 20, letterSpacing: -0.2),
               ),
               const SizedBox(height: 10),
               Text(
-                "Haqiqatan ham hisobingizni o'chirmoqchimisiz? Barcha "
-                "ma'lumotlaringiz, buyurtmalar tarixi va agar mavjud "
-                "bo'lsa, do'koningiz hamda mahsulotlaringiz butunlay "
-                "o'chiriladi. Bu amalni ortga qaytarib bo'lmaydi.",
+                tr('profile.delete_account_body'),
                 style: PremiumTokens.body(
                   size: 13,
                   color: pt.grey,
@@ -164,7 +165,7 @@ Future<void> confirmAccountDeletion(BuildContext context) async {
               ),
               const SizedBox(height: 20),
               Text(
-                "Tasdiqlash uchun DELETE so'zini kiriting:",
+                tr('profile.delete_account_type_confirm'),
                 style: PremiumTokens.body(size: 13, color: pt.dark),
               ),
               const SizedBox(height: 10),
@@ -210,7 +211,7 @@ Future<void> confirmAccountDeletion(BuildContext context) async {
                     child: OutlinedButton(
                       onPressed: isLoading ? null : rootNav.pop,
                       style: _cancelButtonStyle(pt),
-                      child: _buttonLabel('Bekor qilish', color: pt.dark),
+                      child: _buttonLabel(tr('profile.cancel'), color: pt.dark),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -265,7 +266,10 @@ Future<void> confirmAccountDeletion(BuildContext context) async {
                                   messenger.showSnackBar(
                                     SnackBar(
                                       content: Text(
-                                        "Xato: $e",
+                                        tr(
+                                          'profile.delete_account_error',
+                                          namedArgs: {'error': '$e'},
+                                        ),
                                         style: PremiumTokens.body(
                                           color: Colors.white,
                                         ),
@@ -291,7 +295,10 @@ Future<void> confirmAccountDeletion(BuildContext context) async {
                                   ),
                                 ),
                               )
-                            : _buttonLabel('Tasdiqlash', color: Colors.white),
+                            : _buttonLabel(
+                                tr('profile.confirm'),
+                                color: Colors.white,
+                              ),
                       ),
                     ),
                   ),
@@ -310,11 +317,9 @@ Future<void> confirmAccountDeletion(BuildContext context) async {
 /// snackbar). Hardcoded Uzbek to match the rest of this account flow.
 String? _deletionBlockedMessage(String code) => switch (code) {
   'has_active_orders' =>
-    "Hisobni o'chirish uchun avval barcha faol buyurtmalarni yakunlang "
-        "yoki bekor qiling.",
-  'has_debt' => "Hisobni o'chirish uchun avval qarzdorlikni to'lang.",
-  'has_unwithdrawn_funds' =>
-    "Hisobni o'chirish uchun avval hamyoningizdagi mablag'ni yechib oling.",
+    tr('profile.delete_blocked_active_orders'),
+  'has_debt' => tr('profile.delete_blocked_has_debt'),
+  'has_unwithdrawn_funds' => tr('profile.delete_blocked_unwithdrawn_funds'),
   _ => null,
 };
 
@@ -371,7 +376,7 @@ void _showDeletionBlockedSheet(
           ),
           const SizedBox(height: 20),
           Text(
-            "Amalni bajarib bo'lmaydi",
+            tr('profile.action_blocked_title'),
             style: PremiumTokens.display(size: 22, letterSpacing: -0.3),
             textAlign: TextAlign.center,
           ),
@@ -394,7 +399,7 @@ void _showDeletionBlockedSheet(
                 ),
               ),
               child: Text(
-                'Tushunarli',
+                tr('profile.understood'),
                 style: PremiumTokens.body(
                   size: 15,
                   weight: FontWeight.w700,

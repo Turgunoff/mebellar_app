@@ -231,7 +231,12 @@ class _Body extends StatelessWidget {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            '${priceFormat.format(item.lineTotal)} so\'m',
+                            tr(
+                              'common.sum_suffix',
+                              namedArgs: {
+                                'value': priceFormat.format(item.lineTotal),
+                              },
+                            ),
                             style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(fontWeight: FontWeight.w700),
                           ),
@@ -626,7 +631,7 @@ class _DeliveredReviewsCardState extends State<_DeliveredReviewsCard> {
               ),
               const SizedBox(width: 6),
               Text(
-                'Mahsulotlarni baholang',
+                tr('orders.rate_products_title'),
                 style: theme.textTheme.titleMedium,
               ),
             ],
@@ -634,8 +639,8 @@ class _DeliveredReviewsCardState extends State<_DeliveredReviewsCard> {
           const SizedBox(height: 4),
           Text(
             allRated
-                ? 'Barcha mahsulotlar baholandi. Rahmat!'
-                : 'Fikringiz boshqa xaridorlarga tanlovda yordam beradi.',
+                ? tr('orders.rate_all_done')
+                : tr('orders.rate_prompt'),
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.outline,
             ),
@@ -700,7 +705,7 @@ class _DeliveredReviewsCardState extends State<_DeliveredReviewsCard> {
                         StarRating(rating: rating.toDouble(), size: 15)
                       else
                         Text(
-                          'Hali baholanmagan',
+                          tr('orders.not_rated_yet'),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.outline,
                           ),
@@ -721,7 +726,7 @@ class _DeliveredReviewsCardState extends State<_DeliveredReviewsCard> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        'Baholangan',
+                        tr('orders.rated_label'),
                         style: theme.textTheme.labelMedium?.copyWith(
                           color: theme.colorScheme.primary,
                           fontWeight: FontWeight.w700,
@@ -740,7 +745,7 @@ class _DeliveredReviewsCardState extends State<_DeliveredReviewsCard> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      'Baholash',
+                      tr('orders.rate_action'),
                       style: theme.textTheme.labelMedium?.copyWith(
                         color: theme.colorScheme.onPrimary,
                         fontWeight: FontWeight.w700,

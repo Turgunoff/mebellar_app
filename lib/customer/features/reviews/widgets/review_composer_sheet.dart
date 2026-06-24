@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:in_app_review/in_app_review.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/i18n/i18n.dart';
 import '../../../../shared/models/review.dart';
 import '../../../../shared/repositories/customer_reviews_repository.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
@@ -67,13 +68,13 @@ class _ReviewComposerSheetState extends State<ReviewComposerSheet> {
       TextEditingController(text: widget.existing?.comment ?? '');
   bool _busy = false;
 
-  static const _labels = {
-    0: 'Yulduzlarga bosib baho bering',
-    1: 'Juda yomon',
-    2: 'Yomon',
-    3: "O'rtacha",
-    4: 'Yaxshi',
-    5: 'Ajoyib!',
+  final _labels = {
+    0: tr('product.rating_hint'),
+    1: tr('product.rating_label_1'),
+    2: tr('product.rating_label_2'),
+    3: tr('product.rating_label_3'),
+    4: tr('product.rating_label_4'),
+    5: tr('product.rating_label_5'),
   };
 
   @override
@@ -233,7 +234,7 @@ class _ReviewComposerSheetState extends State<ReviewComposerSheet> {
             textCapitalization: TextCapitalization.sentences,
             style: PremiumTokens.body(size: 14, height: 1.45),
             decoration: InputDecoration(
-              hintText: 'Fikringizni yozing (ixtiyoriy)',
+              hintText: tr('product.comment_hint'),
               hintStyle: PremiumTokens.body(size: 14, color: pt.greyLight),
               counterText: '',
               // Clean, modern look: a soft grey fill, no resting border — only
@@ -278,8 +279,8 @@ class _ReviewComposerSheetState extends State<ReviewComposerSheet> {
                       color: Colors.white, radius: 10)
                   : Text(
                       widget.existing != null
-                          ? "Sharhni yangilash"
-                          : 'Yuborish',
+                          ? tr('product.update_button')
+                          : tr('product.submit_button'),
                       style: PremiumTokens.body(
                         size: 15,
                         weight: FontWeight.w700,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../core/i18n/i18n.dart';
 import '../../../../shared/widgets/empty_state.dart';
 
 /// Stand-in target for `promo` / `news` / `system_alert` notification taps
@@ -46,10 +47,12 @@ class BroadcastPlaceholderScreen extends StatelessWidget {
         icon: _icon(kind),
         title: _title(kind),
         message: hasId
-            ? 'Placeholder — id: $referenceId\n'
-                'The dedicated screen lands in a follow-up Sprint.'
-            : 'Placeholder — the dedicated screen lands in a follow-up Sprint.',
-        actionLabel: 'Bosh sahifaga',
+            ? tr(
+                'notifications.placeholder_body_with_id',
+                namedArgs: {'id': referenceId!},
+              )
+            : tr('notifications.placeholder_body'),
+        actionLabel: tr('notifications.go_home'),
         action: () => context.go('/'),
       ),
     );
@@ -65,9 +68,9 @@ class BroadcastPlaceholderScreen extends StatelessWidget {
 
   static String _title(BroadcastKind kind) {
     return switch (kind) {
-      BroadcastKind.promo => 'Aksiya',
-      BroadcastKind.news => 'Yangiliklar',
-      BroadcastKind.systemAlert => 'Tizim ogohlantirishi',
+      BroadcastKind.promo => tr('notifications.kind_promo_title'),
+      BroadcastKind.news => tr('notifications.kind_news_title'),
+      BroadcastKind.systemAlert => tr('notifications.kind_system_alert_title'),
     };
   }
 }

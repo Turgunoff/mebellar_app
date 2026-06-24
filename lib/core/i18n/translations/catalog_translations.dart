@@ -18,6 +18,9 @@ const Map<String, dynamic> catalogUz = {
   'show_all_in_category': 'Hammasini ko\'rsatish',
   'empty': 'Mahsulot topilmadi',
   'empty_hint': 'Filtr shartlarini o\'zgartirib ko\'ring',
+  'discover_eyebrow': 'Kashf eting',
+  'title_2': 'Kategoriyalar',
+  'subcategory_count': '{count} ta bo\'lim',
 };
 
 const Map<String, dynamic> catalogRu = {
@@ -38,6 +41,9 @@ const Map<String, dynamic> catalogRu = {
   'show_all_in_category': 'Показать все',
   'empty': 'Товары не найдены',
   'empty_hint': 'Попробуйте изменить условия фильтра',
+  'discover_eyebrow': 'Откройте для себя',
+  'title_2': 'Категории',
+  'subcategory_count': '{count} разделов',
 };
 
 const Map<String, dynamic> catalogEn = {
@@ -58,6 +64,9 @@ const Map<String, dynamic> catalogEn = {
   'show_all_in_category': 'Show all',
   'empty': 'No products found',
   'empty_hint': 'Try changing the filter',
+  'discover_eyebrow': 'Discover',
+  'title_2': 'Categories',
+  'subcategory_count': '{count} sections',
 };
 
 const Map<String, dynamic> searchUz = {

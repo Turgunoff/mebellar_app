@@ -6,6 +6,7 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/auth/auth_cubit.dart';
+import '../../../../core/i18n/i18n.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 
 // Real, shipped support channels — kept in sync with profile_screen's /support
@@ -36,7 +37,7 @@ class HelpScreen extends StatelessWidget {
         icon: Icon(Iconsax.arrow_left_2_copy, size: 18, color: pt.dark),
       ),
       title: Text(
-        "Yordam va Qo'llab-quvvatlash",
+        tr('profile.help_title'),
         style: PremiumTokens.body(size: 16, weight: FontWeight.w600),
       ),
       centerTitle: true,
@@ -58,7 +59,7 @@ class HelpScreen extends StatelessWidget {
         physics: const BouncingScrollPhysics(),
         children: [
           // ---- Quick contact row (top) -------------------------------------
-          const _SectionLabel('Murojaat qiling'),
+          _SectionLabel(tr('profile.help_contact_section')),
           const SizedBox(height: 14),
           BlocBuilder<AuthCubit, AppAuthState>(
             builder: (context, state) =>
@@ -66,73 +67,57 @@ class HelpScreen extends StatelessWidget {
           ),
           const SizedBox(height: 28),
           // ---- Categorised FAQ ---------------------------------------------
-          const _SectionLabel("Tez-tez so'raladigan savollar"),
+          _SectionLabel(tr('profile.help_faq_section')),
           const SizedBox(height: 12),
-          const _FaqSection(
-            title: 'Umumiy savollar',
+          _FaqSection(
+            title: tr('profile.help_faq_general_title'),
             icon: Iconsax.info_circle,
             items: [
               _FaqItem(
-                question: 'Yetkazib berish qancha vaqt oladi?',
-                answer:
-                    "Toshkent bo'ylab 1–2 ish kuni, viloyatlarga 3–5 ish kuni. "
-                    'Aniq muddat buyurtma sahifasida ko\'rsatiladi.',
+                question: tr('profile.help_faq_delivery_time_q'),
+                answer: tr('profile.help_faq_delivery_time_a'),
               ),
               _FaqItem(
-                question: 'Yetkazib berish narxi qancha?',
-                answer:
-                    "Toshkent ichida 25 000 so'mdan boshlanadi. 500 000 "
-                    "so'mdan yuqori buyurtmalarga bepul.",
+                question: tr('profile.help_faq_delivery_price_q'),
+                answer: tr('profile.help_faq_delivery_price_a'),
               ),
               _FaqItem(
-                question: "Qanday to'lov usullari mavjud?",
-                answer:
-                    "Naqd, Click, Payme, Uzcard va Humo. Yetkazib berishda "
-                    "to'lash ham mumkin.",
+                question: tr('profile.help_faq_payment_methods_q'),
+                answer: tr('profile.help_faq_payment_methods_a'),
               ),
             ],
           ),
           const SizedBox(height: 14),
-          const _FaqSection(
-            title: 'Xaridorlar uchun',
+          _FaqSection(
+            title: tr('profile.help_faq_buyers_title'),
             icon: Iconsax.bag_2,
             items: [
               _FaqItem(
-                question: 'Buyurtmamni qanday bekor qilaman?',
-                answer:
-                    "'Buyurtmalarim'dan kerakli buyurtmani tanlab, 'Bekor "
-                    "qilish'ni bosing. Jo'natilgunga qadar bekor qilish mumkin.",
+                question: tr('profile.help_faq_cancel_q'),
+                answer: tr('profile.help_faq_cancel_a'),
               ),
               _FaqItem(
-                question: 'Buyurtma holatini qanday kuzataman?',
-                answer:
-                    "'Buyurtmalarim' bo'limida joriy holat ko'rinadi: "
-                    "Kutilmoqda, Tayyorlanmoqda, Yo'lda, Yetkazilgan.",
+                question: tr('profile.help_faq_track_q'),
+                answer: tr('profile.help_faq_track_a'),
               ),
               _FaqItem(
-                question: "To'lovni qaytarish qanday ishlaydi?",
-                answer:
-                    "Bekor qilinganda to'lov 3–5 ish kunida kartaga qaytadi. "
-                    "Naqd to'lovlar darhol qaytariladi.",
+                question: tr('profile.help_faq_refund_q'),
+                answer: tr('profile.help_faq_refund_a'),
               ),
             ],
           ),
           const SizedBox(height: 14),
-          const _FaqSection(
-            title: 'Sotuvchilar uchun',
+          _FaqSection(
+            title: tr('profile.help_faq_sellers_title'),
             icon: Iconsax.shop,
             items: [
               _FaqItem(
-                question: "Qanday qilib sotuvchi bo'lish mumkin?",
-                answer:
-                    "Profil bo'limidan 'Sotuvchi bo'ling' tugmasini bosib, "
-                    "so'rovnoma to'ldiring.",
+                question: tr('profile.help_faq_become_seller_q'),
+                answer: tr('profile.help_faq_become_seller_a'),
               ),
               _FaqItem(
-                question: 'Sotuvchilardan nimalar talab qilinadi?',
-                answer:
-                    "Faqat sifatli mebel suratlari, to'g'ri o'lchamlar va o'z "
-                    'vaqtida yetkazib berish.',
+                question: tr('profile.help_faq_seller_reqs_q'),
+                answer: tr('profile.help_faq_seller_reqs_a'),
               ),
             ],
           ),
@@ -192,7 +177,7 @@ class _ContactRow extends StatelessWidget {
               color: PremiumTokens.accent,
             ),
             tint: PremiumTokens.accent,
-            label: 'Onlayn chat',
+            label: tr('profile.help_contact_online_chat'),
             onTap: () => context.push('/support'),
           ),
       ],

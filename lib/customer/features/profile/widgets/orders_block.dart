@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../core/i18n/i18n.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../../orders/cubit/profile_orders_cubit.dart';
 
@@ -23,9 +24,17 @@ class OrdersBlock extends StatelessWidget {
         final total = state.orders.length;
 
         final (String subtitle, bool highlight) = switch (activeCount) {
-          > 0 => ('$activeCount ta faol buyurtma', true),
-          _ when total > 0 => ('Jami $total ta buyurtma', false),
-          _ => ("Hali buyurtma yo'q", false),
+          > 0 => (
+              tr('profile.orders_active_count',
+                  namedArgs: {'count': '$activeCount'}),
+              true
+            ),
+          _ when total > 0 => (
+              tr('profile.orders_total_count',
+                  namedArgs: {'count': '$total'}),
+              false
+            ),
+          _ => (tr('profile.orders_empty'), false),
         };
 
         return Container(
@@ -63,7 +72,7 @@ class OrdersBlock extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Buyurtmalarim',
+                            tr('profile.orders_title'),
                             style: PremiumTokens.body(
                               size: 15,
                               weight: FontWeight.w600,
