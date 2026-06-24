@@ -164,6 +164,7 @@ Future<void> _bootstrapAndRun() async {
   // Nothing before runApp depends on push being ready, so fire-and-forget.
   unawaited(sl<PushService>().bootstrap());
   _wireAuthToPushTokens();
+  _wireForcedLogoutCleanup();
   _wirePushToInboxRefresh();
 
   // Boot the locale controller from the Hive `settings` box so the
@@ -299,6 +300,37 @@ void _wireAuthToPushTokens() {
 
   handleState(authCubit.state, fromStream: false);
   authCubit.stream.listen((state) => handleState(state, fromStream: true));
+}
+
+/// Connects the [WoodyApiClient.forcedSignOuts] stream — fired when the global
+/// 401 interceptor detects a dead session (a deleted/blocked account the backend
+/// now rejects on every request) — to the FULL local teardown + redirect.
+///
+/// The interceptor has already cleared the [TokenStore]; that null on
+/// `tokens.changes` is what flips [AuthCubit] to unauthenticated and (in seller
+/// mode) drives [AppModeCubit.demoteToCustomer] → scope swap + `Phoenix.rebirth`.
+/// What was missing — and what this adds — is the heavy cleanup the manual
+/// logout's `performLogout` does: wiping the previous user's cached Hive/image
+/// data (so a deleted account can't keep viewing cached profile / notifications
+/// / cart) and clearing the navigation stack back to a fresh guest home.
+///
+/// The rebirth is fired only when the CUSTOMER surface is mounted (its navigator
+/// key has a live context): in seller mode that key is unmounted and
+/// `demoteToCustomer` already owns the scope swap + rebirth, so doing it here too
+/// would double-fire. The teardown is contextless and runs in both modes.
+void _wireForcedLogoutCleanup() {
+  if (!sl.isRegistered<WoodyApiClient>()) return;
+  sl<WoodyApiClient>().forcedSignOuts.listen((_) async {
+    try {
+      await clearUserDataOnForcedLogout();
+    } catch (e, st) {
+      talker.handle(e, st, 'forced logout: local data wipe failed');
+    }
+    final context = customerNavigatorKey.currentContext;
+    if (context != null && context.mounted) {
+      Phoenix.rebirth(context);
+    }
+  });
 }
 
 class _AppRoot extends StatelessWidget {

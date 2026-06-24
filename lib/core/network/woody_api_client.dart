@@ -61,6 +61,10 @@ class WoodyApiClient {
   /// Guards against a concurrent refresh stampede — see [_attemptRefresh].
   Future<bool>? _refreshFlight;
 
+  /// Collapses a concurrent burst of force-sign-outs into one — see
+  /// [_forceSignOut].
+  Future<void>? _signOutFlight;
+
   static Dio _defaultDio() {
     return Dio(
       BaseOptions(
@@ -244,7 +248,15 @@ class WoodyApiClient {
   Future<bool> _doRefresh() async {
     final current = await tokens.read();
     final refresh = current?.refreshToken;
-    if (refresh == null) return false;
+    if (refresh == null) {
+      // A 401 came back on an authenticated request but there is no usable
+      // refresh token (a deleted/blocked account whose chain was revoked, or a
+      // partially-cleared secure store). The session is dead and can never
+      // recover, so force a full sign-out instead of failing this one request
+      // and leaving the user stranded on an authed screen firing doomed calls.
+      await _forceSignOut();
+      return false;
+    }
     try {
       final response = await _dio.post<dynamic>(
         '$_apiV1Path/auth/refresh',
@@ -289,9 +301,26 @@ class WoodyApiClient {
     }
   }
 
-  Future<void> _forceSignOut() async {
+  /// Tears the dead session down once. Clearing the [TokenStore] is the single
+  /// unauth signal the rest of the app reacts to (AuthCubit, the hybrid
+  /// cart/favorites repos, AppModeCubit.demoteToCustomer); the broadcast on
+  /// [forcedSignOuts] additionally drives the heavy local-data teardown +
+  /// redirect (wired in `main.dart`).
+  ///
+  /// That teardown must fire EXACTLY ONCE per dead session: [_signOutFlight]
+  /// collapses a concurrent 401 burst, and the cached-token check collapses the
+  /// sequential wave a failed proactive refresh leaves behind (it clears the
+  /// tokens, so every following reactive 401 finds `tokens.current == null` and
+  /// does not re-emit). A later genuine sign-in re-arms it by writing a new pair.
+  Future<void> _forceSignOut() =>
+      _signOutFlight ??= _runForceSignOut().whenComplete(
+        () => _signOutFlight = null,
+      );
+
+  Future<void> _runForceSignOut() async {
+    final hadSession = tokens.current != null;
     await tokens.clear();
-    if (!_forcedSignOut.isClosed) {
+    if (hadSession && !_forcedSignOut.isClosed) {
       _forcedSignOut.add(null);
     }
   }

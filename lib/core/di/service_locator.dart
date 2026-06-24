@@ -88,6 +88,39 @@ Future<void> performLogout(BuildContext context) async {
     await signOutWithPushCleanup(sl<AuthRepository>());
   }
 
+  await _wipeLocalUserData();
+
+  // Tear down the active scope ourselves rather than going through
+  // `cubit.switchMode(...)`: logout must clear scope singletons even when the
+  // user is already in customer mode, and bypassing the cubit means the
+  // root-level mode-swap listener doesn't race with our pop/push pair.
+  await sl.popScope();
+  await initModeScope(AppMode.customer);
+  // Sync the cubit so widgets observing it see `customer` post-logout.
+  sl<AppModeCubit>().syncFromHive();
+  if (context.mounted) {
+    Phoenix.rebirth(context);
+  }
+}
+
+/// Forced logout triggered by the global 401 interceptor (a deleted/blocked
+/// account the backend now rejects on every request). By the time this runs the
+/// [TokenStore] is ALREADY cleared by `WoodyApiClient._forceSignOut`, so unlike
+/// [performLogout] this must NOT call `signOutWithPushCleanup` — its FCM-token
+/// DELETE would 401 with no token and re-enter the force-logout path. It also
+/// does NOT pop the GetIt scope: in seller mode `AppModeCubit.demoteToCustomer`
+/// (wired in `main.dart`) owns the scope swap + `Phoenix.rebirth`, and doing it
+/// here too would double-pop the scope. We only wipe the previous user's local
+/// data; `main.dart` triggers the rebirth when the customer surface is mounted.
+Future<void> clearUserDataOnForcedLogout() => _wipeLocalUserData();
+
+/// Wipes every user-specific local-data surface — the part shared by the manual
+/// [performLogout] and the forced [clearUserDataOnForcedLogout]. Contextless and
+/// idempotent (each clear is independently try/caught), so it is safe to run
+/// without a live DB/boxes (tests) or twice. Deliberately leaves the
+/// SharedPreferences `pending_payment` marker alone — it must survive a logout
+/// so an interrupted payment can still be reconciled.
+Future<void> _wipeLocalUserData() async {
   // Every user-specific Hive box is wiped. Each `clear()` is independent —
   // a corrupt or missing box must not block the rest of the teardown, so we
   // log + continue. Order doesn't matter; nothing here cross-references.
@@ -102,7 +135,7 @@ Future<void> performLogout(BuildContext context) async {
     try {
       await sl<Box>(instanceName: boxName).clear();
     } catch (e, st) {
-      talker.handle(e, st, 'performLogout: clear $boxName failed');
+      talker.handle(e, st, 'logout: clear $boxName failed');
     }
   }
 
@@ -117,7 +150,7 @@ Future<void> performLogout(BuildContext context) async {
       await Hive.box<AiChatMessage>(HiveBoxes.aiChatHistory).clear();
     }
   } catch (e, st) {
-    talker.handle(e, st, 'performLogout: clear aiChatHistory failed');
+    talker.handle(e, st, 'logout: clear aiChatHistory failed');
   }
 
   // The `settings` box is shared with device-wide prefs (theme, language)
@@ -125,13 +158,17 @@ Future<void> performLogout(BuildContext context) async {
   // seller access. `modeKey` resets the default landing surface; the
   // approval cache prevents the next user inheriting the previous
   // seller's authorization at cold start (see [AppModeCubit._resolveBoot]).
-  final settings = sl<Box>(instanceName: HiveBoxes.settings);
-  await settings.delete(AppModeCubit.modeKey);
-  await settings.delete(AppModeCubit.sellerApprovedCacheKey);
-  // Drop the synchronous session mirror too so the next cold start's boot
-  // guard resolves to customer even before AuthCubit re-reads the (now empty)
-  // token store. Deleting reads back as false in [AppModeCubit._resolveBoot].
-  await settings.delete(AppModeCubit.sessionActiveKey);
+  try {
+    final settings = sl<Box>(instanceName: HiveBoxes.settings);
+    await settings.delete(AppModeCubit.modeKey);
+    await settings.delete(AppModeCubit.sellerApprovedCacheKey);
+    // Drop the synchronous session mirror too so the next cold start's boot
+    // guard resolves to customer even before AuthCubit re-reads the (now empty)
+    // token store. Deleting reads back as false in [AppModeCubit._resolveBoot].
+    await settings.delete(AppModeCubit.sessionActiveKey);
+  } catch (e, st) {
+    talker.handle(e, st, 'logout: clear settings keys failed');
+  }
 
   // Drop the image caches so cached avatars / product photos / KYC docs
   // from the previous account never paint for the next user.
@@ -141,21 +178,9 @@ Future<void> performLogout(BuildContext context) async {
   try {
     await DefaultCacheManager().emptyCache();
   } catch (e, st) {
-    talker.handle(e, st, 'performLogout: image cache flush failed');
+    talker.handle(e, st, 'logout: image cache flush failed');
   }
   PaintingBinding.instance.imageCache
     ..clear()
     ..clearLiveImages();
-
-  // Tear down the active scope ourselves rather than going through
-  // `cubit.switchMode(...)`: logout must clear scope singletons even when the
-  // user is already in customer mode, and bypassing the cubit means the
-  // root-level mode-swap listener doesn't race with our pop/push pair.
-  await sl.popScope();
-  await initModeScope(AppMode.customer);
-  // Sync the cubit so widgets observing it see `customer` post-logout.
-  sl<AppModeCubit>().syncFromHive();
-  if (context.mounted) {
-    Phoenix.rebirth(context);
-  }
 }

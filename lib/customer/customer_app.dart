@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../core/auth/auth_cubit.dart';
+import '../core/auth/session_revalidator.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
@@ -85,6 +86,10 @@ class _CustomerAppState extends State<CustomerApp> with WidgetsBindingObserver {
     // A push tapped while the app was backgrounded saves a pending route, but
     // there's no fresh initState to consume it — pick it up on resume.
     if (state == AppLifecycleState.resumed) {
+      // Re-validate the session: if the account was deleted/blocked while the
+      // app sat in the background, the probe's 401 force-logs-out immediately
+      // instead of leaving the user on stale, already-painted screens.
+      revalidateSessionOnResume();
       _consumePendingRoute();
     }
   }

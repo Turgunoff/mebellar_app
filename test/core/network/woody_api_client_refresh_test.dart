@@ -194,6 +194,58 @@ void main() {
   });
 
   test(
+    'a concurrent 401 burst forces sign-out EXACTLY ONCE (one teardown, not N)',
+    () async {
+      // A deleted account: every authed call 401s and each refresh attempt is
+      // rejected. The heavy teardown wired to `forcedSignOuts` (Hive/image-cache
+      // wipe + Phoenix.rebirth) must run once, not once per in-flight request.
+      final adapter = _FakeAdapter()..refreshStatus = 401;
+      final client = _client(adapter, store);
+
+      final forced = <void>[];
+      final sub = client.forcedSignOuts.listen(forced.add);
+
+      await Future.wait(
+        List.generate(
+          8,
+          (_) => client
+              .get<Map<String, dynamic>>('/me')
+              .catchError((_) => <String, dynamic>{}),
+        ),
+      );
+
+      expect(adapter.refreshHits, 1, reason: 'single-flight refresh');
+      expect(forced, hasLength(1), reason: 'one forced sign-out for the burst');
+      expect(await store.read(), isNull);
+
+      await sub.cancel();
+    },
+  );
+
+  test('an anonymous request that 401s never forces a sign-out', () async {
+    // The refresh/logout/OTP calls (and any explicitly anonymous request) carry
+    // the anonymous flag; a 401 on them must NOT trigger the global force-logout
+    // or it would loop (the forced logout itself makes anonymous calls).
+    final adapter = _FakeAdapter();
+    final client = _client(adapter, store);
+
+    final forced = <void>[];
+    final sub = client.forcedSignOuts.listen(forced.add);
+
+    await expectLater(
+      client.get<Map<String, dynamic>>('/whatever', anonymous: true),
+      throwsA(isA<ApiError>()),
+    );
+
+    expect(adapter.refreshHits, 0, reason: 'anonymous never refreshes');
+    expect(forced, isEmpty, reason: 'anonymous 401 must not force sign-out');
+    final pair = await store.read();
+    expect(pair?.refreshToken, 'OLDREFRESH', reason: 'session retained');
+
+    await sub.cancel();
+  });
+
+  test(
     'an already-expired access token refreshes PROACTIVELY — the burst never '
     '401s and the rotating refresh token is presented exactly once',
     () async {

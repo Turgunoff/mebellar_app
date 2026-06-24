@@ -8,6 +8,7 @@ import 'package:talker_flutter/talker_flutter.dart';
 
 import '../config/app_config.dart';
 import '../config/app_mode.dart';
+import '../core/auth/session_revalidator.dart';
 import '../core/connectivity/network_cubit.dart';
 import '../core/deep_links/deep_link_service.dart';
 import '../core/di/service_locator.dart';
@@ -76,6 +77,9 @@ class _SellerAppState extends State<SellerApp> with WidgetsBindingObserver {
     // A push tapped while backgrounded stashed a pending route with no fresh
     // initState to consume it — pick it up on resume.
     if (state == AppLifecycleState.resumed) {
+      // Re-validate the session on resume so a deleted/blocked seller is
+      // force-logged-out immediately instead of lingering on stale screens.
+      revalidateSessionOnResume();
       _consumePendingRoute();
     }
   }
