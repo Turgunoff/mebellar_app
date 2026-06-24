@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../config/app_config.dart';
 import 'api_error.dart';
+import 'network_logger_interceptor.dart';
 import 'token_store.dart';
 
 /// HTTP client for `api.woody.uz`.
@@ -25,6 +27,13 @@ class WoodyApiClient {
     : _locale = locale,
       _dio = dio ?? _defaultDio() {
     _dio.interceptors.add(_AuthInterceptor(this));
+    // Added AFTER the auth interceptor so the logged request carries the
+    // freshly-attached `Authorization` header and the duration excludes any
+    // proactive token refresh. Debug-only, and only on the app-default client
+    // — a test-injected Dio (mock adapter) stays silent.
+    if (kDebugMode && dio == null) {
+      _dio.interceptors.add(const NetworkLoggerInterceptor());
+    }
   }
 
   static const _apiV1Path = '/api/v1';

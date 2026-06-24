@@ -1,7 +1,7 @@
-import 'dart:typed_data';
-
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
+import '../network/network_logger_interceptor.dart';
 import '../network/woody_api_client.dart';
 
 /// Buckets the mobile app uploads to. The strings match the backend
@@ -53,7 +53,13 @@ class R2UploadResult {
 class R2UploadClient {
   R2UploadClient({required WoodyApiClient api, Dio? rawDio})
     : _api = api,
-      _rawDio = rawDio ?? Dio();
+      _rawDio = rawDio ?? Dio() {
+    // Debug-only traffic logging for the raw R2 PUT path (presigned uploads).
+    // Skipped when a Dio is injected (tests) so mock-adapter runs stay quiet.
+    if (kDebugMode && rawDio == null) {
+      _rawDio.interceptors.add(const NetworkLoggerInterceptor());
+    }
+  }
 
   final WoodyApiClient _api;
 
@@ -139,7 +145,9 @@ class R2UploadClient {
     final publicUrl = presigned['public_url'];
     return R2UploadResult(
       bucket: bucket,
-      path: returnedPath is String && returnedPath.isNotEmpty ? returnedPath : path,
+      path: returnedPath is String && returnedPath.isNotEmpty
+          ? returnedPath
+          : path,
       publicUrl: publicUrl is String && publicUrl.isNotEmpty ? publicUrl : null,
     );
   }

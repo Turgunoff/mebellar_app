@@ -1,8 +1,10 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../../../core/logging/talker.dart';
+import '../../../../core/network/network_logger_interceptor.dart';
 
 /// USD→UZS exchange rate source for the product form's currency toggle.
 ///
@@ -30,7 +32,13 @@ class CbuExchangeRateService implements ExchangeRateService {
               receiveTimeout: const Duration(seconds: 10),
             ),
           ),
-      _ttl = ttl;
+      _ttl = ttl {
+    // Debug-only traffic logging for the CBU rate feed. Skipped when a Dio is
+    // injected (tests) so mock-adapter runs stay quiet.
+    if (kDebugMode && dio == null) {
+      _dio.interceptors.add(const NetworkLoggerInterceptor());
+    }
+  }
 
   static const String ratesUrl = 'https://cbu.uz/oz/arkhiv-kursov-valyut/json/';
 
