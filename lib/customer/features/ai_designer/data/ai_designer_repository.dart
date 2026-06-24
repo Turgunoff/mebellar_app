@@ -1,6 +1,3 @@
-import 'dart:convert';
-import 'dart:typed_data';
-
 import '../../../../core/i18n/i18n.dart';
 import '../../../../core/network/woody_api_client.dart';
 import '../models/ai_chat_message.dart';
@@ -84,10 +81,14 @@ class AiDesignerReply {
 /// client attaches the bearer token); the guest gate lives in the UI so a
 /// signed-out tap opens the login flow instead of POSTing.
 abstract class AiDesignerRepository {
+  /// One chat turn. [imageUrl] is the permanent public URL of a room photo the
+  /// caller already uploaded to the `ai-chat-images` R2 bucket; [imagePath] is
+  /// its object key (the backend persists both so the turn restores + can be
+  /// retention-purged). Both null = a text-only turn.
   Future<AiDesignerReply> chat({
     required String message,
-    Uint8List? imageBytes,
-    String? imageMime,
+    String? imageUrl,
+    String? imagePath,
     List<AiChatMessage> history = const [],
   });
 
@@ -117,8 +118,8 @@ class WoodyAiDesignerRepository implements AiDesignerRepository {
   @override
   Future<AiDesignerReply> chat({
     required String message,
-    Uint8List? imageBytes,
-    String? imageMime,
+    String? imageUrl,
+    String? imagePath,
     List<AiChatMessage> history = const [],
   }) async {
     try {
@@ -140,10 +141,13 @@ class WoodyAiDesignerRepository implements AiDesignerRepository {
       final recentHistory = cleanHistory.length > 20
           ? cleanHistory.sublist(cleanHistory.length - 20)
           : cleanHistory;
+      // The room photo is already on R2 (the cubit uploaded it); we send its
+      // public URL — the vision model reads it directly and the backend persists
+      // it on the log so the turn restores after relaunch.
       final body = <String, dynamic>{
         'message': outMessage,
-        if (imageBytes != null) 'image_base64': base64Encode(imageBytes),
-        if (imageBytes != null && imageMime != null) 'image_mime': imageMime,
+        'image_url': ?imageUrl,
+        'image_path': ?imagePath,
         if (recentHistory.isNotEmpty) 'history': recentHistory,
       };
       final response = await _api.post<Map<String, dynamic>>(
@@ -184,6 +188,10 @@ class WoodyAiDesignerRepository implements AiDesignerRepository {
           id: '$logId-u',
           text: raw['user_message'] as String? ?? '',
           isUser: true,
+          // image_url is present only within the retention window; has_image
+          // stays true after a purge so the bubble shows a "media expired" tile.
+          imageUrl: raw['image_url'] as String?,
+          hasImage: raw['has_image'] as bool? ?? false,
           timestamp: ts,
         ),
       );

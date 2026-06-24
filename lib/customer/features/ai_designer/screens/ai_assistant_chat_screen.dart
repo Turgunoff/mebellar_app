@@ -130,8 +130,23 @@ class _MessageListState extends State<_MessageList> {
   Widget build(BuildContext context) {
     return BlocConsumer<AiDesignerCubit, AiDesignerState>(
       listenWhen: (a, b) =>
-          a.messages.length != b.messages.length || a.sending != b.sending,
+          a.messages.length != b.messages.length ||
+          a.sending != b.sending ||
+          a.error != b.error,
       listener: (context, state) {
+        // Surface a transient error (e.g. the daily image limit) as a snackbar.
+        // `error` holds a translation KEY (the cubit stays i18n-free).
+        final err = state.error;
+        if (err != null) {
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              SnackBar(
+                content: Text(tr(err)),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+        }
         // With `reverse: true` the newest turn sits at offset 0 (the bottom), so
         // jumping there re-pins the user to the latest message after a send even
         // if they had scrolled up into history.
@@ -371,12 +386,16 @@ class _Bubble extends StatelessWidget {
                     if (localImage != null)
                       _BubbleImageBytes(bytes: localImage!)
                     else if (message.imageUrl != null)
-                      _BubbleImage(url: message.imageUrl!),
+                      _BubbleImage(url: message.imageUrl!)
+                    else if (message.hasImage)
+                      const _BubbleImageExpired(),
                     if (message.text.isNotEmpty)
                       Padding(
                         padding: EdgeInsets.fromLTRB(
                           14,
-                          (localImage != null || message.imageUrl != null)
+                          (localImage != null ||
+                                  message.imageUrl != null ||
+                                  message.hasImage)
                               ? 8
                               : 10,
                           14,
@@ -425,8 +444,9 @@ class _BubbleImage extends StatelessWidget {
   }
 }
 
-/// The user's own locally-picked room photo, rendered from bytes (no URL — it
-/// is sent to the backend but never persisted, see [AiDesignerState.localImages]).
+/// The user's own locally-picked room photo, rendered from bytes for instant
+/// feedback while it uploads to R2 (see [AiDesignerState.localImages]). Once the
+/// upload resolves the message also carries a durable [AiChatMessage.imageUrl].
 class _BubbleImageBytes extends StatelessWidget {
   const _BubbleImageBytes({required this.bytes});
   final Uint8List bytes;
@@ -438,6 +458,42 @@ class _BubbleImageBytes extends StatelessWidget {
       child: AspectRatio(
         aspectRatio: 4 / 3,
         child: Image.memory(bytes, fit: BoxFit.cover),
+      ),
+    );
+  }
+}
+
+/// Placeholder for a restored image turn whose photo has been purged by the
+/// 60-day retention policy (the row still flags `has_image`, but `imageUrl` is
+/// gone). Keeps the conversation legible instead of silently dropping to text.
+class _BubbleImageExpired extends StatelessWidget {
+  const _BubbleImageExpired();
+
+  @override
+  Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxHeight: 160, minWidth: 180),
+      child: AspectRatio(
+        aspectRatio: 4 / 3,
+        child: Container(
+          color: pt.imageBg,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Iconsax.gallery_slash, color: pt.greyLight, size: 28),
+              const SizedBox(height: 6),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  tr('ai_designer.image_expired'),
+                  textAlign: TextAlign.center,
+                  style: PremiumTokens.body(size: 12, color: pt.grey),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -714,31 +770,44 @@ class _ComposerState extends State<_Composer> {
     final picked = file;
     if (picked == null) return;
     final original = await picked.readAsBytes();
-    // Heavily downscale + recompress BEFORE base64: a multi-MB base64 image
-    // overruns the AI endpoint / its nginx body limit, which surfaced as the
-    // "Hozir javob bera olmadim..." failure. 800px @ q60 JPEG keeps the payload
-    // tiny while staying legible for the vision model.
-    final bytes = await _compress(original);
+    // Downscale + recompress BEFORE upload: keeps R2 storage + bandwidth small
+    // and the vision model fast. WebP is the smallest; we never upload the raw
+    // HEIC/JPEG original.
+    final compressed = await _compress(original);
     if (!mounted) return;
     setState(() {
-      _pendingImage = bytes;
-      _pendingMime = 'image/jpeg';
+      _pendingImage = compressed.bytes;
+      _pendingMime = compressed.mime;
     });
   }
 
-  static Future<Uint8List> _compress(Uint8List input) async {
-    try {
-      final out = await FlutterImageCompress.compressWithList(
-        input,
-        minWidth: 800,
-        minHeight: 800,
-        quality: 60,
-        format: CompressFormat.jpeg,
-      );
-      return out.isNotEmpty ? out : input;
-    } catch (_) {
-      return input; // never block sending on a compression hiccup
+  /// Downscale to ~1080px and recompress to WebP @ q82 (smallest). iOS has no
+  /// WebP encoder in flutter_image_compress, so fall back to JPEG — either way
+  /// the raw HEIC/original never leaves the device. Returns the bytes + the MIME
+  /// the upload should send so the R2 object lands with the right extension.
+  static Future<({Uint8List bytes, String mime})> _compress(
+    Uint8List input,
+  ) async {
+    for (final format in [CompressFormat.webp, CompressFormat.jpeg]) {
+      try {
+        final out = await FlutterImageCompress.compressWithList(
+          input,
+          minWidth: 1080,
+          minHeight: 1080,
+          quality: 82,
+          format: format,
+        );
+        if (out.isNotEmpty) {
+          return (
+            bytes: out,
+            mime: format == CompressFormat.webp ? 'image/webp' : 'image/jpeg',
+          );
+        }
+      } catch (_) {
+        // WebP unsupported on this platform — try JPEG next.
+      }
     }
+    return (bytes: input, mime: 'image/jpeg'); // last resort: original bytes
   }
 
   Future<ImageSource?> _pickSource() {

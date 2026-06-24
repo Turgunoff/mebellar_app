@@ -286,13 +286,7 @@ class _CustomerHomeShellState extends State<CustomerHomeShell> {
 
   /// Stable English tab names for the nav log — independent of the active UI
   /// language so the console stream reads consistently while debugging.
-  static const _tabNames = [
-    'Home',
-    'Catalog',
-    'Cart',
-    'Favorites',
-    'Profile',
-  ];
+  static const _tabNames = ['Home', 'Catalog', 'Cart', 'Favorites', 'Profile'];
 
   /// Timestamp of the last back press while the Home tab was active. Drives
   /// the double-back-to-exit gesture; reset whenever the tab changes so the
@@ -307,6 +301,10 @@ class _CustomerHomeShellState extends State<CustomerHomeShell> {
   @override
   void initState() {
     super.initState();
+    // A cold deep-link can mount the shell straight onto a tab
+    // (`/?tab=profile` from a notification tap). Strip that one-shot query so
+    // the URL doesn't keep pinning the tab — see [_consumeTabQuery].
+    if (widget.initialTab != null) _consumeTabQuery();
     if (sl.isRegistered<PushService>() && !kScreenshotMode) {
       Future<void>.delayed(_permissionPromptDelay, () {
         if (!mounted) return;
@@ -319,9 +317,26 @@ class _CustomerHomeShellState extends State<CustomerHomeShell> {
   void didUpdateWidget(CustomerHomeShell oldWidget) {
     super.didUpdateWidget(oldWidget);
     final requested = widget.initialTab;
-    if (requested != null && requested != _index) {
-      _goToTab(requested);
-    }
+    if (requested == null) return;
+    if (requested != _index) _goToTab(requested);
+    _consumeTabQuery();
+  }
+
+  /// `/?tab=` is a one-shot deep-link command, not durable state: the active
+  /// tab lives in [_index], which a nav-bar tap flips via `setState` WITHOUT
+  /// touching the URL. If we leave the query in the location, the next
+  /// unrelated rebuild of the `/` route — e.g. pushing `/support` on top of the
+  /// shell re-runs its builder — re-reads that now-stale `?tab=` and stomps the
+  /// user's current tab back to it, stranding them on the wrong tab after Back.
+  /// So once the requested tab is applied we drop the query, leaving `/`.
+  void _consumeTabQuery() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      // Never navigate out from under a route the user pushed on top of us.
+      final route = ModalRoute.of(context);
+      if (route != null && !route.isCurrent) return;
+      context.go('/');
+    });
   }
 
   void _goToTab(int i) {

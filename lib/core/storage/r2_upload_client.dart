@@ -15,7 +15,8 @@ enum R2Bucket {
   verificationDocs('verification-docs'),
   paymentReceipts('payment-receipts'),
   userAvatars('user-avatars'),
-  productArScans('product-ar-scans');
+  productArScans('product-ar-scans'),
+  aiChatImages('ai-chat-images');
 
   const R2Bucket(this.value);
   final String value;

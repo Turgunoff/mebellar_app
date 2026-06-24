@@ -7,8 +7,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/auth/auth_cubit.dart';
 import '../../../../core/services/facebook_analytics_service.dart';
+import '../../../../core/storage/r2_upload_client.dart';
 import '../data/ai_chat_store.dart';
 import '../data/ai_designer_repository.dart';
+import '../data/ai_image_quota.dart';
 import '../models/ai_chat_message.dart';
 
 class AiDesignerState extends Equatable {
@@ -83,11 +85,15 @@ class AiDesignerCubit extends Cubit<AiDesignerState> {
     AiChatStore? store,
     AnalyticsService? analytics,
     FacebookAnalyticsService? facebookAnalytics,
+    R2UploadClient? uploads,
+    AiImageQuota? imageQuota,
   }) : _repo = repository,
        _authCubit = authCubit,
        _store = store ?? AiChatStore(),
        _analytics = analytics,
        _facebookAnalytics = facebookAnalytics,
+       _uploads = uploads,
+       _imageQuota = imageQuota,
        super(const AiDesignerState()) {
     _handleAuth(_authCubit.state);
     _authSub = _authCubit.stream.listen(_handleAuth);
@@ -98,6 +104,21 @@ class AiDesignerCubit extends Cubit<AiDesignerState> {
   final AiChatStore _store;
   final AnalyticsService? _analytics;
   final FacebookAnalyticsService? _facebookAnalytics;
+
+  /// Uploads a room photo to R2 before the chat call. Null in tests / when
+  /// storage isn't wired → the turn proceeds text-only (still rendered this
+  /// session from [AiDesignerState.localImages], just not persisted).
+  final R2UploadClient? _uploads;
+
+  /// Per-day client-side image cap. Lazily defaulted so callers (and the DI
+  /// module) need not construct it; tests inject a fake box.
+  final AiImageQuota? _imageQuota;
+  AiImageQuota get _quota => _imageQuota ?? (_quotaCache ??= AiImageQuota());
+  AiImageQuota? _quotaCache;
+
+  /// State error code the UI maps to a localized snackbar when the daily image
+  /// limit is hit (the turn is still sent, text-only).
+  static const imageLimitError = 'ai_designer.image_limit_reached';
 
   StreamSubscription<AppAuthState>? _authSub;
 
@@ -184,12 +205,15 @@ class AiDesignerCubit extends Cubit<AiDesignerState> {
     // (else the backend sees the question twice).
     final prior = state.messages;
 
-    final userMessage = AiChatMessage(
+    var userMessage = AiChatMessage(
       id: _nextId(),
       text: trimmed,
       isUser: true,
+      hasImage: imageBytes != null,
       timestamp: DateTime.now(),
     );
+    // Render the picked photo instantly from memory while it uploads; the
+    // durable imageUrl is patched on once the upload resolves (below).
     final localImages = imageBytes == null
         ? state.localImages
         : {...state.localImages, userMessage.id: imageBytes};
@@ -209,11 +233,41 @@ class AiDesignerCubit extends Cubit<AiDesignerState> {
       }),
     );
 
+    // Upload the room photo to R2 so it persists past this session. The daily
+    // quota, an upload failure, or unwired storage all degrade to a text-only
+    // turn — the chat must never block on the image. (The bytes still render
+    // this session via localImages; only persistence is lost on degrade.)
+    String? imageUrl;
+    String? imagePath;
+    if (imageBytes != null && _uploads != null) {
+      if (!_quota.canUpload) {
+        if (!isClosed) emit(state.copyWith(error: imageLimitError));
+      } else {
+        final uploaded = await _uploadRoomPhoto(imageBytes, imageMime);
+        imageUrl = uploaded?.publicUrl;
+        imagePath = uploaded?.path;
+        if (imageUrl != null) {
+          unawaited(_quota.increment());
+          userMessage = userMessage.copyWith(imageUrl: imageUrl);
+          if (!isClosed) {
+            final msgs = [...state.messages];
+            final i = msgs.indexWhere((m) => m.id == userMessage.id);
+            if (i >= 0) {
+              msgs[i] = userMessage;
+              emit(state.copyWith(messages: msgs));
+            }
+          }
+          // Overwrite the cached row so the durable URL survives a relaunch.
+          await _store.append(userMessage);
+        }
+      }
+    }
+
     try {
       final reply = await _repo.chat(
         message: trimmed,
-        imageBytes: imageBytes,
-        imageMime: imageMime,
+        imageUrl: imageUrl,
+        imagePath: imagePath,
         history: prior,
       );
 
@@ -267,6 +321,36 @@ class AiDesignerCubit extends Cubit<AiDesignerState> {
   Future<void> clearHistory() async {
     await _store.clear();
     emit(const AiDesignerState());
+  }
+
+  /// Uploads the room photo to the `ai-chat-images` R2 bucket and returns the
+  /// result (public URL + key). Null on any failure / when storage or the user
+  /// id isn't available — the caller then sends the turn text-only.
+  Future<R2UploadResult?> _uploadRoomPhoto(
+    Uint8List bytes,
+    String? mime,
+  ) async {
+    final uploads = _uploads;
+    final userId = _currentUserId();
+    if (uploads == null || userId == null) return null;
+    try {
+      final ext = mime == 'image/webp' ? 'webp' : 'jpg';
+      return await uploads.upload(
+        bucket: R2Bucket.aiChatImages,
+        // The folder MUST be the caller's own id (the backend binds ownership to
+        // it and server-issues the object name, overriding this basename).
+        path: '$userId/room.$ext',
+        bytes: bytes,
+        contentType: mime ?? 'image/jpeg',
+      );
+    } catch (_) {
+      return null; // never block the chat on an upload hiccup
+    }
+  }
+
+  String? _currentUserId() {
+    final s = _authCubit.state;
+    return s is AppAuthAuthenticated ? s.userId : null;
   }
 
   String _nextId() =>

@@ -221,4 +221,70 @@ void main() {
     expect(sent.first['text'], 'm5');
     expect(sent.last['text'], 'm24');
   });
+
+  test('chat sends the pre-uploaded image_url + image_path', () async {
+    final h = make(
+      (_) => (200, jsonEncode({'available': true, 'reply': 'ok'})),
+    );
+    await h.repo.chat(
+      message: 'mana xonam',
+      imageUrl: 'https://cdn.woody.uz/ai-chat-images/u1/abc.webp',
+      imagePath: 'u1/abc.webp',
+    );
+    final data = h.adapter.calls.single.data;
+    final body = (data is String ? jsonDecode(data) : data) as Map;
+    expect(
+      body['image_url'],
+      'https://cdn.woody.uz/ai-chat-images/u1/abc.webp',
+    );
+    expect(body['image_path'], 'u1/abc.webp');
+    // The legacy inline path must be gone — we upload to R2 first now.
+    expect(body.containsKey('image_base64'), isFalse);
+  });
+
+  test(
+    'fetchHistory restores image_url, and flags a purged photo as expired',
+    () async {
+      final h = make(
+        (_) => (
+          200,
+          jsonEncode({
+            'turns': [
+              {
+                'log_id': 'log-1',
+                'user_message': 'mana xonam',
+                'has_image': true,
+                'image_url': 'https://cdn.woody.uz/ai-chat-images/u1/a.webp',
+                'ai_response': 'Mana divanlar',
+                'user_rating': null,
+                'created_at': '2026-06-01T10:00:00.000Z',
+              },
+              {
+                'log_id': 'log-2',
+                'user_message': 'eski rasm',
+                'has_image': true, // photo purged by retention → no image_url
+                'image_url': null,
+                'ai_response': 'javob',
+                'user_rating': null,
+                'created_at': '2026-01-01T10:00:00.000Z',
+              },
+            ],
+          }),
+        ),
+      );
+
+      final msgs = await h.repo.fetchHistory();
+      final firstUser = msgs.firstWhere((m) => m.text == 'mana xonam');
+      expect(
+        firstUser.imageUrl,
+        'https://cdn.woody.uz/ai-chat-images/u1/a.webp',
+      );
+      expect(firstUser.hasImage, isTrue);
+
+      final purgedUser = msgs.firstWhere((m) => m.text == 'eski rasm');
+      // Expired: still flagged hasImage (→ "media expired" tile) but no URL.
+      expect(purgedUser.hasImage, isTrue);
+      expect(purgedUser.imageUrl, isNull);
+    },
+  );
 }

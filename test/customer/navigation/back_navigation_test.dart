@@ -72,6 +72,12 @@ class _ShellReplica extends StatefulWidget {
 class _ShellReplicaState extends State<_ShellReplica> {
   late int _index = widget.initialTab ?? 0;
 
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialTab != null) _consumeTabQuery();
+  }
+
   void _goToTab(int i) {
     if (i == _index) return;
     setState(() => _index = i);
@@ -81,7 +87,21 @@ class _ShellReplicaState extends State<_ShellReplica> {
   void didUpdateWidget(_ShellReplica oldWidget) {
     super.didUpdateWidget(oldWidget);
     final requested = widget.initialTab;
-    if (requested != null && requested != _index) _goToTab(requested);
+    if (requested == null) return;
+    if (requested != _index) _goToTab(requested);
+    _consumeTabQuery();
+  }
+
+  /// Mirrors `_CustomerHomeShellState._consumeTabQuery`: `/?tab=` is a one-shot
+  /// command, dropped once applied so a later rebuild of `/` (a route pushed on
+  /// top of the shell) can't re-read a stale query and stomp the current tab.
+  void _consumeTabQuery() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final route = ModalRoute.of(context);
+      if (route != null && !route.isCurrent) return;
+      context.go('/');
+    });
   }
 
   @override
@@ -299,6 +319,47 @@ void main() {
       await tester.tap(find.byKey(const Key('support-back')));
       await tester.pumpAndSettle();
 
+      expect(find.text('shell-tab-4'), findsOneWidget);
+      expect(find.text('shell-tab-$_cartTab'), findsNothing);
+    },
+  );
+
+  // The bug the StatefulShellBranch theory got wrong: `/support` is already a
+  // top-level route, not nested in a tab branch. The real stomp needs a STALE
+  // `?tab=` — the user reaches a tab via a deep-link/action (URL `?tab=cart`),
+  // then MANUALLY taps a different tab (shell-local setState; the URL stays
+  // `?tab=cart`), then opens support. Pushing `/support` re-runs the `/`
+  // builder, which re-reads the stale `?tab=cart` and — without the one-shot
+  // consume — switches the shell to Cart. Back then strands the user on Cart.
+  testWidgets(
+    'Support back after a manual tab switch returns to the manual tab, NOT a '
+    'stale ?tab= tab',
+    (tester) async {
+      final router = _router();
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      await tester.pumpAndSettle();
+
+      // Arrive on Cart via a deep-link/action (e.g. "View cart" after an
+      // add-to-cart). The location is now `/?tab=cart`.
+      router.go('/?tab=cart');
+      await tester.pumpAndSettle();
+      expect(find.text('shell-tab-$_cartTab'), findsOneWidget);
+
+      // User manually taps the Profile tab — shell-local setState, the URL is
+      // left as the now-stale `/?tab=cart`.
+      await tester.tap(find.byIcon(Icons.person));
+      await tester.pumpAndSettle();
+      expect(find.text('shell-tab-4'), findsOneWidget);
+
+      // Open support, then come back.
+      router.push('/support');
+      await tester.pumpAndSettle();
+      expect(find.text('support-screen'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('support-back')));
+      await tester.pumpAndSettle();
+
+      // Must land on Profile (the manual tab), never the stale Cart tab.
       expect(find.text('shell-tab-4'), findsOneWidget);
       expect(find.text('shell-tab-$_cartTab'), findsNothing);
     },

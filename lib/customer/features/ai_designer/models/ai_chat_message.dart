@@ -15,6 +15,7 @@ class AiChatMessage {
     required this.isUser,
     required this.timestamp,
     this.imageUrl,
+    this.hasImage = false,
     this.logId,
     this.userRating,
   });
@@ -22,7 +23,16 @@ class AiChatMessage {
   final String id;
   final String text;
   final bool isUser;
+
+  /// Permanent public URL of an attached room photo (uploaded to the
+  /// `ai-chat-images` R2 bucket). Persisted, so the photo restores on relaunch.
   final String? imageUrl;
+
+  /// True when this turn carried a room photo — even after [imageUrl] is gone
+  /// (retention purge / a failed upload). Drives the "media expired" tile so a
+  /// restored image turn doesn't silently collapse to text-only.
+  final bool hasImage;
+
   final DateTime timestamp;
 
   /// The persisted backend chat-log row id for an AI reply (null for user
@@ -40,6 +50,7 @@ class AiChatMessage {
     String? text,
     bool? isUser,
     String? imageUrl,
+    bool? hasImage,
     DateTime? timestamp,
     String? logId,
     String? userRating,
@@ -49,6 +60,7 @@ class AiChatMessage {
       text: text ?? this.text,
       isUser: isUser ?? this.isUser,
       imageUrl: imageUrl ?? this.imageUrl,
+      hasImage: hasImage ?? this.hasImage,
       timestamp: timestamp ?? this.timestamp,
       logId: logId ?? this.logId,
       userRating: userRating ?? this.userRating,
@@ -69,8 +81,8 @@ class AiChatMessageAdapter extends TypeAdapter<AiChatMessage> {
     final isUser = reader.readBool();
     // imageUrl is nullable: a leading bool flag tells us whether a string
     // follows, so we never read a phantom field for a text-only message.
-    final hasImage = reader.readBool();
-    final imageUrl = hasImage ? reader.readString() : null;
+    final hasImageUrl = reader.readBool();
+    final imageUrl = hasImageUrl ? reader.readString() : null;
     final millis = reader.readInt();
     // BACKWARD COMPATIBILITY: records written before logId/userRating existed
     // have no bytes past the timestamp. A reader on an old record sees zero
@@ -79,17 +91,22 @@ class AiChatMessageAdapter extends TypeAdapter<AiChatMessage> {
     // both as the usual leading-bool + optional-string nullable protocol.
     String? logId;
     String? userRating;
+    bool hasImage = false;
     if (reader.availableBytes > 0) {
       final hasLogId = reader.readBool();
       logId = hasLogId ? reader.readString() : null;
       final hasRating = reader.readBool();
       userRating = hasRating ? reader.readString() : null;
+      // hasImage was added AFTER logId/userRating — guard again so a record
+      // written before this field doesn't RangeError on the missing byte.
+      if (reader.availableBytes > 0) hasImage = reader.readBool();
     }
     return AiChatMessage(
       id: id,
       text: text,
       isUser: isUser,
       imageUrl: imageUrl,
+      hasImage: hasImage,
       timestamp: DateTime.fromMillisecondsSinceEpoch(millis),
       logId: logId,
       userRating: userRating,
@@ -111,5 +128,6 @@ class AiChatMessageAdapter extends TypeAdapter<AiChatMessage> {
     final userRating = obj.userRating;
     writer.writeBool(userRating != null);
     if (userRating != null) writer.writeString(userRating);
+    writer.writeBool(obj.hasImage);
   }
 }

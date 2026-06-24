@@ -260,6 +260,9 @@ void registerCatalogModule(GetIt sl) {
       facebookAnalytics: sl.isRegistered<FacebookAnalyticsService>()
           ? sl<FacebookAnalyticsService>()
           : null,
+      // Uploads the room photo to R2 so it persists past the session; absent →
+      // the chat degrades to a text-only (non-persisted) image turn.
+      uploads: sl.isRegistered<R2UploadClient>() ? sl<R2UploadClient>() : null,
     ),
     dispose: (cubit) => cubit.close(),
   );

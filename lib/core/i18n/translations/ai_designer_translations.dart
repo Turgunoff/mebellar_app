@@ -25,6 +25,10 @@ const Map<String, dynamic> aiDesignerUz = {
   'clear_history': 'Suhbatni tozalash',
   'rate_like': 'Foydali',
   'rate_dislike': 'Foydasiz',
+  'image_expired': 'Rasm muddati tugagan',
+  'image_limit_reached':
+      'Kunlik rasm yuborish chegarasiga yetdingiz. Matn yuborishda davom '
+      'etishingiz mumkin.',
 };
 
 const Map<String, dynamic> aiDesignerRu = {
@@ -51,6 +55,9 @@ const Map<String, dynamic> aiDesignerRu = {
   'clear_history': 'Очистить переписку',
   'rate_like': 'Полезно',
   'rate_dislike': 'Бесполезно',
+  'image_expired': 'Срок хранения фото истёк',
+  'image_limit_reached':
+      'Вы достигли дневного лимита загрузки фото. Можете продолжить текстом.',
 };
 
 const Map<String, dynamic> aiDesignerEn = {
@@ -77,4 +84,7 @@ const Map<String, dynamic> aiDesignerEn = {
   'clear_history': 'Clear chat',
   'rate_like': 'Helpful',
   'rate_dislike': 'Not helpful',
+  'image_expired': 'Photo expired',
+  'image_limit_reached':
+      'You\'ve hit today\'s photo upload limit. You can keep chatting with text.',
 };

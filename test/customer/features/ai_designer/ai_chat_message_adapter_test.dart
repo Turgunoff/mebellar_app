@@ -28,6 +28,27 @@ Uint8List _writeOldFormat(AiChatMessage obj) {
   return writer.toBytes();
 }
 
+/// Writes the MID-format layout: through logId/userRating but STOPPING before
+/// the later `hasImage` byte — exactly what a record written between those two
+/// changes looks like. The reader must default `hasImage` to false, not throw.
+Uint8List _writeWithoutHasImage(AiChatMessage obj) {
+  final writer = BinaryWriterImpl(TypeRegistryImpl.nullImpl);
+  writer.writeString(obj.id);
+  writer.writeString(obj.text);
+  writer.writeBool(obj.isUser);
+  final imageUrl = obj.imageUrl;
+  writer.writeBool(imageUrl != null);
+  if (imageUrl != null) writer.writeString(imageUrl);
+  writer.writeInt(obj.timestamp.millisecondsSinceEpoch);
+  final logId = obj.logId;
+  writer.writeBool(logId != null);
+  if (logId != null) writer.writeString(logId);
+  final userRating = obj.userRating;
+  writer.writeBool(userRating != null);
+  if (userRating != null) writer.writeString(userRating);
+  return writer.toBytes();
+}
+
 void main() {
   final adapter = AiChatMessageAdapter();
 
@@ -57,6 +78,52 @@ void main() {
       isNull,
       reason: 'an old record carries no userRating bytes',
     );
+    expect(
+      decoded.hasImage,
+      isFalse,
+      reason: 'an old record carries no hasImage byte',
+    );
+  });
+
+  test('reads a MID-format record (no hasImage byte) as hasImage=false', () {
+    final mid = AiChatMessage(
+      id: 'm1b',
+      text: 'savol',
+      isUser: true,
+      timestamp: DateTime.fromMillisecondsSinceEpoch(1700000000500),
+      logId: 'log-3',
+      userRating: 'disliked',
+    );
+    final bytes = _writeWithoutHasImage(mid);
+
+    final reader = BinaryReaderImpl(bytes, TypeRegistryImpl.nullImpl);
+    final decoded = adapter.read(reader);
+
+    expect(decoded.logId, 'log-3');
+    expect(decoded.userRating, 'disliked');
+    expect(decoded.hasImage, isFalse);
+  });
+
+  test('round-trips imageUrl + hasImage', () {
+    final original = AiChatMessage(
+      id: 'm4',
+      text: 'mana xonam',
+      isUser: true,
+      timestamp: DateTime.fromMillisecondsSinceEpoch(1700000003000),
+      imageUrl: 'https://cdn.woody.uz/ai-chat-images/u1/a.webp',
+      hasImage: true,
+    );
+
+    final writer = BinaryWriterImpl(TypeRegistryImpl.nullImpl);
+    adapter.write(writer, original);
+    final reader = BinaryReaderImpl(
+      writer.toBytes(),
+      TypeRegistryImpl.nullImpl,
+    );
+    final decoded = adapter.read(reader);
+
+    expect(decoded.imageUrl, 'https://cdn.woody.uz/ai-chat-images/u1/a.webp');
+    expect(decoded.hasImage, isTrue);
   });
 
   test('round-trips the new logId + userRating fields', () {
@@ -71,7 +138,10 @@ void main() {
 
     final writer = BinaryWriterImpl(TypeRegistryImpl.nullImpl);
     adapter.write(writer, original);
-    final reader = BinaryReaderImpl(writer.toBytes(), TypeRegistryImpl.nullImpl);
+    final reader = BinaryReaderImpl(
+      writer.toBytes(),
+      TypeRegistryImpl.nullImpl,
+    );
     final decoded = adapter.read(reader);
 
     expect(decoded.id, 'm2');
@@ -90,7 +160,10 @@ void main() {
 
     final writer = BinaryWriterImpl(TypeRegistryImpl.nullImpl);
     adapter.write(writer, original);
-    final reader = BinaryReaderImpl(writer.toBytes(), TypeRegistryImpl.nullImpl);
+    final reader = BinaryReaderImpl(
+      writer.toBytes(),
+      TypeRegistryImpl.nullImpl,
+    );
     final decoded = adapter.read(reader);
 
     expect(decoded.logId, isNull);
