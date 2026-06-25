@@ -27,3 +27,4 @@ Yozuvlar avtomatik qo'shiladi:
 | 2026-06-23 | 1.0.25+25 | 67237d36fb22 | ios | 1.0.25: multi-object AR + FB validation fix |
 | 2026-06-24 | 1.0.26+26 | 4c945889c331 | android | 1.0.26: Meta App Events + unified network gates + NetworkLogger |
 | 2026-06-24 | 1.0.26+26 | 4c945889c331 | ios | 1.0.26: Meta App Events + unified network gates + NetworkLogger |
+| 2026-06-25 | 1.0.27+27 | 0d5addf4b79b | android | 1.0.27: launcher app-icon unread badge (app_badge_plus) |
