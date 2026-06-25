@@ -8,8 +8,6 @@ import 'package:shimmer/shimmer.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
-import '../../../../shared/models/banner.dart';
-import '../../../../shared/models/multilingual_text.dart';
 import '../../../../shared/models/product.dart';
 import '../../../../shared/repositories/product_data_source.dart';
 import '../../../customer_app.dart';
@@ -143,15 +141,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                       s.status == HomeStatus.initial) {
                                     return const GlassBannerShimmer();
                                   }
-                                  final banners = s.banners.isNotEmpty
-                                      ? s.banners
-                                      : _fallbackBanners;
-                                  // The seller-promo slide rides ahead of the
-                                  // editorial banners on every load.
+                                  // Editorial banners are DB-driven only — no
+                                  // static fallback. When `/catalog/banners` is
+                                  // empty the carousel carries just the injected
+                                  // seller-promo slide, which always rides ahead.
                                   return GlassBanner(
                                     banners: [
                                       GlassBanner.sellerPromoBanner,
-                                      ...banners,
+                                      ...s.banners,
                                     ],
                                   );
                                 },
@@ -974,56 +971,6 @@ class _RecommendedEmpty extends StatelessWidget {
     );
   }
 }
-
-// ─────────────────────────── Fallback banners ───────────────────────────
-
-const _fallbackBanners = <HomeBanner>[
-  HomeBanner(
-    id: '__fb1',
-    imageUrl:
-        'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=1200&q=80',
-    title: MultilingualText(
-      uz: 'QIŞ SOTUVI',
-      ru: 'ЗИМНЯЯ РАСПРОДАЖА',
-      en: 'WINTER SALE',
-    ),
-    subtitle: MultilingualText(
-      uz: '30% gacha chegirma',
-      ru: 'Скидки до 30%',
-      en: 'Up to 30% Off',
-    ),
-  ),
-  HomeBanner(
-    id: '__fb2',
-    imageUrl:
-        'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=1200&q=80',
-    title: MultilingualText(
-      uz: 'YANGI MAHSULOTLAR',
-      ru: 'НОВИНКИ',
-      en: 'NEW ARRIVALS',
-    ),
-    subtitle: MultilingualText(
-      uz: 'Bahorgi kolleksiya 2026',
-      ru: 'Весенняя коллекция 2026',
-      en: 'Spring Collection 2026',
-    ),
-  ),
-  HomeBanner(
-    id: '__fb3',
-    imageUrl:
-        'https://images.unsplash.com/photo-1631679706909-1844bbd07221?w=1200&q=80',
-    title: MultilingualText(
-      uz: 'BEPUL YETKAZISH',
-      ru: 'БЕСПЛАТНАЯ ДОСТАВКА',
-      en: 'FREE DELIVERY',
-    ),
-    subtitle: MultilingualText(
-      uz: "5M so'mdan yuqori buyurtmalarda",
-      ru: 'При заказе от 5M UZS',
-      en: 'On orders above 5M UZS',
-    ),
-  ),
-];
 
 // ─────────────────────── Top Brands (commented out for MVP) ───────────────────
 // The widgets and mock data below are kept in cold storage so we can light the
