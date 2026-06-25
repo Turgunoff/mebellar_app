@@ -28,3 +28,4 @@ Yozuvlar avtomatik qo'shiladi:
 | 2026-06-24 | 1.0.26+26 | 4c945889c331 | android | 1.0.26: Meta App Events + unified network gates + NetworkLogger |
 | 2026-06-24 | 1.0.26+26 | 4c945889c331 | ios | 1.0.26: Meta App Events + unified network gates + NetworkLogger |
 | 2026-06-25 | 1.0.27+27 | 0d5addf4b79b | android | 1.0.27: launcher app-icon unread badge (app_badge_plus) |
+| 2026-06-25 | 1.0.28+28 | f36231d54217 | android | — |
