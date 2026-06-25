@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../../core/i18n/i18n.dart';
@@ -479,9 +480,9 @@ class _Badge extends StatelessWidget {
                   : null,
               color: unlocked ? null : c.lockedBg,
             ),
-            child: Icon(
+            child: FaIcon(
               item.icon,
-              size: 22,
+              size: 20,
               color: unlocked ? Colors.white : c.greyMid,
             ),
           ),

@@ -308,6 +308,8 @@ const Map<String, dynamic> notificationsUz = {
         'Cold start: app_mode override + pending route + switchAppMode',
   },
   'view_cta': 'Ko\'rish',
+  'read_more': 'Batafsil',
+  'read_less': 'Yopish',
   'placeholder_body_with_id':
       'Placeholder — id: {id}\nMaxsus ekran keyingi bosqichda qo\'shiladi.',
   'placeholder_body': 'Maxsus ekran keyingi bosqichda qo\'shiladi.',
@@ -354,6 +356,8 @@ const Map<String, dynamic> notificationsRu = {
         'Cold start: app_mode override + pending route + switchAppMode',
   },
   'view_cta': 'Посмотреть',
+  'read_more': 'Подробнее',
+  'read_less': 'Свернуть',
   'placeholder_body_with_id':
       'Раздел в разработке — id: {id}\nОтдельный экран появится в следующем обновлении.',
   'placeholder_body': 'Отдельный экран появится в следующем обновлении.',
@@ -396,6 +400,8 @@ const Map<String, dynamic> notificationsEn = {
         'Cold start: app_mode override + pending route + switchAppMode',
   },
   'view_cta': 'View',
+  'read_more': 'Read more',
+  'read_less': 'Show less',
   'placeholder_body_with_id':
       'Placeholder — id: {id}\nThe dedicated screen will be added in a future update.',
   'placeholder_body': 'The dedicated screen will be added in a future update.',

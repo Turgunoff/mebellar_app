@@ -11,104 +11,148 @@ part of 'shop_profile_screen.dart';
 const Color _kBadgeGold = Color(0xFFE6B23E);
 const Color _kBadgeGoldDeep = Color(0xFFC8902A);
 
-/// Maps a backend achievement icon token to an Iconsax glyph. Mirrors the
+/// Maps a backend achievement icon name to a FontAwesome glyph. Mirrors the
 /// seller dashboard's `achievementIcon`; kept local so customer code doesn't
-/// reach into the seller feature. Unknown tokens fall back to a medal so a new
+/// reach into the seller feature. Unknown names fall back to a trophy so a new
 /// server-side achievement still renders without an app update.
-IconData achievementBadgeIcon(String token) => switch (token) {
-  'medal' => Iconsax.medal_star,
-  'crown' => Iconsax.crown_1,
-  'cup' => Iconsax.cup,
-  'box' => Iconsax.box,
-  'box_tick' => Iconsax.box_tick,
-  'wallet' => Iconsax.wallet_check,
-  'star' => Iconsax.star_1,
-  'flash' => Iconsax.flash_1,
-  _ => Iconsax.medal_star,
+FaIconData achievementBadgeIcon(String name) => switch (name) {
+  'box' => FontAwesomeIcons.box,
+  'boxes-stacked' => FontAwesomeIcons.boxesStacked,
+  'award' => FontAwesomeIcons.award,
+  'trophy' => FontAwesomeIcons.trophy,
+  'medal' => FontAwesomeIcons.medal,
+  'money-bill-wave' => FontAwesomeIcons.moneyBillWave,
+  'wand-magic-sparkles' => FontAwesomeIcons.wandMagicSparkles,
+  'cubes' => FontAwesomeIcons.cubes,
+  'bolt' => FontAwesomeIcons.bolt,
+  'star' => FontAwesomeIcons.star,
+  'couch' => FontAwesomeIcons.couch,
+  'crown' => FontAwesomeIcons.crown,
+  // Legacy Iconsax-era tokens (pre-rebuild cached data).
+  'cup' => FontAwesomeIcons.trophy,
+  'box_tick' => FontAwesomeIcons.boxesStacked,
+  'wallet' => FontAwesomeIcons.wallet,
+  'flash' => FontAwesomeIcons.bolt,
+  _ => FontAwesomeIcons.trophy,
 };
 
-class _AchievementsCard extends StatelessWidget {
-  const _AchievementsCard({required this.achievements, required this.accent});
+/// The only milestones a buyer sees — high-value SOCIAL PROOF badges that build
+/// trust. Internal/administrative milestones (product-count tiers, etc.) are
+/// deliberately excluded so the shop header stays meaningful to shoppers.
+const Set<String> _kPublicBadgeCodes = {
+  'first_sale', // Faol sotuvchi
+  'high_revenue', // Ishonchli hamkor
+  'top_rated', // Mijozlar yoqimtoyi
+  'fast_processor', // Chaqmoq
+  'ar_master', // Virtual Ko'rgazma
+};
+
+/// Horizontal strip of trust badges shown in the shop header — directly under
+/// the verified subtitle, above the stats card. Filters the seller's unlocked
+/// milestones to [_kPublicBadgeCodes], renders each as a terracotta medallion,
+/// and opens the localized reward sheet on tap. Renders nothing when the seller
+/// has earned none of the public milestones, so the header stays clean.
+class ShopProfileBadgesRow extends StatelessWidget {
+  const ShopProfileBadgesRow({super.key, required this.achievements});
 
   final List<ShopAchievement> achievements;
-  final Color accent;
 
   @override
   Widget build(BuildContext context) {
-    return _SectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              _SectionTitle(text: tr('shop.achievements_title'), accent: accent),
-              const SizedBox(width: 8),
-              Icon(Iconsax.medal_star, size: 15, color: _kBadgeGoldDeep),
-            ],
-          ),
-          const SizedBox(height: 14),
-          SizedBox(
-            height: 96,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              padding: EdgeInsets.zero,
-              itemCount: achievements.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 14),
-              itemBuilder: (context, i) =>
-                  _BadgeChip(achievement: achievements[i]),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+    // Keep the catalogue's sort order; just drop non-public milestones.
+    final public = achievements
+        .where((a) => _kPublicBadgeCodes.contains(a.code))
+        .toList(growable: false);
+    if (public.isEmpty) return const SizedBox.shrink();
 
-/// One tappable medallion + its short title underneath.
-class _BadgeChip extends StatelessWidget {
-  const _BadgeChip({required this.achievement});
-
-  final ShopAchievement achievement;
-
-  @override
-  Widget build(BuildContext context) {
-    final pt = PremiumTokens.of(context);
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => _showAchievementSheet(context, achievement),
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
       child: SizedBox(
-        width: 72,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _Medallion(icon: achievementBadgeIcon(achievement.icon)),
-            const SizedBox(height: 7),
-            Text(
-              achievement.titleUz,
-              maxLines: 2,
-              textAlign: TextAlign.center,
-              overflow: TextOverflow.ellipsis,
-              style: _ts(
-                size: 11,
-                weight: FontWeight.w600,
-                height: 1.15,
-                color: pt.grey,
-              ),
-            ),
-          ],
+        height: 56,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          padding: EdgeInsets.zero,
+          itemCount: public.length,
+          separatorBuilder: (_, _) => const SizedBox(width: 12),
+          itemBuilder: (context, i) => _BadgePill(
+            achievement: public[i],
+            // Stagger each badge's entrance so the strip animates in on load.
+            index: i,
+          ),
         ),
       ),
     );
   }
 }
 
-/// Circular gold gradient badge with a soft glow — the visual anchor of a
-/// trust badge. Reused at two sizes (row chip + bottom-sheet hero).
+/// One circular terracotta trust badge. Fades + pops in on load (staggered by
+/// [index]); tapping opens the localized reward sheet.
+class _BadgePill extends StatelessWidget {
+  const _BadgePill({required this.achievement, required this.index});
+
+  final ShopAchievement achievement;
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: Duration(milliseconds: 300 + index * 90),
+      curve: Curves.easeOutBack,
+      builder: (context, t, child) => Opacity(
+        opacity: t.clamp(0.0, 1.0),
+        child: Transform.scale(scale: 0.8 + 0.2 * t.clamp(0.0, 1.0), child: child),
+      ),
+      child: Semantics(
+        button: true,
+        label: achievement.localizedTitle(context.locale.languageCode),
+        child: Material(
+          color: Colors.transparent,
+          shape: const CircleBorder(),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () => _showAchievementSheet(context, achievement),
+            child: Container(
+              width: 52,
+              height: 52,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    PremiumTokens.accent,
+                    PremiumTokens.accent.withValues(alpha: 0.82),
+                  ],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: PremiumTokens.accent.withValues(alpha: 0.30),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: FaIcon(
+                achievementBadgeIcon(achievement.icon),
+                size: 21,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Circular gold gradient badge with a soft glow — the bottom-sheet hero anchor.
 class _Medallion extends StatelessWidget {
   const _Medallion({required this.icon, this.size = 56});
 
-  final IconData icon;
+  final FaIconData icon;
   final double size;
 
   @override
@@ -132,7 +176,7 @@ class _Medallion extends StatelessWidget {
           ),
         ],
       ),
-      child: Icon(icon, size: size * 0.42, color: Colors.white),
+      child: FaIcon(icon, size: size * 0.42, color: Colors.white),
     );
   }
 }
@@ -160,7 +204,9 @@ class _AchievementSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pt = tokens;
-    final description = (achievement.descriptionUz ?? '').trim();
+    final lang = context.locale.languageCode;
+    // The buyer-facing reward blurb is the trust-building description here.
+    final description = achievement.localizedReward(lang).trim();
     return SafeArea(
       top: false,
       child: Container(
@@ -186,7 +232,7 @@ class _AchievementSheet extends StatelessWidget {
             _Medallion(icon: achievementBadgeIcon(achievement.icon), size: 76),
             const SizedBox(height: 18),
             Text(
-              achievement.titleUz,
+              achievement.localizedTitle(lang),
               textAlign: TextAlign.center,
               style: _ts(
                 size: 18,

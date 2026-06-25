@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:shimmer/shimmer.dart';
@@ -242,11 +243,8 @@ class _ReadyContentState extends State<_ReadyContent> {
     final brandInk = _brandAccent(context, brand);
     final cards = <Widget>[
       _StatsCard(shop: shop, accent: brandInk),
-      if (shop.unlockedAchievements.isNotEmpty)
-        _AchievementsCard(
-          achievements: shop.unlockedAchievements,
-          accent: brandInk,
-        ),
+      // Trust badges moved up into the header (ShopProfileBadgesRow), filtered
+      // to public social-proof milestones — no separate card here anymore.
       if ((shop.description ?? '').isNotEmpty)
         _AboutCard(text: shop.description!, accent: brandInk),
       if (shop.hasPhone || shop.hasTelegram)
@@ -412,6 +410,10 @@ class _ShopHeader extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               _SubtitleLine(shop: shop),
+              // Trust badges sit between the verified subtitle and the stats
+              // card; the widget self-hides (and drops its top padding) when the
+              // seller has earned no public milestones.
+              ShopProfileBadgesRow(achievements: shop.unlockedAchievements),
             ],
           ),
         ),

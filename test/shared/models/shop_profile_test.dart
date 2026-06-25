@@ -65,6 +65,45 @@ void main() {
       expect(shop.workingHours.hasAnyOpenDay, isTrue);
     });
 
+    test('ShopAchievement parses reward + en and localizes with fallback', () {
+      final shop = ShopProfile.fromJson({
+        'id': 'shop-3',
+        'name': 'Trust Mebel',
+        'is_verified': true,
+        'product_count': 0,
+        'review_count': 0,
+        'unlocked_achievements': [
+          {
+            'code': 'top_rated',
+            'title_uz': 'Mijozlar yoqimtoyi',
+            'title_ru': 'Любимец клиентов',
+            'title_en': 'Customer favorite',
+            'reward_uz': '10 ta 5 yulduzli sharh uchun.',
+            'reward_ru': 'За 10 отзывов на 5 звёзд.',
+            'reward_en': 'For 10 five-star reviews.',
+            'icon': 'star',
+          },
+        ],
+      });
+
+      final a = shop.unlockedAchievements.single;
+      // Active-locale pick.
+      expect(a.localizedTitle('ru'), 'Любимец клиентов');
+      expect(a.localizedReward('en'), 'For 10 five-star reviews.');
+      // uz baseline.
+      expect(a.localizedTitle('uz'), 'Mijozlar yoqimtoyi');
+      // Missing translation falls back uz → ru → en (no reward_ru/en here).
+      final partial = ShopAchievement.fromJson({
+        'code': 'first_sale',
+        'title_uz': 'Faol sotuvchi',
+        'title_ru': '',
+        'reward_uz': 'Faol sotuvchi nishoni.',
+        'icon': 'trophy',
+      });
+      expect(partial.localizedReward('ru'), 'Faol sotuvchi nishoni.');
+      expect(partial.localizedTitle('en'), 'Faol sotuvchi');
+    });
+
     test('a bare payload with no reviews leaves rating null', () {
       final shop = ShopProfile.fromJson({
         'id': 'shop-2',

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:woody_app/seller/features/dashboard/data/dashboard_models.dart';
 import 'package:woody_app/seller/features/dashboard/screens/achievements_screen.dart';
 import 'package:woody_app/seller/features/dashboard/widgets/achievements_strip.dart';
@@ -44,7 +45,7 @@ const _leaderboard = <LeaderboardEntry>[
 
 final _strip = <Achievement>[
   Achievement(
-    icon: Icons.star,
+    icon: FontAwesomeIcons.star,
     title: 'Birinchi savdo',
     caption: 'Bajarildi',
     current: 1,
@@ -70,7 +71,7 @@ Achievement _ach(
   required int target,
   required bool unlocked,
 }) => Achievement(
-  icon: Icons.star,
+  icon: FontAwesomeIcons.star,
   title: title,
   caption: unlocked ? 'Bajarildi' : 'Davom etmoqda',
   current: current,
@@ -209,7 +210,7 @@ void main() {
 
   test('Achievement.progress is current / target, clamped to 1', () {
     const a = Achievement(
-      icon: Icons.star,
+      icon: FontAwesomeIcons.star,
       title: 't',
       caption: 'c',
       current: 18,
@@ -219,7 +220,7 @@ void main() {
     );
     expect(a.progress, closeTo(0.36, 1e-9));
     const done = Achievement(
-      icon: Icons.star,
+      icon: FontAwesomeIcons.star,
       title: 't',
       caption: 'c',
       current: 10,

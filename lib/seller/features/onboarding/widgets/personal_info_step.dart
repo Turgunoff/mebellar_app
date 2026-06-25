@@ -49,11 +49,14 @@ class _PersonalInfoStepState extends State<PersonalInfoStep> {
   }
 
   void _emit() {
+    final email = _email.text.trim();
     context.read<OnboardingBloc>().add(
       OnboardingPersonalInfoChanged(
         legalName: _name.text,
         contactPhone: _phone.text,
-        contactEmail: _email.text,
+        // Email is optional — a blank field stays null so the backend stores
+        // NULL rather than an empty string.
+        contactEmail: email.isEmpty ? null : email,
         telegramUsername: _telegram.text,
       ),
     );
@@ -75,7 +78,9 @@ class _PersonalInfoStepState extends State<PersonalInfoStep> {
 
   String? _emailValidator(String? value) {
     final text = value?.trim() ?? '';
-    if (text.isEmpty) return tr('onboarding.validation_email_required');
+    // Email is optional — accept a blank field, only reject a malformed
+    // address when the seller actually typed one.
+    if (text.isEmpty) return null;
     if (!_emailRegex.hasMatch(text)) {
       return tr('onboarding.validation_email_invalid');
     }
@@ -126,7 +131,7 @@ class _PersonalInfoStepState extends State<PersonalInfoStep> {
             keyboardType: TextInputType.emailAddress,
             decoration: onboardingFieldDecoration(
               context,
-              label: tr('onboarding.contact_email'),
+              label: tr('onboarding.contact_email_optional'),
               icon: Icons.mail_outline_rounded,
             ),
             validator: _emailValidator,

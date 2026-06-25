@@ -1,22 +1,36 @@
 import 'package:flutter/material.dart';
-import 'package:iconsax_flutter/iconsax_flutter.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
 
 import '../../../../shared/models/dashboard_snapshot.dart';
 
-/// Maps a backend achievement icon token (seeded in migration 0015) to an
-/// Iconsax glyph. Unknown tokens fall back to a medal, so a new server-side
-/// achievement still renders something sensible without an app update.
-IconData achievementIcon(String token) => switch (token) {
-  'medal' => Iconsax.medal_star,
-  'crown' => Iconsax.crown_1,
-  'cup' => Iconsax.cup,
-  'box' => Iconsax.box,
-  'box_tick' => Iconsax.box_tick,
-  'wallet' => Iconsax.wallet_check,
-  'star' => Iconsax.star_1,
-  'flash' => Iconsax.flash_1,
-  _ => Iconsax.medal_star,
+/// Maps a backend achievement icon name to a FontAwesome glyph. The DB stores
+/// only the name string (e.g. 'trophy', 'boxes-stacked'); this is the single
+/// place that resolves it to an `IconData` for `FaIcon`. The 12 names below are
+/// the seeded catalogue (app/services/achievements_seed.py); a handful of
+/// legacy Iconsax-era tokens are aliased so stale cached rows still render, and
+/// any unknown name falls back to a trophy — a new server-side achievement
+/// shows something sensible without an app update.
+FaIconData achievementIcon(String name) => switch (name) {
+  // ── Seeded FontAwesome names ──
+  'box' => FontAwesomeIcons.box,
+  'boxes-stacked' => FontAwesomeIcons.boxesStacked,
+  'award' => FontAwesomeIcons.award,
+  'trophy' => FontAwesomeIcons.trophy,
+  'medal' => FontAwesomeIcons.medal,
+  'money-bill-wave' => FontAwesomeIcons.moneyBillWave,
+  'wand-magic-sparkles' => FontAwesomeIcons.wandMagicSparkles,
+  'cubes' => FontAwesomeIcons.cubes,
+  'bolt' => FontAwesomeIcons.bolt,
+  'star' => FontAwesomeIcons.star,
+  'couch' => FontAwesomeIcons.couch,
+  'crown' => FontAwesomeIcons.crown,
+  // ── Legacy Iconsax-era tokens (pre-rebuild cached data) ──
+  'cup' => FontAwesomeIcons.trophy,
+  'box_tick' => FontAwesomeIcons.boxesStacked,
+  'wallet' => FontAwesomeIcons.wallet,
+  'flash' => FontAwesomeIcons.bolt,
+  _ => FontAwesomeIcons.trophy,
 };
 
 /// View-model for the dashboard achievement strip + the detailed screen, built
@@ -35,7 +49,7 @@ class Achievement {
     required this.reward,
   });
 
-  final IconData icon;
+  final FaIconData icon;
   final String title;
   final String caption;
 
@@ -50,7 +64,10 @@ class Achievement {
   /// 0..1 fraction for the progress ring / bar.
   double get progress => target == 0 ? 0 : (current / target).clamp(0.0, 1.0);
 
-  factory Achievement.fromProgress(AchievementProgress p) {
+  /// Builds the view-model from the backend row. [lang] (the active UI locale,
+  /// uz/ru/en) selects the localized title + reward; revenue milestones are
+  /// collapsed to millions so the "x / y" counter reads cleanly.
+  factory Achievement.fromProgress(AchievementProgress p, {String lang = 'uz'}) {
     final divisor = p.requirementType == 'revenue_realized' ? 1000000.0 : 1.0;
     final rawTarget = (p.threshold / divisor).round();
     final target = rawTarget <= 0 ? 1 : rawTarget;
@@ -59,14 +76,14 @@ class Achievement {
       // Status caption, not the "x / y" counter — the detail screen renders the
       // counter separately, so duplicating it here would show it twice.
       icon: achievementIcon(p.icon),
-      title: p.titleUz,
+      title: p.localizedTitle(lang),
       caption: p.unlocked
           ? tr('dashboard.achievement_done_chip')
           : 'Davom etmoqda',
       current: current,
       target: target,
       unlocked: p.unlocked,
-      reward: p.descriptionUz ?? '',
+      reward: p.localizedReward(lang),
     );
   }
 }

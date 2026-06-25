@@ -4,6 +4,8 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/auth/auth_repository.dart';
+import '../../../../core/di/service_locator.dart';
+import '../../../../core/i18n/app_locale_controller.dart';
 import '../../../../shared/models/dashboard_snapshot.dart';
 import '../../../../shared/models/order.dart';
 import '../../../../shared/models/seller_wallet.dart';
@@ -64,6 +66,12 @@ class SellerDashboardCubit extends Cubit<SellerDashboardState> {
     try {
       final snap = await _repo.snapshot();
       if (isClosed) return;
+      // Active UI locale — picks the uz/ru/en title + reward per achievement.
+      // Guarded so the cubit still loads if the locale controller isn't wired
+      // (e.g. in widget/bloc tests), falling back to the uz baseline.
+      final lang = sl.isRegistered<AppLocaleController>()
+          ? sl<AppLocaleController>().value.languageCode
+          : 'uz';
       emit(
         SellerDashboardState(
           isLoading: false,
@@ -88,7 +96,7 @@ class SellerDashboardCubit extends Cubit<SellerDashboardState> {
             weekly: snap.weekly,
             kpiDeltas: snap.kpiDeltas,
             achievements: snap.achievements
-                .map(Achievement.fromProgress)
+                .map((p) => Achievement.fromProgress(p, lang: lang))
                 .toList(growable: false),
             leaderboard: snap.leaderboard
                 .map(LeaderboardEntry.fromStanding)

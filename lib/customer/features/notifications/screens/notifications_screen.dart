@@ -82,6 +82,15 @@ class _NotificationsViewState extends State<_NotificationsView> {
         opened: route != null,
       ),
     );
+
+    // Trial-bonus grants are informational: in customer mode the tap only
+    // toggles the tile open/closed in place — it must never reach GoRouter or
+    // trigger a mode switch, even if a future payload starts carrying a route.
+    // Belt-and-braces over determineRouteFor() already returning null here.
+    if (notification.kind == NotificationKind.tariffBonusGranted &&
+        context.read<AppModeCubit>().state == AppMode.customer) {
+      return;
+    }
     if (route == null) return;
 
     // A seller verdict invalidates the cached /me seller status behind the
@@ -531,15 +540,16 @@ class _NotificationTileState extends State<_NotificationTile> {
                     ),
                     if (notification.body.isNotEmpty) ...[
                       const SizedBox(height: 4),
-                      Text(
-                        notification.body,
-                        maxLines: _expanded ? null : 3,
-                        overflow: _expanded ? null : TextOverflow.ellipsis,
-                        style: PremiumTokens.body(
-                          size: 13,
-                          color: pt.grey,
-                          height: 1.35,
-                        ),
+                      _NotificationBody(
+                        text: notification.body,
+                        expanded: _expanded,
+                        // Long informational copy (e.g. the trial-bonus grant)
+                        // gets an explicit "read more / less" affordance so the
+                        // full text is readable without leaving the inbox.
+                        showToggle: widget.expandsOnTap,
+                        accent: kindAccent,
+                        onToggle: () =>
+                            setState(() => _expanded = !_expanded),
                       ),
                     ],
                     if (_hasViewCta(notification.kind)) ...[
@@ -580,6 +590,97 @@ class _NotificationTileState extends State<_NotificationTile> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Notification body text with an explicit, always-visible expand/collapse
+/// toggle. The "read more" / "read less" row only appears when [showToggle] is
+/// set (informational kinds) AND the copy would actually clamp at
+/// [_collapsedLines] — so short notifications stay clean while long ones get an
+/// obvious chevron. Measured per-build with a [TextPainter] against the real
+/// available width, mirroring the seller `DescriptionCard` pattern.
+class _NotificationBody extends StatelessWidget {
+  const _NotificationBody({
+    required this.text,
+    required this.expanded,
+    required this.showToggle,
+    required this.accent,
+    required this.onToggle,
+  });
+
+  static const _collapsedLines = 3;
+
+  final String text;
+  final bool expanded;
+  final bool showToggle;
+  final Color accent;
+  final VoidCallback onToggle;
+
+  bool _clamps(BuildContext context, TextStyle style, double maxWidth) {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      maxLines: _collapsedLines,
+      textDirection: Directionality.of(context),
+    )..layout(maxWidth: maxWidth);
+    return painter.didExceedMaxLines;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
+    final style = PremiumTokens.body(size: 13, color: pt.grey, height: 1.35);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final clamps = _clamps(context, style, constraints.maxWidth);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              text,
+              maxLines: expanded ? null : _collapsedLines,
+              overflow: expanded
+                  ? TextOverflow.visible
+                  : TextOverflow.ellipsis,
+              style: style,
+            ),
+            if (showToggle && clamps) ...[
+              const SizedBox(height: 6),
+              GestureDetector(
+                // Nested inside the tile's GestureDetector — it wins the arena
+                // for taps on the chevron, so this only flips expand/collapse
+                // and never re-fires the tile's mark-read/route handler.
+                onTap: onToggle,
+                behavior: HitTestBehavior.opaque,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      tr(
+                        expanded
+                            ? 'notifications.read_less'
+                            : 'notifications.read_more',
+                      ),
+                      style: PremiumTokens.body(
+                        size: 12,
+                        weight: FontWeight.w700,
+                        color: accent,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      expanded ? Iconsax.arrow_up_2 : Iconsax.arrow_down_1,
+                      size: 14,
+                      color: accent,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
 }

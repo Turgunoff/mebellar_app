@@ -77,7 +77,77 @@ class _SellerProfileView extends StatelessWidget {
                       children: [
                         _ProfileIdentity(state: state),
                         const SizedBox(height: 24),
-                        _SectionLabel(text: tr('seller.profile_section_manage_shop')),
+                        // Group 1 — Finance & subscriptions (money, plan,
+                        // usage limits). Surfaced first as the highest-stakes
+                        // surface for a seller.
+                        _SectionLabel(text: tr('seller.profile_section_finance')),
+                        const SizedBox(height: 8),
+                        _SettingsCard(
+                          items: [
+                            _SettingsItem(
+                              icon: Iconsax.wallet_3_copy,
+                              iconColor: state.wallet?.isHealthy == false
+                                  ? AppColors.danger
+                                  : null,
+                              title: tr('seller.profile_wallet_title'),
+                              subtitle: _walletSubtitle(state),
+                              onTap: () => _push(context, const WalletScreen()),
+                            ),
+                            // Tariff is hidden while the tariff system is
+                            // switched off (RemoteConfig.tariffEnabled).
+                            if (RemoteConfig.instance.tariffEnabled)
+                              _SettingsItem(
+                                icon: Iconsax.crown_1_copy,
+                                iconColor: SellerColors.of(context).gold,
+                                title: tr('seller.tariff_title'),
+                                subtitle: _planSubtitle(state),
+                                onTap: () =>
+                                    _push(context, const TariffScreen()),
+                              ),
+                            _SettingsItem(
+                              icon: Iconsax.flash_1_copy,
+                              iconColor: SellerColors.of(context).gold,
+                              title: tr('seller.profile_ar_tokens_title'),
+                              subtitle: tr('seller.profile_ar_tokens_subtitle'),
+                              onTap: () =>
+                                  _push(context, const ArTokensScreen()),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        // Group 2 — Customer relations (high-frequency buyer
+                        // interaction surfaces).
+                        _SectionLabel(
+                          text: tr('seller.profile_section_customer_relations'),
+                        ),
+                        const SizedBox(height: 8),
+                        _SettingsCard(
+                          items: [
+                            // Promoted out of "Ilova sozlamalari" — chats are a
+                            // core customer-relations surface, not an app
+                            // setting.
+                            _SettingsItem(
+                              icon: Iconsax.message_copy,
+                              title: tr('seller.profile_chats_title'),
+                              subtitle: tr('seller.profile_chats_subtitle'),
+                              badgeCount: unreadChats,
+                              onTap: () => context.push('/seller/chats'),
+                            ),
+                            _SettingsItem(
+                              icon: Iconsax.messages_2_copy,
+                              title: tr('seller.profile_reviews_title'),
+                              subtitle: tr('seller.profile_reviews_subtitle'),
+                              onTap: () =>
+                                  _push(context, const ReviewsScreen()),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        // Group 3 — Store configuration (set-and-forget admin
+                        // settings).
+                        _SectionLabel(
+                          text: tr('seller.profile_section_manage_shop'),
+                        ),
                         const SizedBox(height: 8),
                         _SettingsCard(
                           items: [
@@ -94,50 +164,6 @@ class _SellerProfileView extends StatelessWidget {
                               onTap: () =>
                                   _push(context, const SellerServicesScreen()),
                             ),
-                            _SettingsItem(
-                              icon: Iconsax.messages_2_copy,
-                              title: tr('seller.profile_reviews_title'),
-                              subtitle: tr('seller.profile_reviews_subtitle'),
-                              onTap: () =>
-                                  _push(context, const ReviewsScreen()),
-                            ),
-                            // Promoted out of "Ilova sozlamalari" — chats are a
-                            // core shop-management surface, not an app setting.
-                            _SettingsItem(
-                              icon: Iconsax.message_copy,
-                              title: tr('seller.profile_chats_title'),
-                              subtitle: tr('seller.profile_chats_subtitle'),
-                              badgeCount: unreadChats,
-                              onTap: () => context.push('/seller/chats'),
-                            ),
-                            _SettingsItem(
-                              icon: Iconsax.wallet_3_copy,
-                              iconColor: state.wallet?.isHealthy == false
-                                  ? AppColors.danger
-                                  : null,
-                              title: tr('seller.profile_wallet_title'),
-                              subtitle: _walletSubtitle(state),
-                              onTap: () => _push(context, const WalletScreen()),
-                            ),
-                            _SettingsItem(
-                              icon: Iconsax.flash_1_copy,
-                              iconColor: SellerColors.of(context).gold,
-                              title: tr('seller.profile_ar_tokens_title'),
-                              subtitle: tr('seller.profile_ar_tokens_subtitle'),
-                              onTap: () =>
-                                  _push(context, const ArTokensScreen()),
-                            ),
-                            // Tariff is hidden while the tariff system is
-                            // switched off (RemoteConfig.tariffEnabled).
-                            if (RemoteConfig.instance.tariffEnabled)
-                              _SettingsItem(
-                                icon: Iconsax.crown_1_copy,
-                                iconColor: SellerColors.of(context).gold,
-                                title: tr('seller.tariff_title'),
-                                subtitle: _planSubtitle(state),
-                                onTap: () =>
-                                    _push(context, const TariffScreen()),
-                              ),
                           ],
                         ),
                         const SizedBox(height: 20),
@@ -145,7 +171,8 @@ class _SellerProfileView extends StatelessWidget {
                         const SizedBox(height: 8),
                         _SettingsCard(
                           items: [
-                            // Suhbatlar promoted up to "Do'konni boshqarish".
+                            // Chats/reviews/wallet live in their own grouped
+                            // sections above; only app-level prefs remain here.
                             // Bildirishnomalar entry removed — the dashboard
                             // bell icon is the canonical entry point.
                             _SettingsItem(

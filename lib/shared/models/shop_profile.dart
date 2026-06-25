@@ -3,28 +3,49 @@ import 'package:equatable/equatable.dart';
 import 'working_hours.dart';
 
 /// One unlocked seller milestone, surfaced on the public store page as a
-/// gamified trust badge. Backend ships the catalogue copy in uz + ru (the
-/// store screen is Uzbek-only, so it reads [titleUz]/[descriptionUz]) plus the
-/// `icon` token the app maps to a glyph. Only unlocked badges ever arrive — the
-/// public endpoint returns persisted unlocks, never the locked catalogue.
+/// gamified trust badge. Backend ships the catalogue copy in uz/ru/en plus a
+/// buyer-facing `reward_*` blurb; the app picks the active locale via
+/// [localizedTitle] / [localizedReward]. `icon` is a FontAwesome name the app
+/// maps to a glyph. Only unlocked badges ever arrive — the public endpoint
+/// returns persisted unlocks, never the locked catalogue.
 class ShopAchievement extends Equatable {
   const ShopAchievement({
     required this.code,
     required this.titleUz,
     required this.titleRu,
+    this.titleEn,
     this.descriptionUz,
     this.descriptionRu,
+    this.descriptionEn,
+    this.rewardUz,
+    this.rewardRu,
+    this.rewardEn,
     required this.icon,
   });
 
   final String code;
   final String titleUz;
   final String titleRu;
+  final String? titleEn;
   final String? descriptionUz;
   final String? descriptionRu;
+  final String? descriptionEn;
 
-  /// Server icon token (e.g. `medal`, `box`) — see `achievementBadgeIcon`.
+  /// Buyer-facing reward/trust blurb (uz/ru/en) — the badge's description.
+  final String? rewardUz;
+  final String? rewardRu;
+  final String? rewardEn;
+
+  /// FontAwesome icon name (e.g. `trophy`, `bolt`) — see `achievementBadgeIcon`.
   final String icon;
+
+  /// Title in [lang] (uz/ru/en), falling back uz → ru → en.
+  String localizedTitle(String lang) =>
+      _pickLang(lang, titleUz, titleRu, titleEn);
+
+  /// Reward blurb in [lang] with the same uz → ru → en fallback.
+  String localizedReward(String lang) =>
+      _pickLang(lang, rewardUz, rewardRu, rewardEn);
 
   factory ShopAchievement.fromJson(Map<String, dynamic> json) {
     String? str(String key) {
@@ -37,14 +58,33 @@ class ShopAchievement extends Equatable {
       code: json['code'] as String? ?? '',
       titleUz: (json['title_uz'] as String?)?.trim() ?? '',
       titleRu: (json['title_ru'] as String?)?.trim() ?? '',
+      titleEn: str('title_en'),
       descriptionUz: str('description_uz'),
       descriptionRu: str('description_ru'),
+      descriptionEn: str('description_en'),
+      rewardUz: str('reward_uz'),
+      rewardRu: str('reward_ru'),
+      rewardEn: str('reward_en'),
       icon: json['icon'] as String? ?? '',
     );
   }
 
   @override
   List<Object?> get props => [code, titleUz, icon];
+}
+
+/// Resolves a uz/ru/en triple to [lang], skipping null/empty and falling back
+/// uz → ru → en.
+String _pickLang(String lang, String? uz, String? ru, String? en) {
+  final byLang = switch (lang) {
+    'ru' => ru,
+    'en' => en,
+    _ => uz,
+  };
+  for (final candidate in [byLang, uz, ru, en]) {
+    if (candidate != null && candidate.isNotEmpty) return candidate;
+  }
+  return '';
 }
 
 /// Public, customer-facing view of a seller's shop — the payload behind

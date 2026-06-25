@@ -110,8 +110,13 @@ class AchievementProgress extends Equatable {
     required this.code,
     required this.titleUz,
     required this.titleRu,
+    this.titleEn,
     this.descriptionUz,
     this.descriptionRu,
+    this.descriptionEn,
+    this.rewardUz,
+    this.rewardRu,
+    this.rewardEn,
     required this.icon,
     required this.requirementType,
     required this.threshold,
@@ -123,14 +128,32 @@ class AchievementProgress extends Equatable {
   final String code;
   final String titleUz;
   final String titleRu;
+  final String? titleEn;
   final String? descriptionUz;
   final String? descriptionRu;
+  final String? descriptionEn;
+  // Standalone reward blurb (uz/ru/en) — the reward box copy, kept apart from
+  // the short description subtitle.
+  final String? rewardUz;
+  final String? rewardRu;
+  final String? rewardEn;
+  // FontAwesome icon name (e.g. 'trophy', 'boxes-stacked'); mapped to a glyph
+  // by `achievementIcon` in the UI layer.
   final String icon;
   final String requirementType;
   final num threshold;
   final num progress;
   final bool unlocked;
   final DateTime? unlockedAt;
+
+  /// Picks [lang] (uz/ru/en) for the title, falling back uz → ru → en so a
+  /// missing translation never renders blank.
+  String localizedTitle(String lang) =>
+      _pickLang(lang, titleUz, titleRu, titleEn);
+
+  /// Reward blurb in [lang] with the same uz → ru → en fallback.
+  String localizedReward(String lang) =>
+      _pickLang(lang, rewardUz, rewardRu, rewardEn);
 
   factory AchievementProgress.fromJson(Map<String, dynamic> json) {
     _dashboardDrift(
@@ -142,8 +165,13 @@ class AchievementProgress extends Equatable {
         code: json['code'] as String? ?? '',
         titleUz: json['title_uz'] as String? ?? '',
         titleRu: json['title_ru'] as String? ?? '',
+        titleEn: json['title_en'] as String?,
         descriptionUz: json['description_uz'] as String?,
         descriptionRu: json['description_ru'] as String?,
+        descriptionEn: json['description_en'] as String?,
+        rewardUz: json['reward_uz'] as String?,
+        rewardRu: json['reward_ru'] as String?,
+        rewardEn: json['reward_en'] as String?,
         icon: json['icon'] as String? ?? '',
         requirementType: json['requirement_type'] as String? ?? '',
         threshold: (json['threshold'] as num?) ?? 1,
@@ -155,6 +183,20 @@ class AchievementProgress extends Equatable {
 
   @override
   List<Object?> get props => [code, progress, unlocked];
+}
+
+/// Resolves a uz/ru/en triple to the requested [lang], skipping null/empty
+/// values and falling back uz → ru → en.
+String _pickLang(String lang, String? uz, String? ru, String? en) {
+  final byLang = switch (lang) {
+    'ru' => ru,
+    'en' => en,
+    _ => uz,
+  };
+  for (final candidate in [byLang, uz, ru, en]) {
+    if (candidate != null && candidate.isNotEmpty) return candidate;
+  }
+  return '';
 }
 
 /// One row of the weekly seller ranking. Competitor names arrive masked from

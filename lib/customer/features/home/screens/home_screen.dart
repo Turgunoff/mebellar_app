@@ -18,6 +18,7 @@ import '../../../widgets/view_mode_toggle.dart';
 import '../../categories/bloc/categories_bloc.dart';
 import '../../favorites/bloc/favorites_bloc.dart';
 import '../../notifications/cubit/notifications_cubit.dart';
+import '../../profile/cubit/profile_cubit.dart';
 import '../../ai_designer/widgets/ai_chat_fab.dart';
 import '../bloc/home_bloc.dart';
 import '../widgets/premium/glass_banner.dart';
@@ -142,12 +143,20 @@ class _HomeScreenState extends State<HomeScreen> {
                                     return const GlassBannerShimmer();
                                   }
                                   // Editorial banners are DB-driven only — no
-                                  // static fallback. When `/catalog/banners` is
-                                  // empty the carousel carries just the injected
-                                  // seller-promo slide, which always rides ahead.
+                                  // static fallback. The injected seller-promo
+                                  // slide rides ahead of them, EXCEPT for an
+                                  // approved seller — they already run a shop,
+                                  // so the "Sotuvchi bo'ling" CTA is noise.
+                                  // GlassBanner collapses to nothing if the
+                                  // list ends up empty.
+                                  final isApprovedSeller = context
+                                      .select<ProfileCubit, bool>(
+                                        (c) => c.state.isSellerApproved,
+                                      );
                                   return GlassBanner(
                                     banners: [
-                                      GlassBanner.sellerPromoBanner,
+                                      if (!isApprovedSeller)
+                                        GlassBanner.sellerPromoBanner,
                                       ...s.banners,
                                     ],
                                   );
