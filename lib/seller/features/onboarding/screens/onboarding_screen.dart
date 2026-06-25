@@ -1,4 +1,4 @@
-﻿import 'package:woody_app/core/i18n/i18n.dart';
+import 'package:woody_app/core/i18n/i18n.dart';
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -167,6 +167,10 @@ class _OnboardingViewState extends State<_OnboardingView> {
               // off.
               canPop: true,
               child: Scaffold(
+                // Default is true, but pin it explicitly: the form steps rely on
+                // the body resizing so the keyboard-aware action bar (see
+                // _BottomBar) can sit directly above the keyboard.
+                resizeToAvoidBottomInset: true,
                 appBar: AppBar(
                   leading: IconButton(
                     icon: const Icon(Icons.close),
@@ -182,23 +186,31 @@ class _OnboardingViewState extends State<_OnboardingView> {
                     ),
                   ),
                 ),
-                body: PageView(
-                  controller: _pageController,
-                  physics: const NeverScrollableScrollPhysics(),
-                  children: [
-                    const WelcomeStep(),
-                    const BusinessTypeStep(),
-                    PersonalInfoStep(formKey: _personalFormKey),
-                    ShopInfoStep(formKey: _shopFormKey),
-                    const ShopAddressStep(),
-                    ReviewStep(
-                      onEditStep: (step) => context.read<OnboardingBloc>().add(
-                        OnboardingGoToStep(step),
+                body: GestureDetector(
+                  // Tap anywhere outside the inputs to dismiss the keyboard.
+                  // opaque so taps on the empty space between the form and the
+                  // action bar still register; taps on a TextField win the arena
+                  // and focus it as usual.
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+                  child: PageView(
+                    controller: _pageController,
+                    physics: const NeverScrollableScrollPhysics(),
+                    children: [
+                      const WelcomeStep(),
+                      const BusinessTypeStep(),
+                      PersonalInfoStep(formKey: _personalFormKey),
+                      ShopInfoStep(formKey: _shopFormKey),
+                      const ShopAddressStep(),
+                      ReviewStep(
+                        onEditStep: (step) => context
+                            .read<OnboardingBloc>()
+                            .add(OnboardingGoToStep(step)),
                       ),
-                    ),
-                    const DocumentUploadStep(),
-                    const DoneStep(),
-                  ],
+                      const DocumentUploadStep(),
+                      const DoneStep(),
+                    ],
+                  ),
                 ),
                 bottomNavigationBar: isDone
                     ? null
@@ -257,70 +269,80 @@ class _BottomBarState extends State<_BottomBar> {
     // translation still doesn't fit at a glance.
     const double buttonHeight = 52;
 
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-        child: Row(
-          children: [
-            if (!isFirst)
+    // Lift the action bar above the keyboard. A bottomNavigationBar is pinned
+    // to the physical bottom and the keyboard overlays it by default, so without
+    // this the Back/Next buttons hide behind the keyboard. viewInsets.bottom
+    // tracks the keyboard height frame-by-frame, so the bar slides up in sync;
+    // when the keyboard is closed it's 0 and SafeArea handles the home indicator.
+    final keyboardInset = MediaQuery.of(context).viewInsets.bottom;
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: keyboardInset),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          child: Row(
+            children: [
+              if (!isFirst)
+                Expanded(
+                  child: SizedBox(
+                    height: buttonHeight,
+                    child: OutlinedButton(
+                      onPressed: isBusy
+                          ? null
+                          : () => context.read<OnboardingBloc>().add(
+                              const OnboardingPreviousStep(),
+                            ),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        textStyle: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          tr('common.back'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              if (!isFirst) const SizedBox(width: 12),
               Expanded(
                 child: SizedBox(
                   height: buttonHeight,
-                  child: OutlinedButton(
-                    onPressed: isBusy
+                  child: FilledButton.icon(
+                    onPressed: isBusy || !canAdvance
                         ? null
-                        : () => context.read<OnboardingBloc>().add(
-                            const OnboardingPreviousStep(),
-                          ),
-                    style: OutlinedButton.styleFrom(
+                        : () => widget.onNextPressed(state),
+                    // While submitting the _FullScreenLoader overlay is already
+                    // up — a second spinner inside the button reads as two
+                    // competing loaders, so the button just sits disabled.
+                    icon: Icon(icon),
+                    label: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    style: FilledButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
                       textStyle: const TextStyle(fontWeight: FontWeight.w600),
                     ),
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        tr('common.back'),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
                   ),
                 ),
               ),
-            if (!isFirst) const SizedBox(width: 12),
-            Expanded(
-              child: SizedBox(
-                height: buttonHeight,
-                child: FilledButton.icon(
-                  onPressed: isBusy || !canAdvance
-                      ? null
-                      : () => widget.onNextPressed(state),
-                  // While submitting the _FullScreenLoader overlay is already
-                  // up — a second spinner inside the button reads as two
-                  // competing loaders, so the button just sits disabled.
-                  icon: Icon(icon),
-                  label: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    textStyle: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
