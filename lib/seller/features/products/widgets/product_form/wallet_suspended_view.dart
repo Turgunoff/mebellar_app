@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../../core/i18n/i18n.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import '../../../wallet/screens/wallet_screen.dart';
@@ -23,7 +24,7 @@ class WalletSuspendedView extends StatelessWidget {
             const Icon(Iconsax.lock, color: AppColors.danger, size: 40),
             const SizedBox(height: 12),
             Text(
-              "Do'koningiz vaqtincha muzlatildi",
+              tr('add_product.shop_frozen_title'),
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: AppFonts.seller,
@@ -34,8 +35,7 @@ class WalletSuspendedView extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              "Qarzdorlik uzilmaguncha yangi mahsulot qo'shib bo'lmaydi. "
-              "Hisobni to'ldirishingiz bilan do'kon avtomatik tiklanadi.",
+              tr('add_product.shop_frozen_body'),
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: AppFonts.seller,
@@ -60,9 +60,9 @@ class WalletSuspendedView extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text(
-                'Qarzdorlikni uzish',
-                style: TextStyle(
+              child: Text(
+                tr('add_product.clear_debt_cta'),
+                style: const TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 14,
                   fontWeight: FontWeight.w700,

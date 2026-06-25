@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../../core/i18n/i18n.dart';
 import 'form_kit.dart';
 
 /// Name, category, subcategory and description fields.
@@ -39,39 +40,39 @@ class BasicInfoSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionTitle("Ma'lumotlar"),
+        SectionTitle(tr('add_product.section_basic_info')),
         FormCard(
           child: Column(
             children: [
               FormTextField(
                 controller: nameController,
-                label: 'Mahsulot nomi',
-                hint: 'Masalan, Burchakli divan «Roma»',
+                label: tr('add_product.field_name_label'),
+                hint: tr('add_product.field_name_hint'),
                 onChanged: onNameChanged,
               ),
               const SizedBox(height: 14),
               PickerField(
-                label: 'Kategoriya',
+                label: tr('add_product.field_category_label'),
                 value: categoryLabel,
-                placeholder: 'Kategoriyani tanlang',
+                placeholder: tr('add_product.field_category_placeholder'),
                 leadingIcon: Iconsax.category,
                 onTap: onCategoryTap,
               ),
               const SizedBox(height: 14),
               PickerField(
-                label: 'Subkategoriya',
+                label: tr('add_product.field_subcategory_label'),
                 value: subcategoryLabel,
                 placeholder: subcategoryEnabled
-                    ? 'Subkategoriyani tanlang (ixtiyoriy)'
-                    : 'Avval kategoriya tanlang',
+                    ? tr('add_product.field_subcategory_placeholder')
+                    : tr('add_product.field_subcategory_placeholder_disabled'),
                 leadingIcon: Iconsax.element_4,
                 onTap: subcategoryEnabled ? onSubcategoryTap : null,
               ),
               const SizedBox(height: 14),
               FormTextField(
                 controller: descriptionController,
-                label: 'Mahsulot tavsifi',
-                hint: "Mahsulot haqida qisqacha ma'lumot",
+                label: tr('add_product.field_description_label'),
+                hint: tr('add_product.field_description_hint'),
                 minLines: 3,
                 maxLines: 6,
                 onChanged: onDescriptionChanged,

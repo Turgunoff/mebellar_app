@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../../core/i18n/i18n.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import 'form_kit.dart';
@@ -45,15 +46,15 @@ class LogisticsSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionTitle('Yetkazib berish va kafolat'),
+        SectionTitle(tr('add_product.section_logistics')),
         FormCard(
           child: Column(
             children: [
               FormTextField(
                 controller: productionDaysController,
-                label: 'Tayyorlash / Yetkazish muddati (kun)',
-                hint: '3-5',
-                suffix: 'kun',
+                label: tr('add_product.field_production_days_label'),
+                hint: tr('add_product.field_production_days_hint'),
+                suffix: tr('add_product.unit_days'),
                 onChanged: onProductionDaysChanged,
               ),
               Padding(
@@ -62,8 +63,8 @@ class LogisticsSection extends StatelessWidget {
               ),
               _ToggleRow(
                 icon: Iconsax.truck_fast,
-                title: 'Yetkazib berish mavjud',
-                subtitle: 'Sotib oluvchiga yetkazib beriladi',
+                title: tr('add_product.toggle_delivery_title'),
+                subtitle: tr('add_product.toggle_delivery_subtitle'),
                 value: deliveryAvailable,
                 onChanged: onDeliveryChanged,
               ),
@@ -71,14 +72,12 @@ class LogisticsSection extends StatelessWidget {
                 const SizedBox(height: 14),
                 FormTextField(
                   controller: deliveryPriceController,
-                  label: 'Toshkent ichida yetkazish narxi',
-                  hint: 'Bepul uchun 0 kiriting',
-                  suffix: 'UZS',
+                  label: tr('add_product.field_delivery_price_label'),
+                  hint: tr('add_product.field_price_free_hint'),
+                  suffix: tr('add_product.unit_uzs'),
                   keyboardType: TextInputType.number,
                   inputFormatters: const [ThousandsSpaceFormatter()],
-                  helper:
-                      'Hozircha faqat Toshkent shahri va viloyati. Boshqa viloyatlar '
-                      'keyinroq qo‘shiladi.',
+                  helper: tr('add_product.field_delivery_price_helper'),
                   onChanged: (v) {
                     final digits = v.replaceAll(RegExp(r'[^\d]'), '');
                     onDeliveryPriceChanged(int.tryParse(digits) ?? 0);
@@ -91,8 +90,8 @@ class LogisticsSection extends StatelessWidget {
               ),
               _ToggleRow(
                 icon: Iconsax.setting_4,
-                title: "O'rnatib berish mavjud",
-                subtitle: "Mahsulot xaridor manzilida yig'iladi",
+                title: tr('add_product.toggle_assembly_title'),
+                subtitle: tr('add_product.toggle_assembly_subtitle'),
                 value: assemblyAvailable,
                 onChanged: onAssemblyChanged,
               ),
@@ -100,9 +99,9 @@ class LogisticsSection extends StatelessWidget {
                 const SizedBox(height: 14),
                 FormTextField(
                   controller: installationPriceController,
-                  label: "O'rnatish narxi",
-                  hint: 'Bepul uchun 0 kiriting',
-                  suffix: 'UZS',
+                  label: tr('add_product.field_installation_price_label'),
+                  hint: tr('add_product.field_price_free_hint'),
+                  suffix: tr('add_product.unit_uzs'),
                   keyboardType: TextInputType.number,
                   inputFormatters: const [ThousandsSpaceFormatter()],
                   onChanged: (v) {
@@ -117,9 +116,9 @@ class LogisticsSection extends StatelessWidget {
               ),
               FormTextField(
                 controller: warrantyController,
-                label: 'Kafolat (oy)',
+                label: tr('add_product.field_warranty_label'),
                 hint: '0',
-                suffix: 'oy',
+                suffix: tr('add_product.unit_months'),
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 onChanged: (v) => onWarrantyChanged(int.tryParse(v) ?? 0),

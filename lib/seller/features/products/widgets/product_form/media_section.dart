@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../../core/i18n/i18n.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import '../../data/add_product_repository.dart';
@@ -44,7 +45,7 @@ class MediaSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionTitle('Mahsulot rasmlari'),
+        SectionTitle(tr('add_product.section_media')),
         FormCard(
           child: SizedBox(
             height: 110,
@@ -120,7 +121,7 @@ class _AiFillButton extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'AI bilan to‘ldirish',
+                  tr('add_product.ai_fill_cta'),
                   style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 13,
@@ -183,7 +184,7 @@ class _AddPhotoTile extends StatelessWidget {
                   Icon(Iconsax.add_square, size: 26, color: accent),
                   const SizedBox(height: 6),
                   Text(
-                    "Rasm qo'shish",
+                    tr('add_product.media_add_photo'),
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontFamily: AppFonts.seller,
@@ -265,8 +266,8 @@ class _ImageThumbnail extends StatelessWidget {
                   color: primary,
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: const Text(
-                  'Asosiy',
+                child: Text(
+                  tr('add_product.media_primary_badge'),
                   style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 9,

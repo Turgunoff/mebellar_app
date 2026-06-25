@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../../core/i18n/i18n.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import '../../bloc/add_product_cubit.dart';
@@ -52,9 +53,20 @@ class PricingSection extends StatelessWidget {
   String? _helperText() {
     final rate = usdRate;
     if (!_isUsd || rate == null) return null;
-    final rateLabel = '1 USD = ${formatThousands(rate.round())} UZS';
-    if (priceValue <= 0) return '$rateLabel (MB kursi)';
-    return '≈ ${formatThousands(uzsPrice)} UZS · $rateLabel';
+    final rateLabel = tr(
+      'add_product.price_usd_rate_label',
+      namedArgs: {'value': formatThousands(rate.round())},
+    );
+    if (priceValue <= 0) {
+      return tr(
+        'add_product.price_usd_helper_rate_only',
+        namedArgs: {'rate': rateLabel},
+      );
+    }
+    return tr(
+      'add_product.price_usd_helper_converted',
+      namedArgs: {'value': formatThousands(uzsPrice), 'rate': rateLabel},
+    );
   }
 
   /// Discounted total back in USD for the summary's secondary line, so the
@@ -64,7 +76,10 @@ class PricingSection extends StatelessWidget {
     final discounted = discountPercent > 0
         ? priceValue * (100 - discountPercent) / 100
         : priceValue.toDouble();
-    return '≈ ${formatThousands(discounted.round())} USD';
+    return tr(
+      'add_product.price_usd_secondary',
+      namedArgs: {'value': formatThousands(discounted.round())},
+    );
   }
 
   /// The cubit refuses to switch to USD until a rate exists (and retries the
@@ -75,14 +90,13 @@ class PricingSection extends StatelessWidget {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          const SnackBar(
+          SnackBar(
             backgroundColor: AppColors.warning,
             behavior: SnackBarBehavior.floating,
-            duration: Duration(seconds: 3),
+            duration: const Duration(seconds: 3),
             content: Text(
-              "Dollar kursi hali yuklanmadi — birozdan so'ng qayta urinib "
-              "ko'ring.",
-              style: TextStyle(
+              tr('add_product.price_usd_rate_loading_snack'),
+              style: const TextStyle(
                 fontFamily: AppFonts.seller,
                 fontWeight: FontWeight.w600,
                 color: Colors.white,
@@ -102,14 +116,14 @@ class PricingSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionTitle('Narx va chegirma'),
+        SectionTitle(tr('add_product.section_pricing')),
         FormCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               FormTextField(
                 controller: priceController,
-                label: 'Asosiy narx',
+                label: tr('add_product.field_base_price_label'),
                 hint: '0',
                 suffixWidget: _CurrencyToggle(
                   value: currency,
@@ -129,7 +143,7 @@ class PricingSection extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(bottom: 8, left: 2),
                 child: Text(
-                  'Chegirma foizi',
+                  tr('add_product.field_discount_percent_label'),
                   style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 12,
@@ -283,7 +297,12 @@ class _DiscountChipRow extends StatelessWidget {
             onTap: () => onSelected(p),
           ),
         _DiscountChip(
-          label: isCustom ? '$value% (Custom)' : 'Custom',
+          label: isCustom
+              ? tr(
+                  'add_product.discount_chip_custom_value',
+                  namedArgs: {'value': value.toString()},
+                )
+              : tr('add_product.discount_chip_custom'),
           selected: isCustom,
           onTap: onCustomTapped,
         ),
@@ -386,7 +405,9 @@ class _DiscountSummary extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  hasDiscount ? 'Chegirma bilan' : 'Chegirmasiz',
+                  hasDiscount
+                      ? tr('add_product.summary_with_discount')
+                      : tr('add_product.summary_no_discount'),
                   style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 11,
@@ -398,8 +419,13 @@ class _DiscountSummary extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   hasPrice
-                      ? '${formatThousands(discountedUzsPrice)} UZS'
-                      : '— UZS',
+                      ? tr(
+                          'add_product.summary_price_value',
+                          namedArgs: {
+                            'value': formatThousands(discountedUzsPrice),
+                          },
+                        )
+                      : tr('add_product.summary_price_empty'),
                   style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 16,

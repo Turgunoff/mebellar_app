@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../../../core/i18n/i18n.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import '../../../../../shared/models/attribute_definition.dart';
@@ -38,9 +39,9 @@ class DynamicAttributesSection extends StatelessWidget {
     if (state.isLoadingSchema && state.attributeSchema.isEmpty) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          SectionTitle('Xususiyatlar'),
-          FormCard(child: _SchemaLoadingPlaceholder()),
+        children: [
+          SectionTitle(tr('add_product.section_attributes')),
+          const FormCard(child: _SchemaLoadingPlaceholder()),
         ],
       );
     }
@@ -66,7 +67,7 @@ class DynamicAttributesSection extends StatelessWidget {
           if (rest.isNotEmpty) const SizedBox(height: 20),
         ],
         if (rest.isNotEmpty) ...[
-          const SectionTitle('Xususiyatlar'),
+          SectionTitle(tr('add_product.section_attributes')),
           FormCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -111,7 +112,7 @@ class _SchemaLoadingPlaceholder extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Text(
-            'Xususiyatlar yuklanmoqda…',
+            tr('add_product.attributes_loading'),
             style: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 13,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 
+import '../../../../../core/i18n/i18n.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 
@@ -79,7 +80,7 @@ class AiLoadingOverlay extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'AI rasmlarni o‘qiyapti…',
+                  tr('add_product.ai_reading_images'),
                   style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 15,
@@ -90,7 +91,7 @@ class AiLoadingOverlay extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Mahsulot ma‘lumotlari tayyorlanmoqda',
+                  tr('add_product.ai_preparing_details'),
                   style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 12.5,

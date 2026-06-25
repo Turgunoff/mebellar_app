@@ -233,9 +233,14 @@ Invariants:
   tariff that allows >4 photos doesn't 422 the backend. The form keeps all
   photos; only the AI call is trimmed.
 - `isAiBusy` drives the button spinner and blocks re-tap / the add-photo tile.
-- This seller flow is Uzbek-only with seller-local tokens (`kInk`,
-  `AppFonts.seller`), not `tr()` / `PremiumTokens` — matching the rest of the
-  add-product form. Don't force i18n here.
+- This seller flow uses seller-local styling tokens (`kInk`, `AppFonts.seller`),
+  but its copy **is localized** (uz/ru/en) under the `add_product` translation
+  domain — `tr('add_product.*')` — like the rest of the app (localized
+  2026-06-24). Keep any NEW user-facing string in `tr()`; the seller-local
+  tokens are for colour/font only and are not a reason to hardcode text. The
+  **dynamic category attribute labels / option values stay backend-driven**
+  (rendered from the model, localized server-side via Accept-Language) — never
+  wrap those in `tr()`.
 
 ### Crashlytics
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../../core/i18n/i18n.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import '../../../../../shared/models/attribute_definition.dart';
@@ -39,7 +40,7 @@ class DimensionsCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionTitle("O'lchamlar (sm)"),
+        SectionTitle(tr('add_product.section_dimensions')),
         FormCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

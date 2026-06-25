@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../../core/i18n/i18n.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 
@@ -69,7 +70,9 @@ class SaveBottomBar extends StatelessWidget {
                         color: Colors.white,
                       ),
                     )
-                  : Text(editing ? 'Saqlash' : "Saqlash va e'lon qilish"),
+                  : Text(editing
+                      ? tr('add_product.save')
+                      : tr('add_product.save_and_publish')),
             ),
           ),
         ),

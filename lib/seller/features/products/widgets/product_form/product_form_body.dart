@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../../../core/i18n/i18n.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import '../../../../../shared/models/category_model.dart';
@@ -155,8 +156,10 @@ class ProductFormBody extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Tarifingiz bo‘yicha 1 ta mahsulotga $cap ta rasm '
-                    'biriktirish mumkin. Faqat $added tasi qo‘shildi.',
+                    tr(
+                      'add_product.image_cap_snackbar',
+                      namedArgs: {'cap': cap, 'added': added.toString()},
+                    ),
                     style: const TextStyle(
                       fontFamily: AppFonts.seller,
                       fontWeight: FontWeight.w600,
@@ -197,14 +200,11 @@ class ProductFormBody extends StatelessWidget {
     final IconData icon = success ? Iconsax.magicpen : Iconsax.info_circle;
     final String message;
     if (success) {
-      message = 'AI maydonlarni to‘ldirdi — tekshirib, saqlang.';
+      message = tr('add_product.ai_fill_success');
     } else if (result.available) {
-      message =
-          'Rasmlar har xil mahsulotlardek. Asosiy rasm bo‘yicha to‘ldirdim — '
-          'har bir mahsulotni alohida e‘lon qiling.';
+      message = tr('add_product.ai_fill_different_products');
     } else {
-      message =
-          'AI rasmlardan ma‘lumot o‘qiy olmadi. Maydonlarni qo‘lda to‘ldiring.';
+      message = tr('add_product.ai_fill_failed');
     }
 
     messenger
@@ -248,7 +248,7 @@ class ProductFormBody extends StatelessWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (_) => CategoryPickerSheet(
-        title: 'Kategoriyani tanlang',
+        title: tr('add_product.field_category_placeholder'),
         items: categories,
         accent: primary,
       ),
@@ -354,7 +354,7 @@ class _CustomDiscountDialogState extends State<_CustomDiscountDialog> {
       backgroundColor: c.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: Text(
-        'Maxsus chegirma',
+        tr('add_product.custom_discount_title'),
         style: TextStyle(
           fontFamily: AppFonts.seller,
           fontSize: 16,
@@ -399,7 +399,7 @@ class _CustomDiscountDialogState extends State<_CustomDiscountDialog> {
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
           child: Text(
-            'Bekor qilish',
+            tr('add_product.cancel'),
             style: TextStyle(
               fontFamily: AppFonts.seller,
               fontWeight: FontWeight.w600,
@@ -416,9 +416,9 @@ class _CustomDiscountDialogState extends State<_CustomDiscountDialog> {
             ),
           ),
           onPressed: _save,
-          child: const Text(
-            'Saqlash',
-            style: TextStyle(
+          child: Text(
+            tr('add_product.save'),
+            style: const TextStyle(
               fontFamily: AppFonts.seller,
               fontWeight: FontWeight.w700,
             ),
@@ -444,7 +444,7 @@ class _SkuFooter extends StatelessWidget {
           Icon(Iconsax.barcode, size: 14, color: c.greyMid),
           const SizedBox(width: 6),
           Text(
-            'Mahsulot kodi: $sku',
+            tr('add_product.sku_footer', namedArgs: {'sku': sku}),
             style: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 11,

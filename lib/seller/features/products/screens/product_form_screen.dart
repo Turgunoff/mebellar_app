@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/i18n/i18n.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/models/seller_product.dart';
@@ -141,8 +142,8 @@ class _ProductFormViewState extends State<_ProductFormView> {
       _showSnack(
         messenger,
         widget.isEditing
-            ? 'Mahsulot yangilandi va qayta tekshiruvga yuborildi'
-            : "Mahsulot e'lon qilindi",
+            ? tr('add_product.snack_product_updated_resubmitted')
+            : tr('add_product.snack_product_published'),
         const Color(0xFF1D1D1D),
       );
       navigator.maybePop(true);

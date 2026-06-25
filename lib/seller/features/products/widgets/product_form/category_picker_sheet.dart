@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../../core/i18n/i18n.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import '../../../../../shared/models/category_model.dart';
@@ -232,7 +233,7 @@ class _ClearTile extends StatelessWidget {
             const SizedBox(width: 16),
             Expanded(
               child: Text(
-                'Subkategoriyasiz',
+                tr('add_product.subcategory_none'),
                 style: TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 14,

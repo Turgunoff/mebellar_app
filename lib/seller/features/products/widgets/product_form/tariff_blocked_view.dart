@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../../core/i18n/i18n.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import '../../../../../shared/models/tariff.dart';
@@ -23,7 +24,7 @@ class TariffBlockedView extends StatelessWidget {
             Icon(Icons.lock_outline, color: primary, size: 40),
             const SizedBox(height: 12),
             Text(
-              'Tarif chegarasi tugadi',
+              tr('add_product.tariff_limit_reached_title'),
               style: TextStyle(
                 fontFamily: AppFonts.seller,
                 fontSize: 16,
@@ -34,8 +35,12 @@ class TariffBlockedView extends StatelessWidget {
             if (snapshot != null) ...[
               const SizedBox(height: 6),
               Text(
-                'Mahsulotlar: ${snapshot!.activeProductsCount} / '
-                '${snapshot!.plan.isUnlimited ? '∞' : snapshot!.plan.maxActiveProducts}',
+                tr('add_product.products_count_line', namedArgs: {
+                  'count': snapshot!.activeProductsCount.toString(),
+                  'max': snapshot!.plan.isUnlimited
+                      ? '∞'
+                      : snapshot!.plan.maxActiveProducts.toString(),
+                }),
                 style: TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 13,

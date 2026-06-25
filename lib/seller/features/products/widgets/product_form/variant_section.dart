@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../../core/i18n/i18n.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import '../../../../../shared/constants/product_colors.dart';
@@ -30,7 +31,7 @@ class VariantSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionTitle('Variant'),
+        SectionTitle(tr('add_product.section_variant')),
         FormCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -38,7 +39,7 @@ class VariantSection extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(left: 2, bottom: 8),
                 child: Text(
-                  'Ranglar',
+                  tr('add_product.field_colors_label'),
                   style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 12,
@@ -51,7 +52,7 @@ class VariantSection extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(left: 2, bottom: 10),
                 child: Text(
-                  'Bir nechtasini tanlash mumkin',
+                  tr('add_product.field_colors_helper'),
                   style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 11,

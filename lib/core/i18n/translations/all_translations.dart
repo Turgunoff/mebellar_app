@@ -4,6 +4,7 @@
 // legacy translations_<lang>.dart files so diffs stay readable.
 
 import 'about_translations.dart';
+import 'add_product_translations.dart';
 import 'address_translations.dart';
 import 'ai_designer_translations.dart';
 import 'auth_translations.dart';
@@ -32,6 +33,7 @@ import 'tariff_translations.dart';
 import 'tutorial_translations.dart';
 
 const Map<String, dynamic> uzTranslations = {
+  'add_product': addProductUz,
   'about': aboutUz,
   'common': commonUz,
   'auth': authUz,
@@ -82,6 +84,7 @@ const Map<String, dynamic> uzTranslations = {
 };
 
 const Map<String, dynamic> ruTranslations = {
+  'add_product': addProductRu,
   'about': aboutRu,
   'common': commonRu,
   'auth': authRu,
@@ -132,6 +135,7 @@ const Map<String, dynamic> ruTranslations = {
 };
 
 const Map<String, dynamic> enTranslations = {
+  'add_product': addProductEn,
   'about': aboutEn,
   'common': commonEn,
   'auth': authEn,
