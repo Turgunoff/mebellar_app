@@ -10,6 +10,7 @@ import '../connectivity/network_cubit.dart';
 import '../deep_links/deep_link_service.dart';
 import '../i18n/app_locale_controller.dart';
 import '../network/token_store.dart';
+import '../notifications/app_badge_service.dart';
 import '../network/woody_api_client.dart';
 import '../../shared/payments/payment_status_gateway.dart';
 import '../../shared/payments/pending_payment_service.dart';
@@ -83,6 +84,12 @@ Future<void> registerCoreModule(GetIt sl) async {
     AppModeCubit(boxes.settings, analyticsLookup: () => sl<AnalyticsService>()),
     dispose: (c) => c.close(),
   );
+
+  // Launcher app-icon badge writer. Root-scoped + stateless wrapper over
+  // `app_badge_plus`; the FCM background isolate uses the top-level helpers in
+  // the same file (no DI there). Safe to construct early — it touches the
+  // platform channel only when a count is actually written.
+  sl.registerLazySingleton<AppBadgeService>(() => AppBadgeService());
 
   sl.registerSingleton<SecureStorage>(SecureStorage());
 

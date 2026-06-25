@@ -23,6 +23,7 @@ import 'core/deeplink/deferred_deep_link_service.dart';
 import 'core/di/service_locator.dart';
 import 'core/i18n/i18n.dart';
 import 'core/logging/talker.dart';
+import 'core/notifications/badge_sync_controller.dart';
 import 'core/notifications/push_service.dart';
 import 'customer/features/notifications/cubit/notifications_cubit.dart';
 import 'customer/features/profile/cubit/profile_cubit.dart';
@@ -166,6 +167,15 @@ Future<void> _bootstrapAndRun() async {
   _wireAuthToPushTokens();
   _wireForcedLogoutCleanup();
   _wirePushToInboxRefresh();
+
+  // Mirror the live unread total (notifications + chats) onto the launcher
+  // app-icon badge, and reconcile the background isolate's tally on resume.
+  // Root-scoped, so this survives mode switches; start it once after the root
+  // scope is up. Guarded so a build without the controller (older tests) is a
+  // no-op.
+  if (sl.isRegistered<BadgeSyncController>()) {
+    sl<BadgeSyncController>().start();
+  }
 
   // Boot the locale controller from the Hive `settings` box so the
   // `MaterialApp` rebuilds when the user switches language.

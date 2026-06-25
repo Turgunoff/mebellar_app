@@ -60,6 +60,15 @@ dependencies:
   # while the app is in the foreground — Android only auto-shows pushes
   # in the system tray when the app is backgrounded or killed.
   flutter_local_notifications: ^18.0.1
+  # Launcher app-icon badge (the red unread count on the home-screen icon).
+  # `app_badge_plus` over the older `flutter_app_badger`: the latter is
+  # unmaintained (2021) and ships no Gradle `namespace`, which fails the build
+  # under this project's AGP 8 — app_badge_plus is AGP-8 native. On stock
+  # Android there is no API to set an arbitrary icon count, so `isSupported()`
+  # returns false there (the notification dot stands in); it works on iOS and
+  # OEM launchers (Samsung/Xiaomi/…). All calls go through AppBadgeService so
+  # the rest of the app never touches the plugin directly.
+  app_badge_plus: ^1.2.3
 
   # Storage
   hive: ^2.2.3

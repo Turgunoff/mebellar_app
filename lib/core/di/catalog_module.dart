@@ -7,6 +7,9 @@ import '../../customer/widgets/view_mode_toggle.dart';
 import '../analytics/analytics_service.dart';
 import '../analytics/firebase_analytics_service.dart';
 import '../analytics/noop_analytics_service.dart';
+import '../auth/app_mode_cubit.dart';
+import '../notifications/app_badge_service.dart';
+import '../notifications/badge_sync_controller.dart';
 import '../services/facebook_analytics_service.dart';
 import '../../shared/repositories/banner_repository.dart';
 import '../../shared/repositories/cached_banner_repository.dart';
@@ -238,6 +241,18 @@ void registerCatalogModule(GetIt sl) {
   );
   sl.registerLazySingleton<NotificationsRepository>(
     () => WoodyNotificationsRepository(api: sl<WoodyApiClient>()),
+  );
+
+  // Mirrors the live unread total (notifications + chats) onto the OS launcher
+  // badge. Root-scoped so it survives the customer<->seller Phoenix rebirth;
+  // `start()` is called from `_bootstrapAndRun` once every module is wired.
+  sl.registerLazySingleton<BadgeSyncController>(
+    () => BadgeSyncController(
+      badge: sl<AppBadgeService>(),
+      notifications: sl<NotificationsRepository>(),
+      chats: sl<ChatRepository>(),
+      mode: sl<AppModeCubit>(),
+    ),
   );
 
   // AI interior-designer chat (`POST /ai/chat`). Always registered — it

@@ -8,6 +8,7 @@ import '../auth/app_mode_cubit.dart';
 import '../auth/auth_repository.dart';
 import '../auth/sign_out.dart';
 import '../logging/talker.dart';
+import '../notifications/app_badge_service.dart';
 import '../storage/hive_boxes.dart';
 import '../../customer/features/ai_designer/models/ai_chat_message.dart';
 import 'auth_module.dart';
@@ -168,6 +169,18 @@ Future<void> _wipeLocalUserData() async {
     await settings.delete(AppModeCubit.sessionActiveKey);
   } catch (e, st) {
     talker.handle(e, st, 'logout: clear settings keys failed');
+  }
+
+  // Clear the launcher app-icon badge + its persisted tally so the next user
+  // (or a fresh guest) on this device never inherits the previous account's
+  // unread count. setCount/clear is internally guarded, so a launcher without
+  // badge support or a plugin-less isolate is a safe no-op.
+  if (sl.isRegistered<AppBadgeService>()) {
+    try {
+      await sl<AppBadgeService>().clear();
+    } catch (e, st) {
+      talker.handle(e, st, 'logout: clear app badge failed');
+    }
   }
 
   // Drop the image caches so cached avatars / product photos / KYC docs

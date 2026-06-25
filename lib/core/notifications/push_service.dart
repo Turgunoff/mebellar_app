@@ -16,6 +16,7 @@ import '../network/woody_api_client.dart';
 import '../platform/messaging_facade.dart';
 import 'active_chat_tracker.dart';
 import 'active_support_tracker.dart';
+import 'app_badge_service.dart';
 import 'notification_handler.dart';
 
 /// FCM topic the app subscribes to for marketing / news pushes.
@@ -35,11 +36,28 @@ const String _kNewsChannelId = 'news';
 /// function annotated with @pragma so it survives tree-shaking.
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // The app process is dead at this point, so there is no Hive / talker
-  // available. The system tray will show the notification automatically
-  // because the payload uses a `notification` block; we just need this handler
-  // to exist so the plugin doesn't drop the message.
+  // The app process is dead at this point, so there is no Hive / talker / DI /
+  // cubits available. The system tray shows the notification automatically
+  // because the payload uses a `notification` block; this handler must exist so
+  // the plugin doesn't drop the message.
   await Firebase.initializeApp();
+
+  // Bump the launcher app-icon badge so the icon reflects the new item even
+  // though no app state is reachable here. Gated to user-facing pushes (those
+  // carrying a `notification` block or a `kind`) so a silent data-only ping
+  // doesn't inflate the count. The live app reconciles this naive +1 tally to
+  // the true unread total on next resume (BadgeSyncController).
+  //
+  // iOS note: a terminated-app `notification` push usually doesn't run this
+  // Dart handler — iOS sets the badge natively from the APNs `badge` field
+  // instead (see the backend note in requestPermissionAndSubscribe), so this
+  // path is primarily the Android one.
+  final hasUserFacingPayload =
+      message.notification != null ||
+      ((message.data['kind'] as String?)?.isNotEmpty ?? false);
+  if (hasUserFacingPayload) {
+    await incrementAppBadgeFromBackground();
+  }
 }
 
 class PushService {
@@ -318,6 +336,16 @@ class PushService {
     _permissionRequested = true;
 
     try {
+      // `badge: true` requests the iOS app-icon-badge entitlement alongside
+      // alert + sound. Without it, iOS silently drops the APNs `badge` field
+      // and `app_badge_plus`/`setApplicationIconBadgeNumber` can't paint a count.
+      //
+      // BACKEND NOTE (woody_backend FCM/APNs sender): for native iOS badging
+      // include an APNs `badge` value in the push payload (the per-user unread
+      // total — NOT a hardcoded 1 — so the OS shows the right number and clears
+      // it when the count drops). On Android the count is driven from the app
+      // (background isolate + BadgeSyncController), so no Android-side payload
+      // change is needed.
       final settings = await _messaging.requestPermission(
         alert: true,
         badge: true,
