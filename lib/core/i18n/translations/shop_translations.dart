@@ -121,7 +121,7 @@ const Map<String, dynamic> shopEn = {
   'working_hours_title': 'Working hours',
   'open_now': 'Open now',
   'closed_now': 'Closed now',
-  'day_off': 'Day off',
+  'day_off': 'Closed',
   'open_24h': '24 hours',
   'achievements_title': 'Achievements',
   'earned_badge': 'Earned badge',

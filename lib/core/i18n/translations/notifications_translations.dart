@@ -397,8 +397,8 @@ const Map<String, dynamic> notificationsEn = {
   },
   'view_cta': 'View',
   'placeholder_body_with_id':
-      'Placeholder — id: {id}\nThe dedicated screen lands in a follow-up sprint.',
-  'placeholder_body': 'The dedicated screen lands in a follow-up sprint.',
+      'Placeholder — id: {id}\nThe dedicated screen will be added in a future update.',
+  'placeholder_body': 'The dedicated screen will be added in a future update.',
   'go_home': 'Go home',
   'kind_promo_title': 'Promotion',
   'kind_news_title': 'News',
