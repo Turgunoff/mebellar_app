@@ -390,10 +390,20 @@ class _AuthInterceptor extends Interceptor {
     final skipRefresh =
         response.requestOptions.extra[WoodyApiClient._skipRefreshKey] == true;
     if (status == 401 && !anonymous && !skipRefresh) {
-      final refreshed = await _client._attemptRefresh();
-      if (refreshed) {
-        final retried = await _replay(response.requestOptions);
-        return handler.resolve(retried);
+      // Circuit breaker: a 401 on a request that carried NO `Authorization`
+      // header is an expected guest access (e.g. /notifications while signed
+      // out), not an expired session. Attempting a refresh here finds no token,
+      // falls into _forceSignOut → tokens.clear(), and — if anything reloads on
+      // that signal — spins a refresh/clear loop. There is no session to
+      // refresh or tear down, so surface the 401 untouched.
+      final carriedAuth =
+          response.requestOptions.headers.containsKey('Authorization');
+      if (carriedAuth) {
+        final refreshed = await _client._attemptRefresh();
+        if (refreshed) {
+          final retried = await _replay(response.requestOptions);
+          return handler.resolve(retried);
+        }
       }
     }
     handler.next(response);

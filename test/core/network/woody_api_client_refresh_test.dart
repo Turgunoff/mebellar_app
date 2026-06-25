@@ -222,6 +222,36 @@ void main() {
     },
   );
 
+  test(
+    'a guest 401 (no token attached) never refreshes or forces a sign-out',
+    () async {
+      // Signed out: the store holds nothing, so the request leaves with no
+      // Authorization header and the backend 401s. The pre-fix path attempted a
+      // refresh, found no token, called _forceSignOut → tokens.clear(), which
+      // re-emitted `null` and (via NotificationsCubit) reloaded → another guest
+      // 401 → an infinite loop. The circuit breaker short-circuits a 401 on a
+      // request that carried no token, so nothing churns.
+      await store.clear();
+      final adapter = _FakeAdapter();
+      final client = _client(adapter, store);
+
+      final forced = <void>[];
+      final sub = client.forcedSignOuts.listen(forced.add);
+
+      await expectLater(
+        client.get<Map<String, dynamic>>('/notifications'),
+        throwsA(isA<ApiError>()
+            .having((e) => e.isUnauthorized, 'isUnauthorized', true)),
+      );
+
+      expect(adapter.refreshHits, 0,
+          reason: 'a request with no token must not attempt a refresh');
+      expect(forced, isEmpty, reason: 'there is no session to tear down');
+
+      await sub.cancel();
+    },
+  );
+
   test('an anonymous request that 401s never forces a sign-out', () async {
     // The refresh/logout/OTP calls (and any explicitly anonymous request) carry
     // the anonymous flag; a 401 on them must NOT trigger the global force-logout

@@ -1,11 +1,17 @@
+import 'dart:async';
+
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:woody_app/core/auth/auth_repository.dart';
+import 'package:woody_app/core/network/token_store.dart';
 import 'package:woody_app/customer/features/notifications/cubit/notifications_cubit.dart';
 import 'package:woody_app/shared/models/notification_model.dart';
 import 'package:woody_app/shared/repositories/notifications_data_source.dart';
 
 class _MockNotificationsRepo extends Mock implements NotificationDataSource {}
+
+class _MockAuth extends Mock implements AuthRepository {}
 
 NotificationModel _notif(String id, {bool isRead = false}) => NotificationModel(
       id: id,
@@ -157,4 +163,66 @@ void main() {
     ],
     verify: (_) => verify(() => repo.markAllRead(mode: 'seller')).called(1),
   );
+
+  group('auth gating', () {
+    late _MockAuth auth;
+    late StreamController<TokenPair?> authChanges;
+
+    setUp(() {
+      auth = _MockAuth();
+      authChanges = StreamController<TokenPair?>.broadcast();
+      when(() => auth.authStateChanges).thenAnswer((_) => authChanges.stream);
+    });
+
+    tearDown(() => authChanges.close());
+
+    // Regression for the guest /notifications 401 loop: when signed out the
+    // cubit must NOT fire `GET /notifications` (it 401s for guests). The screen
+    // rests on public news; the personal call is skipped, not failed.
+    test('guest load() does not hit the personal /notifications endpoint',
+        () async {
+      when(() => auth.isAuthenticated).thenReturn(false);
+      final cubit = NotificationsCubit(repo, auth: auth);
+
+      await cubit.load();
+
+      verifyNever(repo.list);
+      expect(cubit.state.status, NotificationsStatus.ready);
+      await cubit.close();
+    });
+
+    test('authed load() does fetch the personal endpoint', () async {
+      when(() => auth.isAuthenticated).thenReturn(true);
+      when(repo.list).thenAnswer((_) async => [_notif('n1')]);
+      final cubit = NotificationsCubit(repo, auth: auth);
+
+      await cubit.load();
+
+      verify(repo.list).called(1);
+      expect(cubit.state.items.single.id, 'n1');
+      await cubit.close();
+    });
+
+    // The token store emits on a silent refresh (authed → authed) and, for a
+    // guest, on a no-op clear. Reloading on those re-fired the personal fetch
+    // for nothing (and drove the loop). Only a genuine signed-in ↔ signed-out
+    // flip should reload.
+    test('reloads on a real auth flip but not on a token-refresh re-emit',
+        () async {
+      var authed = false;
+      when(() => auth.isAuthenticated).thenAnswer((_) => authed);
+      when(repo.list).thenAnswer((_) async => [_notif('n1')]);
+      final cubit = NotificationsCubit(repo, auth: auth);
+
+      authed = true;
+      authChanges.add(const TokenPair(accessToken: 'a', refreshToken: 'r'));
+      await pumpEventQueue();
+      // A silent refresh rotates the pair (authed → authed): must NOT reload.
+      authChanges.add(const TokenPair(accessToken: 'a2', refreshToken: 'r2'));
+      await pumpEventQueue();
+
+      verify(repo.list).called(1);
+      await cubit.close();
+    });
+  });
 }

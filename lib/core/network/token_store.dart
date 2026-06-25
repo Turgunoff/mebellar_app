@@ -99,9 +99,16 @@ class TokenStore {
     await _storage.delete(key: _kAccess);
     await _storage.delete(key: _kRefresh);
     await _storage.delete(key: _kExpiresAt);
+    // Only a real signed-in → signed-out transition is an event worth
+    // broadcasting. A clear() on an already-empty store (a guest 401 dragging
+    // the interceptor through _forceSignOut, a double sign-out) is a no-op:
+    // re-emitting `null` here would re-fire every `changes` listener —
+    // including NotificationsCubit's reload — which, since the reload hits
+    // another guest 401, clears again and spins an infinite loop.
+    final hadSession = _cached != null;
     _cached = null;
     _hydrated = true;
-    _changes.add(null);
+    if (hadSession) _changes.add(null);
   }
 
   Future<void> dispose() async {

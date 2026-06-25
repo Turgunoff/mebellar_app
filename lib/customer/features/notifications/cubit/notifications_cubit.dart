@@ -84,8 +84,19 @@ class NotificationsCubit extends Cubit<NotificationsState> {
   }) : _realtime = realtime,
        _auth = auth,
        _newsRepo = newsRepo,
+       _wasAuthed = auth?.isAuthenticated ?? false,
        super(const NotificationsState()) {
-    _authSub = _auth?.authStateChanges.listen((_) => load());
+    // Reload only on a real signed-in ↔ signed-out flip. The token store also
+    // emits on a silent token *refresh* (authed → authed); reloading on that
+    // would re-fire the personal fetch for no reason. (It used to also emit a
+    // no-op `null` for a guest, which — paired with the guest 401 — span an
+    // infinite reload loop; that's now fixed at the store + interceptor too.)
+    _authSub = _auth?.authStateChanges.listen((pair) {
+      final authed = pair != null;
+      if (authed == _wasAuthed) return;
+      _wasAuthed = authed;
+      load();
+    });
     _eventsSub = _realtime?.eventsOfType('notification').listen((_) => load());
   }
 
@@ -93,6 +104,11 @@ class NotificationsCubit extends Cubit<NotificationsState> {
   final NewsDataSource? _newsRepo;
   final WoodyRealtimeService? _realtime;
   final AuthRepository? _auth;
+
+  /// Last-known auth state, so the [authStateChanges] listener can ignore
+  /// emissions that don't flip signed-in ↔ signed-out (token refresh, no-op
+  /// clear) and only reload on a genuine transition.
+  bool _wasAuthed;
 
   StreamSubscription<TokenPair?>? _authSub;
   StreamSubscription<RealtimeEvent>? _eventsSub;
@@ -107,17 +123,26 @@ class NotificationsCubit extends Cubit<NotificationsState> {
   Future<void> load() async {
     emit(state.copyWith(status: NotificationsStatus.loading, clearError: true));
 
+    // Guest gate: `GET /notifications` 401s when signed out (it doesn't return
+    // an empty list), so firing it for a guest is a doomed call — skip it
+    // entirely and let public news carry the screen. When `_auth` is absent
+    // (tests over the mock source) assume authed so existing fixtures keep
+    // exercising the personal path. `isAuthenticated` reads the cached token,
+    // so this never races a storage round-trip.
+    final authed = _auth?.isAuthenticated ?? true;
+
     // Two independent sources, fetched concurrently but isolated: a failure in
     // one must NOT blank the whole screen. Public news always shows; personal
-    // notifications layer on when the authed call succeeds. (`GET /notifications`
-    // returns 401 for guests — not an empty list — so the personal fetch
-    // legitimately fails when signed out; that's fine, news still renders.)
+    // notifications layer on when authed and the call succeeds.
     final results = await Future.wait([
       // Fetch BOTH surfaces' rows — this cubit is root-scoped and shared by
       // the customer inbox AND the seller inbox (each filters its own audience
       // client-side via [NotificationsState.customerItems] / seller items). A
       // mode-scoped fetch here would starve the other mode.
-      _safeList(_repo.list),
+      if (authed)
+        _safeList(_repo.list)
+      else
+        Future<List<NotificationModel>?>.value(null),
       if (_newsRepo != null)
         _safeList(_newsRepo.list)
       else
@@ -126,9 +151,14 @@ class NotificationsCubit extends Cubit<NotificationsState> {
     final personal = results[0];
     final news = results[1];
 
-    // Hard error only when BOTH sources fail (e.g. no connectivity) — then
-    // there's genuinely nothing to show and the retry button is the right UX.
-    if (personal == null && news == null) {
+    // Hard error only when nothing usable came back: no source succeeded AND at
+    // least one was actually attempted. A guest skips the personal fetch (not a
+    // failure), so the screen then rests on news alone — only a news failure
+    // with no personal source is a true all-failed case.
+    final personalOk = authed && personal != null;
+    final newsOk = _newsRepo != null && news != null;
+    final attemptedAny = authed || _newsRepo != null;
+    if (attemptedAny && !personalOk && !newsOk) {
       emit(
         state.copyWith(
           status: NotificationsStatus.failure,

@@ -82,4 +82,52 @@ void main() {
       },
     );
   });
+
+  group('TokenStore.clear', () {
+    FlutterSecureStorage emptyStorage() {
+      final storage = _MockStorage();
+      when(() => storage.read(key: any(named: 'key')))
+          .thenAnswer((_) async => null);
+      when(() => storage.delete(key: any(named: 'key')))
+          .thenAnswer((_) async {});
+      when(
+        () => storage.write(key: any(named: 'key'), value: any(named: 'value')),
+      ).thenAnswer((_) async {});
+      return storage;
+    }
+
+    // Regression: a clear() on an already-empty store must NOT broadcast on
+    // `changes`. A guest 401 drags the interceptor through _forceSignOut →
+    // clear(); if that re-emitted `null`, NotificationsCubit (which listens to
+    // the stream) reloaded, hit another guest 401, cleared again — an infinite
+    // /notifications loop. Only a real signed-in → signed-out flip is an event.
+    test('clear() on an already-empty store emits nothing', () async {
+      final store = TokenStore(emptyStorage());
+      final emissions = <TokenPair?>[];
+      final sub = store.changes.listen(emissions.add);
+
+      await store.clear();
+      await store.clear();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(emissions, isEmpty);
+      await sub.cancel();
+    });
+
+    test('clear() after a real sign-in emits null exactly once', () async {
+      final store = TokenStore(emptyStorage());
+      await store.write(
+        const TokenPair(accessToken: 'a', refreshToken: 'r'),
+      );
+      final emissions = <TokenPair?>[];
+      final sub = store.changes.listen(emissions.add);
+
+      await store.clear(); // real signed-in → signed-out: an event
+      await store.clear(); // now a no-op: silent
+      await Future<void>.delayed(Duration.zero);
+
+      expect(emissions, [null]);
+      await sub.cancel();
+    });
+  });
 }
