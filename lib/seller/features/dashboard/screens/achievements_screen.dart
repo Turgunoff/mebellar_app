@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../core/i18n/i18n.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../data/dashboard_models.dart';
 import '../widgets/dashboard_kit.dart';
@@ -36,7 +37,7 @@ class AchievementsScreen extends StatelessWidget {
             const SizedBox(height: 24),
             _GroupLabel(
               icon: Iconsax.medal_star,
-              text: 'Qo\'lga kiritilgan',
+              text: tr('dashboard.achievements_unlocked_group'),
               count: unlocked.length,
             ),
             const SizedBox(height: 12),
@@ -49,7 +50,7 @@ class AchievementsScreen extends StatelessWidget {
             const SizedBox(height: 24),
             _GroupLabel(
               icon: Iconsax.lock_1,
-              text: 'Davom etmoqda',
+              text: tr('dashboard.achievements_in_progress_group'),
               count: locked.length,
             ),
             const SizedBox(height: 12),
@@ -85,7 +86,7 @@ class _AchievementsAppBar extends StatelessWidget
         onPressed: () => Navigator.of(context).maybePop(),
       ),
       title: Text(
-        'Yutuqlar',
+        tr('dashboard.achievements_title'),
         style: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.w700,
@@ -145,7 +146,13 @@ class _ProgressHeader extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '$unlocked / $total yutuq',
+                      tr(
+                        'dashboard.achievements_count',
+                        namedArgs: {
+                          'unlocked': unlocked.toString(),
+                          'total': total.toString(),
+                        },
+                      ),
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
@@ -156,7 +163,7 @@ class _ProgressHeader extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Qo\'lga kiritildi',
+                      tr('dashboard.achievements_earned_caption'),
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
@@ -369,7 +376,7 @@ class _RewardBox extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  unlocked ? 'Olingan mukofot' : 'Mukofot',
+                  unlocked ? tr('dashboard.reward_received_label') : 'Mukofot',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
@@ -415,7 +422,7 @@ class _DoneChip extends StatelessWidget {
           Icon(Icons.check_rounded, size: 13, color: c.positive),
           const SizedBox(width: 3),
           Text(
-            'Bajarildi',
+            tr('dashboard.achievement_done_chip'),
             style: TextStyle(
               fontSize: 10.5,
               fontWeight: FontWeight.w700,

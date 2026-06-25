@@ -1,5 +1,6 @@
 import 'package:share_plus/share_plus.dart';
 
+import '../../core/i18n/i18n.dart';
 import '../../core/logging/talker.dart';
 
 /// Public, shareable web URL for a shop. Mirrors [productShareUrl] and the
@@ -15,7 +16,7 @@ String shopShareUrl(String shopId) => 'https://woody.uz/shop/$shopId';
 /// Never throws — a share-sheet failure is a no-op, not a crash.
 Future<void> shareShop({required String id, required String name}) async {
   final url = shopShareUrl(id);
-  final text = '$name — Woody\'dagi do\'kon\n$url';
+  final text = tr('shop.share_text', namedArgs: {'name': name, 'url': url});
   try {
     await SharePlus.instance.share(ShareParams(text: text, subject: name));
   } catch (e, st) {

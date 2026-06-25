@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
+import 'package:woody_app/core/i18n/i18n.dart';
 
 import '../../../../shared/models/dashboard_snapshot.dart';
 
@@ -59,7 +60,9 @@ class Achievement {
       // counter separately, so duplicating it here would show it twice.
       icon: achievementIcon(p.icon),
       title: p.titleUz,
-      caption: p.unlocked ? 'Bajarildi' : 'Davom etmoqda',
+      caption: p.unlocked
+          ? tr('dashboard.achievement_done_chip')
+          : 'Davom etmoqda',
       current: current,
       target: target,
       unlocked: p.unlocked,

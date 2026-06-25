@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/auth/auth_repository.dart';
+import '../../../../core/i18n/i18n.dart';
 import '../../../../core/logging/talker.dart';
 import '../../../../core/network/api_error.dart';
 import '../../../../shared/models/seller_wallet.dart';
@@ -252,7 +253,7 @@ class SellerProfileState extends Equatable {
   String get displayShopName {
     if (shopName != null && shopName!.isNotEmpty) return shopName!;
     if (sellerName != null && sellerName!.isNotEmpty) return sellerName!;
-    return 'Sotuvchi';
+    return tr('seller.profile_default_shop_name');
   }
 
   bool get hasLogo => logoUrl != null && logoUrl!.isNotEmpty;

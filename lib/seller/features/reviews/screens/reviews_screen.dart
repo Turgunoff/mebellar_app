@@ -5,6 +5,7 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/i18n/i18n.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/models/review.dart';
@@ -144,7 +145,7 @@ class _ReviewsAppBar extends StatelessWidget implements PreferredSizeWidget {
         onPressed: () => Navigator.of(context).maybePop(),
       ),
       title: Text(
-        'Mijozlar sharhlari',
+        tr('seller.reviews_title'),
         style: TextStyle(
           fontFamily: AppFonts.seller,
           fontSize: 18,
@@ -465,7 +466,7 @@ class _ReplyButton extends StatelessWidget {
         onPressed: onTap,
         icon: Icon(Iconsax.edit, size: 16, color: c.onPrimarySoft),
         label: Text(
-          'Javob yozish',
+          tr('seller.reviews_write_reply'),
           style: TextStyle(
             fontFamily: AppFonts.seller,
             fontSize: 13.5,
@@ -528,7 +529,7 @@ class _SellerReplyBlock extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Sizning javobingiz',
+                  tr('seller.reviews_your_reply'),
                   style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 12,
@@ -586,7 +587,7 @@ class _ReplySheetState extends State<_ReplySheet> {
     final text = _controller.text.trim();
     if (text.isEmpty) {
       messenger.showSnackBar(
-        const SnackBar(content: Text("Javob matni bo'sh bo'lmasligi kerak")),
+        SnackBar(content: Text(tr('seller.reviews_reply_empty'))),
       );
       return;
     }
@@ -594,10 +595,14 @@ class _ReplySheetState extends State<_ReplySheet> {
     if (!mounted) return;
     if (ok) {
       navigator.pop();
-      messenger.showSnackBar(const SnackBar(content: Text('Javob yuborildi')));
+      messenger.showSnackBar(
+        SnackBar(content: Text(tr('seller.reviews_reply_sent'))),
+      );
     } else {
       messenger.showSnackBar(
-        SnackBar(content: Text(cubit.state.error ?? 'Javob yuborilmadi')),
+        SnackBar(
+          content: Text(cubit.state.error ?? tr('seller.reviews_reply_failed')),
+        ),
       );
     }
   }
@@ -627,7 +632,7 @@ class _ReplySheetState extends State<_ReplySheet> {
               ),
               const SizedBox(height: 16),
               Text(
-                'Javob yozish',
+                tr('seller.reviews_write_reply'),
                 style: TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 18,
@@ -660,7 +665,7 @@ class _ReplySheetState extends State<_ReplySheet> {
                   height: 1.45,
                 ),
                 decoration: InputDecoration(
-                  hintText: 'Mijozga samimiy javob yozing...',
+                  hintText: tr('seller.reviews_reply_hint'),
                   hintStyle: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 14,
@@ -698,7 +703,7 @@ class _ReplySheetState extends State<_ReplySheet> {
                           ),
                         )
                       : Text(
-                          'Yuborish',
+                          tr('seller.reviews_send'),
                           style: TextStyle(
                             fontFamily: AppFonts.seller,
                             fontSize: 15,
@@ -729,11 +734,11 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final title = hasAnyReview
-        ? 'Tanlangan filtr bo\'yicha topilmadi'
-        : 'Hali sharh yo\'q';
+        ? tr('seller.reviews_empty_filtered_title')
+        : tr('seller.reviews_empty_none_title');
     final subtitle = hasAnyReview
-        ? "Boshqa filtr tanlang yoki keyinroq qayting."
-        : "Buyurtma yetkazib berilgandan keyin mijozlar sharh qoldira oladi.";
+        ? tr('seller.reviews_empty_filtered_subtitle')
+        : tr('seller.reviews_empty_none_subtitle');
     final c = SellerColors.of(context);
     return Center(
       child: Padding(
@@ -827,7 +832,7 @@ class _ErrorState extends StatelessWidget {
                 ),
               ),
               child: Text(
-                "Qayta urinish",
+                tr('seller.reviews_retry'),
                 style: TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 14,
@@ -858,7 +863,7 @@ class _NoBackendState extends StatelessWidget {
             Icon(Iconsax.info_circle, size: 40, color: c.greyMid),
             const SizedBox(height: 16),
             Text(
-              'Sharhlar mavjud emas',
+              tr('seller.reviews_unavailable_title'),
               style: TextStyle(
                 fontFamily: AppFonts.seller,
                 fontSize: 16,
@@ -868,7 +873,7 @@ class _NoBackendState extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              "Bu qurilmada server aloqasi yo'q.",
+              tr('seller.reviews_unavailable_subtitle'),
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: AppFonts.seller,
@@ -919,11 +924,24 @@ class _ReviewsSkeleton extends StatelessWidget {
 /// Renders the relative time the review was posted, e.g. "2 soat oldin".
 String _formatTimeAgo(DateTime when) {
   final diff = DateTime.now().difference(when);
-  if (diff.inMinutes < 1) return 'Hozir';
-  if (diff.inMinutes < 60) return '${diff.inMinutes} daqiqa oldin';
-  if (diff.inHours < 24) return '${diff.inHours} soat oldin';
-  if (diff.inDays < 7) return '${diff.inDays} kun oldin';
-  if (diff.inDays < 30) return '${(diff.inDays / 7).floor()} hafta oldin';
-  if (diff.inDays < 365) return '${(diff.inDays / 30).floor()} oy oldin';
-  return '${(diff.inDays / 365).floor()} yil oldin';
+  if (diff.inMinutes < 1) return tr('seller.reviews_time_now');
+  if (diff.inMinutes < 60) {
+    return tr('seller.reviews_time_minutes_ago', args: [diff.inMinutes]);
+  }
+  if (diff.inHours < 24) {
+    return tr('seller.reviews_time_hours_ago', args: [diff.inHours]);
+  }
+  if (diff.inDays < 7) {
+    return tr('seller.reviews_time_days_ago', args: [diff.inDays]);
+  }
+  if (diff.inDays < 30) {
+    return tr('seller.reviews_time_weeks_ago', args: [(diff.inDays / 7).floor()]);
+  }
+  if (diff.inDays < 365) {
+    return tr(
+      'seller.reviews_time_months_ago',
+      args: [(diff.inDays / 30).floor()],
+    );
+  }
+  return tr('seller.reviews_time_years_ago', args: [(diff.inDays / 365).floor()]);
 }

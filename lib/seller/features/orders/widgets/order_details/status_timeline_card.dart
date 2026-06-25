@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../../core/i18n/i18n.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import 'order_details_kit.dart';
@@ -13,33 +14,32 @@ class StatusTimelineCard extends StatelessWidget {
 
   final int currentStep;
 
-  static const _steps = <String>[
-    'Yaratildi',
-    'Qabul qilindi',
-    'Tayyorlanmoqda',
-    "Yo'lda",
-    'Yetkazildi',
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final steps = <String>[
+      tr('seller_orders.timeline_created'),
+      tr('seller_orders.timeline_accepted'),
+      tr('seller_orders.action_preparing'),
+      tr('seller_orders.order_status_shipped'),
+      tr('seller_orders.action_delivered'),
+    ];
     return SectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SectionTitle(text: 'Buyurtma holati'),
+          SectionTitle(text: tr('seller_orders.timeline_title')),
           const SizedBox(height: 18),
           LayoutBuilder(
             builder: (context, c) {
               return Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: List.generate(_steps.length, (i) {
+                children: List.generate(steps.length, (i) {
                   final isCompleted = i < currentStep;
                   final isCurrent = i == currentStep;
-                  final isLast = i == _steps.length - 1;
+                  final isLast = i == steps.length - 1;
                   return Expanded(
                     child: _TimelineNode(
-                      label: _steps[i],
+                      label: steps[i],
                       isCompleted: isCompleted,
                       isCurrent: isCurrent,
                       showTrailingConnector: !isLast,

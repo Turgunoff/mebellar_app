@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../../core/i18n/i18n.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import 'product_preview_kit.dart';
@@ -45,7 +46,7 @@ class MetaCard extends StatelessWidget {
           behavior: SnackBarBehavior.floating,
           backgroundColor: c.ink,
           content: Text(
-            "Mahsulot kodi nusxa olindi",
+            tr('seller.product_code_copied'),
             style: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 13,
@@ -66,7 +67,7 @@ class MetaCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SectionTitle(text: 'Asosiy ma\'lumotlar'),
+          SectionTitle(text: tr('seller.meta_section_title')),
           const SizedBox(height: 14),
           if (hasSku)
             Row(
@@ -78,7 +79,7 @@ class MetaCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Mahsulot kodi',
+                        tr('seller.meta_product_code'),
                         style: TextStyle(
                           fontFamily: AppFonts.seller,
                           fontSize: 11,
@@ -101,7 +102,7 @@ class MetaCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Buyurtmalarda va omborda mahsulotni topish uchun',
+                        tr('seller.meta_product_code_hint'),
                         style: TextStyle(
                           fontFamily: AppFonts.seller,
                           fontSize: 11,
@@ -129,7 +130,7 @@ class MetaCard extends StatelessWidget {
             ),
           _MetaInfoRow(
             icon: Iconsax.category,
-            label: 'Kategoriya',
+            label: tr('seller.meta_category'),
             value: category,
             // No leading divider when this is the card's first row (no SKU).
             showDivider: hasSku,
@@ -137,13 +138,13 @@ class MetaCard extends StatelessWidget {
           if ((subcategory?.trim().isNotEmpty ?? false))
             _MetaInfoRow(
               icon: Iconsax.category_2,
-              label: 'Subkategoriya',
+              label: tr('seller.meta_subcategory'),
               value: subcategory!.trim(),
             ),
           if ((material?.trim().isNotEmpty ?? false))
             _MetaInfoRow(
               icon: Iconsax.box_1,
-              label: 'Material',
+              label: tr('seller.meta_material'),
               value: material!.trim(),
             ),
         ],

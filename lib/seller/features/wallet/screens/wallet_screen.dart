@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
-import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/i18n/i18n.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/models/seller_wallet.dart';
@@ -100,7 +100,7 @@ class _WalletView extends StatelessWidget {
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         title: Text(
-          'Hamyon',
+          tr('seller.profile_wallet_title'),
           style: TextStyle(
             fontFamily: AppFonts.seller,
             fontSize: 18,
@@ -116,7 +116,7 @@ class _WalletView extends StatelessWidget {
           if (state.depositStatus == DepositStatus.failure) {
             _showSnack(
               context,
-              "To'lovni boshlab bo'lmadi. Qayta urinib ko'ring.",
+              tr('seller.wallet_deposit_start_failed'),
               icon: Iconsax.close_circle,
               tone: _SnackTone.error,
             );
@@ -156,7 +156,7 @@ class _WalletView extends StatelessWidget {
                 if (wallet.transactions.isNotEmpty) ...[
                   const SizedBox(height: 28),
                   Text(
-                    "So'nggi amallar",
+                    tr('seller.wallet_recent_transactions'),
                     style: TextStyle(
                       fontFamily: AppFonts.seller,
                       fontSize: 16,
@@ -250,7 +250,7 @@ class _BalanceCard extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        'Joriy balans',
+                        tr('seller.wallet_current_balance'),
                         style: TextStyle(
                           fontFamily: AppFonts.seller,
                           fontSize: 13,
@@ -302,7 +302,7 @@ class _BalanceCard extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.only(bottom: 4),
                         child: Text(
-                          "so'm",
+                          tr('seller.wallet_currency_som'),
                           style: TextStyle(
                             fontFamily: AppFonts.seller,
                             fontSize: 16,
@@ -338,7 +338,7 @@ class _BalanceCard extends StatelessWidget {
                         color: Colors.white.withValues(alpha: 0.9),
                       ),
                       label: Text(
-                        'Hamyon qanday ishlaydi?',
+                        tr('seller.wallet_how_it_works_cta'),
                         style: TextStyle(
                           fontFamily: AppFonts.seller,
                           fontSize: 13.5,
@@ -372,8 +372,13 @@ class _CreditLimitChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
       ),
       child: Text(
-        "Kredit limiti: ${formatSom(wallet.creditLimit)} so'm "
-        "(${formatSom(wallet.debtFloor)} gacha)",
+        tr(
+          'seller.wallet_credit_limit_chip',
+          namedArgs: {
+            'limit': formatSom(wallet.creditLimit),
+            'floor': formatSom(wallet.debtFloor),
+          },
+        ),
         style: TextStyle(
           fontFamily: AppFonts.seller,
           fontSize: 12,
@@ -414,11 +419,11 @@ class _DebtNotice extends StatelessWidget {
     final fg = suspended ? c.negative : c.warning;
     final bg = suspended ? c.negativeBg : c.warningBg;
     final text = suspended
-        ? "Do'koningiz vaqtincha muzlatildi! Iltimos, qarzdorlikni uzing — "
-              "balans tiklanishi bilan do'kon avtomatik ochiladi."
-        : "Balansingiz minusga kirdi. Xizmat ko'rsatish to'xtatilmasligi "
-              "uchun ${wallet.graceHoursLeft()} soat ichida hisobni "
-              "to'ldiring.";
+        ? tr('seller.wallet_debt_suspended_notice')
+        : tr(
+            'seller.wallet_debt_grace_notice',
+            namedArgs: {'hours': wallet.graceHoursLeft().toString()},
+          );
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -472,8 +477,10 @@ class _PendingTopUpCard extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              "${formatSom(topUp.amount)} so'mlik to'lovingiz ko'rib "
-              'chiqilmoqda.',
+              tr(
+                'seller.wallet_pending_topup_notice',
+                namedArgs: {'amount': formatSom(topUp.amount)},
+              ),
               style: TextStyle(
                 fontFamily: AppFonts.seller,
                 fontSize: 13,
@@ -521,7 +528,7 @@ class _TopUpSectionState extends State<_TopUpSection> {
     if (amount <= 0) {
       _showSnack(
         context,
-        "To'ldirish summasini kiriting.",
+        tr('seller.wallet_enter_topup_amount'),
         icon: Iconsax.info_circle,
         tone: _SnackTone.neutral,
       );
@@ -565,7 +572,7 @@ class _TopUpSectionState extends State<_TopUpSection> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "Hisobni to'ldirish",
+            tr('seller.wallet_topup_section_title'),
             style: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 16,
@@ -576,8 +583,7 @@ class _TopUpSectionState extends State<_TopUpSection> {
           ),
           const SizedBox(height: 6),
           Text(
-            "Summani kiriting va to'lov usulini tanlang — balans avtomatik "
-            "to'ldiriladi.",
+            tr('seller.wallet_topup_section_subtitle'),
             style: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 12.5,
@@ -597,10 +603,10 @@ class _TopUpSectionState extends State<_TopUpSection> {
               color: c.ink,
             ),
             decoration: InputDecoration(
-              labelText: "Summa (so'm)",
+              labelText: tr('seller.wallet_amount_label'),
               labelStyle: TextStyle(fontFamily: AppFonts.seller, color: c.grey),
               prefixIcon: Icon(Iconsax.money_4, color: c.greyMid, size: 20),
-              suffixText: "so'm",
+              suffixText: tr('seller.wallet_currency_som'),
               suffixStyle: TextStyle(
                 fontFamily: AppFonts.seller,
                 color: c.greyMid,
@@ -628,7 +634,7 @@ class _TopUpSectionState extends State<_TopUpSection> {
           ),
           const SizedBox(height: 16),
           Text(
-            "To'lov usuli",
+            tr('seller.wallet_payment_method'),
             style: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 13,
@@ -640,7 +646,7 @@ class _TopUpSectionState extends State<_TopUpSection> {
           _ProviderTile(
             brand: _kPaymeTeal,
             wordmark: 'Payme',
-            label: 'Payme ilovasi orqali',
+            label: tr('seller.wallet_via_payme'),
             selected: _provider == PaymentProvider.payme,
             onTap: submitting
                 ? null
@@ -650,7 +656,7 @@ class _TopUpSectionState extends State<_TopUpSection> {
           _ProviderTile(
             brand: _kClickBlue,
             wordmark: 'Click',
-            label: 'Click ilovasi orqali',
+            label: tr('seller.wallet_via_click'),
             selected: _provider == PaymentProvider.click,
             onTap: submitting
                 ? null
@@ -698,7 +704,9 @@ class _TopUpSectionState extends State<_TopUpSection> {
                       )
                     : const Icon(Iconsax.wallet_add_1, size: 19),
                 label: Text(
-                  submitting ? 'Ochilmoqda…' : "To'ldirish",
+                  submitting
+                      ? tr('seller.wallet_opening')
+                      : tr('seller.wallet_topup_button'),
                   style: const TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 15,
@@ -904,7 +912,7 @@ class _ErrorView extends StatelessWidget {
           Icon(Iconsax.wifi_square, color: c.greyMid, size: 36),
           const SizedBox(height: 10),
           Text(
-            "Hamyonni yuklab bo'lmadi",
+            tr('seller.wallet_load_failed'),
             style: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 14,
@@ -913,7 +921,7 @@ class _ErrorView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          TextButton(onPressed: onRetry, child: const Text('Qayta urinish')),
+          TextButton(onPressed: onRetry, child: Text(tr('seller.reviews_retry'))),
         ],
       ),
     );

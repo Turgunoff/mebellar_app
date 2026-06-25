@@ -95,6 +95,8 @@ const Map<String, dynamic> tariffUz = {
     'pro_label': 'Pro tarif',
     'enterprise_label': 'Enterprise tarif',
   },
+  'infinity_symbol': '∞',
+  'instructions_load_failed': 'Ma\'lumotni yuklab bo\'lmadi',
 };
 
 const Map<String, dynamic> tariffRu = {
@@ -189,6 +191,8 @@ const Map<String, dynamic> tariffRu = {
     'pro_label': 'Pro тариф',
     'enterprise_label': 'Enterprise тариф',
   },
+  'infinity_symbol': '∞',
+  'instructions_load_failed': 'Не удалось загрузить данные',
 };
 
 const Map<String, dynamic> tariffEn = {
@@ -282,4 +286,6 @@ const Map<String, dynamic> tariffEn = {
     'pro_label': 'Pro plan',
     'enterprise_label': 'Enterprise plan',
   },
+  'infinity_symbol': '∞',
+  'instructions_load_failed': 'Couldn\'t load the details',
 };

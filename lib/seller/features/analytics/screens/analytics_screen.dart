@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/i18n/i18n.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/models/analytics.dart';
@@ -91,10 +92,10 @@ class _AnalyticsView extends StatelessWidget {
       firstDate: earliest,
       lastDate: now,
       initialDateRange: initial,
-      saveText: 'Tanlash',
-      cancelText: 'Bekor qilish',
+      saveText: tr('analytics.range_picker_save'),
+      cancelText: tr('analytics.range_picker_cancel'),
       confirmText: 'OK',
-      helpText: 'Sanani tanlang',
+      helpText: tr('analytics.range_picker_help'),
       builder: (ctx, child) {
         return Theme(
           data: Theme.of(ctx).copyWith(
@@ -189,7 +190,7 @@ class _AnalyticsHeader extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
-              'Analitika',
+              tr('analytics.title'),
               style: TextStyle(
                 fontFamily: AppFonts.seller,
                 fontSize: 24,
@@ -222,12 +223,12 @@ class _RangeSelector extends StatelessWidget {
   final VoidCallback onCustomPick;
   final bool enabled;
 
-  static const _labels = <AnalyticsRange, String>{
-    AnalyticsRange.today: 'Bugun',
-    AnalyticsRange.d7: '7 kun',
-    AnalyticsRange.d30: '30 kun',
-    AnalyticsRange.d90: '90 kun',
-    AnalyticsRange.m12: '12 oy',
+  Map<AnalyticsRange, String> get _labels => <AnalyticsRange, String>{
+    AnalyticsRange.today: tr('analytics.range_today'),
+    AnalyticsRange.d7: tr('analytics.range_7d'),
+    AnalyticsRange.d30: tr('analytics.range_30d'),
+    AnalyticsRange.d90: tr('analytics.range_90d'),
+    AnalyticsRange.m12: tr('analytics.range_12m'),
   };
 
   @override
@@ -274,7 +275,7 @@ class _RangeSelector extends StatelessWidget {
     if (filter.range != AnalyticsRange.custom ||
         filter.customStart == null ||
         filter.customEnd == null) {
-      return 'Sanani tanlash';
+      return tr('analytics.range_custom_pick');
     }
     final s = filter.customStart!;
     final e = filter.customEnd!;
@@ -418,7 +419,12 @@ class _TabBar extends StatelessWidget {
   final ValueChanged<AnalyticsTab> onChanged;
   final bool enabled;
 
-  static const _labels = ['Sotuvlar', 'Buyurtmalar', 'Baholar', 'Mijozlar'];
+  List<String> get _labels => [
+    tr('analytics.tab_sales'),
+    tr('analytics.tab_orders'),
+    tr('analytics.tab_reviews'),
+    tr('analytics.tab_customers'),
+  ];
   static const _icons = [
     Iconsax.trend_up,
     Iconsax.shopping_bag,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../../core/i18n/i18n.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import 'product_preview_kit.dart';
@@ -29,26 +30,26 @@ class DimensionsCard extends StatelessWidget {
       if (lengthCm != null && lengthCm! > 0)
         _DimensionTile(
           icon: Iconsax.ruler,
-          label: 'Uzunligi',
-          value: '${_fmt(lengthCm!)} sm',
+          label: tr('seller.dim_length'),
+          value: tr('seller.cm_value', namedArgs: {'value': _fmt(lengthCm!)}),
         ),
       if (widthCm != null && widthCm! > 0)
         _DimensionTile(
           icon: Iconsax.size,
-          label: 'Kengligi',
-          value: '${_fmt(widthCm!)} sm',
+          label: tr('seller.dim_width'),
+          value: tr('seller.cm_value', namedArgs: {'value': _fmt(widthCm!)}),
         ),
       if (heightCm != null && heightCm! > 0)
         _DimensionTile(
           icon: Iconsax.maximize_3,
-          label: 'Balandligi',
-          value: '${_fmt(heightCm!)} sm',
+          label: tr('seller.dim_height'),
+          value: tr('seller.cm_value', namedArgs: {'value': _fmt(heightCm!)}),
         ),
       if (weightKg != null && weightKg! > 0)
         _DimensionTile(
           icon: Iconsax.weight,
-          label: 'Og\'irligi',
-          value: '${_fmt(weightKg!)} kg',
+          label: tr('seller.dim_weight'),
+          value: tr('seller.kg_value', namedArgs: {'value': _fmt(weightKg!)}),
         ),
     ];
     if (tiles.isEmpty) return const SizedBox.shrink();
@@ -57,7 +58,7 @@ class DimensionsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SectionTitle(text: "O'lchamlari va og'irligi"),
+          SectionTitle(text: tr('seller.dimensions_section_title')),
           const SizedBox(height: 14),
           // Two columns; each tile spans (half - gap) so pairs sit side by side
           // and a lone third/fourth tile wraps to the next line.
@@ -192,7 +193,7 @@ class SetDimensionsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SectionTitle(text: "O'lchamlar (sm)"),
+          SectionTitle(text: tr('seller.set_dimensions_section_title')),
           for (var g = 0; g < groups.length; g++) ...[
             SizedBox(height: g == 0 ? 12 : 14),
             Row(
@@ -269,7 +270,7 @@ class IdentifiersCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Mahsulot ID',
+                  tr('seller.identifiers_product_id'),
                   style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 11,
@@ -298,7 +299,7 @@ class IdentifiersCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                'Yaratilgan',
+                tr('seller.identifiers_created'),
                 style: TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 11,

@@ -41,6 +41,7 @@ const Map<String, dynamic> shopUz = {
   'no_products_yet': 'Hozircha mahsulot yo\'q',
   'load_failed': 'Do\'kon ma\'lumotlarini yuklab bo\'lmadi',
   'retry': 'Qayta urinish',
+  'share_text': '{name} — Woody\'dagi do\'kon\n{url}',
 };
 
 const Map<String, dynamic> shopRu = {
@@ -84,6 +85,7 @@ const Map<String, dynamic> shopRu = {
   'no_products_yet': 'Пока нет товаров',
   'load_failed': 'Не удалось загрузить данные магазина',
   'retry': 'Повторить',
+  'share_text': '{name} — магазин в Woody\n{url}',
 };
 
 const Map<String, dynamic> shopEn = {
@@ -127,4 +129,5 @@ const Map<String, dynamic> shopEn = {
   'no_products_yet': 'No products yet',
   'load_failed': 'Couldn\'t load shop information',
   'retry': 'Try again',
+  'share_text': '{name} — a shop on Woody\n{url}',
 };

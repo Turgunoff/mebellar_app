@@ -277,7 +277,7 @@ class _ShopAddressStepState extends State<ShopAddressStep> {
                   controller: _landmark,
                   decoration: onboardingFieldDecoration(
                     context,
-                    label: 'Mo\'ljal yoki ofis raqami (ixtiyoriy)',
+                    label: tr('onboarding.landmark_label'),
                     icon: Icons.flag_outlined,
                   ),
                   onChanged: (value) {
@@ -416,7 +416,7 @@ class _MapCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          'Manzil aniqlanmoqda...',
+                          tr('onboarding.address_detecting'),
                           style: PremiumTokens.body(size: 11, color: pt.grey),
                         ),
                       ],
@@ -486,7 +486,7 @@ class _AddressField extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              address ?? 'Xaritani suring, manzil avtomatik aniqlanadi',
+              address ?? tr('onboarding.drag_map_hint'),
               style: PremiumTokens.body(
                 size: 13,
                 color: address != null ? pt.dark : pt.grey,

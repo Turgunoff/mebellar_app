@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:model_viewer_plus/model_viewer_plus.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+import '../../../../core/i18n/i18n.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/ar/ar_loading_overlay.dart';
@@ -94,7 +95,7 @@ class _SellerArModelScreenState extends State<SellerArModelScreen> {
         elevation: 0,
         iconTheme: IconThemeData(color: c.ink),
         title: Text(
-          '3D model',
+          tr('seller.model_viewer_title'),
           style: TextStyle(
             fontFamily: AppFonts.seller,
             fontWeight: FontWeight.w700,
@@ -165,8 +166,8 @@ class _SellerArModelScreenState extends State<SellerArModelScreen> {
             background: c.background,
             failed: _loadFailed,
             onRetry: _retryLoad,
-            errorText: 'Modelni yuklab bo\'lmadi. Qayta urinib ko\'ring',
-            retryText: 'Qayta urinish',
+            errorText: tr('seller.model_load_failed'),
+            retryText: tr('common.retry'),
             foreground: c.ink,
           ),
         ],

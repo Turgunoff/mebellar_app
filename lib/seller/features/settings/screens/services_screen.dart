@@ -173,14 +173,14 @@ class _ServicesForm extends StatelessWidget {
         parent: AlwaysScrollableScrollPhysics(),
       ),
       children: [
-        _SectionTitle('Logistika'),
+        _SectionTitle(tr('services.section_logistics')),
         _Card(
           children: [
             if (freeDelivery != null)
               _ServiceTile(
                 config: freeDelivery,
                 icon: Iconsax.truck_fast,
-                title: 'Bepul yetkazib berish',
+                title: tr('services.free_delivery'),
                 input: _InputSpec.amount(
                   label: tr('services.min_order_amount'),
                   initial: freeDelivery.minOrderAmount,
@@ -193,19 +193,19 @@ class _ServicesForm extends StatelessWidget {
               _ServiceTile(
                 config: express,
                 icon: Iconsax.flash_1,
-                title: 'Tezkor yetkazish',
+                title: tr('services.express_delivery'),
               ),
           ],
         ),
         const SizedBox(height: 20),
-        _SectionTitle('Xizmatlar va Kafolat'),
+        _SectionTitle(tr('services.section_services_warranty')),
         _Card(
           children: [
             if (assembly != null)
               _ServiceTile(
                 config: assembly,
                 icon: Iconsax.setting_2,
-                title: "Yig'ish xizmati",
+                title: tr('services.assembly'),
                 input: _InputSpec.amount(
                   label: tr('services.fee_amount'),
                   initial: assembly.feeAmount,
@@ -218,7 +218,7 @@ class _ServicesForm extends StatelessWidget {
               _ServiceTile(
                 config: warranty,
                 icon: Iconsax.shield_tick,
-                title: 'Kafolat',
+                title: tr('services.warranty'),
                 input: _InputSpec.months(
                   label: tr('services.warranty_months'),
                   initial: warranty.warrantyMonths,
@@ -228,22 +228,22 @@ class _ServicesForm extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 20),
-        _SectionTitle('Sotuv shartlari'),
+        _SectionTitle(tr('services.section_sale_terms')),
         _Card(
           children: [
             if (installment != null)
               _ServiceTile(
                 config: installment,
                 icon: Iconsax.wallet_money,
-                title: "Bo'lib to'lash",
+                title: tr('services.installment'),
               ),
             if (installment != null && customOrder != null) const _RowDivider(),
             if (customOrder != null)
               _ServiceTile(
                 config: customOrder,
                 icon: Iconsax.brush_2,
-                title: 'Buyurtma asosida',
-                subtitle: "Mijoz o'lchamlari bo'yicha yasaladi",
+                title: tr('services.custom_order'),
+                subtitle: tr('services.custom_order_subtitle'),
               ),
           ],
         ),
@@ -532,7 +532,9 @@ class _ServiceInputState extends State<_ServiceInput> {
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
     final isAmount = widget.spec.kind == _InputKind.amount;
-    final suffix = isAmount ? 'UZS' : tr('services.months_suffix');
+    final suffix = isAmount
+        ? tr('services.currency_suffix')
+        : tr('services.months_suffix');
     final formatters = <TextInputFormatter>[
       FilteringTextInputFormatter.digitsOnly,
       if (isAmount) _ThousandsFormatter(),

@@ -23,7 +23,9 @@ Future<void> showTariffLimitDialog(
           Text(
             tr('tariff.limit_subtitle', args: [
               '${snapshot.activeProductsCount}',
-              snapshot.plan.isUnlimited ? 'в€ћ' : '${snapshot.plan.maxActiveProducts}',
+              snapshot.plan.isUnlimited
+                  ? tr('tariff.infinity_symbol')
+                  : '${snapshot.plan.maxActiveProducts}',
             ]),
             textAlign: TextAlign.center,
           ),

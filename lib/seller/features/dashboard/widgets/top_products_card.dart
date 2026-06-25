@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../core/i18n/i18n.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../data/dashboard_models.dart';
 import 'dashboard_kit.dart';
@@ -80,7 +81,10 @@ class _ProductRow extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      '${product.unitsSold} dona',
+                      tr(
+                        'dashboard.units_pieces',
+                        namedArgs: {'count': product.unitsSold.toString()},
+                      ),
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -91,7 +95,12 @@ class _ProductRow extends StatelessWidget {
                     const _Dot(),
                     Flexible(
                       child: Text(
-                        "${DashKit.compactMoney(product.revenue)} so'm",
+                        tr(
+                          'common.currency_som_2',
+                          namedArgs: {
+                            'amount': DashKit.compactMoney(product.revenue),
+                          },
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(

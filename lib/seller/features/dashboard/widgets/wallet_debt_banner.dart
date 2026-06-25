@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../core/i18n/i18n.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/models/seller_wallet.dart';
 import '../../wallet/screens/wallet_screen.dart';
@@ -45,9 +46,9 @@ class WalletDebtBanner extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  "Do'koningiz vaqtincha muzlatildi!",
-                  style: TextStyle(
+                Text(
+                  tr('dashboard.wallet_frozen_title'),
+                  style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
                     color: Colors.white,
@@ -55,8 +56,12 @@ class WalletDebtBanner extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  "Iltimos, qarzdorlikni uzing (${formatSom(wallet.debtAmount)} "
-                  "so'm). Balans tiklanishi bilan do'kon avtomatik ochiladi.",
+                  tr(
+                    'dashboard.wallet_frozen_body',
+                    namedArgs: {
+                      'amount': formatSom(wallet.debtAmount).toString(),
+                    },
+                  ),
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
@@ -65,8 +70,8 @@ class WalletDebtBanner extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 10),
-                const _BannerCta(
-                  label: "Qarzdorlikni uzish",
+                _BannerCta(
+                  label: tr('dashboard.wallet_pay_debt_cta'),
                   dark: true,
                 ),
               ],
@@ -93,7 +98,7 @@ class WalletDebtBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Balansingiz minusga kirdi',
+                  tr('dashboard.wallet_negative_title'),
                   style: TextStyle(
                     fontSize: 14.5,
                     fontWeight: FontWeight.w800,
@@ -102,8 +107,10 @@ class WalletDebtBanner extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  "Xizmat ko'rsatish to'xtatilmasligi uchun "
-                  "${wallet.graceHoursLeft()} soat ichida hisobni to'ldiring.",
+                  tr(
+                    'dashboard.wallet_grace_body',
+                    namedArgs: {'hours': wallet.graceHoursLeft().toString()},
+                  ),
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
@@ -112,7 +119,10 @@ class WalletDebtBanner extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 10),
-                _BannerCta(label: "Hisobni to'ldirish", color: c.warning),
+                _BannerCta(
+                  label: tr('dashboard.wallet_top_up_cta'),
+                  color: c.warning,
+                ),
               ],
             ),
           ),
@@ -135,7 +145,7 @@ class WalletDebtBanner extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Hamyon balansi',
+              tr('dashboard.wallet_balance_label'),
               style: TextStyle(
                 fontSize: 13.5,
                 fontWeight: FontWeight.w600,
@@ -144,7 +154,10 @@ class WalletDebtBanner extends StatelessWidget {
             ),
           ),
           Text(
-            "${formatSom(wallet.balance)} so'm",
+            tr(
+              'common.currency_som_2',
+              namedArgs: {'amount': formatSom(wallet.balance).toString()},
+            ),
             style: TextStyle(
               fontSize: 14.5,
               fontWeight: FontWeight.w700,

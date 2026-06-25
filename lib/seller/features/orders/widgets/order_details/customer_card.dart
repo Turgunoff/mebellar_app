@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../../core/i18n/i18n.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import 'order_details_kit.dart';
@@ -26,7 +27,7 @@ class CustomerCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SectionTitle(text: "Mijoz ma'lumotlari"),
+          SectionTitle(text: tr('seller_orders.customer_section_title')),
           const SizedBox(height: 14),
           Row(
             children: [
@@ -63,7 +64,7 @@ class CustomerCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Mijoz',
+                      tr('seller_orders.customer'),
                       style: TextStyle(
                         fontFamily: AppFonts.seller,
                         fontSize: 11,
@@ -81,10 +82,10 @@ class CustomerCard extends StatelessWidget {
           Divider(height: 1, thickness: 1, color: c.dividerStrong),
           const SizedBox(height: 14),
           _ContactRow(
-            label: 'Telefon',
+            label: tr('seller_orders.phone_label'),
             value: phone,
             actionIcon: Iconsax.call_calling,
-            actionLabel: "Qo'ng'iroq",
+            actionLabel: tr('seller_orders.call_chip'),
             onTap: () {},
           ),
           const SizedBox(height: 12),
@@ -199,7 +200,7 @@ class _AddressRow extends StatelessWidget {
           behavior: SnackBarBehavior.floating,
           backgroundColor: c.ink,
           content: Text(
-            "Manzil nusxa olindi",
+            tr('seller_orders.address_copied'),
             style: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 13,
@@ -227,7 +228,7 @@ class _AddressRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "Yetkazib berish manzili",
+                tr('seller_orders.delivery_address_label'),
                 style: TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 11,
@@ -266,7 +267,7 @@ class _AddressRow extends StatelessWidget {
                   Icon(Iconsax.copy, size: 14, color: c.ink),
                   const SizedBox(width: 6),
                   Text(
-                    "Nusxa olish",
+                    tr('seller_orders.copy_action'),
                     style: TextStyle(
                       fontFamily: AppFonts.seller,
                       fontSize: 12,

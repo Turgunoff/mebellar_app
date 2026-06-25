@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
-import 'package:intl/intl.dart';
 
+import '../../../../core/i18n/i18n.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 
@@ -61,13 +61,23 @@ class AnalyticsFmt {
   /// so timestamps don't blow up the compact preview cards.
   static String relative(DateTime time) {
     final diff = DateTime.now().difference(time);
-    if (diff.inMinutes < 1) return 'hozir';
-    if (diff.inMinutes < 60) return '${diff.inMinutes} daqiqa oldin';
-    if (diff.inHours < 24) return '${diff.inHours} soat oldin';
-    if (diff.inDays < 7) return '${diff.inDays} kun oldin';
-    if (diff.inDays < 30) return '${(diff.inDays / 7).floor()} hafta oldin';
-    if (diff.inDays < 365) return '${(diff.inDays / 30).floor()} oy oldin';
-    return '${(diff.inDays / 365).floor()} yil oldin';
+    if (diff.inMinutes < 1) return tr('analytics.time_now');
+    if (diff.inMinutes < 60) {
+      return tr('analytics.time_minutes_ago', args: [diff.inMinutes]);
+    }
+    if (diff.inHours < 24) {
+      return tr('analytics.time_hours_ago', args: [diff.inHours]);
+    }
+    if (diff.inDays < 7) {
+      return tr('analytics.time_days_ago', args: [diff.inDays]);
+    }
+    if (diff.inDays < 30) {
+      return tr('analytics.time_weeks_ago', args: [(diff.inDays / 7).floor()]);
+    }
+    if (diff.inDays < 365) {
+      return tr('analytics.time_months_ago', args: [(diff.inDays / 30).floor()]);
+    }
+    return tr('analytics.time_years_ago', args: [(diff.inDays / 365).floor()]);
   }
 }
 

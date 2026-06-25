@@ -3,6 +3,7 @@
 // then map the top-level key in each language map below. Order matches the
 // legacy translations_<lang>.dart files so diffs stay readable.
 
+import 'about_translations.dart';
 import 'address_translations.dart';
 import 'ai_designer_translations.dart';
 import 'auth_translations.dart';
@@ -31,6 +32,7 @@ import 'tariff_translations.dart';
 import 'tutorial_translations.dart';
 
 const Map<String, dynamic> uzTranslations = {
+  'about': aboutUz,
   'common': commonUz,
   'auth': authUz,
   'beta': betaUz,
@@ -80,6 +82,7 @@ const Map<String, dynamic> uzTranslations = {
 };
 
 const Map<String, dynamic> ruTranslations = {
+  'about': aboutRu,
   'common': commonRu,
   'auth': authRu,
   'beta': betaRu,
@@ -129,6 +132,7 @@ const Map<String, dynamic> ruTranslations = {
 };
 
 const Map<String, dynamic> enTranslations = {
+  'about': aboutEn,
   'common': commonEn,
   'auth': authEn,
   'beta': betaEn,

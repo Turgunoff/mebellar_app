@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../../core/i18n/i18n.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../widgets/celebration_animation.dart';
 
@@ -18,12 +19,6 @@ class SellerWelcomeScreen extends StatelessWidget {
 
   /// Invoked when the seller taps "Boshlash" (or dismisses with system back).
   final VoidCallback onContinue;
-
-  static const String _title = 'Tabriklaymiz! 🎉';
-  static const String _subtitle =
-      "Do'koningiz muvaffaqiyatli tasdiqlandi. Sizga 30 kunlik tekin Bonus "
-      "tarif sovg'a qildik. Endi mahsulotlaringizni qo'shib, savdoni "
-      'boshlashingiz mumkin!';
 
   void _continue() {
     HapticFeedback.lightImpact();
@@ -52,7 +47,7 @@ class SellerWelcomeScreen extends StatelessWidget {
                 const CelebrationAnimation(size: 240),
                 const SizedBox(height: 36),
                 Text(
-                  _title,
+                  tr('seller.welcome_title'),
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 28,
@@ -64,7 +59,7 @@ class SellerWelcomeScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  _subtitle,
+                  tr('seller.welcome_subtitle'),
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 15,
@@ -86,9 +81,9 @@ class SellerWelcomeScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(16),
                       ),
                     ),
-                    child: const Text(
-                      'Boshlash',
-                      style: TextStyle(
+                    child: Text(
+                      tr('seller.ar_onboarding_start'),
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.2,

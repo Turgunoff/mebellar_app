@@ -183,7 +183,7 @@ class _OrderDetailView extends StatelessWidget {
         return Scaffold(
           backgroundColor: c.background,
           appBar: OrderAppBar(
-            orderId: order?.orderNumber ?? 'tafsilotlari',
+            orderId: order?.orderNumber ?? tr('seller_orders.detail_title_fallback'),
             orderUuid: order?.id,
           ),
           body: _buildBody(context, state, order),
@@ -214,7 +214,7 @@ class _OrderDetailView extends StatelessWidget {
     if (order == null) {
       if (state.status == SellerOrderDetailStatus.failure) {
         return _DetailError(
-          message: state.error ?? 'Buyurtma topilmadi',
+          message: state.error ?? tr('seller_orders.detail_not_found'),
           onRetry: () => context.read<SellerOrderDetailBloc>().add(
             SellerOrderDetailRequested(orderId),
           ),
@@ -296,8 +296,8 @@ class _OrderDetailView extends StatelessWidget {
 
   static String _paymentLabel(model.OrderPaymentMethod method) =>
       switch (method) {
-        model.OrderPaymentMethod.cashOnDelivery => 'Naqd pul',
-        model.OrderPaymentMethod.card => 'Karta',
+        model.OrderPaymentMethod.cashOnDelivery => tr('seller_orders.payment_cash'),
+        model.OrderPaymentMethod.card => tr('seller_orders.payment_card'),
       };
 
   /// Maps domain [model.OrderItem]s to the detail kit's display struct.
@@ -309,7 +309,7 @@ class _OrderDetailView extends StatelessWidget {
         OrderItem(
           name: (it.productName.uz?.isNotEmpty ?? false)
               ? it.productName.uz!
-              : 'Mahsulot #${_shortId(it.productId)}',
+              : tr('seller_orders.item_fallback_name', args: [_shortId(it.productId)]),
           qty: it.quantity,
           unitPriceLabel: formatOrderAmount(it.unitPrice),
           subtotalLabel: formatOrderAmount(it.lineTotal),
@@ -363,7 +363,7 @@ class _CustomerContactSheet extends StatelessWidget {
             ),
             const SizedBox(height: 18),
             Text(
-              "Qabul qilishdan oldin",
+              tr('seller_orders.contact_sheet_title'),
               style: TextStyle(
                 fontFamily: AppFonts.seller,
                 fontSize: 17,
@@ -389,7 +389,7 @@ class _CustomerContactSheet extends StatelessWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      "Katta summa uchun buyurtmani qabul qilishdan oldin mijoz bilan tafsilotlarni aniqlab oling.",
+                      tr('seller_orders.contact_sheet_warning'),
                       style: TextStyle(
                         fontFamily: AppFonts.seller,
                         fontSize: 12,
@@ -456,7 +456,7 @@ class _CustomerContactSheet extends StatelessWidget {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              "Bosing",
+                              tr('seller_orders.contact_tap_hint'),
                               style: TextStyle(
                                 fontFamily: AppFonts.seller,
                                 fontSize: 11,
@@ -472,7 +472,7 @@ class _CustomerContactSheet extends StatelessWidget {
               const SizedBox(height: 16),
             ] else ...[
               Text(
-                "Mijoz aloqa ma'lumotlari topilmadi.",
+                tr('seller_orders.contact_none'),
                 style: TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 13,
@@ -495,9 +495,9 @@ class _CustomerContactSheet extends StatelessWidget {
                           ? () => launchUrl(Uri.parse('tel:$phone'))
                           : null,
                       icon: const Icon(Iconsax.call, size: 18),
-                      label: const FittedBox(
+                      label: FittedBox(
                         fit: BoxFit.scaleDown,
-                        child: Text("Qo'ng'iroq qilish"),
+                        child: Text(tr('seller_orders.call_action')),
                       ),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.sellerPrimary,
@@ -528,9 +528,9 @@ class _CustomerContactSheet extends StatelessWidget {
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                      child: const Text(
-                        'Qabul qilish',
-                        style: TextStyle(
+                      child: Text(
+                        tr('seller_orders.accept_action'),
+                        style: const TextStyle(
                           fontFamily: AppFonts.seller,
                           fontWeight: FontWeight.w700,
                         ),
@@ -606,7 +606,7 @@ class _SetFeeDialogState extends State<_SetFeeDialog> {
     return AlertDialog(
       backgroundColor: c.surface,
       title: Text(
-        'Yetkazish narxini belgilash',
+        tr('seller_orders.set_fee_title'),
         style: TextStyle(
           fontFamily: AppFonts.seller,
           fontSize: 16,
@@ -625,7 +625,7 @@ class _SetFeeDialogState extends State<_SetFeeDialog> {
           color: c.ink,
         ),
         decoration: InputDecoration(
-          hintText: 'Yetkazish narxi (UZS)',
+          hintText: tr('seller_orders.set_fee_hint'),
           hintStyle: TextStyle(fontFamily: AppFonts.seller, color: c.grey),
           suffixText: 'UZS',
           enabledBorder: OutlineInputBorder(
@@ -642,7 +642,7 @@ class _SetFeeDialogState extends State<_SetFeeDialog> {
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
           child: Text(
-            'Yopish',
+            tr('seller_orders.close_action'),
             style: TextStyle(
               fontFamily: AppFonts.seller,
               color: c.grey,
@@ -661,9 +661,9 @@ class _SetFeeDialogState extends State<_SetFeeDialog> {
               alpha: 0.4,
             ),
           ),
-          child: const Text(
-            'Saqlash',
-            style: TextStyle(
+          child: Text(
+            tr('seller_orders.save_action'),
+            style: const TextStyle(
               fontFamily: AppFonts.seller,
               fontWeight: FontWeight.w700,
             ),
@@ -708,9 +708,9 @@ class _DetailError extends StatelessWidget {
                 backgroundColor: AppColors.sellerPrimary,
                 foregroundColor: Colors.white,
               ),
-              child: const Text(
-                'Qayta urinish',
-                style: TextStyle(
+              child: Text(
+                tr('seller_orders.retry_action'),
+                style: const TextStyle(
                   fontFamily: AppFonts.seller,
                   fontWeight: FontWeight.w600,
                 ),

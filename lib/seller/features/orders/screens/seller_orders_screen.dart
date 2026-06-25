@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/i18n/i18n.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/models/order.dart';
@@ -96,7 +97,8 @@ class _SellerOrdersViewState extends State<_SellerOrdersView>
                       return const Center(child: BrandLoadingIndicator());
                     case SellerOrdersStatus.failure:
                       return _OrdersError(
-                        message: state.error ?? "Buyurtmalarni yuklab bo'lmadi",
+                        message:
+                            state.error ?? tr('seller_orders.list_load_error'),
                         onRetry: () => context.read<SellerOrdersBloc>().add(
                           const SellerOrdersRequested(),
                         ),
@@ -139,10 +141,10 @@ class _SellerOrdersViewState extends State<_SellerOrdersView>
   }
 
   static String _emptyMessageFor(SellerOrdersTab tab) => switch (tab) {
-    SellerOrdersTab.newTab => "Yangi buyurtmalar yo'q",
-    SellerOrdersTab.active => "Faol buyurtmalar yo'q",
-    SellerOrdersTab.done => "Yetkazilgan buyurtmalar yo'q",
-    SellerOrdersTab.cancelled => "Bekor qilingan buyurtmalar yo'q",
+    SellerOrdersTab.newTab => tr('seller_orders.empty_new'),
+    SellerOrdersTab.active => tr('seller_orders.empty_active'),
+    SellerOrdersTab.done => tr('seller_orders.empty_done'),
+    SellerOrdersTab.cancelled => tr('seller_orders.empty_cancelled'),
   };
 }
 
@@ -162,7 +164,7 @@ class _OrdersHeader extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
-              'Buyurtmalar',
+              tr('seller_orders.list_title'),
               style: TextStyle(
                 fontFamily: AppFonts.seller,
                 fontSize: 24,
@@ -230,19 +232,19 @@ class _OrdersTabBar extends StatelessWidget {
           tabs: [
             Tab(
               child: _TabLabel(
-                text: 'Yangi',
+                text: tr('seller_orders.tab_newTab'),
                 count: state.countFor(SellerOrdersTab.newTab),
                 accent: true,
               ),
             ),
             Tab(
               child: _TabLabel(
-                text: 'Faol',
+                text: tr('seller_orders.tab_active'),
                 count: state.countFor(SellerOrdersTab.active),
               ),
             ),
-            const Tab(text: 'Yetkazilgan'),
-            const Tab(text: 'Bekor qilingan'),
+            Tab(text: tr('seller_orders.tab_done')),
+            Tab(text: tr('seller_orders.tab_cancelled')),
           ],
         ),
       ),
@@ -444,7 +446,7 @@ class _OrderCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Jami',
+                            tr('seller_orders.total_label'),
                             style: TextStyle(
                               fontFamily: AppFonts.seller,
                               fontSize: 11,
@@ -606,7 +608,7 @@ class _OrdersError extends StatelessWidget {
                   foregroundColor: Colors.white,
                 ),
                 child: Text(
-                  'Qayta urinish',
+                  tr('seller_orders.retry_action'),
                   style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontWeight: FontWeight.w600,

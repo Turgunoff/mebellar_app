@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
-import 'package:intl/intl.dart';
 
+import '../../../../../core/i18n/i18n.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import '../../../../../shared/models/seller_product.dart';
@@ -32,7 +32,7 @@ class PreviewModeBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Mijoz ko'rinishi",
+                  tr('seller.preview_customer_view_title'),
                   style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 13,
@@ -44,7 +44,7 @@ class PreviewModeBanner extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  "Mahsulotingiz xaridorlarga qanday ko'rinishini tekshiring",
+                  tr('seller.preview_customer_view_subtitle'),
                   style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 11.5,
@@ -177,7 +177,7 @@ class TitlePriceCard extends StatelessWidget {
                   ),
                   children: [
                     TextSpan(
-                      text: '  UZS',
+                      text: tr('common.currency_uzs'),
                       style: TextStyle(
                         fontFamily: AppFonts.seller,
                         fontSize: 13,
@@ -194,7 +194,7 @@ class TitlePriceCard extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 3),
                   child: Text(
-                    "${priceFormat.format(product.price)} UZS",
+                    tr('common.uzs_amount_2', namedArgs: {'amount': priceFormat.format(product.price)}),
                     style: TextStyle(
                       fontFamily: AppFonts.seller,
                       fontSize: 13,
@@ -250,8 +250,8 @@ class TitlePriceCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   product.status == SellerProductStatus.approved
-                      ? 'Sotuvda mavjud · buyurtma bo\'yicha tayyorlanadi'
-                      : 'Hozircha sotuvda emas',
+                      ? tr('seller.preview_available_made_to_order')
+                      : tr('seller.preview_not_available'),
                   style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 13,
@@ -300,7 +300,7 @@ class RejectionReasonCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Rad etish sababi',
+                  tr('seller.rejection_reason_title'),
                   style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 13,

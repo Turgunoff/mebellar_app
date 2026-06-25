@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/i18n/i18n.dart';
 import '../../../../customer/features/home/widgets/premium/premium_tokens.dart';
 import '../bloc/onboarding_bloc.dart';
 import 'onboarding_kit.dart';
@@ -95,7 +96,7 @@ class DoneStep extends StatelessWidget {
               _fadeUp(
                 titleIn,
                 Text(
-                  'Ariza yuborildi!',
+                  tr('onboarding.done_title_2'),
                   style: PremiumTokens.display(size: 28, letterSpacing: -0.4),
                   textAlign: TextAlign.center,
                 ),
@@ -104,8 +105,7 @@ class DoneStep extends StatelessWidget {
               _fadeUp(
                 subtitleIn,
                 Text(
-                  "Sizning arizangiz qabul qilindi!\n"
-                  "24 soat ichida ko'rib chiqamiz.",
+                  tr('onboarding.done_subtitle'),
                   style: PremiumTokens.body(
                     size: 15,
                     color: pt.grey,
@@ -130,7 +130,7 @@ class DoneStep extends StatelessWidget {
                       ),
                     ),
                     child: Text(
-                      'Profilga qaytish',
+                      tr('onboarding.back_to_profile'),
                       style: PremiumTokens.body(
                         size: 15,
                         weight: FontWeight.w600,

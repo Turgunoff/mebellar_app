@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/i18n/i18n.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 
@@ -26,34 +27,27 @@ Future<void> showWalletInfoBottomSheet(BuildContext context) {
 class WalletInfoBottomSheet extends StatelessWidget {
   const WalletInfoBottomSheet({super.key});
 
-  static const _items = <_WalletInfoItem>[
-    _WalletInfoItem(
-      icon: Icons.receipt_long,
-      title: 'Vazifasi',
-      description:
-          "Hamyon platforma orqali qilingan muvaffaqiyatli savdolardan "
-          "tushadigan komissiyalarni to'lash uchun ishlatiladi.",
-    ),
-    _WalletInfoItem(
-      icon: Icons.autorenew,
-      title: 'Avtomatik yechish',
-      description:
-          "Buyurtma xaridorga yetkazib berilgandan so'ng, belgilangan "
-          "komissiya foizi shu hamyondan avtomatik tarzda yechib olinadi.",
-    ),
-    _WalletInfoItem(
-      icon: Icons.warning_amber_rounded,
-      title: 'Qarzdorlik va muzlatish',
-      description:
-          "Agar balansingiz minusga kirib ketsa, sizga 48 soat muhlat "
-          "beriladi. Vaqtida to'ldirilmasa, do'koningiz vaqtincha muzlatiladi.",
-      warning: true,
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
+    final items = <_WalletInfoItem>[
+      _WalletInfoItem(
+        icon: Icons.receipt_long,
+        title: tr('seller.wallet_info_purpose_title'),
+        description: tr('seller.wallet_info_purpose_desc'),
+      ),
+      _WalletInfoItem(
+        icon: Icons.autorenew,
+        title: tr('seller.wallet_info_auto_debit_title'),
+        description: tr('seller.wallet_info_auto_debit_desc'),
+      ),
+      _WalletInfoItem(
+        icon: Icons.warning_amber_rounded,
+        title: tr('seller.wallet_info_debt_title'),
+        description: tr('seller.wallet_info_debt_desc'),
+        warning: true,
+      ),
+    ];
     return SafeArea(
       top: false,
       child: SingleChildScrollView(
@@ -78,7 +72,7 @@ class WalletInfoBottomSheet extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'Hamyon qanday ishlaydi?',
+                    tr('seller.wallet_how_it_works_cta'),
                     style: TextStyle(
                       fontFamily: AppFonts.seller,
                       fontSize: 19,
@@ -93,9 +87,9 @@ class WalletInfoBottomSheet extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 20),
-            for (var i = 0; i < _items.length; i++) ...[
+            for (var i = 0; i < items.length; i++) ...[
               if (i > 0) const SizedBox(height: 20),
-              _WalletInfoRow(item: _items[i]),
+              _WalletInfoRow(item: items[i]),
             ],
           ],
         ),

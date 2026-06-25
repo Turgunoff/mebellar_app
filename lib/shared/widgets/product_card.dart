@@ -126,7 +126,9 @@ class ProductCard extends StatelessWidget {
                     children: [
                       Flexible(
                         child: Text(
-                          '${priceFormat.format(product.price)} so\'m',
+                          tr('common.currency_som', namedArgs: {
+                            'price': priceFormat.format(product.price),
+                          }),
                           style: Theme.of(context).textTheme.titleSmall
                               ?.copyWith(fontWeight: FontWeight.w700),
                           overflow: TextOverflow.ellipsis,

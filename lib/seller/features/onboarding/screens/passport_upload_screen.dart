@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../../core/i18n/i18n.dart';
 import '../../../../customer/features/home/widgets/premium/premium_tokens.dart';
 
 enum _PassportSide { front, back }
@@ -46,7 +47,7 @@ class _PassportUploadScreenState extends State<PassportUploadScreen> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Rasmni tanlab bo\'lmadi')),
+        SnackBar(content: Text(tr('onboarding.image_pick_failed'))),
       );
     }
   }
@@ -80,9 +81,9 @@ class _PassportUploadScreenState extends State<PassportUploadScreen> {
           color: PremiumTokens.accent,
           size: 56,
         ),
-        title: const Text('Yuborildi'),
-        content: const Text(
-          'Pasport rasmlari tekshiruvga yuborildi. Natijani kuting.',
+        title: Text(tr('onboarding.submitted_dialog_title')),
+        content: Text(
+          tr('onboarding.passport_submitted_body'),
         ),
         actions: [
           TextButton(
@@ -91,7 +92,7 @@ class _PassportUploadScreenState extends State<PassportUploadScreen> {
               Navigator.of(context).pop();
               widget.onSubmit?.call();
             },
-            child: const Text('OK'),
+            child: Text(tr('common.ok')),
           ),
         ],
       ),
@@ -109,7 +110,7 @@ class _PassportUploadScreenState extends State<PassportUploadScreen> {
           icon: const Icon(Iconsax.arrow_left_2_copy),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
-        title: const Text('Sotuvchi onboarding'),
+        title: Text(tr('onboarding.title')),
         centerTitle: false,
       ),
       body: SafeArea(
@@ -120,12 +121,12 @@ class _PassportUploadScreenState extends State<PassportUploadScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Hujjatlarni yuklang',
+                tr('onboarding.step_documents_title'),
                 style: PremiumTokens.display(size: 26, letterSpacing: -0.3),
               ),
               const SizedBox(height: 8),
               Text(
-                "Tasdiqlash uchun pasportingizning old va orqa tomon rasmlarini yuklang",
+                tr('onboarding.passport_subtitle'),
                 style: PremiumTokens.body(
                   size: 14,
                   color: pt.grey,
@@ -134,14 +135,14 @@ class _PassportUploadScreenState extends State<PassportUploadScreen> {
               ),
               const SizedBox(height: 28),
               _UploadTile(
-                label: 'Old tomonini yuklang',
+                label: tr('onboarding.passport_front_label'),
                 file: _frontImage,
                 onPick: () => _selectImage(_PassportSide.front),
                 onRemove: () => _removeImage(_PassportSide.front),
               ),
               const SizedBox(height: 16),
               _UploadTile(
-                label: 'Orqa tomonini yuklang',
+                label: tr('onboarding.passport_back_label'),
                 file: _backImage,
                 onPick: () => _selectImage(_PassportSide.back),
                 onRemove: () => _removeImage(_PassportSide.back),
@@ -166,7 +167,7 @@ class _PassportUploadScreenState extends State<PassportUploadScreen> {
                     side: BorderSide(color: pt.divider),
                     foregroundColor: pt.dark,
                   ),
-                  child: const Text('Orqaga'),
+                  child: Text(tr('common.back')),
                 ),
               ),
               const SizedBox(width: 12),
@@ -184,7 +185,7 @@ class _PassportUploadScreenState extends State<PassportUploadScreen> {
                           ),
                         )
                       : const Icon(Icons.send_outlined, size: 18),
-                  label: const Text('Tasdiqlash va yuborish'),
+                  label: Text(tr('onboarding.confirm_and_submit')),
                   style: FilledButton.styleFrom(
                     backgroundColor: PremiumTokens.accent,
                     foregroundColor: Colors.white,
@@ -259,8 +260,8 @@ class _UploadTile extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       hasFile
-                          ? 'Rasm tanlandi. Almashtirish uchun bosing.'
-                          : 'JPG yoki PNG · ravshan suratga oling',
+                          ? tr('onboarding.image_selected_tap_to_replace')
+                          : tr('onboarding.upload_hint_jpg_png'),
                       style: PremiumTokens.body(
                         size: 12,
                         color: pt.grey,
@@ -276,7 +277,7 @@ class _UploadTile extends StatelessWidget {
                   icon: const Icon(Icons.close_rounded, size: 18),
                   color: pt.grey,
                   visualDensity: VisualDensity.compact,
-                  tooltip: "O'chirish",
+                  tooltip: tr('common.delete'),
                 )
               else
                 Icon(

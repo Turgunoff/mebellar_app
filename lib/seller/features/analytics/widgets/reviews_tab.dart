@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../core/i18n/i18n.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/models/analytics.dart';
@@ -69,7 +70,7 @@ class _ReviewsHeroCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  "Davr ichidagi o'rtacha baho",
+                  tr('analytics.reviews_hero_caption'),
                   style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 13,
@@ -117,7 +118,7 @@ class _ReviewsHeroCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            '${reviews.total} ta sharh',
+            tr('analytics.reviews_count', args: [reviews.total]),
             style: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 12,
@@ -135,7 +136,7 @@ class _ReviewsHeroCard extends StatelessWidget {
               dates: reviews.series.map((p) => p.bucketStart).toList(),
               granularity: granularity,
               valueFormatter: (v) => v.round().toString(),
-              unit: 'sharh',
+              unit: tr('analytics.unit_review'),
               height: 130,
             ),
           ],
@@ -160,7 +161,7 @@ class _ReviewsKpiRow extends StatelessWidget {
           Expanded(
             child: MiniKpiCard(
               icon: Iconsax.message_text,
-              label: 'Sharhlar',
+              label: tr('analytics.reviews_total'),
               value: reviews.total.toString(),
             ),
           ),
@@ -168,7 +169,7 @@ class _ReviewsKpiRow extends StatelessWidget {
           Expanded(
             child: MiniKpiCard(
               icon: Iconsax.reserve,
-              label: 'Javob berildi',
+              label: tr('analytics.reviews_replied'),
               value: reviews.repliedCount.toString(),
               color: AnalyticsTokens.info,
             ),
@@ -177,7 +178,7 @@ class _ReviewsKpiRow extends StatelessWidget {
           Expanded(
             child: MiniKpiCard(
               icon: Iconsax.percentage_circle,
-              label: 'Javob %',
+              label: tr('analytics.reviews_reply_rate'),
               value: replyRate == null
                   ? '—'
                   : '${replyRate.toStringAsFixed(0)}%',
@@ -202,12 +203,12 @@ class _DistributionCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionHeader(title: 'Baholar taqsimoti'),
+        SectionHeader(title: tr('analytics.reviews_distribution')),
         AnalyticsCard(
           child: reviews.total == 0
               ? SectionEmpty(
                   icon: Iconsax.star_1,
-                  message: "Bu davr uchun sharh yo'q",
+                  message: tr('analytics.reviews_empty_distribution'),
                 )
               : Column(
                   children: [
@@ -314,12 +315,12 @@ class _RecentReviewsSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionHeader(title: "So'nggi sharhlar"),
+        SectionHeader(title: tr('analytics.reviews_recent')),
         if (items.isEmpty)
           AnalyticsCard(
             child: SectionEmpty(
               icon: Iconsax.message_text,
-              message: "Hozircha sharhlar yo'q",
+              message: tr('analytics.reviews_empty_recent'),
             ),
           )
         else
@@ -433,7 +434,7 @@ class _RecentReviewTile extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        'Javob berildi',
+                        tr('analytics.reviews_replied'),
                         style: TextStyle(
                           fontFamily: AppFonts.seller,
                           fontSize: 10,
@@ -464,7 +465,7 @@ class _RecentReviewTile extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        'Javob kutilmoqda',
+                        tr('analytics.reviews_awaiting_reply'),
                         style: TextStyle(
                           fontFamily: AppFonts.seller,
                           fontSize: 10,

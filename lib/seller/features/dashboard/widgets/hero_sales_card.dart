@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../core/i18n/i18n.dart';
 import 'dashboard_kit.dart';
 
 /// The dashboard's hero: a deep-indigo gradient card with the week's revenue,
@@ -39,7 +40,7 @@ class _HeroSalesCardState extends State<HeroSalesCard> {
         : widget.weekRevenue;
     final caption = _selected != null
         ? widget.weekdayLabels[_selected!]
-        : "Bu hafta savdo";
+        : tr('dashboard.hero_week_sales');
 
     return GestureDetector(
       onTap: widget.onTap,
@@ -109,7 +110,7 @@ class _HeroSalesCardState extends State<HeroSalesCard> {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              'UZS',
+                              tr('common.currency_uzs'),
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,

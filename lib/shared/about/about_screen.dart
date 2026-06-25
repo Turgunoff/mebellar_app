@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../../core/i18n/i18n.dart';
 import '../../customer/features/home/widgets/premium/premium_tokens.dart';
 
 Future<PackageInfo>? _packageInfo;
@@ -34,7 +35,10 @@ class _AboutScreenState extends State<AboutScreen> {
     final pt = PremiumTokens.of(context);
     final version = _info == null
         ? ' '
-        : 'Versiya ${_info!.version} (${_info!.buildNumber})';
+        : tr('about.version_label', namedArgs: {
+            'version': _info!.version,
+            'build': _info!.buildNumber,
+          });
     return Scaffold(
       backgroundColor: pt.background,
       appBar: _buildAppBar(context),
@@ -84,9 +88,7 @@ class _AboutScreenState extends State<AboutScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  "O'zbekistonning eng yirik mebel bozori. "
-                  "Minglab mebel mahsulotlarini qulay narxlarda "
-                  "topib, bir necha daqiqada buyurtma bering.",
+                  tr('about.tagline'),
                   textAlign: TextAlign.center,
                   style: PremiumTokens.body(
                     size: 14,
@@ -109,11 +111,11 @@ class _AboutScreenState extends State<AboutScreen> {
               children: [
                 _LinkRow(
                   icon: Iconsax.document_text,
-                  title: 'Foydalanish shartlari',
+                  title: tr('about.terms_of_use'),
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute<void>(
-                      builder: (_) => const StaticContentScreen(
-                        title: 'Foydalanish shartlari',
+                      builder: (_) => StaticContentScreen(
+                        title: tr('about.terms_of_use'),
                         type: StaticContentType.terms,
                       ),
                     ),
@@ -125,11 +127,11 @@ class _AboutScreenState extends State<AboutScreen> {
                 ),
                 _LinkRow(
                   icon: Iconsax.shield_tick,
-                  title: 'Maxfiylik siyosati',
+                  title: tr('about.privacy_policy'),
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute<void>(
-                      builder: (_) => const StaticContentScreen(
-                        title: 'Maxfiylik siyosati',
+                      builder: (_) => StaticContentScreen(
+                        title: tr('about.privacy_policy'),
                         type: StaticContentType.privacy,
                       ),
                     ),
@@ -142,7 +144,7 @@ class _AboutScreenState extends State<AboutScreen> {
           // Footer
           Center(
             child: Text(
-              '© 2026 Woody',
+              tr('about.copyright'),
               style: PremiumTokens.body(size: 12, color: pt.greyLight),
             ),
           ),
@@ -162,7 +164,7 @@ class _AboutScreenState extends State<AboutScreen> {
         icon: Icon(Iconsax.arrow_left_2_copy, size: 18, color: pt.dark),
       ),
       title: Text(
-        'Ilova haqida',
+        tr('about.title'),
         style: PremiumTokens.body(size: 17, weight: FontWeight.w600),
       ),
       centerTitle: true,
@@ -280,7 +282,9 @@ class StaticContentScreen extends StatelessWidget {
         physics: const BouncingScrollPhysics(),
         children: [
           Text(
-            type == StaticContentType.terms ? _kTermsText : _kPrivacyText,
+            type == StaticContentType.terms
+                ? tr('about.terms_body')
+                : tr('about.privacy_body'),
             style: PremiumTokens.body(size: 14, color: pt.grey, height: 1.7),
           ),
         ],
@@ -288,35 +292,3 @@ class StaticContentScreen extends StatelessWidget {
     );
   }
 }
-
-const _kTermsText = '''
-Ushbu foydalanish shartlari Woody ilovasi (keyingi o'rinlarda "Ilova") foydalanuvchilari uchun mo'ljallangan va Ilova orqali taqdim etiladigan xizmatlardan foydalanish qoidalarini belgilaydi.
-
-1. Xizmatlardan foydalanish
-
-Ilovadan foydalanish uchun siz kamida 18 yoshda bo'lishingiz yoki ota-onangiz yoxud qonuniy vakilingizning roziligi bilan harakat qilishingiz lozim. Foydalanuvchi o'z hisobi orqali amalga oshirilgan barcha harakatlar uchun to'liq javobgar hisoblanadi. Hisob ma'lumotlarini uchinchi shaxslarga berish qat'iyan taqiqlanadi.
-
-2. Buyurtmalar va to'lovlar
-
-Ilova orqali berilgan barcha buyurtmalar uchun belgilangan narxlar va yetkazib berish shartlari amal qiladi. Sotuvchi tomonidan tasdiqlangan buyurtmani bekor qilish yoki o'zgartirish uchun Woody mijozlar xizmati bilan bog'lanish talab etiladi. To'lovlar xavfsiz to'lov tizimlari orqali amalga oshiriladi; Woody to'lov kartasi ma'lumotlarini saqlamaydi.
-
-3. Mas'uliyat chegaralari
-
-Woody platforma sifatida harakat qilib, sotuvchi va xaridor o'rtasidagi savdoni osonlashtiradi. Mahsulot sifati, yetkazib berish muddatlari va boshqa savdo shartlari bo'yicha yuzaga kelgan nizolarda Woody vositachi sifatida ko'maklashadi, ammo to'liq javobgarlik sotuvchi zimmasida qoladi. Fors-major holatlari (tabiiy ofatlar, tashqi tarmoq uzilishlari va shu kabilar) da Woody mas'uliyatdan ozod etiladi.
-''';
-
-const _kPrivacyText = '''
-Woody ilovasi foydalanuvchilarning shaxsiy ma'lumotlarini to'plash, saqlash va qayta ishlashda O'zbekiston Respublikasining "Shaxsiy ma'lumotlar to'g'risida"gi qonuniga va xalqaro eng yaxshi amaliyotlarga amal qiladi.
-
-1. Qanday ma'lumotlar to'planadi
-
-Biz foydalanuvchi ro'yxatdan o'tishda ko'rsatgan ism, elektron pochta manzili va telefon raqami; buyurtmalar tarixi va yetkazib berish manzillari; qurilma identifikatori va ilova foydalanish statistikasini to'playmiz. Joylashuv ma'lumotlari faqat foydalanuvchi roziligidan so'ng va yetkazib berish manzilini aniqlash maqsadida olinadi.
-
-2. Ma'lumotlardan foydalanish maqsadlari
-
-To'plangan ma'lumotlar buyurtmalarni qayta ishlash va yetkazib berish, mijozlarga xizmat ko'rsatish, ilova ishlashini yaxshilash hamda qonuniy majburiyatlarni bajarish uchun ishlatiladi. Shaxsiy ma'lumotlar uchinchi shaxslarga faqat xizmat ko'rsatuvchi hamkorlar (to'lov tizimlari, yetkazib berish xizmatlari) bilan almashiladi va faqat zarur miqdorda uzatiladi.
-
-3. Ma'lumotlarni himoya qilish va huquqlar
-
-Barcha ma'lumotlar shifrlangan kanallar orqali uzatiladi va xavfsiz serverllarda saqlanadi. Foydalanuvchi o'z shaxsiy ma'lumotlarini ko'rish, o'zgartirish yoki o'chirish huquqiga ega. Bunday so'rovlar bilan info@woody.uz elektron pochta manziliga murojaat qilishingiz mumkin.
-''';

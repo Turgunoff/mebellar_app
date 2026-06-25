@@ -172,11 +172,9 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
 
   Future<void> _onArchive() async {
     final confirmed = await _confirm(
-      title: 'Mahsulotni arxivlash',
-      message:
-          'Mahsulot xaridorlarga ko\'rinmaydi, lekin keyin qaytarib olishingiz '
-          'mumkin. Arxivlansinmi?',
-      confirmLabel: 'Arxivlash',
+      title: tr('seller.product_archive_confirm_title'),
+      message: tr('seller.product_archive_confirm_body'),
+      confirmLabel: tr('seller.product_archive_action'),
       destructive: false,
     );
     if (confirmed != true) return;
@@ -185,7 +183,7 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
         SellerProductArchived(widget.product.id),
       ),
       nextStatus: SellerProductStatus.archived,
-      successMessage: 'Mahsulot arxivlandi',
+      successMessage: tr('seller.product_archived_success'),
     );
   }
 
@@ -195,8 +193,7 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
         SellerProductRestored(widget.product.id),
       ),
       nextStatus: SellerProductStatus.pendingReview,
-      successMessage:
-          'Mahsulot qaytarildi va qayta ko\'rib chiqishga yuborildi',
+      successMessage: tr('seller.product_restored_success'),
     );
   }
 
@@ -261,7 +258,7 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
           TextButton(
             onPressed: () => Navigator.of(dialogContext, rootNavigator: true).pop(false),
             child: Text(
-              'Bekor qilish',
+              tr('common.cancel'),
               style: TextStyle(
                 fontFamily: AppFonts.seller,
                 fontWeight: FontWeight.w600,
@@ -445,9 +442,9 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              '3D model yaratilmoqda. Tayyor bo‘lgach mahsulotda ko‘rinadi.',
+              tr('seller.ar_scan_queued_snack'),
             ),
           ),
         );
@@ -529,7 +526,7 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
             if (p.id == part.id) p.copyWith(isArVisible: part.isArVisible) else p,
         ];
       });
-      _showSnack('Holatni o‘zgartirib bo‘lmadi', isError: true);
+      _showSnack(tr('seller.ar_visibility_toggle_failed'), isError: true);
     }
   }
 
@@ -565,7 +562,7 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
         backgroundColor: c.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title: Text(
-          'O‘lchamlar kerak',
+          tr('seller.ar_need_dimensions_title'),
           style: TextStyle(
             fontFamily: AppFonts.seller,
             fontSize: 17,
@@ -574,8 +571,7 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
           ),
         ),
         content: Text(
-          '3D model aniq bo‘lishi uchun mahsulot o‘lchamlari (eni, bo‘yi, '
-          'chuqurligi) kerak. Iltimos, avval ularni to‘ldiring.',
+          tr('seller.ar_need_dimensions_body'),
           style: TextStyle(
             fontFamily: AppFonts.seller,
             fontSize: 14,
@@ -588,7 +584,7 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
           TextButton(
             onPressed: () => Navigator.of(dialogContext, rootNavigator: true).pop(false),
             child: Text(
-              'Yopish',
+              tr('common.close'),
               style: TextStyle(
                 fontFamily: AppFonts.seller,
                 fontWeight: FontWeight.w600,
@@ -602,9 +598,9 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
               backgroundColor: AppColors.sellerPrimary,
               foregroundColor: Colors.white,
             ),
-            child: const Text(
-              'Tahrirlash',
-              style: TextStyle(
+            child: Text(
+              tr('seller.product_edit_action'),
+              style: const TextStyle(
                 fontFamily: AppFonts.seller,
                 fontWeight: FontWeight.w700,
               ),
@@ -945,7 +941,7 @@ class _ArScanCard extends StatelessWidget {
                 const SizedBox(width: 14),
                 Expanded(
                   child: Text(
-                    '3D skan (AR)',
+                    tr('seller.ar_scan_card_title'),
                     style: TextStyle(
                       fontFamily: AppFonts.seller,
                       fontWeight: FontWeight.w700,
@@ -964,7 +960,7 @@ class _ArScanCard extends StatelessWidget {
                     minWidth: 36,
                     minHeight: 36,
                   ),
-                  tooltip: 'Ma’lumot',
+                  tooltip: tr('seller.info_tooltip'),
                   icon: Icon(Icons.info_outline_rounded, color: c.grey),
                 ),
               ],
@@ -972,8 +968,7 @@ class _ArScanCard extends StatelessWidget {
             const SizedBox(height: 8),
             // Full-width description — breathes now that nothing crowds it.
             Text(
-              'Har bir qism uchun alohida model. Birinchi skan bepul, '
-              'qaytasi 1 token.',
+              tr('seller.ar_scan_card_description'),
               style: TextStyle(
                 fontFamily: AppFonts.seller,
                 fontSize: 13,
@@ -999,9 +994,8 @@ class _ArScanCard extends StatelessWidget {
         padding: const EdgeInsets.only(top: 8),
         child: Text(
           partsLoaded
-              ? 'Avval mahsulot o‘lchamlarini qo‘shing — har bir qism '
-                    'o‘lchami 3D model uchun kerak.'
-              : 'Yuklanmoqda…',
+              ? tr('seller.ar_scan_no_components')
+              : tr('common.loading_2'),
           style: TextStyle(
             fontFamily: AppFonts.seller,
             fontSize: 13,
@@ -1066,7 +1060,8 @@ class _ArPartRow {
   final ArScanComponent? component;
   final ArPart? part;
 
-  String get label => component?.label ?? part?.label ?? 'Asosiy';
+  String get label =>
+      component?.label ?? part?.label ?? tr('seller.ar_part_default_label');
   bool get hasModel => part?.hasModel ?? false;
   bool get isProcessing => part?.isProcessing ?? false;
   bool get isFailed => part?.isFailed ?? false;
@@ -1135,20 +1130,20 @@ class _ArPartTile extends StatelessWidget {
 
   String _subtitle() {
     final part = row.part;
-    if (row.isProcessing) return 'AI 3D model yasamoqda…';
+    if (row.isProcessing) return tr('seller.ar_part_processing');
     if (row.hasModel) {
       return (part?.isArVisible ?? true)
-          ? 'Tayyor — mijozlarga ko‘rinadi'
-          : 'Tayyor — yashirilgan';
+          ? tr('seller.ar_part_ready_visible')
+          : tr('seller.ar_part_ready_hidden');
     }
     if (row.isFailed) {
       final reason = part?.arErrorReason?.trim();
       return (reason != null && reason.isNotEmpty)
           ? reason
-          : 'Skan amalga oshmadi';
+          : tr('seller.ar_part_scan_failed');
     }
-    if (!row.dimsReady) return 'O‘lchamlar to‘liq emas';
-    return 'Skan qilishga tayyor';
+    if (!row.dimsReady) return tr('seller.ar_part_dims_incomplete');
+    return tr('seller.ar_part_ready_to_scan');
   }
 
   Widget _trailing(SellerColors c) {
@@ -1184,7 +1179,7 @@ class _ArPartTile extends StatelessWidget {
     }
     // Never scanned or failed → a scan / retry pill.
     return _ScanPill(
-      label: row.isFailed ? 'Qayta' : 'Yaratish',
+      label: row.isFailed ? tr('seller.ar_part_retry') : tr('seller.ar_part_create'),
       enabled: row.dimsReady,
       onTap: onScan,
     );
@@ -1329,7 +1324,7 @@ class _ArTokenBanner extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Mavjud tokenlar: $tokens',
+                  tr('seller.ar_tokens_balance', args: [tokens]),
                   style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 13,
@@ -1339,7 +1334,7 @@ class _ArTokenBanner extends StatelessWidget {
                 ),
               ),
               Text(
-                'To‘ldirish',
+                tr('seller.ar_tokens_top_up'),
                 style: TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 12.5,
@@ -1578,7 +1573,7 @@ Future<void> _showArScanInfoSheet(BuildContext context) {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      '3D skan (AR) nima?',
+                      tr('seller.ar_info_title'),
                       style: TextStyle(
                         fontFamily: AppFonts.seller,
                         fontSize: 18,
@@ -1591,9 +1586,7 @@ Future<void> _showArScanInfoSheet(BuildContext context) {
               ),
               const SizedBox(height: 14),
               Text(
-                'Mahsulotingizni 3 ta fotosurat orqali AI yordamida 3D modelga '
-                'aylantiramiz. Xaridorlar uni o‘z xonasida — telefon kamerasi '
-                'orqali, real o‘lchamda — joylashtirib ko‘ra oladi.',
+                tr('seller.ar_info_intro'),
                 style: TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 13.5,
@@ -1603,33 +1596,25 @@ Future<void> _showArScanInfoSheet(BuildContext context) {
                 ),
               ),
               const SizedBox(height: 18),
-              const _ArInfoBullet(
+              _ArInfoBullet(
                 icon: Icons.dashboard_customize_rounded,
-                title: 'Har bir qism alohida',
-                body:
-                    'Garnitur bo‘lsa, krovat, shkaf va tryumo — har biri '
-                    'alohida skan qilinadi.',
+                title: tr('seller.ar_info_bullet_per_part_title'),
+                body: tr('seller.ar_info_bullet_per_part_body'),
               ),
-              const _ArInfoBullet(
+              _ArInfoBullet(
                 icon: Icons.bolt_rounded,
-                title: 'Birinchi skan bepul',
-                body:
-                    'Har bir qism uchun birinchi model bepul; qayta yaratish '
-                    '1 token.',
+                title: tr('seller.ar_info_bullet_free_title'),
+                body: tr('seller.ar_info_bullet_free_body'),
               ),
-              const _ArInfoBullet(
+              _ArInfoBullet(
                 icon: Icons.photo_camera_rounded,
-                title: 'Sifatli suratga oling',
-                body:
-                    'Toza fon, yaxshi yoritish va 3 xil burchak aniqroq model '
-                    'beradi.',
+                title: tr('seller.ar_info_bullet_quality_title'),
+                body: tr('seller.ar_info_bullet_quality_body'),
               ),
-              const _ArInfoBullet(
+              _ArInfoBullet(
                 icon: Icons.verified_rounded,
-                title: 'Mahsulotda ko‘rinadi',
-                body:
-                    'Tayyor model kartangizda 3D/AR belgisi bilan xaridorlarga '
-                    'ko‘rsatiladi.',
+                title: tr('seller.ar_info_bullet_visible_title'),
+                body: tr('seller.ar_info_bullet_visible_body'),
               ),
               const SizedBox(height: 6),
               SizedBox(
@@ -1644,9 +1629,9 @@ Future<void> _showArScanInfoSheet(BuildContext context) {
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  child: const Text(
-                    'Tushunarli',
-                    style: TextStyle(
+                  child: Text(
+                    tr('common.got_it'),
+                    style: const TextStyle(
                       fontFamily: AppFonts.seller,
                       fontSize: 15,
                       fontWeight: FontWeight.w700,

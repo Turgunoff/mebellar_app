@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/i18n/i18n.dart';
 import '../../../../core/network/api_error.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
@@ -73,13 +74,13 @@ class _SellerSetEditorScreenState extends State<SellerSetEditorScreen> {
     } on ApiError catch (e) {
       if (!mounted) return;
       setState(() {
-        _loadError = e.message ?? 'Mahsulotlarni yuklab bo\'lmadi';
+        _loadError = e.message ?? tr('seller.set_editor_products_load_failed');
         _loading = false;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _loadError = 'Mahsulotlarni yuklab bo\'lmadi';
+        _loadError = tr('seller.set_editor_products_load_failed');
         _loading = false;
       });
     }
@@ -115,18 +116,18 @@ class _SellerSetEditorScreenState extends State<SellerSetEditorScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _saving = false);
-      _showError('Setni saqlab bo\'lmadi. Qayta urinib ko\'ring.');
+      _showError(tr('seller.set_editor_save_failed'));
     }
   }
 
   String _messageFor(ApiError e) {
     if (e.code == 'product_not_in_shop') {
-      return 'Tanlangan mahsulotlardan biri sizga tegishli emas.';
+      return tr('seller.set_editor_error_product_not_yours');
     }
     if (e.isValidation) {
-      return 'Kamida bitta mahsulot tanlang.';
+      return tr('seller.set_editor_error_select_at_least_one');
     }
-    return e.message ?? 'Setni saqlab bo\'lmadi. Qayta urinib ko\'ring.';
+    return e.message ?? tr('seller.set_editor_save_failed');
   }
 
   void _showError(String message) {
@@ -160,7 +161,7 @@ class _SellerSetEditorScreenState extends State<SellerSetEditorScreen> {
         titleSpacing: 20,
         iconTheme: IconThemeData(color: c.ink),
         title: Text(
-          'Yangi set',
+          tr('seller.set_editor_title'),
           style: TextStyle(
             fontFamily: AppFonts.seller,
             fontSize: 20,
@@ -197,7 +198,7 @@ class _SellerSetEditorScreenState extends State<SellerSetEditorScreen> {
           _NameField(controller: _nameCtrl),
           const SizedBox(height: 20),
           Text(
-            'Mahsulotlar',
+            tr('seller.metric_products'),
             style: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 14,
@@ -208,7 +209,7 @@ class _SellerSetEditorScreenState extends State<SellerSetEditorScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Setga kamida 2 ta mahsulot qo\'shing',
+            tr('seller.set_editor_min_products_hint'),
             style: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 12,
@@ -250,7 +251,7 @@ class _NameField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Set nomi',
+          tr('seller.set_editor_name_label'),
           style: TextStyle(
             fontFamily: AppFonts.seller,
             fontSize: 14,
@@ -270,7 +271,7 @@ class _NameField extends StatelessWidget {
             color: c.ink,
           ),
           decoration: InputDecoration(
-            hintText: 'Masalan: Yotoqxona garnituri',
+            hintText: tr('seller.set_editor_name_hint'),
             hintStyle: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 14,
@@ -461,7 +462,7 @@ class _NoProductsHint extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
       ),
       child: Text(
-        'Set yaratish uchun avval tasdiqlangan mahsulotlaringiz bo\'lishi kerak.',
+        tr('seller.set_editor_no_products_hint'),
         style: TextStyle(
           fontFamily: AppFonts.seller,
           fontSize: 13,
@@ -515,7 +516,12 @@ class _SaveBar extends StatelessWidget {
                   ),
                 )
               : Text(
-                  selectedCount > 0 ? 'Saqlash ($selectedCount)' : 'Saqlash',
+                  selectedCount > 0
+                      ? tr(
+                          'seller.set_editor_save_button',
+                          namedArgs: {'count': selectedCount.toString()},
+                        )
+                      : tr('common.save'),
                   style: const TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 15,

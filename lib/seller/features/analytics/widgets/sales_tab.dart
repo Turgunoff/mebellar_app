@@ -3,6 +3,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../core/i18n/i18n.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/models/analytics.dart';
@@ -44,18 +45,18 @@ class _SalesChartCard extends StatelessWidget {
   final AnalyticsSnapshot snapshot;
   final bool refreshing;
 
-  static const _captions = <AnalyticsRange, String>{
-    AnalyticsRange.today: "Bugungi savdo",
-    AnalyticsRange.d7: "So'nggi 7 kun savdosi",
-    AnalyticsRange.d30: "So'nggi 30 kun savdosi",
-    AnalyticsRange.d90: "So'nggi 90 kun savdosi",
-    AnalyticsRange.m12: "So'nggi 12 oy savdosi",
-    AnalyticsRange.custom: "Tanlangan davr savdosi",
+  static final _captions = <AnalyticsRange, String>{
+    AnalyticsRange.today: tr('analytics.sales_caption_today'),
+    AnalyticsRange.d7: tr('analytics.sales_caption_7d'),
+    AnalyticsRange.d30: tr('analytics.last_30_days'),
+    AnalyticsRange.d90: tr('analytics.sales_caption_90d'),
+    AnalyticsRange.m12: tr('analytics.sales_caption_12m'),
+    AnalyticsRange.custom: tr('analytics.sales_caption_custom'),
   };
 
   @override
   Widget build(BuildContext context) {
-    final caption = _captions[snapshot.range] ?? "So'nggi davr savdosi";
+    final caption = _captions[snapshot.range] ?? tr('analytics.sales_caption_fallback');
     final values = snapshot.series.map((p) => p.revenue).toList();
     final dates = snapshot.series.map((p) => p.bucketStart).toList();
     final granularity = snapshot.filter.granularityFor(DateTime.now());
@@ -67,20 +68,20 @@ class _SalesChartCard extends StatelessWidget {
           HeroMetric(
             caption: caption,
             value: AnalyticsFmt.uzs(snapshot.totalRevenue),
-            unit: 'UZS',
+            unit: tr('analytics.unit_uzs'),
             deltaPercent: snapshot.deltaPercent,
             refreshing: refreshing,
           ),
           const SizedBox(height: 14),
           if (values.isEmpty)
-            const _ChartEmpty(message: "Bu davr uchun savdo yo'q")
+            _ChartEmpty(message: tr('analytics.sales_empty_chart'))
           else
             RevenueLineChart(
               values: values,
               dates: dates,
               granularity: granularity,
               valueFormatter: (v) => AnalyticsFmt.uzs(v),
-              unit: 'UZS',
+              unit: tr('analytics.unit_uzs'),
               height: 180,
             ),
         ],
@@ -103,7 +104,7 @@ class _SecondaryKpiRow extends StatelessWidget {
           Expanded(
             child: MiniKpiCard(
               icon: Iconsax.shopping_bag,
-              label: 'Buyurtmalar',
+              label: tr('analytics.tab_orders'),
               value: snapshot.ordersCount.toString(),
             ),
           ),
@@ -111,18 +112,18 @@ class _SecondaryKpiRow extends StatelessWidget {
           Expanded(
             child: MiniKpiCard(
               icon: Iconsax.receipt_2,
-              label: "O'rtacha chek",
+              label: tr('analytics.sales_kpi_avg_order'),
               value: AnalyticsFmt.compact(snapshot.avgOrderValue),
-              unit: 'UZS',
+              unit: tr('analytics.unit_uzs'),
             ),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: MiniKpiCard(
               icon: Iconsax.box,
-              label: 'Sotilgan',
+              label: tr('analytics.sales_kpi_units_sold'),
               value: snapshot.unitsSold.toString(),
-              unit: 'dona',
+              unit: tr('analytics.unit_pcs'),
             ),
           ),
         ],
@@ -142,12 +143,12 @@ class _CategoryDistributionSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionHeader(title: 'Sotuvlar tarkibi'),
+        SectionHeader(title: tr('analytics.sales_category_breakdown')),
         AnalyticsCard(
           child: slices.isEmpty
               ? SectionEmpty(
                   icon: Iconsax.chart_2,
-                  message: "Kategoriya bo'yicha ma'lumot yo'q",
+                  message: tr('analytics.sales_empty_category'),
                 )
               : Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -272,12 +273,12 @@ class _TopProductsSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionHeader(title: 'Top mahsulotlar'),
+        SectionHeader(title: tr('analytics.top_products')),
         if (products.isEmpty)
           AnalyticsCard(
             child: SectionEmpty(
               icon: Iconsax.box,
-              message: "Hali sotilgan mahsulot yo'q",
+              message: tr('analytics.sales_empty_top_products'),
             ),
           )
         else
@@ -360,7 +361,7 @@ class _TopProductTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${product.unitsSold} dona sotildi',
+                  tr('analytics.units_sold', args: [product.unitsSold]),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -389,7 +390,7 @@ class _TopProductTile extends StatelessWidget {
               ),
               children: [
                 TextSpan(
-                  text: '  UZS',
+                  text: tr('analytics.unit_uzs'),
                   style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 10,

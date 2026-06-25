@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/i18n/i18n.dart';
 import '../../../../core/network/api_error.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
@@ -52,13 +53,13 @@ class _SellerSetsScreenState extends State<SellerSetsScreen> {
     } on ApiError catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.message ?? 'Setlarni yuklab bo\'lmadi';
+        _error = e.message ?? tr('seller.sets_list_load_failed');
         _loading = false;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _error = 'Setlarni yuklab bo\'lmadi';
+        _error = tr('seller.sets_list_load_failed');
         _loading = false;
       });
     }
@@ -84,7 +85,7 @@ class _SellerSetsScreenState extends State<SellerSetsScreen> {
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
-          'Setni arxivlash',
+          tr('seller.sets_archive_dialog_title'),
           style: TextStyle(
             fontFamily: AppFonts.seller,
             fontSize: 17,
@@ -93,7 +94,7 @@ class _SellerSetsScreenState extends State<SellerSetsScreen> {
           ),
         ),
         content: Text(
-          '"${set.name}" seti arxivlanadi va katalogdan olib tashlanadi.',
+          tr('seller.sets_archive_dialog_body', namedArgs: {'name': set.name}),
           style: TextStyle(
             fontFamily: AppFonts.seller,
             fontSize: 14,
@@ -105,7 +106,7 @@ class _SellerSetsScreenState extends State<SellerSetsScreen> {
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
             child: Text(
-              'Bekor qilish',
+              tr('common.cancel'),
               style: TextStyle(
                 fontFamily: AppFonts.seller,
                 fontWeight: FontWeight.w600,
@@ -116,7 +117,7 @@ class _SellerSetsScreenState extends State<SellerSetsScreen> {
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: Text(
-              'Arxivlash',
+              tr('seller.product_archive_action'),
               style: TextStyle(
                 fontFamily: AppFonts.seller,
                 fontWeight: FontWeight.w700,
@@ -137,10 +138,10 @@ class _SellerSetsScreenState extends State<SellerSetsScreen> {
       _load();
     } on ApiError catch (e) {
       if (!mounted) return;
-      _showError(e.message ?? 'Setni arxivlab bo\'lmadi');
+      _showError(e.message ?? tr('seller.sets_archive_failed'));
     } catch (_) {
       if (!mounted) return;
-      _showError('Setni arxivlab bo\'lmadi');
+      _showError(tr('seller.sets_archive_failed'));
     }
   }
 
@@ -175,7 +176,7 @@ class _SellerSetsScreenState extends State<SellerSetsScreen> {
         titleSpacing: 20,
         iconTheme: IconThemeData(color: c.ink),
         title: Text(
-          'Setlar',
+          tr('seller.products_sets_tooltip'),
           style: TextStyle(
             fontFamily: AppFonts.seller,
             fontSize: 22,
@@ -193,9 +194,9 @@ class _SellerSetsScreenState extends State<SellerSetsScreen> {
         elevation: 4,
         highlightElevation: 6,
         icon: const Icon(Iconsax.add, size: 20),
-        label: const Text(
-          'Set qo\'shish',
-          style: TextStyle(
+        label: Text(
+          tr('seller.sets_add_button'),
+          style: const TextStyle(
             fontFamily: AppFonts.seller,
             fontSize: 14,
             fontWeight: FontWeight.w700,
@@ -295,7 +296,7 @@ class _SetTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${set.itemCount} ta mahsulot',
+                      tr('seller.sets_item_count', namedArgs: {'count': set.itemCount.toString()}),
                       style: TextStyle(
                         fontFamily: AppFonts.seller,
                         fontSize: 12,
@@ -382,12 +383,12 @@ class _StatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
     final (label, fg, bg) = switch (status) {
-      'approved' => ('Tasdiqlangan', c.positive, c.positiveBg),
-      'pending_review' => ('Tekshiruvda', c.warning, c.warningBg),
-      'rejected' => ('Rad etilgan', c.negative, c.negativeBg),
-      'archived' => ('Arxivlangan', c.grey, c.fillSoft),
-      'draft' => ('Qoralama', c.grey, c.fillSoft),
-      _ => ('Tekshiruvda', c.warning, c.warningBg),
+      'approved' => (tr('seller.sets_status_approved'), c.positive, c.positiveBg),
+      'pending_review' => (tr('seller.sets_status_pending'), c.warning, c.warningBg),
+      'rejected' => (tr('seller.sets_status_rejected'), c.negative, c.negativeBg),
+      'archived' => (tr('seller.sets_status_archived'), c.grey, c.fillSoft),
+      'draft' => (tr('seller.sets_status_draft'), c.grey, c.fillSoft),
+      _ => (tr('seller.sets_status_pending'), c.warning, c.warningBg),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -431,7 +432,7 @@ class _DeleteButton extends StatelessWidget {
               Icon(Iconsax.archive_1, size: 13, color: c.negative),
               const SizedBox(width: 5),
               Text(
-                'Arxivlash',
+                tr('seller.product_archive_action'),
                 style: TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 11,
@@ -518,7 +519,7 @@ class _SetsZeroState extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Text(
-              'Hali set yo\'q',
+              tr('seller.sets_empty_title'),
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: AppFonts.seller,
@@ -531,8 +532,7 @@ class _SetsZeroState extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Bir nechta mahsulotni garnitur sifatida birlashtiring — xaridorlar '
-              'ularni birgalikda ko\'radi.',
+              tr('seller.sets_empty_subtitle'),
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: AppFonts.seller,

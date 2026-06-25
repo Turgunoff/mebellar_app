@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../../core/i18n/i18n.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import 'product_preview_kit.dart';
@@ -39,7 +40,7 @@ class AttributesCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SectionTitle(text: 'Xususiyatlar'),
+          SectionTitle(text: tr('seller.preview_attributes_title')),
           const SizedBox(height: 12),
           for (var i = 0; i < rows.length; i++) ...[
             _TextRow(label: rows[i].$1, value: rows[i].$2),
@@ -119,7 +120,7 @@ class _ColorsRow extends StatelessWidget {
           Expanded(
             flex: 4,
             child: Text(
-              'Ranglar',
+              tr('seller.preview_colors_label'),
               style: TextStyle(
                 fontFamily: AppFonts.seller,
                 fontSize: 13,

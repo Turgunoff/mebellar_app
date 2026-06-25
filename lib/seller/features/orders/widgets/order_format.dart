@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/i18n/i18n.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/models/order_status.dart';
 
@@ -28,12 +29,12 @@ String formatOrderDateTime(DateTime dt) {
 
 /// Seller-facing Uzbek label for an order status.
 String sellerOrderStatusLabel(OrderStatus status) => switch (status) {
-      OrderStatus.pending => 'Yangi',
-      OrderStatus.confirmed => 'Qabul qilingan',
-      OrderStatus.preparing => 'Tayyorlanmoqda',
-      OrderStatus.shipped => "Yo'lda",
-      OrderStatus.delivered => 'Yetkazilgan',
-      OrderStatus.cancelled => 'Bekor qilingan',
+      OrderStatus.pending => tr('seller_orders.tab_newTab'),
+      OrderStatus.confirmed => tr('seller_orders.status_confirmed'),
+      OrderStatus.preparing => tr('seller_orders.action_preparing'),
+      OrderStatus.shipped => tr('seller_orders.order_status_shipped'),
+      OrderStatus.delivered => tr('seller_orders.tab_done'),
+      OrderStatus.cancelled => tr('seller_orders.tab_cancelled'),
     };
 
 /// Background / foreground colours for a status pill, resolved against the
@@ -57,9 +58,9 @@ String sellerOrderStatusLabel(OrderStatus status) => switch (status) {
 
 /// Uzbek label for the forward action that moves an order *into* [target].
 String sellerOrderActionLabel(OrderStatus target) => switch (target) {
-      OrderStatus.confirmed => 'Buyurtmani qabul qilish',
-      OrderStatus.preparing => 'Tayyorlashni boshlash',
-      OrderStatus.shipped => "Yo'lga chiqarish",
-      OrderStatus.delivered => 'Yetkazildi deb belgilash',
+      OrderStatus.confirmed => tr('seller_orders.action_label_confirm'),
+      OrderStatus.preparing => tr('seller_orders.action_label_preparing'),
+      OrderStatus.shipped => tr('seller_orders.action_label_shipped'),
+      OrderStatus.delivered => tr('seller_orders.action_label_delivered'),
       OrderStatus.pending || OrderStatus.cancelled => '',
     };

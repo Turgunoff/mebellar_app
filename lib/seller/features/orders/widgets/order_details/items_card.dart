@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../../core/i18n/i18n.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import '../../../../../shared/widgets/product_color_chip.dart';
@@ -22,7 +23,9 @@ class ItemsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SectionTitle(text: 'Buyurtma tarkibi ($totalUnits ta mahsulot)'),
+          SectionTitle(
+            text: tr('seller_orders.items_section_title', args: [totalUnits]),
+          ),
           const SizedBox(height: 14),
           for (var i = 0; i < items.length; i++) ...[
             _ItemRow(item: items[i]),
@@ -97,7 +100,10 @@ class _ItemRow extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                '${item.qty} ta × ${item.unitPriceLabel} UZS',
+                tr(
+                  'seller_orders.item_qty_price',
+                  args: [item.qty, item.unitPriceLabel],
+                ),
                 style: TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 12,

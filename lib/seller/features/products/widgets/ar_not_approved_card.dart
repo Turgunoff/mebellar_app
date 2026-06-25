@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/i18n/i18n.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 
@@ -11,9 +12,7 @@ import '../../../../core/theme/app_fonts.dart';
 class ArNotApprovedCard extends StatelessWidget {
   const ArNotApprovedCard({super.key});
 
-  static const String message =
-      'AR model yaratish uchun mahsulot moderatorlar tomonidan tasdiqlangan '
-      'bo‘lishi kerak.';
+  static String get message => tr('seller.ar_not_approved_message');
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +40,7 @@ class ArNotApprovedCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '3D skan (AR)',
+                    tr('seller.ar_scan_card_title'),
                     style: TextStyle(
                       fontFamily: AppFonts.seller,
                       fontWeight: FontWeight.w700,

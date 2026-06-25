@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../core/i18n/i18n.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../data/dashboard_models.dart';
 import 'dashboard_kit.dart';
@@ -93,9 +94,9 @@ class _LeaderRow extends StatelessWidget {
                           color: DashKit.indigo,
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: const Text(
-                          'Siz',
-                          style: TextStyle(
+                        child: Text(
+                          tr('dashboard.leaderboard_you'),
+                          style: const TextStyle(
                             fontSize: 9,
                             fontWeight: FontWeight.w700,
                             color: Colors.white,
@@ -108,7 +109,12 @@ class _LeaderRow extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  '${DashKit.compactMoney(entry.revenue)} so\'m',
+                  tr(
+                    'common.currency_som_2',
+                    namedArgs: {
+                      'amount': DashKit.compactMoney(entry.revenue),
+                    },
+                  ),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,

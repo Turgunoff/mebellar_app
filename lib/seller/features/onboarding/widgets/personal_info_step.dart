@@ -61,22 +61,24 @@ class _PersonalInfoStepState extends State<PersonalInfoStep> {
 
   String? _nameValidator(String? value) {
     final text = value?.trim() ?? '';
-    if (text.length < 3) return 'Kamida 3 ta belgi kiriting';
+    if (text.length < 3) return tr('onboarding.validation_min_3_chars');
     return null;
   }
 
   String? _phoneValidator(String? value) {
     final text = value?.trim() ?? '';
     if (!RegExp(r'^\+998 \d{2} \d{3} \d{2} \d{2}$').hasMatch(text)) {
-      return 'Telefon raqam +998 ## ### ## ## ko\'rinishida bo\'lishi kerak';
+      return tr('onboarding.validation_phone_format');
     }
     return null;
   }
 
   String? _emailValidator(String? value) {
     final text = value?.trim() ?? '';
-    if (text.isEmpty) return 'Email kiriting';
-    if (!_emailRegex.hasMatch(text)) return 'Email manzil noto\'g\'ri';
+    if (text.isEmpty) return tr('onboarding.validation_email_required');
+    if (!_emailRegex.hasMatch(text)) {
+      return tr('onboarding.validation_email_invalid');
+    }
     return null;
   }
 

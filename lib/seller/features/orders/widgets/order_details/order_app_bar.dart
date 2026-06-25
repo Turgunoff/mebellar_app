@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../../core/i18n/i18n.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 
@@ -40,7 +41,7 @@ class OrderAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       titleSpacing: 0,
       title: Text(
-        'Buyurtma $orderId',
+        tr('seller_orders.detail_app_bar_title', args: [orderId]),
         style: TextStyle(
           fontFamily: AppFonts.seller,
           fontSize: 17,
@@ -54,7 +55,7 @@ class OrderAppBar extends StatelessWidget implements PreferredSizeWidget {
       actions: [
         if (orderUuid != null)
           IconButton(
-            tooltip: 'Mijoz bilan suhbat',
+            tooltip: tr('seller_orders.chat_tooltip'),
             icon: Icon(Iconsax.message, color: c.ink, size: 22),
             onPressed: () => context.push('/seller/orders/$orderUuid/chat'),
           ),

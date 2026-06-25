@@ -94,6 +94,17 @@ const Map<String, dynamic> servicesUz = {
   'warranty_months': 'Kafolat muddati',
   'installment_months': 'Bo\'lib to\'lash muddati',
   'months_suffix': 'oy',
+  'section_logistics': 'Logistika',
+  'free_delivery': 'Bepul yetkazib berish',
+  'express_delivery': 'Tezkor yetkazish',
+  'section_services_warranty': 'Xizmatlar va kafolat',
+  'assembly': 'Yig\'ish xizmati',
+  'warranty': 'Kafolat',
+  'section_sale_terms': 'Sotuv shartlari',
+  'installment': 'Bo\'lib to\'lash',
+  'custom_order': 'Buyurtma asosida',
+  'custom_order_subtitle': 'Mijoz o\'lchamlari bo\'yicha yasaladi',
+  'currency_suffix': 'so\'m',
 };
 
 const Map<String, dynamic> servicesRu = {
@@ -105,6 +116,17 @@ const Map<String, dynamic> servicesRu = {
   'warranty_months': 'Срок гарантии',
   'installment_months': 'Срок рассрочки',
   'months_suffix': 'мес.',
+  'section_logistics': 'Логистика',
+  'free_delivery': 'Бесплатная доставка',
+  'express_delivery': 'Экспресс-доставка',
+  'section_services_warranty': 'Услуги и гарантия',
+  'assembly': 'Услуга сборки',
+  'warranty': 'Гарантия',
+  'section_sale_terms': 'Условия продажи',
+  'installment': 'Рассрочка',
+  'custom_order': 'На заказ',
+  'custom_order_subtitle': 'Изготавливается по размерам клиента',
+  'currency_suffix': 'сум',
 };
 
 const Map<String, dynamic> servicesEn = {
@@ -116,6 +138,17 @@ const Map<String, dynamic> servicesEn = {
   'warranty_months': 'Warranty period',
   'installment_months': 'Installment period',
   'months_suffix': 'months',
+  'section_logistics': 'Logistics',
+  'free_delivery': 'Free delivery',
+  'express_delivery': 'Express delivery',
+  'section_services_warranty': 'Services & warranty',
+  'assembly': 'Assembly service',
+  'warranty': 'Warranty',
+  'section_sale_terms': 'Sale terms',
+  'installment': 'Installment',
+  'custom_order': 'Made to order',
+  'custom_order_subtitle': 'Made to the customer\'s measurements',
+  'currency_suffix': 'UZS',
 };
 
 const Map<String, dynamic> dayUz = {

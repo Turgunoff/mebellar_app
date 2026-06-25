@@ -5,6 +5,8 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../core/i18n/i18n.dart';
+
 /// Telegram-style crop step: the picked image sits under a fixed frame
 /// ([aspectRatio], optionally a circle mask) and the user pinch-zooms / pans
 /// until the part they want fills the frame. Returns the cropped file
@@ -143,7 +145,7 @@ class _ImageCropScreenState extends State<_ImageCropScreen> {
       if (!mounted) return;
       setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Rasmni kesib bo\'lmadi')),
+        SnackBar(content: Text(tr('common.image_crop_failed'))),
       );
     }
   }
@@ -254,10 +256,10 @@ class _TopBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Text(
-              'Rasmni moslang',
-              style: TextStyle(
+              tr('common.image_crop_title'),
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
@@ -291,9 +293,9 @@ class _BottomBar extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
-            'Suring va kattalashtirib joylashtiring',
-            style: TextStyle(
+          Text(
+            tr('common.image_crop_hint'),
+            style: const TextStyle(
               color: Colors.white60,
               fontSize: 13,
               fontWeight: FontWeight.w500,
@@ -314,7 +316,7 @@ class _BottomBar extends StatelessWidget {
                         borderRadius: BorderRadius.circular(14),
                       ),
                     ),
-                    child: const Text('Bekor qilish'),
+                    child: Text(tr('common.cancel')),
                   ),
                 ),
               ),
@@ -337,9 +339,10 @@ class _BottomBar extends StatelessWidget {
                             height: 20,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Text(
-                            'Tayyor',
-                            style: TextStyle(fontWeight: FontWeight.w700),
+                        : Text(
+                            tr('common.done'),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w700),
                           ),
                   ),
                 ),

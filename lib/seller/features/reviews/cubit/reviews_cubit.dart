@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/i18n/i18n.dart';
 import '../../../../shared/models/review.dart';
 import '../../../../shared/repositories/seller_reviews_repository.dart';
 
@@ -8,10 +9,10 @@ enum ReviewFilter { all, pending, fiveStar, critical }
 
 extension ReviewFilterX on ReviewFilter {
   String get label => switch (this) {
-        ReviewFilter.all => 'Barchasi',
-        ReviewFilter.pending => 'Javob kutilmoqda',
-        ReviewFilter.fiveStar => '5 Yulduz',
-        ReviewFilter.critical => '1-2 Yulduz',
+        ReviewFilter.all => tr('seller.filter_all'),
+        ReviewFilter.pending => tr('seller.reviews_filter_pending'),
+        ReviewFilter.fiveStar => tr('seller.reviews_filter_five_star'),
+        ReviewFilter.critical => tr('seller.reviews_filter_critical'),
       };
 
   bool matches(Review review) => switch (this) {

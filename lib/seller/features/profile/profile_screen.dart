@@ -77,27 +77,27 @@ class _SellerProfileView extends StatelessWidget {
                       children: [
                         _ProfileIdentity(state: state),
                         const SizedBox(height: 24),
-                        const _SectionLabel(text: "Do'konni boshqarish"),
+                        _SectionLabel(text: tr('seller.profile_section_manage_shop')),
                         const SizedBox(height: 8),
                         _SettingsCard(
                           items: [
                             _SettingsItem(
                               icon: Iconsax.shop_copy,
-                              title: "Do'kon sozlamalari",
-                              subtitle: "Logo, ish vaqti, ko'rinish",
+                              title: tr('seller.shop_settings'),
+                              subtitle: tr('seller.shop_settings_subtitle'),
                               onTap: () => _openShopSettings(context),
                             ),
                             _SettingsItem(
                               icon: Iconsax.truck_fast_copy,
-                              title: "Do'kon xizmatlari",
-                              subtitle: 'Yetkazib berish, kafolat',
+                              title: tr('seller.profile_shop_services_title'),
+                              subtitle: tr('seller.profile_shop_services_subtitle'),
                               onTap: () =>
                                   _push(context, const SellerServicesScreen()),
                             ),
                             _SettingsItem(
                               icon: Iconsax.messages_2_copy,
-                              title: 'Sharhlar va Baholar',
-                              subtitle: 'Mijozlar fikri va javoblar',
+                              title: tr('seller.profile_reviews_title'),
+                              subtitle: tr('seller.profile_reviews_subtitle'),
                               onTap: () =>
                                   _push(context, const ReviewsScreen()),
                             ),
@@ -105,8 +105,8 @@ class _SellerProfileView extends StatelessWidget {
                             // core shop-management surface, not an app setting.
                             _SettingsItem(
                               icon: Iconsax.message_copy,
-                              title: 'Suhbatlar',
-                              subtitle: 'Mijozlar bilan yozishuvlar',
+                              title: tr('seller.profile_chats_title'),
+                              subtitle: tr('seller.profile_chats_subtitle'),
                               badgeCount: unreadChats,
                               onTap: () => context.push('/seller/chats'),
                             ),
@@ -115,15 +115,15 @@ class _SellerProfileView extends StatelessWidget {
                               iconColor: state.wallet?.isHealthy == false
                                   ? AppColors.danger
                                   : null,
-                              title: 'Hamyon',
+                              title: tr('seller.profile_wallet_title'),
                               subtitle: _walletSubtitle(state),
                               onTap: () => _push(context, const WalletScreen()),
                             ),
                             _SettingsItem(
                               icon: Iconsax.flash_1_copy,
                               iconColor: SellerColors.of(context).gold,
-                              title: 'AR Tokenlar',
-                              subtitle: '3D skan uchun balans va to‘ldirish',
+                              title: tr('seller.profile_ar_tokens_title'),
+                              subtitle: tr('seller.profile_ar_tokens_subtitle'),
                               onTap: () =>
                                   _push(context, const ArTokensScreen()),
                             ),
@@ -133,7 +133,7 @@ class _SellerProfileView extends StatelessWidget {
                               _SettingsItem(
                                 icon: Iconsax.crown_1_copy,
                                 iconColor: SellerColors.of(context).gold,
-                                title: 'Tarif',
+                                title: tr('seller.tariff_title'),
                                 subtitle: _planSubtitle(state),
                                 onTap: () =>
                                     _push(context, const TariffScreen()),
@@ -141,7 +141,7 @@ class _SellerProfileView extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 20),
-                        const _SectionLabel(text: 'Ilova sozlamalari'),
+                        _SectionLabel(text: tr('seller.profile_section_app_settings')),
                         const SizedBox(height: 8),
                         _SettingsCard(
                           items: [
@@ -150,22 +150,22 @@ class _SellerProfileView extends StatelessWidget {
                             // bell icon is the canonical entry point.
                             _SettingsItem(
                               icon: Iconsax.setting_2_copy,
-                              title: 'Sozlamalar',
-                              subtitle: 'Til, mavzu va bildirishnomalar',
+                              title: tr('seller.profile_settings_title'),
+                              subtitle: tr('seller.profile_settings_subtitle'),
                               onTap: () =>
                                   _push(context, const SettingsScreen()),
                             ),
                           ],
                         ),
                         const SizedBox(height: 20),
-                        const _SectionLabel(text: 'Harakatlar'),
+                        _SectionLabel(text: tr('seller.profile_section_actions')),
                         const SizedBox(height: 8),
                         _SettingsCard(
                           items: [
                             _SettingsItem(
                               icon: Iconsax.user_octagon_copy,
                               iconColor: AppColors.sellerPrimary,
-                              title: 'Xaridor rejimi',
+                              title: tr('seller.profile_switch_to_buyer'),
                               titleColor: AppColors.sellerPrimary,
                               onTap: () =>
                                   switchAppMode(context, AppMode.customer),
@@ -173,7 +173,7 @@ class _SellerProfileView extends StatelessWidget {
                             _SettingsItem(
                               icon: Iconsax.logout_copy,
                               iconColor: _logoutRed,
-                              title: 'Chiqish',
+                              title: tr('seller.profile_logout'),
                               titleColor: _logoutRed,
                               showTrailing: false,
                               onTap: () => performLogout(context),
@@ -202,21 +202,29 @@ class _SellerProfileView extends StatelessWidget {
   }
 
   static String _planSubtitle(SellerProfileState state) {
-    if (state.isInitialLoading) return 'Yuklanmoqda…';
-    return 'Joriy tarif: ${state.plan.label}';
+    if (state.isInitialLoading) return tr('seller.profile_loading');
+    return tr('seller.profile_current_plan', namedArgs: {'plan': state.plan.label});
   }
 
   static String _walletSubtitle(SellerProfileState state) {
     final wallet = state.wallet;
-    if (wallet == null) return "Balans va to'lovlar";
+    if (wallet == null) return tr('seller.profile_wallet_subtitle_default');
     if (wallet.isSuspendedDueToDebt) {
-      return "Do'kon muzlatilgan — qarzdorlikni uzing";
+      return tr('seller.profile_wallet_suspended');
     }
     if (wallet.isInGrace) {
-      return "Balans: ${formatSom(wallet.balance)} so'm · "
-          '${wallet.graceHoursLeft()} soat qoldi';
+      return tr(
+        'seller.profile_wallet_balance_grace',
+        namedArgs: {
+          'amount': formatSom(wallet.balance),
+          'hours': '${wallet.graceHoursLeft()}',
+        },
+      );
     }
-    return "Balans: ${formatSom(wallet.balance)} so'm";
+    return tr(
+      'seller.profile_wallet_balance',
+      namedArgs: {'amount': formatSom(wallet.balance)},
+    );
   }
 }
 
@@ -595,7 +603,7 @@ class _PlanChip extends StatelessWidget {
           Icon(Iconsax.crown_1_copy, size: 13, color: c.gold),
           const SizedBox(width: 5),
           Text(
-            '${plan.label} tarif',
+            tr('seller.profile_plan_chip', namedArgs: {'plan': plan.label}),
             style: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 11,
@@ -719,25 +727,25 @@ class _StatusBadge extends StatelessWidget {
   ) {
     return switch (s) {
       VerificationStatus.approved => (
-        'Tasdiqlangan sotuvchi',
+        tr('seller.profile_status_approved'),
         c.positiveBg,
         c.positive,
         Iconsax.tick_circle_copy,
       ),
       VerificationStatus.pending || VerificationStatus.inReview => (
-        'Tasdiqlash kutilmoqda',
+        tr('seller.profile_status_pending'),
         c.warningBg,
         c.warning,
         Iconsax.clock_copy,
       ),
       VerificationStatus.rejected => (
-        'Tasdiqlash rad etilgan',
+        tr('seller.profile_status_rejected'),
         c.negativeBg,
         c.negative,
         Iconsax.close_circle_copy,
       ),
       VerificationStatus.none => (
-        'Tasdiqlanmagan',
+        tr('seller.profile_status_none'),
         c.neutralBg,
         c.neutralFg,
         Iconsax.info_circle_copy,

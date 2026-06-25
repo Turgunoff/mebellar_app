@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../../core/i18n/i18n.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import '../../../../../shared/models/seller_product.dart';
@@ -26,31 +27,31 @@ import '../../../../../shared/models/seller_product.dart';
       bg: c.neutralBgAlt,
       fg: c.neutralFgAlt,
       icon: Iconsax.edit,
-      label: 'Qoralama',
+      label: tr('common.draft'),
     ),
     SellerProductStatus.pendingReview => (
       bg: c.warningBg,
       fg: c.warning,
       icon: Iconsax.clock,
-      label: 'Tekshirilmoqda',
+      label: tr('common.pending_review'),
     ),
     SellerProductStatus.approved => (
       bg: c.positiveBg,
       fg: c.positive,
       icon: Iconsax.tick_circle,
-      label: 'Tasdiqlangan',
+      label: tr('common.approved'),
     ),
     SellerProductStatus.rejected => (
       bg: c.negativeBg,
       fg: c.negative,
       icon: Iconsax.close_circle,
-      label: 'Rad etilgan',
+      label: tr('common.rejected'),
     ),
     SellerProductStatus.archived => (
       bg: c.neutralBg,
       fg: c.neutralFg,
       icon: Iconsax.archive_2,
-      label: 'Arxivlangan',
+      label: tr('common.archived'),
     ),
   };
 }

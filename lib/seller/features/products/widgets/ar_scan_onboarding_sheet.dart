@@ -1,23 +1,24 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/i18n/i18n.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 
 /// The three "gold rules" shown before the AR scan camera opens — a clean
 /// background, good lighting, and three distinct angles materially improve the
 /// Meshy 3D result, so we surface them every time before capture.
-const _rules = <(String, String)>[
+List<(String, String)> _buildRules() => <(String, String)>[
   (
-    'Toza fon',
-    'Mahsulot atrofini bo‘shating — ortda ortiqcha narsa bo‘lmasin.',
+    tr('seller.ar_onboarding_rule_clean_title'),
+    tr('seller.ar_onboarding_rule_clean_body'),
   ),
   (
-    'Yaxshi yoritish',
-    'Xona yorug‘ bo‘lsin, qattiq soyalar va orqadan tushgan nurdan saqlaning.',
+    tr('seller.ar_onboarding_rule_light_title'),
+    tr('seller.ar_onboarding_rule_light_body'),
   ),
   (
-    '3 xil burchakdan oling',
-    'Old, yon va tepa-orqa tomonlardan to‘liq va aniq suratga oling.',
+    tr('seller.ar_onboarding_rule_angles_title'),
+    tr('seller.ar_onboarding_rule_angles_body'),
   ),
 ];
 
@@ -52,6 +53,7 @@ class _ArScanOnboardingSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
+    final rules = _buildRules();
 
     return Container(
       decoration: BoxDecoration(
@@ -77,7 +79,7 @@ class _ArScanOnboardingSheet extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              '3D skan qoidalari',
+              tr('seller.ar_onboarding_title'),
               style: TextStyle(
                 fontFamily: AppFonts.seller,
                 fontWeight: FontWeight.w800,
@@ -87,7 +89,7 @@ class _ArScanOnboardingSheet extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'Sifatli 3D model olish uchun 3 ta oddiy qoidaga amal qiling.',
+              tr('seller.ar_onboarding_subtitle'),
               style: TextStyle(
                 fontFamily: AppFonts.seller,
                 fontSize: 12.5,
@@ -96,9 +98,9 @@ class _ArScanOnboardingSheet extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 18),
-            for (var i = 0; i < _rules.length; i++) ...[
-              _RuleRow(step: i + 1, title: _rules[i].$1, body: _rules[i].$2),
-              if (i < _rules.length - 1) const SizedBox(height: 14),
+            for (var i = 0; i < rules.length; i++) ...[
+              _RuleRow(step: i + 1, title: rules[i].$1, body: rules[i].$2),
+              if (i < rules.length - 1) const SizedBox(height: 14),
             ],
             const SizedBox(height: 22),
             SizedBox(
@@ -125,7 +127,7 @@ class _ArScanOnboardingSheet extends StatelessWidget {
                     fontSize: 15,
                   ),
                 ),
-                child: const Text('Boshlash'),
+                child: Text(tr('seller.ar_onboarding_start')),
               ),
             ),
           ],

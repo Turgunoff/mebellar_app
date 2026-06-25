@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../../core/i18n/i18n.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import '../../../../../shared/models/order_status.dart';
@@ -88,7 +89,7 @@ class OrderActionBar extends StatelessWidget {
                         padding: EdgeInsets.zero,
                       ),
                       child: Text(
-                        'Bekor qilish',
+                        tr('seller_orders.cancel_action'),
                         style: TextStyle(
                           fontFamily: AppFonts.seller,
                           fontSize: 14,
@@ -210,7 +211,7 @@ class _WaitingForCustomerBar extends StatelessWidget {
                         padding: EdgeInsets.zero,
                       ),
                       child: Text(
-                        'Bekor qilish',
+                        tr('seller_orders.cancel_action'),
                         style: TextStyle(
                           fontFamily: AppFonts.seller,
                           fontSize: 13,
@@ -246,7 +247,7 @@ class _WaitingForCustomerBar extends StatelessWidget {
                       const SizedBox(width: 8),
                       Flexible(
                         child: Text(
-                          'Mijoz tasdiqlashini kutmoqda',
+                          tr('seller_orders.waiting_customer'),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(

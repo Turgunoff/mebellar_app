@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../../core/i18n/i18n.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import 'order_details_kit.dart';
@@ -27,7 +28,7 @@ class DeliveryAddressCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SectionTitle(text: 'Yetkazish manzili'),
+          SectionTitle(text: tr('seller_orders.delivery_address_title')),
           const SizedBox(height: 14),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -63,7 +64,7 @@ class DeliveryAddressCard extends StatelessWidget {
                       )
                     else
                       Text(
-                        'Manzil ko\'rsatilmagan',
+                        tr('seller_orders.address_missing'),
                         style: TextStyle(
                           fontFamily: AppFonts.seller,
                           fontSize: 13,

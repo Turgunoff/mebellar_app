@@ -19,10 +19,9 @@ class ReviewStep extends StatelessWidget {
         return StepReveal(
           step: OnboardingStep.review,
           children: [
-            const StepHeader(
-              title: "Ma'lumotlarni tekshiring",
-              subtitle:
-                  "Yuborishdan oldin barcha ma'lumotlar to'g'ri ekanligini tekshiring.",
+            StepHeader(
+              title: tr('onboarding.step_review_title'),
+              subtitle: tr('onboarding.step_review_subtitle'),
             ),
             const SizedBox(height: 24),
             _SummaryCard(
@@ -31,7 +30,7 @@ class ReviewStep extends StatelessWidget {
               onEdit: () => onEditStep(OnboardingStep.businessType),
               rows: [
                 _Row(
-                  'Turi',
+                  tr('onboarding.review_type_label'),
                   draft.businessType != null
                       ? tr('business_type.${draft.businessType!.code}')
                       : '—',
@@ -175,7 +174,7 @@ class _CardHeader extends StatelessWidget {
             icon: const Icon(Icons.edit_outlined, size: 18),
             color: PremiumTokens.accent,
             visualDensity: VisualDensity.compact,
-            tooltip: 'Tahrirlash',
+            tooltip: tr('common.edit'),
           ),
         ],
       ),

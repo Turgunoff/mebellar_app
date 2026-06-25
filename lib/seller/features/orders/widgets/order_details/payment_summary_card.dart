@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../../core/i18n/i18n.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import 'order_details_kit.dart';
@@ -37,11 +38,17 @@ class PaymentSummaryCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SectionTitle(text: "To'lov tafsilotlari"),
+          SectionTitle(text: tr('seller_orders.payment_section_title')),
           const SizedBox(height: 14),
-          _SummaryLine(label: 'Mahsulotlar summasi', value: subtotal),
+          _SummaryLine(
+            label: tr('seller_orders.subtotal_label'),
+            value: subtotal,
+          ),
           const SizedBox(height: 10),
-          _SummaryLine(label: 'Yetkazib berish', value: delivery),
+          _SummaryLine(
+            label: tr('seller_orders.delivery_label'),
+            value: delivery,
+          ),
           const SizedBox(height: 14),
           const _DashedDivider(),
           const SizedBox(height: 14),
@@ -50,7 +57,7 @@ class PaymentSummaryCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Jami',
+                  tr('seller_orders.total_label'),
                   style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 14,
@@ -112,7 +119,7 @@ class PaymentSummaryCard extends StatelessWidget {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Yangi yetkazish narxi taklif qilindi',
+                          tr('seller_orders.fee_proposed_title'),
                           style: TextStyle(
                             fontFamily: AppFonts.seller,
                             fontSize: 12,
@@ -122,7 +129,7 @@ class PaymentSummaryCard extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        '$proposedDelivery UZS',
+                        tr('seller_orders.amount_uzs', args: [proposedDelivery!]),
                         style: TextStyle(
                           fontFamily: AppFonts.seller,
                           fontSize: 13,
@@ -146,7 +153,7 @@ class PaymentSummaryCard extends StatelessWidget {
                   ],
                   const SizedBox(height: 8),
                   Text(
-                    'Mijoz tasdiqlashini kutmoqda…',
+                    tr('seller_orders.waiting_customer_ellipsis'),
                     style: TextStyle(
                       fontFamily: AppFonts.seller,
                       fontSize: 11,
@@ -165,9 +172,9 @@ class PaymentSummaryCard extends StatelessWidget {
               child: OutlinedButton.icon(
                 onPressed: onSetFee,
                 icon: const Icon(Iconsax.edit, size: 15),
-                label: const Text(
-                  'Yetkazish narxini o\'zgartirish',
-                  style: TextStyle(
+                label: Text(
+                  tr('seller_orders.change_fee_action'),
+                  style: const TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -203,7 +210,7 @@ class PaymentSummaryCard extends StatelessWidget {
                     Icon(Iconsax.wallet_3, size: 14, color: c.ink),
                     const SizedBox(width: 8),
                     Text(
-                      "To'lov turi: ",
+                      tr('seller_orders.payment_type_label'),
                       style: TextStyle(
                         fontFamily: AppFonts.seller,
                         fontSize: 12,

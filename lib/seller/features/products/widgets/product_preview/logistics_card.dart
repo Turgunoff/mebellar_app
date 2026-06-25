@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
-import 'package:intl/intl.dart';
 
+import '../../../../../core/i18n/i18n.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import 'product_preview_kit.dart';
@@ -33,9 +33,9 @@ class LogisticsCard extends StatelessWidget {
   final int warrantyMonths;
 
   String _priceLabel(num value) {
-    if (value <= 0) return 'Bepul';
+    if (value <= 0) return tr('seller.free');
     final format = NumberFormat('#,###', 'uz');
-    return '${format.format(value)} UZS';
+    return tr('common.uzs_amount_2', namedArgs: {'amount': format.format(value)});
   }
 
   @override
@@ -44,27 +44,33 @@ class LogisticsCard extends StatelessWidget {
       if (productionTimeDays != null && productionTimeDays!.trim().isNotEmpty)
         _LogisticsRow(
           icon: Iconsax.clock,
-          label: 'Tayyorlash muddati',
-          primary: '${productionTimeDays!.trim()} kun',
+          label: tr('seller.logistics_production_time'),
+          primary: tr('seller.days_value',
+              namedArgs: {'count': productionTimeDays!.trim()}),
         ),
       _LogisticsRow(
         icon: Iconsax.truck_fast,
-        label: 'Yetkazib berish',
-        primary: hasDelivery ? _priceLabel(deliveryPrice) : 'Yo\'q',
-        secondary: hasDelivery ? 'Toshkent ichida' : null,
+        label: tr('seller.product_has_delivery_short'),
+        primary: hasDelivery
+            ? _priceLabel(deliveryPrice)
+            : tr('seller.logistics_not_offered'),
+        secondary: hasDelivery ? tr('seller.logistics_within_tashkent') : null,
         muted: !hasDelivery,
       ),
       _LogisticsRow(
         icon: Iconsax.setting_4,
-        label: "O'rnatib berish",
-        primary: hasInstallation ? _priceLabel(installationPrice) : 'Yo\'q',
+        label: tr('seller.logistics_installation'),
+        primary: hasInstallation
+            ? _priceLabel(installationPrice)
+            : tr('seller.logistics_not_offered'),
         muted: !hasInstallation,
       ),
       if (warrantyMonths > 0)
         _LogisticsRow(
           icon: Iconsax.shield_tick,
-          label: 'Kafolat',
-          primary: '$warrantyMonths oy',
+          label: tr('seller.logistics_warranty'),
+          primary: tr('seller.months_value',
+              namedArgs: {'count': warrantyMonths.toString()}),
         ),
     ];
 
@@ -75,7 +81,7 @@ class LogisticsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SectionTitle(text: 'Yetkazish va kafolat'),
+          SectionTitle(text: tr('seller.logistics_section_title')),
           const SizedBox(height: 6),
           for (var i = 0; i < rows.length; i++) ...[
             Padding(

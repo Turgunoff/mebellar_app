@@ -212,7 +212,7 @@ class _SheetBodyState extends State<_SheetBody> {
                       padding: const EdgeInsets.all(24),
                       child: Text(
                         result.failureOrNull?.message ??
-                            "Ma'lumotni yuklab bo'lmadi",
+                            tr('tariff.instructions_load_failed'),
                         textAlign: TextAlign.center,
                       ),
                     ),

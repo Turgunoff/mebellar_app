@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:woody_app/core/i18n/i18n.dart';
 
 import '../../../config/app_mode.dart';
 import '../../../config/remote_config.dart';
@@ -165,8 +166,8 @@ class _DashboardContent extends StatelessWidget {
         // ---- Achievements — bleeds full-width -----------------------------
         _h(
           DashSectionHeader(
-            title: 'Yutuqlar',
-            subtitle: 'Bosqichlarni bosib oting',
+            title: tr('dashboard.achievements_title'),
+            subtitle: tr('dashboard.achievements_subtitle'),
             trailing: _SeeAllButton(
               onTap: () => Navigator.of(context, rootNavigator: true).push(
                 MaterialPageRoute<void>(
@@ -183,9 +184,9 @@ class _DashboardContent extends StatelessWidget {
 
         // ---- Seller leaderboard -------------------------------------------
         _h(
-          const DashSectionHeader(
-            title: 'Sotuvchilar reytingi',
-            subtitle: 'Bu hafta · savdo bo\'yicha',
+          DashSectionHeader(
+            title: tr('dashboard.leaderboard_title'),
+            subtitle: tr('dashboard.leaderboard_subtitle'),
           ),
         ),
         const SizedBox(height: 12),
@@ -195,9 +196,9 @@ class _DashboardContent extends StatelessWidget {
         // ---- Top products (last 30 days) — hidden until there are sales ---
         if (data.topProducts.isNotEmpty) ...[
           _h(
-            const DashSectionHeader(
-              title: 'Eng ko\'p sotilgan',
-              subtitle: 'So\'nggi 30 kun',
+            DashSectionHeader(
+              title: tr('dashboard.top_products_title'),
+              subtitle: tr('dashboard.last_30_days'),
             ),
           ),
           const SizedBox(height: 12),
@@ -234,14 +235,14 @@ class _SeeAllButton extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(10),
-        child: const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Hammasi',
-                style: TextStyle(
+                tr('dashboard.see_all'),
+                style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: DashKit.indigo,
@@ -278,7 +279,7 @@ class _GreetingHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
     final shopLabel = (shopName == null || shopName!.trim().isEmpty)
-        ? "Do'koningiz"
+        ? tr('dashboard.shop_fallback')
         : shopName!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -288,7 +289,7 @@ class _GreetingHeader extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                'Salom, $sellerName! 👋',
+                tr('dashboard.greeting_hello', namedArgs: {'name': sellerName}),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -306,7 +307,7 @@ class _GreetingHeader extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          "$shopLabel do'koni ko'rsatkichlari",
+          tr('dashboard.greeting_subtitle', namedArgs: {'name': shopLabel}),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
@@ -492,22 +493,22 @@ class _KpiGrid extends StatelessWidget {
       children: [
         SellerKpiCard(
           icon: Iconsax.wallet_2,
-          title: 'Bugungi savdo',
+          title: tr('dashboard.kpi_todays_sales'),
           value: _formatMoney(data.todaysSales),
-          unit: 'UZS',
+          unit: tr('common.currency_uzs'),
           accentValue: true,
           important: true,
           delta: data.kpiDeltas.revenue,
         ),
         SellerKpiCard(
           icon: Iconsax.shopping_bag,
-          title: 'Bugungi orderlar',
+          title: tr('dashboard.kpi_todays_orders'),
           value: '${data.todaysOrders}',
           delta: data.kpiDeltas.orders,
         ),
         SellerKpiCard(
           icon: Iconsax.clock,
-          title: 'Kutayotgan',
+          title: tr('dashboard.kpi_pending'),
           value: '${data.pendingOrders}',
           // A drop in pending orders is the good outcome.
           delta: data.kpiDeltas.pending,
@@ -515,7 +516,7 @@ class _KpiGrid extends StatelessWidget {
         ),
         SellerKpiCard(
           icon: Iconsax.box,
-          title: 'Mahsulotlar',
+          title: tr('dashboard.kpi_products'),
           // With tariff off there's no quota — show a plain product count.
           value: productsValue,
           // Expiring plans (trial bonus / paid) carry their remaining days
@@ -524,9 +525,16 @@ class _KpiGrid extends StatelessWidget {
           subtitle: !tariffEnabled
               ? null
               : (data.tariffDaysLeft != null
-                    ? '${data.plan.label} tarif · ${data.tariffDaysLeft} kun'
-                    : '${data.plan.label} tarif'),
-          indicator: exceeded ? KpiIndicator.accent('Limit oshdi') : null,
+                    ? tr('dashboard.kpi_plan_days_left', namedArgs: {
+                        'plan': data.plan.label,
+                        'days': data.tariffDaysLeft.toString(),
+                      })
+                    : tr('dashboard.kpi_plan', namedArgs: {
+                        'plan': data.plan.label,
+                      })),
+          indicator: exceeded
+              ? KpiIndicator.accent(tr('dashboard.kpi_limit_exceeded'))
+              : null,
           // The card that shows the quota is the shortcut to managing it —
           // especially when "Limit oshdi" is up. No quota with tariff off,
           // so the card stays inert there.
@@ -572,7 +580,7 @@ class _RecentOrdersHeader extends StatelessWidget {
       children: [
         Expanded(
           child: Text(
-            "So'nggi buyurtmalar",
+            tr('dashboard.recent_orders'),
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
@@ -662,7 +670,7 @@ class _RecentOrderTile extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                'UZS',
+                tr('common.currency_uzs'),
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
@@ -751,12 +759,12 @@ class _StatusPill extends StatelessWidget {
   }
 
   static String _labelFor(OrderStatus s) => switch (s) {
-    OrderStatus.pending => 'Kutilmoqda',
-    OrderStatus.confirmed => 'Tasdiqlangan',
-    OrderStatus.preparing => 'Tayyorlanmoqda',
-    OrderStatus.shipped => "Yo'lda",
-    OrderStatus.delivered => 'Yetkazildi',
-    OrderStatus.cancelled => 'Bekor qilingan',
+    OrderStatus.pending => tr('seller_orders.order_status_pending'),
+    OrderStatus.confirmed => tr('seller_orders.order_status_confirmed'),
+    OrderStatus.preparing => tr('seller_orders.action_preparing'),
+    OrderStatus.shipped => tr('seller_orders.order_status_shipped'),
+    OrderStatus.delivered => tr('seller_orders.action_delivered'),
+    OrderStatus.cancelled => tr('seller_orders.tab_cancelled'),
   };
 }
 
@@ -801,7 +809,7 @@ class _EmptyOrdersView extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            "Hozircha buyurtmalar yo'q",
+            tr('dashboard.empty_orders_title'),
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 16,
@@ -813,8 +821,7 @@ class _EmptyOrdersView extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            "Katalogingizga mahsulot qo'shing va birinchi savdoning "
-            "zavqini his qiling!",
+            tr('dashboard.empty_orders_body'),
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 13,

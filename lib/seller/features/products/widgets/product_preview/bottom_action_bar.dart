@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../../core/i18n/i18n.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 
@@ -78,7 +79,9 @@ class BottomActionBar extends StatelessWidget {
                                   : c.ink,
                             ),
                       label: Text(
-                        isArchived ? 'Qaytarish' : 'Arxivlash',
+                        isArchived
+                            ? tr('seller.product_restore')
+                            : tr('seller.product_archive_action'),
                         style: TextStyle(
                           fontFamily: AppFonts.seller,
                           fontSize: 14,
@@ -119,9 +122,9 @@ class BottomActionBar extends StatelessWidget {
                       size: 18,
                       color: Colors.white,
                     ),
-                    label: const Text(
-                      'Tahrirlash',
-                      style: TextStyle(
+                    label: Text(
+                      tr('seller.product_edit_action'),
+                      style: const TextStyle(
                         fontFamily: AppFonts.seller,
                         fontSize: 14,
                         fontWeight: FontWeight.w700,

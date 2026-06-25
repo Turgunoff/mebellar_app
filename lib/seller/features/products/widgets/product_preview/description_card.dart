@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../../core/i18n/i18n.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import 'product_preview_kit.dart';
@@ -60,7 +61,7 @@ class _DescriptionCardState extends State<DescriptionCard> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SectionTitle(text: 'Tavsif'),
+              SectionTitle(text: tr('seller.preview_description_title')),
               const SizedBox(height: 12),
               AnimatedSize(
                 duration: const Duration(milliseconds: 180),
@@ -110,7 +111,7 @@ class _ToggleButton extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                expanded ? 'Yopish' : "Ko'proq o'qish",
+                expanded ? tr('seller.read_less') : tr('seller.read_more'),
                 style: const TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 13,

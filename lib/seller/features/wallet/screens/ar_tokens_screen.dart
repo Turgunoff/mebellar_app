@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/i18n/i18n.dart';
 import '../../../../core/logging/talker.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
@@ -69,9 +70,9 @@ class _ArTokensScreenState extends State<ArTokensScreen> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'To‘lovni ilovada yakunlang — tasdiqlangach tokenlar qo‘shiladi.',
+            tr('seller.ar_tokens_finish_payment_notice'),
           ),
         ),
       );
@@ -87,7 +88,7 @@ class _ArTokensScreenState extends State<ArTokensScreen> {
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         title: Text(
-          'AR Tokenlar',
+          tr('seller.profile_ar_tokens_title'),
           style: TextStyle(
             fontFamily: AppFonts.seller,
             fontSize: 18,
@@ -192,7 +193,7 @@ class _BalanceCard extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        'Mavjud tokenlar',
+                        tr('seller.ar_tokens_available_tokens'),
                         style: TextStyle(
                           fontFamily: AppFonts.seller,
                           fontSize: 13,
@@ -240,7 +241,7 @@ class _BalanceCard extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.only(bottom: 5),
                         child: Text(
-                          'token',
+                          tr('seller.ar_tokens_token_unit'),
                           style: TextStyle(
                             fontFamily: AppFonts.seller,
                             fontSize: 16,
@@ -296,7 +297,7 @@ class _HowItWorksCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Tokenlar nima uchun?',
+            tr('seller.ar_tokens_what_for_title'),
             style: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 16,
@@ -308,19 +309,17 @@ class _HowItWorksCard extends StatelessWidget {
           const SizedBox(height: 12),
           _Bullet(
             color: c.gold,
-            text: 'Har bir mahsulot qismi uchun birinchi 3D skan — bepul.',
+            text: tr('seller.ar_tokens_bullet_first_scan_free'),
           ),
           const SizedBox(height: 10),
           _Bullet(
             color: c.gold,
-            text: 'Qismni qayta skanlash 1 token sarflaydi.',
+            text: tr('seller.ar_tokens_bullet_rescan_cost'),
           ),
           const SizedBox(height: 10),
           _Bullet(
             color: c.gold,
-            text:
-                'Tokenlar do‘konning barcha mahsulotlari uchun umumiy — bir '
-                'marta sotib oling, xohlagan mahsulotga ishlating.',
+            text: tr('seller.ar_tokens_bullet_shared_pool'),
           ),
         ],
       ),
@@ -399,7 +398,7 @@ class _BuyButton extends StatelessWidget {
               Icon(Icons.bolt_rounded, size: 20, color: AppColors.sellerInk),
               const SizedBox(width: 10),
               Text(
-                'AR Token sotib olish',
+                tr('seller.ar_buy_title'),
                 style: TextStyle(
                   fontFamily: AppFonts.seller,
                   fontWeight: FontWeight.w700,
@@ -430,7 +429,7 @@ class _ErrorView extends StatelessWidget {
           Icon(Icons.wifi_off_rounded, color: c.greyMid, size: 36),
           const SizedBox(height: 10),
           Text(
-            'Token balansini yuklab bo‘lmadi',
+            tr('seller.ar_tokens_load_failed'),
             style: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 14,
@@ -439,7 +438,7 @@ class _ErrorView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          TextButton(onPressed: onRetry, child: const Text('Qayta urinish')),
+          TextButton(onPressed: onRetry, child: Text(tr('seller.reviews_retry'))),
         ],
       ),
     );

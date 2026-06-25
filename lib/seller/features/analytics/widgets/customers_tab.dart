@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../core/i18n/i18n.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/models/analytics.dart';
@@ -51,9 +52,9 @@ class _CustomersHero extends StatelessWidget {
     return AnalyticsCard(
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
       child: HeroMetric(
-        caption: 'Davr ichidagi mijozlar',
+        caption: tr('analytics.customers_hero_caption'),
         value: customers.unique.toString(),
-        unit: 'kishi',
+        unit: tr('analytics.unit_people'),
         deltaPercent: customers.deltaPercent,
         refreshing: refreshing,
       ),
@@ -76,7 +77,7 @@ class _CustomersKpiRow extends StatelessWidget {
           Expanded(
             child: MiniKpiCard(
               icon: Iconsax.user_add,
-              label: 'Yangi',
+              label: tr('analytics.customers_new'),
               value: customers.newCustomers.toString(),
               color: AnalyticsTokens.success,
             ),
@@ -85,7 +86,7 @@ class _CustomersKpiRow extends StatelessWidget {
           Expanded(
             child: MiniKpiCard(
               icon: Iconsax.refresh_2,
-              label: 'Qaytgan',
+              label: tr('analytics.customers_returning'),
               value: customers.returningCustomers.toString(),
               color: AnalyticsTokens.info,
             ),
@@ -94,7 +95,7 @@ class _CustomersKpiRow extends StatelessWidget {
           Expanded(
             child: MiniKpiCard(
               icon: Iconsax.percentage_circle,
-              label: 'Qaytish %',
+              label: tr('analytics.customers_return_rate'),
               value: returning == null
                   ? '—'
                   : '${returning.toStringAsFixed(0)}%',
@@ -118,11 +119,11 @@ class _SegmentationCard extends StatelessWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SectionHeader(title: 'Segmentlar'),
+          SectionHeader(title: tr('analytics.customers_segments')),
           AnalyticsCard(
             child: SectionEmpty(
               icon: Iconsax.profile_2user,
-              message: "Bu davr uchun mijoz yo'q",
+              message: tr('analytics.customers_empty_segments'),
             ),
           ),
         ],
@@ -133,7 +134,7 @@ class _SegmentationCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionHeader(title: 'Segmentlar'),
+        SectionHeader(title: tr('analytics.customers_segments')),
         AnalyticsCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -159,14 +160,14 @@ class _SegmentationCard extends StatelessWidget {
               const SizedBox(height: 16),
               _SegmentLegendRow(
                 color: AnalyticsTokens.success,
-                label: 'Yangi mijozlar',
+                label: tr('analytics.customers_segment_new'),
                 count: customers.newCustomers,
                 percent: newRatio * 100,
               ),
               const SizedBox(height: 10),
               _SegmentLegendRow(
                 color: AnalyticsTokens.info,
-                label: 'Qaytgan mijozlar',
+                label: tr('analytics.customers_segment_returning'),
                 count: customers.returningCustomers,
                 percent: returningRatio * 100,
               ),
@@ -251,12 +252,12 @@ class _TopCustomersSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionHeader(title: 'Top mijozlar'),
+        SectionHeader(title: tr('analytics.customers_top')),
         if (list.isEmpty)
           AnalyticsCard(
             child: SectionEmpty(
               icon: Iconsax.crown_1,
-              message: "Hozircha mijozlar yo'q",
+              message: tr('analytics.customers_empty_top'),
             ),
           )
         else
@@ -324,7 +325,7 @@ class _TopCustomerTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${customer.ordersCount} ta buyurtma',
+                  tr('analytics.customers_order_count', args: [customer.ordersCount]),
                   style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 12,
@@ -348,7 +349,7 @@ class _TopCustomerTile extends StatelessWidget {
               ),
               children: [
                 TextSpan(
-                  text: '  UZS',
+                  text: tr('analytics.unit_uzs'),
                   style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 10,

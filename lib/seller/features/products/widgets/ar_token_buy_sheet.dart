@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/i18n/i18n.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/payments/pending_payment.dart';
@@ -35,7 +36,7 @@ String _fmtUzs(int value) {
     if (i > 0 && (digits.length - i) % 3 == 0) buf.write(' ');
     buf.write(digits[i]);
   }
-  return '${buf.toString()} so‘m';
+  return tr('common.uzs_amount', namedArgs: {'amount': buf.toString()});
 }
 
 class _ArTokenBuySheet extends StatefulWidget {
@@ -96,7 +97,7 @@ class _ArTokenBuySheetState extends State<_ArTokenBuySheet> {
       if (mounted) {
         setState(() {
           _buying = false;
-          _error = 'To‘lovni boshlab bo‘lmadi. Birozdan so‘ng urinib ko‘ring.';
+          _error = tr('seller.ar_buy_checkout_failed');
         });
       }
     }
@@ -137,7 +138,7 @@ class _ArTokenBuySheetState extends State<_ArTokenBuySheet> {
                   Icon(Icons.bolt_rounded, color: c.gold, size: 22),
                   const SizedBox(width: 8),
                   Text(
-                    'AR Token sotib olish',
+                    tr('seller.ar_buy_title'),
                     style: TextStyle(
                       fontFamily: AppFonts.seller,
                       fontWeight: FontWeight.w800,
@@ -149,7 +150,7 @@ class _ArTokenBuySheetState extends State<_ArTokenBuySheet> {
               ),
               const SizedBox(height: 4),
               Text(
-                'Har bir 3D model yaratish 1 token sarflaydi.',
+                tr('seller.ar_buy_subtitle'),
                 style: TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 12.5,
@@ -169,7 +170,7 @@ class _ArTokenBuySheetState extends State<_ArTokenBuySheet> {
 
               // ── Payment app picker ──
               Text(
-                'To‘lov usuli',
+                tr('seller.payment_method'),
                 style: TextStyle(
                   fontFamily: AppFonts.seller,
                   fontWeight: FontWeight.w700,
@@ -181,7 +182,7 @@ class _ArTokenBuySheetState extends State<_ArTokenBuySheet> {
               _ProviderChoice(
                 brand: _kPaymeTeal,
                 wordmark: 'Payme',
-                label: 'Payme ilovasi orqali to‘lash',
+                label: tr('seller.pay_via_payme'),
                 selected: _provider == PaymentProvider.payme,
                 onTap: () => setState(() => _provider = PaymentProvider.payme),
               ),
@@ -189,7 +190,7 @@ class _ArTokenBuySheetState extends State<_ArTokenBuySheet> {
               _ProviderChoice(
                 brand: _kClickBlue,
                 wordmark: 'Click',
-                label: 'Click ilovasi orqali to‘lash',
+                label: tr('seller.pay_via_click'),
                 selected: _provider == PaymentProvider.click,
                 onTap: () => setState(() => _provider = PaymentProvider.click),
               ),
@@ -235,7 +236,7 @@ class _ArTokenBuySheetState extends State<_ArTokenBuySheet> {
                             color: Colors.white,
                           ),
                         )
-                      : const Text('To‘lash'),
+                      : Text(tr('seller.pay_action')),
                 ),
               ),
             ],
@@ -289,7 +290,7 @@ class _PackageTile extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    '${pkg.tokens} token',
+                    tr('seller.ar_token_count', namedArgs: {'count': pkg.tokens.toString()}),
                     style: TextStyle(
                       fontFamily: AppFonts.seller,
                       fontWeight: FontWeight.w700,

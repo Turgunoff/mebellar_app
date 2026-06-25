@@ -68,7 +68,9 @@ class DocumentUploadStep extends StatelessWidget {
       );
     } catch (e) {
       messenger.showSnackBar(
-        SnackBar(content: Text('Faylni tanlash xatosi: $e')),
+        SnackBar(
+          content: Text(tr('onboarding.doc_pick_error', args: [e.toString()])),
+        ),
       );
     }
   }
@@ -96,23 +98,23 @@ List<_DocumentRequirement> _requirementsFor(BusinessType type) {
       ...passportPair,
       _DocumentRequirement(
         id: 'certificate',
-        title: "O'z-o'zini band qilgan guvohnomasi",
-        subtitle: "Davlat ro'yxati",
+        title: tr('onboarding.doc_self_employed_cert_title'),
+        subtitle: tr('onboarding.doc_state_registry_subtitle'),
         icon: Icons.description_outlined,
       ),
     ],
     BusinessType.llc || BusinessType.corporation => [
       ...passportPair,
-      const _DocumentRequirement(
+      _DocumentRequirement(
         id: 'guvohnoma',
-        title: 'Tashkilot guvohnomasi',
-        subtitle: "O'zMirror yoki Davlat ro'yxati",
+        title: tr('onboarding.doc_org_cert_title'),
+        subtitle: tr('onboarding.doc_org_cert_subtitle'),
         icon: Icons.assignment_outlined,
       ),
-      const _DocumentRequirement(
+      _DocumentRequirement(
         id: 'inn',
-        title: 'INN (Vergilash shaxsi raqami)',
-        subtitle: 'IJM raqami',
+        title: tr('onboarding.doc_inn_title'),
+        subtitle: tr('onboarding.doc_inn_subtitle'),
         icon: Icons.confirmation_number_outlined,
       ),
     ],
@@ -246,7 +248,7 @@ class _DocumentUploadCard extends StatelessWidget {
                   icon: const Icon(Icons.close_rounded, size: 18),
                   color: pt.grey,
                   visualDensity: VisualDensity.compact,
-                  tooltip: "O'chirish",
+                  tooltip: tr('common.delete'),
                 )
               else
                 const Icon(

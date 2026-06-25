@@ -2,6 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../core/i18n/i18n.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/models/analytics.dart';
@@ -66,22 +67,22 @@ class _OrdersHeroCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           HeroMetric(
-            caption: 'Davr ichidagi buyurtmalar',
+            caption: tr('analytics.orders_hero_caption'),
             value: orders.total.toString(),
-            unit: 'dona',
+            unit: tr('analytics.unit_pcs'),
             deltaPercent: orders.deltaPercent,
             refreshing: refreshing,
           ),
           const SizedBox(height: 14),
           if (values.isEmpty || values.every((v) => v == 0))
-            _ChartPlaceholder(message: "Buyurtmalar yo'q")
+            _ChartPlaceholder(message: tr('analytics.orders_empty_chart'))
           else
             RevenueLineChart(
               values: values,
               dates: dates,
               granularity: granularity,
               valueFormatter: (v) => v.round().toString(),
-              unit: 'dona',
+              unit: tr('analytics.unit_pcs'),
               height: 160,
             ),
         ],
@@ -105,7 +106,7 @@ class _OrdersKpiRow extends StatelessWidget {
           Expanded(
             child: MiniKpiCard(
               icon: Iconsax.tick_circle,
-              label: 'Yetkazilgan',
+              label: tr('analytics.orders_delivered'),
               value: orders.deliveredCount.toString(),
               color: AnalyticsTokens.success,
             ),
@@ -114,7 +115,7 @@ class _OrdersKpiRow extends StatelessWidget {
           Expanded(
             child: MiniKpiCard(
               icon: Iconsax.timer_1,
-              label: 'Faol',
+              label: tr('analytics.orders_active'),
               value: orders.activeCount.toString(),
               color: AnalyticsTokens.warning,
             ),
@@ -123,7 +124,7 @@ class _OrdersKpiRow extends StatelessWidget {
           Expanded(
             child: MiniKpiCard(
               icon: Iconsax.close_circle,
-              label: 'Bekor',
+              label: tr('analytics.orders_cancelled'),
               value: orders.cancelledCount.toString(),
               color: AnalyticsTokens.negative,
             ),
@@ -132,7 +133,7 @@ class _OrdersKpiRow extends StatelessWidget {
           Expanded(
             child: MiniKpiCard(
               icon: Iconsax.percentage_circle,
-              label: 'Bajarish',
+              label: tr('analytics.orders_completion'),
               value: completion == null
                   ? '—'
                   : '${completion.toStringAsFixed(0)}%',
@@ -158,12 +159,12 @@ class _StatusBreakdownCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionHeader(title: 'Status boʼyicha'),
+        SectionHeader(title: tr('analytics.orders_by_status')),
         AnalyticsCard(
           child: slices.isEmpty
               ? SectionEmpty(
                   icon: Iconsax.chart_2,
-                  message: "Bu davr uchun buyurtma yo'q",
+                  message: tr('analytics.orders_empty_status'),
                 )
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -206,7 +207,7 @@ class _StatusBreakdownCard extends StatelessWidget {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              "Bekor qilingan buyurtmalar ulushi",
+                              tr('analytics.orders_cancel_share'),
                               style: TextStyle(
                                 fontFamily: AppFonts.seller,
                                 fontSize: 12,
@@ -347,12 +348,12 @@ Color _statusColor(String status, int index) {
 
 String _statusLabel(String code) {
   return switch (OrderStatus.fromCode(code)) {
-    OrderStatus.pending => 'Kutilmoqda',
-    OrderStatus.confirmed => 'Tasdiqlangan',
-    OrderStatus.preparing => 'Tayyorlanmoqda',
-    OrderStatus.shipped => 'Yoʼlda',
-    OrderStatus.delivered => 'Yetkazilgan',
-    OrderStatus.cancelled => 'Bekor qilingan',
+    OrderStatus.pending => tr('analytics.status_pending'),
+    OrderStatus.confirmed => tr('analytics.status_confirmed'),
+    OrderStatus.preparing => tr('analytics.status_preparing'),
+    OrderStatus.shipped => tr('analytics.status_shipped'),
+    OrderStatus.delivered => tr('analytics.orders_delivered'),
+    OrderStatus.cancelled => tr('analytics.status_cancelled'),
   };
 }
 

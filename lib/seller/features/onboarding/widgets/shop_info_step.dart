@@ -27,7 +27,7 @@ class _ShopInfoStepState extends State<ShopInfoStep> {
 
   String? _nameValidator(String? value) {
     final text = value?.trim() ?? '';
-    if (text.length < 3) return 'Kamida 3 ta belgi kiriting';
+    if (text.length < 3) return tr('onboarding.validation_min_3_chars');
     return null;
   }
 

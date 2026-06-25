@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/i18n/i18n.dart';
 import '../../../../core/services/facebook_analytics_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
@@ -56,10 +57,10 @@ enum _WizardStage { capture, review }
 
 class _ArScanCameraScreenState extends State<ArScanCameraScreen>
     with WidgetsBindingObserver {
-  static const List<String> _guides = [
-    '1/3: Old tomondan oling',
-    '2/3: Yon tomondan oling',
-    '3/3: Tepa/orqa burchakdan oling',
+  static final List<String> _guides = [
+    tr('seller.ar_camera_guide_front'),
+    tr('seller.ar_camera_guide_side'),
+    tr('seller.ar_camera_guide_topback'),
   ];
 
   CameraController? _controller;
@@ -237,7 +238,7 @@ class _ArScanCameraScreenState extends State<ArScanCameraScreen>
       if (mounted) {
         setState(() {
           _submitting = false;
-          _submitError = 'Yuklashda xatolik. Qayta urinib ko‘ring.';
+          _submitError = tr('seller.ar_camera_upload_failed');
         });
       }
     }
@@ -522,9 +523,9 @@ class _ReviewControls extends StatelessWidget {
                       borderRadius: BorderRadius.circular(18),
                     ),
                   ),
-                  child: const Text(
-                    'Qaytadan olish',
-                    style: TextStyle(
+                  child: Text(
+                    tr('seller.ar_camera_retake'),
+                    style: const TextStyle(
                       fontFamily: AppFonts.seller,
                       fontWeight: FontWeight.w600,
                     ),
@@ -543,7 +544,7 @@ class _ReviewControls extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    isLast ? 'Yuklash' : 'Keyingisi',
+                    isLast ? tr('seller.ar_camera_upload') : tr('common.next_2'),
                     style: const TextStyle(
                       fontFamily: AppFonts.seller,
                       fontWeight: FontWeight.w700,
@@ -617,7 +618,7 @@ class _SubmitErrorOverlay extends StatelessWidget {
             child: FilledButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh, size: 18),
-              label: const Text('Qayta urinish'),
+              label: Text(tr('common.retry')),
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.sellerPrimaryBright,
                 foregroundColor: Colors.white,
@@ -636,9 +637,9 @@ class _SubmitErrorOverlay extends StatelessWidget {
           const SizedBox(height: 10),
           TextButton(
             onPressed: onClose,
-            child: const Text(
-              'Yopish',
-              style: TextStyle(
+            child: Text(
+              tr('common.close'),
+              style: const TextStyle(
                 fontFamily: AppFonts.seller,
                 color: Colors.white70,
                 fontWeight: FontWeight.w600,
@@ -757,10 +758,10 @@ class _GeneratingOverlay extends StatelessWidget {
         children: [
           const CircularProgressIndicator(color: AppColors.sellerPrimaryBright),
           const SizedBox(height: 20),
-          const Text(
-            '3D model yaratilmoqda. Tasdiqdan so‘ng ilovada ko‘rinadi.',
+          Text(
+            tr('seller.ar_camera_generating'),
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               fontFamily: AppFonts.seller,
               color: Colors.white,
               fontSize: 15,
@@ -792,10 +793,10 @@ class _ErrorView extends StatelessWidget {
               size: 40,
             ),
             const SizedBox(height: 12),
-            const Text(
-              'Kamerani ochib bo‘lmadi. Ruxsatlarni tekshiring.',
+            Text(
+              tr('seller.ar_camera_open_failed'),
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 fontFamily: AppFonts.seller,
                 color: Colors.white,
                 fontWeight: FontWeight.w600,

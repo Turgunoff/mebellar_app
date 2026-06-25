@@ -111,10 +111,10 @@ GoRouter buildSellerRouter() {
                       // of crashing on the cast.
                       final product = state.extra;
                       if (product is! SellerProduct) {
-                        return const Scaffold(
+                        return Scaffold(
                           body: Center(
                             child: Text(
-                              "Mahsulot ma'lumotlari topilmadi",
+                              tr('seller.product_data_not_found'),
                               textAlign: TextAlign.center,
                             ),
                           ),
@@ -366,9 +366,9 @@ class _SellerRouterShellState extends State<SellerRouterShell> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        const SnackBar(
-          content: Text('Ilovadan chiqish uchun yana bir marta orqaga bosing'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text(tr('seller.exit_confirm_hint')),
+          duration: const Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -460,7 +460,7 @@ class _SellerRouteError extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Sahifa topilmadi')),
+      appBar: AppBar(title: Text(tr('seller.route_not_found_title'))),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(32),

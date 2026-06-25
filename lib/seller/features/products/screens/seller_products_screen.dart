@@ -188,7 +188,7 @@ class _SellerProductsViewState extends State<_SellerProductsView> {
             actions: [
               IconButton(
                 onPressed: () => _openSets(context),
-                tooltip: 'Setlar',
+                tooltip: tr('seller.products_sets_tooltip'),
                 icon: Icon(Iconsax.box, size: 22, color: c.ink),
               ),
               const SizedBox(width: 8),
