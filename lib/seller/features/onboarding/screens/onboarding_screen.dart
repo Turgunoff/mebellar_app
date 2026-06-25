@@ -158,15 +158,21 @@ class _OnboardingViewState extends State<_OnboardingView> {
         return Stack(
           children: [
             PopScope(
-              canPop: state.step == OnboardingStep.welcome || isDone,
-              onPopInvokedWithResult: (didPop, _) {
-                if (didPop) return;
-                context.read<OnboardingBloc>().add(
-                  const OnboardingPreviousStep(),
-                );
-              },
+              // The top close (X) button AND the Android system back/swipe both
+              // EXIT the whole onboarding flow — back to the ProfileScreen that
+              // launched it — instead of stepping back through the form. Only
+              // the bottom "Back" button moves one step back now. No data is
+              // cleared on exit: OnboardingBloc.close() flushes the Hive draft
+              // on disposal, so reopening resumes exactly where the user left
+              // off.
+              canPop: true,
               child: Scaffold(
                 appBar: AppBar(
+                  leading: IconButton(
+                    icon: const Icon(Icons.close),
+                    tooltip: tr('common.close'),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
                   title: Text(tr('onboarding.title')),
                   bottom: PreferredSize(
                     preferredSize: const Size.fromHeight(12),
