@@ -9,6 +9,7 @@ import '../auth/auth_repository.dart';
 import '../network/token_store.dart';
 import '../network/woody_api_client.dart';
 import '../realtime/woody_realtime_service.dart';
+import '../notifications/app_badge_service.dart';
 import '../notifications/notification_handler.dart';
 import '../notifications/push_service.dart';
 import '../platform/messaging_facade.dart';
@@ -35,6 +36,9 @@ void registerAuthModule(GetIt sl) {
       notificationHandler: sl<NotificationHandler>(),
       // Device-token registration goes through the Woody REST endpoint.
       woodyApi: AppConfig.hasWoodyApi ? sl<WoodyApiClient>() : null,
+      // Root singleton (registered by core_module, before this) so a
+      // foreground push can paint the launcher badge immediately.
+      badge: sl<AppBadgeService>(),
     ),
   );
 

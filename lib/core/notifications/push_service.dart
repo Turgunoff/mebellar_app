@@ -56,8 +56,28 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       message.notification != null ||
       ((message.data['kind'] as String?)?.isNotEmpty ?? false);
   if (hasUserFacingPayload) {
-    await incrementAppBadgeFromBackground();
+    // Prefer the backend's authoritative unread total when the payload carries
+    // it (every Woody push now does) — exact, drift-free. Fall back to the
+    // naive +1 only for legacy pushes that predate the `unread_count` field.
+    final unread = _unreadCountFromData(message.data);
+    if (unread != null) {
+      await setAppBadgeFromBackground(unread);
+    } else {
+      await incrementAppBadgeFromBackground();
+    }
   }
+}
+
+/// Parses the backend's `unread_count` (the server-computed launcher-badge
+/// total) out of an FCM data payload. Returns null when the key is absent
+/// (legacy push) or non-numeric, so callers can fall back to a blind +1. The
+/// value arrives as a string — FCM's data map is `Map<String, String>`.
+int? _unreadCountFromData(Map<String, dynamic> data) {
+  final raw = data['unread_count'];
+  if (raw == null) return null;
+  final parsed = int.tryParse(raw.toString());
+  if (parsed == null || parsed < 0) return null;
+  return parsed;
 }
 
 class PushService {
@@ -66,14 +86,22 @@ class PushService {
     required FlutterLocalNotificationsPlugin localNotifications,
     required NotificationHandler notificationHandler,
     WoodyApiClient? woodyApi,
+    AppBadgeService? badge,
   }) : _messaging = messaging,
        _localNotifications = localNotifications,
        _notificationHandler = notificationHandler,
-       _woodyApi = woodyApi;
+       _woodyApi = woodyApi,
+       _badge = badge;
 
   final MessagingFacade _messaging;
   final FlutterLocalNotificationsPlugin _localNotifications;
   final NotificationHandler _notificationHandler;
+
+  /// Crash-proof launcher-badge writer. Null only in unit tests that don't
+  /// exercise badging; the live app always injects the root singleton so a
+  /// foreground push can set the icon count immediately (ahead of the inbox
+  /// reload that `BadgeSyncController` would otherwise wait on).
+  final AppBadgeService? _badge;
 
   /// Device-token registration calls the Woody REST endpoint
   /// (`POST /push/device-tokens`). Null only in builds without a configured
@@ -315,6 +343,11 @@ class PushService {
       'Yangiliklar',
       description: 'Yangiliklar va aksiyalar haqida bildirishnomalar',
       importance: Importance.high,
+      // OEM launchers (Samsung/Xiaomi/…) only paint an icon badge for channels
+      // that allow it. Set explicitly (the plugin default is true, but a
+      // channel created with showBadge=false is sticky once registered) so a
+      // posted notification can carry its count to the launcher.
+      showBadge: true,
     );
     await _localNotifications
         .resolvePlatformSpecificImplementation<
@@ -539,6 +572,14 @@ class PushService {
   }
 
   Future<void> _onForegroundMessage(RemoteMessage message) async {
+    // Immediate authoritative badge: set the launcher icon from the backend's
+    // unread total the instant the push lands, ahead of the inbox-reload round
+    // trip BadgeSyncController would otherwise reconcile from. Done before the
+    // notification-null guard so a data-only push still updates the count. The
+    // controller still re-asserts the mode-specific in-app total right after.
+    final unread = _unreadCountFromData(message.data);
+    if (unread != null) unawaited(_badge?.setCount(unread) ?? Future.value());
+
     final notification = message.notification;
     if (notification == null) return;
     talker.info('FCM foreground: ${notification.title}');
@@ -608,6 +649,11 @@ class PushService {
         : isSupport
         ? supportNotificationTag
         : (message.messageId ?? '${DateTime.now().microsecondsSinceEpoch}');
+    // Carry the backend's unread total onto the notification so OEM launchers
+    // (Samsung/Xiaomi/MIUI) that derive the icon badge from a posted
+    // notification's `number` show the right count — these skins ignore the
+    // standalone app_badge_plus broadcast and read the number off the tray.
+    final unread = _unreadCountFromData(message.data);
     final androidDetails = AndroidNotificationDetails(
       _kNewsChannelId,
       'Yangiliklar',
@@ -620,6 +666,10 @@ class PushService {
       // this, Android's auto-grouping replaces older entries on some OEM
       // skins. A chat reuses the per-chat tag so its entries DO collapse.
       tag: tag,
+      // Mirror the channel's badge opt-in on the post itself, and stamp the
+      // count so launchers that badge off the notification number paint it.
+      channelShowBadge: true,
+      number: unread,
     );
     final details = NotificationDetails(android: androidDetails);
     // Wrap to stay inside Android's 32-bit signed int id range. The counter

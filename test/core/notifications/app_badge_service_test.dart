@@ -93,4 +93,24 @@ void main() {
       expect(await storedCount(), 5);
     });
   });
+
+  group('setAppBadgeFromBackground', () {
+    test('writes the exact authoritative count, not a blind +1', () async {
+      // Live app left the tally at 9; an authoritative push says the true
+      // unread total is now 3 (e.g. items read on another device) — the exact
+      // value wins instead of incrementing.
+      await AppBadgeService().setCount(9);
+
+      await setAppBadgeFromBackground(3);
+
+      expect(await storedCount(), 3);
+      expect(updates().last.arguments['count'], 3);
+    });
+
+    test('clamps a negative count to zero', () async {
+      await setAppBadgeFromBackground(-1);
+
+      expect(await storedCount(), 0);
+    });
+  });
 }

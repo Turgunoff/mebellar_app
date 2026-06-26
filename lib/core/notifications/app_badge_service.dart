@@ -70,8 +70,21 @@ Future<int> _readBadge() async {
 /// this naive tally to the true unread count on next resume (see
 /// `BadgeSyncController`), so any drift (a push for an already-read item, a
 /// count read on another device) self-heals when the user reopens the app.
+///
+/// Fallback path — prefer [setAppBadgeFromBackground] when the push carries the
+/// backend's authoritative `unread_count` (no blind tally needed then).
 Future<void> incrementAppBadgeFromBackground() async {
   await _writeBadge(await _readBadge() + 1);
+}
+
+/// Writes the authoritative launcher-badge [count] from the FCM background
+/// isolate. Used when the push payload carries the backend's `unread_count`
+/// (the true server-side unread total): setting the exact value beats the naive
+/// +1 in [incrementAppBadgeFromBackground] because it can't drift — a read on
+/// another device or an already-read item is already reflected in the number
+/// the server computed. Same crash-proofing as every other badge write.
+Future<void> setAppBadgeFromBackground(int count) async {
+  await _writeBadge(count);
 }
 
 /// Test-only: clears the cached [AppBadgePlus.isSupported] probe result so each
