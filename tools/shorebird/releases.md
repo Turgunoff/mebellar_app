@@ -30,3 +30,4 @@ Yozuvlar avtomatik qo'shiladi:
 | 2026-06-25 | 1.0.27+27 | 0d5addf4b79b | android | 1.0.27: launcher app-icon unread badge (app_badge_plus) |
 | 2026-06-25 | 1.0.28+28 | f36231d54217 | android | — |
 | 2026-06-25 | 1.0.29+29 | 92dd2499793b | android | — |
+| 2026-06-25 | 1.0.29+29 | 1f296588821b | ios | — |
