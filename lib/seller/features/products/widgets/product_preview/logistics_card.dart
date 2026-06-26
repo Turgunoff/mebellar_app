@@ -20,6 +20,7 @@ class LogisticsCard extends StatelessWidget {
     required this.productionTimeDays,
     required this.hasDelivery,
     required this.deliveryPrice,
+    this.maxDeliveryFee = 0,
     required this.hasInstallation,
     required this.installationPrice,
     required this.warrantyMonths,
@@ -28,6 +29,10 @@ class LogisticsCard extends StatelessWidget {
   final String? productionTimeDays;
   final bool hasDelivery;
   final num deliveryPrice;
+
+  /// Estimated MAXIMUM delivery fee (UZS). The buyer sees a "0 – max" range;
+  /// the seller calculates the exact fee per address when accepting the order.
+  final int maxDeliveryFee;
   final bool hasInstallation;
   final num installationPrice;
   final int warrantyMonths;
@@ -36,6 +41,15 @@ class LogisticsCard extends StatelessWidget {
     if (value <= 0) return tr('seller.free');
     final format = NumberFormat('#,###', 'uz');
     return tr('common.uzs_amount_2', namedArgs: {'amount': format.format(value)});
+  }
+
+  /// "0 – {max} UZS" range the buyer sees up front.
+  String _deliveryRangeLabel() {
+    final format = NumberFormat('#,###', 'uz');
+    return tr(
+      'seller.logistics_delivery_range',
+      namedArgs: {'max': format.format(maxDeliveryFee)},
+    );
   }
 
   @override
@@ -52,9 +66,11 @@ class LogisticsCard extends StatelessWidget {
         icon: Iconsax.truck_fast,
         label: tr('seller.product_has_delivery_short'),
         primary: hasDelivery
-            ? _priceLabel(deliveryPrice)
+            ? _deliveryRangeLabel()
             : tr('seller.logistics_not_offered'),
-        secondary: hasDelivery ? tr('seller.logistics_within_tashkent') : null,
+        secondary: hasDelivery
+            ? tr('seller.logistics_delivery_estimated')
+            : null,
         muted: !hasDelivery,
       ),
       _LogisticsRow(

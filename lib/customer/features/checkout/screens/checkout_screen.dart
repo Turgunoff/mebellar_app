@@ -469,6 +469,38 @@ class _PaymentCard extends StatelessWidget {
             ),
             pt: pt,
           ),
+          if (state.payment != CheckoutPayment.cash) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: PremiumTokens.accent.withValues(alpha: 0.07),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Iconsax.info_circle,
+                    size: 16,
+                    color: PremiumTokens.accent,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      tr('checkout.deferred_payment_note'),
+                      style: PremiumTokens.body(
+                        size: 12,
+                        color: pt.dark,
+                        height: 1.35,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );

@@ -53,6 +53,10 @@ class OrderStatusBadge extends StatelessWidget {
   ) {
     return switch (status) {
       OrderStatus.pending => (bg: s.surfaceContainerHighest, fg: s.onSurface),
+      OrderStatus.awaitingPayment => (
+        bg: pt.warningBg,
+        fg: pt.onWarningBg,
+      ),
       OrderStatus.confirmed => (
         bg: s.tertiaryContainer,
         fg: s.onTertiaryContainer,

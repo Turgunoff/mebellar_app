@@ -350,6 +350,7 @@ String _statusLabel(String code) {
   return switch (OrderStatus.fromCode(code)) {
     OrderStatus.pending => tr('analytics.status_pending'),
     OrderStatus.confirmed => tr('analytics.status_confirmed'),
+    OrderStatus.awaitingPayment => tr('analytics.status_confirmed'),
     OrderStatus.preparing => tr('analytics.status_preparing'),
     OrderStatus.shipped => tr('analytics.status_shipped'),
     OrderStatus.delivered => tr('analytics.orders_delivered'),

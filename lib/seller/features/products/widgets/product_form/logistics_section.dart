@@ -16,28 +16,30 @@ class LogisticsSection extends StatelessWidget {
     required this.productionDaysController,
     required this.deliveryAvailable,
     required this.onDeliveryChanged,
-    required this.deliveryPriceController,
+    required this.maxDeliveryFee,
+    required this.onMaxDeliveryFeeChanged,
     required this.assemblyAvailable,
     required this.onAssemblyChanged,
     required this.installationPriceController,
     required this.onInstallationPriceChanged,
     required this.warrantyController,
     required this.onProductionDaysChanged,
-    required this.onDeliveryPriceChanged,
     required this.onWarrantyChanged,
   });
 
   final TextEditingController productionDaysController;
   final bool deliveryAvailable;
   final ValueChanged<bool> onDeliveryChanged;
-  final TextEditingController deliveryPriceController;
+
+  /// Estimated maximum delivery fee (UZS), driven by the slider.
+  final int maxDeliveryFee;
+  final ValueChanged<int> onMaxDeliveryFeeChanged;
   final bool assemblyAvailable;
   final ValueChanged<bool> onAssemblyChanged;
   final TextEditingController installationPriceController;
   final ValueChanged<num> onInstallationPriceChanged;
   final TextEditingController warrantyController;
   final ValueChanged<String> onProductionDaysChanged;
-  final ValueChanged<num> onDeliveryPriceChanged;
   final ValueChanged<int> onWarrantyChanged;
 
   @override
@@ -70,18 +72,9 @@ class LogisticsSection extends StatelessWidget {
               ),
               if (deliveryAvailable) ...[
                 const SizedBox(height: 14),
-                FormTextField(
-                  controller: deliveryPriceController,
-                  label: tr('add_product.field_delivery_price_label'),
-                  hint: tr('add_product.field_price_free_hint'),
-                  suffix: tr('add_product.unit_uzs'),
-                  keyboardType: TextInputType.number,
-                  inputFormatters: const [ThousandsSpaceFormatter()],
-                  helper: tr('add_product.field_delivery_price_helper'),
-                  onChanged: (v) {
-                    final digits = v.replaceAll(RegExp(r'[^\d]'), '');
-                    onDeliveryPriceChanged(int.tryParse(digits) ?? 0);
-                  },
+                _MaxDeliveryFeeSlider(
+                  value: maxDeliveryFee,
+                  onChanged: onMaxDeliveryFeeChanged,
                 ),
               ],
               Padding(
@@ -128,6 +121,92 @@ class LogisticsSection extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+/// Slider for the estimated MAXIMUM delivery fee (0 – 2,000,000 UZS, steps of
+/// 50,000). The exact fee is entered by the seller per address when accepting
+/// the order — this only sets the upper bound the buyer sees ("0 – max").
+class _MaxDeliveryFeeSlider extends StatelessWidget {
+  const _MaxDeliveryFeeSlider({required this.value, required this.onChanged});
+
+  static const int _max = 2000000;
+  static const int _step = 50000;
+
+  final int value;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    final primary = Theme.of(context).colorScheme.primary;
+    final clamped = value.clamp(0, _max);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              tr('add_product.field_max_delivery_fee_label'),
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: c.grey,
+                letterSpacing: 0.1,
+              ),
+            ),
+            Text(
+              clamped == 0
+                  ? tr('add_product.field_price_free_hint')
+                  : '${_formatThousands(clamped)} ${tr('add_product.unit_uzs')}',
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: primary,
+              ),
+            ),
+          ],
+        ),
+        SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            activeTrackColor: primary,
+            thumbColor: primary,
+            overlayColor: primary.withValues(alpha: 0.12),
+            inactiveTrackColor: c.fillFaint,
+          ),
+          child: Slider(
+            value: clamped.toDouble(),
+            max: _max.toDouble(),
+            divisions: _max ~/ _step,
+            label: _formatThousands(clamped),
+            onChanged: (v) => onChanged((v / _step).round() * _step),
+          ),
+        ),
+        Text(
+          tr('add_product.field_max_delivery_fee_helper'),
+          style: TextStyle(
+            fontFamily: AppFonts.seller,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: c.greyMid,
+            height: 1.3,
+          ),
+        ),
+      ],
+    );
+  }
+
+  static String _formatThousands(int v) {
+    final s = v.toString();
+    final buf = StringBuffer();
+    for (var i = 0; i < s.length; i++) {
+      if (i > 0 && (s.length - i) % 3 == 0) buf.write(' ');
+      buf.write(s[i]);
+    }
+    return buf.toString();
   }
 }
 

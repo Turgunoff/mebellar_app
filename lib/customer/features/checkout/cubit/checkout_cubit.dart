@@ -203,7 +203,6 @@ class CheckoutCubit extends Cubit<CheckoutState> {
     FacebookAnalyticsService? facebookAnalytics,
   }) : _checkout = checkout,
        _cartRepo = cartRepo,
-       _payments = payments,
        _analytics = analytics,
        _facebookAnalytics = facebookAnalytics,
        super(CheckoutState(groups: _groupByShop(items))) {
@@ -232,7 +231,6 @@ class CheckoutCubit extends Cubit<CheckoutState> {
 
   final CheckoutRepository _checkout;
   final CartRepository _cartRepo;
-  final PaymentRepository? _payments;
   final AnalyticsService? _analytics;
   final FacebookAnalyticsService? _facebookAnalytics;
 
@@ -322,6 +320,9 @@ class CheckoutCubit extends Cubit<CheckoutState> {
               CheckoutOrderLine(productId: it.productId, quantity: it.quantity),
           ],
           deliveryAddress: state.deliveryAddress,
+          // Stored on the order so seller-accept can branch (cash → confirmed,
+          // online → awaiting_payment). Deferred payment: NO charge here.
+          paymentMethod: state.payment.name,
           // Each shop carries its own installation opt-in, so its order is
           // priced exactly as that shop's card shows — never the global flag.
           wantInstallation: state.wantsInstallationFor(group.shopId),
@@ -350,40 +351,20 @@ class CheckoutCubit extends Cubit<CheckoutState> {
       }
 
       // Orders now exist server-side, so the cart is empty regardless of what
-      // happens next — clear it BEFORE minting the checkout link so a failed
-      // hand-off can't leave a stale cart that re-checks-out into duplicates.
+      // happens next — clear it so a failed hand-off can't leave a stale cart
+      // that re-checks-out into duplicates.
       await _cartRepo.clear();
 
-      // Payme / Click: mint a checkout deep-link the screen opens in the
-      // payment app. The order is already placed (unpaid) — the link is a
-      // convenience, so failing to mint it still counts as success (the
-      // customer can pay later). Confirmation of the actual payment is a
-      // provider-webhook concern, a documented follow-up.
-      //
-      // KNOWN LIMITATION (multi-shop): the cart fans out into one order per
-      // shop; a single checkout app can only be opened for ONE of them, so we
-      // link the first order. The rest stay unpaid (single-shop carts — the
-      // common case — are unaffected).
-      String? checkoutUrl;
-      final provider = state.provider;
-      if (provider != null && _payments != null && placedIds.isNotEmpty) {
-        try {
-          final link = await _payments.checkoutUrl(
-            orderId: placedIds.first,
-            provider: provider,
-          );
-          checkoutUrl = link.checkoutUrl;
-        } catch (_) {
-          // Order placed; opening the payment app just isn't available now.
-        }
-      }
-
+      // Deferred payment: NO checkout link is minted here, even for Payme/Click.
+      // The order stays pending until the seller reviews the address and sets
+      // the exact delivery fee; for an online order it then moves to
+      // `awaiting_payment` and the customer pays the final total from the order
+      // screen ("To'lovni amalga oshirish"). Checkout just confirms placement.
       if (isClosed) return;
       emit(
         state.copyWith(
           status: CheckoutStatus.success,
           placedOrderIds: placedIds,
-          checkoutUrl: checkoutUrl,
         ),
       );
     } catch (e) {

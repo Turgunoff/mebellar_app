@@ -718,6 +718,7 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
                       productionTimeDays: product.productionTimeDays,
                       hasDelivery: product.hasDelivery,
                       deliveryPrice: product.deliveryPrice,
+                      maxDeliveryFee: product.maxDeliveryFee,
                       hasInstallation: product.hasInstallation,
                       installationPrice: product.installationPrice,
                       warrantyMonths: product.warrantyMonths,

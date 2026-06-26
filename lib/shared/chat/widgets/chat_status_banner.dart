@@ -140,7 +140,9 @@ class ChatStatusBanner extends StatelessWidget {
           titleColor: const Color(0xFF7C5D08),
           subtitleColor: const Color(0xFF7C5D08),
         ),
-      OrderStatus.confirmed => _BannerSpec(
+      // awaiting_payment reuses the confirmed banner — the seller has accepted;
+      // the order screen (not chat) carries the "pay now" call to action.
+      OrderStatus.awaitingPayment || OrderStatus.confirmed => _BannerSpec(
           icon: Iconsax.tick_square,
           title: tr('chat.status.confirmed_title'),
           subtitle: tr('chat.status.confirmed_subtitle'),

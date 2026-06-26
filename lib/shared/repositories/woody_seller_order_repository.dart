@@ -140,6 +140,20 @@ class WoodySellerOrderRepository implements SellerOrderRepository {
         return _toOrder(row);
       });
 
+  /// `POST /seller/orders/{id}/accept` with `{delivery_fee}`. The backend stamps
+  /// the exact fee, re-derives `total_amount`, and branches the status (cash →
+  /// confirmed, online → awaiting_payment), returning the refreshed order. A
+  /// non-pending order resolves to an [Err] (409).
+  @override
+  Future<Result<Order>> accept(String id, {required int deliveryFee}) =>
+      runCatching(() async {
+        final row = await _api.post<Map<String, dynamic>>(
+          '$_ordersPath/$id/accept',
+          body: {'delivery_fee': deliveryFee},
+        );
+        return _toOrder(row);
+      });
+
   @override
   Stream<Order> newOrders() => const Stream.empty();
 

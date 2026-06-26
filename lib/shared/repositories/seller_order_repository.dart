@@ -53,6 +53,12 @@ abstract class SellerOrderRepository {
   /// [Err], not a throw). Returns the refreshed [Order] on success.
   Future<Result<Order>> setDeliveryFee(String id, {required num fee});
 
+  /// Accepts a pending order with the EXACT per-address [deliveryFee]. The
+  /// backend stamps the fee, re-derives the grand total, and branches the
+  /// status — cash → `confirmed`, online → `awaiting_payment`. Returns the
+  /// refreshed [Order]; a non-pending order resolves to an [Err], not a throw.
+  Future<Result<Order>> accept(String id, {required int deliveryFee});
+
   Stream<Order> watch(String orderId);
 
   /// Releases realtime channels / stream controllers. Wired into the DI
@@ -68,8 +74,15 @@ extension SellerOrderTransitions on OrderStatus {
   /// separately by the UI.
   List<OrderStatus> get sellerForwardTransitions {
     return switch (this) {
+      // Accepting a pending order goes through the accept dialog (delivery fee);
+      // the backend branches to confirmed (cash) or awaiting_payment (online).
       OrderStatus.pending => [OrderStatus.confirmed],
       OrderStatus.confirmed => [OrderStatus.preparing, OrderStatus.shipped],
+      // Once the customer pays, the seller advances the order as usual.
+      OrderStatus.awaitingPayment => [
+        OrderStatus.preparing,
+        OrderStatus.shipped,
+      ],
       OrderStatus.preparing => [OrderStatus.shipped],
       OrderStatus.shipped => [OrderStatus.delivered],
       OrderStatus.delivered || OrderStatus.cancelled => const [],

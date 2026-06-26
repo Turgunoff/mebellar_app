@@ -119,6 +119,26 @@ class FakeSellerOrderRepository implements SellerOrderRepository {
   }
 
   @override
+  Future<Result<Order>> accept(String id, {required int deliveryFee}) async {
+    transitionLog.add('accept:$id:$deliveryFee');
+    final builder = _getByIdResult;
+    if (builder == null) {
+      return const Err(ServerFailure(message: 'accept: no stub'));
+    }
+    final result = builder(id);
+    return switch (result) {
+      Ok(:final value) when value.status == OrderStatus.pending => Ok(
+        value.copyWith(
+          status: OrderStatus.confirmed,
+          grandTotal: value.grandTotal - value.deliveryFee + deliveryFee,
+        ),
+      ),
+      Ok() => const Err(ServerFailure(message: 'order_not_pending')),
+      Err() => result,
+    };
+  }
+
+  @override
   Future<Result<Order>> cancel(
     String id, {
     required String reasonCode,

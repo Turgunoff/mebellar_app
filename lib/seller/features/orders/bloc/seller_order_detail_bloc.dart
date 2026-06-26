@@ -53,6 +53,16 @@ class SellerOrderDeliveryFeeSet extends SellerOrderDetailEvent {
   List<Object?> get props => [fee];
 }
 
+/// Accept a pending order with the EXACT per-address delivery fee. The backend
+/// stamps the fee and branches the status (cash → confirmed, online →
+/// awaiting_payment); we just refresh with the returned order.
+class SellerOrderAcceptSubmitted extends SellerOrderDetailEvent {
+  const SellerOrderAcceptSubmitted({required this.deliveryFee});
+  final int deliveryFee;
+  @override
+  List<Object?> get props => [deliveryFee];
+}
+
 class _SellerOrderRealtimeUpdated extends SellerOrderDetailEvent {
   const _SellerOrderRealtimeUpdated(this.order);
   final Order order;
@@ -131,6 +141,7 @@ class SellerOrderDetailBloc
       ).call(event, emit);
     });
     on<SellerOrderDeliveryFeeSet>(_onDeliveryFeeSet);
+    on<SellerOrderAcceptSubmitted>(_onAcceptSubmitted);
     on<_SellerOrderRealtimeUpdated>(
       (e, emit) => emit(state.copyWith(order: e.order)),
     );
@@ -164,6 +175,30 @@ class SellerOrderDetailBloc
         emit(
           state.copyWith(
             status: SellerOrderDetailStatus.failure,
+            error: failure.message,
+          ),
+        );
+    }
+  }
+
+  Future<void> _onAcceptSubmitted(
+    SellerOrderAcceptSubmitted event,
+    Emitter<SellerOrderDetailState> emit,
+  ) async {
+    final order = state.order;
+    if (order == null) return;
+    emit(state.copyWith(status: SellerOrderDetailStatus.settingFee));
+    final result = await _repo.accept(order.id, deliveryFee: event.deliveryFee);
+    switch (result) {
+      case Ok(:final value):
+        emit(
+          state.copyWith(status: SellerOrderDetailStatus.ready, order: value),
+        );
+        onUpdated?.call(value);
+      case Err(:final failure):
+        emit(
+          state.copyWith(
+            status: SellerOrderDetailStatus.ready,
             error: failure.message,
           ),
         );

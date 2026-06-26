@@ -751,7 +751,9 @@ class _StatusPill extends StatelessWidget {
         AppColors.sellerNegative,
         AppColors.sellerNegativeBg,
       ),
-      OrderStatus.pending || OrderStatus.confirmed => (
+      OrderStatus.pending ||
+      OrderStatus.awaitingPayment ||
+      OrderStatus.confirmed => (
         AppColors.sellerWarning,
         AppColors.sellerWarningBg,
       ),
@@ -761,6 +763,8 @@ class _StatusPill extends StatelessWidget {
   static String _labelFor(OrderStatus s) => switch (s) {
     OrderStatus.pending => tr('seller_orders.order_status_pending'),
     OrderStatus.confirmed => tr('seller_orders.order_status_confirmed'),
+    OrderStatus.awaitingPayment =>
+      tr('seller_orders.status_awaiting_payment'),
     OrderStatus.preparing => tr('seller_orders.action_preparing'),
     OrderStatus.shipped => tr('seller_orders.order_status_shipped'),
     OrderStatus.delivered => tr('seller_orders.action_delivered'),

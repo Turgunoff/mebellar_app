@@ -163,6 +163,7 @@ class Order extends Equatable {
     required this.address,
     required this.deliveryMethod,
     required this.paymentMethod,
+    this.paymentProvider = 'cash',
     required this.status,
     required this.itemsTotal,
     required this.deliveryFee,
@@ -186,6 +187,11 @@ class Order extends Equatable {
   final Address address;
   final OrderDeliveryMethod deliveryMethod;
   final OrderPaymentMethod paymentMethod;
+
+  /// The checkout payment provider (`cash` | `payme` | `click`), mirrored from
+  /// the backend `payment_provider`. Drives which `/orders/{id}/pay/{provider}`
+  /// deep-link the customer launches when the order is `awaiting_payment`.
+  final String paymentProvider;
   final OrderStatus status;
   final num itemsTotal;
   final num deliveryFee;
@@ -229,6 +235,7 @@ class Order extends Equatable {
       paymentMethod: OrderPaymentMethod.fromCode(
         json['payment_method'] as String?,
       ),
+      paymentProvider: (json['payment_provider'] as String?) ?? 'cash',
       status: OrderStatus.fromCode(json['status'] as String?),
       itemsTotal: (json['items_total'] as num?) ?? 0,
       deliveryFee: (json['delivery_fee'] as num?) ?? 0,
@@ -293,6 +300,7 @@ class Order extends Equatable {
       address: address,
       deliveryMethod: deliveryMethod,
       paymentMethod: paymentMethod,
+      paymentProvider: paymentProvider,
       status: status ?? this.status,
       itemsTotal: itemsTotal,
       deliveryFee: deliveryFee,

@@ -86,6 +86,7 @@ class _OrderDetailView extends StatelessWidget {
       case OrderStatus.delivered:
         bloc.add(const SellerOrderActionMarkDelivered());
       case OrderStatus.pending:
+      case OrderStatus.awaitingPayment:
       case OrderStatus.cancelled:
         break;
     }
@@ -104,8 +105,24 @@ class _OrderDetailView extends StatelessWidget {
       builder: (_) => _CustomerContactSheet(order: order),
     );
     if (confirmed == true && context.mounted) {
-      _applyTransition(context, OrderStatus.confirmed);
+      await _showAcceptDialog(context);
     }
+  }
+
+  /// Accept = enter the EXACT per-address delivery fee, then call the accept
+  /// API (the backend branches the status by payment method). Replaces the bare
+  /// "confirm" so the seller always prices delivery for the real address first.
+  Future<void> _showAcceptDialog(BuildContext context) async {
+    final order = context.read<SellerOrderDetailBloc>().state.order;
+    if (order == null) return;
+    final fee = await showDialog<num>(
+      context: context,
+      builder: (_) => _AcceptOrderDialog(address: order.address.streetLine),
+    );
+    if (fee == null || !context.mounted) return;
+    context.read<SellerOrderDetailBloc>().add(
+      SellerOrderAcceptSubmitted(deliveryFee: fee.round()),
+    );
   }
 
   Future<void> _showSetFeeDialog(BuildContext context) async {
@@ -287,6 +304,7 @@ class _OrderDetailView extends StatelessWidget {
 
   static int _timelineStep(OrderStatus status) => switch (status) {
     OrderStatus.pending => 0,
+    OrderStatus.awaitingPayment => 1,
     OrderStatus.confirmed => 1,
     OrderStatus.preparing => 2,
     OrderStatus.shipped => 3,
@@ -663,6 +681,134 @@ class _SetFeeDialogState extends State<_SetFeeDialog> {
           ),
           child: Text(
             tr('seller_orders.save_action'),
+            style: const TextStyle(
+              fontFamily: AppFonts.seller,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Accept dialog: shows the customer's address and asks for the EXACT delivery
+/// fee for it. Returns the entered fee (num) on confirm, or null on cancel.
+class _AcceptOrderDialog extends StatefulWidget {
+  const _AcceptOrderDialog({required this.address});
+
+  final String address;
+
+  @override
+  State<_AcceptOrderDialog> createState() => _AcceptOrderDialogState();
+}
+
+class _AcceptOrderDialogState extends State<_AcceptOrderDialog> {
+  final _feeController = TextEditingController();
+  bool _valid = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _feeController.addListener(
+      () => setState(() => _valid = _parsedFee() != null),
+    );
+  }
+
+  @override
+  void dispose() {
+    _feeController.dispose();
+    super.dispose();
+  }
+
+  num? _parsedFee() {
+    final raw = _feeController.text.trim().replaceAll(' ', '');
+    return num.tryParse(raw);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    return AlertDialog(
+      backgroundColor: c.surface,
+      title: Text(
+        tr('seller_orders.accept_dialog_title'),
+        style: TextStyle(
+          fontFamily: AppFonts.seller,
+          fontSize: 16,
+          fontWeight: FontWeight.w700,
+          color: c.ink,
+        ),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            tr(
+              'seller_orders.accept_dialog_prompt',
+              namedArgs: {'address': widget.address},
+            ),
+            style: TextStyle(
+              fontFamily: AppFonts.seller,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: c.grey,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 14),
+          TextField(
+            controller: _feeController,
+            autofocus: true,
+            keyboardType: TextInputType.number,
+            inputFormatters: [_SpaceThousandsFormatter()],
+            style: TextStyle(
+              fontFamily: AppFonts.seller,
+              fontSize: 15,
+              color: c.ink,
+            ),
+            decoration: InputDecoration(
+              hintText: tr('seller_orders.set_fee_hint'),
+              hintStyle: TextStyle(fontFamily: AppFonts.seller, color: c.grey),
+              suffixText: 'UZS',
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: c.outline),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.sellerPrimary),
+              ),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(
+            tr('seller_orders.close_action'),
+            style: TextStyle(
+              fontFamily: AppFonts.seller,
+              color: c.grey,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        FilledButton(
+          onPressed: _valid
+              ? () => Navigator.of(context).pop(_parsedFee())
+              : null,
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.sellerPrimary,
+            foregroundColor: Colors.white,
+            disabledBackgroundColor: AppColors.sellerPrimary.withValues(
+              alpha: 0.4,
+            ),
+          ),
+          child: Text(
+            tr('seller_orders.accept_action'),
             style: const TextStyle(
               fontFamily: AppFonts.seller,
               fontWeight: FontWeight.w700,

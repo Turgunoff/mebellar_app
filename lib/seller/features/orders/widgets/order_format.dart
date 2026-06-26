@@ -31,6 +31,8 @@ String formatOrderDateTime(DateTime dt) {
 String sellerOrderStatusLabel(OrderStatus status) => switch (status) {
       OrderStatus.pending => tr('seller_orders.tab_newTab'),
       OrderStatus.confirmed => tr('seller_orders.status_confirmed'),
+      OrderStatus.awaitingPayment =>
+        tr('seller_orders.status_awaiting_payment'),
       OrderStatus.preparing => tr('seller_orders.action_preparing'),
       OrderStatus.shipped => tr('seller_orders.order_status_shipped'),
       OrderStatus.delivered => tr('seller_orders.tab_done'),
@@ -47,6 +49,7 @@ String sellerOrderStatusLabel(OrderStatus status) => switch (status) {
 ) =>
     switch (status) {
       OrderStatus.pending => (bg: c.warningBg, fg: c.warning),
+      OrderStatus.awaitingPayment => (bg: c.warningBg, fg: c.warning),
       OrderStatus.confirmed => (bg: c.infoBg, fg: c.info),
       OrderStatus.preparing => (bg: c.progressBg, fg: c.progress),
       OrderStatus.shipped => c.brightness == Brightness.dark
@@ -62,5 +65,7 @@ String sellerOrderActionLabel(OrderStatus target) => switch (target) {
       OrderStatus.preparing => tr('seller_orders.action_label_preparing'),
       OrderStatus.shipped => tr('seller_orders.action_label_shipped'),
       OrderStatus.delivered => tr('seller_orders.action_label_delivered'),
-      OrderStatus.pending || OrderStatus.cancelled => '',
+      OrderStatus.pending ||
+      OrderStatus.awaitingPayment ||
+      OrderStatus.cancelled => '',
     };

@@ -106,6 +106,27 @@ class MockSellerOrderRepository implements SellerOrderRepository {
   }
 
   @override
+  Future<Result<Order>> accept(String id, {required int deliveryFee}) async {
+    await Future<void>.delayed(_delay);
+    final idx = _orders.indexWhere((o) => o.id == id);
+    if (idx < 0) {
+      return Err(ServerFailure(message: 'Buyurtma topilmadi: $id'));
+    }
+    final order = _orders[idx];
+    if (order.status != OrderStatus.pending) {
+      return Err(ServerFailure(message: 'order_not_pending'));
+    }
+    final updated = order.copyWith(
+      status: OrderStatus.confirmed,
+      grandTotal: order.grandTotal - order.deliveryFee + deliveryFee,
+    );
+    _orders[idx] = updated;
+    _watchers[id]?.add(updated);
+    if (!_orderUpdates.isClosed) _orderUpdates.add(updated);
+    return Ok(updated);
+  }
+
+  @override
   Future<Result<Order>> cancel(
     String id, {
     required String reasonCode,

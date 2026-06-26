@@ -26,6 +26,7 @@ class ProductModel extends Equatable {
     this.depthCm,
     this.hasDelivery = false,
     this.deliveryPrice = 0,
+    this.maxDeliveryFee = 0,
     this.hasInstallation = false,
     this.installationPrice = 0,
     this.warrantyMonths = 0,
@@ -79,6 +80,11 @@ class ProductModel extends Equatable {
   // ── Logistics — surfaced on the product detail page ──────────────────────
   final bool hasDelivery;
   final num deliveryPrice;
+
+  /// Seller's estimated MAXIMUM delivery fee (UZS), shown to the buyer as a
+  /// "0 – max" range (`products.max_delivery_fee`). The exact fee is set by the
+  /// seller per address when accepting the order.
+  final int maxDeliveryFee;
   final bool hasInstallation;
   final num installationPrice;
   final int warrantyMonths;
@@ -196,6 +202,7 @@ class ProductModel extends Equatable {
       depthCm: json['depth_cm'] as num?,
       hasDelivery: json['has_delivery'] as bool? ?? false,
       deliveryPrice: (json['delivery_price'] as num?) ?? 0,
+      maxDeliveryFee: (json['max_delivery_fee'] as num?)?.toInt() ?? 0,
       hasInstallation: json['has_installation'] as bool? ?? false,
       installationPrice: (json['installation_price'] as num?) ?? 0,
       warrantyMonths: (json['warranty_months'] as num?)?.toInt() ?? 0,
@@ -246,6 +253,7 @@ class ProductModel extends Equatable {
     if (depthCm != null) 'depth_cm': depthCm,
     'has_delivery': hasDelivery,
     'delivery_price': deliveryPrice,
+    'max_delivery_fee': maxDeliveryFee,
     'has_installation': hasInstallation,
     'installation_price': installationPrice,
     'warranty_months': warrantyMonths,

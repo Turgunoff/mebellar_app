@@ -112,6 +112,7 @@ class SellerProduct extends Equatable {
     this.productionTimeDays,
     this.hasDelivery = false,
     this.deliveryPrice = 0,
+    this.maxDeliveryFee = 0,
     this.hasInstallation = false,
     this.installationPrice = 0,
     this.warrantyMonths = 0,
@@ -185,6 +186,10 @@ class SellerProduct extends Equatable {
 
   final bool hasDelivery;
   final num deliveryPrice;
+
+  /// Estimated maximum delivery fee (UZS) the seller set with the slider
+  /// (`products.max_delivery_fee`). Rehydrates the slider when editing.
+  final int maxDeliveryFee;
   final bool hasInstallation;
   final num installationPrice;
   final int warrantyMonths;

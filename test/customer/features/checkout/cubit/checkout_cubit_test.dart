@@ -244,29 +244,22 @@ void main() {
     },
   );
 
+  // Deferred payment: an online order is placed WITHOUT minting a checkout
+  // link. The payment_method is passed through (so seller-accept can branch);
+  // the customer pays the final total from the order screen once the seller
+  // sets the delivery fee.
   blocTest<CheckoutCubit, CheckoutState>(
-    'payme payment places the order then mints a checkout deep-link',
+    'payme order is placed deferred — no checkout link is minted',
     build: () {
       when(
         () => checkout.placeOrder(
           lines: any(named: 'lines'),
           deliveryAddress: any(named: 'deliveryAddress'),
+          paymentMethod: any(named: 'paymentMethod'),
           wantInstallation: any(named: 'wantInstallation'),
         ),
       ).thenAnswer((_) async => 'order-1');
       when(() => cartRepo.clear()).thenAnswer((_) async => const Cart());
-      when(
-        () => payments.checkoutUrl(
-          orderId: any(named: 'orderId'),
-          provider: any(named: 'provider'),
-        ),
-      ).thenAnswer(
-        (_) async => const CheckoutLink(
-          provider: 'payme',
-          checkoutUrl: 'https://checkout.paycom.uz/x',
-          amount: 4500000,
-        ),
-      );
       return buildWithPayments(items: const [item]);
     },
     act: (cubit) {
@@ -287,58 +280,27 @@ void main() {
       isA<CheckoutState>()
           .having((s) => s.status, 'status', CheckoutStatus.success)
           .having((s) => s.placedOrderIds, 'orders', ['order-1'])
-          .having((s) => s.checkoutUrl, 'url', 'https://checkout.paycom.uz/x'),
+          // No link minted at checkout — deferred to the order screen.
+          .having((s) => s.checkoutUrl, 'url', isNull),
     ],
     verify: (_) {
+      // The chosen method rides on the order so the seller-accept can branch.
       verify(
-        () => payments.checkoutUrl(
-          orderId: 'order-1',
-          provider: PaymentProvider.payme,
-        ),
-      ).called(1);
-    },
-  );
-
-  blocTest<CheckoutCubit, CheckoutState>(
-    'payme order still succeeds when the checkout link cannot be minted',
-    build: () {
-      when(
         () => checkout.placeOrder(
           lines: any(named: 'lines'),
           deliveryAddress: any(named: 'deliveryAddress'),
+          paymentMethod: 'payme',
           wantInstallation: any(named: 'wantInstallation'),
         ),
-      ).thenAnswer((_) async => 'order-1');
-      when(() => cartRepo.clear()).thenAnswer((_) async => const Cart());
-      when(
+      ).called(1);
+      // The deep-link is NEVER minted during checkout anymore.
+      verifyNever(
         () => payments.checkoutUrl(
           orderId: any(named: 'orderId'),
           provider: any(named: 'provider'),
         ),
-      ).thenThrow(Exception('provider unavailable'));
-      return buildWithPayments(items: const [item]);
+      );
     },
-    act: (cubit) {
-      cubit.selectPayment(CheckoutPayment.click);
-      cubit.submit('user-1');
-    },
-    expect: () => [
-      isA<CheckoutState>().having(
-        (s) => s.payment,
-        'payment',
-        CheckoutPayment.click,
-      ),
-      isA<CheckoutState>().having(
-        (s) => s.status,
-        'status',
-        CheckoutStatus.submitting,
-      ),
-      // The order is placed (success); only the convenience link is missing.
-      isA<CheckoutState>()
-          .having((s) => s.status, 'status', CheckoutStatus.success)
-          .having((s) => s.placedOrderIds, 'orders', ['order-1'])
-          .having((s) => s.checkoutUrl, 'url', isNull),
-    ],
   );
 
   blocTest<CheckoutCubit, CheckoutState>(

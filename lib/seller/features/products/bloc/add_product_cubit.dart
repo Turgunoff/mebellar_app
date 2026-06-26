@@ -70,6 +70,7 @@ class AddProductState extends Equatable {
     this.productionTimeDays = '3-5',
     this.hasDelivery = false,
     this.deliveryPrice = 0,
+    this.maxDeliveryFee = 0,
     this.hasInstallation = false,
     this.installationPrice = 0,
     this.warrantyMonths = 12,
@@ -109,6 +110,11 @@ class AddProductState extends Equatable {
   final String productionTimeDays;
   final bool hasDelivery;
   final num deliveryPrice;
+
+  /// Estimated maximum delivery fee (UZS) the seller set with the slider. Sent
+  /// to the backend as `max_delivery_fee`; the exact fee is entered per order
+  /// at acceptance.
+  final int maxDeliveryFee;
   final bool hasInstallation;
   final num installationPrice;
   final int warrantyMonths;
@@ -216,6 +222,7 @@ class AddProductState extends Equatable {
     String? productionTimeDays,
     bool? hasDelivery,
     num? deliveryPrice,
+    int? maxDeliveryFee,
     bool? hasInstallation,
     num? installationPrice,
     int? warrantyMonths,
@@ -248,6 +255,7 @@ class AddProductState extends Equatable {
       productionTimeDays: productionTimeDays ?? this.productionTimeDays,
       hasDelivery: hasDelivery ?? this.hasDelivery,
       deliveryPrice: deliveryPrice ?? this.deliveryPrice,
+      maxDeliveryFee: maxDeliveryFee ?? this.maxDeliveryFee,
       hasInstallation: hasInstallation ?? this.hasInstallation,
       installationPrice: installationPrice ?? this.installationPrice,
       warrantyMonths: warrantyMonths ?? this.warrantyMonths,
@@ -282,6 +290,7 @@ class AddProductState extends Equatable {
     productionTimeDays,
     hasDelivery,
     deliveryPrice,
+    maxDeliveryFee,
     hasInstallation,
     installationPrice,
     warrantyMonths,
@@ -402,6 +411,7 @@ class AddProductCubit extends Cubit<AddProductState> {
           productionTimeDays: product.productionTimeDays ?? '',
           hasDelivery: product.hasDelivery,
           deliveryPrice: product.deliveryPrice,
+          maxDeliveryFee: product.maxDeliveryFee,
           hasInstallation: product.hasInstallation,
           installationPrice: product.installationPrice,
           warrantyMonths: product.warrantyMonths,
@@ -592,15 +602,19 @@ class AddProductCubit extends Cubit<AddProductState> {
     emit(
       state.copyWith(
         hasDelivery: value,
-        // Reset price when delivery is turned off so we never persist a stale
+        // Reset the fees when delivery is turned off so we never persist a stale
         // non-zero value behind the disabled toggle.
         deliveryPrice: value ? state.deliveryPrice : 0,
+        maxDeliveryFee: value ? state.maxDeliveryFee : 0,
       ),
     );
   }
 
   void setDeliveryPrice(num value) =>
       emit(state.copyWith(deliveryPrice: value));
+
+  void setMaxDeliveryFee(int value) =>
+      emit(state.copyWith(maxDeliveryFee: value));
 
   void setHasInstallation(bool value) {
     emit(
@@ -725,6 +739,7 @@ class AddProductCubit extends Cubit<AddProductState> {
             : state.productionTimeDays.trim(),
         hasDelivery: state.hasDelivery,
         deliveryPrice: state.deliveryPrice,
+        maxDeliveryFee: state.maxDeliveryFee,
         hasInstallation: state.hasInstallation,
         installationPrice: state.installationPrice,
         warrantyMonths: state.warrantyMonths,

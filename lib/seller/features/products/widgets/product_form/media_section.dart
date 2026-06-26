@@ -42,10 +42,36 @@ class MediaSection extends StatelessWidget {
     final unlimited = maxImages < 0;
     final isFull = !unlimited && images.length >= maxImages;
     final caption = unlimited ? '∞' : '$maxImages';
+    final c = SellerColors.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SectionTitle(tr('add_product.section_media')),
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 10),
+          child: Row(
+            children: [
+              Icon(Iconsax.info_circle, size: 14, color: c.greyMid),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  tr(
+                    'add_product.media_hint',
+                    namedArgs: {'min': '$kMinProductImages', 'max': caption},
+                  ),
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: c.greyMid,
+                    letterSpacing: -0.1,
+                    height: 1.2,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
         FormCard(
           child: SizedBox(
             height: 110,

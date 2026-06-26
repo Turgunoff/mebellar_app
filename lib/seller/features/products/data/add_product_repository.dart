@@ -16,6 +16,12 @@ import '../../../../shared/models/tariff.dart';
 /// trigger + Pydantic cap. Bumping it means changing all three together.
 const int kMaxProductImages = 10;
 
+/// Recommended minimum number of product images — surfaced as a hint in the
+/// media section so sellers list quality photo sets. Advisory only: not gated
+/// by [canSubmit], so edit-mode legacy products with fewer photos aren't
+/// blocked.
+const int kMinProductImages = 3;
+
 /// Snapshot of the seller's shop + plan that the add-product screen needs
 /// before the user can start filling the form. Loaded once via
 /// [AddProductRepository.loadShopContext] so the cubit can:
@@ -94,6 +100,7 @@ class AddProductInput {
     required this.productionTimeDays,
     required this.hasDelivery,
     required this.deliveryPrice,
+    this.maxDeliveryFee = 0,
     required this.hasInstallation,
     required this.installationPrice,
     required this.warrantyMonths,
@@ -121,6 +128,9 @@ class AddProductInput {
   final String? productionTimeDays;
   final bool hasDelivery;
   final num deliveryPrice;
+
+  /// Estimated maximum delivery fee (UZS), persisted as `max_delivery_fee`.
+  final int maxDeliveryFee;
   final bool hasInstallation;
   final num installationPrice;
   final int warrantyMonths;
@@ -413,6 +423,7 @@ class AddProductRepository {
       'colors': input.colorSlugs,
       'has_delivery': input.hasDelivery,
       'delivery_price': input.hasDelivery ? input.deliveryPrice : 0,
+      'max_delivery_fee': input.hasDelivery ? input.maxDeliveryFee : 0,
       'has_installation': input.hasInstallation,
       'installation_price': input.hasInstallation ? input.installationPrice : 0,
       'warranty_months': input.warrantyMonths,

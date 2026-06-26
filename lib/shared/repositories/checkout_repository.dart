@@ -16,10 +16,13 @@ abstract class CheckoutRepository {
     required bool wantInstallation,
   });
 
-  /// Places the order for one shop group and returns the new order id.
+  /// Places the order for one shop group and returns the new order id. The
+  /// [paymentMethod] (`cash` | `payme` | `click`) is stored on the order; NO
+  /// charge happens here (deferred payment).
   Future<String> placeOrder({
     required List<CheckoutOrderLine> lines,
     required String deliveryAddress,
+    String paymentMethod = 'cash',
     bool wantInstallation = false,
   });
 }
@@ -87,6 +90,7 @@ class WoodyCheckoutRepository implements CheckoutRepository {
   Future<String> placeOrder({
     required List<CheckoutOrderLine> lines,
     required String deliveryAddress,
+    String paymentMethod = 'cash',
     bool wantInstallation = false,
   }) async {
     final body = await _api.post<Map<String, dynamic>>(
@@ -97,6 +101,7 @@ class WoodyCheckoutRepository implements CheckoutRepository {
             {'product_id': l.productId, 'quantity': l.quantity},
         ],
         'delivery_address': deliveryAddress,
+        'payment_method': paymentMethod,
         'want_installation': wantInstallation,
       },
     );

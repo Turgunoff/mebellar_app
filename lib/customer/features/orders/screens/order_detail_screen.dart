@@ -4,12 +4,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/network/api_error_messages.dart';
 import '../../../../shared/models/order.dart'
     show FeeAdjustmentStatus, Order, OrderItem;
 import '../../../../shared/models/order_status.dart';
 import '../../../../shared/models/review.dart';
+import '../../../../shared/payments/pending_payment.dart';
+import '../../../../shared/payments/pending_payment_service.dart';
 import '../../../../shared/repositories/order_repository.dart';
+import '../../../../shared/repositories/payment_repository.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/cancel_reason_sheet.dart';
 import '../../../../shared/widgets/error_state.dart';
@@ -111,7 +116,9 @@ class _Body extends StatelessWidget {
             ),
         ],
       ),
-      bottomNavigationBar: order.status.customerCancellable
+      bottomNavigationBar: order.status.awaitsPayment
+          ? _PayNowBar(order: order)
+          : order.status.customerCancellable
           ? _CancelOrderBar(state: state)
           : null,
       body: ListView(
@@ -841,6 +848,111 @@ class _CancelOrderBar extends StatelessWidget {
               : const Icon(Iconsax.close_circle, size: 18),
           label: Text(tr('orders.cancel')),
         ),
+      ),
+    );
+  }
+}
+
+/// Bottom bar shown while an online order is `awaiting_payment`: the seller has
+/// set the final delivery fee and the customer now pays the grand total. Mints
+/// the provider checkout deep-link (`POST /orders/{id}/pay/{provider}`), marks
+/// the pending payment for resume, and hands off to the Payme/Click app.
+class _PayNowBar extends StatefulWidget {
+  const _PayNowBar({required this.order});
+
+  final Order order;
+
+  @override
+  State<_PayNowBar> createState() => _PayNowBarState();
+}
+
+class _PayNowBarState extends State<_PayNowBar> {
+  bool _busy = false;
+
+  PaymentProvider? get _provider => switch (widget.order.paymentProvider) {
+    'payme' => PaymentProvider.payme,
+    'click' => PaymentProvider.click,
+    _ => null,
+  };
+
+  Future<void> _pay() async {
+    final provider = _provider;
+    if (provider == null || _busy) return;
+    setState(() => _busy = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final link = await sl<PaymentRepository>().checkoutUrl(
+        orderId: widget.order.id,
+        provider: provider,
+      );
+      if (sl.isRegistered<PendingPaymentService>()) {
+        await sl<PendingPaymentService>().mark(
+          kind: PendingPaymentKind.order,
+          reference: widget.order.id,
+        );
+      }
+      final uri = Uri.tryParse(link.checkoutUrl);
+      if (uri != null) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(apiErrorMessage(e))));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final pt = PremiumTokens.of(context);
+    final total = NumberFormat('#,###').format(widget.order.grandTotal);
+    return SafeArea(
+      minimum: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  tr('orders.pay_total_label'),
+                  style: PremiumTokens.body(size: 11, color: pt.greyLight),
+                ),
+                Text(
+                  "$total so'm",
+                  style: PremiumTokens.body(size: 16, weight: FontWeight.w800),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          SizedBox(
+            height: 50,
+            child: FilledButton.icon(
+              onPressed: _busy ? null : _pay,
+              style: FilledButton.styleFrom(
+                backgroundColor: scheme.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+              ),
+              icon: _busy
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.4,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Iconsax.card, size: 18),
+              label: Text(tr('orders.pay_now')),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -357,6 +357,7 @@ class WoodySellerProductRepository implements SellerProductRepository {
       productionTimeDays: row['production_time_days'] as String?,
       hasDelivery: row['has_delivery'] as bool? ?? false,
       deliveryPrice: (row['delivery_price'] as num?) ?? 0,
+      maxDeliveryFee: (row['max_delivery_fee'] as num?)?.toInt() ?? 0,
       hasInstallation: row['has_installation'] as bool? ?? false,
       installationPrice: (row['installation_price'] as num?) ?? 0,
       warrantyMonths: (row['warranty_months'] as num?)?.toInt() ?? 0,
