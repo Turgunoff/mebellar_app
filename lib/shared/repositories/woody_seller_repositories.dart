@@ -575,6 +575,20 @@ class WoodyShopSettingsRepository implements ShopSettingsRepository {
     'webp' => 'image/webp',
     _ => 'image/jpeg',
   };
+
+  @override
+  Future<Result<String?>> generateDescription({
+    String? hint,
+    List<String> previous = const [],
+  }) => runCatching(() async {
+    final resp = await _api.post<Map<String, dynamic>>(
+      '/seller/shop/ai-description',
+      body: {'hint': hint, 'previous': previous},
+    );
+    if (resp['available'] != true) return null;
+    final desc = (resp['description'] as String?)?.trim();
+    return (desc != null && desc.isNotEmpty) ? desc : null;
+  });
 }
 
 /// REST-backed seller analytics — `GET /seller/analytics?granularity&days`.

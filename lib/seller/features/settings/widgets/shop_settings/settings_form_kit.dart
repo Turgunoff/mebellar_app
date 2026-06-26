@@ -101,6 +101,7 @@ class SettingsTextField extends StatelessWidget {
     this.minLines,
     this.maxLines = 1,
     this.onChanged,
+    this.cornerAction,
   });
 
   final TextEditingController controller;
@@ -111,6 +112,11 @@ class SettingsTextField extends StatelessWidget {
   final int? minLines;
   final int? maxLines;
   final ValueChanged<String>? onChanged;
+
+  /// Optional widget pinned to the field's top-right corner (e.g. the AI
+  /// magic-wand button on the description field). The text area is padded on
+  /// the right so content never slides under it.
+  final Widget? cornerAction;
 
   @override
   Widget build(BuildContext context) {
@@ -136,27 +142,32 @@ class SettingsTextField extends StatelessWidget {
             ),
           ),
         ),
-        TextField(
-          controller: controller,
-          keyboardType: keyboardType,
-          minLines: minLines,
-          maxLines: maxLines,
-          cursorColor: AppColors.sellerPrimary,
-          style: TextStyle(
-            fontFamily: AppFonts.seller,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: c.ink,
-            letterSpacing: -0.1,
-          ),
-          onChanged: onChanged,
-          decoration: InputDecoration(
-            isDense: true,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 14,
-            ),
-            hintText: hint,
+        Stack(
+          children: [
+            TextField(
+              controller: controller,
+              keyboardType: keyboardType,
+              minLines: minLines,
+              maxLines: maxLines,
+              cursorColor: AppColors.sellerPrimary,
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: c.ink,
+                letterSpacing: -0.1,
+              ),
+              onChanged: onChanged,
+              decoration: InputDecoration(
+                isDense: true,
+                contentPadding: EdgeInsets.only(
+                  left: 14,
+                  top: 14,
+                  bottom: 14,
+                  // Keep text clear of the corner action when present.
+                  right: cornerAction != null ? 46 : 14,
+                ),
+                hintText: hint,
             hintStyle: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 14,
@@ -181,7 +192,11 @@ class SettingsTextField extends StatelessWidget {
                 width: 1.4,
               ),
             ),
-          ),
+              ),
+            ),
+            if (cornerAction != null)
+              Positioned(top: 6, right: 6, child: cornerAction!),
+          ],
         ),
       ],
     );

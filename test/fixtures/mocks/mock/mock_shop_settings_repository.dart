@@ -47,4 +47,19 @@ class MockShopSettingsRepository implements ShopSettingsRepository {
       '${clock.now().millisecondsSinceEpoch}.$fileExtension',
     );
   }
+
+  @override
+  Future<Result<String?>> generateDescription({
+    String? hint,
+    List<String> previous = const [],
+  }) async {
+    await Future<void>.delayed(_delay);
+    // Deterministic, varied fakes: cycle by the number already shown.
+    const variants = [
+      'Zamonaviy va sifatli mahsulotlar bir joyda. Ishonchli xizmat 🛋️',
+      'Uyingizga shinamlik olib keladigan tanlangan mebellar.',
+      'Premium sifat, qulay narx va tezkor yetkazib berish.',
+    ];
+    return Ok(variants[previous.length % variants.length]);
+  }
 }

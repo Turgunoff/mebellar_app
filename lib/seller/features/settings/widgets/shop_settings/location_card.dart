@@ -6,25 +6,16 @@ import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import 'settings_form_kit.dart';
 
-/// Brand colour swatch + map-picked shop address.
-///
-/// The free-text address field (and the older region/city/district picker)
-/// were replaced by a map trigger: tapping the address row opens the same
-/// Yandex map picker the onboarding flow uses, so the seller drops a pin and
-/// the geocoded address + lat/lng are written together.
-class BrandLocationCard extends StatelessWidget {
-  const BrandLocationCard({
+/// Map-picked shop address. Tapping the row opens the same Yandex map picker the
+/// onboarding flow uses, so the seller drops a pin and the geocoded address +
+/// lat/lng are written together. (The brand-colour row was removed.)
+class LocationCard extends StatelessWidget {
+  const LocationCard({
     super.key,
-    required this.brandHex,
-    required this.brandColor,
-    required this.onPickColor,
     required this.address,
     required this.onPickAddress,
   });
 
-  final String? brandHex;
-  final Color? brandColor;
-  final VoidCallback onPickColor;
   final String address;
   final VoidCallback onPickAddress;
 
@@ -35,39 +26,16 @@ class BrandLocationCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionTitle(tr('shop_settings.brand_color')),
+        SectionTitle(tr('shop_settings.location_section')),
         SettingsCard(
-          child: Column(
-            children: [
-              _ListRow(
-                onTap: onPickColor,
-                leading: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: brandColor ?? AppColors.sellerPrimary,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: c.outline, width: 1),
-                  ),
-                ),
-                title: tr('shop_settings.brand_color'),
-                subtitle: brandHex ?? '#5E35B1',
-                trailing: Icon(Iconsax.colorfilter, size: 18, color: c.greyMid),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Divider(height: 1, thickness: 1, color: c.divider),
-              ),
-              _ListRow(
-                onTap: onPickAddress,
-                leading: const IconTile(icon: Iconsax.location),
-                title: tr('shop_settings.address_title'),
-                subtitle: hasAddress
-                    ? address.trim()
-                    : tr('shop_settings.address_empty'),
-                trailing: Icon(Iconsax.map_1, size: 18, color: c.greyMid),
-              ),
-            ],
+          child: _ListRow(
+            onTap: onPickAddress,
+            leading: const IconTile(icon: Iconsax.location),
+            title: tr('shop_settings.address_title'),
+            subtitle: hasAddress
+                ? address.trim()
+                : tr('shop_settings.address_empty'),
+            trailing: Icon(Iconsax.map_1, size: 18, color: c.greyMid),
           ),
         ),
       ],

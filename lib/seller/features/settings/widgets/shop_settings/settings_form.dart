@@ -4,19 +4,20 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
 
+import '../../../../../core/di/service_locator.dart';
 import '../../../../../core/logging/talker.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import '../../../../../shared/models/shop_settings.dart';
 import '../../../../../shared/models/working_hours.dart';
+import '../../../../../shared/repositories/shop_settings_repository.dart';
 import '../../../../../shared/utils/image_upload.dart';
 import '../../../../../shared/widgets/image_crop_screen.dart';
 import '../../../../../customer/features/checkout/screens/map_address_picker_screen.dart';
 import '../../bloc/shop_settings_bloc.dart';
-import '../brand_color_picker.dart';
 import 'basic_info_card.dart';
-import 'brand_location_card.dart';
 import 'cover_header.dart';
+import 'location_card.dart';
 import 'visibility_card.dart';
 import 'working_hours_card.dart';
 
@@ -38,6 +39,13 @@ class _SettingsFormState extends State<SettingsForm> {
   late final TextEditingController _email;
   late final TextEditingController _telegram;
 
+  /// AI description state. [_aiSeedHint] is the seller's text the model adapts
+  /// (null → write from scratch); [_aiPrevious] are texts already shown so a
+  /// re-tap returns a different variant.
+  bool _aiBusy = false;
+  String? _aiSeedHint;
+  final List<String> _aiPrevious = [];
+
   @override
   void initState() {
     super.initState();
@@ -47,6 +55,8 @@ class _SettingsFormState extends State<SettingsForm> {
     _phone = TextEditingController(text: s.contactPhone ?? '');
     _email = TextEditingController(text: s.contactEmail ?? '');
     _telegram = TextEditingController(text: s.telegramUsername ?? '');
+    final seed = s.description.trim();
+    _aiSeedHint = seed.isEmpty ? null : seed;
   }
 
   @override
@@ -226,11 +236,56 @@ class _SettingsFormState extends State<SettingsForm> {
     }
   }
 
-  Future<void> _pickColor() async {
-    final s = widget.state.settings!;
-    final hex = await pickBrandColor(context, initial: s.brandColor);
-    if (hex == null || !mounted) return;
-    context.read<ShopSettingsBloc>().add(ShopSettingsBrandColorChanged(hex));
+  /// A manual edit to the description becomes the new AI seed and resets the
+  /// variety chain — the next AI tap polishes THIS text, fresh.
+  void _onDescriptionEdited() {
+    final text = _description.text.trim();
+    _aiSeedHint = text.isEmpty ? null : text;
+    _aiPrevious.clear();
+    _emitBasics();
+  }
+
+  /// Generates (or rewrites) the description via the backend AI. Each tap
+  /// returns a different variant (the already-shown texts ride along as
+  /// `previous`); when the seller typed something it's polished as the `hint`.
+  Future<void> _runAiDescribe() async {
+    if (_aiBusy) return;
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _aiBusy = true);
+    final result = await sl<ShopSettingsRepository>().generateDescription(
+      hint: _aiSeedHint,
+      previous: List.of(_aiPrevious),
+    );
+    if (!mounted) return;
+    setState(() => _aiBusy = false);
+
+    final text = result.valueOrNull;
+    if (text == null || text.isEmpty) {
+      // AI off / failed — leave the field untouched, just hint.
+      messenger.showSnackBar(
+        SnackBar(content: Text(tr('shop_settings.ai_unavailable'))),
+      );
+      return;
+    }
+    // Programmatic set does NOT fire onChanged, so the variety chain is kept;
+    // push the new text into the bloc so Save persists it.
+    _description.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+    _aiPrevious.add(text);
+    _emitBasics();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          tr(
+            _aiPrevious.length > 1
+                ? 'shop_settings.ai_another'
+                : 'shop_settings.ai_done',
+          ),
+        ),
+      ),
+    );
   }
 
   void _changeDayHours(DayOfWeek day, DayHours hours) {
@@ -273,15 +328,12 @@ class _SettingsFormState extends State<SettingsForm> {
           emailController: _email,
           telegramController: _telegram,
           onChanged: _emitBasics,
+          onDescriptionChanged: _onDescriptionEdited,
+          onAiDescribe: _runAiDescribe,
+          aiBusy: _aiBusy,
         ),
         const SizedBox(height: 20),
-        BrandLocationCard(
-          brandHex: s.brandColor,
-          brandColor: s.brandColorValue,
-          onPickColor: _pickColor,
-          address: s.address,
-          onPickAddress: _pickAddress,
-        ),
+        LocationCard(address: s.address, onPickAddress: _pickAddress),
         const SizedBox(height: 20),
         WorkingHoursCard(hours: s.workingHours, onDayChanged: _changeDayHours),
         const SizedBox(height: 20),
