@@ -4,6 +4,7 @@ import 'package:woody_app/core/i18n/i18n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -112,28 +113,6 @@ class _SheetBodyState extends State<_SheetBody> {
         SnackBar(content: Text(tr('tariff.pay_launch_failed'))),
       );
     }
-  }
-
-  Widget _payButton(PaymentProvider provider, String label, Color color) {
-    final busy = _launchingProvider != null;
-    return FilledButton(
-      onPressed: busy ? null : () => _payOnline(provider),
-      style: FilledButton.styleFrom(
-        backgroundColor: color,
-        foregroundColor: Colors.white,
-        minimumSize: const Size.fromHeight(50),
-      ),
-      child: _launchingProvider == provider
-          ? const SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Colors.white,
-              ),
-            )
-          : Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
-    );
   }
 
   Future<void> _copyCard(String number) async {
@@ -259,24 +238,21 @@ class _SheetBodyState extends State<_SheetBody> {
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                     const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _payButton(
-                            PaymentProvider.payme,
-                            'Payme',
-                            const Color(0xFF33B5C6),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _payButton(
-                            PaymentProvider.click,
-                            'Click',
-                            const Color(0xFF0098EB),
-                          ),
-                        ),
-                      ],
+                    _OnlinePayCard(
+                      logoAsset: 'assets/logo/payme.svg',
+                      brand: const Color(0xFF33B5C6),
+                      label: tr('seller.pay_via_payme'),
+                      busy: _launchingProvider == PaymentProvider.payme,
+                      disabled: _launchingProvider != null,
+                      onTap: () => _payOnline(PaymentProvider.payme),
+                    ),
+                    _OnlinePayCard(
+                      logoAsset: 'assets/logo/click.svg',
+                      brand: const Color(0xFF0098EB),
+                      label: tr('seller.pay_via_click'),
+                      busy: _launchingProvider == PaymentProvider.click,
+                      disabled: _launchingProvider != null,
+                      onTap: () => _payOnline(PaymentProvider.click),
                     ),
                     const SizedBox(height: 20),
                     Row(
@@ -379,6 +355,109 @@ class _SheetBodyState extends State<_SheetBody> {
           ),
         );
       },
+    );
+  }
+}
+
+/// Premium online-payment option — the provider's real brand logo on a white
+/// chip, its "pay via …" label, and a launch affordance (arrow → spinner while
+/// minting the checkout link). [disabled] dims the other card while one launch
+/// is in flight; [busy] marks the tapped one.
+class _OnlinePayCard extends StatelessWidget {
+  const _OnlinePayCard({
+    required this.logoAsset,
+    required this.brand,
+    required this.label,
+    required this.busy,
+    required this.disabled,
+    required this.onTap,
+  });
+
+  final String logoAsset;
+  final Color brand;
+  final String label;
+  final bool busy;
+  final bool disabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Opacity(
+        opacity: disabled && !busy ? 0.45 : 1,
+        child: Material(
+          color: brand.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(16),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: disabled ? null : onTap,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: brand.withValues(alpha: 0.45),
+                  width: 1.4,
+                ),
+              ),
+              child: Row(
+                children: [
+                  // White chip so the colour brand logo reads on the tinted card.
+                  Container(
+                    width: 84,
+                    height: 46,
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 9,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(11),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.06),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: SvgPicture.asset(logoAsset, fit: BoxFit.contain),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: scheme.onSurface,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: busy
+                        ? CircularProgressIndicator(strokeWidth: 2.4, color: brand)
+                        : Icon(
+                            // Reuse an already-bundled glyph (chevron_right_rounded
+                            // is used elsewhere) so this Dart-only change stays
+                            // Shorebird-patchable — a NEW Material icon would
+                            // re-tree-shake MaterialIcons.otf (an asset change).
+                            Icons.chevron_right_rounded,
+                            size: 22,
+                            color: brand,
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
