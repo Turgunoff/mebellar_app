@@ -31,3 +31,4 @@ Yozuvlar avtomatik qo'shiladi:
 | 2026-06-25 | 1.0.28+28 | f36231d54217 | android | — |
 | 2026-06-25 | 1.0.29+29 | 92dd2499793b | android | — |
 | 2026-06-25 | 1.0.29+29 | 1f296588821b | ios | — |
+| 2026-06-26 | 1.0.30+30 | cbae8d34c732 | android | 1.0.30: seller banner flicker fix + authoritative push badge count |
