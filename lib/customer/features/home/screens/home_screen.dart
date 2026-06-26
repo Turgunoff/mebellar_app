@@ -148,10 +148,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                   // approved seller — they already run a shop,
                                   // so the "Sotuvchi bo'ling" CTA is noise.
                                   // GlassBanner collapses to nothing if the
-                                  // list ends up empty.
+                                  // list ends up empty. Use the cache-aware
+                                  // flag so an approved seller never sees the
+                                  // promo flash during the `/me` round-trip
+                                  // right after a seller→customer mode switch.
                                   final isApprovedSeller = context
                                       .select<ProfileCubit, bool>(
-                                        (c) => c.state.isSellerApproved,
+                                        (c) => c.state.isApprovedSellerKnown,
                                       );
                                   return GlassBanner(
                                     banners: [

@@ -23,6 +23,7 @@ class ProfileState extends Equatable {
     this.sellerVerificationStatus = VerificationStatus.none,
     this.sellerRejectionReason,
     this.rejectedBannerDismissed = false,
+    this.cachedIsApprovedSeller = false,
     this.isLoading = false,
   });
 
@@ -52,6 +53,13 @@ class ProfileState extends Equatable {
   /// device; the moderation flow re-arms it on every fresh rejection.
   final bool rejectedBannerDismissed;
 
+  /// Last-known "is an approved seller" flag, seeded synchronously from the
+  /// Hive cache ([AppModeCubit.sellerApprovedCacheKey]) at cubit construction
+  /// and kept in sync with every live `/me` result. It exists purely to answer
+  /// [isApprovedSellerKnown] during the loading window, before `/me` returns —
+  /// the live [sellerVerificationStatus] is the source of truth once resolved.
+  final bool cachedIsApprovedSeller;
+
   final bool isLoading;
 
   bool get isSignedIn => id.isNotEmpty;
@@ -67,6 +75,14 @@ class ProfileState extends Equatable {
 
   bool get isSellerApproved => sellerVerificationStatus.isApproved;
 
+  /// Whether the user is known to be an approved seller — from the live `/me`
+  /// result, or (while that request is still in flight) from the cached flag.
+  /// The customer surface reads this to hide the "become a seller" CTA on the
+  /// first frame after a mode switch, so an approved seller never sees it flash
+  /// during the ~1s `/me` round-trip. Once loaded, only the live status counts.
+  bool get isApprovedSellerKnown =>
+      isSellerApproved || (isLoading && cachedIsApprovedSeller);
+
   ProfileState copyWith({
     String? id,
     String? name,
@@ -77,6 +93,7 @@ class ProfileState extends Equatable {
     VerificationStatus? sellerVerificationStatus,
     String? sellerRejectionReason,
     bool? rejectedBannerDismissed,
+    bool? cachedIsApprovedSeller,
     bool? isLoading,
   }) {
     return ProfileState(
@@ -92,6 +109,8 @@ class ProfileState extends Equatable {
           sellerRejectionReason ?? this.sellerRejectionReason,
       rejectedBannerDismissed:
           rejectedBannerDismissed ?? this.rejectedBannerDismissed,
+      cachedIsApprovedSeller:
+          cachedIsApprovedSeller ?? this.cachedIsApprovedSeller,
       isLoading: isLoading ?? this.isLoading,
     );
   }
@@ -107,6 +126,7 @@ class ProfileState extends Equatable {
     sellerVerificationStatus,
     sellerRejectionReason,
     rejectedBannerDismissed,
+    cachedIsApprovedSeller,
     isLoading,
   ];
 }
@@ -118,7 +138,18 @@ class ProfileState extends Equatable {
 /// name, avatar and seller status. A `/me` failure is non-fatal — the seeded
 /// identity stays on screen rather than blanking the card.
 class ProfileCubit extends Cubit<ProfileState> {
-  ProfileCubit(this._auth) : super(const ProfileState(isLoading: true));
+  /// [cachedApprovedSeller] is read synchronously from Hive at construction
+  /// (see scope_module) so the very first frame — before [fetch] resolves —
+  /// already knows whether this device's last session was an approved seller.
+  /// That's what stops the "become a seller" CTA flashing on the customer
+  /// home/profile right after a seller→customer mode switch.
+  ProfileCubit(this._auth, {bool cachedApprovedSeller = false})
+    : super(
+        ProfileState(
+          isLoading: true,
+          cachedIsApprovedSeller: cachedApprovedSeller,
+        ),
+      );
 
   final AuthRepository _auth;
 
@@ -153,7 +184,15 @@ class ProfileCubit extends Cubit<ProfileState> {
       emit(state.copyWith(isLoading: true));
     } else {
       emit(
-        ProfileState(id: id, phone: _auth.currentUserPhone, isLoading: true),
+        ProfileState(
+          id: id,
+          phone: _auth.currentUserPhone,
+          isLoading: true,
+          // Carry the cached approval hint into the first loading frame — a
+          // fresh ProfileState (new id, e.g. the post-mode-switch rebuild)
+          // would otherwise reset it to false and re-introduce the flash.
+          cachedIsApprovedSeller: state.cachedIsApprovedSeller,
+        ),
       );
     }
     try {
@@ -224,6 +263,9 @@ class ProfileCubit extends Cubit<ProfileState> {
       sellerVerificationStatus: status,
       sellerRejectionReason: seller?.rejectionReason,
       rejectedBannerDismissed: dismissed,
+      // Keep the cached hint mirroring live truth so a later same-user refresh
+      // (which re-enters the loading window) doesn't regress to a stale value.
+      cachedIsApprovedSeller: status.isApproved,
     );
   }
 }

@@ -200,4 +200,76 @@ void main() {
     expect(approved.isSellerApproved, isTrue);
     expect(approved.isSellerRejected, isFalse);
   });
+
+  group('isApprovedSellerKnown', () {
+    test('is true while loading when the cached flag says approved', () {
+      // The flicker fix: before /me resolves, the cached hint hides the CTA.
+      const s = ProfileState(isLoading: true, cachedIsApprovedSeller: true);
+      expect(s.isApprovedSellerKnown, isTrue);
+      expect(s.isSellerApproved, isFalse); // live status not resolved yet
+    });
+
+    test('is false while loading when the cache says not-approved', () {
+      const s = ProfileState(isLoading: true, cachedIsApprovedSeller: false);
+      expect(s.isApprovedSellerKnown, isFalse);
+    });
+
+    test('once loaded, the live status wins over a stale cached true', () {
+      // Approval revoked since last session: cache still true, but the resolved
+      // /me is not approved → the CTA must show again.
+      const s = ProfileState(
+        isLoading: false,
+        cachedIsApprovedSeller: true,
+        sellerVerificationStatus: VerificationStatus.rejected,
+      );
+      expect(s.isApprovedSellerKnown, isFalse);
+    });
+
+    test('is true when the live status is approved regardless of cache', () {
+      const s = ProfileState(
+        isLoading: false,
+        cachedIsApprovedSeller: false,
+        sellerVerificationStatus: VerificationStatus.approved,
+      );
+      expect(s.isApprovedSellerKnown, isTrue);
+    });
+  });
+
+  blocTest<ProfileCubit, ProfileState>(
+    'cached approval seeds the loading frames so the CTA never flashes',
+    build: () {
+      when(() => auth.currentUserId).thenReturn('u1');
+      when(() => auth.currentUserPhone).thenReturn('+998901112233');
+      when(() => auth.fetchMe()).thenAnswer(
+        (_) async => const Me(
+          id: 'u1',
+          phone: '+998901112233',
+          sellerProfile: SellerProfile(
+            verificationStatus: VerificationStatus.approved,
+          ),
+        ),
+      );
+      return ProfileCubit(auth, cachedApprovedSeller: true);
+    },
+    act: (cubit) => cubit.fetch(),
+    expect: () => [
+      // First loading emit (fresh id) must carry the cached hint forward, so
+      // isApprovedSellerKnown stays true across the whole /me round-trip.
+      isA<ProfileState>()
+          .having((s) => s.isLoading, 'isLoading', true)
+          .having((s) => s.cachedIsApprovedSeller, 'cached', true)
+          .having((s) => s.isApprovedSellerKnown, 'known', true),
+      isA<ProfileState>()
+          .having((s) => s.isLoading, 'isLoading', false)
+          .having((s) => s.isSellerApproved, 'approved', true)
+          .having((s) => s.isApprovedSellerKnown, 'known', true),
+    ],
+  );
+
+  test('the cubit seeds isApprovedSellerKnown from the constructor flag', () {
+    final cubit = ProfileCubit(auth, cachedApprovedSeller: true);
+    addTearDown(cubit.close);
+    expect(cubit.state.isLoading, isTrue);
+    expect(cubit.state.isApprovedSellerKnown, isTrue);
+  });
 }

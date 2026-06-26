@@ -184,9 +184,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 24),
             const OrdersBlock(),
             const SizedBox(height: 20),
-            if (profileState.isLoading)
-              const SellerBannerShimmer()
-            else if (profileState.isSellerApproved)
+            // Approved-known wins over the loading shimmer: a cached approved
+            // seller gets the green panel card on the first frame instead of a
+            // shimmer→banner transition, and never the "become a seller" CTA.
+            if (profileState.isApprovedSellerKnown)
               SellerApprovedBanner(
                 // Live seller-panel unread, from the shared root cubit — kept
                 // out of the customer bell, surfaced here instead.
@@ -205,6 +206,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   // mounts SellerApp — no further navigation needed here.
                 },
               )
+            else if (profileState.isLoading)
+              const SellerBannerShimmer()
             else if (profileState.isSellerRejected &&
                 !profileState.rejectedBannerDismissed)
               SellerRejectedBanner(

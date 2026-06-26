@@ -2,6 +2,7 @@ import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../analytics/analytics_service.dart';
+import '../auth/app_mode_cubit.dart';
 import '../auth/auth_repository.dart';
 import '../realtime/woody_realtime_service.dart';
 import '../services/facebook_analytics_service.dart';
@@ -93,7 +94,19 @@ void registerCustomerScope(GetIt sl) {
     dispose: (c) => c.close(),
   );
   sl.registerLazySingleton<ProfileCubit>(
-    () => ProfileCubit(sl<AuthRepository>()),
+    () {
+      // Seed the cubit with the last-known seller-approval flag so the very
+      // first frame after a seller→customer mode switch already knows to hide
+      // the "become a seller" CTA (no flash until `/me` returns). Shares the
+      // same Hive key the boot guard reads; logout deletes it (_wipeLocalUserData).
+      final settings = sl<Box>(instanceName: HiveBoxes.settings);
+      final cachedApproved =
+          (settings.get(AppModeCubit.sellerApprovedCacheKey) as bool?) ?? false;
+      return ProfileCubit(
+        sl<AuthRepository>(),
+        cachedApprovedSeller: cachedApproved,
+      );
+    },
     dispose: (c) => c.close(),
   );
   // NotificationsCubit is root-scoped (see registerCatalogModule) so seller
