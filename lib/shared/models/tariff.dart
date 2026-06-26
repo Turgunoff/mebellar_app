@@ -7,38 +7,40 @@ enum TariffPlan {
   free(
     'free',
     maxActiveProducts: 3,
-    maxImagesPerProduct: 2,
+    maxImagesPerProduct: -1,
     commissionRate: 10.0,
     monthlyPriceUzs: 0,
     yearlyPriceUzs: 0,
   ),
   // The 30-day first-approval bonus. Granted only by the backend (never
   // purchasable — the plan catalog endpoint filters it out), so it has no
-  // price and never renders as a selectable card.
+  // price and never renders as a selectable card. Pro-tier perks → sets on.
   trial(
     'trial',
-    maxActiveProducts: 200,
-    maxImagesPerProduct: 10,
+    maxActiveProducts: 100,
+    maxImagesPerProduct: -1,
     commissionRate: 0.0,
     monthlyPriceUzs: 0,
     yearlyPriceUzs: 0,
+    allowsSets: true,
   ),
   basic(
     'basic',
-    maxActiveProducts: 30,
-    maxImagesPerProduct: 5,
+    maxActiveProducts: 15,
+    maxImagesPerProduct: -1,
     commissionRate: 7.0,
     monthlyPriceUzs: 99_000,
     yearlyPriceUzs: 990_000,
   ),
   pro(
     'pro',
-    maxActiveProducts: 200,
-    maxImagesPerProduct: 10,
+    maxActiveProducts: 100,
+    maxImagesPerProduct: -1,
     commissionRate: 4.0,
     monthlyPriceUzs: 299_000,
     yearlyPriceUzs: 2_990_000,
     recommended: true,
+    allowsSets: true,
   ),
   enterprise(
     'enterprise',
@@ -47,6 +49,7 @@ enum TariffPlan {
     commissionRate: 2.0,
     monthlyPriceUzs: 999_000,
     yearlyPriceUzs: 9_990_000,
+    allowsSets: true,
   );
 
   const TariffPlan(
@@ -57,6 +60,7 @@ enum TariffPlan {
     required this.monthlyPriceUzs,
     required this.yearlyPriceUzs,
     this.recommended = false,
+    this.allowsSets = false,
   });
 
   final String code;
@@ -64,7 +68,7 @@ enum TariffPlan {
   /// `-1` means unlimited. UI renders that as the infinity sign.
   final int maxActiveProducts;
 
-  /// `-1` means unlimited.
+  /// `-1` means unlimited. Image limits were removed — all plans are -1.
   final int maxImagesPerProduct;
 
   /// Percentage taken from each completed sale (e.g. `10.0` for 10%).
@@ -73,6 +77,10 @@ enum TariffPlan {
   final int monthlyPriceUzs;
   final int yearlyPriceUzs;
   final bool recommended;
+
+  /// Whether this tier may create furniture sets (Sets). Gates the create-set
+  /// entry point in the seller UI.
+  final bool allowsSets;
 
   static TariffPlan fromCode(String? code) {
     return values.firstWhere(
@@ -125,9 +133,14 @@ class SubscriptionPlan extends Equatable {
     required this.maxProducts,
     required this.maxImagesPerProduct,
     required this.commissionRate,
+    this.ai3dGenerationLimit,
+    this.aiAuthoringLimit,
+    this.aiDesignerBoostFactor = 1,
+    this.allowsSets = false,
     this.isRecommended = false,
     this.featuresUz = const [],
     this.featuresRu = const [],
+    this.featuresEn = const [],
   });
 
   final String id;
@@ -138,11 +151,25 @@ class SubscriptionPlan extends Equatable {
   /// `-1` means unlimited.
   final int maxProducts;
 
-  /// `-1` means unlimited.
+  /// `-1` means unlimited. Image limits were removed — every plan seeds -1;
+  /// retained only for backward compatibility.
   final int maxImagesPerProduct;
 
   /// Percentage (e.g. `10.0` for 10%).
   final num commissionRate;
+
+  /// Monthly free AI 3D generations (`-1` = unlimited, `null` = unset/0).
+  final int? ai3dGenerationLimit;
+
+  /// Monthly AI product-authoring runs (`-1` = unlimited, `null` = unset/0).
+  final int? aiAuthoringLimit;
+
+  /// AI-designer search-priority multiplier (1x / 2x / 5x).
+  final int aiDesignerBoostFactor;
+
+  /// Whether this plan can create furniture sets (Sets). Gates the create-set
+  /// entry point in the seller UI.
+  final bool allowsSets;
 
   /// Drives the "TAVSIYA" ribbon on the tariff cards. Server-controlled so
   /// the merchandising decision (which plan to push) can change without an
@@ -153,6 +180,7 @@ class SubscriptionPlan extends Equatable {
   /// The UI calls [featuresForLocale] which picks the right list.
   final List<String> featuresUz;
   final List<String> featuresRu;
+  final List<String> featuresEn;
 
   factory SubscriptionPlan.fromJson(Map<String, dynamic> json) {
     return SubscriptionPlan(
@@ -164,9 +192,15 @@ class SubscriptionPlan extends Equatable {
       maxImagesPerProduct:
           (json['max_images_per_product'] as num?)?.toInt() ?? 0,
       commissionRate: (json['commission_rate'] as num?) ?? 0,
+      ai3dGenerationLimit: (json['ai_3d_generation_limit'] as num?)?.toInt(),
+      aiAuthoringLimit: (json['ai_authoring_limit'] as num?)?.toInt(),
+      aiDesignerBoostFactor:
+          (json['ai_designer_boost_factor'] as num?)?.toInt() ?? 1,
+      allowsSets: json['allows_sets'] as bool? ?? false,
       isRecommended: json['is_recommended'] as bool? ?? false,
       featuresUz: _stringList(json['features_uz']),
       featuresRu: _stringList(json['features_ru']),
+      featuresEn: _stringList(json['features_en']),
     );
   }
 
@@ -202,14 +236,15 @@ class SubscriptionPlan extends Equatable {
   bool canAddMoreImages(int currentImageCount) =>
       hasUnlimitedImages || currentImageCount < maxImagesPerProduct;
 
-  /// Returns the feature bullets for [languageCode] (`'uz'` / `'ru'` /
-  /// `'en'`). English falls back to the Uzbek list because the DB doesn't
-  /// store English yet — when we add `features_en`, wire it here.
+  /// Returns the feature bullets for [languageCode] (`'uz'` / `'ru'` / `'en'`),
+  /// falling back to the Uzbek list when the requested locale's list is empty.
   List<String> featuresForLocale(String languageCode) {
-    return switch (languageCode) {
+    final list = switch (languageCode) {
       'ru' => featuresRu,
+      'en' => featuresEn,
       _ => featuresUz,
     };
+    return list.isNotEmpty ? list : featuresUz;
   }
 
   /// Bridges to the enum so callers that already speak [TariffPlan] (mock
@@ -224,9 +259,14 @@ class SubscriptionPlan extends Equatable {
     maxProducts,
     maxImagesPerProduct,
     commissionRate,
+    ai3dGenerationLimit,
+    aiAuthoringLimit,
+    aiDesignerBoostFactor,
+    allowsSets,
     isRecommended,
     featuresUz,
     featuresRu,
+    featuresEn,
   ];
 }
 

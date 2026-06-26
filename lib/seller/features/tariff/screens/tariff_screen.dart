@@ -912,19 +912,12 @@ class _FeatureList extends StatelessWidget {
   Widget build(BuildContext context) {
     final lang = AppTranslations.instance.locale.languageCode;
 
-    // Product cap + commission are derived from the plan; the image cap and AI
-    // 3D model are now GLOBAL (same on every plan), so they render as fixed
-    // perks rather than per-plan limits. `features_*` carries only the extra
-    // perks the admin authors per plan — so nothing is duplicated.
-    final lines = <String>[
-      plan.hasUnlimitedProducts
-          ? tr('tariff.feature_unlimited_products')
-          : tr('tariff.feature_products', args: ['${plan.maxProducts}']),
-      tr('tariff.feature_images_all'),
-      tr('tariff.feature_ar_3d'),
-      tr('tariff.feature_commission', args: [_fmtPercent(plan.commissionRate)]),
-      ...plan.featuresForLocale(lang),
-    ];
+    // Fully backend-driven: every bullet (products, commission, sets, AI 3D,
+    // AI authoring, search boost) is authored per plan in
+    // `subscription_plans.features_{uz,ru,en}` and rendered verbatim — no
+    // hardcoded rows, so feature copy changes without an app release.
+    final lines = plan.featuresForLocale(lang);
+    if (lines.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -932,10 +925,6 @@ class _FeatureList extends StatelessWidget {
     );
   }
 }
-
-/// Trims a whole-number percent to an integer string ("10" not "10.0").
-String _fmtPercent(num value) =>
-    value % 1 == 0 ? value.toInt().toString() : value.toString();
 
 class _FeatureRow extends StatelessWidget {
   const _FeatureRow({required this.text});
@@ -952,7 +941,7 @@ class _FeatureRow extends StatelessWidget {
           const Padding(
             padding: EdgeInsets.only(top: 1),
             child: Icon(
-              Iconsax.tick_circle,
+              Icons.check_circle,
               size: 16,
               color: AppColors.sellerPrimary,
             ),

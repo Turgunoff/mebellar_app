@@ -2,12 +2,14 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../../config/remote_config.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../core/network/api_error.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/models/product_set.dart';
+import '../../../../shared/repositories/tariff_repository.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/error_state.dart';
 import '../data/seller_set_repository.dart';
@@ -32,10 +34,23 @@ class _SellerSetsScreenState extends State<SellerSetsScreen> {
   bool _loading = true;
   String? _error;
 
+  /// Whether the seller's current plan may create sets. Defaults to true so the
+  /// create button isn't hidden before the plan resolves (or when tariffs off).
+  bool _allowsSets = true;
+
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  /// Sets are unrestricted when tariffs are disabled; otherwise the current
+  /// plan's `allowsSets` decides. Any read error → allow (never hard-block on a
+  /// transient failure).
+  Future<bool> _resolveAllowsSets() async {
+    if (!RemoteConfig.instance.tariffEnabled) return true;
+    final snap = await sl<TariffRepository>().currentSnapshot();
+    return snap.valueOrNull?.plan.allowsSets ?? true;
   }
 
   Future<void> _load() async {
@@ -45,9 +60,11 @@ class _SellerSetsScreenState extends State<SellerSetsScreen> {
     });
     try {
       final sets = await _repo.listMySets();
+      final allowsSets = await _resolveAllowsSets();
       if (!mounted) return;
       setState(() {
         _sets = sets;
+        _allowsSets = allowsSets;
         _loading = false;
       });
     } on ApiError catch (e) {
@@ -187,22 +204,26 @@ class _SellerSetsScreenState extends State<SellerSetsScreen> {
         ),
       ),
       body: _buildBody(c),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _openCreate,
-        backgroundColor: AppColors.sellerPrimary,
-        foregroundColor: Colors.white,
-        elevation: 4,
-        highlightElevation: 6,
-        icon: const Icon(Iconsax.add, size: 20),
-        label: Text(
-          tr('seller.sets_add_button'),
-          style: const TextStyle(
-            fontFamily: AppFonts.seller,
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
+      // Create-set button is hidden when the current plan doesn't allow sets
+      // (Free/Basic). Upgrading to Pro/Enterprise unlocks it.
+      floatingActionButton: _allowsSets
+          ? FloatingActionButton.extended(
+              onPressed: _openCreate,
+              backgroundColor: AppColors.sellerPrimary,
+              foregroundColor: Colors.white,
+              elevation: 4,
+              highlightElevation: 6,
+              icon: const Icon(Iconsax.add, size: 20),
+              label: Text(
+                tr('seller.sets_add_button'),
+                style: const TextStyle(
+                  fontFamily: AppFonts.seller,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            )
+          : null,
     );
   }
 
