@@ -75,6 +75,7 @@ class _SellerArSectionState extends State<SellerArSection> {
   Future<void> _loadParts() async {
     try {
       final parts = await sl<ArScanRepository>().fetchArParts(widget.product.id);
+      talker.debug('🔬[freeze-probe] AR.parts loaded n=${parts.length}');
       if (mounted) {
         setState(() {
           _parts = parts;
@@ -368,10 +369,14 @@ class _SellerArSectionState extends State<SellerArSection> {
 
   @override
   Widget build(BuildContext context) {
+    talker.debug(
+      '🔬[freeze-probe] AR.build START published=$_published loaded=$_partsLoaded',
+    );
     if (!_published) return const ArNotApprovedCard();
 
     final c = SellerColors.of(context);
     final rows = _rows();
+    talker.debug('🔬[freeze-probe] AR.rows=${rows.length} — returning tree');
 
     return Container(
       decoration: BoxDecoration(
