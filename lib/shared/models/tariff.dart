@@ -12,14 +12,29 @@ enum TariffPlan {
     monthlyPriceUzs: 0,
     yearlyPriceUzs: 0,
   ),
-  // The 30-day first-approval bonus. Granted only by the backend (never
-  // purchasable — the plan catalog endpoint filters it out), so it has no
-  // price and never renders as a selectable card. Pro-tier perks → sets on.
+  // Legacy 30-day first-approval bonus (pre-`bonus_trial`). Generous: 200
+  // products / 0% commission. Kept so grandfathered sellers still resolve;
+  // new sellers now get [bonusTrial] instead. Backend-only, never purchasable.
   trial(
     'trial',
     maxActiveProducts: 100,
     maxImagesPerProduct: -1,
     commissionRate: 0.0,
+    monthlyPriceUzs: 0,
+    yearlyPriceUzs: 0,
+    allowsSets: true,
+  ),
+  // The financially-bounded 30-day first-approval bonus that replaces [trial]
+  // for new sellers. Granted only by the backend (never purchasable — the plan
+  // catalog endpoint filters it out), so it has no price and never renders as a
+  // selectable card. Strict caps: 30 products, 4% commission, sets on, and —
+  // the whole point — only 3 AI 3D models so a fresh seller can't run up
+  // unbounded 3D-generation API costs.
+  bonusTrial(
+    'bonus_trial',
+    maxActiveProducts: 30,
+    maxImagesPerProduct: -1,
+    commissionRate: 4.0,
     monthlyPriceUzs: 0,
     yearlyPriceUzs: 0,
     allowsSets: true,
@@ -93,11 +108,19 @@ enum TariffPlan {
   bool get hasUnlimitedImages => maxImagesPerProduct < 0;
   bool get isFree => this == TariffPlan.free;
   bool get isTrial => this == TariffPlan.trial;
+  bool get isBonusTrial => this == TariffPlan.bonusTrial;
+
+  /// Either onboarding bonus — the legacy [trial] or the new strict
+  /// [bonusTrial]. Use this wherever the UI treats "a free bonus window" the
+  /// same regardless of which cohort the seller is in.
+  bool get isAnyBonus =>
+      this == TariffPlan.trial || this == TariffPlan.bonusTrial;
 
   /// Display name for the tier ("Free" / "Bonus" / "Basic" / …).
   String get label => switch (this) {
     TariffPlan.free => 'Free',
     TariffPlan.trial => 'Bonus',
+    TariffPlan.bonusTrial => 'Bonus',
     TariffPlan.basic => 'Basic',
     TariffPlan.pro => 'Pro',
     TariffPlan.enterprise => 'Enterprise',
@@ -293,6 +316,8 @@ class TariffSnapshot extends Equatable {
     required this.activeProductsCount,
     this.startedAt,
     this.expiresAt,
+    this.ai3dUsed = 0,
+    this.ai3dLimit,
   });
 
   final TariffPlan plan;
@@ -307,8 +332,33 @@ class TariffSnapshot extends Equatable {
   /// expires.
   final DateTime? expiresAt;
 
+  /// Total AI 3D-model generations the shop has spent so far (the backend's
+  /// real cost metric). Drives the bonus-trial "{used} / {limit}" urgency bar.
+  final int ai3dUsed;
+
+  /// The active plan's monthly AI 3D-model quota (`-1` = unlimited, `null` =
+  /// unset/0). For [TariffPlan.bonusTrial] this is the hard cap of 3.
+  final int? ai3dLimit;
+
   bool get reachedLimit =>
       !plan.isUnlimited && activeProductsCount >= plan.maxActiveProducts;
+
+  /// Whole AI 3D models still available (clamped ≥ 0). Null when the quota is
+  /// unlimited or unset — the urgency bar only renders for a finite cap.
+  int? get ai3dRemaining {
+    final limit = ai3dLimit;
+    if (limit == null || limit < 0) return null;
+    final left = limit - ai3dUsed;
+    return left < 0 ? 0 : left;
+  }
+
+  /// 0..1 fraction of the AI-3D quota consumed (for the progress bar). Null
+  /// when the quota isn't a finite positive number.
+  double? get ai3dUsedFraction {
+    final limit = ai3dLimit;
+    if (limit == null || limit <= 0) return null;
+    return (ai3dUsed / limit).clamp(0.0, 1.0);
+  }
 
   bool get canAddMoreProducts => plan.canAddMoreProducts(activeProductsCount);
 
@@ -342,7 +392,14 @@ class TariffSnapshot extends Equatable {
   }
 
   @override
-  List<Object?> get props => [plan, activeProductsCount, startedAt, expiresAt];
+  List<Object?> get props => [
+    plan,
+    activeProductsCount,
+    startedAt,
+    expiresAt,
+    ai3dUsed,
+    ai3dLimit,
+  ];
 }
 
 class TariffLimitException implements Exception {

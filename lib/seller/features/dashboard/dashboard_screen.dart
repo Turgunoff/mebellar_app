@@ -19,6 +19,7 @@ import '../tariff/screens/tariff_screen.dart';
 import 'bloc/seller_dashboard_cubit.dart';
 import 'screens/achievements_screen.dart';
 import 'widgets/achievements_strip.dart';
+import 'widgets/bonus_urgency_banner.dart';
 import 'widgets/dashboard_kit.dart';
 import 'widgets/hero_sales_card.dart';
 import 'widgets/kpi_card.dart';
@@ -158,6 +159,18 @@ class _DashboardContent extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
+
+        // ---- Bonus-trial urgency banner (FOMO) — only on bonus_trial ------
+        if (data.plan.isBonusTrial) ...[
+          _h(
+            BonusUrgencyBanner(
+              daysLeft: data.tariffDaysLeft,
+              ai3dUsed: data.ai3dUsed,
+              ai3dLimit: data.ai3dLimit,
+            ),
+          ),
+          const SizedBox(height: 20),
+        ],
 
         // ---- KPI grid (real numbers + week-over-week deltas) --------------
         _h(_KpiGrid(data: data)),

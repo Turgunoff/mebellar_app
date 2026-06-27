@@ -4,6 +4,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:woody_app/seller/features/dashboard/data/dashboard_models.dart';
 import 'package:woody_app/seller/features/dashboard/screens/achievements_screen.dart';
 import 'package:woody_app/seller/features/dashboard/widgets/achievements_strip.dart';
+import 'package:woody_app/seller/features/dashboard/widgets/bonus_urgency_banner.dart';
 import 'package:woody_app/seller/features/dashboard/widgets/dashboard_kit.dart';
 import 'package:woody_app/seller/features/dashboard/widgets/hero_sales_card.dart';
 import 'package:woody_app/seller/features/dashboard/widgets/kpi_card.dart';
@@ -124,6 +125,40 @@ void main() {
     for (final d in _labels) {
       expect(find.text(d), findsOneWidget);
     }
+  });
+
+  testWidgets('BonusUrgencyBanner shows the countdown + AI-3D quota', (
+    tester,
+  ) async {
+    await pump(
+      tester,
+      const Padding(
+        padding: EdgeInsets.all(20),
+        child: BonusUrgencyBanner(daysLeft: 29, ai3dUsed: 1, ai3dLimit: 3),
+      ),
+    );
+    expect(tester.takeException(), isNull);
+    // FOMO countdown (uz default bundle) + the "{used}/{limit}" quota meter.
+    expect(find.text('🎁 Bonus tarifingiz tugashiga 29 kun qoldi'), findsOneWidget);
+    expect(find.text('1/3 ishlatildi'), findsOneWidget);
+    expect(find.text('Imkoniyatlarni ko\'rish'), findsOneWidget);
+  });
+
+  testWidgets('BonusUrgencyBanner flips copy at the boundaries', (
+    tester,
+  ) async {
+    // Expires today → the urgent "ends today" headline.
+    await pump(
+      tester,
+      const Padding(
+        padding: EdgeInsets.all(20),
+        child: BonusUrgencyBanner(daysLeft: 0, ai3dUsed: 3, ai3dLimit: 3),
+      ),
+    );
+    expect(tester.takeException(), isNull);
+    expect(find.text('🎁 Bonus tarifingiz bugun tugaydi!'), findsOneWidget);
+    // Quota fully spent → "all used" instead of "3/3".
+    expect(find.text('Hammasi ishlatildi'), findsOneWidget);
   });
 
   testWidgets('KPI card shows a delta trend chip when given one', (

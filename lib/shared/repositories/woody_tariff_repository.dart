@@ -47,6 +47,8 @@ class WoodyTariffRepository implements TariffRepository {
           (body['active_products_count'] as num?)?.toInt() ?? 0,
       startedAt: startedRaw == null ? null : DateTime.tryParse(startedRaw),
       expiresAt: expiresRaw == null ? null : DateTime.tryParse(expiresRaw),
+      ai3dUsed: (body['ai_3d_used'] as num?)?.toInt() ?? 0,
+      ai3dLimit: (body['ai_3d_limit'] as num?)?.toInt(),
     );
   });
 

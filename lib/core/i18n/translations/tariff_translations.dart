@@ -78,6 +78,15 @@ const Map<String, dynamic> tariffUz = {
       'Tarif tanlamasangiz, faqat eng avval qo\'shilgan {} ta mahsulot aktiv qoladi, qolganlari arxivlanadi.',
   'expiry_warning_subtitle_paid':
       'To\'lovni yangilamasangiz, do\'kon Free tarifga o\'tadi va limitdan ortiq mahsulotlar arxivlanadi.',
+  // Current-plan ("Joriy tarif") card — the prominent bonus-window panel.
+  'current_plan_title': 'Joriy tarif',
+  'current_expiry': '{} gacha · {} kun qoldi',
+  'upgrades_heading': 'Tarifni yangilang',
+  'current_limit_products': 'Aktiv mahsulotlar: {} tagacha',
+  'current_limit_products_unlimited': 'Aktiv mahsulotlar: cheksiz',
+  'current_limit_commission': 'Komissiya: {}%',
+  'current_limit_sets': 'To\'plamlar (Sets): Ruxsat berilgan',
+  'current_limit_ai3d': 'AI 3D model: {}/{} ishlatildi',
   'archived_banner_title': 'Mahsulotlar tarif tufayli arxivlandi',
   'archived_banner_subtitle':
       'Tarif limiti sababli ba\'zi mahsulotlaringiz arxivga o\'tkazildi. Tarifni yangilab, ularni qayta tiklashingiz mumkin.',
@@ -91,6 +100,7 @@ const Map<String, dynamic> tariffUz = {
   'plan': {
     'free_label': 'Free tarif',
     'trial_label': 'Bonus tarif',
+    'bonus_trial_label': 'Bonus tarif',
     'basic_label': 'Basic tarif',
     'pro_label': 'Pro tarif',
     'enterprise_label': 'Enterprise tarif',
@@ -174,6 +184,15 @@ const Map<String, dynamic> tariffRu = {
       'Если не выбрать тариф, активными останутся только {} первых товаров, остальные уйдут в архив.',
   'expiry_warning_subtitle_paid':
       'Без продления магазин перейдёт на Free, а товары сверх лимита будут архивированы.',
+  // Current-plan ("Текущий тариф") card — the prominent bonus-window panel.
+  'current_plan_title': 'Текущий тариф',
+  'current_expiry': 'до {} · осталось {} дн.',
+  'upgrades_heading': 'Обновите тариф',
+  'current_limit_products': 'Активные товары: до {}',
+  'current_limit_products_unlimited': 'Активные товары: безлимит',
+  'current_limit_commission': 'Комиссия: {}%',
+  'current_limit_sets': 'Создание наборов (Sets): Разрешено',
+  'current_limit_ai3d': 'AI 3D-модели: использовано {}/{}',
   'archived_banner_title': 'Товары архивированы из-за тарифа',
   'archived_banner_subtitle':
       'Из-за лимита тарифа часть товаров перенесена в архив. Обновите тариф, чтобы восстановить их.',
@@ -187,6 +206,7 @@ const Map<String, dynamic> tariffRu = {
   'plan': {
     'free_label': 'Free тариф',
     'trial_label': 'Бонусный тариф',
+    'bonus_trial_label': 'Бонусный тариф',
     'basic_label': 'Basic тариф',
     'pro_label': 'Pro тариф',
     'enterprise_label': 'Enterprise тариф',
@@ -269,6 +289,15 @@ const Map<String, dynamic> tariffEn = {
       'Pick a plan or only your {} earliest products stay active — the rest get archived.',
   'expiry_warning_subtitle_paid':
       'Without renewal your shop drops to Free and over-limit products get archived.',
+  // Current-plan ("Current plan") card — the prominent bonus-window panel.
+  'current_plan_title': 'Current plan',
+  'current_expiry': 'until {} · {} days left',
+  'upgrades_heading': 'Upgrade your plan',
+  'current_limit_products': 'Active products: up to {}',
+  'current_limit_products_unlimited': 'Active products: unlimited',
+  'current_limit_commission': 'Commission: {}%',
+  'current_limit_sets': 'Set creation: Allowed',
+  'current_limit_ai3d': 'AI 3D models: {}/{} used',
   'archived_banner_title': 'Products archived due to tariff',
   'archived_banner_subtitle':
       'Some products were archived because of your plan limit. Upgrade to restore them.',
@@ -282,6 +311,7 @@ const Map<String, dynamic> tariffEn = {
   'plan': {
     'free_label': 'Free plan',
     'trial_label': 'Bonus plan',
+    'bonus_trial_label': 'Bonus plan',
     'basic_label': 'Basic plan',
     'pro_label': 'Pro plan',
     'enterprise_label': 'Enterprise plan',

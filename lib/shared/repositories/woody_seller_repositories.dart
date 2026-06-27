@@ -72,6 +72,8 @@ class WoodySellerDashboardRepository implements SellerDashboardRepository {
             activeProducts,
         startedAt: _parseDate(tariffBody?['started_at']),
         expiresAt: _parseDate(tariffBody?['expires_at']),
+        ai3dUsed: (tariffBody?['ai_3d_used'] as num?)?.toInt() ?? 0,
+        ai3dLimit: (tariffBody?['ai_3d_limit'] as num?)?.toInt(),
       ),
       recentOrders: recent
           .whereType<Map<String, dynamic>>()

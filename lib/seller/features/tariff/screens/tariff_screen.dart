@@ -169,13 +169,27 @@ class _TariffBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasPending = state.hasPending;
-    final plans = state.plans;
-    final currentPlanCode = state.currentPlan.code;
+    final currentPlan = state.currentPlan;
+    final currentPlanCode = currentPlan.code;
     final snapshot = state.snapshot;
+    // The bonus window (legacy trial / new bonus_trial) gets its own prominent
+    // "Joriy tarif" card listing every limit + the AI-3D quota; paid plans keep
+    // the slim expiry banner. Free has neither.
+    final showCurrentBonusCard = snapshot != null && currentPlan.isAnyBonus;
     final showExpiry =
         snapshot != null &&
         snapshot.expiresAt != null &&
-        !state.currentPlan.isFree;
+        !currentPlan.isFree &&
+        !currentPlan.isAnyBonus;
+
+    // While on the bonus trial, the catalogue should only show real, paid
+    // upgrades — drop Free (a downgrade) and any bonus row. The backend already
+    // hides bonus_trial; this also strips Free for a cleaner upgrade story.
+    final plans = currentPlan.isBonusTrial
+        ? state.plans
+              .where((p) => p.code != 'free' && !p.asEnum.isAnyBonus)
+              .toList(growable: false)
+        : state.plans;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
@@ -187,25 +201,44 @@ class _TariffBody extends StatelessWidget {
           _PendingBanner(subscription: state.pending!),
           const SizedBox(height: 18),
         ],
+        if (showCurrentBonusCard) ...[
+          _CurrentPlanCard(snapshot: snapshot),
+          const SizedBox(height: 18),
+        ],
         if (showExpiry) ...[
           _ExpiryBanner(snapshot: snapshot, freePlanLimit: _freePlanLimit),
           const SizedBox(height: 18),
         ],
-        _PeriodToggle(
-          period: state.period,
-          onChanged: (p) =>
-              context.read<TariffBloc>().add(TariffPeriodChanged(p)),
-        ),
-        const SizedBox(height: 20),
-        for (var i = 0; i < plans.length; i++) ...[
-          _PlanCard(
-            plan: plans[i],
+        if (plans.isNotEmpty) ...[
+          if (showCurrentBonusCard) ...[
+            Text(
+              tr('tariff.upgrades_heading'),
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                color: SellerColors.of(context).ink,
+                letterSpacing: -0.2,
+              ),
+            ),
+            const SizedBox(height: 14),
+          ],
+          _PeriodToggle(
             period: state.period,
-            isCurrent: plans[i].code == currentPlanCode,
-            isPending: hasPending,
-            onUpgrade: () => _onUpgrade(context, plans[i]),
+            onChanged: (p) =>
+                context.read<TariffBloc>().add(TariffPeriodChanged(p)),
           ),
-          if (i != plans.length - 1) const SizedBox(height: 12),
+          const SizedBox(height: 20),
+          for (var i = 0; i < plans.length; i++) ...[
+            _PlanCard(
+              plan: plans[i],
+              period: state.period,
+              isCurrent: plans[i].code == currentPlanCode,
+              isPending: hasPending,
+              onUpgrade: () => _onUpgrade(context, plans[i]),
+            ),
+            if (i != plans.length - 1) const SizedBox(height: 12),
+          ],
         ],
       ],
     );
@@ -328,7 +361,7 @@ class _ExpiryBanner extends StatelessWidget {
     final String subtitle;
     if (warning) {
       title = tr('tariff.expiry_warning_title', args: ['$daysLeft']);
-      subtitle = plan.isTrial
+      subtitle = plan.isAnyBonus
           ? tr('tariff.expiry_warning_subtitle_trial', args: ['$freePlanLimit'])
           : tr('tariff.expiry_warning_subtitle_paid');
     } else {
@@ -453,6 +486,153 @@ class _ExpiryRing extends StatelessWidget {
       ),
     );
   }
+}
+
+// =============================================================================
+// 4d. Current-plan card — the prominent "Joriy tarif" panel for a seller on a
+//     bonus window (legacy trial / new bonus_trial). Unlike the slim expiry
+//     banner it spells out the exact limits the seller currently has — products,
+//     commission, sets, and (the headline of the bonus-trial strategy) the AI-3D
+//     quota with live usage — plus the expiry date + countdown. The limit lines
+//     are built from the plan enum + snapshot rather than the catalogue, since
+//     the bonus plan is intentionally hidden from `/seller/tariff/plans`.
+// =============================================================================
+class _CurrentPlanCard extends StatelessWidget {
+  const _CurrentPlanCard({required this.snapshot});
+
+  final TariffSnapshot snapshot;
+
+  static String _commissionLabel(double rate) =>
+      rate == rate.roundToDouble() ? '${rate.toInt()}' : '$rate';
+
+  List<String> _limitLines() {
+    final plan = snapshot.plan;
+    final lines = <String>[
+      plan.isUnlimited
+          ? tr('tariff.current_limit_products_unlimited')
+          : tr(
+              'tariff.current_limit_products',
+              args: ['${plan.maxActiveProducts}'],
+            ),
+      tr(
+        'tariff.current_limit_commission',
+        args: [_commissionLabel(plan.commissionRate)],
+      ),
+    ];
+    if (plan.allowsSets) lines.add(tr('tariff.current_limit_sets'));
+    final limit = snapshot.ai3dLimit;
+    if (limit != null && limit >= 0) {
+      lines.add(
+        tr(
+          'tariff.current_limit_ai3d',
+          args: ['${snapshot.ai3dUsed}', '$limit'],
+        ),
+      );
+    }
+    return lines;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    final plan = snapshot.plan;
+    final expiresAt = snapshot.expiresAt?.toLocal();
+    final daysLeft = snapshot.daysUntilExpiry ?? 0;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: c.primarySoft,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: AppColors.sellerPrimary.withValues(alpha: 0.25),
+        ),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _ExpiryRing(
+                fraction: snapshot.remainingFraction,
+                accent: c.onPrimarySoft,
+                icon: Iconsax.gift,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          tr('tariff.plan.${plan.code}_label'),
+                          style: TextStyle(
+                            fontFamily: AppFonts.seller,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                            color: c.ink,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.sellerPrimary,
+                            borderRadius: BorderRadius.circular(7),
+                          ),
+                          child: Text(
+                            tr('tariff.current_chip'),
+                            style: const TextStyle(
+                              fontFamily: AppFonts.seller,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                              letterSpacing: 0.4,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      expiresAt == null
+                          ? tr('tariff.current_plan_title')
+                          : tr(
+                              'tariff.current_expiry',
+                              args: [_fmtDate(expiresAt), '$daysLeft'],
+                            ),
+                      style: TextStyle(
+                        fontFamily: AppFonts.seller,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: c.grey,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Divider(height: 1, color: AppColors.sellerPrimary.withValues(alpha: 0.18)),
+          const SizedBox(height: 12),
+          for (final line in _limitLines()) _FeatureRow(text: line),
+        ],
+      ),
+    );
+  }
+
+  static String _fmtDate(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}.'
+      '${d.month.toString().padLeft(2, '0')}.'
+      '${d.year}';
 }
 
 // =============================================================================

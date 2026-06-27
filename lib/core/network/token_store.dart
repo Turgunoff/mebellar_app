@@ -80,8 +80,18 @@ class TokenStore {
   }
 
   Future<void> write(TokenPair pair) async {
-    await _storage.write(key: _kAccess, value: pair.accessToken);
+    // Persist the refresh token FIRST. These writes are not atomic, and a
+    // rotation has already revoked the OLD refresh server-side by the time we
+    // get here. If the process dies (or a storage write throws) mid-way, the
+    // ordering decides whether the session survives the next launch:
+    //   refresh-first → a crash leaves {NEW refresh, OLD access}; the stale
+    //     access just triggers a proactive refresh of the live NEW token. Safe.
+    //   access-first  → a crash leaves {NEW access, OLD *revoked* refresh}; the
+    //     next launch presents the revoked token and gets logged out.
+    // So the refresh token — the one the whole session hinges on — lands before
+    // anything else can fail.
     await _storage.write(key: _kRefresh, value: pair.refreshToken);
+    await _storage.write(key: _kAccess, value: pair.accessToken);
     if (pair.expiresAt != null) {
       await _storage.write(
         key: _kExpiresAt,

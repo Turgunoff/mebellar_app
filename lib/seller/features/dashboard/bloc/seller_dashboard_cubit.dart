@@ -91,6 +91,8 @@ class SellerDashboardCubit extends Cubit<SellerDashboardState> {
             plan: snap.tariff.plan,
             productLimit: snap.tariff.plan.maxActiveProducts,
             tariffDaysLeft: snap.tariff.daysUntilExpiry,
+            ai3dUsed: snap.tariff.ai3dUsed,
+            ai3dLimit: snap.tariff.ai3dLimit,
             wallet: snap.wallet,
             recentOrders: List<Order>.from(snap.recentOrders),
             weekly: snap.weekly,
@@ -188,6 +190,8 @@ class SellerDashboardData extends Equatable {
     this.plan = TariffPlan.free,
     this.productLimit = 3,
     this.tariffDaysLeft,
+    this.ai3dUsed = 0,
+    this.ai3dLimit,
     this.wallet,
     this.recentOrders = const [],
     this.weekly = const WeeklySales(),
@@ -214,6 +218,14 @@ class SellerDashboardData extends Equatable {
   /// Days until the active subscription (trial bonus / paid) expires.
   /// Null when the plan has no expiry (free) — the tile hides the hint.
   final int? tariffDaysLeft;
+
+  /// AI 3D-model generations the shop has spent so far. With [ai3dLimit] this
+  /// drives the bonus-trial urgency banner's "{used} / {limit}" progress bar.
+  final int ai3dUsed;
+
+  /// The active plan's AI 3D-model quota (`-1` = unlimited, `null` = unset).
+  /// For [TariffPlan.bonusTrial] this is the hard cap of 3.
+  final int? ai3dLimit;
 
   /// Wallet/debt state — drives the balance card plus the grace-warning and
   /// debt-freeze banners. Null while the snapshot hasn't loaded.
@@ -254,6 +266,8 @@ class SellerDashboardData extends Equatable {
     TariffPlan? plan,
     int? productLimit,
     int? tariffDaysLeft,
+    int? ai3dUsed,
+    int? ai3dLimit,
     SellerWallet? wallet,
     List<Order>? recentOrders,
     WeeklySales? weekly,
@@ -272,6 +286,8 @@ class SellerDashboardData extends Equatable {
       plan: plan ?? this.plan,
       productLimit: productLimit ?? this.productLimit,
       tariffDaysLeft: tariffDaysLeft ?? this.tariffDaysLeft,
+      ai3dUsed: ai3dUsed ?? this.ai3dUsed,
+      ai3dLimit: ai3dLimit ?? this.ai3dLimit,
       wallet: wallet ?? this.wallet,
       recentOrders: recentOrders ?? this.recentOrders,
       weekly: weekly ?? this.weekly,
@@ -293,6 +309,8 @@ class SellerDashboardData extends Equatable {
     plan,
     productLimit,
     tariffDaysLeft,
+    ai3dUsed,
+    ai3dLimit,
     wallet,
     recentOrders.length,
     weekly,
