@@ -11,9 +11,9 @@ import 'package:model_viewer_plus/model_viewer_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
-import '../../../../core/i18n/i18n.dart';
-import '../../../../core/logging/talker.dart';
-import '../../../../core/theme/app_fonts.dart';
+import '../../../core/i18n/i18n.dart';
+import '../../../core/logging/talker.dart';
+import '../../../core/theme/app_fonts.dart';
 
 /// JS→Dart bridges, mirroring the buyer viewer: one streams the captured model
 /// canvas back as a data URL, the other reports when the `.glb` has loaded so

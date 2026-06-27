@@ -24,7 +24,7 @@ import '../../../../shared/models/product_model.dart';
 import '../../../../shared/repositories/woody_set_repository.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../cubit/ar_viewer_cubit.dart';
-import 'fallback_2d_camera_screen.dart';
+import '../../../../shared/widgets/ar/fallback_2d_camera_screen.dart';
 import 'set_ar_viewer_screen.dart';
 import 'set_sticker_screen.dart';
 

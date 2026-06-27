@@ -13,7 +13,7 @@ import '../wallet/screens/ar_tokens_screen.dart';
 import 'data/ar_scan_components.dart';
 import 'data/ar_scan_repository.dart';
 import 'data/ar_token_repository.dart';
-import 'screens/seller_ar_model_screen.dart';
+import '../../../shared/widgets/ar/product_3d_preview_view.dart';
 import 'widgets/ar_not_approved_card.dart';
 
 /// The seller's "3D model (AR)" section on the product-detail screen — the
@@ -222,8 +222,8 @@ class _SellerArSectionState extends State<SellerArSection> {
     Navigator.of(context).push(
       MaterialPageRoute(
         settings: const RouteSettings(name: '/seller-ar-model'),
-        builder: (_) => SellerArModelScreen(
-          modelUrl: url,
+        builder: (_) => Product3DPreviewScreen(
+          glbUrl: url,
           usdzUrl: part.usdzUrl,
           posterUrl: widget.product.heroImage,
           productName: part.label,
