@@ -38,8 +38,14 @@ class ArPart extends Equatable {
   /// Human label shown in the seller list + the customer viewer's part toggle.
   final String label;
 
-  /// Per-part pipeline state: `none | processing | approved | failed`. Customer
-  /// parts are always `approved` (the backend only sends visible+approved ones).
+  /// Per-part pipeline state in the admin-reviewed workflow:
+  /// `none | pending | processing | approved | rejected | failed`.
+  ///  * `pending`   — seller requested, awaiting admin review.
+  ///  * `processing`— admin sent it to Meshy; the model is generating.
+  ///  * `approved`  — the model is live ("completed" / "tayyor").
+  ///  * `rejected`  — admin declined the request (reason in [arErrorReason]).
+  /// Customer parts are always `approved` (the backend only sends visible+
+  /// approved ones).
   final String arStatus;
 
   final String? arModelUrl;
@@ -64,10 +70,16 @@ class ArPart extends Equatable {
   /// True when a generated model is available to render (approved + a URL).
   bool get hasModel => (arModelUrl?.isNotEmpty ?? false) && arStatus == 'approved';
 
-  /// True while this part's model is generating.
+  /// True while this part's model is generating (admin sent it to Meshy).
   bool get isProcessing => arStatus == 'processing';
 
-  /// True when the last generation failed.
+  /// True when the seller has requested a model and it awaits admin review.
+  bool get isPending => arStatus == 'pending';
+
+  /// True when the admin declined the request ([arErrorReason] carries why).
+  bool get isRejected => arStatus == 'rejected';
+
+  /// True when the last generation failed (pipeline error).
   bool get isFailed => arStatus == 'failed';
 
   ArPart copyWith({String? arStatus, bool? isArVisible, bool? freeScanUsed}) =>

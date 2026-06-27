@@ -77,13 +77,11 @@ void registerSellerModule(GetIt sl) {
     ),
   );
 
-  // AR scan upload (Photos-to-3D) — guided 3-photo capture, uploads to the
-  // public product-images bucket then POSTs the URLs to the dedicated endpoint.
+  // AR model request (Photos-to-3D) — the seller requests a model per part; an
+  // admin reviews, picks the best photos, and sends them to Meshy. No upload
+  // here — the admin chooses from the product's existing images.
   sl.registerLazySingleton<ArScanRepository>(
-    () => WoodyArScanRepository(
-      api: sl<WoodyApiClient>(),
-      uploads: sl<R2UploadClient>(),
-    ),
+    () => WoodyArScanRepository(api: sl<WoodyApiClient>()),
   );
   // AR tokenisation: balance read + package purchase (Payme) for the metered
   // generation flow.
