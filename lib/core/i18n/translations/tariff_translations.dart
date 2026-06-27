@@ -100,7 +100,6 @@ const Map<String, dynamic> tariffUz = {
   'plan': {
     'free_label': 'Free tarif',
     'trial_label': 'Bonus tarif',
-    'bonus_trial_label': 'Bonus tarif',
     'basic_label': 'Basic tarif',
     'pro_label': 'Pro tarif',
     'enterprise_label': 'Enterprise tarif',
@@ -206,7 +205,6 @@ const Map<String, dynamic> tariffRu = {
   'plan': {
     'free_label': 'Free тариф',
     'trial_label': 'Бонусный тариф',
-    'bonus_trial_label': 'Бонусный тариф',
     'basic_label': 'Basic тариф',
     'pro_label': 'Pro тариф',
     'enterprise_label': 'Enterprise тариф',
@@ -311,7 +309,6 @@ const Map<String, dynamic> tariffEn = {
   'plan': {
     'free_label': 'Free plan',
     'trial_label': 'Bonus plan',
-    'bonus_trial_label': 'Bonus plan',
     'basic_label': 'Basic plan',
     'pro_label': 'Pro plan',
     'enterprise_label': 'Enterprise plan',

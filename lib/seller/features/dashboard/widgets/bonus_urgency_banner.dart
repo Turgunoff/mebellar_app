@@ -5,11 +5,11 @@ import '../../../../core/i18n/i18n.dart';
 import '../../tariff/screens/tariff_screen.dart';
 import 'dashboard_kit.dart';
 
-/// FOMO banner shown ONLY while the seller is on the `bonus_trial` plan
-/// (`SellerDashboardData.plan.isBonusTrial`). It pairs a countdown to the
-/// bonus expiry with the AI-3D quota meter so a fresh seller is nudged to
-/// spend their (strictly capped) free 3D models before the window closes —
-/// the whole point of the bonus-trial strategy.
+/// FOMO banner shown ONLY while the seller is on the `trial` bonus plan
+/// (`SellerDashboardData.plan.isTrial`). It pairs a countdown to the bonus
+/// expiry with the AI-3D quota meter so a fresh seller is nudged to spend their
+/// (strictly capped) free 3D models before the window closes — the whole point
+/// of the trial-bonus strategy.
 ///
 /// Slim indigo-gradient card to grab attention without dominating the
 /// dashboard. Tapping it (or the outline CTA) opens the tariff screen so the
@@ -28,7 +28,7 @@ class BonusUrgencyBanner extends StatelessWidget {
   /// AI 3D models generated so far.
   final int ai3dUsed;
 
-  /// The bonus quota (3 for bonus_trial). Falls back to 3 if the server ever
+  /// The bonus quota (3 for the trial plan). Falls back to 3 if the server ever
   /// omits it, so the meter never divides by zero.
   final int? ai3dLimit;
 

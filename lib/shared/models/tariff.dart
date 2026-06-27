@@ -12,26 +12,16 @@ enum TariffPlan {
     monthlyPriceUzs: 0,
     yearlyPriceUzs: 0,
   ),
-  // Legacy 30-day first-approval bonus (pre-`bonus_trial`). Generous: 200
-  // products / 0% commission. Kept so grandfathered sellers still resolve;
-  // new sellers now get [bonusTrial] instead. Backend-only, never purchasable.
+  // The financially-bounded 30-day first-approval bonus (display name "Bonus").
+  // Granted only by the backend; never purchasable — the seller catalogue
+  // renders it only as the current-plan card, never as a selectable upgrade.
+  // Re-cut from the old generous version (200 products / 0%) to STRICT caps:
+  // 30 products, 4% commission, sets on, and — the whole point — only 3 AI 3D
+  // models so a fresh seller can't run up unbounded 3D-generation API costs.
+  // Display values mirror `subscription_plans` (code 'trial'); the card itself
+  // renders the live `features_*` bullets from the server.
   trial(
     'trial',
-    maxActiveProducts: 100,
-    maxImagesPerProduct: -1,
-    commissionRate: 0.0,
-    monthlyPriceUzs: 0,
-    yearlyPriceUzs: 0,
-    allowsSets: true,
-  ),
-  // The financially-bounded 30-day first-approval bonus that replaces [trial]
-  // for new sellers. Granted only by the backend (never purchasable — the plan
-  // catalog endpoint filters it out), so it has no price and never renders as a
-  // selectable card. Strict caps: 30 products, 4% commission, sets on, and —
-  // the whole point — only 3 AI 3D models so a fresh seller can't run up
-  // unbounded 3D-generation API costs.
-  bonusTrial(
-    'bonus_trial',
     maxActiveProducts: 30,
     maxImagesPerProduct: -1,
     commissionRate: 4.0,
@@ -107,20 +97,15 @@ enum TariffPlan {
   bool get isUnlimited => maxActiveProducts < 0;
   bool get hasUnlimitedImages => maxImagesPerProduct < 0;
   bool get isFree => this == TariffPlan.free;
-  bool get isTrial => this == TariffPlan.trial;
-  bool get isBonusTrial => this == TariffPlan.bonusTrial;
 
-  /// Either onboarding bonus — the legacy [trial] or the new strict
-  /// [bonusTrial]. Use this wherever the UI treats "a free bonus window" the
-  /// same regardless of which cohort the seller is in.
-  bool get isAnyBonus =>
-      this == TariffPlan.trial || this == TariffPlan.bonusTrial;
+  /// The 30-day onboarding bonus (code `trial`, display name "Bonus"). Drives
+  /// the dashboard urgency banner + the tariff screen's current-plan card.
+  bool get isTrial => this == TariffPlan.trial;
 
   /// Display name for the tier ("Free" / "Bonus" / "Basic" / …).
   String get label => switch (this) {
     TariffPlan.free => 'Free',
     TariffPlan.trial => 'Bonus',
-    TariffPlan.bonusTrial => 'Bonus',
     TariffPlan.basic => 'Basic',
     TariffPlan.pro => 'Pro',
     TariffPlan.enterprise => 'Enterprise',
@@ -337,7 +322,7 @@ class TariffSnapshot extends Equatable {
   final int ai3dUsed;
 
   /// The active plan's monthly AI 3D-model quota (`-1` = unlimited, `null` =
-  /// unset/0). For [TariffPlan.bonusTrial] this is the hard cap of 3.
+  /// unset/0). For [TariffPlan.trial] this is the hard cap of 3.
   final int? ai3dLimit;
 
   bool get reachedLimit =>

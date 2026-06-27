@@ -160,8 +160,8 @@ class _DashboardContent extends StatelessWidget {
         ),
         const SizedBox(height: 20),
 
-        // ---- Bonus-trial urgency banner (FOMO) — only on bonus_trial ------
-        if (data.plan.isBonusTrial) ...[
+        // ---- Trial-bonus urgency banner (FOMO) — only on the trial plan ---
+        if (data.plan.isTrial) ...[
           _h(
             BonusUrgencyBanner(
               daysLeft: data.tariffDaysLeft,

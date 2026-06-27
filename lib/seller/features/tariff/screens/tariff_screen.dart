@@ -172,24 +172,34 @@ class _TariffBody extends StatelessWidget {
     final currentPlan = state.currentPlan;
     final currentPlanCode = currentPlan.code;
     final snapshot = state.snapshot;
-    // The bonus window (legacy trial / new bonus_trial) gets its own prominent
-    // "Joriy tarif" card listing every limit + the AI-3D quota; paid plans keep
-    // the slim expiry banner. Free has neither.
-    final showCurrentBonusCard = snapshot != null && currentPlan.isAnyBonus;
+    // The trial bonus gets its own prominent "Joriy tarif" card listing every
+    // limit + the AI-3D quota; paid plans keep the slim expiry banner. Free has
+    // neither.
+    final onTrial = currentPlan.isTrial;
+    final showCurrentBonusCard = snapshot != null && onTrial;
     final showExpiry =
         snapshot != null &&
         snapshot.expiresAt != null &&
         !currentPlan.isFree &&
-        !currentPlan.isAnyBonus;
+        !onTrial;
 
-    // While on the bonus trial, the catalogue should only show real, paid
-    // upgrades — drop Free (a downgrade) and any bonus row. The backend already
-    // hides bonus_trial; this also strips Free for a cleaner upgrade story.
-    final plans = currentPlan.isBonusTrial
-        ? state.plans
-              .where((p) => p.code != 'free' && !p.asEnum.isAnyBonus)
-              .toList(growable: false)
-        : state.plans;
+    // The catalogue lists only real, purchasable upgrades: the backend now
+    // returns 'trial' too (so we can render its current-plan features), so the
+    // app always strips it from the buyable cards — plus Free while on the
+    // trial, since dropping to Free is a downgrade, not an upgrade.
+    final plans = state.plans
+        .where((p) => !p.asEnum.isTrial && !(onTrial && p.code == 'free'))
+        .toList(growable: false);
+
+    // The current plan's server row — carries the localized `features_*`
+    // bullets the current-plan card renders verbatim (same as upgrade cards).
+    SubscriptionPlan? currentPlanData;
+    for (final p in state.plans) {
+      if (p.code == currentPlanCode) {
+        currentPlanData = p;
+        break;
+      }
+    }
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
@@ -202,7 +212,7 @@ class _TariffBody extends StatelessWidget {
           const SizedBox(height: 18),
         ],
         if (showCurrentBonusCard) ...[
-          _CurrentPlanCard(snapshot: snapshot),
+          _CurrentPlanCard(snapshot: snapshot, plan: currentPlanData),
           const SizedBox(height: 18),
         ],
         if (showExpiry) ...[
@@ -361,7 +371,7 @@ class _ExpiryBanner extends StatelessWidget {
     final String subtitle;
     if (warning) {
       title = tr('tariff.expiry_warning_title', args: ['$daysLeft']);
-      subtitle = plan.isAnyBonus
+      subtitle = plan.isTrial
           ? tr('tariff.expiry_warning_subtitle_trial', args: ['$freePlanLimit'])
           : tr('tariff.expiry_warning_subtitle_paid');
     } else {
@@ -489,18 +499,24 @@ class _ExpiryRing extends StatelessWidget {
 }
 
 // =============================================================================
-// 4d. Current-plan card — the prominent "Joriy tarif" panel for a seller on a
-//     bonus window (legacy trial / new bonus_trial). Unlike the slim expiry
-//     banner it spells out the exact limits the seller currently has — products,
-//     commission, sets, and (the headline of the bonus-trial strategy) the AI-3D
-//     quota with live usage — plus the expiry date + countdown. The limit lines
-//     are built from the plan enum + snapshot rather than the catalogue, since
-//     the bonus plan is intentionally hidden from `/seller/tariff/plans`.
+// 4d. Current-plan card — the prominent "Joriy tarif" panel for a seller on the
+//     trial bonus. Unlike the slim expiry banner it spells out everything the
+//     seller currently has — products, commission, sets, and (the headline of
+//     the trial strategy) the AI-3D quota — plus the expiry date + countdown.
+//     The feature bullets are the server's localized `features_*` for the trial
+//     row, rendered verbatim by the SAME `_FeatureList` the upgrade cards use,
+//     so the 3 AI 3D models + 20 autofills show exactly as authored. If the
+//     plan row is momentarily unavailable it falls back to a synthesized list
+//     built from the enum + snapshot.
 // =============================================================================
 class _CurrentPlanCard extends StatelessWidget {
-  const _CurrentPlanCard({required this.snapshot});
+  const _CurrentPlanCard({required this.snapshot, this.plan});
 
   final TariffSnapshot snapshot;
+
+  /// The active plan's server row (`features_*` source). Null only if the
+  /// catalogue hasn't loaded it yet — then [_limitLines] supplies a fallback.
+  final SubscriptionPlan? plan;
 
   static String _commissionLabel(double rate) =>
       rate == rate.roundToDouble() ? '${rate.toInt()}' : '$rate';
@@ -535,7 +551,7 @@ class _CurrentPlanCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
-    final plan = snapshot.plan;
+    final planEnum = snapshot.plan;
     final expiresAt = snapshot.expiresAt?.toLocal();
     final daysLeft = snapshot.daysUntilExpiry ?? 0;
 
@@ -567,7 +583,7 @@ class _CurrentPlanCard extends StatelessWidget {
                     Row(
                       children: [
                         Text(
-                          tr('tariff.plan.${plan.code}_label'),
+                          tr('tariff.plan.${planEnum.code}_label'),
                           style: TextStyle(
                             fontFamily: AppFonts.seller,
                             fontSize: 17,
@@ -623,11 +639,18 @@ class _CurrentPlanCard extends StatelessWidget {
           const SizedBox(height: 14),
           Divider(height: 1, color: AppColors.sellerPrimary.withValues(alpha: 0.18)),
           const SizedBox(height: 12),
-          for (final line in _limitLines()) _FeatureRow(text: line),
+          // Prefer the server's localized features (identical to upgrade cards);
+          // fall back to the synthesized limit list only if the row is missing.
+          if (plan != null && plan!.featuresForLocale(_lang).isNotEmpty)
+            _FeatureList(plan: plan!)
+          else
+            for (final line in _limitLines()) _FeatureRow(text: line),
         ],
       ),
     );
   }
+
+  String get _lang => AppTranslations.instance.locale.languageCode;
 
   static String _fmtDate(DateTime d) =>
       '${d.day.toString().padLeft(2, '0')}.'

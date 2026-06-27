@@ -224,7 +224,7 @@ class SellerDashboardData extends Equatable {
   final int ai3dUsed;
 
   /// The active plan's AI 3D-model quota (`-1` = unlimited, `null` = unset).
-  /// For [TariffPlan.bonusTrial] this is the hard cap of 3.
+  /// For [TariffPlan.trial] this is the hard cap of 3.
   final int? ai3dLimit;
 
   /// Wallet/debt state — drives the balance card plus the grace-warning and

@@ -940,7 +940,7 @@ const Map<String, dynamic> dashboardUz = {
   'wallet_grace_body': 'Xizmat ko\'rsatish to\'xtatilmasligi uchun {hours} soat ichida hisobni to\'ldiring.',
   'wallet_top_up_cta': 'Hisobni to\'ldirish',
   'wallet_balance_label': 'Hamyon balansi',
-  // Bonus-trial urgency banner (shown only on the bonus_trial plan).
+  // Trial-bonus urgency banner (shown only on the trial plan).
   'bonus_banner_title': '🎁 Bonus tarifingiz tugashiga {days} kun qoldi',
   'bonus_banner_title_today': '🎁 Bonus tarifingiz bugun tugaydi!',
   'bonus_banner_ai3d_label': 'AI 3D model',
@@ -988,7 +988,7 @@ const Map<String, dynamic> dashboardRu = {
   'wallet_grace_body': 'Чтобы обслуживание не приостановилось, пополните счёт в течение {hours} ч.',
   'wallet_top_up_cta': 'Пополнить счёт',
   'wallet_balance_label': 'Баланс кошелька',
-  // Bonus-trial urgency banner (shown only on the bonus_trial plan).
+  // Trial-bonus urgency banner (shown only on the trial plan).
   'bonus_banner_title': '🎁 До конца бонусного тарифа {days} дн.',
   'bonus_banner_title_today': '🎁 Бонусный тариф заканчивается сегодня!',
   'bonus_banner_ai3d_label': 'AI 3D-модели',
@@ -1036,7 +1036,7 @@ const Map<String, dynamic> dashboardEn = {
   'wallet_grace_body': 'Top up your account within {hours} hours to keep your service from being suspended.',
   'wallet_top_up_cta': 'Top up account',
   'wallet_balance_label': 'Wallet balance',
-  // Bonus-trial urgency banner (shown only on the bonus_trial plan).
+  // Trial-bonus urgency banner (shown only on the trial plan).
   'bonus_banner_title': '🎁 {days} days left on your bonus plan',
   'bonus_banner_title_today': '🎁 Your bonus plan ends today!',
   'bonus_banner_ai3d_label': 'AI 3D models',
