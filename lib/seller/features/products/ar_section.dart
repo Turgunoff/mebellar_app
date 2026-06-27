@@ -75,7 +75,6 @@ class _SellerArSectionState extends State<SellerArSection> {
   Future<void> _loadParts() async {
     try {
       final parts = await sl<ArScanRepository>().fetchArParts(widget.product.id);
-      talker.debug('🔬[freeze-probe] AR.parts loaded n=${parts.length}');
       if (mounted) {
         setState(() {
           _parts = parts;
@@ -369,14 +368,10 @@ class _SellerArSectionState extends State<SellerArSection> {
 
   @override
   Widget build(BuildContext context) {
-    talker.debug(
-      '🔬[freeze-probe] AR.build START published=$_published loaded=$_partsLoaded',
-    );
     if (!_published) return const ArNotApprovedCard();
 
     final c = SellerColors.of(context);
     final rows = _rows();
-    talker.debug('🔬[freeze-probe] AR.rows=${rows.length} — returning tree');
 
     return Container(
       decoration: BoxDecoration(
@@ -651,39 +646,47 @@ class _PrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // A plain FilledButton with a mainAxisSize.min Row child — NOT
-    // FilledButton.icon, whose internal layout throws "infinite width" when it
-    // sits as a non-flex child of a Row (the trailing slot here passes
-    // unbounded width).
-    return FilledButton(
-      onPressed: busy ? null : onTap,
-      style: FilledButton.styleFrom(
-        backgroundColor: color,
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (busy)
-            const SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-            )
-          else
-            Icon(icon, size: 18),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: const TextStyle(
-              fontFamily: AppFonts.seller,
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-            ),
+    // A hand-rolled Material/InkWell button, NOT a ButtonStyleButton: this
+    // tile's trailing slot is a non-flex child of a Row, so it is measured with
+    // an UNBOUNDED width — and FilledButton/ElevatedButton assert
+    // "BoxConstraints forces an infinite width" under an unbounded width
+    // constraint. Material + InkWell + a mainAxisSize.min Row just sizes to its
+    // content, so it lays out correctly in that slot.
+    return Material(
+      color: color,
+      borderRadius: BorderRadius.circular(12),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: busy ? null : onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (busy)
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              else
+                Icon(icon, size: 18, color: Colors.white),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontFamily: AppFonts.seller,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

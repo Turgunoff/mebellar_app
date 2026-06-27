@@ -253,13 +253,11 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    talker.debug('🔬[freeze-probe] detail.build START id=${widget.product.id}');
     final product = widget.product;
     final imageUrls = [
       for (final img in product.images)
         if (img.remoteUrl != null && img.remoteUrl!.isNotEmpty) img.remoteUrl!,
     ];
-    talker.debug('🔬[freeze-probe] detail.images n=${imageUrls.length} urls=$imageUrls');
     final description = product.description.uz?.trim() ?? '';
     final attributeRows = _attributeRows(product);
     final setDimensionGroups = _setDimensionGroups(product);
@@ -273,10 +271,6 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
         product.hasDelivery ||
         product.hasInstallation ||
         product.warrantyMonths > 0;
-    talker.debug(
-      '🔬[freeze-probe] detail.build END dims=$hasDimensions '
-      'setGroups=${setDimensionGroups.length} attrRows=${attributeRows.length}',
-    );
 
     return Scaffold(
       backgroundColor: SellerColors.of(context).background,
