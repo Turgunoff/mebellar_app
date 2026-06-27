@@ -14,7 +14,7 @@ void main() {
 
     expect(find.text(ArNotApprovedCard.message), findsOneWidget);
     expect(find.byIcon(Icons.lock_outline), findsOneWidget);
-    expect(find.text('3D skan (AR)'), findsOneWidget);
+    expect(find.text('3D model (AR)'), findsOneWidget);
   });
 
   testWidgets('exposes no scan / buy actions (fully locked)', (tester) async {
