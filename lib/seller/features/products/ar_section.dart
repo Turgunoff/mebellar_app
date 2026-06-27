@@ -646,7 +646,11 @@ class _PrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FilledButton.icon(
+    // A plain FilledButton with a mainAxisSize.min Row child — NOT
+    // FilledButton.icon, whose internal layout throws "infinite width" when it
+    // sits as a non-flex child of a Row (the trailing slot here passes
+    // unbounded width).
+    return FilledButton(
       onPressed: busy ? null : onTap,
       style: FilledButton.styleFrom(
         backgroundColor: color,
@@ -654,20 +658,27 @@ class _PrimaryButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
-      icon: busy
-          ? const SizedBox(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (busy)
+            const SizedBox(
               width: 16,
               height: 16,
               child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
             )
-          : Icon(icon, size: 18),
-      label: Text(
-        label,
-        style: const TextStyle(
-          fontFamily: AppFonts.seller,
-          fontSize: 14,
-          fontWeight: FontWeight.w700,
-        ),
+          else
+            Icon(icon, size: 18),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: const TextStyle(
+              fontFamily: AppFonts.seller,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     );
   }
