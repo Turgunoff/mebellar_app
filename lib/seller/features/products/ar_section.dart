@@ -217,19 +217,32 @@ class _SellerArSectionState extends State<SellerArSection> {
   }
 
   void _openViewer(ArPart part) {
-    final url = part.arModelUrl;
-    if (url == null || url.isEmpty) return;
+    if (!part.hasModel) return;
+    // Every model-bearing piece becomes a switchable part in one viewer; the
+    // tapped piece opens first. Opening separate screens per part is the bad UX
+    // this replaces.
+    final modelParts = _parts.where((p) => p.hasModel).toList(growable: false);
+    final parts = [
+      for (final p in modelParts)
+        Product3DPart(
+          id: p.id,
+          name: p.label,
+          glbUrl: p.arModelUrl!,
+          usdzUrl: p.usdzUrl,
+          widthCm: p.widthCm ?? widget.product.widthCm,
+          heightCm: p.heightCm ?? widget.product.heightCm,
+          depthCm: p.depthCm ?? widget.product.lengthCm,
+        ),
+    ];
+    final tapped = modelParts.indexWhere((p) => p.id == part.id);
     Navigator.of(context).push(
       MaterialPageRoute(
         settings: const RouteSettings(name: '/seller-ar-model'),
         builder: (_) => Product3DPreviewScreen(
-          glbUrl: url,
-          usdzUrl: part.usdzUrl,
+          parts: parts,
+          initialIndex: tapped < 0 ? 0 : tapped,
+          productName: widget.product.name.get('uz'),
           posterUrl: widget.product.heroImage,
-          productName: part.label,
-          widthCm: part.widthCm ?? widget.product.widthCm,
-          heightCm: part.heightCm ?? widget.product.heightCm,
-          depthCm: part.depthCm ?? widget.product.lengthCm,
         ),
       ),
     );
