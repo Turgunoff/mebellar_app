@@ -527,8 +527,11 @@ class _ModelSwitcherButton extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // Iconsax (not Material) glyphs already shipped in the release
+                // font — using a brand-new Material glyph here would change the
+                // tree-shaken MaterialIcons asset and make the build unpatchable.
                 const Icon(
-                  Icons.layers_rounded,
+                  Iconsax.d_cube_scan,
                   size: 20,
                   color: AppColors.terracotta,
                 ),
@@ -559,8 +562,8 @@ class _ModelSwitcherButton extends StatelessWidget {
                 ),
                 const SizedBox(width: 4),
                 Icon(
-                  Icons.expand_less_rounded,
-                  size: 20,
+                  Iconsax.arrow_up_2,
+                  size: 16,
                   color: _kInk.withValues(alpha: 0.55),
                 ),
               ],
