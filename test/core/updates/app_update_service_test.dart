@@ -30,96 +30,23 @@ void main() {
     });
   });
 
-  group('resolveUpdateAction', () {
-    test('no Play update → none, even when below min_version', () {
-      expect(
-        resolveUpdateAction(
-          playUpdateAvailable: false,
-          immediateAllowed: true,
-          flexibleAllowed: true,
-          installedVersion: '1.0.0',
-          minVersion: '1.0.5',
-        ),
-        AppUpdateAction.none,
-      );
+  group('isUpdateRequired', () {
+    test('installed below min → forced', () {
+      expect(isUpdateRequired('1.0.4', '1.0.5'), isTrue);
+      expect(isUpdateRequired('1.0.9', '1.1.0'), isTrue);
+      // numeric, not lexical: 1.2.0 < 1.10.0
+      expect(isUpdateRequired('1.2.0', '1.10.0'), isTrue);
     });
 
-    test('below min_version → immediate', () {
-      expect(
-        resolveUpdateAction(
-          playUpdateAvailable: true,
-          immediateAllowed: true,
-          flexibleAllowed: true,
-          installedVersion: '1.0.4',
-          minVersion: '1.0.5',
-        ),
-        AppUpdateAction.immediate,
-      );
+    test('installed at or above min → not forced', () {
+      expect(isUpdateRequired('1.0.5', '1.0.5'), isFalse);
+      expect(isUpdateRequired('1.1.0', '1.0.9'), isFalse);
+      expect(isUpdateRequired('2.0.0', '1.9.9'), isFalse);
     });
 
-    test('forced but immediate not allowed → falls back to flexible', () {
-      expect(
-        resolveUpdateAction(
-          playUpdateAvailable: true,
-          immediateAllowed: false,
-          flexibleAllowed: true,
-          installedVersion: '1.0.4',
-          minVersion: '1.0.5',
-        ),
-        AppUpdateAction.flexible,
-      );
-    });
-
-    test('at or above min_version → soft flexible prompt', () {
-      expect(
-        resolveUpdateAction(
-          playUpdateAvailable: true,
-          immediateAllowed: true,
-          flexibleAllowed: true,
-          installedVersion: '1.0.5',
-          minVersion: '1.0.5',
-        ),
-        AppUpdateAction.flexible,
-      );
-    });
-
-    test('no min_version configured → soft flexible prompt', () {
-      expect(
-        resolveUpdateAction(
-          playUpdateAvailable: true,
-          immediateAllowed: true,
-          flexibleAllowed: true,
-          installedVersion: '1.0.9',
-          minVersion: null,
-        ),
-        AppUpdateAction.flexible,
-      );
-    });
-
-    test('soft case never escalates to the blocking immediate flow', () {
-      expect(
-        resolveUpdateAction(
-          playUpdateAvailable: true,
-          immediateAllowed: true,
-          flexibleAllowed: false,
-          installedVersion: '1.0.9',
-          minVersion: null,
-        ),
-        AppUpdateAction.none,
-      );
-    });
-
-    test('forced with neither flow allowed → none', () {
-      expect(
-        resolveUpdateAction(
-          playUpdateAvailable: true,
-          immediateAllowed: false,
-          flexibleAllowed: false,
-          installedVersion: '1.0.0',
-          minVersion: '1.0.5',
-        ),
-        AppUpdateAction.none,
-      );
+    test('ignores a +buildNumber suffix on the installed version', () {
+      expect(isUpdateRequired('1.0.5+42', '1.0.5'), isFalse);
+      expect(isUpdateRequired('1.0.4+42', '1.0.5'), isTrue);
     });
   });
 }

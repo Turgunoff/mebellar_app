@@ -27,29 +27,31 @@ class RemoteConfig {
   bool tariffEnabled = false;
 
   /// Force-update threshold for Android, e.g. `"1.0.3"`. An installed version
-  /// below this triggers Play's blocking *immediate* update flow. `null` (key
-  /// missing server-side or never fetched) means nothing is forced.
+  /// below this triggers the blocking force-update overlay. `null` (key missing
+  /// server-side or never fetched) means nothing is forced.
   String? androidMinVersion;
 
-  /// Latest published Android version, e.g. `"1.0.9"`. Informational — the
-  /// soft (flexible) update prompt trusts Play's own availability signal, so
-  /// a stale value here can't suppress updates. Reserved for the future iOS
-  /// dialog, where no in-app update API exists.
-  String? androidLatestVersion;
+  /// Force-update threshold for iOS, e.g. `"1.0.3"`. Same semantics as
+  /// [androidMinVersion] — the stores release on independent cadences, so each
+  /// platform carries its own threshold.
+  String? iosMinVersion;
 
   static const _tariffHiveKey = 'remote_config.tariff_enabled';
-  static const _minVersionHiveKey = 'remote_config.android_min_version';
-  static const _latestVersionHiveKey = 'remote_config.android_latest_version';
+  static const _androidMinVersionHiveKey =
+      'remote_config.android_min_version';
+  static const _iosMinVersionHiveKey = 'remote_config.ios_min_version';
 
   /// Seeds the flags from the last cached values. Synchronous, so it can run
   /// at boot before the first frame.
   void hydrateFromCache(Box box) {
     final cached = box.get(_tariffHiveKey);
     if (cached is bool) tariffEnabled = cached;
-    final min = box.get(_minVersionHiveKey);
-    if (min is String && min.isNotEmpty) androidMinVersion = min;
-    final latest = box.get(_latestVersionHiveKey);
-    if (latest is String && latest.isNotEmpty) androidLatestVersion = latest;
+    final androidMin = box.get(_androidMinVersionHiveKey);
+    if (androidMin is String && androidMin.isNotEmpty) {
+      androidMinVersion = androidMin;
+    }
+    final iosMin = box.get(_iosMinVersionHiveKey);
+    if (iosMin is String && iosMin.isNotEmpty) iosMinVersion = iosMin;
   }
 
   Future<void>? _inflightRefresh;
@@ -107,18 +109,18 @@ class RemoteConfig {
       final body = await api
           .get<Map<String, dynamic>>('/catalog/settings/app_versions')
           .timeout(const Duration(seconds: 6));
-      final (:min, :latest) = parseAndroidVersions(body['value']);
-      androidMinVersion = min;
-      androidLatestVersion = latest;
-      await box.put(_minVersionHiveKey, min ?? '');
-      await box.put(_latestVersionHiveKey, latest ?? '');
-      appLog.info('[remote-config] android min=$min latest=$latest');
+      final (:androidMin, :iosMin) = parseMinVersions(body['value']);
+      androidMinVersion = androidMin;
+      iosMinVersion = iosMin;
+      await box.put(_androidMinVersionHiveKey, androidMin ?? '');
+      await box.put(_iosMinVersionHiveKey, iosMin ?? '');
+      appLog.info('[remote-config] min android=$androidMin ios=$iosMin');
     } on ApiError catch (e, st) {
       if (e.isNotFound) {
         androidMinVersion = null;
-        androidLatestVersion = null;
-        await box.put(_minVersionHiveKey, '');
-        await box.put(_latestVersionHiveKey, '');
+        iosMinVersion = null;
+        await box.put(_androidMinVersionHiveKey, '');
+        await box.put(_iosMinVersionHiveKey, '');
         return;
       }
       appLog.handle(
@@ -135,19 +137,23 @@ class RemoteConfig {
     }
   }
 
-  /// Extracts `(min, latest)` from the `app_versions` jsonb value:
-  /// `{"android": {"min_version": "1.0.0", "latest_version": "1.0.9"}}`.
-  /// Defensive against partial / malformed payloads — anything unexpected
-  /// reads as `null` rather than throwing during boot.
-  static ({String? min, String? latest}) parseAndroidVersions(dynamic value) {
-    if (value is! Map) return (min: null, latest: null);
-    final android = value['android'];
-    if (android is! Map) return (min: null, latest: null);
-    String? str(dynamic v) =>
-        v is String && v.trim().isNotEmpty ? v.trim() : null;
+  /// Extracts each platform's `min_version` from the `app_versions` jsonb value:
+  /// `{"android": {"min_version": "1.0.0", ...}, "ios": {"min_version": ...}}`.
+  /// Defensive against partial / malformed payloads — a missing or non-string
+  /// field reads as `null` rather than throwing during boot.
+  static ({String? androidMin, String? iosMin}) parseMinVersions(
+    dynamic value,
+  ) {
+    String? minOf(dynamic block) {
+      if (block is! Map) return null;
+      final v = block['min_version'];
+      return v is String && v.trim().isNotEmpty ? v.trim() : null;
+    }
+
+    if (value is! Map) return (androidMin: null, iosMin: null);
     return (
-      min: str(android['min_version']),
-      latest: str(android['latest_version']),
+      androidMin: minOf(value['android']),
+      iosMin: minOf(value['ios']),
     );
   }
 }

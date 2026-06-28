@@ -78,12 +78,10 @@ dependencies:
   # App lifecycle
   flutter_phoenix: ^1.1.1
 
-  # In-app updates — Google Play's native update prompts (immediate = blocking
-  # full-screen, flexible = background download). Android-only; iOS no-ops.
-  # Driven by the `app_versions` RemoteConfig key (backend `app_settings`).
-  in_app_update: ^4.2.3
-  # Reads the installed versionName at runtime so the update gate can compare
-  # it against the backend-published min_version.
+  # Reads the installed versionName at runtime so the custom force-update gate
+  # can compare it against the backend-published `app_versions` min_version
+  # (per platform). The gate is our own glassmorphism overlay + store redirect —
+  # no native in-app-update package, so it works the same on Android and iOS.
   package_info_plus: ^8.1.0
 
   # Localization — translations live in pure Dart (lib/core/i18n/) so

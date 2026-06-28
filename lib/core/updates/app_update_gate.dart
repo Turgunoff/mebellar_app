@@ -1,76 +1,54 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 import '../../customer/features/home/widgets/premium/premium_tokens.dart';
 import '../i18n/i18n.dart';
 import 'app_update_service.dart';
 
-/// Mounts inside both MaterialApp builders (customer + seller) and renders
-/// the in-app update surfaces on top of the whole app:
+/// Mounts inside both MaterialApp builders (customer + seller), above the
+/// Navigator, and paints the force-update overlay on top of the whole app when
+/// the installed build is below the backend `min_version` for this platform.
 ///
-///   * [AppUpdateUiState.forceBlocked] — a full-screen blocking overlay when
-///     the installed build is below the backend `min_version` and the Play
-///     immediate flow was denied or unavailable;
-///   * [AppUpdateUiState.flexibleReady] — a bottom "restart to apply" card
-///     once a flexible update finished downloading.
-///
-/// The launch check itself runs once per process (the service is a
-/// singleton), so the Phoenix rebirth on a customer↔seller flip doesn't
-/// re-prompt — but each rebirth re-mounts this gate, which keeps rendering
-/// whatever state the service already holds.
+/// The launch check runs once per process (the service is a singleton), so the
+/// Phoenix rebirth on a customer↔seller flip doesn't re-evaluate — but each
+/// rebirth re-mounts this gate, which keeps rendering whatever the service
+/// already holds. Once [AppUpdateService.forceUpdateRequired] is set, the
+/// overlay is strictly non-dismissible (it sits above the Navigator, swallows
+/// every gesture, and blocks the Android back button).
 class AppUpdateGate extends StatefulWidget {
   const AppUpdateGate({super.key, required this.child, this.service});
 
   final Widget child;
 
-  /// Test seam — widget tests inject a service double; production leaves
-  /// this null and uses [AppUpdateService.instance].
+  /// Test seam — widget tests inject a service double; production leaves this
+  /// null and uses [AppUpdateService.instance].
   final AppUpdateService? service;
 
   @override
   State<AppUpdateGate> createState() => _AppUpdateGateState();
 }
 
-class _AppUpdateGateState extends State<AppUpdateGate>
-    with WidgetsBindingObserver {
+class _AppUpdateGateState extends State<AppUpdateGate> {
   AppUpdateService get _service => widget.service ?? AppUpdateService.instance;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _service.checkOnLaunch();
     });
   }
 
   @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _service.onResumed();
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<AppUpdateUiState>(
-      valueListenable: _service.uiState,
-      builder: (context, state, child) => Stack(
+    return ValueListenableBuilder<bool>(
+      valueListenable: _service.forceUpdateRequired,
+      builder: (context, blocked, child) => Stack(
         fit: StackFit.expand,
         children: [
           child!,
-          if (state == AppUpdateUiState.forceBlocked)
-            _ForceUpdateOverlay(onUpdate: _service.retryForcedUpdate),
-          if (state == AppUpdateUiState.flexibleReady)
-            _RestartBanner(
-              onRestart: _service.completeFlexibleUpdate,
-              onDismiss: _service.dismissFlexibleBanner,
-            ),
+          if (blocked) ForceUpdateOverlay(onUpdate: _service.openStore),
         ],
       ),
       child: widget.child,
@@ -78,51 +56,106 @@ class _AppUpdateGateState extends State<AppUpdateGate>
   }
 }
 
-/// Full-screen blocking surface for a mandatory update. Sits above the
-/// Navigator, so no route underneath is reachable; system back can only
-/// leave the app, and a relaunch lands right back here.
-class _ForceUpdateOverlay extends StatelessWidget {
-  const _ForceUpdateOverlay({required this.onUpdate});
+/// Full-screen, non-dismissible glassmorphism surface for a mandatory update.
+///
+/// The Home screen stays painted underneath and is visibly blurred by a
+/// full-bleed [BackdropFilter]; a dark scrim ([ModalBarrier], which also
+/// swallows every tap) sits on top of the blur, and the frosted card floats in
+/// the centre. [PopScope] blocks the Android back button. Because the gate
+/// mounts above the Navigator, no route underneath is ever reachable.
+@visibleForTesting
+class ForceUpdateOverlay extends StatelessWidget {
+  const ForceUpdateOverlay({super.key, required this.onUpdate});
 
   final Future<void> Function() onUpdate;
 
   @override
   Widget build(BuildContext context) {
-    final pt = PremiumTokens.of(context);
-    return Material(
-      color: pt.background,
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
+    return PopScope(
+      canPop: false,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Blur the Home screen behind, then lay a dark scrim that also
+          // absorbs every tap (dismissible: false → can't be tapped away).
+          BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+            child: const ModalBarrier(
+              dismissible: false,
+              color: Color(0x4D000000), // black @ 30%
+            ),
+          ),
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 28),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: _GlassCard(onUpdate: onUpdate),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GlassCard extends StatelessWidget {
+  const _GlassCard({this.onUpdate});
+
+  final Future<void> Function()? onUpdate;
+
+  @override
+  Widget build(BuildContext context) {
+    // The card floats over a guaranteed-dark scrim, so its text/foreground are
+    // intentionally light constants (like the brand accent) rather than theme
+    // tokens — they must read on the frosted glass in both light and dark mode.
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(28, 32, 28, 28),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.4)),
+          ),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 96,
-                height: 96,
+                width: 84,
+                height: 84,
                 decoration: BoxDecoration(
-                  color: PremiumTokens.accent.withValues(alpha: 0.12),
+                  color: Colors.white.withValues(alpha: 0.18),
                   shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.35),
+                  ),
                 ),
                 child: const Icon(
-                  Icons.system_update_alt_rounded,
-                  size: 44,
-                  color: PremiumTokens.accent,
+                  Icons.system_update_rounded,
+                  size: 40,
+                  color: Colors.white,
                 ),
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 24),
               Text(
                 tr('update.required_title'),
                 textAlign: TextAlign.center,
-                style: PremiumTokens.display(size: 24, color: pt.dark),
+                style: PremiumTokens.display(size: 22, color: Colors.white),
               ),
               const SizedBox(height: 12),
               Text(
                 tr('update.required_body'),
                 textAlign: TextAlign.center,
-                style: PremiumTokens.body(size: 15, color: pt.grey),
+                style: PremiumTokens.body(
+                  size: 14.5,
+                  color: Colors.white.withValues(alpha: 0.85),
+                ),
               ),
-              const SizedBox(height: 36),
+              const SizedBox(height: 28),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
@@ -144,82 +177,6 @@ class _ForceUpdateOverlay extends StatelessWidget {
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Bottom floating card shown when a flexible update has downloaded —
-/// restarting applies it; dismissing defers (Play installs it on a later
-/// background opportunity anyway).
-class _RestartBanner extends StatelessWidget {
-  const _RestartBanner({required this.onRestart, required this.onDismiss});
-
-  final Future<void> Function() onRestart;
-  final VoidCallback onDismiss;
-
-  @override
-  Widget build(BuildContext context) {
-    final pt = PremiumTokens.of(context);
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: SafeArea(
-        child: Container(
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
-          decoration: BoxDecoration(
-            color: pt.surface,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: PremiumTokens.cardShadow,
-            border: Border.all(color: pt.divider),
-          ),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.download_done_rounded,
-                color: PremiumTokens.accent,
-                size: 28,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      tr('update.ready_title'),
-                      style: PremiumTokens.body(
-                        size: 14,
-                        weight: FontWeight.w600,
-                        color: pt.dark,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      tr('update.ready_body'),
-                      style: PremiumTokens.body(size: 12.5, color: pt.grey),
-                    ),
-                  ],
-                ),
-              ),
-              TextButton(
-                onPressed: onRestart,
-                child: Text(
-                  tr('update.restart_now'),
-                  style: PremiumTokens.body(
-                    size: 13.5,
-                    weight: FontWeight.w600,
-                    color: PremiumTokens.accent,
-                  ),
-                ),
-              ),
-              IconButton(
-                onPressed: onDismiss,
-                icon: Icon(Icons.close_rounded, size: 20, color: pt.grey),
-                visualDensity: VisualDensity.compact,
               ),
             ],
           ),

@@ -2,34 +2,25 @@
 // deep-link debug tester.
 
 const Map<String, dynamic> updateUz = {
-  'required_title': 'Yangilanish kerak',
+  'required_title': 'Yangi versiya mavjud!',
   'required_body':
-      'Woody\'ning yangi versiyasi chiqdi. Davom etish uchun ilovani '
+      'Ilovamiz yanada qulay va tezkor bo\'ldi. Davom etish uchun ilovani '
       'yangilang.',
   'update_now': 'Yangilash',
-  'ready_title': 'Yangilanish tayyor',
-  'ready_body': 'O\'rnatish uchun ilovani qayta ishga tushiring',
-  'restart_now': 'Qayta ochish',
 };
 
 const Map<String, dynamic> updateRu = {
-  'required_title': 'Требуется обновление',
+  'required_title': 'Доступна новая версия!',
   'required_body':
-      'Вышла новая версия Woody. Обновите приложение, чтобы продолжить.',
+      'Приложение стало удобнее и быстрее. Обновите его, чтобы продолжить.',
   'update_now': 'Обновить',
-  'ready_title': 'Обновление готово',
-  'ready_body': 'Перезапустите приложение, чтобы установить его',
-  'restart_now': 'Перезапуск',
 };
 
 const Map<String, dynamic> updateEn = {
-  'required_title': 'Update required',
+  'required_title': 'A new version is available!',
   'required_body':
-      'A new version of Woody is available. Update the app to continue.',
+      'Our app is now smoother and faster. Update it to continue.',
   'update_now': 'Update',
-  'ready_title': 'Update ready',
-  'ready_body': 'Restart the app to install it',
-  'restart_now': 'Restart',
 };
 
 const Map<String, dynamic> offlineUz = {

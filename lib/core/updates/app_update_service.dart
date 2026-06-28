@@ -1,27 +1,11 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:in_app_update/in_app_update.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../config/remote_config.dart';
 import '../logging/app_logger.dart';
-
-/// What the update gate should do after a Play check.
-enum AppUpdateAction { none, flexible, immediate }
-
-/// UI surface the [AppUpdateGate] renders. Driven by [AppUpdateService].
-enum AppUpdateUiState {
-  idle,
-
-  /// The installed build is below the backend `min_version` and the Play
-  /// immediate flow was denied/unavailable — show the blocking overlay.
-  forceBlocked,
-
-  /// A flexible update finished downloading — offer a restart.
-  flexibleReady,
-}
 
 /// Compares two dotted version strings (`"1.0.9"` vs `"1.0.10"`), ignoring a
 /// `+buildNumber` suffix. Missing segments read as 0, non-numeric segments
@@ -45,58 +29,51 @@ int compareVersions(String a, String b) {
   return 0;
 }
 
-/// Decides between Play's blocking *immediate* flow and the quiet *flexible*
-/// flow. The backend `min_version` is the only force trigger; the soft prompt
-/// trusts Play's own availability signal, so users see new builds without the
-/// backend row needing a bump every release.
-AppUpdateAction resolveUpdateAction({
-  required bool playUpdateAvailable,
-  required bool immediateAllowed,
-  required bool flexibleAllowed,
-  required String installedVersion,
-  String? minVersion,
-}) {
-  if (!playUpdateAvailable) return AppUpdateAction.none;
-  final forced =
-      minVersion != null && compareVersions(installedVersion, minVersion) < 0;
-  if (forced) {
-    if (immediateAllowed) return AppUpdateAction.immediate;
-    if (flexibleAllowed) return AppUpdateAction.flexible;
-    return AppUpdateAction.none;
-  }
-  return flexibleAllowed ? AppUpdateAction.flexible : AppUpdateAction.none;
-}
+/// `true` when the installed [currentVersion] is below [minRequiredVersion] and
+/// the app must force an update. Splits both semantic versions by `.` and
+/// compares numerically (see [compareVersions]) — `"1.2.0"` < `"1.10.0"`.
+bool isUpdateRequired(String currentVersion, String minRequiredVersion) =>
+    compareVersions(currentVersion, minRequiredVersion) < 0;
 
-/// Orchestrates Google Play in-app updates (Android only).
+/// Decides whether the app must force a native update and drives the
+/// [AppUpdateGate] overlay.
 ///
-/// A process singleton — mirrors [RemoteConfig.instance] — so the launch
-/// check survives the Phoenix rebirth on customer↔seller mode flips instead
-/// of re-prompting after every switch. [AppUpdateGate] (mounted in both
-/// MaterialApp builders) renders whatever [uiState] says and forwards
-/// lifecycle resumes here.
+/// This is fully backend-driven and platform-universal: it reads the installed
+/// version, compares it against the per-platform `min_version` published in the
+/// `app_versions` remote config, and — if below — flips [forceUpdateRequired]
+/// so the gate paints a blocking glassmorphism overlay. The overlay's button
+/// opens the platform store. There is **no** Google Play `in_app_update` flow
+/// anymore; minor updates ride Shorebird OTA, and this gate is strictly for
+/// major native releases the operator pins via the admin panel.
 ///
-/// Debug builds skip everything: in-app updates only work for Play-installed
-/// builds, so a dev run would just throw `PlatformException` noise.
+/// A process singleton — mirrors [RemoteConfig.instance] — so the launch check
+/// survives the Phoenix rebirth on customer↔seller mode flips instead of
+/// re-evaluating after every switch.
 class AppUpdateService {
   AppUpdateService._();
 
   static final AppUpdateService instance = AppUpdateService._();
 
-  final ValueNotifier<AppUpdateUiState> uiState = ValueNotifier(
-    AppUpdateUiState.idle,
-  );
+  /// Exact store URLs supplied by the client — the buttons must land on these.
+  static const String androidStoreUrl =
+      'https://play.google.com/store/apps/details?id=com.mebellar.app';
+  static const String iosStoreUrl =
+      'https://apps.apple.com/us/app/woody-mebellar-olami/id6781271095';
+
+  /// `true` once the installed build is below the platform `min_version`. The
+  /// gate listens to this and, once set, the overlay can never be dismissed.
+  final ValueNotifier<bool> forceUpdateRequired = ValueNotifier(false);
 
   bool _checkedThisSession = false;
-  bool _immediateInProgress = false;
-  String _packageName = 'com.mebellar.app';
 
-  bool get _supported => !kIsWeb && !kDebugMode && Platform.isAndroid;
+  // Short-circuits on web before touching `Platform`, which throws there.
+  bool get _supported => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
-  /// One-shot launch check. Awaits the in-flight [RemoteConfig.refresh] (with
-  /// a timeout so an offline boot proceeds on cached values) and then asks
-  /// Play whether an update exists.
+  /// One-shot launch check. Awaits the in-flight [RemoteConfig.refresh] (with a
+  /// timeout so an offline boot proceeds on the cached value) and then compares
+  /// the installed version against the platform threshold.
   Future<void> checkOnLaunch() async {
-    if (!_supported || _checkedThisSession) return;
+    if (_checkedThisSession || !_supported) return;
     _checkedThisSession = true;
 
     await RemoteConfig.instance.whenRefreshed.timeout(
@@ -104,145 +81,28 @@ class AppUpdateService {
       onTimeout: () {},
     );
 
-    final packageInfo = await PackageInfo.fromPlatform();
-    _packageName = packageInfo.packageName;
-    final installed = packageInfo.version;
-    final minVersion = RemoteConfig.instance.androidMinVersion;
+    final minVersion = Platform.isIOS
+        ? RemoteConfig.instance.iosMinVersion
+        : RemoteConfig.instance.androidMinVersion;
+    if (minVersion == null) return; // nothing pinned server-side
 
-    AppUpdateInfo info;
-    try {
-      info = await InAppUpdate.checkForUpdate();
-    } catch (e, st) {
-      // Not a Play-installed build (sideloaded APK) or Play is unreachable.
-      // A backend-forced version still blocks — the overlay's button routes
-      // to the Play listing instead of the in-app flow.
-      appLog.handle(e, st, '[app-update] Play check failed');
-      final forced =
-          minVersion != null && compareVersions(installed, minVersion) < 0;
-      if (forced) uiState.value = AppUpdateUiState.forceBlocked;
-      return;
-    }
-
-    final action = resolveUpdateAction(
-      playUpdateAvailable:
-          info.updateAvailability == UpdateAvailability.updateAvailable,
-      immediateAllowed: info.immediateUpdateAllowed,
-      flexibleAllowed: info.flexibleUpdateAllowed,
-      installedVersion: installed,
-      minVersion: minVersion,
-    );
+    final installed = (await PackageInfo.fromPlatform()).version;
+    final forced = isUpdateRequired(installed, minVersion);
     appLog.info(
-      '[app-update] installed=$installed min=$minVersion '
-      'play=${info.updateAvailability.name} → ${action.name}',
+      '[app-update] installed=$installed min=$minVersion → '
+      '${forced ? 'FORCED' : 'ok'}',
     );
-
-    switch (action) {
-      case AppUpdateAction.none:
-        return;
-      case AppUpdateAction.immediate:
-        await _runImmediate();
-      case AppUpdateAction.flexible:
-        await _runFlexible();
-    }
+    if (forced) forceUpdateRequired.value = true;
   }
 
-  /// Re-entry point for app resumes: Play's immediate flow can be interrupted
-  /// (user backgrounds mid-download) and must be resumed manually, and a
-  /// flexible download finished in the background becomes installable.
-  Future<void> onResumed() async {
-    if (!_supported || !_checkedThisSession) return;
+  /// Force-overlay button: open the platform store listing in the native store
+  /// app so the user leaves Woody to update.
+  Future<void> openStore() async {
+    final url = Uri.parse(Platform.isIOS ? iosStoreUrl : androidStoreUrl);
     try {
-      final info = await InAppUpdate.checkForUpdate();
-      if (info.updateAvailability ==
-          UpdateAvailability.developerTriggeredUpdateInProgress) {
-        if (_immediateInProgress) await _runImmediate();
-        return;
-      }
-      if (info.installStatus == InstallStatus.downloaded &&
-          uiState.value == AppUpdateUiState.idle) {
-        uiState.value = AppUpdateUiState.flexibleReady;
-      }
-    } catch (_) {
-      // Resume checks are opportunistic — stay quiet off Play installs.
-    }
-  }
-
-  Future<void> _runImmediate() async {
-    _immediateInProgress = true;
-    try {
-      final result = await InAppUpdate.performImmediateUpdate();
-      if (result == AppUpdateResult.success) {
-        // Play restarts the app into the new build; nothing left to do.
-        _immediateInProgress = false;
-        uiState.value = AppUpdateUiState.idle;
-        return;
-      }
-      // Denied or failed: the update is mandatory, so block the app with our
-      // own overlay — its button re-launches the flow.
-      uiState.value = AppUpdateUiState.forceBlocked;
+      await launchUrl(url, mode: LaunchMode.externalApplication);
     } catch (e, st) {
-      appLog.handle(e, st, '[app-update] immediate flow crashed');
-      uiState.value = AppUpdateUiState.forceBlocked;
-    }
-  }
-
-  Future<void> _runFlexible() async {
-    try {
-      final result = await InAppUpdate.startFlexibleUpdate();
-      // The future completes when the background download finishes.
-      if (result == AppUpdateResult.success) {
-        uiState.value = AppUpdateUiState.flexibleReady;
-      }
-    } catch (e, st) {
-      appLog.handle(e, st, '[app-update] flexible flow failed');
-    }
-  }
-
-  /// Force-overlay button: retry the Play immediate flow; if that can't even
-  /// start (sideloaded build), open the Play listing.
-  Future<void> retryForcedUpdate() async {
-    try {
-      await InAppUpdate.checkForUpdate();
-      await _runImmediate();
-      if (uiState.value == AppUpdateUiState.idle) return;
-    } catch (_) {
-      // Fall through to the store listing.
-    }
-    await openStoreListing();
-  }
-
-  /// Restart-banner button: applies the downloaded flexible update (Play
-  /// restarts the app).
-  Future<void> completeFlexibleUpdate() async {
-    try {
-      await InAppUpdate.completeFlexibleUpdate();
-    } catch (e, st) {
-      appLog.handle(e, st, '[app-update] completeFlexibleUpdate failed');
-      uiState.value = AppUpdateUiState.idle;
-    }
-  }
-
-  void dismissFlexibleBanner() {
-    if (uiState.value == AppUpdateUiState.flexibleReady) {
-      uiState.value = AppUpdateUiState.idle;
-    }
-  }
-
-  Future<void> openStoreListing() async {
-    final market = Uri.parse('market://details?id=$_packageName');
-    final web = Uri.parse(
-      'https://play.google.com/store/apps/details?id=$_packageName',
-    );
-    try {
-      final opened = await launchUrl(
-        market,
-        mode: LaunchMode.externalApplication,
-      );
-      if (!opened) {
-        await launchUrl(web, mode: LaunchMode.externalApplication);
-      }
-    } catch (e, st) {
-      appLog.handle(e, st, '[app-update] could not open Play listing');
+      appLog.handle(e, st, '[app-update] could not open store listing');
     }
   }
 }
