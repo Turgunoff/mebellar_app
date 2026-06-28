@@ -42,4 +42,31 @@ void main() {
       );
     });
   });
+
+  group('RemoteConfig.parseMaintenance', () {
+    test('reads enabled flag and trimmed message', () {
+      final parsed = RemoteConfig.parseMaintenance({
+        'enabled': true,
+        'message': '  Tez orada qaytamiz.  ',
+      });
+      expect(parsed.enabled, isTrue);
+      expect(parsed.message, 'Tez orada qaytamiz.');
+    });
+
+    test('disabled by default for partial / missing payloads', () {
+      expect(RemoteConfig.parseMaintenance({'message': 'x'}).enabled, isFalse);
+      expect(RemoteConfig.parseMaintenance(<String, dynamic>{}).enabled, isFalse);
+    });
+
+    test('non-map payloads read as disabled with empty message', () {
+      final parsed = RemoteConfig.parseMaintenance(null);
+      expect(parsed.enabled, isFalse);
+      expect(parsed.message, '');
+      expect(RemoteConfig.parseMaintenance('true').enabled, isFalse);
+    });
+
+    test('tolerates a string "true" flag', () {
+      expect(RemoteConfig.parseMaintenance({'enabled': 'true'}).enabled, isTrue);
+    });
+  });
 }

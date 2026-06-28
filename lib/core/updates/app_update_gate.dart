@@ -2,18 +2,20 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../../config/remote_config.dart';
 import '../../customer/features/home/widgets/premium/premium_tokens.dart';
 import '../i18n/i18n.dart';
 import 'app_update_service.dart';
+import 'maintenance_overlay.dart';
 
 /// Mounts inside both MaterialApp builders (customer + seller), above the
-/// Navigator, and paints the force-update overlay on top of the whole app when
-/// the installed build is below the backend `min_version` for this platform.
+/// Navigator, and paints a blocking overlay on top of the whole app at launch:
+/// a maintenance freeze (priority) or a mandatory native update.
 ///
 /// The launch check runs once per process (the service is a singleton), so the
 /// Phoenix rebirth on a customer↔seller flip doesn't re-evaluate — but each
 /// rebirth re-mounts this gate, which keeps rendering whatever the service
-/// already holds. Once [AppUpdateService.forceUpdateRequired] is set, the
+/// already holds. Once [AppUpdateService.gateState] is a blocking state, the
 /// overlay is strictly non-dismissible (it sits above the Navigator, swallows
 /// every gesture, and blocks the Android back button).
 class AppUpdateGate extends StatefulWidget {
@@ -42,13 +44,18 @@ class _AppUpdateGateState extends State<AppUpdateGate> {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<bool>(
-      valueListenable: _service.forceUpdateRequired,
-      builder: (context, blocked, child) => Stack(
+    return ValueListenableBuilder<AppGateState>(
+      valueListenable: _service.gateState,
+      builder: (context, state, child) => Stack(
         fit: StackFit.expand,
         children: [
           child!,
-          if (blocked) ForceUpdateOverlay(onUpdate: _service.openStore),
+          if (state == AppGateState.maintenance)
+            MaintenanceOverlay(
+              message: RemoteConfig.instance.maintenanceMessage,
+            )
+          else if (state == AppGateState.forceUpdate)
+            ForceUpdateOverlay(onUpdate: _service.openStore),
         ],
       ),
       child: widget.child,

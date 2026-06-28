@@ -23,6 +23,23 @@ const Map<String, dynamic> updateEn = {
   'update_now': 'Update',
 };
 
+// Maintenance overlay — the title is app copy (tr); the body comes from the
+// backend `maintenance.message`, with this localized fallback when it's blank.
+const Map<String, dynamic> maintenanceUz = {
+  'title': 'Texnik Xizmat',
+  'fallback_message': 'Tez orada qaytamiz.',
+};
+
+const Map<String, dynamic> maintenanceRu = {
+  'title': 'Технические работы',
+  'fallback_message': 'Скоро вернёмся.',
+};
+
+const Map<String, dynamic> maintenanceEn = {
+  'title': 'Under Maintenance',
+  'fallback_message': 'We\'ll be back soon.',
+};
+
 const Map<String, dynamic> offlineUz = {
   'banner': 'Internet aloqasi yo\'q',
   'restored': 'Tarmoq tiklandi',

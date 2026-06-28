@@ -36,10 +36,20 @@ class RemoteConfig {
   /// platform carries its own threshold.
   String? iosMinVersion;
 
+  /// When `true` the whole app is frozen behind a blocking maintenance overlay
+  /// (checked BEFORE the force-update gate). Mirrors `app_settings.maintenance`.
+  bool maintenanceEnabled = false;
+
+  /// Customer-facing maintenance copy, set by the operator. Empty until fetched;
+  /// the overlay falls back to a localized default when blank.
+  String maintenanceMessage = '';
+
   static const _tariffHiveKey = 'remote_config.tariff_enabled';
   static const _androidMinVersionHiveKey =
       'remote_config.android_min_version';
   static const _iosMinVersionHiveKey = 'remote_config.ios_min_version';
+  static const _maintenanceEnabledHiveKey = 'remote_config.maintenance_enabled';
+  static const _maintenanceMessageHiveKey = 'remote_config.maintenance_message';
 
   /// Seeds the flags from the last cached values. Synchronous, so it can run
   /// at boot before the first frame.
@@ -52,6 +62,10 @@ class RemoteConfig {
     }
     final iosMin = box.get(_iosMinVersionHiveKey);
     if (iosMin is String && iosMin.isNotEmpty) iosMinVersion = iosMin;
+    final maint = box.get(_maintenanceEnabledHiveKey);
+    if (maint is bool) maintenanceEnabled = maint;
+    final maintMsg = box.get(_maintenanceMessageHiveKey);
+    if (maintMsg is String) maintenanceMessage = maintMsg;
   }
 
   Future<void>? _inflightRefresh;
@@ -69,6 +83,7 @@ class RemoteConfig {
     final work = Future.wait([
       _refreshTariff(api, box),
       _refreshAppVersions(api, box),
+      _refreshMaintenance(api, box),
     ]).then((_) {});
     _inflightRefresh = work;
     return work;
@@ -154,6 +169,53 @@ class RemoteConfig {
     return (
       androidMin: minOf(value['android']),
       iosMin: minOf(value['ios']),
+    );
+  }
+
+  Future<void> _refreshMaintenance(WoodyApiClient api, Box box) async {
+    try {
+      final body = await api
+          .get<Map<String, dynamic>>('/catalog/settings/maintenance')
+          .timeout(const Duration(seconds: 6));
+      final (:enabled, :message) = parseMaintenance(body['value']);
+      maintenanceEnabled = enabled;
+      maintenanceMessage = message;
+      await box.put(_maintenanceEnabledHiveKey, enabled);
+      await box.put(_maintenanceMessageHiveKey, message);
+      appLog.info('[remote-config] maintenance=$enabled');
+    } on ApiError catch (e, st) {
+      if (e.isNotFound) {
+        maintenanceEnabled = false;
+        maintenanceMessage = '';
+        await box.put(_maintenanceEnabledHiveKey, false);
+        await box.put(_maintenanceMessageHiveKey, '');
+        return;
+      }
+      appLog.handle(
+        e,
+        st,
+        '[remote-config] maintenance refresh failed — kept cached value',
+      );
+    } catch (e, st) {
+      appLog.handle(
+        e,
+        st,
+        '[remote-config] maintenance refresh failed — kept cached value',
+      );
+    }
+  }
+
+  /// Extracts `(enabled, message)` from the `maintenance` jsonb value:
+  /// `{"enabled": true, "message": "..."}`. Defensive — anything unexpected
+  /// reads as *disabled* with an empty message rather than throwing at boot.
+  static ({bool enabled, String message}) parseMaintenance(dynamic value) {
+    if (value is! Map) return (enabled: false, message: '');
+    final raw = value['enabled'];
+    final enabled = raw == true || raw == 'true';
+    final msg = value['message'];
+    return (
+      enabled: enabled,
+      message: msg is String ? msg.trim() : '',
     );
   }
 }
