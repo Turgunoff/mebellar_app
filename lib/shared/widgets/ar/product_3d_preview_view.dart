@@ -346,7 +346,7 @@ class _Product3DPreviewScreenState extends State<Product3DPreviewScreen> {
                             alignment: Alignment.centerRight,
                             child: Padding(
                               padding: const EdgeInsets.only(right: 8, bottom: 14),
-                              child: _ModelSwitcherButton(
+                              child: ArModelSwitcherButton(
                                 activeName: _active.name,
                                 index: _activeIndex,
                                 total: widget.parts.length,
@@ -375,21 +375,12 @@ class _Product3DPreviewScreenState extends State<Product3DPreviewScreen> {
 
   // ── model switcher ────────────────────────────────────────────────────────
 
-  Future<void> _showSwitcherSheet() async {
-    await showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (sheetContext) => _PartSwitcherSheet(
-        parts: widget.parts,
-        activeIndex: _activeIndex,
-        onSelect: (i) {
-          Navigator.of(sheetContext).pop();
-          _selectPart(i);
-        },
-      ),
-    );
-  }
+  Future<void> _showSwitcherSheet() => showArPartSwitcher(
+    context,
+    partNames: [for (final p in widget.parts) p.name],
+    activeIndex: _activeIndex,
+    onSelect: _selectPart,
+  );
 
   // ── AR launch ─────────────────────────────────────────────────────────────
 
@@ -493,10 +484,14 @@ class _Product3DPreviewScreenState extends State<Product3DPreviewScreen> {
 // UI primitives — premium chrome shared by customer & seller.
 // ════════════════════════════════════════════════════════════════════════════
 
-/// Floating model switcher — a white pill (layers glyph + active piece name)
-/// that opens the part picker. Lives bottom-right, above the AR CTA, for sets.
-class _ModelSwitcherButton extends StatelessWidget {
-  const _ModelSwitcherButton({
+/// Floating model switcher — a white pill (3D-cube glyph + active piece name +
+/// `index/total`) that opens the part picker. Lives bottom-right, above the AR
+/// CTA, for multi-part sets. Public so both the shared [Product3DPreviewScreen]
+/// (seller) and the customer's `BuyerArViewerScreen` render the identical
+/// switcher; pair it with [showArPartSwitcher].
+class ArModelSwitcherButton extends StatelessWidget {
+  const ArModelSwitcherButton({
+    super.key,
     required this.activeName,
     required this.index,
     required this.total,
@@ -576,14 +571,39 @@ class _ModelSwitcherButton extends StatelessWidget {
 }
 
 /// Bottom sheet listing every part with a checkmark on the active one.
+/// Opens the part picker bottom sheet (drag handle, title, one row per part with
+/// a checkmark on the active one) and reports the chosen index. Shared by the
+/// seller screen and the customer viewer so both switch parts identically. The
+/// sheet pops itself before [onSelect] fires.
+Future<void> showArPartSwitcher(
+  BuildContext context, {
+  required List<String> partNames,
+  required int activeIndex,
+  required ValueChanged<int> onSelect,
+}) {
+  return showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    isScrollControlled: true,
+    builder: (sheetContext) => _PartSwitcherSheet(
+      partNames: partNames,
+      activeIndex: activeIndex,
+      onSelect: (i) {
+        Navigator.of(sheetContext).pop();
+        onSelect(i);
+      },
+    ),
+  );
+}
+
 class _PartSwitcherSheet extends StatelessWidget {
   const _PartSwitcherSheet({
-    required this.parts,
+    required this.partNames,
     required this.activeIndex,
     required this.onSelect,
   });
 
-  final List<Product3DPart> parts;
+  final List<String> partNames;
   final int activeIndex;
   final ValueChanged<int> onSelect;
 
@@ -624,11 +644,11 @@ class _PartSwitcherSheet extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              for (var i = 0; i < parts.length; i++) ...[
+              for (var i = 0; i < partNames.length; i++) ...[
                 if (i > 0) const SizedBox(height: 10),
                 _PartRow(
                   index: i,
-                  name: parts[i].name,
+                  name: partNames[i],
                   active: i == activeIndex,
                   onTap: () => onSelect(i),
                 ),

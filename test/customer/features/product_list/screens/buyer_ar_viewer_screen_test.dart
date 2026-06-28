@@ -10,6 +10,7 @@ import 'package:woody_app/shared/models/ar_part.dart';
 import 'package:woody_app/shared/models/product_model.dart';
 import 'package:woody_app/shared/models/product_set.dart';
 import 'package:woody_app/shared/repositories/woody_set_repository.dart';
+import 'package:woody_app/shared/widgets/ar/product_3d_preview_view.dart';
 
 import '../../../../support/fake_webview_platform.dart';
 
@@ -238,11 +239,13 @@ void main() {
       ),
     );
 
-    // The primary 'Krovat' part is selected (title + chip); Shkaf is a chip.
+    // The active 'Krovat' part shows twice — top-bar title + the model switcher
+    // pill; sibling parts live behind the switcher sheet (not on screen yet).
     // hasMultipleParts is true here — the gate that routes the AR CTA to the
     // native multi-object scene instead of single-model OS AR.
+    expect(find.byType(ArModelSwitcherButton), findsOneWidget);
     expect(find.text('Krovat'), findsNWidgets(2));
-    expect(find.text('Shkaf'), findsOneWidget);
+    expect(find.text('Shkaf'), findsNothing);
   });
 
   testWidgets('shows a part selector and toggles models for a set', (
@@ -271,18 +274,26 @@ void main() {
       setRepository: repo,
     );
 
-    // The set's siblings each get a selector chip; the opened product (Krovat)
-    // is the active part, so its name shows twice (top-bar title + chip).
+    // The opened product (Krovat) is the active part: its name shows twice
+    // (top-bar title + switcher pill); siblings are hidden until the switcher
+    // sheet opens.
     expect(find.text('Krovat'), findsNWidgets(2));
+    expect(find.text('Shkaf'), findsNothing);
+    expect(find.text('Tryumo'), findsNothing);
+
+    // Open the switcher → every part appears as a row.
+    await tester.tap(find.byType(ArModelSwitcherButton));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Shkaf'), findsOneWidget);
     expect(find.text('Tryumo'), findsOneWidget);
 
-    // Toggle to Shkaf → the active model (and the top-bar title) switches.
+    // Pick Shkaf → the sheet closes and the active model (+ title) switches.
     await tester.tap(find.text('Shkaf'));
-    for (var i = 0; i < 4; i++) {
-      await tester.pump(const Duration(milliseconds: 10));
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
     }
     expect(find.text('Shkaf'), findsNWidgets(2));
-    expect(find.text('Krovat'), findsOneWidget);
+    expect(find.text('Krovat'), findsNothing);
   });
 }

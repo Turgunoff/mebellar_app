@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert' show base64Decode;
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart' show Uint8List, compute, visibleForTesting;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -25,6 +24,7 @@ import '../../../../shared/repositories/woody_set_repository.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../cubit/ar_viewer_cubit.dart';
 import '../../../../shared/widgets/ar/fallback_2d_camera_screen.dart';
+import '../../../../shared/widgets/ar/product_3d_preview_view.dart';
 import 'set_ar_viewer_screen.dart';
 import 'set_sticker_screen.dart';
 
@@ -365,19 +365,32 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
                         ],
                       ),
                     ),
-                    // Bottom — the part selector (set members only) sits just
-                    // above the full-width AR CTA. Both act on the selected part.
+                    // Bottom — the floating model switcher (set members only)
+                    // sits bottom-right, just above the full-width AR CTA. Both
+                    // act on the selected part. Same switcher the seller's
+                    // Product3DPreviewScreen uses, so both modes are identical.
                     Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         if (state.hasMultipleParts)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 14),
-                            child: _PartSelector(
-                              parts: state.parts,
-                              selectedIndex: state.selectedIndex,
-                              onSelect: _cubit.selectPart,
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: Padding(
+                              padding: const EdgeInsets.only(right: 8, bottom: 14),
+                              child: ArModelSwitcherButton(
+                                activeName: part.name,
+                                index: state.selectedIndex,
+                                total: state.parts.length,
+                                onTap: () => showArPartSwitcher(
+                                  context,
+                                  partNames: [
+                                    for (final p in state.parts) p.name,
+                                  ],
+                                  activeIndex: state.selectedIndex,
+                                  onSelect: _cubit.selectPart,
+                                ),
+                              ),
                             ),
                           ),
                         Padding(
@@ -786,131 +799,6 @@ class _TopScrim extends StatelessWidget {
               end: Alignment.bottomCenter,
               colors: [Color(0xE6F4F5F7), Color(0x00F4F5F7)],
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Bottom selector for a furniture set: one tappable chip per model-bearing
-/// piece, scrolling horizontally. The selected chip is filled with the brand
-/// accent so the buyer always knows which model is on screen. Fixed-for-light to
-/// match the immersive viewer surface (which never flips with the OS theme).
-class _PartSelector extends StatelessWidget {
-  const _PartSelector({
-    required this.parts,
-    required this.selectedIndex,
-    required this.onSelect,
-  });
-
-  final List<ArViewerPart> parts;
-  final int selectedIndex;
-  final ValueChanged<int> onSelect;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 52,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 2),
-        physics: const BouncingScrollPhysics(),
-        itemCount: parts.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 10),
-        itemBuilder: (context, i) => _PartChip(
-          part: parts[i],
-          selected: i == selectedIndex,
-          onTap: () => onSelect(i),
-        ),
-      ),
-    );
-  }
-}
-
-/// A single part chip — thumbnail + name. Filled accent + white text when
-/// selected; a white pill with ink text otherwise.
-class _PartChip extends StatelessWidget {
-  const _PartChip({
-    required this.part,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final ArViewerPart part;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    const accent = PremiumTokens.accent;
-    final fg = selected ? Colors.white : _kInk;
-    return Material(
-      color: selected ? accent : Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      elevation: selected ? 4 : 1.5,
-      shadowColor: selected
-          ? accent.withValues(alpha: 0.4)
-          : const Color(0x22000000),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 176),
-          padding: const EdgeInsets.fromLTRB(6, 6, 14, 6),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: selected ? accent : const Color(0x14000000),
-              width: 1,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(11),
-                child: SizedBox(
-                  width: 40,
-                  height: 40,
-                  child: ColoredBox(
-                    color: selected
-                        ? Colors.white.withValues(alpha: 0.18)
-                        : const Color(0xFFF0F1F3),
-                    child: part.posterUrl != null
-                        ? CachedNetworkImage(
-                            imageUrl: part.posterUrl!,
-                            fit: BoxFit.cover,
-                            errorWidget: (_, _, _) => Icon(
-                              Iconsax.d_cube_scan,
-                              size: 18,
-                              color: fg.withValues(alpha: 0.6),
-                            ),
-                          )
-                        : Icon(
-                            Iconsax.d_cube_scan,
-                            size: 18,
-                            color: fg.withValues(alpha: 0.6),
-                          ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 9),
-              Flexible(
-                child: Text(
-                  part.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: AppFonts.body,
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.1,
-                    color: fg,
-                  ),
-                ),
-              ),
-            ],
           ),
         ),
       ),
