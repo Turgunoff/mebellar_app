@@ -73,28 +73,35 @@ class ForceUpdateOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          // Blur the Home screen behind, then lay a dark scrim that also
-          // absorbs every tap (dismissible: false → can't be tapped away).
-          BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-            child: const ModalBarrier(
-              dismissible: false,
-              color: Color(0x4D000000), // black @ 30%
-            ),
-          ),
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 28),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 420),
-                child: _GlassCard(onUpdate: onUpdate),
+      // Transparent Material — paints nothing (keeps the glass look) but gives
+      // the Text/FilledButton a default text style + ink host. Without it, this
+      // overlay sits above the Navigator with no Material ancestor and Flutter
+      // paints the debug yellow underline on every Text.
+      child: Material(
+        type: MaterialType.transparency,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Blur the Home screen behind, then lay a dark scrim that also
+            // absorbs every tap (dismissible: false → can't be tapped away).
+            BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+              child: const ModalBarrier(
+                dismissible: false,
+                color: Color(0x4D000000), // black @ 30%
               ),
             ),
-          ),
-        ],
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 28),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: _GlassCard(onUpdate: onUpdate),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
