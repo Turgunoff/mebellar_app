@@ -44,12 +44,59 @@ class RemoteConfig {
   /// the overlay falls back to a localized default when blank.
   String maintenanceMessage = '';
 
+  // Support contacts (email / phone / Telegram). Mirror
+  // `app_settings.support_contacts`, edited from the admin panel. Unlike the
+  // flags above these carry non-empty platform defaults so the help screen
+  // always has a valid channel to launch, even before the first fetch. The
+  // cached/fetched values override; a 404 resets to these defaults.
+  static const defaultSupportEmail = 'support@woody.uz';
+  static const defaultSupportPhone = '+998 71 200 70 07';
+  static const defaultTelegramChannel = '@woody_support';
+
+  /// Support e-mail address, e.g. `support@woody.uz`.
+  String supportEmail = defaultSupportEmail;
+
+  /// Support phone in display form, e.g. `+998 71 200 70 07`.
+  String supportPhone = defaultSupportPhone;
+
+  /// Public support Telegram channel, e.g. `@woody_support` (a `@handle` or a
+  /// full `t.me` URL — both normalise to [telegramUrl]).
+  String telegramChannel = defaultTelegramChannel;
+
   static const _tariffHiveKey = 'remote_config.tariff_enabled';
   static const _androidMinVersionHiveKey =
       'remote_config.android_min_version';
   static const _iosMinVersionHiveKey = 'remote_config.ios_min_version';
   static const _maintenanceEnabledHiveKey = 'remote_config.maintenance_enabled';
   static const _maintenanceMessageHiveKey = 'remote_config.maintenance_message';
+  static const _supportEmailHiveKey = 'remote_config.support_email';
+  static const _supportPhoneHiveKey = 'remote_config.support_phone';
+  static const _telegramChannelHiveKey = 'remote_config.telegram_channel';
+
+  /// `mailto:` URI for [supportEmail].
+  String get supportEmailUri => 'mailto:$supportEmail';
+
+  /// `tel:` URI for [supportPhone], stripped to dialable characters (`+`/digits).
+  String get supportPhoneUri =>
+      'tel:${supportPhone.replaceAll(RegExp(r'[^+\d]'), '')}';
+
+  /// `https://wa.me/<digits>` link for [supportPhone] (WhatsApp wants no `+`).
+  String get whatsappUri =>
+      'https://wa.me/${supportPhone.replaceAll(RegExp(r'[^\d]'), '')}';
+
+  /// `https://t.me/<handle>` deep link — accepts `@handle`, a bare handle, or a
+  /// full `t.me`/`telegram.me` URL and always emits a canonical link.
+  String get telegramUrl {
+    final handle = telegramChannel
+        .trim()
+        .replaceAll(
+          RegExp(r'^https?://(t\.me|telegram\.me)/', caseSensitive: false),
+          '',
+        )
+        .replaceAll('@', '')
+        .replaceAll(RegExp(r'/+$'), '');
+    return 'https://t.me/$handle';
+  }
 
   /// Seeds the flags from the last cached values. Synchronous, so it can run
   /// at boot before the first frame.
@@ -66,6 +113,12 @@ class RemoteConfig {
     if (maint is bool) maintenanceEnabled = maint;
     final maintMsg = box.get(_maintenanceMessageHiveKey);
     if (maintMsg is String) maintenanceMessage = maintMsg;
+    final email = box.get(_supportEmailHiveKey);
+    if (email is String && email.isNotEmpty) supportEmail = email;
+    final phone = box.get(_supportPhoneHiveKey);
+    if (phone is String && phone.isNotEmpty) supportPhone = phone;
+    final tg = box.get(_telegramChannelHiveKey);
+    if (tg is String && tg.isNotEmpty) telegramChannel = tg;
   }
 
   Future<void>? _inflightRefresh;
@@ -84,6 +137,7 @@ class RemoteConfig {
       _refreshTariff(api, box),
       _refreshAppVersions(api, box),
       _refreshMaintenance(api, box),
+      _refreshSupportContacts(api, box),
     ]).then((_) {});
     _inflightRefresh = work;
     return work;
@@ -216,6 +270,69 @@ class RemoteConfig {
     return (
       enabled: enabled,
       message: msg is String ? msg.trim() : '',
+    );
+  }
+
+  Future<void> _refreshSupportContacts(WoodyApiClient api, Box box) async {
+    try {
+      final body = await api
+          .get<Map<String, dynamic>>('/catalog/settings/support_contacts')
+          .timeout(const Duration(seconds: 6));
+      final (:email, :phone, :telegram) = parseSupportContacts(body['value']);
+      supportEmail = email;
+      supportPhone = phone;
+      telegramChannel = telegram;
+      await box.put(_supportEmailHiveKey, email);
+      await box.put(_supportPhoneHiveKey, phone);
+      await box.put(_telegramChannelHiveKey, telegram);
+      appLog.info('[remote-config] support_contacts updated');
+    } on ApiError catch (e, st) {
+      if (e.isNotFound) {
+        // Key not configured server-side — fall back to the platform defaults
+        // (not empty), so the help screen still has a channel to launch.
+        supportEmail = defaultSupportEmail;
+        supportPhone = defaultSupportPhone;
+        telegramChannel = defaultTelegramChannel;
+        await box.put(_supportEmailHiveKey, defaultSupportEmail);
+        await box.put(_supportPhoneHiveKey, defaultSupportPhone);
+        await box.put(_telegramChannelHiveKey, defaultTelegramChannel);
+        return;
+      }
+      appLog.handle(
+        e,
+        st,
+        '[remote-config] support_contacts refresh failed — kept cached value',
+      );
+    } catch (e, st) {
+      appLog.handle(
+        e,
+        st,
+        '[remote-config] support_contacts refresh failed — kept cached value',
+      );
+    }
+  }
+
+  /// Extracts `(email, phone, telegram)` from the `support_contacts` jsonb
+  /// value: `{"support_email": ..., "support_phone": ..., "telegram_channel":
+  /// ...}`. Defensive — a missing or blank field reads as the platform default
+  /// rather than an empty string, so a launch URL is never malformed.
+  static ({String email, String phone, String telegram}) parseSupportContacts(
+    dynamic value,
+  ) {
+    String pick(dynamic v, String fallback) =>
+        v is String && v.trim().isNotEmpty ? v.trim() : fallback;
+
+    if (value is! Map) {
+      return (
+        email: defaultSupportEmail,
+        phone: defaultSupportPhone,
+        telegram: defaultTelegramChannel,
+      );
+    }
+    return (
+      email: pick(value['support_email'], defaultSupportEmail),
+      phone: pick(value['support_phone'], defaultSupportPhone),
+      telegram: pick(value['telegram_channel'], defaultTelegramChannel),
     );
   }
 }

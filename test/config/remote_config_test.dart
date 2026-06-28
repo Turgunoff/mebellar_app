@@ -69,4 +69,53 @@ void main() {
       expect(RemoteConfig.parseMaintenance({'enabled': 'true'}).enabled, isTrue);
     });
   });
+
+  group('RemoteConfig.parseSupportContacts', () {
+    test('reads and trims all three channels', () {
+      final parsed = RemoteConfig.parseSupportContacts({
+        'support_email': '  help@woody.uz ',
+        'support_phone': '+998 90 555 55 55',
+        'telegram_channel': '@woody_help',
+      });
+      expect(parsed.email, 'help@woody.uz');
+      expect(parsed.phone, '+998 90 555 55 55');
+      expect(parsed.telegram, '@woody_help');
+    });
+
+    test('blank / missing fields fall back to the platform defaults', () {
+      final parsed = RemoteConfig.parseSupportContacts({
+        'support_email': '   ',
+        'support_phone': '',
+      });
+      expect(parsed.email, RemoteConfig.defaultSupportEmail);
+      expect(parsed.phone, RemoteConfig.defaultSupportPhone);
+      expect(parsed.telegram, RemoteConfig.defaultTelegramChannel);
+    });
+
+    test('non-map payloads read as the platform defaults', () {
+      final parsed = RemoteConfig.parseSupportContacts(null);
+      expect(parsed.email, RemoteConfig.defaultSupportEmail);
+      expect(parsed.phone, RemoteConfig.defaultSupportPhone);
+      expect(parsed.telegram, RemoteConfig.defaultTelegramChannel);
+    });
+  });
+
+  group('RemoteConfig contact URI helpers', () {
+    test('telegramUrl normalises a @handle, bare handle and full URL', () {
+      final config = RemoteConfig.instance;
+      config.telegramChannel = '@woody_support';
+      expect(config.telegramUrl, 'https://t.me/woody_support');
+      config.telegramChannel = 'woody_support';
+      expect(config.telegramUrl, 'https://t.me/woody_support');
+      config.telegramChannel = 'https://t.me/woody_support';
+      expect(config.telegramUrl, 'https://t.me/woody_support');
+    });
+
+    test('phone helpers strip display spacing', () {
+      final config = RemoteConfig.instance;
+      config.supportPhone = '+998 71 200 70 07';
+      expect(config.supportPhoneUri, 'tel:+998712007007');
+      expect(config.whatsappUri, 'https://wa.me/998712007007');
+    });
+  });
 }

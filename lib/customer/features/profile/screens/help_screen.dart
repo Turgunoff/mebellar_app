@@ -5,15 +5,15 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../config/remote_config.dart';
 import '../../../../core/auth/auth_cubit.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 
-// Real, shipped support channels — kept in sync with profile_screen's /support
-// entry. Don't swap these for unverified handles; a dead link reads as broken.
-const _telegramUrl = 'https://t.me/woody_support';
-const _whatsappUrl = 'https://wa.me/998946433733';
-const _emailUrl = 'mailto:info@woody.uz';
+// Support channels come from the backend (`app_settings.support_contacts`, via
+// RemoteConfig) so the owner can change the email / phone / Telegram from the
+// admin panel without shipping a build. RemoteConfig carries non-empty defaults,
+// so the launch URLs are always valid even before the first fetch.
 
 const _telegramBlue = Color(0xFF2AABEE);
 const _whatsappGreen = Color(0xFF25D366);
@@ -140,6 +140,7 @@ class _ContactRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
+    final config = RemoteConfig.instance;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
@@ -147,7 +148,7 @@ class _ContactRow extends StatelessWidget {
           icon: Icon(Icons.email_outlined, size: 24, color: pt.dark),
           tint: pt.dark,
           label: 'Email',
-          onTap: () => _launch(_emailUrl),
+          onTap: () => _launch(config.supportEmailUri),
         ),
         _QuickContact(
           icon: const FaIcon(
@@ -157,7 +158,7 @@ class _ContactRow extends StatelessWidget {
           ),
           tint: _telegramBlue,
           label: 'Telegram',
-          onTap: () => _launch(_telegramUrl),
+          onTap: () => _launch(config.telegramUrl),
         ),
         _QuickContact(
           icon: const FaIcon(
@@ -167,7 +168,7 @@ class _ContactRow extends StatelessWidget {
           ),
           tint: _whatsappGreen,
           label: 'WhatsApp',
-          onTap: () => _launch(_whatsappUrl),
+          onTap: () => _launch(config.whatsappUri),
         ),
         if (loggedIn)
           _QuickContact(

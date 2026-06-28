@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../../config/remote_config.dart';
 import '../../core/i18n/i18n.dart';
 import '../../customer/features/home/widgets/premium/premium_tokens.dart';
 
@@ -284,7 +285,12 @@ class StaticContentScreen extends StatelessWidget {
           Text(
             type == StaticContentType.terms
                 ? tr('about.terms_body')
-                : tr('about.privacy_body'),
+                // The privacy text cites the support email, which is backend-
+                // driven (RemoteConfig) — inject it via the `{email}` placeholder.
+                : tr(
+                    'about.privacy_body',
+                    namedArgs: {'email': RemoteConfig.instance.supportEmail},
+                  ),
             style: PremiumTokens.body(size: 14, color: pt.grey, height: 1.7),
           ),
         ],
