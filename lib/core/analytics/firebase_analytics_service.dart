@@ -1,6 +1,6 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
 
-import '../logging/talker.dart';
+import '../logging/app_logger.dart';
 import 'analytics_service.dart';
 
 /// Firebase implementation of [AnalyticsService]. Maps the type-safe
@@ -20,7 +20,7 @@ class FirebaseAnalyticsService implements AnalyticsService {
   Map<String, Object> _defaults() => const <String, Object>{};
 
   /// Centralised swallow-and-log so an analytics failure never bubbles up
-  /// into the UI. Talker → Crashlytics already covers visibility.
+  /// into the UI. AppLogger → Crashlytics already covers visibility.
   Future<void> _safeLog(String name, [Map<String, Object>? params]) async {
     try {
       await _analytics.logEvent(
@@ -28,7 +28,7 @@ class FirebaseAnalyticsService implements AnalyticsService {
         parameters: {..._defaults(), ...?params},
       );
     } catch (e, st) {
-      talker.handle(e, st, 'analytics: $name failed');
+      appLog.handle(e, st, 'analytics: $name failed');
     }
   }
 
@@ -39,7 +39,7 @@ class FirebaseAnalyticsService implements AnalyticsService {
     try {
       await _analytics.setUserId(id: userId);
     } catch (e, st) {
-      talker.handle(e, st, 'analytics: setUserId failed');
+      appLog.handle(e, st, 'analytics: setUserId failed');
     }
   }
 
@@ -48,7 +48,7 @@ class FirebaseAnalyticsService implements AnalyticsService {
     try {
       await _analytics.setAnalyticsCollectionEnabled(enabled);
     } catch (e, st) {
-      talker.handle(e, st, 'analytics: setAnalyticsEnabled failed');
+      appLog.handle(e, st, 'analytics: setAnalyticsEnabled failed');
     }
   }
 
@@ -59,7 +59,7 @@ class FirebaseAnalyticsService implements AnalyticsService {
       // attach to any subsequent crash — invaluable for repros.
       await _analytics.logScreenView(screenName: screenName);
     } catch (e, st) {
-      talker.handle(e, st, 'analytics: setCurrentScreen failed');
+      appLog.handle(e, st, 'analytics: setCurrentScreen failed');
     }
   }
 
@@ -70,7 +70,7 @@ class FirebaseAnalyticsService implements AnalyticsService {
     try {
       await _analytics.logSignUp(signUpMethod: method);
     } catch (e, st) {
-      talker.handle(e, st, 'analytics: signedUp failed');
+      appLog.handle(e, st, 'analytics: signedUp failed');
     }
   }
 
@@ -79,7 +79,7 @@ class FirebaseAnalyticsService implements AnalyticsService {
     try {
       await _analytics.logLogin(loginMethod: method);
     } catch (e, st) {
-      talker.handle(e, st, 'analytics: loggedIn failed');
+      appLog.handle(e, st, 'analytics: loggedIn failed');
     }
   }
 
@@ -121,7 +121,7 @@ class FirebaseAnalyticsService implements AnalyticsService {
         ],
       );
     } catch (e, st) {
-      talker.handle(e, st, 'analytics: productViewed failed');
+      appLog.handle(e, st, 'analytics: productViewed failed');
     }
   }
 
@@ -140,7 +140,7 @@ class FirebaseAnalyticsService implements AnalyticsService {
         },
       );
     } catch (e, st) {
-      talker.handle(e, st, 'analytics: searchPerformed failed');
+      appLog.handle(e, st, 'analytics: searchPerformed failed');
     }
   }
 
@@ -176,7 +176,7 @@ class FirebaseAnalyticsService implements AnalyticsService {
         ],
       );
     } catch (e, st) {
-      talker.handle(e, st, 'analytics: addedToCart failed');
+      appLog.handle(e, st, 'analytics: addedToCart failed');
     }
   }
 
@@ -187,7 +187,7 @@ class FirebaseAnalyticsService implements AnalyticsService {
         items: [AnalyticsEventItem(itemId: productId)],
       );
     } catch (e, st) {
-      talker.handle(e, st, 'analytics: removedFromCart failed');
+      appLog.handle(e, st, 'analytics: removedFromCart failed');
     }
   }
 
@@ -199,7 +199,7 @@ class FirebaseAnalyticsService implements AnalyticsService {
     try {
       await _analytics.logViewCart(currency: currency, value: value);
     } catch (e, st) {
-      talker.handle(e, st, 'analytics: cartViewed failed');
+      appLog.handle(e, st, 'analytics: cartViewed failed');
     }
   }
 
@@ -214,7 +214,7 @@ class FirebaseAnalyticsService implements AnalyticsService {
           items: [AnalyticsEventItem(itemId: productId)],
         );
       } catch (e, st) {
-        talker.handle(e, st, 'analytics: wishlistToggled(add) failed');
+        appLog.handle(e, st, 'analytics: wishlistToggled(add) failed');
       }
     } else {
       // No predefined "remove from wishlist" — record a custom event so the
@@ -238,7 +238,7 @@ class FirebaseAnalyticsService implements AnalyticsService {
         parameters: {'items_count': itemsCount},
       );
     } catch (e, st) {
-      talker.handle(e, st, 'analytics: beginCheckout failed');
+      appLog.handle(e, st, 'analytics: beginCheckout failed');
     }
   }
 
@@ -249,7 +249,7 @@ class FirebaseAnalyticsService implements AnalyticsService {
         parameters: city == null ? null : {'city': city},
       );
     } catch (e, st) {
-      talker.handle(e, st, 'analytics: shippingInfoAdded failed');
+      appLog.handle(e, st, 'analytics: shippingInfoAdded failed');
     }
   }
 
@@ -258,7 +258,7 @@ class FirebaseAnalyticsService implements AnalyticsService {
     try {
       await _analytics.logAddPaymentInfo(paymentType: paymentType);
     } catch (e, st) {
-      talker.handle(e, st, 'analytics: paymentInfoAdded failed');
+      appLog.handle(e, st, 'analytics: paymentInfoAdded failed');
     }
   }
 
@@ -281,7 +281,7 @@ class FirebaseAnalyticsService implements AnalyticsService {
         parameters: itemsCount == null ? null : {'items_count': itemsCount},
       );
     } catch (e, st) {
-      talker.handle(e, st, 'analytics: purchased failed');
+      appLog.handle(e, st, 'analytics: purchased failed');
     }
   }
 

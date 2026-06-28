@@ -6,7 +6,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../config/remote_config.dart';
-import '../logging/talker.dart';
+import '../logging/app_logger.dart';
 
 /// What the update gate should do after a Play check.
 enum AppUpdateAction { none, flexible, immediate }
@@ -116,7 +116,7 @@ class AppUpdateService {
       // Not a Play-installed build (sideloaded APK) or Play is unreachable.
       // A backend-forced version still blocks — the overlay's button routes
       // to the Play listing instead of the in-app flow.
-      talker.handle(e, st, '[app-update] Play check failed');
+      appLog.handle(e, st, '[app-update] Play check failed');
       final forced =
           minVersion != null && compareVersions(installed, minVersion) < 0;
       if (forced) uiState.value = AppUpdateUiState.forceBlocked;
@@ -131,7 +131,7 @@ class AppUpdateService {
       installedVersion: installed,
       minVersion: minVersion,
     );
-    talker.info(
+    appLog.info(
       '[app-update] installed=$installed min=$minVersion '
       'play=${info.updateAvailability.name} → ${action.name}',
     );
@@ -181,7 +181,7 @@ class AppUpdateService {
       // own overlay — its button re-launches the flow.
       uiState.value = AppUpdateUiState.forceBlocked;
     } catch (e, st) {
-      talker.handle(e, st, '[app-update] immediate flow crashed');
+      appLog.handle(e, st, '[app-update] immediate flow crashed');
       uiState.value = AppUpdateUiState.forceBlocked;
     }
   }
@@ -194,7 +194,7 @@ class AppUpdateService {
         uiState.value = AppUpdateUiState.flexibleReady;
       }
     } catch (e, st) {
-      talker.handle(e, st, '[app-update] flexible flow failed');
+      appLog.handle(e, st, '[app-update] flexible flow failed');
     }
   }
 
@@ -217,7 +217,7 @@ class AppUpdateService {
     try {
       await InAppUpdate.completeFlexibleUpdate();
     } catch (e, st) {
-      talker.handle(e, st, '[app-update] completeFlexibleUpdate failed');
+      appLog.handle(e, st, '[app-update] completeFlexibleUpdate failed');
       uiState.value = AppUpdateUiState.idle;
     }
   }
@@ -242,7 +242,7 @@ class AppUpdateService {
         await launchUrl(web, mode: LaunchMode.externalApplication);
       }
     } catch (e, st) {
-      talker.handle(e, st, '[app-update] could not open Play listing');
+      appLog.handle(e, st, '[app-update] could not open Play listing');
     }
   }
 }

@@ -12,7 +12,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../../core/i18n/i18n.dart';
-import '../../../core/logging/talker.dart';
+import '../../../core/logging/app_logger.dart';
 import '../../../core/theme/app_fonts.dart';
 
 /// JS→Dart bridges, mirroring the buyer viewer: one streams the captured model
@@ -127,7 +127,7 @@ class _Fallback2DCameraScreenState extends State<Fallback2DCameraScreen>
       }
       setState(() => _controller = controller);
     } catch (e, st) {
-      talker.handle(e, st, '[fallback-2d-camera] setup failed');
+      appLog.handle(e, st, '[fallback-2d-camera] setup failed');
       if (mounted) {
         setState(() => _error = tr('product.ar_fallback_camera_error'));
       }
@@ -197,7 +197,7 @@ class _Fallback2DCameraScreenState extends State<Fallback2DCameraScreen>
         final shot = await cam.takePicture();
         cameraBytes = await shot.readAsBytes();
       } catch (e, st) {
-        talker.handle(e, st, '[fallback-2d-camera] camera grab failed');
+        appLog.handle(e, st, '[fallback-2d-camera] camera grab failed');
       }
 
       final framed = await compute(_composeRoomShot, (cameraBytes, modelPng));

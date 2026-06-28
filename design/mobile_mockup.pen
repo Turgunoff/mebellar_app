@@ -566,7 +566,8 @@
                           "width": "fill_container",
                           "content": "Mahsulot qidirish",
                           "fontFamily": "$font-ui",
-                          "fontSize": 18
+                          "fontSize": 18,
+                          "fontWeight": "normal"
                         },
                         {
                           "type": "frame",
@@ -1037,7 +1038,8 @@
                                           "fill": "$app-muted",
                                           "content": "(120)",
                                           "fontFamily": "$font-ui",
-                                          "fontSize": 13
+                                          "fontSize": 13,
+                                          "fontWeight": "normal"
                                         }
                                       ]
                                     }
@@ -1210,7 +1212,8 @@
                                           "fill": "$app-muted",
                                           "content": "(157)",
                                           "fontFamily": "$font-ui",
-                                          "fontSize": 13
+                                          "fontSize": 13,
+                                          "fontWeight": "normal"
                                         }
                                       ]
                                     }
@@ -1428,7 +1431,8 @@
                                           "fill": "$app-muted",
                                           "content": "(194)",
                                           "fontFamily": "$font-ui",
-                                          "fontSize": 13
+                                          "fontSize": 13,
+                                          "fontWeight": "normal"
                                         }
                                       ]
                                     }
@@ -1601,7 +1605,8 @@
                                           "fill": "$app-muted",
                                           "content": "(231)",
                                           "fontFamily": "$font-ui",
-                                          "fontSize": 13
+                                          "fontSize": 13,
+                                          "fontWeight": "normal"
                                         }
                                       ]
                                     }
@@ -2658,7 +2663,8 @@
                                   "content": "Salom! Men Woody AI dizayneriman. Xonangiz suratini yuboring — sizga mos mebel tavsiya qilaman 👋",
                                   "lineHeight": 1.35,
                                   "fontFamily": "$font-ui",
-                                  "fontSize": 17
+                                  "fontSize": 17,
+                                  "fontWeight": "normal"
                                 }
                               ]
                             }
@@ -2769,7 +2775,8 @@
                                   "content": "Ajoyib! Xonangiz uslubiga mos 3 ta variant tanladim:",
                                   "lineHeight": 1.35,
                                   "fontFamily": "$font-ui",
-                                  "fontSize": 17
+                                  "fontSize": 17,
+                                  "fontWeight": "normal"
                                 }
                               ]
                             },
@@ -3087,7 +3094,8 @@
                               "fill": "$app-muted",
                               "content": "Xabar yozing...",
                               "fontFamily": "$font-ui",
-                              "fontSize": 17
+                              "fontSize": 17,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -3907,7 +3915,8 @@
                                       "fill": "$app-muted",
                                       "content": "12-iyun, 2026",
                                       "fontFamily": "$font-ui",
-                                      "fontSize": 13
+                                      "fontSize": 13,
+                                      "fontWeight": "normal"
                                     }
                                   ]
                                 }
@@ -3981,7 +3990,8 @@
                               "content": "Divan juda sifatli, surati bilan bir xil keldi. Yetkazib berish tez bo'ldi, rahmat!",
                               "lineHeight": 1.4,
                               "fontFamily": "$font-ui",
-                              "fontSize": 16
+                              "fontSize": 16,
+                              "fontWeight": "normal"
                             },
                             {
                               "type": "frame",
@@ -4155,7 +4165,8 @@
                                       "fill": "$app-muted",
                                       "content": "8-iyun, 2026",
                                       "fontFamily": "$font-ui",
-                                      "fontSize": 13
+                                      "fontSize": 13,
+                                      "fontWeight": "normal"
                                     }
                                   ]
                                 }
@@ -4229,7 +4240,8 @@
                               "content": "Narxiga arziydi. Mato yoqimli, montaj oson. Tavsiya qilaman.",
                               "lineHeight": 1.4,
                               "fontFamily": "$font-ui",
-                              "fontSize": 16
+                              "fontSize": 16,
+                              "fontWeight": "normal"
                             }
                           ]
                         }
@@ -4545,7 +4557,8 @@
                                   "fill": "$app-muted",
                                   "content": "1 dona · 4 290 000 so'm",
                                   "fontFamily": "$font-ui",
-                                  "fontSize": 14
+                                  "fontSize": 14,
+                                  "fontWeight": "normal"
                                 }
                               ]
                             }
@@ -4619,7 +4632,8 @@
                                       "fill": "$app-muted",
                                       "content": "Bir martalik",
                                       "fontFamily": "$font-ui",
-                                      "fontSize": 14
+                                      "fontSize": 14,
+                                      "fontWeight": "normal"
                                     }
                                   ]
                                 },
@@ -4685,7 +4699,8 @@
                                       "fill": "$app-muted",
                                       "content": "oyiga",
                                       "fontFamily": "$font-ui",
-                                      "fontSize": 14
+                                      "fontSize": 14,
+                                      "fontWeight": "normal"
                                     }
                                   ]
                                 },
@@ -4750,7 +4765,8 @@
                                       "fill": "$app-muted",
                                       "content": "oyiga · ommabop",
                                       "fontFamily": "$font-ui",
-                                      "fontSize": 14
+                                      "fontSize": 14,
+                                      "fontWeight": "normal"
                                     }
                                   ]
                                 },
@@ -4816,7 +4832,8 @@
                                       "fill": "$app-muted",
                                       "content": "oyiga",
                                       "fontFamily": "$font-ui",
-                                      "fontSize": 14
+                                      "fontSize": 14,
+                                      "fontWeight": "normal"
                                     }
                                   ]
                                 },
@@ -5312,7 +5329,8 @@
                                       "fill": "#F7E9D6CC",
                                       "content": "KARTA EGASI",
                                       "fontFamily": "$font-ui",
-                                      "fontSize": 12
+                                      "fontSize": 12,
+                                      "fontWeight": "normal"
                                     },
                                     {
                                       "type": "text",
@@ -6346,7 +6364,8 @@
                                   "fill": "$app-muted",
                                   "content": "12-iyun, 09:24",
                                   "fontFamily": "$font-ui",
-                                  "fontSize": 14
+                                  "fontSize": 14,
+                                  "fontWeight": "normal"
                                 }
                               ]
                             },
@@ -6405,7 +6424,8 @@
                                   "fill": "$app-muted",
                                   "content": "12-iyun, 14:10",
                                   "fontFamily": "$font-ui",
-                                  "fontSize": 14
+                                  "fontSize": 14,
+                                  "fontWeight": "normal"
                                 }
                               ]
                             },
@@ -6462,7 +6482,8 @@
                                   "fill": "$app-muted",
                                   "content": "Bugun, 15:30",
                                   "fontFamily": "$font-ui",
-                                  "fontSize": 14
+                                  "fontSize": 14,
+                                  "fontWeight": "normal"
                                 }
                               ]
                             },
@@ -6509,7 +6530,8 @@
                                   "fill": "$app-muted",
                                   "content": "Bugun, 16:00–18:00 (kutilmoqda)",
                                   "fontFamily": "$font-ui",
-                                  "fontSize": 14
+                                  "fontSize": 14,
+                                  "fontWeight": "normal"
                                 }
                               ]
                             }
@@ -6592,7 +6614,8 @@
                                       "fill": "$app-muted",
                                       "content": "Kuryer ·",
                                       "fontFamily": "$font-ui",
-                                      "fontSize": 14
+                                      "fontSize": 14,
+                                      "fontWeight": "normal"
                                     },
                                     {
                                       "type": "icon",
@@ -6995,7 +7018,8 @@
                           "width": "fill_container",
                           "content": "Mahsulot qidirish",
                           "fontFamily": "$font-ui",
-                          "fontSize": 18
+                          "fontSize": 18,
+                          "fontWeight": "normal"
                         },
                         {
                           "type": "frame",
@@ -7466,7 +7490,8 @@
                                           "fill": "$app-muted",
                                           "content": "(120)",
                                           "fontFamily": "$font-ui",
-                                          "fontSize": 13
+                                          "fontSize": 13,
+                                          "fontWeight": "normal"
                                         }
                                       ]
                                     }
@@ -7639,7 +7664,8 @@
                                           "fill": "$app-muted",
                                           "content": "(157)",
                                           "fontFamily": "$font-ui",
-                                          "fontSize": 13
+                                          "fontSize": 13,
+                                          "fontWeight": "normal"
                                         }
                                       ]
                                     }
@@ -7857,7 +7883,8 @@
                                           "fill": "$app-muted",
                                           "content": "(194)",
                                           "fontFamily": "$font-ui",
-                                          "fontSize": 13
+                                          "fontSize": 13,
+                                          "fontWeight": "normal"
                                         }
                                       ]
                                     }
@@ -8030,7 +8057,8 @@
                                           "fill": "$app-muted",
                                           "content": "(231)",
                                           "fontFamily": "$font-ui",
-                                          "fontSize": 13
+                                          "fontSize": 13,
+                                          "fontWeight": "normal"
                                         }
                                       ]
                                     }
@@ -9087,7 +9115,8 @@
                                   "content": "Salom! Men Woody AI dizayneriman. Xonangiz suratini yuboring — sizga mos mebel tavsiya qilaman 👋",
                                   "lineHeight": 1.35,
                                   "fontFamily": "$font-ui",
-                                  "fontSize": 17
+                                  "fontSize": 17,
+                                  "fontWeight": "normal"
                                 }
                               ]
                             }
@@ -9198,7 +9227,8 @@
                                   "content": "Ajoyib! Xonangiz uslubiga mos 3 ta variant tanladim:",
                                   "lineHeight": 1.35,
                                   "fontFamily": "$font-ui",
-                                  "fontSize": 17
+                                  "fontSize": 17,
+                                  "fontWeight": "normal"
                                 }
                               ]
                             },
@@ -9516,7 +9546,8 @@
                               "fill": "$app-muted",
                               "content": "Xabar yozing...",
                               "fontFamily": "$font-ui",
-                              "fontSize": 17
+                              "fontSize": 17,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -10336,7 +10367,8 @@
                                       "fill": "$app-muted",
                                       "content": "12-iyun, 2026",
                                       "fontFamily": "$font-ui",
-                                      "fontSize": 13
+                                      "fontSize": 13,
+                                      "fontWeight": "normal"
                                     }
                                   ]
                                 }
@@ -10410,7 +10442,8 @@
                               "content": "Divan juda sifatli, surati bilan bir xil keldi. Yetkazib berish tez bo'ldi, rahmat!",
                               "lineHeight": 1.4,
                               "fontFamily": "$font-ui",
-                              "fontSize": 16
+                              "fontSize": 16,
+                              "fontWeight": "normal"
                             },
                             {
                               "type": "frame",
@@ -10584,7 +10617,8 @@
                                       "fill": "$app-muted",
                                       "content": "8-iyun, 2026",
                                       "fontFamily": "$font-ui",
-                                      "fontSize": 13
+                                      "fontSize": 13,
+                                      "fontWeight": "normal"
                                     }
                                   ]
                                 }
@@ -10658,7 +10692,8 @@
                               "content": "Narxiga arziydi. Mato yoqimli, montaj oson. Tavsiya qilaman.",
                               "lineHeight": 1.4,
                               "fontFamily": "$font-ui",
-                              "fontSize": 16
+                              "fontSize": 16,
+                              "fontWeight": "normal"
                             }
                           ]
                         }
@@ -10974,7 +11009,8 @@
                                   "fill": "$app-muted",
                                   "content": "1 dona · 4 290 000 so'm",
                                   "fontFamily": "$font-ui",
-                                  "fontSize": 14
+                                  "fontSize": 14,
+                                  "fontWeight": "normal"
                                 }
                               ]
                             }
@@ -11048,7 +11084,8 @@
                                       "fill": "$app-muted",
                                       "content": "Bir martalik",
                                       "fontFamily": "$font-ui",
-                                      "fontSize": 14
+                                      "fontSize": 14,
+                                      "fontWeight": "normal"
                                     }
                                   ]
                                 },
@@ -11114,7 +11151,8 @@
                                       "fill": "$app-muted",
                                       "content": "oyiga",
                                       "fontFamily": "$font-ui",
-                                      "fontSize": 14
+                                      "fontSize": 14,
+                                      "fontWeight": "normal"
                                     }
                                   ]
                                 },
@@ -11179,7 +11217,8 @@
                                       "fill": "$app-muted",
                                       "content": "oyiga · ommabop",
                                       "fontFamily": "$font-ui",
-                                      "fontSize": 14
+                                      "fontSize": 14,
+                                      "fontWeight": "normal"
                                     }
                                   ]
                                 },
@@ -11245,7 +11284,8 @@
                                       "fill": "$app-muted",
                                       "content": "oyiga",
                                       "fontFamily": "$font-ui",
-                                      "fontSize": 14
+                                      "fontSize": 14,
+                                      "fontWeight": "normal"
                                     }
                                   ]
                                 },
@@ -11741,7 +11781,8 @@
                                       "fill": "#F7E9D6CC",
                                       "content": "KARTA EGASI",
                                       "fontFamily": "$font-ui",
-                                      "fontSize": 12
+                                      "fontSize": 12,
+                                      "fontWeight": "normal"
                                     },
                                     {
                                       "type": "text",
@@ -12775,7 +12816,8 @@
                                   "fill": "$app-muted",
                                   "content": "12-iyun, 09:24",
                                   "fontFamily": "$font-ui",
-                                  "fontSize": 14
+                                  "fontSize": 14,
+                                  "fontWeight": "normal"
                                 }
                               ]
                             },
@@ -12834,7 +12876,8 @@
                                   "fill": "$app-muted",
                                   "content": "12-iyun, 14:10",
                                   "fontFamily": "$font-ui",
-                                  "fontSize": 14
+                                  "fontSize": 14,
+                                  "fontWeight": "normal"
                                 }
                               ]
                             },
@@ -12891,7 +12934,8 @@
                                   "fill": "$app-muted",
                                   "content": "Bugun, 15:30",
                                   "fontFamily": "$font-ui",
-                                  "fontSize": 14
+                                  "fontSize": 14,
+                                  "fontWeight": "normal"
                                 }
                               ]
                             },
@@ -12938,7 +12982,8 @@
                                   "fill": "$app-muted",
                                   "content": "Bugun, 16:00–18:00 (kutilmoqda)",
                                   "fontFamily": "$font-ui",
-                                  "fontSize": 14
+                                  "fontSize": 14,
+                                  "fontWeight": "normal"
                                 }
                               ]
                             }
@@ -13021,7 +13066,8 @@
                                       "fill": "$app-muted",
                                       "content": "Kuryer ·",
                                       "fontFamily": "$font-ui",
-                                      "fontSize": 14
+                                      "fontSize": 14,
+                                      "fontWeight": "normal"
                                     },
                                     {
                                       "type": "icon",
@@ -13566,7 +13612,8 @@
               "content": "Sotib olishdan oldin har bir buyumni o'z xonangizda sinab ko'ring.",
               "lineHeight": 1.4,
               "fontFamily": "$font-ui",
-              "fontSize": 25
+              "fontSize": 25,
+              "fontWeight": "normal"
             }
           ]
         },
@@ -13985,7 +14032,8 @@
                           "fill": "$app-muted",
                           "content": "· 486 sharh",
                           "fontFamily": "$font-ui",
-                          "fontSize": 16
+                          "fontSize": 16,
+                          "fontWeight": "normal"
                         },
                         {
                           "type": "ellipse",
@@ -14301,7 +14349,8 @@
                   "width": "fill_container",
                   "content": "Haqiqiy o'lchamda joylang",
                   "fontFamily": "$font-ui",
-                  "fontSize": 14
+                  "fontSize": 14,
+                  "fontWeight": "normal"
                 }
               ]
             }
@@ -14452,7 +14501,8 @@
               "content": "Suratdagidek keldi — ajoyib sifat!",
               "lineHeight": 1.35,
               "fontFamily": "$font-ui",
-              "fontSize": 15
+              "fontSize": 15,
+              "fontWeight": "normal"
             }
           ]
         },
@@ -14528,7 +14578,8 @@
                   "fill": "$app-muted",
                   "content": "Bepul yetkazib berish bilan",
                   "fontFamily": "$font-ui",
-                  "fontSize": 14
+                  "fontSize": 14,
+                  "fontWeight": "normal"
                 }
               ]
             }
@@ -15092,7 +15143,8 @@
               "content": "Divan, karavot, oshxona, shkaf — uyingiz uchun hammasi bir joyda.",
               "lineHeight": 1.4,
               "fontFamily": "$font-ui",
-              "fontSize": 23
+              "fontSize": 23,
+              "fontWeight": "normal"
             }
           ]
         },
@@ -15291,7 +15343,8 @@
                           "width": "fill_container",
                           "content": "Mahsulot qidirish",
                           "fontFamily": "$font-ui",
-                          "fontSize": 18
+                          "fontSize": 18,
+                          "fontWeight": "normal"
                         },
                         {
                           "type": "frame",
@@ -15762,7 +15815,8 @@
                                           "fill": "$app-muted",
                                           "content": "(120)",
                                           "fontFamily": "$font-ui",
-                                          "fontSize": 13
+                                          "fontSize": 13,
+                                          "fontWeight": "normal"
                                         }
                                       ]
                                     }
@@ -15935,7 +15989,8 @@
                                           "fill": "$app-muted",
                                           "content": "(157)",
                                           "fontFamily": "$font-ui",
-                                          "fontSize": 13
+                                          "fontSize": 13,
+                                          "fontWeight": "normal"
                                         }
                                       ]
                                     }
@@ -16153,7 +16208,8 @@
                                           "fill": "$app-muted",
                                           "content": "(194)",
                                           "fontFamily": "$font-ui",
-                                          "fontSize": 13
+                                          "fontSize": 13,
+                                          "fontWeight": "normal"
                                         }
                                       ]
                                     }
@@ -16326,7 +16382,8 @@
                                           "fill": "$app-muted",
                                           "content": "(231)",
                                           "fontFamily": "$font-ui",
-                                          "fontSize": 13
+                                          "fontSize": 13,
+                                          "fontWeight": "normal"
                                         }
                                       ]
                                     }
@@ -16442,7 +16499,8 @@
                   "width": "fill_container",
                   "content": "−50% gacha arzon narxlar",
                   "fontFamily": "$font-ui",
-                  "fontSize": 14
+                  "fontSize": 14,
+                  "fontWeight": "normal"
                 }
               ]
             }
@@ -16524,7 +16582,8 @@
                   "width": "fill_container",
                   "content": "Har kuni yangilanadi",
                   "fontFamily": "$font-ui",
-                  "fontSize": 14
+                  "fontSize": 14,
+                  "fontWeight": "normal"
                 }
               ]
             }
@@ -16794,7 +16853,8 @@
               "content": "Xona suratini yuboring — sizga mos mebelni o'zi tavsiya qiladi.",
               "lineHeight": 1.4,
               "fontFamily": "$font-ui",
-              "fontSize": 23
+              "fontSize": 23,
+              "fontWeight": "normal"
             }
           ]
         },
@@ -17029,7 +17089,8 @@
                                   "content": "Salom! Men Woody AI dizayneriman. Xonangiz suratini yuboring — sizga mos mebel tavsiya qilaman 👋",
                                   "lineHeight": 1.35,
                                   "fontFamily": "$font-ui",
-                                  "fontSize": 17
+                                  "fontSize": 17,
+                                  "fontWeight": "normal"
                                 }
                               ]
                             }
@@ -17140,7 +17201,8 @@
                                   "content": "Ajoyib! Xonangiz uslubiga mos 3 ta variant tanladim:",
                                   "lineHeight": 1.35,
                                   "fontFamily": "$font-ui",
-                                  "fontSize": 17
+                                  "fontSize": 17,
+                                  "fontWeight": "normal"
                                 }
                               ]
                             },
@@ -17458,7 +17520,8 @@
                               "fill": "$app-muted",
                               "content": "Xabar yozing...",
                               "fontFamily": "$font-ui",
-                              "fontSize": 17
+                              "fontSize": 17,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -17582,7 +17645,8 @@
                   "width": "fill_container",
                   "content": "Uslubingizga mos 3 variant",
                   "fontFamily": "$font-ui",
-                  "fontSize": 14
+                  "fontSize": 14,
+                  "fontWeight": "normal"
                 }
               ]
             }
@@ -17664,7 +17728,8 @@
                   "width": "fill_container",
                   "content": "Soniyalarda natija",
                   "fontFamily": "$font-ui",
-                  "fontSize": 14
+                  "fontSize": 14,
+                  "fontWeight": "normal"
                 }
               ]
             }
@@ -17934,7 +17999,8 @@
               "content": "Minglab tasdiqlangan izoh va reyting yordamida xato qilmang.",
               "lineHeight": 1.4,
               "fontFamily": "$font-ui",
-              "fontSize": 23
+              "fontSize": 23,
+              "fontWeight": "normal"
             }
           ]
         },
@@ -18598,7 +18664,8 @@
                                       "fill": "$app-muted",
                                       "content": "12-iyun, 2026",
                                       "fontFamily": "$font-ui",
-                                      "fontSize": 13
+                                      "fontSize": 13,
+                                      "fontWeight": "normal"
                                     }
                                   ]
                                 }
@@ -18672,7 +18739,8 @@
                               "content": "Divan juda sifatli, surati bilan bir xil keldi. Yetkazib berish tez bo'ldi, rahmat!",
                               "lineHeight": 1.4,
                               "fontFamily": "$font-ui",
-                              "fontSize": 16
+                              "fontSize": 16,
+                              "fontWeight": "normal"
                             },
                             {
                               "type": "frame",
@@ -18846,7 +18914,8 @@
                                       "fill": "$app-muted",
                                       "content": "8-iyun, 2026",
                                       "fontFamily": "$font-ui",
-                                      "fontSize": 13
+                                      "fontSize": 13,
+                                      "fontWeight": "normal"
                                     }
                                   ]
                                 }
@@ -18920,7 +18989,8 @@
                               "content": "Narxiga arziydi. Mato yoqimli, montaj oson. Tavsiya qilaman.",
                               "lineHeight": 1.4,
                               "fontFamily": "$font-ui",
-                              "fontSize": 16
+                              "fontSize": 16,
+                              "fontWeight": "normal"
                             }
                           ]
                         }
@@ -19020,7 +19090,8 @@
                   "width": "fill_container",
                   "content": "486 ta sharh asosida",
                   "fontFamily": "$font-ui",
-                  "fontSize": 14
+                  "fontSize": 14,
+                  "fontWeight": "normal"
                 }
               ]
             }
@@ -19102,7 +19173,8 @@
                   "width": "fill_container",
                   "content": "Faqat real izohlar",
                   "fontFamily": "$font-ui",
-                  "fontSize": 14
+                  "fontSize": 14,
+                  "fontWeight": "normal"
                 }
               ]
             }
@@ -19372,7 +19444,8 @@
               "content": "3, 6 yoki 12 oygacha bo'lib to'lang. 0% ortiqcha to'lovsiz.",
               "lineHeight": 1.4,
               "fontFamily": "$font-ui",
-              "fontSize": 23
+              "fontSize": 23,
+              "fontWeight": "normal"
             }
           ]
         },
@@ -19556,7 +19629,8 @@
                                   "fill": "$app-muted",
                                   "content": "1 dona · 4 290 000 so'm",
                                   "fontFamily": "$font-ui",
-                                  "fontSize": 14
+                                  "fontSize": 14,
+                                  "fontWeight": "normal"
                                 }
                               ]
                             }
@@ -19630,7 +19704,8 @@
                                       "fill": "$app-muted",
                                       "content": "Bir martalik",
                                       "fontFamily": "$font-ui",
-                                      "fontSize": 14
+                                      "fontSize": 14,
+                                      "fontWeight": "normal"
                                     }
                                   ]
                                 },
@@ -19696,7 +19771,8 @@
                                       "fill": "$app-muted",
                                       "content": "oyiga",
                                       "fontFamily": "$font-ui",
-                                      "fontSize": 14
+                                      "fontSize": 14,
+                                      "fontWeight": "normal"
                                     }
                                   ]
                                 },
@@ -19761,7 +19837,8 @@
                                       "fill": "$app-muted",
                                       "content": "oyiga · ommabop",
                                       "fontFamily": "$font-ui",
-                                      "fontSize": 14
+                                      "fontSize": 14,
+                                      "fontWeight": "normal"
                                     }
                                   ]
                                 },
@@ -19827,7 +19904,8 @@
                                       "fill": "$app-muted",
                                       "content": "oyiga",
                                       "fontFamily": "$font-ui",
-                                      "fontSize": 14
+                                      "fontSize": 14,
+                                      "fontWeight": "normal"
                                     }
                                   ]
                                 },
@@ -20062,7 +20140,8 @@
                   "width": "fill_container",
                   "content": "Yashirin to'lovlar yo'q",
                   "fontFamily": "$font-ui",
-                  "fontSize": 14
+                  "fontSize": 14,
+                  "fontWeight": "normal"
                 }
               ]
             }
@@ -20144,7 +20223,8 @@
                   "width": "fill_container",
                   "content": "6 oyga bo'lib to'lash",
                   "fontFamily": "$font-ui",
-                  "fontSize": 14
+                  "fontSize": 14,
+                  "fontWeight": "normal"
                 }
               ]
             }
@@ -20414,7 +20494,8 @@
               "content": "Xohlagan karta yoki naqd — o'zingizga qulay usulni tanlang.",
               "lineHeight": 1.4,
               "fontFamily": "$font-ui",
-              "fontSize": 23
+              "fontSize": 23,
+              "fontWeight": "normal"
             }
           ]
         },
@@ -20643,7 +20724,8 @@
                                       "fill": "#F7E9D6CC",
                                       "content": "KARTA EGASI",
                                       "fontFamily": "$font-ui",
-                                      "fontSize": 12
+                                      "fontSize": 12,
+                                      "fontWeight": "normal"
                                     },
                                     {
                                       "type": "text",
@@ -21223,7 +21305,8 @@
                   "width": "fill_container",
                   "content": "256-bit himoya",
                   "fontFamily": "$font-ui",
-                  "fontSize": 14
+                  "fontSize": 14,
+                  "fontWeight": "normal"
                 }
               ]
             }
@@ -21305,7 +21388,8 @@
                   "width": "fill_container",
                   "content": "Karta yoki naqd",
                   "fontFamily": "$font-ui",
-                  "fontSize": 14
+                  "fontSize": 14,
+                  "fontWeight": "normal"
                 }
               ]
             }
@@ -21575,7 +21659,8 @@
               "content": "Buyurtmangizni real vaqtda kuzating — eshigingizgacha yetkazamiz.",
               "lineHeight": 1.4,
               "fontFamily": "$font-ui",
-              "fontSize": 23
+              "fontSize": 23,
+              "fontWeight": "normal"
             }
           ]
         },
@@ -21997,7 +22082,8 @@
                                   "fill": "$app-muted",
                                   "content": "12-iyun, 09:24",
                                   "fontFamily": "$font-ui",
-                                  "fontSize": 14
+                                  "fontSize": 14,
+                                  "fontWeight": "normal"
                                 }
                               ]
                             },
@@ -22056,7 +22142,8 @@
                                   "fill": "$app-muted",
                                   "content": "12-iyun, 14:10",
                                   "fontFamily": "$font-ui",
-                                  "fontSize": 14
+                                  "fontSize": 14,
+                                  "fontWeight": "normal"
                                 }
                               ]
                             },
@@ -22113,7 +22200,8 @@
                                   "fill": "$app-muted",
                                   "content": "Bugun, 15:30",
                                   "fontFamily": "$font-ui",
-                                  "fontSize": 14
+                                  "fontSize": 14,
+                                  "fontWeight": "normal"
                                 }
                               ]
                             },
@@ -22160,7 +22248,8 @@
                                   "fill": "$app-muted",
                                   "content": "Bugun, 16:00–18:00 (kutilmoqda)",
                                   "fontFamily": "$font-ui",
-                                  "fontSize": 14
+                                  "fontSize": 14,
+                                  "fontWeight": "normal"
                                 }
                               ]
                             }
@@ -22243,7 +22332,8 @@
                                       "fill": "$app-muted",
                                       "content": "Kuryer ·",
                                       "fontFamily": "$font-ui",
-                                      "fontSize": 14
+                                      "fontSize": 14,
+                                      "fontWeight": "normal"
                                     },
                                     {
                                       "type": "icon",
@@ -22415,7 +22505,8 @@
                   "width": "fill_container",
                   "content": "Butun mamlakat bo'ylab",
                   "fontFamily": "$font-ui",
-                  "fontSize": 14
+                  "fontSize": 14,
+                  "fontWeight": "normal"
                 }
               ]
             }
@@ -22497,7 +22588,8 @@
                   "width": "fill_container",
                   "content": "16:00–18:00 oralig'ida",
                   "fontFamily": "$font-ui",
-                  "fontSize": 14
+                  "fontSize": 14,
+                  "fontWeight": "normal"
                 }
               ]
             }

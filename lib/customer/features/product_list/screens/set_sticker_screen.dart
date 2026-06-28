@@ -12,7 +12,7 @@ import 'package:image/image.dart' as img;
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../../core/i18n/i18n.dart';
-import '../../../../core/logging/talker.dart';
+import '../../../../core/logging/app_logger.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/ar/ar_set_piece.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
@@ -138,7 +138,7 @@ class _SetStickerScreenState extends State<SetStickerScreen>
       }
       setState(() => _controller = controller);
     } catch (e, st) {
-      talker.handle(e, st, '[set-sticker] camera setup failed');
+      appLog.handle(e, st, '[set-sticker] camera setup failed');
       if (mounted) {
         setState(() => _error = tr('product.ar_fallback_camera_error'));
       }
@@ -231,7 +231,7 @@ class _SetStickerScreenState extends State<SetStickerScreen>
         final shot = await cam.takePicture();
         cameraBytes = await shot.readAsBytes();
       } catch (e, st) {
-        talker.handle(e, st, '[set-sticker] camera grab failed');
+        appLog.handle(e, st, '[set-sticker] camera grab failed');
       }
 
       final framed = await compute(_composeRoomShot, (cameraBytes, overlayPng));
@@ -248,7 +248,7 @@ class _SetStickerScreenState extends State<SetStickerScreen>
             : tr('product.ar_save_failed'),
       );
     } catch (e, st) {
-      talker.handle(e, st, '[set-sticker] save failed');
+      appLog.handle(e, st, '[set-sticker] save failed');
       _toast(tr('product.ar_save_failed'));
     } finally {
       if (mounted) setState(() => _saving = false);

@@ -5,7 +5,7 @@ import 'dart:math';
 import 'package:web_socket_channel/io.dart';
 
 import '../../config/app_config.dart';
-import '../logging/talker.dart';
+import '../logging/app_logger.dart';
 import '../network/token_store.dart';
 
 /// WebSocket-backed realtime fan-out for api.woody.uz.
@@ -135,10 +135,9 @@ class WoodyRealtimeService {
       await channel.ready;
     } catch (e) {
       // Expected when the realtime endpoint is unavailable. Logged at warning
-      // level — kept in the in-app Talker screen, but NOT forwarded to
-      // Crashlytics (the observer only bridges talker.handle) and NOT printed
-      // to the console (`useConsoleLogs: false`). Retry with backoff.
-      talker.warning('Realtime WS unavailable, retrying: $e');
+      // level — debug console only (not forwarded to Crashlytics). Retry
+      // with backoff.
+      appLog.warning('Realtime WS unavailable, retrying: $e');
       _scheduleReconnect();
       return;
     }
@@ -192,7 +191,7 @@ class WoodyRealtimeService {
         ),
       );
     } catch (e, st) {
-      talker.handle(e, st, 'WoodyRealtimeService: malformed frame');
+      appLog.handle(e, st, 'WoodyRealtimeService: malformed frame');
     }
   }
 
@@ -206,7 +205,7 @@ class WoodyRealtimeService {
     // A mid-stream drop is routine (idle timeout, network blip, server
     // restart). Keep it in the in-app log only — never escalate a reconnect
     // to Crashlytics or the console (see `_connect` for the rationale).
-    talker.warning('Realtime WS stream error, reconnecting: $error');
+    appLog.warning('Realtime WS stream error, reconnecting: $error');
     _channel = null;
     _channelSub = null;
     _scheduleReconnect();

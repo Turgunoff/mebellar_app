@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
 
-import 'package:woody_app/core/logging/talker.dart';
+import 'package:woody_app/core/logging/app_logger.dart';
 
 /// Connection state surfaced to UI. We deliberately keep it boolean — the
 /// banner doesn't care whether the user is on wifi or cellular, only whether
@@ -112,7 +112,7 @@ class RealConnectivityService implements ConnectivityService {
       // First-launch race conditions on iOS sometimes throw before the
       // network extension is ready. Default to online and let the streams
       // correct it shortly after.
-      talker.handle(e, st, 'ConnectivityService: initial probe failed');
+      appLog.handle(e, st, 'ConnectivityService: initial probe failed');
       _emit(ConnectivityStatus.online);
     }
 

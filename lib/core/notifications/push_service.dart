@@ -10,7 +10,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../config/app_mode.dart';
 import '../../shared/models/notification_model.dart';
-import '../logging/talker.dart';
+import '../logging/app_logger.dart';
 import '../network/api_error.dart';
 import '../network/woody_api_client.dart';
 import '../platform/messaging_facade.dart';
@@ -36,7 +36,7 @@ const String _kNewsChannelId = 'news';
 /// function annotated with @pragma so it survives tree-shaking.
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // The app process is dead at this point, so there is no Hive / talker / DI /
+  // The app process is dead at this point, so there is no Hive / logger / DI /
   // cubits available. The system tray shows the notification automatically
   // because the payload uses a `notification` block; this handler must exist so
   // the plugin doesn't drop the message.
@@ -243,7 +243,7 @@ class PushService {
         }
       }
     } catch (e, st) {
-      talker.handle(e, st, 'PushService.dismissSupportNotifications failed');
+      appLog.handle(e, st, 'PushService.dismissSupportNotifications failed');
     }
   }
 
@@ -306,7 +306,7 @@ class PushService {
     } catch (e, st) {
       // Best-effort — a failed clear just leaves a stale tray entry, never
       // worth bubbling up if a platform-channel call happens to throw.
-      talker.handle(e, st, 'PushService.dismissChatNotifications failed');
+      appLog.handle(e, st, 'PushService.dismissChatNotifications failed');
     }
   }
 
@@ -384,7 +384,7 @@ class PushService {
         badge: true,
         sound: true,
       );
-      talker.info('FCM permission: ${settings.authorizationStatus.name}');
+      appLog.info('FCM permission: ${settings.authorizationStatus.name}');
       debugPrint('[FCM] permission: ${settings.authorizationStatus.name}');
       final granted =
           settings.authorizationStatus == AuthorizationStatus.authorized ||
@@ -400,7 +400,7 @@ class PushService {
       );
 
       await _messaging.subscribeToTopic(kNewsTopic);
-      talker.info('Subscribed to FCM topic: $kNewsTopic');
+      appLog.info('Subscribed to FCM topic: $kNewsTopic');
       debugPrint('[FCM] subscribed to topic: $kNewsTopic');
     } on FirebaseException catch (e, st) {
       // Reset so a manual retry (e.g. settings toggle later) can re-prompt.
@@ -409,11 +409,11 @@ class PushService {
         _logApnsNotReady('skipping topic subscribe');
         return;
       }
-      talker.handle(e, st, 'PushService.requestPermissionAndSubscribe failed');
+      appLog.handle(e, st, 'PushService.requestPermissionAndSubscribe failed');
     } catch (e, st) {
       // Non-Firebase failure — keep the existing reporting behaviour.
       _permissionRequested = false;
-      talker.handle(e, st, 'PushService.requestPermissionAndSubscribe failed');
+      appLog.handle(e, st, 'PushService.requestPermissionAndSubscribe failed');
     }
   }
 
@@ -432,11 +432,10 @@ class PushService {
     return code == 'apns-token-not-set' || code.endsWith('apns-token-not-set');
   }
 
-  /// Benign-swallow log for the APNs-not-ready case. Warning level — kept in
-  /// the in-app Talker screen but NOT forwarded to Crashlytics (the observer
-  /// only bridges talker.handle) and NOT printed (useConsoleLogs:false).
+  /// Benign-swallow log for the APNs-not-ready case. Warning level — debug
+  /// console only (not forwarded to Crashlytics).
   void _logApnsNotReady(String action) {
-    talker.warning('FCM APNs token not ready — $action');
+    appLog.warning('FCM APNs token not ready — $action');
     debugPrint('[FCM] APNs token not set — $action');
   }
 
@@ -450,9 +449,9 @@ class PushService {
         _logApnsNotReady('skipping topic unsubscribe');
         return;
       }
-      talker.handle(e, st, 'PushService.unsubscribeFromNews failed');
+      appLog.handle(e, st, 'PushService.unsubscribeFromNews failed');
     } catch (e, st) {
-      talker.handle(e, st, 'PushService.unsubscribeFromNews failed');
+      appLog.handle(e, st, 'PushService.unsubscribeFromNews failed');
     }
   }
 
@@ -467,7 +466,7 @@ class PushService {
     try {
       final token = await _messaging.getToken();
       if (token == null) {
-        talker.warning('FCM getToken returned null — skipping sync');
+        appLog.warning('FCM getToken returned null — skipping sync');
         debugPrint('[FCM] getToken returned null — skipping sync');
         return;
       }
@@ -478,10 +477,10 @@ class PushService {
         _logApnsNotReady('skipping token sync');
         return;
       }
-      talker.handle(e, st, 'PushService.syncTokenForUser failed');
+      appLog.handle(e, st, 'PushService.syncTokenForUser failed');
       debugPrint('[FCM] syncTokenForUser failed: $e');
     } catch (e, st) {
-      talker.handle(e, st, 'PushService.syncTokenForUser failed');
+      appLog.handle(e, st, 'PushService.syncTokenForUser failed');
       debugPrint('[FCM] syncTokenForUser failed: $e');
     }
   }
@@ -502,7 +501,7 @@ class PushService {
     try {
       await _upsertToken(token: token, userId: '');
     } catch (e, st) {
-      talker.handle(e, st, 'PushService.onTokenRefresh upsert failed');
+      appLog.handle(e, st, 'PushService.onTokenRefresh upsert failed');
     }
   }
 
@@ -520,16 +519,16 @@ class PushService {
         if (e.isUnauthorized) return;
         rethrow;
       }
-      talker.info('FCM token removed from device_tokens');
+      appLog.info('FCM token removed from device_tokens');
       debugPrint('[FCM] token removed from device_tokens');
     } on FirebaseException catch (e, st) {
       if (_isApnsTokenNotReady(e)) {
         _logApnsNotReady('skipping token removal');
         return;
       }
-      talker.handle(e, st, 'PushService.removeCurrentToken failed');
+      appLog.handle(e, st, 'PushService.removeCurrentToken failed');
     } catch (e, st) {
-      talker.handle(e, st, 'PushService.removeCurrentToken failed');
+      appLog.handle(e, st, 'PushService.removeCurrentToken failed');
     }
   }
 
@@ -544,7 +543,7 @@ class PushService {
         '/push/device-tokens',
         body: {'token': token, 'platform': platform},
       );
-      talker.info('FCM token saved via Woody REST (platform=$platform)');
+      appLog.info('FCM token saved via Woody REST (platform=$platform)');
       debugPrint('[FCM] token saved via Woody REST (platform=$platform)');
     } on ApiError catch (e) {
       if (e.isUnauthorized) {
@@ -582,7 +581,7 @@ class PushService {
 
     final notification = message.notification;
     if (notification == null) return;
-    talker.info('FCM foreground: ${notification.title}');
+    appLog.info('FCM foreground: ${notification.title}');
     debugPrint(
       '[FCM] foreground push received: "${notification.title}" — "${notification.body}"',
     );

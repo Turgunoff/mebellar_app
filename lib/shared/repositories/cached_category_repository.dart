@@ -1,4 +1,4 @@
-import '../../core/logging/talker.dart';
+import '../../core/logging/app_logger.dart';
 import '../../core/storage/cache_store.dart';
 import '../models/category_model.dart';
 import 'category_data_source.dart';
@@ -49,7 +49,7 @@ class CachedCategoryRepository extends CategoryDataSource {
     } catch (e, st) {
       final cached = peek();
       if (cached != null && cached.isNotEmpty) {
-        talker.handle(
+        appLog.handle(
           e,
           st,
           'CachedCategoryRepository: network failed, '

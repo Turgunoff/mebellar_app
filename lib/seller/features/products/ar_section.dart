@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
 
 import '../../../core/di/service_locator.dart';
-import '../../../core/logging/talker.dart';
+import '../../../core/logging/app_logger.dart';
 import '../../../core/network/api_error.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_fonts.dart';
@@ -82,7 +82,7 @@ class _SellerArSectionState extends State<SellerArSection> {
         });
       }
     } catch (e, st) {
-      talker.handle(e, st, '[ar-section] parts load failed');
+      appLog.handle(e, st, '[ar-section] parts load failed');
       if (mounted) setState(() => _partsLoaded = true);
     }
   }
@@ -92,7 +92,7 @@ class _SellerArSectionState extends State<SellerArSection> {
       final balance = await sl<ArTokenRepository>().balance();
       if (mounted) setState(() => _balance = balance);
     } catch (e, st) {
-      talker.handle(e, st, '[ar-section] balance load failed');
+      appLog.handle(e, st, '[ar-section] balance load failed');
     }
   }
 
@@ -182,7 +182,7 @@ class _SellerArSectionState extends State<SellerArSection> {
         _showSnack(tr('seller.ar_request_failed'), isError: true);
       }
     } catch (e, st) {
-      talker.handle(e, st, '[ar-section] request failed');
+      appLog.handle(e, st, '[ar-section] request failed');
       if (mounted) _showSnack(tr('seller.ar_request_failed'), isError: true);
     } finally {
       if (mounted) setState(() => _busy.remove(component.partKey));
@@ -204,7 +204,7 @@ class _SellerArSectionState extends State<SellerArSection> {
         isVisible: next,
       );
     } catch (e, st) {
-      talker.handle(e, st, '[ar-section] visibility toggle failed');
+      appLog.handle(e, st, '[ar-section] visibility toggle failed');
       if (!mounted) return;
       setState(() {
         _parts = [

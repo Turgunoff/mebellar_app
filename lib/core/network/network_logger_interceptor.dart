@@ -3,6 +3,13 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
+/// Master switch for the console network-traffic blocks. Flip to `true` to get
+/// the high-visibility request/response/error dumps back in the debug console.
+/// Off by default — the dumps are extremely noisy. Independent of `kDebugMode`
+/// (which still guards every format path), so a release build never logs even
+/// if this is left on.
+const bool kNetworkConsoleLogging = false;
+
 /// Global network-traffic logger.
 ///
 /// Reformats every Dio request / response / error into a high-visibility,
@@ -13,7 +20,7 @@ import 'package:flutter/foundation.dart';
 /// Entirely a debug affordance: every print path is behind [kDebugMode] AND the
 /// interceptor is only attached to the app-default clients in debug builds, so
 /// a profile/release build never formats a block, never builds a string, and
-/// never risks leaking a token. It is intentionally `talker`-free — raw,
+/// never risks leaking a token. It is intentionally logger-free — raw,
 /// dependency-light, console-only.
 class NetworkLoggerInterceptor extends Interceptor {
   const NetworkLoggerInterceptor();
@@ -302,6 +309,10 @@ class NetworkLoggerInterceptor extends Interceptor {
       : '${text.substring(0, max)}\n… (${text.length - max} more chars truncated)';
 
   /// `debugPrint` (not `print`) so the framework's throttle keeps Android
-  /// logcat from dropping lines of a large block.
-  void _emit(String block) => debugPrint(block);
+  /// logcat from dropping lines of a large block. No-ops unless
+  /// [kNetworkConsoleLogging] is on, so the dumps stay silent by default.
+  void _emit(String block) {
+    if (!kNetworkConsoleLogging) return;
+    debugPrint(block);
+  }
 }

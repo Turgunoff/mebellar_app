@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
-import '../../../../core/logging/talker.dart';
+import '../../../../core/logging/app_logger.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../products/data/ar_token_repository.dart';
@@ -47,7 +47,7 @@ class _ArTokensScreenState extends State<ArTokensScreen> {
         });
       }
     } catch (e, st) {
-      talker.handle(e, st, '[ar-tokens] balance load failed');
+      appLog.handle(e, st, '[ar-tokens] balance load failed');
       if (mounted) {
         setState(() {
           _loading = false;

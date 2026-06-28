@@ -1,7 +1,7 @@
 import 'package:share_plus/share_plus.dart';
 
 import '../../core/i18n/i18n.dart';
-import '../../core/logging/talker.dart';
+import '../../core/logging/app_logger.dart';
 
 /// Public, shareable web URL for a shop. Mirrors [productShareUrl] and the
 /// `woody.uz/...` deep-link shape — keep this `woody.uz/shop/:id` path in sync
@@ -20,6 +20,6 @@ Future<void> shareShop({required String id, required String name}) async {
   try {
     await SharePlus.instance.share(ShareParams(text: text, subject: name));
   } catch (e, st) {
-    talker.handle(e, st, 'Shop share failed');
+    appLog.handle(e, st, 'Shop share failed');
   }
 }

@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../core/logging/talker.dart';
+import '../../../../core/logging/app_logger.dart';
 import '../../../../shared/ar/ar_scale.dart';
 import '../../../../shared/ar/ar_set_piece.dart';
 import '../../../../shared/ar/glb_cache_manager.dart';
@@ -249,7 +249,7 @@ class ArViewerCubit extends Cubit<ArViewerState> {
     try {
       set = await _setRepo!.fetchSet(setId);
     } catch (e, st) {
-      talker.handle(e, st, '[ar-viewer] set fetch failed');
+      appLog.handle(e, st, '[ar-viewer] set fetch failed');
     }
     if (set == null || isClosed) return;
 

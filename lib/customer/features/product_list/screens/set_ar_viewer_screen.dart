@@ -20,7 +20,7 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:vector_math/vector_math_64.dart' hide Colors;
 
 import '../../../../core/i18n/i18n.dart';
-import '../../../../core/logging/talker.dart';
+import '../../../../core/logging/app_logger.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/ar/ar_scale.dart';
 import '../../../../shared/ar/ar_set_piece.dart';
@@ -259,7 +259,7 @@ class _SetArViewerScreenState extends State<SetArViewerScreen> {
           any = true;
         }
       } catch (e, st) {
-        talker.handle(e, st, '[set-ar] addNode failed');
+        appLog.handle(e, st, '[set-ar] addNode failed');
       }
     }
 
@@ -297,7 +297,7 @@ class _SetArViewerScreenState extends State<SetArViewerScreen> {
         await anchors.removeAnchor(anchor);
       }
     } catch (e, st) {
-      talker.handle(e, st, '[set-ar] addNode failed');
+      appLog.handle(e, st, '[set-ar] addNode failed');
       await anchors.removeAnchor(anchor);
     }
   }
@@ -387,7 +387,7 @@ class _SetArViewerScreenState extends State<SetArViewerScreen> {
             : tr('product.ar_save_failed'),
       );
     } catch (e, st) {
-      talker.handle(e, st, '[set-ar] snapshot save failed');
+      appLog.handle(e, st, '[set-ar] snapshot save failed');
       _toast(tr('product.ar_save_failed'));
     } finally {
       if (mounted) setState(() => _saving = false);

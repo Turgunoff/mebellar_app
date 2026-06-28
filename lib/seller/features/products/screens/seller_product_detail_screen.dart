@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
 
 import '../../../../core/di/service_locator.dart';
-import '../../../../core/logging/talker.dart';
+import '../../../../core/logging/app_logger.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/constants/product_colors.dart';
@@ -107,7 +107,7 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
       if (!mounted) return;
       setState(() => _schema = schema);
     } catch (e, st) {
-      talker.handle(
+      appLog.handle(
         e,
         st,
         '[seller-product-detail] schema load failed productId=${widget.product.id}',

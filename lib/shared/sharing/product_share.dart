@@ -1,7 +1,7 @@
 import 'package:share_plus/share_plus.dart';
 
 import '../../core/i18n/i18n.dart';
-import '../../core/logging/talker.dart';
+import '../../core/logging/app_logger.dart';
 import '../models/product_model.dart';
 
 /// Public, shareable web URL for a product. Mirrors the route the web landing
@@ -28,6 +28,6 @@ Future<void> shareProduct(ProductModel product) async {
       ShareParams(text: text, subject: product.name),
     );
   } catch (e, st) {
-    talker.handle(e, st, 'Product share failed');
+    appLog.handle(e, st, 'Product share failed');
   }
 }

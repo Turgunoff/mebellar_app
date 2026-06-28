@@ -1,4 +1,4 @@
-import '../../core/logging/talker.dart';
+import '../../core/logging/app_logger.dart';
 import '../../core/storage/cache_store.dart';
 import '../models/product_model.dart';
 import 'product_data_source.dart';
@@ -147,7 +147,7 @@ class CachedProductDataSource extends ProductDataSource {
     } catch (e, st) {
       final cached = _cache.getJson<ProductFeedPage?>(key, _decodeFeed);
       if (cached != null && cached.items.isNotEmpty) {
-        talker.handle(
+        appLog.handle(
           e,
           st,
           'CachedProductDataSource.listFeed: network '
@@ -169,7 +169,7 @@ class CachedProductDataSource extends ProductDataSource {
     } catch (e, st) {
       final cached = _cache.getJson<ProductModel?>(key, _decodeOne);
       if (cached != null) {
-        talker.handle(
+        appLog.handle(
           e,
           st,
           'CachedProductDataSource.getById($id): network '
@@ -201,7 +201,7 @@ class CachedProductDataSource extends ProductDataSource {
         _decodeList,
       );
       if (cached != null && cached.isNotEmpty) {
-        talker.handle(
+        appLog.handle(
           e,
           st,
           'CachedProductDataSource.listSimilar('
@@ -259,7 +259,7 @@ class CachedProductDataSource extends ProductDataSource {
     } catch (e, st) {
       final cached = _cache.getJson<ProductFeedPage?>(key, _decodeFeed);
       if (cached != null && cached.items.isNotEmpty) {
-        talker.handle(
+        appLog.handle(
           e,
           st,
           'CachedProductDataSource.listByCategory($categoryId): network '

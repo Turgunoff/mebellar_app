@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../core/logging/talker.dart';
+import '../../../../core/logging/app_logger.dart';
 import '../../../../shared/models/seller_wallet.dart';
 import '../../../../shared/repositories/payment_repository.dart';
 import '../../../../shared/repositories/seller_wallet_repository.dart';
@@ -33,7 +33,7 @@ class SellerWalletCubit extends Cubit<SellerWalletState> {
       if (isClosed) return;
       emit(state.copyWith(status: WalletStatus.ready, wallet: wallet));
     } catch (e, st) {
-      talker.handle(e, st, 'SellerWalletCubit.load');
+      appLog.handle(e, st, 'SellerWalletCubit.load');
       if (isClosed) return;
       emit(state.copyWith(status: WalletStatus.failure, error: e.toString()));
     }
@@ -58,7 +58,7 @@ class SellerWalletCubit extends Cubit<SellerWalletState> {
       emit(state.copyWith(depositStatus: DepositStatus.idle));
       return link;
     } catch (e, st) {
-      talker.handle(e, st, 'SellerWalletCubit.startDeposit');
+      appLog.handle(e, st, 'SellerWalletCubit.startDeposit');
       if (isClosed) return null;
       emit(
         state.copyWith(depositStatus: DepositStatus.failure, error: e.toString()),

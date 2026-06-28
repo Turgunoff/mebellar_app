@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
-import 'package:talker_flutter/talker_flutter.dart';
 
 import '../config/app_config.dart';
 import '../config/app_mode.dart';
@@ -14,7 +13,7 @@ import '../core/deep_links/deep_link_service.dart';
 import '../core/di/service_locator.dart';
 import '../core/i18n/i18n.dart';
 import '../core/logging/app_navigation_logger.dart';
-import '../core/logging/talker.dart';
+import '../core/logging/app_logger.dart';
 import '../core/notifications/notification_handler.dart';
 import '../core/theme/app_theme.dart' show appSystemOverlay;
 import '../core/theme/seller_theme.dart';
@@ -158,7 +157,7 @@ class _SellerAppState extends State<SellerApp> with WidgetsBindingObserver {
       darkTheme: sellerDarkTheme,
       themeMode: themeMode,
       navigatorKey: sellerNavigatorKey,
-      navigatorObservers: [TalkerRouteObserver(talker), AppNavigationLogger()],
+      navigatorObservers: [AppNavigationLogger()],
       localizationsDelegates: _localizationsDelegates,
       supportedLocales: AppTranslations.supportedLocales,
       locale: AppLocaleScope.of(context).value,
@@ -238,7 +237,8 @@ class _SellerHomeShellState extends State<SellerHomeShell> {
           builder: (context, unreadChats) => SellerBottomNav(
             currentIndex: _index,
             onChanged: (i) {
-              if (i != _index) AppNavigationLogger.logTabSwitch(i, _tabNames[i]);
+              if (i != _index)
+                AppNavigationLogger.logTabSwitch(i, _tabNames[i]);
               setState(() => _index = i);
             },
             items: [

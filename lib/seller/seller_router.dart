@@ -6,14 +6,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
-import 'package:talker_flutter/talker_flutter.dart';
 
 import '../core/auth/auth_cubit.dart';
 import '../core/auth/auth_repository.dart';
 import '../core/di/service_locator.dart';
 import '../core/i18n/i18n.dart';
 import '../core/logging/app_navigation_logger.dart';
-import '../core/logging/talker.dart';
+import '../core/logging/app_logger.dart';
 import '../core/storage/app_settings.dart';
 import 'features/welcome/screens/seller_welcome_screen.dart';
 import '../shared/models/seller_product.dart';
@@ -58,7 +57,6 @@ GoRouter buildSellerRouter() {
     navigatorKey: sellerRootNavigatorKey,
     initialLocation: '/seller/dashboard',
     observers: [
-      TalkerRouteObserver(talker),
       AppNavigationLogger(),
       FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
     ],
@@ -214,7 +212,7 @@ GoRouter buildSellerRouter() {
                 sl<AuthRepository>()
                     .setSellerAlertFlags(bonusScreenSeen: true)
                     .catchError((Object e, StackTrace st) {
-                      talker.handle(
+                      appLog.handle(
                         e,
                         st,
                         'seller welcome: mark bonus seen failed',
@@ -339,7 +337,7 @@ class _SellerRouterShellState extends State<SellerRouterShell> {
       }
       GoRouter.of(context).push('/seller/welcome', extra: auth.userId);
     } catch (e, st) {
-      talker.handle(e, st, 'seller welcome gate /me failed');
+      appLog.handle(e, st, 'seller welcome gate /me failed');
     }
   }
 

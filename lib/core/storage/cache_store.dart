@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:hive_flutter/hive_flutter.dart';
 
-import 'package:woody_app/core/logging/talker.dart';
+import 'package:woody_app/core/logging/app_logger.dart';
 
 /// Thin wrapper over the root-scope Hive `cache` box. Repositories use it as
 /// a write-through cache so the offline banner has something to render
@@ -63,7 +63,7 @@ class CacheStore {
     try {
       return parse(jsonDecode(raw));
     } catch (e, st) {
-      talker.handle(e, st, 'CacheStore: corrupt entry "$k"');
+      appLog.handle(e, st, 'CacheStore: corrupt entry "$k"');
       _box.delete(k);
       _box.delete('$k$_ttlSuffix');
       return null;

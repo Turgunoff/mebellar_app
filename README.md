@@ -82,7 +82,7 @@ A single user identity can be both a buyer and a seller. The app switches betwee
 | App lifecycle | `in_app_update` `^4.2.3`, `in_app_review` `^2.0.10`, `package_info_plus` `^8.1.0`, `url_launcher` `^6.3.1`, `share_plus` `^12.0.2` |
 | UI / charts | `fl_chart` `^0.69.0`, `lottie` `^3.1.2`, `shimmer` `^3.0.0`, `flutter_svg` `^2.0.10`, `flutter_staggered_grid_view` `^0.7.0`, `smooth_page_indicator` `^1.2.0`, `iconsax_flutter` `^1.0.0`, `font_awesome_flutter` `^11.0.0` |
 | Localization / time | `intl` `^0.20.2`, `clock` `^1.1.1` |
-| Logging | `talker_flutter` `^5.1.16` |
+| Logging | custom `AppLogger` → Crashlytics |
 
 **Dev tooling:** `flutter_lints` `^6.0.0`, `bloc_test` `^10.0.0`, `mocktail` `^1.0.4`, `flutter_native_splash` `^2.4.4`, `flutter_launcher_icons` `^0.14.4`.
 

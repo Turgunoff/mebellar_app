@@ -15,8 +15,7 @@ import '../core/deep_links/deep_link_service.dart';
 import '../core/di/service_locator.dart';
 import '../core/i18n/i18n.dart';
 import '../core/logging/app_navigation_logger.dart';
-import '../core/logging/debug_talker_overlay.dart';
-import '../core/logging/talker.dart';
+import '../core/logging/app_logger.dart';
 import '../core/notifications/notification_handler.dart';
 import '../core/notifications/push_service.dart';
 import '../core/services/facebook_analytics_service.dart';
@@ -216,18 +215,15 @@ class _CustomerAppState extends State<CustomerApp> with WidgetsBindingObserver {
             // above the network banner and every route.
             child: AppUpdateGate(
               child: NetworkOverlayWrapper(
-                child: DebugTalkerOverlay(
-                  navigatorKey: customerNavigatorKey,
-                  // Reconciles an in-flight Payme/Click order payment on
-                  // return (resume poll + cold-start probe), so success is
-                  // shown only after the server confirms — never on placement.
-                  child: PaymentRecoveryGate(
-                    onViewDetails: (_) {
-                      final ctx = customerNavigatorKey.currentContext;
-                      if (ctx != null) ctx.go('/orders');
-                    },
-                    child: child ?? const SizedBox.shrink(),
-                  ),
+                // Reconciles an in-flight Payme/Click order payment on
+                // return (resume poll + cold-start probe), so success is
+                // shown only after the server confirms — never on placement.
+                child: PaymentRecoveryGate(
+                  onViewDetails: (_) {
+                    final ctx = customerNavigatorKey.currentContext;
+                    if (ctx != null) ctx.go('/orders');
+                  },
+                  child: child ?? const SizedBox.shrink(),
                 ),
               ),
             ),

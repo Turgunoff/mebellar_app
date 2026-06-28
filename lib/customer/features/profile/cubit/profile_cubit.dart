@@ -7,7 +7,7 @@ import '../../../../core/auth/app_mode_cubit.dart';
 import '../../../../core/auth/auth_repository.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
-import '../../../../core/logging/talker.dart';
+import '../../../../core/logging/app_logger.dart';
 import '../../../../core/network/api_error.dart';
 import '../../../../shared/models/me.dart';
 import '../../../../shared/models/verification_status.dart';
@@ -167,7 +167,7 @@ class ProfileCubit extends Cubit<ProfileState> {
         Object e,
         StackTrace st,
       ) {
-        talker.handle(e, st, 'ProfileCubit.dismissRejectedBanner persist failed');
+        appLog.handle(e, st, 'ProfileCubit.dismissRejectedBanner persist failed');
       }),
     );
   }
@@ -205,11 +205,11 @@ class ProfileCubit extends Cubit<ProfileState> {
         );
       }
     } on ApiError catch (e, st) {
-      talker.handle(e, st, 'ProfileCubit.fetch /me failed');
+      appLog.handle(e, st, 'ProfileCubit.fetch /me failed');
       if (isClosed) return;
       emit(state.copyWith(isLoading: false));
     } catch (e, st) {
-      talker.handle(e, st, 'ProfileCubit.fetch failed');
+      appLog.handle(e, st, 'ProfileCubit.fetch failed');
       if (isClosed) return;
       emit(state.copyWith(isLoading: false));
     }

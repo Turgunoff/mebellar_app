@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/di/service_locator.dart';
 import '../../core/i18n/i18n.dart';
-import '../../core/logging/talker.dart';
+import '../../core/logging/app_logger.dart';
 import 'pending_payment.dart';
 import 'pending_payment_service.dart';
 
@@ -96,7 +96,7 @@ class _PaymentRecoveryGateState extends State<PaymentRecoveryGate>
         try {
           outcome = await service.checkOnce(pending);
         } catch (e, st) {
-          talker.handle(e, st, 'PaymentRecoveryGate cold-start probe failed');
+          appLog.handle(e, st, 'PaymentRecoveryGate cold-start probe failed');
           outcome = PaymentOutcome.unknown;
         }
         // Always clear after the cold-start check to prevent an infinite loop.
@@ -120,7 +120,7 @@ class _PaymentRecoveryGateState extends State<PaymentRecoveryGate>
     try {
       outcome = await service.pollUntilSettled(pending);
     } catch (e, st) {
-      talker.handle(e, st, 'PaymentRecoveryGate resume poll failed');
+      appLog.handle(e, st, 'PaymentRecoveryGate resume poll failed');
       outcome = PaymentOutcome.unknown;
     }
     // Clear regardless of outcome — one poll cycle per checkout (Task 2).

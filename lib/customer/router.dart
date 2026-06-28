@@ -2,7 +2,6 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:talker_flutter/talker_flutter.dart';
 
 import '../config/app_mode.dart';
 import '../core/deeplink/deferred_deep_link_service.dart';
@@ -15,7 +14,7 @@ import '../shared/models/chat.dart';
 import '../shared/repositories/category_data_source.dart';
 import '../shared/repositories/product_data_source.dart';
 import '../core/logging/app_navigation_logger.dart';
-import '../core/logging/talker.dart';
+import '../core/logging/app_logger.dart';
 import '../shared/models/cart_item_model.dart';
 import '../shared/widgets/brand_refresh_indicator.dart';
 import '../shared/widgets/notification_simulator_screen.dart';
@@ -74,7 +73,6 @@ GoRouter buildCustomerRouter() {
     initialLocation: DeferredDeepLink.pendingLocation ?? '/',
     navigatorKey: customerNavigatorKey,
     observers: [
-      TalkerRouteObserver(talker),
       AppNavigationLogger(),
       // Auto screen_view + Crashlytics breadcrumbs on every route push.
       FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),

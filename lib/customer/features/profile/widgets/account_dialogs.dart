@@ -7,7 +7,7 @@ import '../../../../core/auth/auth_repository.dart';
 import '../../../../core/auth/sign_out.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
-import '../../../../core/logging/talker.dart';
+import '../../../../core/logging/app_logger.dart';
 import '../../../../core/network/api_error.dart';
 import '../../../../core/network/woody_api_client.dart';
 import '../../../../core/storage/hive_boxes.dart';
@@ -231,7 +231,7 @@ Future<void> confirmAccountDeletion(BuildContext context) async {
                                   await signOutWithPushCleanup(
                                     sl<AuthRepository>(),
                                   );
-                                  talker.info(
+                                  appLog.info(
                                     'Account soft-deleted successfully',
                                   );
                                 } catch (e, st) {
@@ -244,7 +244,7 @@ Future<void> confirmAccountDeletion(BuildContext context) async {
                                     final blockedMessage =
                                         _deletionBlockedMessage(e.code);
                                     if (blockedMessage != null) {
-                                      talker.info(
+                                      appLog.info(
                                         'Account deletion blocked: ${e.code}',
                                       );
                                       rootNav.pop();
@@ -257,7 +257,7 @@ Future<void> confirmAccountDeletion(BuildContext context) async {
                                       return;
                                     }
                                   }
-                                  talker.error(
+                                  appLog.error(
                                     'Account deletion failed',
                                     e,
                                     st,
@@ -460,6 +460,6 @@ Future<void> _clearLocalAfterDelete() async {
       }
     }
   } catch (e, st) {
-    talker.warning('Local cleanup after delete failed', e, st);
+    appLog.warning('Local cleanup after delete failed', e, st);
   }
 }

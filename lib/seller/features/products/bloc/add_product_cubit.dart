@@ -6,7 +6,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/analytics/analytics_service.dart';
-import '../../../../core/logging/talker.dart';
+import '../../../../core/logging/app_logger.dart';
 import '../../../../core/network/api_error.dart';
 import '../../../../shared/constants/product_colors.dart';
 import '../../../../shared/models/attribute_definition.dart';
@@ -463,7 +463,7 @@ class AddProductCubit extends Cubit<AddProductState> {
   /// inside the previous category.
   void selectCategory(String? id) {
     if (id == null) {
-      talker.info('[add-product-cubit] selectCategory cleared');
+      appLog.info('[add-product-cubit] selectCategory cleared');
       emit(
         state.copyWith(
           clearCategory: true,
@@ -475,7 +475,7 @@ class AddProductCubit extends Cubit<AddProductState> {
       return;
     }
     if (state.categoryId == id) return;
-    talker.info(
+    appLog.info(
       '[add-product-cubit] selectCategory id=$id (was ${state.categoryId})',
     );
     emit(
@@ -494,7 +494,7 @@ class AddProductCubit extends Cubit<AddProductState> {
   /// subcategory so we don't ship orphan keys into JSONB.
   void selectSubcategory(String? id) {
     if (id == state.subcategoryId) return;
-    talker.info(
+    appLog.info(
       '[add-product-cubit] selectSubcategory id=$id (was ${state.subcategoryId})',
     );
     final pruned = _pruneSubcategoryAttributes(
@@ -678,13 +678,13 @@ class AddProductCubit extends Cubit<AddProductState> {
   Future<bool> submit({bool forceCreate = false}) async {
     final ctx = state.context;
     if (ctx == null) {
-      talker.warning('[add-product-cubit] submit aborted — no shop context');
+      appLog.warning('[add-product-cubit] submit aborted — no shop context');
       return false;
     }
     // Editing never consumes a new tariff slot, so the quota gate only
     // applies to create mode.
     if (!state.isEditing && !ctx.canAddMoreProducts) {
-      talker.warning(
+      appLog.warning(
         '[add-product-cubit] submit blocked by tariff '
         'plan=${ctx.plan.code} active=${ctx.activeProductsCount}',
       );
@@ -692,7 +692,7 @@ class AddProductCubit extends Cubit<AddProductState> {
       return false;
     }
     if (!state.canSubmit) {
-      talker.warning(
+      appLog.warning(
         '[add-product-cubit] submit blocked by validation '
         'name=${state.name.isNotEmpty} category=${state.categoryId != null} '
         'price=${state.price} images=${state.images.length} '
@@ -701,7 +701,7 @@ class AddProductCubit extends Cubit<AddProductState> {
       return false;
     }
 
-    talker.info(
+    appLog.info(
       '[add-product-cubit] submit start sku=${state.sku} '
       'editing=${state.editingProductId ?? '-'} '
       'category=${state.categoryId} sub=${state.subcategoryId} '
@@ -763,7 +763,7 @@ class AddProductCubit extends Cubit<AddProductState> {
       if (!isClosed) {
         emit(state.copyWith(status: AddProductStatus.success));
       }
-      talker.info('[add-product-cubit] submit ok sku=${state.sku}');
+      appLog.info('[add-product-cubit] submit ok sku=${state.sku}');
       return true;
     } catch (e, st) {
       // 409 DUPLICATE_DETECTED is a soft warning, not a failure: surface the
@@ -771,7 +771,7 @@ class AddProductCubit extends Cubit<AddProductState> {
       if (e is ApiError) {
         final match = DuplicateProductMatch.fromApiError(e);
         if (match != null) {
-          talker.info(
+          appLog.info(
             '[add-product-cubit] duplicate detected '
             'match=${match.id} sim=${match.similarity}',
           );
@@ -787,7 +787,7 @@ class AddProductCubit extends Cubit<AddProductState> {
           return false;
         }
       }
-      talker.handle(
+      appLog.handle(
         e,
         st,
         '[add-product-cubit] submit failed sku=${state.sku}',
@@ -837,13 +837,13 @@ class AddProductCubit extends Cubit<AddProductState> {
       }
       unawaited(_analytics?.aiSuggestApplied(available: s.available));
       emit(state.copyWith(isAiBusy: false));
-      talker.info(
+      appLog.info(
         '[add-product-cubit] ai-suggest done available=${s.available} '
         'sameProduct=${s.sameProduct} applied=${s.hasAnything}',
       );
       return (available: s.available, sameProduct: s.sameProduct);
     } catch (e, st) {
-      talker.handle(e, st, '[add-product-cubit] ai-suggest failed');
+      appLog.handle(e, st, '[add-product-cubit] ai-suggest failed');
       if (!isClosed) {
         emit(state.copyWith(isAiBusy: false));
       }

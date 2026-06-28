@@ -1,4 +1,4 @@
-import '../../core/logging/talker.dart';
+import '../../core/logging/app_logger.dart';
 import '../../core/storage/cache_store.dart';
 import '../models/banner.dart';
 import 'banner_repository.dart';
@@ -47,7 +47,7 @@ class CachedBannerRepository extends BannerRepository {
     } catch (e, st) {
       final cached = peek();
       if (cached != null && cached.isNotEmpty) {
-        talker.handle(
+        appLog.handle(
           e,
           st,
           'CachedBannerRepository: network failed, '

@@ -1,6 +1,6 @@
 import 'package:hive_flutter/hive_flutter.dart';
 
-import '../core/logging/talker.dart';
+import '../core/logging/app_logger.dart';
 import '../core/network/api_error.dart';
 import '../core/network/woody_api_client.dart';
 
@@ -81,20 +81,20 @@ class RemoteConfig {
       final value = body['value'];
       tariffEnabled = value == true || value == 'true';
       await box.put(_tariffHiveKey, tariffEnabled);
-      talker.info('[remote-config] tariff_enabled=$tariffEnabled');
+      appLog.info('[remote-config] tariff_enabled=$tariffEnabled');
     } on ApiError catch (e, st) {
       if (e.isNotFound) {
         tariffEnabled = false;
         await box.put(_tariffHiveKey, false);
         return;
       }
-      talker.handle(
+      appLog.handle(
         e,
         st,
         '[remote-config] refresh failed — kept cached value',
       );
     } catch (e, st) {
-      talker.handle(
+      appLog.handle(
         e,
         st,
         '[remote-config] refresh failed — kept cached value',
@@ -112,7 +112,7 @@ class RemoteConfig {
       androidLatestVersion = latest;
       await box.put(_minVersionHiveKey, min ?? '');
       await box.put(_latestVersionHiveKey, latest ?? '');
-      talker.info('[remote-config] android min=$min latest=$latest');
+      appLog.info('[remote-config] android min=$min latest=$latest');
     } on ApiError catch (e, st) {
       if (e.isNotFound) {
         androidMinVersion = null;
@@ -121,13 +121,13 @@ class RemoteConfig {
         await box.put(_latestVersionHiveKey, '');
         return;
       }
-      talker.handle(
+      appLog.handle(
         e,
         st,
         '[remote-config] app_versions refresh failed — kept cached value',
       );
     } catch (e, st) {
-      talker.handle(
+      appLog.handle(
         e,
         st,
         '[remote-config] app_versions refresh failed — kept cached value',

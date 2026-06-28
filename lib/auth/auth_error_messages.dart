@@ -7,7 +7,7 @@ import '../core/network/api_error.dart';
 /// Codes mirror `app/api/v1/auth.py::_translate` in woody_backend — keep this
 /// switch in sync when adding new ones. Unknown codes fall back to a generic
 /// network-error string. Logging the raw error is the caller's job (via
-/// `talker.handle`); this helper only decides what the user sees.
+/// `appLog.handle`); this helper only decides what the user sees.
 String authErrorMessageFromApi(ApiError error) {
   switch (error.code) {
     case 'invalid_phone':

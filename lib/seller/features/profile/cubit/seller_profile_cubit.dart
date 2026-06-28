@@ -5,7 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/auth/auth_repository.dart';
 import '../../../../core/i18n/i18n.dart';
-import '../../../../core/logging/talker.dart';
+import '../../../../core/logging/app_logger.dart';
 import '../../../../core/network/api_error.dart';
 import '../../../../shared/models/seller_wallet.dart';
 import '../../../../shared/models/shop_settings.dart';
@@ -188,10 +188,10 @@ class SellerProfileCubit extends Cubit<SellerProfileState> {
       return _Fetch(_Outcome.ok, await future);
     } on ApiError catch (e, st) {
       if (e.isNotFound) return const _Fetch(_Outcome.absent);
-      talker.handle(e, st, 'SellerProfileCubit.$label');
+      appLog.handle(e, st, 'SellerProfileCubit.$label');
       return const _Fetch(_Outcome.failed);
     } catch (e, st) {
-      talker.handle(e, st, 'SellerProfileCubit.$label');
+      appLog.handle(e, st, 'SellerProfileCubit.$label');
       return const _Fetch(_Outcome.failed);
     }
   }

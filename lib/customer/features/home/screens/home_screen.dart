@@ -1,13 +1,18 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:showcaseview/showcaseview.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
+import '../ar_demo_launcher.dart';
 import '../../../../shared/models/product.dart';
 import '../../../../shared/repositories/product_data_source.dart';
 import '../../../customer_app.dart';
@@ -26,18 +31,64 @@ import '../widgets/premium/premium_product_card.dart';
 import '../widgets/premium/premium_product_list_card.dart';
 import '../widgets/premium/premium_tokens.dart';
 
-class HomeScreen extends StatefulWidget {
+/// First-launch spotlight flag — set once the AR-demo tour is shown so it never
+/// reappears on this install.
+const String _kSeenArDemoPrefKey = 'has_seen_ar_demo';
+
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  Widget build(BuildContext context) {
+    // .value here is critical — using `create` would spawn a fresh cubit per
+    // HomeScreen mount, defeating the singleton (the bell badge would diverge
+    // from the inbox screen). The DI singleton owns the Realtime channel; we
+    // just hand the same instance down the tree.
+    //
+    // ShowCaseWidget wraps the whole home tree so the one-time AR spotlight can
+    // target the AppBar button; `_HomeView` (its descendant) drives the tour.
+    return BlocProvider<NotificationsCubit>.value(
+      value: sl<NotificationsCubit>(),
+      child: ShowCaseWidget(builder: (context) => const _HomeView()),
+    );
+  }
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeView extends StatefulWidget {
+  const _HomeView();
+
+  @override
+  State<_HomeView> createState() => _HomeViewState();
+}
+
+class _HomeViewState extends State<_HomeView> {
   // Shared, app-wide grid/list preference (see ProductViewModeController) so a
   // toggle here or on any category list applies everywhere — including this tab
   // when it's kept alive in the shell. Not disposed: it's a DI singleton.
   final ProductViewModeController _viewMode = sl<ProductViewModeController>();
+
+  /// Spotlight target for the AR demo button in the AppBar.
+  final GlobalKey _arDemoKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    // First frame paints the AppBar (and registers the Showcase target) before
+    // we ask the controller to spotlight it.
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => unawaited(_maybeStartArShowcase()),
+    );
+  }
+
+  /// Shows the AR spotlight exactly once per install. The flag is persisted the
+  /// moment the tour starts, so killing the app mid-tour still counts as "seen".
+  Future<void> _maybeStartArShowcase() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool(_kSeenArDemoPrefKey) ?? false) return;
+    if (!mounted) return;
+    ShowCaseWidget.of(context).startShowCase([_arDemoKey]);
+    await prefs.setBool(_kSeenArDemoPrefKey, true);
+  }
 
   /// Pull-to-refresh handler shared by the error and content scroll views.
   /// [CupertinoSliverRefreshControl] holds its spinner up until this future
@@ -58,140 +109,131 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
-    // .value here is critical — using `create` would spawn a fresh cubit
-    // per HomeScreen mount, defeating the singleton (the bell badge would
-    // diverge from the inbox screen). The DI singleton owns the Realtime
-    // channel; we just hand the same instance down the tree.
-    return BlocProvider<NotificationsCubit>.value(
-      value: sl<NotificationsCubit>(),
-      // Transparent Scaffold layered over the home feed so the animated AI FAB
-      // floats bottom-right above the shell's bottom nav without disturbing the
-      // existing feed layout.
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        floatingActionButton: const AiChatFab(),
-        body: ColoredBox(
-          color: pt.background,
-          child: NetworkErrorGate<HomeBloc, HomeState>(
-            isActive: (ctx) => CustomerShellScope.of(ctx).index == 0,
-            onRetry: (bloc) => bloc.add(const HomeRequested(refresh: true)),
-            backgroundError: (s) =>
-                s.status == HomeStatus.ready && s.error != null
-                ? s.error
-                : null,
-            child: BlocBuilder<HomeBloc, HomeState>(
-              buildWhen: (a, b) => a.status != b.status,
-              builder: (context, state) {
-                final showError =
-                    state.status == HomeStatus.failure &&
-                    state.banners.isEmpty &&
-                    state.recommended.isEmpty;
+    // Transparent Scaffold layered over the home feed so the animated AI FAB
+    // floats bottom-right above the shell's bottom nav without disturbing the
+    // existing feed layout.
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      floatingActionButton: const AiChatFab(),
+      body: ColoredBox(
+        color: pt.background,
+        child: NetworkErrorGate<HomeBloc, HomeState>(
+          isActive: (ctx) => CustomerShellScope.of(ctx).index == 0,
+          onRetry: (bloc) => bloc.add(const HomeRequested(refresh: true)),
+          backgroundError: (s) =>
+              s.status == HomeStatus.ready && s.error != null ? s.error : null,
+          child: BlocBuilder<HomeBloc, HomeState>(
+            buildWhen: (a, b) => a.status != b.status,
+            builder: (context, state) {
+              final showError =
+                  state.status == HomeStatus.failure &&
+                  state.banners.isEmpty &&
+                  state.recommended.isEmpty;
 
-                if (showError) {
+              if (showError) {
+                return CustomScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  slivers: [
+                    _HomeAppBar(arDemoKey: _arDemoKey),
+                    CupertinoSliverRefreshControl(
+                      onRefresh: () => _handleRefresh(context),
+                    ),
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(0, 20, 0, 0),
+                        child: const _PremiumSearchBar(),
+                      ),
+                    ),
+                    SliverFillRemaining(
+                      child: NetworkErrorView(
+                        onRetry: () => context.read<HomeBloc>().add(
+                          const HomeRequested(refresh: true),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              }
+
+              // Rebuild the scroll view when the view mode flips so the feed
+              // sliver swaps between masonry grid and full-width list. Toggling
+              // is rare; banners/categories ride their own cached BlocBuilders,
+              // so the rebuild is cheap.
+              return ValueListenableBuilder<ProductViewMode>(
+                valueListenable: _viewMode,
+                builder: (context, viewMode, _) {
                   return CustomScrollView(
                     physics: const BouncingScrollPhysics(),
                     slivers: [
-                      const _HomeAppBar(),
+                      _HomeAppBar(arDemoKey: _arDemoKey),
                       CupertinoSliverRefreshControl(
                         onRefresh: () => _handleRefresh(context),
                       ),
                       SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(0, 20, 0, 0),
-                          child: const _PremiumSearchBar(),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 20),
+                            const _PremiumSearchBar(),
+                            const SizedBox(height: 12),
+                            BlocBuilder<HomeBloc, HomeState>(
+                              buildWhen: (prev, curr) =>
+                                  prev.status != curr.status ||
+                                  prev.banners != curr.banners,
+                              builder: (context, s) {
+                                if (s.status == HomeStatus.loading ||
+                                    s.status == HomeStatus.initial) {
+                                  return const GlassBannerShimmer();
+                                }
+                                // Editorial banners are DB-driven only — no
+                                // static fallback. The injected seller-promo
+                                // slide rides ahead of them, EXCEPT for an
+                                // approved seller — they already run a shop,
+                                // so the "Sotuvchi bo'ling" CTA is noise.
+                                // GlassBanner collapses to nothing if the
+                                // list ends up empty. Use the cache-aware
+                                // flag so an approved seller never sees the
+                                // promo flash during the `/me` round-trip
+                                // right after a seller→customer mode switch.
+                                final isApprovedSeller = context
+                                    .select<ProfileCubit, bool>(
+                                      (c) => c.state.isApprovedSellerKnown,
+                                    );
+                                return GlassBanner(
+                                  banners: [
+                                    if (!isApprovedSeller)
+                                      GlassBanner.sellerPromoBanner,
+                                    ...s.banners,
+                                  ],
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                            _SectionHeader(
+                              title: tr('home.categories'),
+                              actionLabel: tr('home.see_all'),
+                              onAction: () =>
+                                  CustomerShellScope.of(context).goToTab(1),
+                            ),
+                            const SizedBox(height: 16),
+                            const _CategoriesRow(),
+                            const SizedBox(height: 32),
+                            _RecommendedHeader(
+                              viewMode: viewMode,
+                              onViewModeChanged: _viewMode.set,
+                            ),
+                            const SizedBox(height: 16),
+                          ],
                         ),
                       ),
-                      SliverFillRemaining(
-                        child: NetworkErrorView(
-                          onRetry: () => context.read<HomeBloc>().add(
-                            const HomeRequested(refresh: true),
-                          ),
-                        ),
-                      ),
+                      _RecommendedFeed(viewMode: viewMode),
+                      const _RecommendedFeedFooter(),
+                      const SliverToBoxAdapter(child: SizedBox(height: 24)),
                     ],
                   );
-                }
-
-                // Rebuild the scroll view when the view mode flips so the feed
-                // sliver swaps between masonry grid and full-width list. Toggling
-                // is rare; banners/categories ride their own cached BlocBuilders,
-                // so the rebuild is cheap.
-                return ValueListenableBuilder<ProductViewMode>(
-                  valueListenable: _viewMode,
-                  builder: (context, viewMode, _) {
-                    return CustomScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      slivers: [
-                        const _HomeAppBar(),
-                        CupertinoSliverRefreshControl(
-                          onRefresh: () => _handleRefresh(context),
-                        ),
-                        SliverToBoxAdapter(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 20),
-                              const _PremiumSearchBar(),
-                              const SizedBox(height: 12),
-                              BlocBuilder<HomeBloc, HomeState>(
-                                buildWhen: (prev, curr) =>
-                                    prev.status != curr.status ||
-                                    prev.banners != curr.banners,
-                                builder: (context, s) {
-                                  if (s.status == HomeStatus.loading ||
-                                      s.status == HomeStatus.initial) {
-                                    return const GlassBannerShimmer();
-                                  }
-                                  // Editorial banners are DB-driven only — no
-                                  // static fallback. The injected seller-promo
-                                  // slide rides ahead of them, EXCEPT for an
-                                  // approved seller — they already run a shop,
-                                  // so the "Sotuvchi bo'ling" CTA is noise.
-                                  // GlassBanner collapses to nothing if the
-                                  // list ends up empty. Use the cache-aware
-                                  // flag so an approved seller never sees the
-                                  // promo flash during the `/me` round-trip
-                                  // right after a seller→customer mode switch.
-                                  final isApprovedSeller = context
-                                      .select<ProfileCubit, bool>(
-                                        (c) => c.state.isApprovedSellerKnown,
-                                      );
-                                  return GlassBanner(
-                                    banners: [
-                                      if (!isApprovedSeller)
-                                        GlassBanner.sellerPromoBanner,
-                                      ...s.banners,
-                                    ],
-                                  );
-                                },
-                              ),
-                              const SizedBox(height: 16),
-                              _SectionHeader(
-                                title: tr('home.categories'),
-                                actionLabel: tr('home.see_all'),
-                                onAction: () =>
-                                    CustomerShellScope.of(context).goToTab(1),
-                              ),
-                              const SizedBox(height: 16),
-                              const _CategoriesRow(),
-                              const SizedBox(height: 32),
-                              _RecommendedHeader(
-                                viewMode: viewMode,
-                                onViewModeChanged: _viewMode.set,
-                              ),
-                              const SizedBox(height: 16),
-                            ],
-                          ),
-                        ),
-                        _RecommendedFeed(viewMode: viewMode),
-                        const _RecommendedFeedFooter(),
-                        const SliverToBoxAdapter(child: SizedBox(height: 24)),
-                      ],
-                    );
-                  },
-                );
-              },
-            ),
+                },
+              );
+            },
           ),
         ),
       ),
@@ -202,7 +244,10 @@ class _HomeScreenState extends State<HomeScreen> {
 // ─────────────────────────── App bar ───────────────────────────
 
 class _HomeAppBar extends StatelessWidget {
-  const _HomeAppBar();
+  const _HomeAppBar({required this.arDemoKey});
+
+  /// Spotlight target for the first-launch AR-demo tour (see [_HomeViewState]).
+  final GlobalKey arDemoKey;
 
   @override
   Widget build(BuildContext context) {
@@ -217,8 +262,12 @@ class _HomeAppBar extends StatelessWidget {
       automaticallyImplyLeading: false,
       actions: [
         Padding(
-          padding: const EdgeInsets.only(right: 12),
-          child: const _NotificationBell(),
+          padding: const EdgeInsets.only(right: 8),
+          child: _ArDemoButton(showcaseKey: arDemoKey),
+        ),
+        const Padding(
+          padding: EdgeInsets.only(right: 12),
+          child: _NotificationBell(),
         ),
       ],
       flexibleSpace: FlexibleSpaceBar(
@@ -242,6 +291,54 @@ class _HomeAppBar extends StatelessWidget {
               letterSpacing: 1.6,
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// AR demo entry point — a circular AppBar action mirroring the notification
+/// bell. Wrapped in a [Showcase] so the one-time first-launch tour can spotlight
+/// it. Tapping (whether during the tour or after) opens the bundled demo model
+/// in the unified 3D / AR viewer.
+class _ArDemoButton extends StatelessWidget {
+  const _ArDemoButton({required this.showcaseKey});
+
+  final GlobalKey showcaseKey;
+
+  @override
+  Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
+    return Showcase(
+      key: showcaseKey,
+      title: tr('home.ar_demo_showcase_title'),
+      description: tr('home.ar_demo_showcase_desc'),
+      // Round spotlight + a little breathing room to match the circular button.
+      targetShapeBorder: const CircleBorder(),
+      targetPadding: const EdgeInsets.all(6),
+      tooltipBackgroundColor: pt.surface,
+      textColor: pt.dark,
+      tooltipBorderRadius: BorderRadius.circular(16),
+      titleTextStyle: PremiumTokens.display(size: 16, letterSpacing: -0.2),
+      descTextStyle: PremiumTokens.body(size: 13, height: 1.4, color: pt.grey),
+      // Tapping the highlighted button both ends the tour and opens the demo.
+      onTargetClick: () => unawaited(openArDemo(context)),
+      disposeOnTap: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => unawaited(openArDemo(context)),
+        child: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: pt.surface,
+            shape: BoxShape.circle,
+            boxShadow: PremiumTokens.softShadow,
+          ),
+          // New Material glyph: safe here because this feature already ships as a
+          // full release (new `showcaseview` dep + bundled demo models), not a
+          // Shorebird patch — so the tree-shaken icon font is regenerated anyway.
+          child: Icon(Icons.view_in_ar_rounded, color: pt.dark, size: 22),
         ),
       ),
     );

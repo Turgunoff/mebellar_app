@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import '../../core/error/failure.dart';
-import '../../core/logging/talker.dart';
+import '../../core/logging/app_logger.dart';
 import '../../core/network/api_error.dart';
 import '../../core/network/woody_api_client.dart';
 import '../../core/result/result.dart';
@@ -256,7 +256,7 @@ class WoodyFavoritesRepository implements FavoritesRepository {
           // Skip the corrupt row rather than blowing up the list, but log
           // it — a snapshot-shape drift here once silently emptied the
           // whole favorites tab.
-          talker.handle(e, st, 'favorites: skipped corrupt snapshot $id');
+          appLog.handle(e, st, 'favorites: skipped corrupt snapshot $id');
         }
       }
       _ids = ids;

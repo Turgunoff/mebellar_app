@@ -49,8 +49,8 @@ dependencies:
   # Crash + non-fatal error reporting. Firebase Crashlytics replaces the
   # previous Sentry integration — it's free (unlimited events), ships ANR
   # detection on Android, and lives in the same dashboard as the
-  # existing Firebase setup (Messaging, Auth). Talker errors are
-  # forwarded to it via CrashlyticsTalkerObserver.
+  # existing Firebase setup (Messaging, Auth). Handled errors are
+  # forwarded to it via AppLogger.handle.
   firebase_crashlytics: ^4.1.5
   # Product analytics — funnel + retention + conversion. Free, unlimited.
   # Crashlytics consumes Analytics breadcrumbs ("user did X, Y, Z before
@@ -149,6 +149,10 @@ dependencies:
   # Lottie animations (AI loading overlay)
   lottie: ^3.1.2
 
+  # One-time spotlight tutorial overlay — highlights the AR demo button in the
+  # home AppBar on first launch so new users discover the 3D/AR feature.
+  showcaseview: ^4.0.1
+
   # Masonry / staggered grid layout
   flutter_staggered_grid_view: ^0.7.0
 
@@ -171,7 +175,6 @@ dependencies:
   mask_text_input_formatter: ^2.9.0
 
   # Logging
-  talker_flutter: ^5.1.16
 
   # Support chat voice notes. `record` captures mic audio (AAC-LC → .m4a,
   # content_type audio/mp4); `just_audio` plays back the resulting clips +

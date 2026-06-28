@@ -22,6 +22,10 @@ const Map<String, dynamic> homeUz = {
   'sort_discount': 'Chegirmalilar oldin',
   'sort_newest': 'Eng yangi',
   'seller_promo_cta': 'Boshlash',
+  'ar_demo_title': 'AR Demo',
+  'ar_demo_showcase_title': 'Sehrni his qiling! ✨',
+  'ar_demo_showcase_desc':
+      'Mebellarni o\'z xonangizda 3D va AR rejimida ko\'rish uchun shu yerni bosing.',
 };
 
 const Map<String, dynamic> homeRu = {
@@ -45,6 +49,10 @@ const Map<String, dynamic> homeRu = {
   'sort_discount': 'Сначала со скидкой',
   'sort_newest': 'Сначала новые',
   'seller_promo_cta': 'Начать',
+  'ar_demo_title': 'AR демо',
+  'ar_demo_showcase_title': 'Почувствуйте магию! ✨',
+  'ar_demo_showcase_desc':
+      'Нажмите здесь, чтобы увидеть мебель у себя дома в 3D и AR.',
 };
 
 const Map<String, dynamic> homeEn = {
@@ -68,4 +76,8 @@ const Map<String, dynamic> homeEn = {
   'sort_discount': 'Biggest discount',
   'sort_newest': 'Newest first',
   'seller_promo_cta': 'Start',
+  'ar_demo_title': 'AR Demo',
+  'ar_demo_showcase_title': 'Feel the magic! ✨',
+  'ar_demo_showcase_desc':
+      'Tap here to see furniture in your room in 3D and AR.',
 };

@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../core/logging/talker.dart';
+import '../../../../core/logging/app_logger.dart';
 import '../../../../shared/models/shop_settings.dart';
 import '../../../../shared/models/working_hours.dart';
 import '../../../../shared/repositories/shop_settings_repository.dart';
@@ -236,7 +236,7 @@ class ShopSettingsBloc extends Bloc<ShopSettingsEvent, ShopSettingsState> {
   ) async {
     final s = state.settings;
     if (s == null) return;
-    talker.info('[shop-settings] asset upload requested kind=${event.kind}');
+    appLog.info('[shop-settings] asset upload requested kind=${event.kind}');
     emit(state.copyWith(uploadingKind: event.kind, clearError: true));
     final result = await _repo.uploadAsset(
       kind: event.kind,
@@ -245,14 +245,14 @@ class ShopSettingsBloc extends Bloc<ShopSettingsEvent, ShopSettingsState> {
     );
     result.fold(
       ok: (url) {
-        talker.info('[shop-settings] asset upload ok kind=${event.kind}');
+        appLog.info('[shop-settings] asset upload ok kind=${event.kind}');
         final next = event.kind == 'logo'
             ? s.copyWith(logoUrl: url)
             : s.copyWith(coverUrl: url);
         emit(state.copyWith(settings: next, clearUploadingKind: true));
       },
       err: (failure) {
-        talker.error(
+        appLog.error(
           '[shop-settings] asset upload failed kind=${event.kind}: '
           '${failure.message}',
         );
@@ -269,7 +269,7 @@ class ShopSettingsBloc extends Bloc<ShopSettingsEvent, ShopSettingsState> {
   ) {
     final s = state.settings;
     if (s == null) return;
-    talker.info('[shop-settings] asset removed kind=${event.kind}');
+    appLog.info('[shop-settings] asset removed kind=${event.kind}');
     final next = event.kind == 'logo'
         ? s.copyWith(clearLogo: true)
         : s.copyWith(clearCover: true);

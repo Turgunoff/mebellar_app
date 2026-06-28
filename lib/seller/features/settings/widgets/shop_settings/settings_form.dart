@@ -5,7 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
 
 import '../../../../../core/di/service_locator.dart';
-import '../../../../../core/logging/talker.dart';
+import '../../../../../core/logging/app_logger.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_fonts.dart';
 import '../../../../../shared/models/shop_settings.dart';
@@ -192,16 +192,16 @@ class _SettingsFormState extends State<SettingsForm> {
   Future<void> _pickAsset(String kind) async {
     final messenger = ScaffoldMessenger.of(context);
     try {
-      talker.info('[shop-settings] pick asset kind=$kind');
+      appLog.info('[shop-settings] pick asset kind=$kind');
       final picked = await ImageUploadHelper().pick(
         source: ImageSource.gallery,
       );
       if (picked == null) {
-        talker.info('[shop-settings] pick cancelled kind=$kind');
+        appLog.info('[shop-settings] pick cancelled kind=$kind');
         return;
       }
       if (!mounted) return;
-      talker.info(
+      appLog.info(
         '[shop-settings] picked kind=$kind ext=${picked.extension} '
         'bytes=${picked.bytes}',
       );
@@ -216,7 +216,7 @@ class _SettingsFormState extends State<SettingsForm> {
         maxOutputWidth: kind == 'logo' ? 1024 : 1600,
       );
       if (cropped == null) {
-        talker.info('[shop-settings] crop cancelled kind=$kind');
+        appLog.info('[shop-settings] crop cancelled kind=$kind');
         return;
       }
       if (!mounted) return;
@@ -228,10 +228,10 @@ class _SettingsFormState extends State<SettingsForm> {
         ),
       );
     } on ImagePickError catch (e, st) {
-      talker.handle(e, st, '[shop-settings] image pick error kind=$kind');
+      appLog.handle(e, st, '[shop-settings] image pick error kind=$kind');
       messenger.showSnackBar(SnackBar(content: Text(e.message)));
     } catch (e, st) {
-      talker.handle(e, st, '[shop-settings] pick asset failed kind=$kind');
+      appLog.handle(e, st, '[shop-settings] pick asset failed kind=$kind');
       messenger.showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }

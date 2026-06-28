@@ -1,7 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../logging/talker.dart';
+import '../logging/app_logger.dart';
 
 /// Magic-string prefix the web download CTA writes to the clipboard before
 /// it bounces the visitor to the store.
@@ -76,7 +76,7 @@ class DeferredDeepLinkService {
     } catch (e, st) {
       // Clipboard access can be denied / unavailable (restricted device, OS
       // privacy setting). Skip silently — this is a best-effort enhancement.
-      talker.handle(e, st, 'Deferred deep link: clipboard read failed');
+      appLog.handle(e, st, 'Deferred deep link: clipboard read failed');
       return null;
     }
 
@@ -100,7 +100,7 @@ class DeferredDeepLinkService {
       // Best-effort — the first-launch flag already guards against loops.
     }
 
-    talker.info('Deferred deep link resolved → product $id');
+    appLog.info('Deferred deep link resolved → product $id');
     return '/product-detail/$id';
   }
 

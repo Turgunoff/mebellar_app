@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../core/logging/talker.dart';
+import '../../../../core/logging/app_logger.dart';
 import '../../../../core/result/result.dart';
 import '../../../../shared/models/tariff.dart';
 import '../../../../shared/repositories/tariff_repository.dart';
@@ -172,7 +172,7 @@ class TariffBloc extends Bloc<TariffEvent, TariffState> {
     // rendered an empty body with no message at all).
     final secondaryFailure = pendingR.failureOrNull ?? historyR.failureOrNull;
     if (secondaryFailure != null) {
-      talker.warning(
+      appLog.warning(
         '[tariff-bloc] secondary read failed '
         'pending=${pendingR.failureOrNull?.message ?? 'ok'} '
         'history=${historyR.failureOrNull?.message ?? 'ok'}',
@@ -194,7 +194,7 @@ class TariffBloc extends Bloc<TariffEvent, TariffState> {
         );
       default:
         final failure = snapshotR.failureOrNull ?? plansR.failureOrNull;
-        talker.warning(
+        appLog.warning(
           '[tariff-bloc] core read failed '
           'snapshot=${snapshotR.failureOrNull?.message ?? 'ok'} '
           'plans=${plansR.failureOrNull?.message ?? 'ok'}',

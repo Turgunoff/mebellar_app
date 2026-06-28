@@ -8,9 +8,8 @@ import 'package:flutter/widgets.dart';
 /// swap an `IndexedStack` index instead of pushing a route.
 ///
 /// Every line carries the `[NAV]` prefix so the stream is greppable in the IDE
-/// console, and rides the `dart:developer` `nav` channel. Sits alongside
-/// `TalkerRouteObserver`: that one feeds the in-app log screen, this one writes
-/// plain console lines so console-only debugging works without the overlay.
+/// console, and rides the `dart:developer` `nav` channel — plain console lines
+/// so console-only debugging works.
 ///
 ///   [NAV] 🟢 PUSHED: /products/abc-123 (from /)
 ///   [NAV] 🔴 POPPED: /products/abc-123 (back to /)

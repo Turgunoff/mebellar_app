@@ -6,7 +6,7 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
-import '../../../../core/logging/talker.dart';
+import '../../../../core/logging/app_logger.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/ar/ar_scale.dart';
@@ -293,7 +293,7 @@ Future<void> openSetArExperience(
   try {
     set = await sl<WoodySetRepository>().fetchSet(setId);
   } catch (e, st) {
-    talker.handle(e, st, '[set-ar] set fetch failed');
+    appLog.handle(e, st, '[set-ar] set fetch failed');
   }
   if (!context.mounted) return;
   navigator.pop(); // dismiss the loader

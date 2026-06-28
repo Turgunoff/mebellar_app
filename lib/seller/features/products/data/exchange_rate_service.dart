@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
-import '../../../../core/logging/talker.dart';
+import '../../../../core/logging/app_logger.dart';
 import '../../../../core/network/network_logger_interceptor.dart';
 
 /// USD→UZS exchange rate source for the product form's currency toggle.
@@ -70,10 +70,10 @@ class CbuExchangeRateService implements ExchangeRateService {
         _fetchedAt = DateTime.now();
         return rate;
       }
-      talker.warning('[cbu-rates] USD missing from CBU payload');
+      appLog.warning('[cbu-rates] USD missing from CBU payload');
       return _cachedRate;
     } catch (e, st) {
-      talker.handle(e, st, '[cbu-rates] USD rate fetch failed');
+      appLog.handle(e, st, '[cbu-rates] USD rate fetch failed');
       // A stale daily rate is still a fine approximation for the helper text.
       return _cachedRate;
     }

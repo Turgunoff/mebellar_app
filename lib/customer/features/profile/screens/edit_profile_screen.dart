@@ -5,7 +5,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
-import '../../../../core/logging/talker.dart';
+import '../../../../core/logging/app_logger.dart';
 import '../../../../core/storage/r2_upload_client.dart';
 import '../../../../shared/utils/image_upload.dart';
 import '../../../../shared/utils/phone_format.dart';
@@ -78,10 +78,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ),
       );
     } on ImagePickError catch (e, st) {
-      talker.handle(e, st, '[edit-profile] avatar pick error');
+      appLog.handle(e, st, '[edit-profile] avatar pick error');
       messenger.showSnackBar(SnackBar(content: Text(e.message)));
     } catch (e, st) {
-      talker.handle(e, st, '[edit-profile] avatar pick failed');
+      appLog.handle(e, st, '[edit-profile] avatar pick failed');
       messenger.showSnackBar(
         SnackBar(content: Text(tr('profile.avatar_pick_failed'))),
       );
@@ -129,7 +129,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (!mounted) return;
       navigator.pop();
     } catch (e, st) {
-      talker.handle(e, st, '[edit-profile] save failed');
+      appLog.handle(e, st, '[edit-profile] save failed');
       if (!mounted) return;
       setState(() => _saving = false);
       messenger.showSnackBar(

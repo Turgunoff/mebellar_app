@@ -7,7 +7,7 @@ import 'package:smart_auth/smart_auth.dart';
 import '../core/auth/auth_repository.dart';
 import '../core/di/service_locator.dart';
 import '../core/i18n/app_locale_controller.dart';
-import '../core/logging/talker.dart';
+import '../core/logging/app_logger.dart';
 import '../core/network/api_error.dart';
 import '../core/services/facebook_analytics_service.dart';
 import '../customer/features/profile/cubit/profile_cubit.dart';
@@ -87,7 +87,7 @@ class AuthSheetController extends ChangeNotifier {
   // ---- Step actions ------------------------------------------------------
 
   Future<void> sendOtp({bool isResend = false}) async {
-    talker.info('Button pressed: Kodni olish (isResend=$isResend)');
+    appLog.info('Button pressed: Kodni olish (isResend=$isResend)');
     if (_isLoading) return;
     final digits = phoneCtrl.text.replaceAll(RegExp(r'\D'), '');
     if (digits.length != 9) {
@@ -103,14 +103,14 @@ class AuthSheetController extends ChangeNotifier {
     _errorMessage = null;
     _notify();
     final phone = currentPhone;
-    talker.info('Requesting OTP for: ${_maskPhone(phone)}');
+    appLog.info('Requesting OTP for: ${_maskPhone(phone)}');
     try {
       final cooldown = await repo.requestOtp(
         phone,
         appLanguage: _appLanguage(),
       );
       _lastCooldown = cooldown > 0 ? cooldown : 60;
-      talker.info('✓ OTP requested ok (cooldown=$cooldown s)');
+      appLog.info('✓ OTP requested ok (cooldown=$cooldown s)');
       // Start listening for the incoming SMS so the code auto-fills (Android
       // SMS Retriever — zero-tap; the Eskiz template ends with our own app-
       // signature hash). Fire-and-forget; manual entry is always the fallback.
@@ -121,14 +121,14 @@ class AuthSheetController extends ChangeNotifier {
       _notify();
       if (isResend) _showInfo('Kod qaytadan yuborildi');
     } on ApiError catch (e, st) {
-      talker.handle(e, st, 'Failed to request OTP');
+      appLog.handle(e, st, 'Failed to request OTP');
       _setError(authErrorMessageFromApi(e));
       if (e.isRateLimited && e.retryAfterSeconds != null) {
         _secondsRemaining = e.retryAfterSeconds!;
         _startResendCountdown();
       }
     } catch (e, st) {
-      talker.handle(e, st, 'Failed to request OTP');
+      appLog.handle(e, st, 'Failed to request OTP');
       _setError("Kodni yuborib bo'lmadi. Internet aloqasini tekshiring");
     } finally {
       _isLoading = false;
@@ -137,7 +137,7 @@ class AuthSheetController extends ChangeNotifier {
   }
 
   Future<void> verifyOtp() async {
-    talker.info('Button pressed: Tasdiqlash');
+    appLog.info('Button pressed: Tasdiqlash');
     if (_isLoading) return;
     final code = otpCtrl.text.trim();
     if (code.length < 4) {
@@ -153,7 +153,7 @@ class AuthSheetController extends ChangeNotifier {
     _errorMessage = null;
     _notify();
     final phone = currentPhone;
-    talker.info('Verifying OTP for: ${_maskPhone(phone)}');
+    appLog.info('Verifying OTP for: ${_maskPhone(phone)}');
     try {
       await repo.verifyOtp(phone, code);
       _resendTimer?.cancel();
@@ -170,7 +170,7 @@ class AuthSheetController extends ChangeNotifier {
       } on ApiError catch (e, st) {
         // Profile lookup failure shouldn't block sign-in — fall through to
         // the profile step so the user can fill it in.
-        talker.handle(
+        appLog.handle(
           e,
           st,
           'verifyOtp: /me failed; defaulting to profile step',
@@ -179,10 +179,10 @@ class AuthSheetController extends ChangeNotifier {
         _notify();
       }
     } on ApiError catch (e, st) {
-      talker.handle(e, st, 'Failed to verify OTP');
+      appLog.handle(e, st, 'Failed to verify OTP');
       _setError(authErrorMessageFromApi(e));
     } catch (e, st) {
-      talker.handle(e, st, 'Failed to verify OTP');
+      appLog.handle(e, st, 'Failed to verify OTP');
       _setError("Kod noto'g'ri yoki muddati o'tgan");
     } finally {
       _isLoading = false;
@@ -191,7 +191,7 @@ class AuthSheetController extends ChangeNotifier {
   }
 
   Future<void> saveProfile() async {
-    talker.info('Button pressed: Saqlash va kirish');
+    appLog.info('Button pressed: Saqlash va kirish');
     if (_isLoading) return;
     final name = nameCtrl.text.trim();
     if (name.length < 2) {
@@ -208,7 +208,7 @@ class AuthSheetController extends ChangeNotifier {
     _notify();
     try {
       final me = await repo.updateProfile(fullName: name);
-      talker.info('✓ Profile updated');
+      appLog.info('✓ Profile updated');
       if (sl.isRegistered<ProfileCubit>()) {
         sl<ProfileCubit>().applySignup(
           name: me.fullName ?? name,
@@ -220,10 +220,10 @@ class AuthSheetController extends ChangeNotifier {
       }
       onCompleted?.call();
     } on ApiError catch (e, st) {
-      talker.handle(e, st, 'Failed to save profile');
+      appLog.handle(e, st, 'Failed to save profile');
       _setError(authErrorMessageFromApi(e));
     } catch (e, st) {
-      talker.handle(e, st, 'Failed to save profile');
+      appLog.handle(e, st, 'Failed to save profile');
       _setError("Saqlab bo'lmadi");
     } finally {
       _isLoading = false;
@@ -331,7 +331,7 @@ class AuthSheetController extends ChangeNotifier {
 
   void _showInfo(String msg) => onMessage?.call(msg, isError: false);
 
-  // Phone numbers are PII; talker forwards to Crashlytics, so never log the
+  // Phone numbers are PII; appLog forwards to Crashlytics, so never log the
   // full E.164 value. Keep the country prefix + last two digits for debugging.
   String _maskPhone(String p) => p.length <= 4
       ? '***'

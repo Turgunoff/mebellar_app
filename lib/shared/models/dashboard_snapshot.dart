@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
 
-import '../../core/logging/talker.dart';
+import '../../core/logging/app_logger.dart';
 import 'order.dart';
 import 'seller_wallet.dart';
 import 'tariff.dart';
@@ -25,7 +25,7 @@ void _dashboardDrift(
   if (!kDebugMode || json.isEmpty) return;
   final missing = expected.where((k) => !json.containsKey(k)).toList();
   if (missing.isEmpty) return;
-  talker.warning(
+  appLog.warning(
     'Dashboard drift — $model is missing expected backend key(s): '
     '${missing.join(', ')}. Did the field get renamed?',
   );

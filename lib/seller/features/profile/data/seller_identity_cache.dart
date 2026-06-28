@@ -1,6 +1,6 @@
 import 'package:hive_flutter/hive_flutter.dart';
 
-import '../../../../core/logging/talker.dart';
+import '../../../../core/logging/app_logger.dart';
 import '../../../../shared/models/tariff.dart';
 import '../../../../shared/models/verification_status.dart';
 
@@ -100,7 +100,7 @@ class SellerIdentityCache {
       if (raw is! Map) return null;
       return SellerIdentitySnapshot.fromJson(raw);
     } catch (e, st) {
-      talker.handle(e, st, 'SellerIdentityCache.read');
+      appLog.handle(e, st, 'SellerIdentityCache.read');
       return null;
     }
   }
@@ -109,7 +109,7 @@ class SellerIdentityCache {
     try {
       await _box.put(_key(userId), snapshot.toJson());
     } catch (e, st) {
-      talker.handle(e, st, 'SellerIdentityCache.write');
+      appLog.handle(e, st, 'SellerIdentityCache.write');
     }
   }
 

@@ -22,7 +22,7 @@ import 'core/cache/app_cache_cubit.dart';
 import 'core/deeplink/deferred_deep_link_service.dart';
 import 'core/di/service_locator.dart';
 import 'core/i18n/i18n.dart';
-import 'core/logging/talker.dart';
+import 'core/logging/app_logger.dart';
 import 'core/notifications/badge_sync_controller.dart';
 import 'core/notifications/push_service.dart';
 import 'customer/features/notifications/cubit/notifications_cubit.dart';
@@ -64,7 +64,7 @@ Future<void> main() async {
       } catch (e, st) {
         // No crash reporter yet — log only. The app continues; FCM and
         // Crashlytics will be no-ops for this run.
-        talker.handle(e, st, 'Firebase init failed — crash reporting disabled');
+        appLog.handle(e, st, 'Firebase init failed — crash reporting disabled');
       }
 
       if (Firebase.apps.isNotEmpty) {
@@ -111,7 +111,7 @@ Future<void> main() async {
       if (Firebase.apps.isNotEmpty) {
         FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
       }
-      talker.handle(error, stack, 'Uncaught zone error');
+      appLog.handle(error, stack, 'Uncaught zone error');
     },
   );
 }
@@ -145,7 +145,7 @@ Future<void> _bootstrapAndRun() async {
       systemNavigationBarIconBrightness: Brightness.dark,
     ),
   );
-  talker.info('App boot started');
+  appLog.info('App boot started');
 
   // Firebase + Crashlytics + FCM background handler were already wired by
   // `main`; this function just boots the rest of the app.
@@ -215,7 +215,7 @@ Future<void> _bootstrapAndRun() async {
       DeferredDeepLink.pendingLocation = await DeferredDeepLinkService()
           .resolveInitialDeepLink();
     } catch (e, st) {
-      talker.handle(e, st, 'Deferred deep link resolution failed');
+      appLog.handle(e, st, 'Deferred deep link resolution failed');
     }
   }
 
@@ -334,7 +334,7 @@ void _wireForcedLogoutCleanup() {
     try {
       await clearUserDataOnForcedLogout();
     } catch (e, st) {
-      talker.handle(e, st, 'forced logout: local data wipe failed');
+      appLog.handle(e, st, 'forced logout: local data wipe failed');
     }
     final context = customerNavigatorKey.currentContext;
     if (context != null && context.mounted) {

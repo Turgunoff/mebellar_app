@@ -2,7 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/auth/auth_repository.dart';
-import '../../../../core/logging/talker.dart';
+import '../../../../core/logging/app_logger.dart';
 import '../../../../shared/models/cancel_reason.dart';
 import '../../../../shared/repositories/profile_orders_repository.dart';
 
@@ -61,7 +61,7 @@ class ProfileOrdersCubit extends Cubit<ProfileOrdersState> {
       // Order-list fetch failed — clear the spinner so the UI isn't stuck,
       // and log the cause so an auth/transport failure isn't mistaken for an
       // empty list.
-      talker.handle(e, st, 'ProfileOrdersCubit.load failed');
+      appLog.handle(e, st, 'ProfileOrdersCubit.load failed');
       emit(state.copyWith(isLoading: false));
     }
   }

@@ -4,7 +4,7 @@ import 'dart:convert';
 import 'package:facebook_app_events/facebook_app_events.dart';
 import 'package:flutter/foundation.dart';
 
-import '../logging/talker.dart';
+import '../logging/app_logger.dart';
 import 'meta_consent_gate.dart';
 
 /// Wrapper over the Facebook App Events SDK (`facebook_app_events`), kept
@@ -73,7 +73,7 @@ class FacebookAnalyticsService {
     } catch (e, st) {
       // A failed ATT round-trip must never crash boot — fail closed (no
       // tracking) and move on.
-      talker.handle(e, st, 'FacebookAnalyticsService: consent resolution');
+      appLog.handle(e, st, 'FacebookAnalyticsService: consent resolution');
       allowed = false;
     }
     _enabled = allowed;
@@ -257,7 +257,7 @@ class FacebookAnalyticsService {
     try {
       await op();
     } catch (e, st) {
-      talker.handle(e, st, 'FacebookAnalyticsService');
+      appLog.handle(e, st, 'FacebookAnalyticsService');
     }
   }
 

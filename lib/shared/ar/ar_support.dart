@@ -2,7 +2,7 @@ import 'dart:io' show Platform;
 
 import 'package:flutter/services.dart';
 
-import '../../core/logging/talker.dart';
+import '../../core/logging/app_logger.dart';
 
 /// Device AR-capability probe for the buyer 3D viewer.
 ///
@@ -35,7 +35,7 @@ class ArSupport {
         final supported = await _channel.invokeMethod<bool>('isArSupported');
         return supported ?? false;
       } catch (e, st) {
-        talker.handle(e, st, '[ar-support] capability check failed');
+        appLog.handle(e, st, '[ar-support] capability check failed');
         return false;
       }
     }

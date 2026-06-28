@@ -10,7 +10,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart';
 
 import '../../../../core/i18n/i18n.dart';
-import '../../../../core/logging/talker.dart';
+import '../../../../core/logging/app_logger.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 
 typedef SendTextCallback = Future<void> Function(String text);
@@ -176,7 +176,7 @@ class _SupportComposerState extends State<SupportComposer> {
         path: path,
       );
     } catch (e, st) {
-      talker.handle(e, st, 'SupportComposer: recorder.start failed');
+      appLog.handle(e, st, 'SupportComposer: recorder.start failed');
       if (!mounted) return;
       _showSnack(tr('support.recording_failed'));
       return;
@@ -209,7 +209,7 @@ class _SupportComposerState extends State<SupportComposer> {
     try {
       resultPath = await _recorder.stop();
     } catch (e, st) {
-      talker.handle(e, st, 'SupportComposer: recorder.stop failed');
+      appLog.handle(e, st, 'SupportComposer: recorder.stop failed');
     }
     final filePath = resultPath ?? startPath;
     if (cancel || _cancelled || filePath == null) {
@@ -231,7 +231,7 @@ class _SupportComposerState extends State<SupportComposer> {
       final bytes = await file.readAsBytes();
       await widget.onSendAudio(bytes, 'audio/mp4', duration.inMilliseconds);
     } catch (e, st) {
-      talker.handle(e, st, 'SupportComposer: read/send audio failed');
+      appLog.handle(e, st, 'SupportComposer: read/send audio failed');
       if (mounted) _showSnack(tr('support.recording_failed'));
     } finally {
       await _deleteTemp(filePath);

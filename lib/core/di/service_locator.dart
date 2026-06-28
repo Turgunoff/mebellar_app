@@ -7,7 +7,7 @@ import '../../config/app_mode.dart';
 import '../auth/app_mode_cubit.dart';
 import '../auth/auth_repository.dart';
 import '../auth/sign_out.dart';
-import '../logging/talker.dart';
+import '../logging/app_logger.dart';
 import '../notifications/app_badge_service.dart';
 import '../storage/hive_boxes.dart';
 import '../../customer/features/ai_designer/models/ai_chat_message.dart';
@@ -136,7 +136,7 @@ Future<void> _wipeLocalUserData() async {
     try {
       await sl<Box>(instanceName: boxName).clear();
     } catch (e, st) {
-      talker.handle(e, st, 'logout: clear $boxName failed');
+      appLog.handle(e, st, 'logout: clear $boxName failed');
     }
   }
 
@@ -151,7 +151,7 @@ Future<void> _wipeLocalUserData() async {
       await Hive.box<AiChatMessage>(HiveBoxes.aiChatHistory).clear();
     }
   } catch (e, st) {
-    talker.handle(e, st, 'logout: clear aiChatHistory failed');
+    appLog.handle(e, st, 'logout: clear aiChatHistory failed');
   }
 
   // The `settings` box is shared with device-wide prefs (theme, language)
@@ -168,7 +168,7 @@ Future<void> _wipeLocalUserData() async {
     // token store. Deleting reads back as false in [AppModeCubit._resolveBoot].
     await settings.delete(AppModeCubit.sessionActiveKey);
   } catch (e, st) {
-    talker.handle(e, st, 'logout: clear settings keys failed');
+    appLog.handle(e, st, 'logout: clear settings keys failed');
   }
 
   // Clear the launcher app-icon badge + its persisted tally so the next user
@@ -179,7 +179,7 @@ Future<void> _wipeLocalUserData() async {
     try {
       await sl<AppBadgeService>().clear();
     } catch (e, st) {
-      talker.handle(e, st, 'logout: clear app badge failed');
+      appLog.handle(e, st, 'logout: clear app badge failed');
     }
   }
 
@@ -191,7 +191,7 @@ Future<void> _wipeLocalUserData() async {
   try {
     await DefaultCacheManager().emptyCache();
   } catch (e, st) {
-    talker.handle(e, st, 'logout: image cache flush failed');
+    appLog.handle(e, st, 'logout: image cache flush failed');
   }
   PaintingBinding.instance.imageCache
     ..clear()

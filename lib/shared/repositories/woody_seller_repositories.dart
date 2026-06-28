@@ -6,7 +6,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../core/auth/auth_repository.dart';
 import '../../core/error/failure.dart';
-import '../../core/logging/talker.dart';
+import '../../core/logging/app_logger.dart';
 import '../../core/network/woody_api_client.dart';
 import '../../core/result/result.dart';
 import '../../core/storage/r2_upload_client.dart';
@@ -537,12 +537,12 @@ class WoodyShopSettingsRepository implements ShopSettingsRepository {
         // (phone/email/telegram) — the backend fans them out to the sellers
         // row. The response echoes the merged result, so it seeds both halves.
         final payload = settings.toShopJson();
-        talker.info('[shop-settings] PATCH /seller/shop → request: $payload');
+        appLog.info('[shop-settings] PATCH /seller/shop → request: $payload');
         final shop = await _api.patch<Map<String, dynamic>>(
           '/seller/shop',
           body: payload,
         );
-        talker.info('[shop-settings] PATCH /seller/shop ← response: $shop');
+        appLog.info('[shop-settings] PATCH /seller/shop ← response: $shop');
         return ShopSettings.fromRow(shopRow: shop, sellerRow: shop);
       });
 
