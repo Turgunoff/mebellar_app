@@ -33,3 +33,5 @@ Yozuvlar avtomatik qo'shiladi:
 | 2026-06-25 | 1.0.29+29 | 1f296588821b | ios | — |
 | 2026-06-26 | 1.0.30+30 | cbae8d34c732 | android | 1.0.30: seller banner flicker fix + authoritative push badge count |
 | 2026-06-27 | 1.0.31+31 | 21535dba8d9d | android | 1.0.31: deferred payment + estimated max delivery fee + AR section refactor |
+| 2026-06-28 | 1.0.32+32 | d466f8dca9c7 | android | 1.0.32: custom force-update overlay (in_app_update removed) + maintenance mode |
+| 2026-06-28 | 1.0.32+32 | d466f8dca9c7 | ios | 1.0.32: custom force-update overlay (in_app_update removed) + maintenance mode |
