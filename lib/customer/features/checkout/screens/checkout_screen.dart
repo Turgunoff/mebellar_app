@@ -9,6 +9,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../../config/remote_config.dart';
 import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/auth/auth_cubit.dart';
 import '../../../../core/di/service_locator.dart';
@@ -445,30 +446,36 @@ class _PaymentCard extends StatelessWidget {
             ),
             pt: pt,
           ),
-          const SizedBox(height: 8),
-          _ProviderTile(
-            brand: _kPaymeTeal,
-            assetPath: AssetLogo.payme,
-            chipColor: _kPaymeChip,
-            title: tr('payment.pay_with_payme'),
-            selected: state.payment == CheckoutPayment.payme,
-            onTap: () => context.read<CheckoutCubit>().selectPayment(
-              CheckoutPayment.payme,
+          // Online providers are gated by the admin `payment_methods` switch;
+          // the spacing rides inside each block so hiding a tile leaves no gap.
+          if (RemoteConfig.instance.paymeEnabled) ...[
+            const SizedBox(height: 8),
+            _ProviderTile(
+              brand: _kPaymeTeal,
+              assetPath: AssetLogo.payme,
+              chipColor: _kPaymeChip,
+              title: tr('payment.pay_with_payme'),
+              selected: state.payment == CheckoutPayment.payme,
+              onTap: () => context.read<CheckoutCubit>().selectPayment(
+                CheckoutPayment.payme,
+              ),
+              pt: pt,
             ),
-            pt: pt,
-          ),
-          const SizedBox(height: 8),
-          _ProviderTile(
-            brand: _kClickBlue,
-            assetPath: AssetLogo.click,
-            chipColor: _kClickChip,
-            title: tr('payment.pay_with_click'),
-            selected: state.payment == CheckoutPayment.click,
-            onTap: () => context.read<CheckoutCubit>().selectPayment(
-              CheckoutPayment.click,
+          ],
+          if (RemoteConfig.instance.clickEnabled) ...[
+            const SizedBox(height: 8),
+            _ProviderTile(
+              brand: _kClickBlue,
+              assetPath: AssetLogo.click,
+              chipColor: _kClickChip,
+              title: tr('payment.pay_with_click'),
+              selected: state.payment == CheckoutPayment.click,
+              onTap: () => context.read<CheckoutCubit>().selectPayment(
+                CheckoutPayment.click,
+              ),
+              pt: pt,
             ),
-            pt: pt,
-          ),
+          ],
           if (state.payment != CheckoutPayment.cash) ...[
             const SizedBox(height: 12),
             Container(

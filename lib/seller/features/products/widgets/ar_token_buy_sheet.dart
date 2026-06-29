@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../config/remote_config.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -50,9 +51,14 @@ class _ArTokenBuySheet extends StatefulWidget {
 
 class _ArTokenBuySheetState extends State<_ArTokenBuySheet> {
   String? _packageCode;
-  PaymentProvider _provider = PaymentProvider.payme;
+  late PaymentProvider _provider;
   bool _buying = false;
   String? _error;
+
+  /// Whether at least one checkout provider is enabled (admin `payment_methods`).
+  /// When false the picker is replaced by a notice and the pay button disabled.
+  bool get _anyProviderEnabled =>
+      RemoteConfig.instance.paymeEnabled || RemoteConfig.instance.clickEnabled;
 
   @override
   void initState() {
@@ -62,6 +68,14 @@ class _ArTokenBuySheetState extends State<_ArTokenBuySheet> {
       final mid = widget.packages.length ~/ 2;
       _packageCode = widget.packages[mid].code;
     }
+    // Default to an *enabled* provider so a disabled one is never pre-selected;
+    // Payme first, then Click, falling back to Payme if both are off (the pay
+    // button is disabled in that case anyway).
+    _provider = RemoteConfig.instance.paymeEnabled
+        ? PaymentProvider.payme
+        : (RemoteConfig.instance.clickEnabled
+              ? PaymentProvider.click
+              : PaymentProvider.payme);
   }
 
   Future<void> _pay() async {
@@ -179,21 +193,39 @@ class _ArTokenBuySheetState extends State<_ArTokenBuySheet> {
                 ),
               ),
               const SizedBox(height: 8),
-              _ProviderChoice(
-                brand: _kPaymeTeal,
-                wordmark: 'Payme',
-                label: tr('seller.pay_via_payme'),
-                selected: _provider == PaymentProvider.payme,
-                onTap: () => setState(() => _provider = PaymentProvider.payme),
-              ),
-              const SizedBox(height: 8),
-              _ProviderChoice(
-                brand: _kClickBlue,
-                wordmark: 'Click',
-                label: tr('seller.pay_via_click'),
-                selected: _provider == PaymentProvider.click,
-                onTap: () => setState(() => _provider = PaymentProvider.click),
-              ),
+              // Providers are gated by the admin `payment_methods` switch.
+              if (RemoteConfig.instance.paymeEnabled) ...[
+                _ProviderChoice(
+                  brand: _kPaymeTeal,
+                  wordmark: 'Payme',
+                  label: tr('seller.pay_via_payme'),
+                  selected: _provider == PaymentProvider.payme,
+                  onTap: () =>
+                      setState(() => _provider = PaymentProvider.payme),
+                ),
+                const SizedBox(height: 8),
+              ],
+              if (RemoteConfig.instance.clickEnabled) ...[
+                _ProviderChoice(
+                  brand: _kClickBlue,
+                  wordmark: 'Click',
+                  label: tr('seller.pay_via_click'),
+                  selected: _provider == PaymentProvider.click,
+                  onTap: () =>
+                      setState(() => _provider = PaymentProvider.click),
+                ),
+                const SizedBox(height: 8),
+              ],
+              if (!_anyProviderEnabled)
+                Text(
+                  tr('seller.payment_unavailable'),
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontSize: 12.5,
+                    color: c.grey,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
 
               if (_error != null) ...[
                 const SizedBox(height: 12),
@@ -212,7 +244,11 @@ class _ArTokenBuySheetState extends State<_ArTokenBuySheet> {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
-                  onPressed: (_packageCode != null && !_buying) ? _pay : null,
+                  onPressed: (_packageCode != null &&
+                          !_buying &&
+                          _anyProviderEnabled)
+                      ? _pay
+                      : null,
                   style: FilledButton.styleFrom(
                     backgroundColor: c.primary,
                     disabledBackgroundColor: c.primary.withValues(alpha: 0.4),

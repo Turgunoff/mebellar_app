@@ -100,6 +100,32 @@ void main() {
     });
   });
 
+  group('RemoteConfig.parsePaymentMethods', () {
+    test('reads explicit per-provider flags', () {
+      final parsed =
+          RemoteConfig.parsePaymentMethods({'click': false, 'payme': true});
+      expect(parsed.click, isFalse);
+      expect(parsed.payme, isTrue);
+    });
+
+    test('missing / non-map / malformed reads as both enabled', () {
+      // Never a checkout blackout: a missing field or bad payload stays enabled.
+      expect(RemoteConfig.parsePaymentMethods(null).click, isTrue);
+      expect(RemoteConfig.parsePaymentMethods(null).payme, isTrue);
+      expect(RemoteConfig.parsePaymentMethods('x').click, isTrue);
+      final partial = RemoteConfig.parsePaymentMethods({'click': false});
+      expect(partial.click, isFalse);
+      expect(partial.payme, isTrue); // absent → enabled
+    });
+
+    test('tolerates string "false" flags', () {
+      final parsed =
+          RemoteConfig.parsePaymentMethods({'click': 'false', 'payme': 'true'});
+      expect(parsed.click, isFalse);
+      expect(parsed.payme, isTrue);
+    });
+  });
+
   group('RemoteConfig contact URI helpers', () {
     test('telegramUrl normalises a @handle, bare handle and full URL', () {
       final config = RemoteConfig.instance;

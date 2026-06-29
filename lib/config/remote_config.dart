@@ -63,6 +63,19 @@ class RemoteConfig {
   /// full `t.me` URL — both normalise to [telegramUrl]).
   String telegramChannel = defaultTelegramChannel;
 
+  // Payment-provider switches. Mirror `app_settings.payment_methods`
+  // (`{click, payme}`), toggled from the admin panel. When a provider is off
+  // the app hides its tile at every selection point (checkout, tariff purchase,
+  // AR-token top-up) and the backend refuses to mint its checkout link. Default
+  // *enabled*: a missing setting or a failed fetch must never hide every payment
+  // option (the opposite of [tariffEnabled], which defaults off).
+
+  /// Whether the Click checkout provider is offered.
+  bool clickEnabled = true;
+
+  /// Whether the Payme checkout provider is offered.
+  bool paymeEnabled = true;
+
   static const _tariffHiveKey = 'remote_config.tariff_enabled';
   static const _androidMinVersionHiveKey =
       'remote_config.android_min_version';
@@ -72,6 +85,8 @@ class RemoteConfig {
   static const _supportEmailHiveKey = 'remote_config.support_email';
   static const _supportPhoneHiveKey = 'remote_config.support_phone';
   static const _telegramChannelHiveKey = 'remote_config.telegram_channel';
+  static const _clickEnabledHiveKey = 'remote_config.click_enabled';
+  static const _paymeEnabledHiveKey = 'remote_config.payme_enabled';
 
   /// `mailto:` URI for [supportEmail].
   String get supportEmailUri => 'mailto:$supportEmail';
@@ -119,6 +134,10 @@ class RemoteConfig {
     if (phone is String && phone.isNotEmpty) supportPhone = phone;
     final tg = box.get(_telegramChannelHiveKey);
     if (tg is String && tg.isNotEmpty) telegramChannel = tg;
+    final click = box.get(_clickEnabledHiveKey);
+    if (click is bool) clickEnabled = click;
+    final payme = box.get(_paymeEnabledHiveKey);
+    if (payme is bool) paymeEnabled = payme;
   }
 
   Future<void>? _inflightRefresh;
@@ -138,6 +157,7 @@ class RemoteConfig {
       _refreshAppVersions(api, box),
       _refreshMaintenance(api, box),
       _refreshSupportContacts(api, box),
+      _refreshPaymentMethods(api, box),
     ]).then((_) {});
     _inflightRefresh = work;
     return work;
@@ -334,5 +354,51 @@ class RemoteConfig {
       phone: pick(value['support_phone'], defaultSupportPhone),
       telegram: pick(value['telegram_channel'], defaultTelegramChannel),
     );
+  }
+
+  Future<void> _refreshPaymentMethods(WoodyApiClient api, Box box) async {
+    try {
+      final body = await api
+          .get<Map<String, dynamic>>('/catalog/settings/payment_methods')
+          .timeout(const Duration(seconds: 6));
+      final (:click, :payme) = parsePaymentMethods(body['value']);
+      clickEnabled = click;
+      paymeEnabled = payme;
+      await box.put(_clickEnabledHiveKey, click);
+      await box.put(_paymeEnabledHiveKey, payme);
+      appLog.info('[remote-config] payment_methods click=$click payme=$payme');
+    } on ApiError catch (e, st) {
+      if (e.isNotFound) {
+        // Key not configured server-side — keep BOTH enabled (never a checkout
+        // blackout) rather than resetting to off.
+        clickEnabled = true;
+        paymeEnabled = true;
+        await box.put(_clickEnabledHiveKey, true);
+        await box.put(_paymeEnabledHiveKey, true);
+        return;
+      }
+      appLog.handle(
+        e,
+        st,
+        '[remote-config] payment_methods refresh failed — kept cached value',
+      );
+    } catch (e, st) {
+      appLog.handle(
+        e,
+        st,
+        '[remote-config] payment_methods refresh failed — kept cached value',
+      );
+    }
+  }
+
+  /// Extracts `(click, payme)` from the `payment_methods` jsonb value:
+  /// `{"click": true, "payme": true}`. Defensive — a missing or non-bool field
+  /// reads as *enabled* (the safe default: never hide every payment option on a
+  /// malformed row), tolerating `'true'`/`'false'` strings too.
+  static ({bool click, bool payme}) parsePaymentMethods(dynamic value) {
+    bool flag(dynamic v) => v == false || v == 'false' ? false : true;
+
+    if (value is! Map) return (click: true, payme: true);
+    return (click: flag(value['click']), payme: flag(value['payme']));
   }
 }

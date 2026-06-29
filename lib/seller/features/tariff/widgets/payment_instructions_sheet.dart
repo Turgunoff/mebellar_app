@@ -8,6 +8,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../config/remote_config.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/result/result.dart';
 import '../../../../shared/models/tariff.dart';
@@ -227,48 +228,57 @@ class _SheetBodyState extends State<_SheetBody> {
                         ]),
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
-                    const SizedBox(height: 20),
-                    Text(
-                      tr('tariff.pay_online_title'),
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      tr('tariff.pay_online_hint'),
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    const SizedBox(height: 12),
-                    _OnlinePayCard(
-                      logoAsset: 'assets/logo/payme.svg',
-                      brand: const Color(0xFF33B5C6),
-                      label: tr('seller.pay_via_payme'),
-                      busy: _launchingProvider == PaymentProvider.payme,
-                      disabled: _launchingProvider != null,
-                      onTap: () => _payOnline(PaymentProvider.payme),
-                    ),
-                    _OnlinePayCard(
-                      logoAsset: 'assets/logo/click.svg',
-                      brand: const Color(0xFF0098EB),
-                      label: tr('seller.pay_via_click'),
-                      busy: _launchingProvider == PaymentProvider.click,
-                      disabled: _launchingProvider != null,
-                      onTap: () => _payOnline(PaymentProvider.click),
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        const Expanded(child: Divider()),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Text(
-                            tr('tariff.pay_or_manual'),
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
+                    // Online providers are gated by the admin `payment_methods`
+                    // switch. If both are off the whole online block (header +
+                    // cards + "or pay manually" divider) is hidden — the seller
+                    // falls straight to the card-transfer flow below.
+                    if (RemoteConfig.instance.paymeEnabled ||
+                        RemoteConfig.instance.clickEnabled) ...[
+                      const SizedBox(height: 20),
+                      Text(
+                        tr('tariff.pay_online_title'),
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        tr('tariff.pay_online_hint'),
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: 12),
+                      if (RemoteConfig.instance.paymeEnabled)
+                        _OnlinePayCard(
+                          logoAsset: 'assets/logo/payme.svg',
+                          brand: const Color(0xFF33B5C6),
+                          label: tr('seller.pay_via_payme'),
+                          busy: _launchingProvider == PaymentProvider.payme,
+                          disabled: _launchingProvider != null,
+                          onTap: () => _payOnline(PaymentProvider.payme),
                         ),
-                        const Expanded(child: Divider()),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
+                      if (RemoteConfig.instance.clickEnabled)
+                        _OnlinePayCard(
+                          logoAsset: 'assets/logo/click.svg',
+                          brand: const Color(0xFF0098EB),
+                          label: tr('seller.pay_via_click'),
+                          busy: _launchingProvider == PaymentProvider.click,
+                          disabled: _launchingProvider != null,
+                          onTap: () => _payOnline(PaymentProvider.click),
+                        ),
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          const Expanded(child: Divider()),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Text(
+                              tr('tariff.pay_or_manual'),
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ),
+                          const Expanded(child: Divider()),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                    ],
                     _CardWidget(
                       number: ins.cardNumber,
                       holder: ins.cardHolder,
