@@ -8,7 +8,7 @@ import 'package:flutter/foundation.dart';
 /// Off by default — the dumps are extremely noisy. Independent of `kDebugMode`
 /// (which still guards every format path), so a release build never logs even
 /// if this is left on.
-const bool kNetworkConsoleLogging = false;
+const bool kNetworkConsoleLogging = true;
 
 /// Global network-traffic logger.
 ///
