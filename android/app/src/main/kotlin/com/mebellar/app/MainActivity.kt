@@ -17,7 +17,24 @@ class MainActivity : FlutterActivity() {
         // MapKitFactory.initialize(), which asserts that setApiKey was already
         // called. setApiKey itself is a cheap static-string write — it does not
         // start any LocationSubscription.
-        MapKitFactory.setApiKey(YANDEX_MAPKIT_API_KEY)
+        //
+        // MapKitFactory holds its api-key + init state in PROCESS-WIDE statics,
+        // so they outlive a single Activity. When Android recreates the Activity
+        // while keeping the process alive (config change, low-memory restart,
+        // returning to a killed-Activity-but-live-process), configureFlutterEngine
+        // runs again; the plugin re-calls MapKitFactory.initialize() inside super,
+        // and a repeat setApiKey() then throws
+        // "setApiKey() should be called before initialize()!" — a FATAL crash at
+        // launch. Set the key exactly once per process to keep relaunch safe.
+        if (!apiKeyConfigured) {
+            try {
+                MapKitFactory.setApiKey(YANDEX_MAPKIT_API_KEY)
+            } catch (e: AssertionError) {
+                // MapKit was already initialized earlier in this process — the
+                // key is set and there is nothing more to do. Benign.
+            }
+            apiKeyConfigured = true
+        }
 
         super.configureFlutterEngine(flutterEngine)
 
@@ -76,5 +93,12 @@ class MainActivity : FlutterActivity() {
         const val MAPKIT_CHANNEL = "com.mebellar.app/yandex_mapkit"
         const val AR_CHANNEL = "com.mebellar.app/ar"
         const val YANDEX_MAPKIT_API_KEY = "6db07f4e-a68f-4845-9e3c-79ed8d6e9c1f"
+
+        // Process-wide (companion = one per ClassLoader = one per process), so
+        // it survives Activity recreation and guards the once-per-process
+        // setApiKey() contract above. @Volatile: configureFlutterEngine can run
+        // off the main thread on some launch paths.
+        @Volatile
+        private var apiKeyConfigured = false
     }
 }

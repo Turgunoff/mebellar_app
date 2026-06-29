@@ -243,7 +243,10 @@ class PushService {
         }
       }
     } catch (e, st) {
-      appLog.handle(e, st, 'PushService.dismissSupportNotifications failed');
+      // Best-effort tray cleanup — a failed cancel just leaves a stale entry,
+      // never worth a Crashlytics non-fatal (e.g. an OEM/plugin platform-channel
+      // quirk). Debug console only.
+      appLog.warning('PushService.dismissSupportNotifications failed', e, st);
     }
   }
 
@@ -305,8 +308,9 @@ class PushService {
       }
     } catch (e, st) {
       // Best-effort — a failed clear just leaves a stale tray entry, never
-      // worth bubbling up if a platform-channel call happens to throw.
-      appLog.handle(e, st, 'PushService.dismissChatNotifications failed');
+      // worth bubbling up (or a Crashlytics non-fatal) if a platform-channel
+      // call happens to throw. Debug console only.
+      appLog.warning('PushService.dismissChatNotifications failed', e, st);
     }
   }
 

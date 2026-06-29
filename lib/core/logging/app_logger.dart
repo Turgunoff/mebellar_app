@@ -1,7 +1,12 @@
+import 'dart:async';
+import 'dart:io' show SocketException;
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
+
+import '../network/api_error.dart';
 
 /// App-wide lightweight logger.
 ///
@@ -55,6 +60,12 @@ class AppLogger {
     // google-services, or a very-early-boot failure) — skip rather than crash
     // the crash-reporter itself.
     if (Firebase.apps.isEmpty) return;
+    // Drop expected, non-actionable conditions before they reach the dashboard:
+    // a dropped connection / timeout is the user's network, and a 401 is an
+    // expired session the global 401 interceptor already turns into a forced
+    // sign-out. Reporting these as non-fatals only buries real defects under
+    // recurring noise — they still print to the debug console above.
+    if (_isExpectedTransient(error)) return;
     FirebaseCrashlytics.instance.recordError(
       error,
       stackTrace,
@@ -64,6 +75,21 @@ class AppLogger {
       // PlatformDispatcher.onError.
       fatal: false,
     );
+  }
+
+  /// Connectivity blips and expired-session errors are routine on mobile and
+  /// never point at a code defect, so they must not land in Crashlytics.
+  static bool _isExpectedTransient(Object error) {
+    if (error is ApiError) {
+      // status 0 / `network_error` = no HTTP response at all (failed host
+      // lookup, connection or read timeout — see WoodyApiClient._toApiError).
+      // 401 = dead session, handled by the 401 interceptor + forced logout.
+      return error.status == 0 ||
+          error.code == 'network_error' ||
+          error.isUnauthorized;
+    }
+    // Raw connectivity errors thrown before reaching the Woody client layer.
+    return error is SocketException || error is TimeoutException;
   }
 }
 
