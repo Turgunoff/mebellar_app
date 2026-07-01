@@ -26,6 +26,9 @@ const Map<String, dynamic> homeUz = {
   'ar_demo_showcase_title': 'Sehrni his qiling! ✨',
   'ar_demo_showcase_desc':
       'Mebellarni o\'z xonangizda 3D va AR rejimida ko\'rish uchun shu yerni bosing.',
+  'ai_agent_showcase_title': 'AI dizayner! 🤖',
+  'ai_agent_showcase_desc':
+      'Xonangiz uchun mebel tanlashda AI yordamchingizga murojaat qiling.',
 };
 
 const Map<String, dynamic> homeRu = {
@@ -53,6 +56,9 @@ const Map<String, dynamic> homeRu = {
   'ar_demo_showcase_title': 'Почувствуйте магию! ✨',
   'ar_demo_showcase_desc':
       'Нажмите здесь, чтобы увидеть мебель у себя дома в 3D и AR.',
+  'ai_agent_showcase_title': 'AI-дизайнер! 🤖',
+  'ai_agent_showcase_desc':
+      'Обратитесь к AI-помощнику, чтобы подобрать мебель для вашей комнаты.',
 };
 
 const Map<String, dynamic> homeEn = {
@@ -80,4 +86,7 @@ const Map<String, dynamic> homeEn = {
   'ar_demo_showcase_title': 'Feel the magic! ✨',
   'ar_demo_showcase_desc':
       'Tap here to see furniture in your room in 3D and AR.',
+  'ai_agent_showcase_title': 'AI designer! 🤖',
+  'ai_agent_showcase_desc':
+      'Ask your AI assistant to help pick furniture for your room.',
 };

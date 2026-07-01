@@ -31,9 +31,10 @@ import '../widgets/premium/premium_product_card.dart';
 import '../widgets/premium/premium_product_list_card.dart';
 import '../widgets/premium/premium_tokens.dart';
 
-/// First-launch spotlight flag — set once the AR-demo tour is shown so it never
+/// First-launch spotlight flags — set once each tour step is shown so it never
 /// reappears on this install.
 const String _kSeenArDemoPrefKey = 'has_seen_ar_demo';
+const String _kSeenAiShowcasePrefKey = 'has_seen_ai_showcase';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -70,24 +71,35 @@ class _HomeViewState extends State<_HomeView> {
   /// Spotlight target for the AR demo button in the AppBar.
   final GlobalKey _arDemoKey = GlobalKey();
 
+  /// Spotlight target for the AI assistant FAB.
+  final GlobalKey _aiFabKey = GlobalKey();
+
   @override
   void initState() {
     super.initState();
-    // First frame paints the AppBar (and registers the Showcase target) before
-    // we ask the controller to spotlight it.
+    // First frame paints the AppBar + FAB (and registers Showcase targets)
+    // before we ask the controller to spotlight them.
     WidgetsBinding.instance.addPostFrameCallback(
-      (_) => unawaited(_maybeStartArShowcase()),
+      (_) => unawaited(_maybeStartHomeShowcases()),
     );
   }
 
-  /// Shows the AR spotlight exactly once per install. The flag is persisted the
-  /// moment the tour starts, so killing the app mid-tour still counts as "seen".
-  Future<void> _maybeStartArShowcase() async {
+  /// Shows unseen home spotlights in order: AR demo, then AI assistant. Each
+  /// flag is persisted the moment its step starts, so killing the app mid-tour
+  /// still counts as "seen".
+  Future<void> _maybeStartHomeShowcases() async {
     final prefs = await SharedPreferences.getInstance();
-    if (prefs.getBool(_kSeenArDemoPrefKey) ?? false) return;
+    final seenAr = prefs.getBool(_kSeenArDemoPrefKey) ?? false;
+    final seenAi = prefs.getBool(_kSeenAiShowcasePrefKey) ?? false;
+    if (seenAr && seenAi) return;
     if (!mounted) return;
-    ShowCaseWidget.of(context).startShowCase([_arDemoKey]);
-    await prefs.setBool(_kSeenArDemoPrefKey, true);
+
+    final keys = <GlobalKey>[if (!seenAr) _arDemoKey, if (!seenAi) _aiFabKey];
+    if (keys.isEmpty) return;
+
+    ShowCaseWidget.of(context).startShowCase(keys);
+    if (!seenAr) await prefs.setBool(_kSeenArDemoPrefKey, true);
+    if (!seenAi) await prefs.setBool(_kSeenAiShowcasePrefKey, true);
   }
 
   /// Pull-to-refresh handler shared by the error and content scroll views.
@@ -114,7 +126,7 @@ class _HomeViewState extends State<_HomeView> {
     // existing feed layout.
     return Scaffold(
       backgroundColor: Colors.transparent,
-      floatingActionButton: const AiChatFab(),
+      floatingActionButton: AiChatFab(showcaseKey: _aiFabKey),
       body: ColoredBox(
         color: pt.background,
         child: NetworkErrorGate<HomeBloc, HomeState>(

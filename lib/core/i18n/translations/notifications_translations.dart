@@ -52,6 +52,9 @@ const Map<String, dynamic> profileUz = {
   'continue': 'Davom etish',
   'sell_on_woody_title': 'Woody\'da soting',
   'sell_on_woody_subtitle': 'Biznesingizni minglab xaridorlarga yetkazing',
+  'sell_on_woody_showcase_title': 'Woody\'da soting! 🏪',
+  'sell_on_woody_showcase_desc':
+      'O\'z do\'koningizni oching va minglab xaridorlarga yeting.',
   'menu_settings': 'Sozlamalar',
   'menu_about': 'Ilova haqida',
   'menu_application_status': 'Ariza holati',
@@ -67,7 +70,8 @@ const Map<String, dynamic> profileUz = {
   'confirm': 'Tasdiqlash',
   'delete_blocked_active_orders':
       'Hisobni o\'chirish uchun avval barcha faol buyurtmalarni yakunlang yoki bekor qiling.',
-  'delete_blocked_has_debt': 'Hisobni o\'chirish uchun avval qarzdorlikni to\'lang.',
+  'delete_blocked_has_debt':
+      'Hisobni o\'chirish uchun avval qarzdorlikni to\'lang.',
   'delete_blocked_unwithdrawn_funds':
       'Hisobni o\'chirish uchun avval hamyoningizdagi mablag\'ni yechib oling.',
   'action_blocked_title': 'Amalni bajarib bo\'lmaydi',
@@ -83,7 +87,8 @@ const Map<String, dynamic> profileUz = {
   'seller_approved_title': 'Do\'koningiz tasdiqlandi!',
   'seller_open_panel': 'Sotuvchi paneliga o\'tish',
   'seller_rejected_title': 'Ariza rad etildi',
-  'seller_rejected_subtitle': 'Ma\'lumotlarni to\'g\'rilab qayta yuborishingiz mumkin',
+  'seller_rejected_subtitle':
+      'Ma\'lumotlarni to\'g\'rilab qayta yuborishingiz mumkin',
   'seller_rejected_reason_label': 'SABAB',
   'seller_resubmit': 'Qayta topshirish',
   'name_not_set': 'Ism kiritilmagan',
@@ -141,6 +146,9 @@ const Map<String, dynamic> profileRu = {
   'continue': 'Продолжить',
   'sell_on_woody_title': 'Продавайте на Woody',
   'sell_on_woody_subtitle': 'Представьте свой бизнес тысячам покупателей',
+  'sell_on_woody_showcase_title': 'Продавайте на Woody! 🏪',
+  'sell_on_woody_showcase_desc':
+      'Откройте свой магазин и выходите на тысячи покупателей.',
   'menu_settings': 'Настройки',
   'menu_about': 'О приложении',
   'menu_application_status': 'Статус заявки',
@@ -156,7 +164,8 @@ const Map<String, dynamic> profileRu = {
   'confirm': 'Подтвердить',
   'delete_blocked_active_orders':
       'Чтобы удалить аккаунт, сначала завершите или отмените все активные заказы.',
-  'delete_blocked_has_debt': 'Чтобы удалить аккаунт, сначала погасите задолженность.',
+  'delete_blocked_has_debt':
+      'Чтобы удалить аккаунт, сначала погасите задолженность.',
   'delete_blocked_unwithdrawn_funds':
       'Чтобы удалить аккаунт, сначала выведите средства из вашего кошелька.',
   'action_blocked_title': 'Действие невозможно',
@@ -172,7 +181,8 @@ const Map<String, dynamic> profileRu = {
   'seller_approved_title': 'Ваш магазин подтверждён!',
   'seller_open_panel': 'Перейти в панель продавца',
   'seller_rejected_title': 'Заявка отклонена',
-  'seller_rejected_subtitle': 'Вы можете исправить данные и отправить заявку заново',
+  'seller_rejected_subtitle':
+      'Вы можете исправить данные и отправить заявку заново',
   'seller_rejected_reason_label': 'ПРИЧИНА',
   'seller_resubmit': 'Подать заново',
   'name_not_set': 'Имя не указано',
@@ -230,6 +240,9 @@ const Map<String, dynamic> profileEn = {
   'continue': 'Continue',
   'sell_on_woody_title': 'Sell on Woody',
   'sell_on_woody_subtitle': 'Reach thousands of buyers with your business',
+  'sell_on_woody_showcase_title': 'Sell on Woody! 🏪',
+  'sell_on_woody_showcase_desc':
+      'Open your shop and reach thousands of buyers.',
   'menu_settings': 'Settings',
   'menu_about': 'About the app',
   'menu_application_status': 'Application status',
@@ -245,7 +258,8 @@ const Map<String, dynamic> profileEn = {
   'confirm': 'Confirm',
   'delete_blocked_active_orders':
       'To delete your account, first complete or cancel all active orders.',
-  'delete_blocked_has_debt': 'To delete your account, first pay off your outstanding debt.',
+  'delete_blocked_has_debt':
+      'To delete your account, first pay off your outstanding debt.',
   'delete_blocked_unwithdrawn_funds':
       'To delete your account, first withdraw the funds from your wallet.',
   'action_blocked_title': 'Action not allowed',
@@ -279,8 +293,7 @@ const Map<String, dynamic> notificationsUz = {
   'tab_empty': 'Bu turkumda hozircha bildirishnoma yo\'q',
   'simulator_title': 'Push simulyatori',
   'simulator_link_hint': '6 cross-mode holat (debug only)',
-  'simulator_hint':
-      'Joriy rejim: {}. Quyidagi holatlardan birini tanlang.',
+  'simulator_hint': 'Joriy rejim: {}. Quyidagi holatlardan birini tanlang.',
   'simulator_done_same_mode':
       'Bildirishnoma bir xil rejim — to\'g\'ri navigatsiya qilindi',
   'simulator_done_stash':
@@ -338,8 +351,7 @@ const Map<String, dynamic> notificationsRu = {
       'Переключение режима + pending route (имитация cold start)',
   'scenario': {
     'same_foreground': '1. Приложение открыто, режим совпадает',
-    'same_foreground_hint':
-        'Тап по push в текущем режиме — прямой переход',
+    'same_foreground_hint': 'Тап по push в текущем режиме — прямой переход',
     'cross_foreground': '2. Приложение открыто, режим отличается',
     'cross_foreground_hint':
         'Push для другого режима — сохранение + switchAppMode',
@@ -349,8 +361,7 @@ const Map<String, dynamic> notificationsRu = {
     'cross_background': '4. Приложение в фоне, режим отличается',
     'cross_background_hint': 'Stash + после смены режима применяется',
     'same_cold': '5. Приложение полностью закрыто, режим совпадает',
-    'same_cold_hint':
-        'Cold start: pending route применяется, режим тот же',
+    'same_cold_hint': 'Cold start: pending route применяется, режим тот же',
     'cross_cold': '6. Приложение полностью закрыто, режим отличается',
     'cross_cold_hint':
         'Cold start: app_mode override + pending route + switchAppMode',
@@ -380,10 +391,8 @@ const Map<String, dynamic> notificationsEn = {
   'simulator_link_hint': '6 cross-mode scenarios (debug only)',
   'simulator_hint': 'Current mode: {}. Pick a scenario below.',
   'simulator_done_same_mode': 'Same-mode push — navigated directly',
-  'simulator_done_stash':
-      'Pending route saved — applied on next consume',
-  'simulator_done_cold':
-      'Mode switch + pending route saved (cold start sim)',
+  'simulator_done_stash': 'Pending route saved — applied on next consume',
+  'simulator_done_cold': 'Mode switch + pending route saved (cold start sim)',
   'scenario': {
     'same_foreground': '1. App open, same mode',
     'same_foreground_hint': 'Tap a push in the current mode → direct nav',

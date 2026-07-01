@@ -1,13 +1,23 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:showcaseview/showcaseview.dart';
 
 import '../../../../auth/auth_bottom_sheet.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../seller/features/onboarding/screens/onboarding_screen.dart';
+import '../../../customer_app.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../../../../shared/about/about_screen.dart';
 import 'help_screen.dart';
 import 'settings_screen.dart';
+
+/// First-launch spotlight flag — shown once when the guest opens the Profile
+/// tab so the seller-acquisition row is discoverable.
+const String _kSeenSellOnWoodyShowcasePrefKey =
+    'has_seen_sell_on_woody_showcase';
 
 /// Premium guest (unauthenticated) profile screen.
 ///
@@ -21,10 +31,54 @@ class ProfileGuestScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return ShowCaseWidget(builder: (context) => const _ProfileGuestView());
+  }
+}
+
+class _ProfileGuestView extends StatefulWidget {
+  const _ProfileGuestView();
+
+  @override
+  State<_ProfileGuestView> createState() => _ProfileGuestViewState();
+}
+
+class _ProfileGuestViewState extends State<_ProfileGuestView> {
+  final GlobalKey _sellRowKey = GlobalKey();
+  int? _lastTabIndex;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final index = CustomerShellScope.of(context).index;
+    if (index == 4 && _lastTabIndex != 4) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => unawaited(_maybeStartSellShowcase()),
+      );
+    }
+    _lastTabIndex = index;
+  }
+
+  Future<void> _maybeStartSellShowcase() async {
+    if (CustomerShellScope.of(context).index != 4) return;
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool(_kSeenSellOnWoodyShowcasePrefKey) ?? false) return;
+    if (!mounted) return;
+    ShowCaseWidget.of(context).startShowCase([_sellRowKey]);
+    await prefs.setBool(_kSeenSellOnWoodyShowcasePrefKey, true);
+  }
+
+  void _openSellerOnboarding(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        settings: const RouteSettings(name: '/onboarding'),
+        builder: (_) => const OnboardingScreen(),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
-    // Scaffold + AppBar so the "Profil" title stays pinned at the top — the
-    // authenticated [ProfileScreen] does the same; a header scrolled inside
-    // the ListView would slide away under the status bar.
     return Scaffold(
       backgroundColor: pt.background,
       appBar: AppBar(
@@ -46,20 +100,10 @@ class ProfileGuestScreen extends StatelessWidget {
           const SizedBox(height: 24),
           _GuestMenuListCard(
             items: _guestMenuItems(context),
+            sellRowKey: _sellRowKey,
             onSell: () => _openSellerOnboarding(context),
           ),
         ],
-      ),
-    );
-  }
-
-  void _openSellerOnboarding(BuildContext context) {
-    Navigator.of(
-      context,
-    ).push(
-      MaterialPageRoute(
-        settings: const RouteSettings(name: '/onboarding'),
-        builder: (_) => const OnboardingScreen(),
       ),
     );
   }
@@ -86,7 +130,6 @@ class _WelcomeHeroCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // Line-art identity icon inside a soft grey halo.
           Container(
             width: 96,
             height: 96,
@@ -158,9 +201,14 @@ class _PrimaryCta extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _GuestMenuListCard extends StatelessWidget {
-  const _GuestMenuListCard({required this.items, required this.onSell});
+  const _GuestMenuListCard({
+    required this.items,
+    required this.sellRowKey,
+    required this.onSell,
+  });
 
   final List<_MenuEntry> items;
+  final GlobalKey sellRowKey;
   final VoidCallback onSell;
 
   @override
@@ -172,13 +220,11 @@ class _GuestMenuListCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: PremiumTokens.softShadow,
       ),
-      // ClipRRect lets the seller-acquisition row's tinted background hug
-      // the card's rounded corners without bleeding past the edge.
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
         child: Column(
           children: [
-            _SellOnWoodyRow(onTap: onSell),
+            _SellOnWoodyRow(showcaseKey: sellRowKey, onTap: onSell),
             Divider(height: 1, color: pt.divider),
             for (var i = 0; i < items.length; i++) ...[
               _MenuRow(entry: items[i]),
@@ -196,20 +242,16 @@ class _GuestMenuListCard extends StatelessWidget {
 }
 
 /// Seller-acquisition CTA pinned to the top of the guest menu.
-///
-/// Visual treatment is intentionally louder than the surrounding settings
-/// rows — Terracotta-tinted background, bold title, subtitle copy, and a
-/// brand-colored chevron — because guests who happen to be furniture sellers
-/// would otherwise have no obvious entry point into the seller flow.
 class _SellOnWoodyRow extends StatelessWidget {
-  const _SellOnWoodyRow({required this.onTap});
+  const _SellOnWoodyRow({required this.showcaseKey, required this.onTap});
 
+  final GlobalKey showcaseKey;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
-    return Material(
+    final row = Material(
       color: PremiumTokens.accent.withValues(alpha: 0.05),
       child: InkWell(
         onTap: onTap,
@@ -266,6 +308,24 @@ class _SellOnWoodyRow extends StatelessWidget {
           ),
         ),
       ),
+    );
+
+    return Showcase(
+      key: showcaseKey,
+      title: tr('profile.sell_on_woody_showcase_title'),
+      description: tr('profile.sell_on_woody_showcase_desc'),
+      targetShapeBorder: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      targetPadding: const EdgeInsets.all(4),
+      tooltipBackgroundColor: pt.surface,
+      textColor: pt.dark,
+      tooltipBorderRadius: BorderRadius.circular(16),
+      titleTextStyle: PremiumTokens.display(size: 16, letterSpacing: -0.2),
+      descTextStyle: PremiumTokens.body(size: 13, height: 1.4, color: pt.grey),
+      onTargetClick: onTap,
+      disposeOnTap: true,
+      child: row,
     );
   }
 }
@@ -331,9 +391,7 @@ List<_MenuEntry> _guestMenuItems(BuildContext context) => [
   _MenuEntry(
     icon: Iconsax.setting_2,
     label: tr('profile.menu_settings'),
-    onTap: () => Navigator.of(
-      context,
-    ).push(
+    onTap: () => Navigator.of(context).push(
       MaterialPageRoute(
         settings: const RouteSettings(name: '/settings'),
         builder: (_) => const SettingsScreen(),
@@ -343,9 +401,7 @@ List<_MenuEntry> _guestMenuItems(BuildContext context) => [
   _MenuEntry(
     icon: Iconsax.message_question,
     label: tr('profile.help_title'),
-    onTap: () => Navigator.of(
-      context,
-    ).push(
+    onTap: () => Navigator.of(context).push(
       MaterialPageRoute(
         settings: const RouteSettings(name: '/help'),
         builder: (_) => const HelpScreen(),
@@ -355,9 +411,7 @@ List<_MenuEntry> _guestMenuItems(BuildContext context) => [
   _MenuEntry(
     icon: Iconsax.info_circle,
     label: tr('profile.menu_about'),
-    onTap: () => Navigator.of(
-      context,
-    ).push(
+    onTap: () => Navigator.of(context).push(
       MaterialPageRoute(
         settings: const RouteSettings(name: '/about'),
         builder: (_) => const AboutScreen(),
