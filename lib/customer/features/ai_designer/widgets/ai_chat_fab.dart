@@ -115,6 +115,7 @@ class _AiChatFabState extends State<AiChatFab>
       key: key,
       title: tr('home.ai_agent_showcase_title'),
       description: tr('home.ai_agent_showcase_desc'),
+      tooltipPosition: TooltipPosition.top,
       targetShapeBorder: const CircleBorder(),
       targetPadding: const EdgeInsets.all(6),
       tooltipBackgroundColor: pt.surface,
