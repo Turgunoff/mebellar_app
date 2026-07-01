@@ -1,0 +1,25 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "'/Volumes/Storage/Projects/Mebellar/mebellar_app/.codex/hooks/dart-format.sh'"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "'/Volumes/Storage/Projects/Mebellar/mebellar_app/.codex/hooks/session-start.sh'"
+          }
+        ]
+      }
+    ]
+  }
+}
