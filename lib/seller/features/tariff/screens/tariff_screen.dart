@@ -501,7 +501,7 @@ class _ExpiryRing extends StatelessWidget {
 //     the trial strategy) the AI-3D quota — plus the expiry date + countdown.
 //     The feature bullets are the server's localized `features_*` for the trial
 //     row, rendered verbatim by the SAME `_FeatureList` the upgrade cards use,
-//     so the 3 AI 3D models + 20 autofills show exactly as authored. If the
+//     so the 3 AI 3D models show exactly as authored. If the
 //     plan row is momentarily unavailable it falls back to a synthesized list
 //     built from the enum + snapshot.
 // =============================================================================

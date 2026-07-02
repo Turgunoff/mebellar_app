@@ -78,19 +78,25 @@ const Map<String, dynamic> sellerUz = {
   'weight': 'Og\'irlik',
   'products_sets_tooltip': 'Setlar',
   'product_archive_confirm_title': 'Mahsulotni arxivlash',
-  'product_archive_confirm_body': 'Mahsulot xaridorlarga ko‘rinmaydi, lekin keyin qaytarib olishingiz mumkin. Arxivlansinmi?',
+  'product_archive_confirm_body':
+      'Mahsulot xaridorlarga ko‘rinmaydi, lekin keyin qaytarib olishingiz mumkin. Arxivlansinmi?',
   'product_archive_action': 'Arxivlash',
   'product_archived_success': 'Mahsulot arxivlandi',
-  'product_restored_success': 'Mahsulot qaytarildi va qayta ko‘rib chiqishga yuborildi',
-  'ar_scan_queued_snack': '3D model yaratilmoqda. Tayyor bo‘lgach mahsulotda ko‘rinadi.',
+  'product_restored_success':
+      'Mahsulot qaytarildi va qayta ko‘rib chiqishga yuborildi',
+  'ar_scan_queued_snack':
+      '3D model yaratilmoqda. Tayyor bo‘lgach mahsulotda ko‘rinadi.',
   'ar_visibility_toggle_failed': 'Holatni o‘zgartirib bo‘lmadi',
   'ar_need_dimensions_title': 'O‘lchamlar kerak',
-  'ar_need_dimensions_body': '3D model aniq bo‘lishi uchun mahsulot o‘lchamlari (eni, bo‘yi, chuqurligi) kerak. Iltimos, avval ularni to‘ldiring.',
+  'ar_need_dimensions_body':
+      '3D model aniq bo‘lishi uchun mahsulot o‘lchamlari (eni, bo‘yi, chuqurligi) kerak. Iltimos, avval ularni to‘ldiring.',
   'product_edit_action': 'Tahrirlash',
   'ar_scan_card_title': '3D model (AR)',
   'info_tooltip': 'Ma’lumot',
-  'ar_scan_card_description': 'Har bir qism uchun alohida model. So‘rov yuboring — admin tekshirib, AI orqali model yasaydi. Birinchi so‘rov bepul, keyingisi 1 token.',
-  'ar_scan_no_components': 'Avval mahsulot o‘lchamlarini qo‘shing — har bir qism o‘lchami 3D model uchun kerak.',
+  'ar_scan_card_description':
+      'Har bir qism uchun alohida model. So‘rov yuboring — admin tekshirib, AI orqali model yasaydi. Birinchi so‘rov bepul, keyingisi 1 token.',
+  'ar_scan_no_components':
+      'Avval mahsulot o‘lchamlarini qo‘shing — har bir qism o‘lchami 3D model uchun kerak.',
   'ar_part_default_label': 'Asosiy',
   'ar_part_pending': 'Adminga so‘rov yuborildi. Tekshirilmoqda…',
   'ar_part_pending_chip': 'Tekshiruvda',
@@ -104,20 +110,26 @@ const Map<String, dynamic> sellerUz = {
   'ar_part_retry': 'Qaytadan so‘rov',
   'ar_part_create': 'So‘rov yuborish',
   'ar_view_in_ar': 'AR rejimida ko‘rish',
-  'ar_request_sent_snack': 'So‘rov adminga yuborildi. Tekshirilgach model paydo bo‘ladi.',
+  'ar_request_sent_snack':
+      'So‘rov adminga yuborildi. Tekshirilgach model paydo bo‘ladi.',
   'ar_request_failed': 'So‘rov yuborib bo‘lmadi. Keyinroq urinib ko‘ring.',
   'ar_tokens_balance': 'Mavjud tokenlar: {count}',
   'ar_tokens_top_up': 'To‘ldirish',
   'ar_info_title': '3D skan (AR) nima?',
-  'ar_info_intro': 'Mahsulotingizni 3 ta fotosurat orqali AI yordamida 3D modelga aylantiramiz. Xaridorlar uni o‘z xonasida — telefon kamerasi orqali, real o‘lchamda — joylashtirib ko‘ra oladi.',
+  'ar_info_intro':
+      'Mahsulotingizni 3 ta fotosurat orqali AI yordamida 3D modelga aylantiramiz. Xaridorlar uni o‘z xonasida — telefon kamerasi orqali, real o‘lchamda — joylashtirib ko‘ra oladi.',
   'ar_info_bullet_per_part_title': 'Har bir qism alohida',
-  'ar_info_bullet_per_part_body': 'Garnitur bo‘lsa, krovat, shkaf va tryumo — har biri alohida skan qilinadi.',
+  'ar_info_bullet_per_part_body':
+      'Garnitur bo‘lsa, krovat, shkaf va tryumo — har biri alohida skan qilinadi.',
   'ar_info_bullet_free_title': 'Birinchi skan bepul',
-  'ar_info_bullet_free_body': 'Har bir qism uchun birinchi model bepul; qayta yaratish 1 token.',
+  'ar_info_bullet_free_body':
+      'Har bir qism uchun birinchi model bepul; qayta yaratish 1 token.',
   'ar_info_bullet_quality_title': 'Sifatli suratga oling',
-  'ar_info_bullet_quality_body': 'Toza fon, yaxshi yoritish va 3 xil burchak aniqroq model beradi.',
+  'ar_info_bullet_quality_body':
+      'Toza fon, yaxshi yoritish va 3 xil burchak aniqroq model beradi.',
   'ar_info_bullet_visible_title': 'Mahsulotda ko‘rinadi',
-  'ar_info_bullet_visible_body': 'Tayyor model kartangizda 3D/AR belgisi bilan xaridorlarga ko‘rsatiladi.',
+  'ar_info_bullet_visible_body':
+      'Tayyor model kartangizda 3D/AR belgisi bilan xaridorlarga ko‘rsatiladi.',
   'model_viewer_title': '3D model',
   'model_load_failed': 'Modelni yuklab bo‘lmadi. Qayta urinib ko‘ring',
   'ar_camera_guide_front': '1/3: Old tomondan oling',
@@ -126,19 +138,26 @@ const Map<String, dynamic> sellerUz = {
   'ar_camera_upload_failed': 'Yuklashda xatolik. Qayta urinib ko‘ring.',
   'ar_camera_retake': 'Qaytadan olish',
   'ar_camera_upload': 'Yuklash',
-  'ar_camera_generating': '3D model yaratilmoqda. Tasdiqdan so‘ng ilovada ko‘rinadi.',
+  'ar_camera_generating':
+      '3D model yaratilmoqda. Tasdiqdan so‘ng ilovada ko‘rinadi.',
   'ar_camera_open_failed': 'Kamerani ochib bo‘lmadi. Ruxsatlarni tekshiring.',
-  'ar_not_approved_message': 'AR model yaratish uchun mahsulot moderatorlar tomonidan tasdiqlangan bo‘lishi kerak.',
+  'ar_not_approved_message':
+      'AR model yaratish uchun mahsulot moderatorlar tomonidan tasdiqlangan bo‘lishi kerak.',
   'ar_onboarding_rule_clean_title': 'Toza fon',
-  'ar_onboarding_rule_clean_body': 'Mahsulot atrofini bo‘shating — ortda ortiqcha narsa bo‘lmasin.',
+  'ar_onboarding_rule_clean_body':
+      'Mahsulot atrofini bo‘shating — ortda ortiqcha narsa bo‘lmasin.',
   'ar_onboarding_rule_light_title': 'Yaxshi yoritish',
-  'ar_onboarding_rule_light_body': 'Xona yorug‘ bo‘lsin, qattiq soyalar va orqadan tushgan nurdan saqlaning.',
+  'ar_onboarding_rule_light_body':
+      'Xona yorug‘ bo‘lsin, qattiq soyalar va orqadan tushgan nurdan saqlaning.',
   'ar_onboarding_rule_angles_title': '3 xil burchakdan oling',
-  'ar_onboarding_rule_angles_body': 'Old, yon va tepa-orqa tomonlardan to‘liq va aniq suratga oling.',
+  'ar_onboarding_rule_angles_body':
+      'Old, yon va tepa-orqa tomonlardan to‘liq va aniq suratga oling.',
   'ar_onboarding_title': '3D skan qoidalari',
-  'ar_onboarding_subtitle': 'Sifatli 3D model olish uchun 3 ta oddiy qoidaga amal qiling.',
+  'ar_onboarding_subtitle':
+      'Sifatli 3D model olish uchun 3 ta oddiy qoidaga amal qiling.',
   'ar_onboarding_start': 'Boshlash',
-  'ar_buy_checkout_failed': 'To‘lovni boshlab bo‘lmadi. Birozdan so‘ng urinib ko‘ring.',
+  'ar_buy_checkout_failed':
+      'To‘lovni boshlab bo‘lmadi. Birozdan so‘ng urinib ko‘ring.',
   'ar_buy_title': 'AR Token sotib olish',
   'ar_buy_subtitle': 'Har bir 3D model yaratish 1 token sarflaydi.',
   'payment_method': 'To‘lov usuli',
@@ -171,8 +190,10 @@ const Map<String, dynamic> sellerUz = {
   'meta_subcategory': 'Subkategoriya',
   'meta_material': 'Material',
   'preview_customer_view_title': 'Mijoz ko\'rinishi',
-  'preview_customer_view_subtitle': 'Mahsulotingiz xaridorlarga qanday ko\'rinishini tekshiring',
-  'preview_available_made_to_order': 'Sotuvda mavjud · buyurtma bo‘yicha tayyorlanadi',
+  'preview_customer_view_subtitle':
+      'Mahsulotingiz xaridorlarga qanday ko\'rinishini tekshiring',
+  'preview_available_made_to_order':
+      'Sotuvda mavjud · buyurtma bo‘yicha tayyorlanadi',
   'preview_not_available': 'Hozircha sotuvda emas',
   'rejection_reason_title': 'Rad etish sababi',
   'dim_length': 'Uzunligi',
@@ -225,8 +246,10 @@ const Map<String, dynamic> sellerUz = {
   'reviews_send': 'Yuborish',
   'reviews_empty_filtered_title': 'Tanlangan filtr bo\'yicha topilmadi',
   'reviews_empty_none_title': 'Hali sharh yo\'q',
-  'reviews_empty_filtered_subtitle': 'Boshqa filtr tanlang yoki keyinroq qayting.',
-  'reviews_empty_none_subtitle': 'Buyurtma yetkazib berilgandan keyin mijozlar sharh qoldira oladi.',
+  'reviews_empty_filtered_subtitle':
+      'Boshqa filtr tanlang yoki keyinroq qayting.',
+  'reviews_empty_none_subtitle':
+      'Buyurtma yetkazib berilgandan keyin mijozlar sharh qoldira oladi.',
   'reviews_retry': 'Qayta urinish',
   'reviews_unavailable_title': 'Sharhlar mavjud emas',
   'reviews_unavailable_subtitle': 'Bu qurilmada server aloqasi yo\'q.',
@@ -242,17 +265,20 @@ const Map<String, dynamic> sellerUz = {
   'reviews_filter_critical': '1-2 Yulduz',
   'set_editor_products_load_failed': 'Mahsulotlarni yuklab bo\'lmadi',
   'set_editor_save_failed': 'Setni saqlab bo\'lmadi. Qayta urinib ko\'ring.',
-  'set_editor_error_product_not_yours': 'Tanlangan mahsulotlardan biri sizga tegishli emas.',
+  'set_editor_error_product_not_yours':
+      'Tanlangan mahsulotlardan biri sizga tegishli emas.',
   'set_editor_error_select_at_least_one': 'Kamida bitta mahsulot tanlang.',
   'set_editor_title': 'Yangi set',
   'set_editor_min_products_hint': 'Setga kamida 2 ta mahsulot qo\'shing',
   'set_editor_name_label': 'Set nomi',
   'set_editor_name_hint': 'Masalan: Yotoqxona garnituri',
-  'set_editor_no_products_hint': 'Set yaratish uchun avval tasdiqlangan mahsulotlaringiz bo\'lishi kerak.',
+  'set_editor_no_products_hint':
+      'Set yaratish uchun avval tasdiqlangan mahsulotlaringiz bo\'lishi kerak.',
   'set_editor_save_button': 'Saqlash ({count})',
   'sets_list_load_failed': 'Setlarni yuklab bo\'lmadi',
   'sets_archive_dialog_title': 'Setni arxivlash',
-  'sets_archive_dialog_body': '"{name}" seti arxivlanadi va katalogdan olib tashlanadi.',
+  'sets_archive_dialog_body':
+      '"{name}" seti arxivlanadi va katalogdan olib tashlanadi.',
   'sets_archive_failed': 'Setni arxivlab bo\'lmadi',
   'sets_add_button': 'Set qo\'shish',
   'sets_item_count': '{count} ta mahsulot',
@@ -262,19 +288,25 @@ const Map<String, dynamic> sellerUz = {
   'sets_status_archived': 'Arxivlangan',
   'sets_status_draft': 'Qoralama',
   'sets_empty_title': 'Hali set yo\'q',
-  'sets_empty_subtitle': 'Bir nechta mahsulotni garnitur sifatida birlashtiring — xaridorlar ularni birgalikda ko\'radi.',
-  'wallet_deposit_start_failed': 'To\'lovni boshlab bo\'lmadi. Qayta urinib ko\'ring.',
+  'sets_empty_subtitle':
+      'Bir nechta mahsulotni garnitur sifatida birlashtiring — xaridorlar ularni birgalikda ko\'radi.',
+  'wallet_deposit_start_failed':
+      'To\'lovni boshlab bo\'lmadi. Qayta urinib ko\'ring.',
   'wallet_recent_transactions': 'So\'nggi amallar',
   'wallet_current_balance': 'Joriy balans',
   'wallet_currency_som': 'so\'m',
   'wallet_how_it_works_cta': 'Hamyon qanday ishlaydi?',
   'wallet_credit_limit_chip': 'Kredit limiti: {limit} so\'m ({floor} gacha)',
-  'wallet_debt_suspended_notice': 'Do\'koningiz vaqtincha muzlatildi! Iltimos, qarzdorlikni uzing — balans tiklanishi bilan do\'kon avtomatik ochiladi.',
-  'wallet_debt_grace_notice': 'Balansingiz minusga kirdi. Xizmat ko\'rsatish to\'xtatilmasligi uchun {hours} soat ichida hisobni to\'ldiring.',
-  'wallet_pending_topup_notice': '{amount} so\'mlik to\'lovingiz ko\'rib chiqilmoqda.',
+  'wallet_debt_suspended_notice':
+      'Do\'koningiz vaqtincha muzlatildi! Iltimos, qarzdorlikni uzing — balans tiklanishi bilan do\'kon avtomatik ochiladi.',
+  'wallet_debt_grace_notice':
+      'Balansingiz minusga kirdi. Xizmat ko\'rsatish to\'xtatilmasligi uchun {hours} soat ichida hisobni to\'ldiring.',
+  'wallet_pending_topup_notice':
+      '{amount} so\'mlik to\'lovingiz ko\'rib chiqilmoqda.',
   'wallet_enter_topup_amount': 'To\'ldirish summasini kiriting.',
   'wallet_topup_section_title': 'Hisobni to\'ldirish',
-  'wallet_topup_section_subtitle': 'Summani kiriting va to\'lov usulini tanlang — balans avtomatik to\'ldiriladi.',
+  'wallet_topup_section_subtitle':
+      'Summani kiriting va to\'lov usulini tanlang — balans avtomatik to\'ldiriladi.',
   'wallet_amount_label': 'Summa (so\'m)',
   'wallet_payment_method': 'To\'lov usuli',
   'wallet_via_payme': 'Payme ilovasi orqali',
@@ -282,22 +314,29 @@ const Map<String, dynamic> sellerUz = {
   'wallet_opening': 'Ochilmoqda…',
   'wallet_topup_button': 'To\'ldirish',
   'wallet_load_failed': 'Hamyonni yuklab bo\'lmadi',
-  'ar_tokens_finish_payment_notice': 'To‘lovni ilovada yakunlang — tasdiqlangach tokenlar qo‘shiladi.',
+  'ar_tokens_finish_payment_notice':
+      'To‘lovni ilovada yakunlang — tasdiqlangach tokenlar qo‘shiladi.',
   'ar_tokens_available_tokens': 'Mavjud tokenlar',
   'ar_tokens_token_unit': 'token',
   'ar_tokens_what_for_title': 'Tokenlar nima uchun?',
-  'ar_tokens_bullet_first_scan_free': 'Har bir mahsulot qismi uchun birinchi 3D skan — bepul.',
+  'ar_tokens_bullet_first_scan_free':
+      'Har bir mahsulot qismi uchun birinchi 3D skan — bepul.',
   'ar_tokens_bullet_rescan_cost': 'Qismni qayta skanlash 1 token sarflaydi.',
-  'ar_tokens_bullet_shared_pool': 'Tokenlar do‘konning barcha mahsulotlari uchun umumiy — bir marta sotib oling, xohlagan mahsulotga ishlating.',
+  'ar_tokens_bullet_shared_pool':
+      'Tokenlar do‘konning barcha mahsulotlari uchun umumiy — bir marta sotib oling, xohlagan mahsulotga ishlating.',
   'ar_tokens_load_failed': 'Token balansini yuklab bo‘lmadi',
   'wallet_info_purpose_title': 'Vazifasi',
-  'wallet_info_purpose_desc': 'Hamyon platforma orqali qilingan muvaffaqiyatli savdolardan tushadigan komissiyalarni to\'lash uchun ishlatiladi.',
+  'wallet_info_purpose_desc':
+      'Hamyon platforma orqali qilingan muvaffaqiyatli savdolardan tushadigan komissiyalarni to\'lash uchun ishlatiladi.',
   'wallet_info_auto_debit_title': 'Avtomatik yechish',
-  'wallet_info_auto_debit_desc': 'Buyurtma xaridorga yetkazib berilgandan so\'ng, belgilangan komissiya foizi shu hamyondan avtomatik tarzda yechib olinadi.',
+  'wallet_info_auto_debit_desc':
+      'Buyurtma xaridorga yetkazib berilgandan so\'ng, belgilangan komissiya foizi shu hamyondan avtomatik tarzda yechib olinadi.',
   'wallet_info_debt_title': 'Qarzdorlik va muzlatish',
-  'wallet_info_debt_desc': 'Agar balansingiz minusga kirib ketsa, sizga 48 soat muhlat beriladi. Vaqtida to\'ldirilmasa, do\'koningiz vaqtincha muzlatiladi.',
+  'wallet_info_debt_desc':
+      'Agar balansingiz minusga kirib ketsa, sizga 48 soat muhlat beriladi. Vaqtida to\'ldirilmasa, do\'koningiz vaqtincha muzlatiladi.',
   'welcome_title': 'Tabriklaymiz! 🎉',
-  'welcome_subtitle': 'Do\'koningiz muvaffaqiyatli tasdiqlandi. Sizga 30 kunlik tekin Bonus tarif sovg\'a qildik. Endi mahsulotlaringizni qo\'shib, savdoni boshlashingiz mumkin!',
+  'welcome_subtitle':
+      'Do\'koningiz muvaffaqiyatli tasdiqlandi. Sizga tekin Bonus tarif sovg\'a qilindi. Endi mahsulotlaringizni qo\'shib, savdoni boshlashingiz mumkin!',
   'product_data_not_found': 'Mahsulot ma\'lumotlari topilmadi',
   'exit_confirm_hint': 'Ilovadan chiqish uchun yana bir marta orqaga bosing',
   'route_not_found_title': 'Sahifa topilmadi',
@@ -376,19 +415,25 @@ const Map<String, dynamic> sellerRu = {
   'weight': 'Вес',
   'products_sets_tooltip': 'Комплекты',
   'product_archive_confirm_title': 'Архивировать товар',
-  'product_archive_confirm_body': 'Товар не будет виден покупателям, но вы сможете вернуть его позже. Архивировать?',
+  'product_archive_confirm_body':
+      'Товар не будет виден покупателям, но вы сможете вернуть его позже. Архивировать?',
   'product_archive_action': 'Архивировать',
   'product_archived_success': 'Товар архивирован',
-  'product_restored_success': 'Товар восстановлен и отправлен на повторную проверку',
-  'ar_scan_queued_snack': 'Создаётся 3D-модель. Как только она будет готова, появится в товаре.',
+  'product_restored_success':
+      'Товар восстановлен и отправлен на повторную проверку',
+  'ar_scan_queued_snack':
+      'Создаётся 3D-модель. Как только она будет готова, появится в товаре.',
   'ar_visibility_toggle_failed': 'Не удалось изменить состояние',
   'ar_need_dimensions_title': 'Нужны размеры',
-  'ar_need_dimensions_body': 'Для точной 3D-модели нужны размеры товара (ширина, высота, глубина). Пожалуйста, сначала заполните их.',
+  'ar_need_dimensions_body':
+      'Для точной 3D-модели нужны размеры товара (ширина, высота, глубина). Пожалуйста, сначала заполните их.',
   'product_edit_action': 'Редактировать',
   'ar_scan_card_title': '3D-модель (AR)',
   'info_tooltip': 'Информация',
-  'ar_scan_card_description': 'Отдельная модель для каждой части. Отправьте запрос — администратор проверит и создаст модель через ИИ. Первый запрос бесплатно, следующий — 1 токен.',
-  'ar_scan_no_components': 'Сначала добавьте размеры товара — размер каждой части нужен для 3D-модели.',
+  'ar_scan_card_description':
+      'Отдельная модель для каждой части. Отправьте запрос — администратор проверит и создаст модель через ИИ. Первый запрос бесплатно, следующий — 1 токен.',
+  'ar_scan_no_components':
+      'Сначала добавьте размеры товара — размер каждой части нужен для 3D-модели.',
   'ar_part_default_label': 'Основная',
   'ar_part_pending': 'Запрос отправлен администратору. На проверке…',
   'ar_part_pending_chip': 'На проверке',
@@ -402,20 +447,26 @@ const Map<String, dynamic> sellerRu = {
   'ar_part_retry': 'Повторить запрос',
   'ar_part_create': 'Отправить запрос',
   'ar_view_in_ar': 'Смотреть в AR',
-  'ar_request_sent_snack': 'Запрос отправлен администратору. После проверки появится модель.',
+  'ar_request_sent_snack':
+      'Запрос отправлен администратору. После проверки появится модель.',
   'ar_request_failed': 'Не удалось отправить запрос. Попробуйте позже.',
   'ar_tokens_balance': 'Доступно токенов: {count}',
   'ar_tokens_top_up': 'Пополнить',
   'ar_info_title': 'Что такое 3D-скан (AR)?',
-  'ar_info_intro': 'По 3 фотографиям мы с помощью ИИ превращаем ваш товар в 3D-модель. Покупатели смогут разместить её в своей комнате через камеру телефона в реальном размере.',
+  'ar_info_intro':
+      'По 3 фотографиям мы с помощью ИИ превращаем ваш товар в 3D-модель. Покупатели смогут разместить её в своей комнате через камеру телефона в реальном размере.',
   'ar_info_bullet_per_part_title': 'Каждая часть отдельно',
-  'ar_info_bullet_per_part_body': 'Если это гарнитур, кровать, шкаф и трюмо сканируются по отдельности.',
+  'ar_info_bullet_per_part_body':
+      'Если это гарнитур, кровать, шкаф и трюмо сканируются по отдельности.',
   'ar_info_bullet_free_title': 'Первый скан бесплатно',
-  'ar_info_bullet_free_body': 'Первая модель для каждой части бесплатно; повторное создание — 1 токен.',
+  'ar_info_bullet_free_body':
+      'Первая модель для каждой части бесплатно; повторное создание — 1 токен.',
   'ar_info_bullet_quality_title': 'Снимайте качественно',
-  'ar_info_bullet_quality_body': 'Чистый фон, хорошее освещение и 3 разных ракурса дают более точную модель.',
+  'ar_info_bullet_quality_body':
+      'Чистый фон, хорошее освещение и 3 разных ракурса дают более точную модель.',
   'ar_info_bullet_visible_title': 'Появится в товаре',
-  'ar_info_bullet_visible_body': 'Готовая модель показывается покупателям на карточке со значком 3D/AR.',
+  'ar_info_bullet_visible_body':
+      'Готовая модель показывается покупателям на карточке со значком 3D/AR.',
   'model_viewer_title': '3D-модель',
   'model_load_failed': 'Не удалось загрузить модель. Попробуйте ещё раз',
   'ar_camera_guide_front': '1/3: Снимите спереди',
@@ -424,17 +475,23 @@ const Map<String, dynamic> sellerRu = {
   'ar_camera_upload_failed': 'Ошибка загрузки. Попробуйте ещё раз.',
   'ar_camera_retake': 'Переснять',
   'ar_camera_upload': 'Загрузить',
-  'ar_camera_generating': 'Создаётся 3D-модель. После проверки она появится в приложении.',
+  'ar_camera_generating':
+      'Создаётся 3D-модель. После проверки она появится в приложении.',
   'ar_camera_open_failed': 'Не удалось открыть камеру. Проверьте разрешения.',
-  'ar_not_approved_message': 'Чтобы создать AR-модель, товар должен быть одобрен модераторами.',
+  'ar_not_approved_message':
+      'Чтобы создать AR-модель, товар должен быть одобрен модераторами.',
   'ar_onboarding_rule_clean_title': 'Чистый фон',
-  'ar_onboarding_rule_clean_body': 'Освободите пространство вокруг товара — позади не должно быть лишнего.',
+  'ar_onboarding_rule_clean_body':
+      'Освободите пространство вокруг товара — позади не должно быть лишнего.',
   'ar_onboarding_rule_light_title': 'Хорошее освещение',
-  'ar_onboarding_rule_light_body': 'Комната должна быть светлой; избегайте резких теней и контрового света.',
+  'ar_onboarding_rule_light_body':
+      'Комната должна быть светлой; избегайте резких теней и контрового света.',
   'ar_onboarding_rule_angles_title': 'Снимайте с 3 ракурсов',
-  'ar_onboarding_rule_angles_body': 'Сделайте полные и чёткие снимки спереди, сбоку и сверху-сзади.',
+  'ar_onboarding_rule_angles_body':
+      'Сделайте полные и чёткие снимки спереди, сбоку и сверху-сзади.',
   'ar_onboarding_title': 'Правила 3D-скана',
-  'ar_onboarding_subtitle': 'Чтобы получить качественную 3D-модель, соблюдайте 3 простых правила.',
+  'ar_onboarding_subtitle':
+      'Чтобы получить качественную 3D-модель, соблюдайте 3 простых правила.',
   'ar_onboarding_start': 'Начать',
   'ar_buy_checkout_failed': 'Не удалось начать оплату. Попробуйте чуть позже.',
   'ar_buy_title': 'Купить AR-токены',
@@ -469,7 +526,8 @@ const Map<String, dynamic> sellerRu = {
   'meta_subcategory': 'Подкатегория',
   'meta_material': 'Материал',
   'preview_customer_view_title': 'Вид для покупателя',
-  'preview_customer_view_subtitle': 'Проверьте, как ваш товар выглядит для покупателей',
+  'preview_customer_view_subtitle':
+      'Проверьте, как ваш товар выглядит для покупателей',
   'preview_available_made_to_order': 'В продаже · изготавливается под заказ',
   'preview_not_available': 'Пока не в продаже',
   'rejection_reason_title': 'Причина отклонения',
@@ -523,8 +581,10 @@ const Map<String, dynamic> sellerRu = {
   'reviews_send': 'Отправить',
   'reviews_empty_filtered_title': 'По выбранному фильтру ничего не найдено',
   'reviews_empty_none_title': 'Пока нет отзывов',
-  'reviews_empty_filtered_subtitle': 'Выберите другой фильтр или зайдите позже.',
-  'reviews_empty_none_subtitle': 'Клиенты смогут оставить отзыв после доставки заказа.',
+  'reviews_empty_filtered_subtitle':
+      'Выберите другой фильтр или зайдите позже.',
+  'reviews_empty_none_subtitle':
+      'Клиенты смогут оставить отзыв после доставки заказа.',
   'reviews_retry': 'Повторить',
   'reviews_unavailable_title': 'Отзывы недоступны',
   'reviews_unavailable_subtitle': 'На этом устройстве нет связи с сервером.',
@@ -539,18 +599,22 @@ const Map<String, dynamic> sellerRu = {
   'reviews_filter_five_star': '5 звёзд',
   'reviews_filter_critical': '1-2 звезды',
   'set_editor_products_load_failed': 'Не удалось загрузить товары',
-  'set_editor_save_failed': 'Не удалось сохранить комплект. Попробуйте ещё раз.',
-  'set_editor_error_product_not_yours': 'Один из выбранных товаров вам не принадлежит.',
+  'set_editor_save_failed':
+      'Не удалось сохранить комплект. Попробуйте ещё раз.',
+  'set_editor_error_product_not_yours':
+      'Один из выбранных товаров вам не принадлежит.',
   'set_editor_error_select_at_least_one': 'Выберите хотя бы один товар.',
   'set_editor_title': 'Новый комплект',
   'set_editor_min_products_hint': 'Добавьте в комплект не менее 2 товаров',
   'set_editor_name_label': 'Название комплекта',
   'set_editor_name_hint': 'Например: Спальный гарнитур',
-  'set_editor_no_products_hint': 'Чтобы создать комплект, у вас сначала должны быть одобренные товары.',
+  'set_editor_no_products_hint':
+      'Чтобы создать комплект, у вас сначала должны быть одобренные товары.',
   'set_editor_save_button': 'Сохранить ({count})',
   'sets_list_load_failed': 'Не удалось загрузить комплекты',
   'sets_archive_dialog_title': 'Архивировать комплект',
-  'sets_archive_dialog_body': 'Комплект «{name}» будет архивирован и убран из каталога.',
+  'sets_archive_dialog_body':
+      'Комплект «{name}» будет архивирован и убран из каталога.',
   'sets_archive_failed': 'Не удалось архивировать комплект',
   'sets_add_button': 'Добавить комплект',
   'sets_item_count': '{count} товаров',
@@ -560,19 +624,24 @@ const Map<String, dynamic> sellerRu = {
   'sets_status_archived': 'В архиве',
   'sets_status_draft': 'Черновик',
   'sets_empty_title': 'Пока нет комплектов',
-  'sets_empty_subtitle': 'Объедините несколько товаров в гарнитур — покупатели увидят их вместе.',
-  'wallet_deposit_start_failed': 'Не удалось начать оплату. Попробуйте ещё раз.',
+  'sets_empty_subtitle':
+      'Объедините несколько товаров в гарнитур — покупатели увидят их вместе.',
+  'wallet_deposit_start_failed':
+      'Не удалось начать оплату. Попробуйте ещё раз.',
   'wallet_recent_transactions': 'Последние операции',
   'wallet_current_balance': 'Текущий баланс',
   'wallet_currency_som': 'сум',
   'wallet_how_it_works_cta': 'Как работает кошелёк?',
   'wallet_credit_limit_chip': 'Кредитный лимит: {limit} сум (до {floor})',
-  'wallet_debt_suspended_notice': 'Ваш магазин временно заморожен! Пожалуйста, погасите задолженность — магазин автоматически откроется, как только баланс восстановится.',
-  'wallet_debt_grace_notice': 'Ваш баланс ушёл в минус. Чтобы обслуживание не приостановилось, пополните счёт в течение {hours} ч.',
+  'wallet_debt_suspended_notice':
+      'Ваш магазин временно заморожен! Пожалуйста, погасите задолженность — магазин автоматически откроется, как только баланс восстановится.',
+  'wallet_debt_grace_notice':
+      'Ваш баланс ушёл в минус. Чтобы обслуживание не приостановилось, пополните счёт в течение {hours} ч.',
   'wallet_pending_topup_notice': 'Ваш платёж на {amount} сум обрабатывается.',
   'wallet_enter_topup_amount': 'Введите сумму пополнения.',
   'wallet_topup_section_title': 'Пополнить счёт',
-  'wallet_topup_section_subtitle': 'Введите сумму и выберите способ оплаты — баланс пополнится автоматически.',
+  'wallet_topup_section_subtitle':
+      'Введите сумму и выберите способ оплаты — баланс пополнится автоматически.',
   'wallet_amount_label': 'Сумма (сум)',
   'wallet_payment_method': 'Способ оплаты',
   'wallet_via_payme': 'Через приложение Payme',
@@ -580,22 +649,29 @@ const Map<String, dynamic> sellerRu = {
   'wallet_opening': 'Открываем…',
   'wallet_topup_button': 'Пополнить',
   'wallet_load_failed': 'Не удалось загрузить кошелёк',
-  'ar_tokens_finish_payment_notice': 'Завершите оплату в приложении — после подтверждения токены будут начислены.',
+  'ar_tokens_finish_payment_notice':
+      'Завершите оплату в приложении — после подтверждения токены будут начислены.',
   'ar_tokens_available_tokens': 'Доступные токены',
   'ar_tokens_token_unit': 'токен',
   'ar_tokens_what_for_title': 'Зачем нужны токены?',
-  'ar_tokens_bullet_first_scan_free': 'Первое 3D-сканирование каждой части товара — бесплатно.',
+  'ar_tokens_bullet_first_scan_free':
+      'Первое 3D-сканирование каждой части товара — бесплатно.',
   'ar_tokens_bullet_rescan_cost': 'Повторное сканирование части стоит 1 токен.',
-  'ar_tokens_bullet_shared_pool': 'Токены общие для всех товаров магазина — купите один раз и тратьте на любой товар.',
+  'ar_tokens_bullet_shared_pool':
+      'Токены общие для всех товаров магазина — купите один раз и тратьте на любой товар.',
   'ar_tokens_load_failed': 'Не удалось загрузить баланс токенов',
   'wallet_info_purpose_title': 'Назначение',
-  'wallet_info_purpose_desc': 'Кошелёк используется для оплаты комиссий с успешных продаж, совершённых через платформу.',
+  'wallet_info_purpose_desc':
+      'Кошелёк используется для оплаты комиссий с успешных продаж, совершённых через платформу.',
   'wallet_info_auto_debit_title': 'Автоматическое списание',
-  'wallet_info_auto_debit_desc': 'После доставки заказа покупателю установленный процент комиссии автоматически списывается с этого кошелька.',
+  'wallet_info_auto_debit_desc':
+      'После доставки заказа покупателю установленный процент комиссии автоматически списывается с этого кошелька.',
   'wallet_info_debt_title': 'Задолженность и заморозка',
-  'wallet_info_debt_desc': 'Если ваш баланс уйдёт в минус, вам даётся 48 часов. Если не пополнить вовремя, ваш магазин будет временно заморожен.',
+  'wallet_info_debt_desc':
+      'Если ваш баланс уйдёт в минус, вам даётся 48 часов. Если не пополнить вовремя, ваш магазин будет временно заморожен.',
   'welcome_title': 'Поздравляем! 🎉',
-  'welcome_subtitle': 'Ваш магазин успешно подтверждён. Мы подарили вам бесплатный тариф «Бонус» на 30 дней. Теперь вы можете добавлять товары и начинать продажи!',
+  'welcome_subtitle':
+      'Ваш магазин успешно подтверждён. Мы подарили вам бесплатный тариф «Бонус». Теперь вы можете добавлять товары и начинать продажи!',
   'product_data_not_found': 'Данные о товаре не найдены',
   'exit_confirm_hint': 'Нажмите «Назад» ещё раз, чтобы выйти из приложения',
   'route_not_found_title': 'Страница не найдена',
@@ -673,19 +749,24 @@ const Map<String, dynamic> sellerEn = {
   'weight': 'Weight',
   'products_sets_tooltip': 'Sets',
   'product_archive_confirm_title': 'Archive product',
-  'product_archive_confirm_body': 'The product will be hidden from buyers, but you can restore it later. Archive it?',
+  'product_archive_confirm_body':
+      'The product will be hidden from buyers, but you can restore it later. Archive it?',
   'product_archive_action': 'Archive',
   'product_archived_success': 'Product archived',
   'product_restored_success': 'Product restored and sent for re-review',
-  'ar_scan_queued_snack': 'Creating the 3D model. It will appear on the product once ready.',
+  'ar_scan_queued_snack':
+      'Creating the 3D model. It will appear on the product once ready.',
   'ar_visibility_toggle_failed': 'Couldn\'t change the status',
   'ar_need_dimensions_title': 'Dimensions required',
-  'ar_need_dimensions_body': 'For an accurate 3D model the product dimensions (width, height, depth) are required. Please fill them in first.',
+  'ar_need_dimensions_body':
+      'For an accurate 3D model the product dimensions (width, height, depth) are required. Please fill them in first.',
   'product_edit_action': 'Edit',
   'ar_scan_card_title': '3D model (AR)',
   'info_tooltip': 'Info',
-  'ar_scan_card_description': 'A separate model for each part. Send a request — an admin reviews it and generates the model with AI. The first request is free, the next costs 1 token.',
-  'ar_scan_no_components': 'First add the product dimensions — each part\'s size is needed for the 3D model.',
+  'ar_scan_card_description':
+      'A separate model for each part. Send a request — an admin reviews it and generates the model with AI. The first request is free, the next costs 1 token.',
+  'ar_scan_no_components':
+      'First add the product dimensions — each part\'s size is needed for the 3D model.',
   'ar_part_default_label': 'Main',
   'ar_part_pending': 'Request sent to the admin. Under review…',
   'ar_part_pending_chip': 'Under review',
@@ -699,20 +780,26 @@ const Map<String, dynamic> sellerEn = {
   'ar_part_retry': 'Request again',
   'ar_part_create': 'Send request',
   'ar_view_in_ar': 'View in AR',
-  'ar_request_sent_snack': 'Request sent to the admin. The model will appear once reviewed.',
+  'ar_request_sent_snack':
+      'Request sent to the admin. The model will appear once reviewed.',
   'ar_request_failed': 'Could not send the request. Please try again later.',
   'ar_tokens_balance': 'Available tokens: {count}',
   'ar_tokens_top_up': 'Top up',
   'ar_info_title': 'What is 3D scan (AR)?',
-  'ar_info_intro': 'We turn your product into a 3D model from 3 photos using AI. Buyers can place it in their own room — through the phone camera, at real size.',
+  'ar_info_intro':
+      'We turn your product into a 3D model from 3 photos using AI. Buyers can place it in their own room — through the phone camera, at real size.',
   'ar_info_bullet_per_part_title': 'Each part separately',
-  'ar_info_bullet_per_part_body': 'For a set, the bed, wardrobe and dresser are each scanned separately.',
+  'ar_info_bullet_per_part_body':
+      'For a set, the bed, wardrobe and dresser are each scanned separately.',
   'ar_info_bullet_free_title': 'First scan is free',
-  'ar_info_bullet_free_body': 'The first model for each part is free; regenerating costs 1 token.',
+  'ar_info_bullet_free_body':
+      'The first model for each part is free; regenerating costs 1 token.',
   'ar_info_bullet_quality_title': 'Take quality photos',
-  'ar_info_bullet_quality_body': 'A clean background, good lighting and 3 different angles produce a more accurate model.',
+  'ar_info_bullet_quality_body':
+      'A clean background, good lighting and 3 different angles produce a more accurate model.',
   'ar_info_bullet_visible_title': 'Shown on the product',
-  'ar_info_bullet_visible_body': 'The finished model is shown to buyers on your card with a 3D/AR badge.',
+  'ar_info_bullet_visible_body':
+      'The finished model is shown to buyers on your card with a 3D/AR badge.',
   'model_viewer_title': '3D model',
   'model_load_failed': 'Couldn\'t load the model. Please try again',
   'ar_camera_guide_front': '1/3: Shoot from the front',
@@ -721,19 +808,25 @@ const Map<String, dynamic> sellerEn = {
   'ar_camera_upload_failed': 'Upload failed. Please try again.',
   'ar_camera_retake': 'Retake',
   'ar_camera_upload': 'Upload',
-  'ar_camera_generating': 'Creating the 3D model. It will appear in the app after approval.',
+  'ar_camera_generating':
+      'Creating the 3D model. It will appear in the app after approval.',
   'ar_camera_open_failed': 'Couldn\'t open the camera. Check the permissions.',
-  'ar_not_approved_message': 'To create an AR model the product must be approved by moderators.',
+  'ar_not_approved_message':
+      'To create an AR model the product must be approved by moderators.',
   'ar_onboarding_rule_clean_title': 'Clean background',
-  'ar_onboarding_rule_clean_body': 'Clear the area around the product — nothing extra in the background.',
+  'ar_onboarding_rule_clean_body':
+      'Clear the area around the product — nothing extra in the background.',
   'ar_onboarding_rule_light_title': 'Good lighting',
-  'ar_onboarding_rule_light_body': 'Keep the room bright; avoid harsh shadows and backlighting.',
+  'ar_onboarding_rule_light_body':
+      'Keep the room bright; avoid harsh shadows and backlighting.',
   'ar_onboarding_rule_angles_title': 'Shoot from 3 angles',
-  'ar_onboarding_rule_angles_body': 'Take full, sharp photos from the front, side and top-back.',
+  'ar_onboarding_rule_angles_body':
+      'Take full, sharp photos from the front, side and top-back.',
   'ar_onboarding_title': '3D scan rules',
   'ar_onboarding_subtitle': 'Follow 3 simple rules to get a quality 3D model.',
   'ar_onboarding_start': 'Start',
-  'ar_buy_checkout_failed': 'Couldn\'t start the payment. Please try again shortly.',
+  'ar_buy_checkout_failed':
+      'Couldn\'t start the payment. Please try again shortly.',
   'ar_buy_title': 'Buy AR tokens',
   'ar_buy_subtitle': 'Creating each 3D model costs 1 token.',
   'payment_method': 'Payment method',
@@ -820,8 +913,10 @@ const Map<String, dynamic> sellerEn = {
   'reviews_send': 'Send',
   'reviews_empty_filtered_title': 'Nothing found for the selected filter',
   'reviews_empty_none_title': 'No reviews yet',
-  'reviews_empty_filtered_subtitle': 'Choose another filter or check back later.',
-  'reviews_empty_none_subtitle': 'Customers can leave a review after the order is delivered.',
+  'reviews_empty_filtered_subtitle':
+      'Choose another filter or check back later.',
+  'reviews_empty_none_subtitle':
+      'Customers can leave a review after the order is delivered.',
   'reviews_retry': 'Try again',
   'reviews_unavailable_title': 'Reviews unavailable',
   'reviews_unavailable_subtitle': 'No server connection on this device.',
@@ -837,17 +932,20 @@ const Map<String, dynamic> sellerEn = {
   'reviews_filter_critical': '1-2 stars',
   'set_editor_products_load_failed': 'Could not load products',
   'set_editor_save_failed': 'Could not save the set. Please try again.',
-  'set_editor_error_product_not_yours': 'One of the selected products does not belong to you.',
+  'set_editor_error_product_not_yours':
+      'One of the selected products does not belong to you.',
   'set_editor_error_select_at_least_one': 'Select at least one product.',
   'set_editor_title': 'New set',
   'set_editor_min_products_hint': 'Add at least 2 products to the set',
   'set_editor_name_label': 'Set name',
   'set_editor_name_hint': 'e.g. Bedroom set',
-  'set_editor_no_products_hint': 'To create a set you first need approved products.',
+  'set_editor_no_products_hint':
+      'To create a set you first need approved products.',
   'set_editor_save_button': 'Save ({count})',
   'sets_list_load_failed': 'Could not load sets',
   'sets_archive_dialog_title': 'Archive set',
-  'sets_archive_dialog_body': 'The set "{name}" will be archived and removed from the catalog.',
+  'sets_archive_dialog_body':
+      'The set "{name}" will be archived and removed from the catalog.',
   'sets_archive_failed': 'Could not archive the set',
   'sets_add_button': 'Add set',
   'sets_item_count': '{count} products',
@@ -857,19 +955,25 @@ const Map<String, dynamic> sellerEn = {
   'sets_status_archived': 'Archived',
   'sets_status_draft': 'Draft',
   'sets_empty_title': 'No sets yet',
-  'sets_empty_subtitle': 'Combine several products into a set — buyers will see them together.',
-  'wallet_deposit_start_failed': 'Couldn\'t start the payment. Please try again.',
+  'sets_empty_subtitle':
+      'Combine several products into a set — buyers will see them together.',
+  'wallet_deposit_start_failed':
+      'Couldn\'t start the payment. Please try again.',
   'wallet_recent_transactions': 'Recent activity',
   'wallet_current_balance': 'Current balance',
   'wallet_currency_som': 'UZS',
   'wallet_how_it_works_cta': 'How does the wallet work?',
   'wallet_credit_limit_chip': 'Credit limit: {limit} UZS (down to {floor})',
-  'wallet_debt_suspended_notice': 'Your shop is temporarily frozen! Please clear the debt — the shop reopens automatically once your balance recovers.',
-  'wallet_debt_grace_notice': 'Your balance went negative. Top up within {hours} hours to keep your shop active.',
-  'wallet_pending_topup_notice': 'Your {amount} UZS payment is being processed.',
+  'wallet_debt_suspended_notice':
+      'Your shop is temporarily frozen! Please clear the debt — the shop reopens automatically once your balance recovers.',
+  'wallet_debt_grace_notice':
+      'Your balance went negative. Top up within {hours} hours to keep your shop active.',
+  'wallet_pending_topup_notice':
+      'Your {amount} UZS payment is being processed.',
   'wallet_enter_topup_amount': 'Enter a top-up amount.',
   'wallet_topup_section_title': 'Top up balance',
-  'wallet_topup_section_subtitle': 'Enter an amount and pick a payment method — your balance tops up automatically.',
+  'wallet_topup_section_subtitle':
+      'Enter an amount and pick a payment method — your balance tops up automatically.',
   'wallet_amount_label': 'Amount (UZS)',
   'wallet_payment_method': 'Payment method',
   'wallet_via_payme': 'Via the Payme app',
@@ -877,22 +981,29 @@ const Map<String, dynamic> sellerEn = {
   'wallet_opening': 'Opening…',
   'wallet_topup_button': 'Top up',
   'wallet_load_failed': 'Couldn\'t load the wallet',
-  'ar_tokens_finish_payment_notice': 'Finish the payment in the app — tokens are added once it\'s confirmed.',
+  'ar_tokens_finish_payment_notice':
+      'Finish the payment in the app — tokens are added once it\'s confirmed.',
   'ar_tokens_available_tokens': 'Available tokens',
   'ar_tokens_token_unit': 'token',
   'ar_tokens_what_for_title': 'What are tokens for?',
-  'ar_tokens_bullet_first_scan_free': 'The first 3D scan for each product part is free.',
+  'ar_tokens_bullet_first_scan_free':
+      'The first 3D scan for each product part is free.',
   'ar_tokens_bullet_rescan_cost': 'Rescanning a part costs 1 token.',
-  'ar_tokens_bullet_shared_pool': 'Tokens are shared across all your shop\'s products — buy once, use on any product.',
+  'ar_tokens_bullet_shared_pool':
+      'Tokens are shared across all your shop\'s products — buy once, use on any product.',
   'ar_tokens_load_failed': 'Couldn\'t load the token balance',
   'wallet_info_purpose_title': 'Purpose',
-  'wallet_info_purpose_desc': 'The wallet is used to pay the commission on successful sales made through the platform.',
+  'wallet_info_purpose_desc':
+      'The wallet is used to pay the commission on successful sales made through the platform.',
   'wallet_info_auto_debit_title': 'Automatic debit',
-  'wallet_info_auto_debit_desc': 'Once an order is delivered to the buyer, the set commission percentage is debited from this wallet automatically.',
+  'wallet_info_auto_debit_desc':
+      'Once an order is delivered to the buyer, the set commission percentage is debited from this wallet automatically.',
   'wallet_info_debt_title': 'Debt and freezing',
-  'wallet_info_debt_desc': 'If your balance goes negative, you have 48 hours. If you don\'t top up in time, your shop is temporarily frozen.',
+  'wallet_info_debt_desc':
+      'If your balance goes negative, you have 48 hours. If you don\'t top up in time, your shop is temporarily frozen.',
   'welcome_title': 'Congratulations! 🎉',
-  'welcome_subtitle': 'Your shop has been approved successfully. We\'ve gifted you a free 30-day Bonus plan. Now you can add products and start selling!',
+  'welcome_subtitle':
+      'Your shop has been approved successfully. We\'ve gifted you a free Bonus plan. Now you can add products and start selling!',
   'product_data_not_found': 'Product details not found',
   'exit_confirm_hint': 'Press back again to exit the app',
   'route_not_found_title': 'Page not found',
@@ -934,7 +1045,7 @@ const Map<String, dynamic> dashboardUz = {
   'last_30_days': 'So\'nggi 30 kun',
   'see_all': 'Hammasi',
   'shop_fallback': 'Do\'koningiz',
-  'greeting_hello': 'Salom, {name}! 👋',
+  'greeting_hello': 'Salom, {name}!',
   'greeting_subtitle': '{name} do\'koni ko\'rsatkichlari',
   'kpi_todays_sales': 'Bugungi savdo',
   'kpi_todays_orders': 'Bugungi orderlar',
@@ -944,7 +1055,8 @@ const Map<String, dynamic> dashboardUz = {
   'kpi_plan': '{plan} tarif',
   'kpi_limit_exceeded': 'Limit oshdi',
   'empty_orders_title': 'Hozircha buyurtmalar yo\'q',
-  'empty_orders_body': 'Katalogingizga mahsulot qo\'shing va birinchi savdoning zavqini his qiling!',
+  'empty_orders_body':
+      'Katalogingizga mahsulot qo\'shing va birinchi savdoning zavqini his qiling!',
   'achievements_unlocked_group': 'Qo\'lga kiritilgan',
   'achievements_in_progress_group': 'Davom etmoqda',
   'achievements_count': '{unlocked} / {total} yutuq',
@@ -955,10 +1067,12 @@ const Map<String, dynamic> dashboardUz = {
   'leaderboard_you': 'Siz',
   'units_pieces': '{count} dona',
   'wallet_frozen_title': 'Do\'koningiz vaqtincha muzlatildi!',
-  'wallet_frozen_body': 'Iltimos, qarzdorlikni uzing ({amount} so\'m). Balans tiklanishi bilan do\'kon avtomatik ochiladi.',
+  'wallet_frozen_body':
+      'Iltimos, qarzdorlikni uzing ({amount} so\'m). Balans tiklanishi bilan do\'kon avtomatik ochiladi.',
   'wallet_pay_debt_cta': 'Qarzdorlikni uzish',
   'wallet_negative_title': 'Balansingiz minusga kirdi',
-  'wallet_grace_body': 'Xizmat ko\'rsatish to\'xtatilmasligi uchun {hours} soat ichida hisobni to\'ldiring.',
+  'wallet_grace_body':
+      'Xizmat ko\'rsatish to\'xtatilmasligi uchun {hours} soat ichida hisobni to\'ldiring.',
   'wallet_top_up_cta': 'Hisobni to\'ldirish',
   'wallet_balance_label': 'Hamyon balansi',
   // Trial-bonus urgency banner (shown only on the trial plan).
@@ -982,7 +1096,7 @@ const Map<String, dynamic> dashboardRu = {
   'last_30_days': 'Последние 30 дней',
   'see_all': 'Все',
   'shop_fallback': 'Ваш магазин',
-  'greeting_hello': 'Привет, {name}! 👋',
+  'greeting_hello': 'Привет, {name}!',
   'greeting_subtitle': 'Показатели магазина {name}',
   'kpi_todays_sales': 'Продажи сегодня',
   'kpi_todays_orders': 'Заказы сегодня',
@@ -992,7 +1106,8 @@ const Map<String, dynamic> dashboardRu = {
   'kpi_plan': 'Тариф {plan}',
   'kpi_limit_exceeded': 'Лимит превышен',
   'empty_orders_title': 'Пока нет заказов',
-  'empty_orders_body': 'Добавьте товары в каталог и ощутите радость первой продажи!',
+  'empty_orders_body':
+      'Добавьте товары в каталог и ощутите радость первой продажи!',
   'achievements_unlocked_group': 'Полученные',
   'achievements_in_progress_group': 'В процессе',
   'achievements_count': '{unlocked} / {total} достижений',
@@ -1003,10 +1118,12 @@ const Map<String, dynamic> dashboardRu = {
   'leaderboard_you': 'Вы',
   'units_pieces': '{count} шт.',
   'wallet_frozen_title': 'Ваш магазин временно заморожен!',
-  'wallet_frozen_body': 'Пожалуйста, погасите задолженность ({amount} сум). Магазин откроется автоматически, как только баланс восстановится.',
+  'wallet_frozen_body':
+      'Пожалуйста, погасите задолженность ({amount} сум). Магазин откроется автоматически, как только баланс восстановится.',
   'wallet_pay_debt_cta': 'Погасить задолженность',
   'wallet_negative_title': 'Ваш баланс ушёл в минус',
-  'wallet_grace_body': 'Чтобы обслуживание не приостановилось, пополните счёт в течение {hours} ч.',
+  'wallet_grace_body':
+      'Чтобы обслуживание не приостановилось, пополните счёт в течение {hours} ч.',
   'wallet_top_up_cta': 'Пополнить счёт',
   'wallet_balance_label': 'Баланс кошелька',
   // Trial-bonus urgency banner (shown only on the trial plan).
@@ -1030,7 +1147,7 @@ const Map<String, dynamic> dashboardEn = {
   'last_30_days': 'Last 30 days',
   'see_all': 'See all',
   'shop_fallback': 'Your store',
-  'greeting_hello': 'Hi, {name}! 👋',
+  'greeting_hello': 'Hi, {name}!',
   'greeting_subtitle': '{name} store metrics',
   'kpi_todays_sales': 'Today\'s sales',
   'kpi_todays_orders': 'Today\'s orders',
@@ -1040,7 +1157,8 @@ const Map<String, dynamic> dashboardEn = {
   'kpi_plan': '{plan} plan',
   'kpi_limit_exceeded': 'Limit exceeded',
   'empty_orders_title': 'No orders yet',
-  'empty_orders_body': 'Add products to your catalog and feel the thrill of your first sale!',
+  'empty_orders_body':
+      'Add products to your catalog and feel the thrill of your first sale!',
   'achievements_unlocked_group': 'Earned',
   'achievements_in_progress_group': 'In progress',
   'achievements_count': '{unlocked} / {total} achievements',
@@ -1051,10 +1169,12 @@ const Map<String, dynamic> dashboardEn = {
   'leaderboard_you': 'You',
   'units_pieces': '{count} pcs',
   'wallet_frozen_title': 'Your store is temporarily frozen!',
-  'wallet_frozen_body': 'Please pay off your debt ({amount} UZS). The store reopens automatically once your balance is positive again.',
+  'wallet_frozen_body':
+      'Please pay off your debt ({amount} UZS). The store reopens automatically once your balance is positive again.',
   'wallet_pay_debt_cta': 'Pay off debt',
   'wallet_negative_title': 'Your balance went negative',
-  'wallet_grace_body': 'Top up your account within {hours} hours to keep your service from being suspended.',
+  'wallet_grace_body':
+      'Top up your account within {hours} hours to keep your service from being suspended.',
   'wallet_top_up_cta': 'Top up account',
   'wallet_balance_label': 'Wallet balance',
   // Trial-bonus urgency banner (shown only on the trial plan).

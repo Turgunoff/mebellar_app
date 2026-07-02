@@ -69,8 +69,7 @@ class _DashboardView extends StatelessWidget {
       builder: (context, state) {
         // Debt freeze paints the whole dashboard with a red wash so the
         // critical state is unmissable even before the banner scrolls in.
-        final suspended =
-            state.data.wallet?.isSuspendedDueToDebt ?? false;
+        final suspended = state.data.wallet?.isSuspendedDueToDebt ?? false;
         final background = suspended
             ? Color.alphaBlend(
                 AppColors.danger.withValues(alpha: 0.07),
@@ -263,11 +262,7 @@ class _SeeAllButton extends StatelessWidget {
                 ),
               ),
               SizedBox(width: 2),
-              Icon(
-                Iconsax.arrow_right_3_copy,
-                size: 18,
-                color: DashKit.indigo,
-              ),
+              Icon(Iconsax.arrow_right_3_copy, size: 18, color: DashKit.indigo),
             ],
           ),
         ),
@@ -303,10 +298,10 @@ class _GreetingHeader extends StatelessWidget {
             Expanded(
               child: Text(
                 tr('dashboard.greeting_hello', namedArgs: {'name': sellerName}),
-                maxLines: 2,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 24,
+                  fontSize: 20,
                   fontWeight: FontWeight.w700,
                   color: c.ink,
                   height: 1.2,
@@ -318,7 +313,7 @@ class _GreetingHeader extends StatelessWidget {
             const _NotificationBell(),
           ],
         ),
-        const SizedBox(height: 4),
+        // const SizedBox(height: 4),
         Text(
           tr('dashboard.greeting_subtitle', namedArgs: {'name': shopLabel}),
           maxLines: 1,
@@ -538,13 +533,17 @@ class _KpiGrid extends StatelessWidget {
           subtitle: !tariffEnabled
               ? null
               : (data.tariffDaysLeft != null
-                    ? tr('dashboard.kpi_plan_days_left', namedArgs: {
-                        'plan': data.plan.label,
-                        'days': data.tariffDaysLeft.toString(),
-                      })
-                    : tr('dashboard.kpi_plan', namedArgs: {
-                        'plan': data.plan.label,
-                      })),
+                    ? tr(
+                        'dashboard.kpi_plan_days_left',
+                        namedArgs: {
+                          'plan': data.plan.label,
+                          'days': data.tariffDaysLeft.toString(),
+                        },
+                      )
+                    : tr(
+                        'dashboard.kpi_plan',
+                        namedArgs: {'plan': data.plan.label},
+                      )),
           indicator: exceeded
               ? KpiIndicator.accent(tr('dashboard.kpi_limit_exceeded'))
               : null,
@@ -776,8 +775,7 @@ class _StatusPill extends StatelessWidget {
   static String _labelFor(OrderStatus s) => switch (s) {
     OrderStatus.pending => tr('seller_orders.order_status_pending'),
     OrderStatus.confirmed => tr('seller_orders.order_status_confirmed'),
-    OrderStatus.awaitingPayment =>
-      tr('seller_orders.status_awaiting_payment'),
+    OrderStatus.awaitingPayment => tr('seller_orders.status_awaiting_payment'),
     OrderStatus.preparing => tr('seller_orders.action_preparing'),
     OrderStatus.shipped => tr('seller_orders.order_status_shipped'),
     OrderStatus.delivered => tr('seller_orders.action_delivered'),

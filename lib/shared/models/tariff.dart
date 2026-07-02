@@ -142,7 +142,6 @@ class SubscriptionPlan extends Equatable {
     required this.maxImagesPerProduct,
     required this.commissionRate,
     this.ai3dGenerationLimit,
-    this.aiAuthoringLimit,
     this.aiDesignerBoostFactor = 1,
     this.allowsSets = false,
     this.isRecommended = false,
@@ -168,9 +167,6 @@ class SubscriptionPlan extends Equatable {
 
   /// Monthly free AI 3D generations (`-1` = unlimited, `null` = unset/0).
   final int? ai3dGenerationLimit;
-
-  /// Monthly AI product-authoring runs (`-1` = unlimited, `null` = unset/0).
-  final int? aiAuthoringLimit;
 
   /// AI-designer search-priority multiplier (1x / 2x / 5x).
   final int aiDesignerBoostFactor;
@@ -201,7 +197,6 @@ class SubscriptionPlan extends Equatable {
           (json['max_images_per_product'] as num?)?.toInt() ?? 0,
       commissionRate: (json['commission_rate'] as num?) ?? 0,
       ai3dGenerationLimit: (json['ai_3d_generation_limit'] as num?)?.toInt(),
-      aiAuthoringLimit: (json['ai_authoring_limit'] as num?)?.toInt(),
       aiDesignerBoostFactor:
           (json['ai_designer_boost_factor'] as num?)?.toInt() ?? 1,
       allowsSets: json['allows_sets'] as bool? ?? false,
@@ -279,7 +274,6 @@ class SubscriptionPlan extends Equatable {
     maxImagesPerProduct,
     commissionRate,
     ai3dGenerationLimit,
-    aiAuthoringLimit,
     aiDesignerBoostFactor,
     allowsSets,
     isRecommended,
