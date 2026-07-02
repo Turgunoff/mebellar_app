@@ -14,6 +14,8 @@ const Map<String, dynamic> ordersUz = {
   'cancel': 'Bekor qilish',
   'pay_now': 'To‘lovni amalga oshirish',
   'pay_total_label': 'To‘lov summasi',
+  'payment_provider_unavailable':
+      'Bu to‘lov usuli hozircha o‘chirilgan. Qo‘llab-quvvatlashga murojaat qiling.',
   'cancel_title': 'Buyurtmani bekor qilasizmi?',
   'cancel_subtitle': 'Sababni yozib qoldiring (ixtiyoriy):',
   'cancel_reason': 'Bekor qilish sababi',
@@ -56,6 +58,8 @@ const Map<String, dynamic> ordersRu = {
   'cancel': 'Отменить',
   'pay_now': 'Оплатить',
   'pay_total_label': 'Сумма к оплате',
+  'payment_provider_unavailable':
+      'Этот способ оплаты сейчас отключён. Обратитесь в поддержку.',
   'cancel_title': 'Отменить заказ?',
   'cancel_subtitle': 'Укажите причину (опционально):',
   'cancel_reason': 'Причина отмены',
@@ -96,6 +100,8 @@ const Map<String, dynamic> ordersEn = {
   'cancel': 'Cancel',
   'pay_now': 'Make payment',
   'pay_total_label': 'Amount to pay',
+  'payment_provider_unavailable':
+      'This payment method is currently disabled. Please contact support.',
   'cancel_title': 'Cancel this order?',
   'cancel_subtitle': 'Optionally tell us why:',
   'cancel_reason': 'Cancel reason',

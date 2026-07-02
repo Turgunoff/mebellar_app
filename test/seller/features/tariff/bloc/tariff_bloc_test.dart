@@ -154,6 +154,20 @@ void main() {
           .toList();
       expect(recommended, [TariffPlan.pro]);
     });
+
+    test('yearly savings equals two months of monthly price', () {
+      const pro = SubscriptionPlan(
+        id: 'pro',
+        code: 'pro',
+        name: 'Pro',
+        priceMonthly: 299_000,
+        maxProducts: 100,
+        maxImagesPerProduct: -1,
+        commissionRate: 4,
+      );
+      expect(pro.yearlySavingsUzs, 598_000);
+      expect(pro.priceFor(BillingPeriod.yearly), 2_990_000);
+    });
   });
 
   group('TariffSubscription SLA countdown', () {

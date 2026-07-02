@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../../config/remote_config.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/network/api_error_messages.dart';
 import '../../../../shared/models/order.dart'
@@ -645,9 +646,7 @@ class _DeliveredReviewsCardState extends State<_DeliveredReviewsCard> {
           ),
           const SizedBox(height: 4),
           Text(
-            allRated
-                ? tr('orders.rate_all_done')
-                : tr('orders.rate_prompt'),
+            allRated ? tr('orders.rate_all_done') : tr('orders.rate_prompt'),
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.outline,
             ),
@@ -875,9 +874,18 @@ class _PayNowBarState extends State<_PayNowBar> {
     _ => null,
   };
 
+  bool get _providerEnabled {
+    final provider = _provider;
+    if (provider == null) return false;
+    return switch (provider) {
+      PaymentProvider.payme => RemoteConfig.instance.paymeEnabled,
+      PaymentProvider.click => RemoteConfig.instance.clickEnabled,
+    };
+  }
+
   Future<void> _pay() async {
     final provider = _provider;
-    if (provider == null || _busy) return;
+    if (provider == null || _busy || !_providerEnabled) return;
     setState(() => _busy = true);
     final messenger = ScaffoldMessenger.of(context);
     try {
@@ -928,30 +936,38 @@ class _PayNowBarState extends State<_PayNowBar> {
             ),
           ),
           const SizedBox(width: 12),
-          SizedBox(
-            height: 50,
-            child: FilledButton.icon(
-              onPressed: _busy ? null : _pay,
-              style: FilledButton.styleFrom(
-                backgroundColor: scheme.primary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+          if (_providerEnabled)
+            SizedBox(
+              height: 50,
+              child: FilledButton.icon(
+                onPressed: _busy ? null : _pay,
+                style: FilledButton.styleFrom(
+                  backgroundColor: scheme.primary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                icon: _busy
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.4,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Iconsax.card, size: 18),
+                label: Text(tr('orders.pay_now')),
               ),
-              icon: _busy
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.4,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Icon(Iconsax.card, size: 18),
-              label: Text(tr('orders.pay_now')),
+            )
+          else
+            Expanded(
+              child: Text(
+                tr('orders.payment_provider_unavailable'),
+                style: PremiumTokens.body(size: 12, color: pt.greyLight),
+              ),
             ),
-          ),
         ],
       ),
     );

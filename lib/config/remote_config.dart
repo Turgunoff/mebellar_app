@@ -65,8 +65,8 @@ class RemoteConfig {
 
   // Payment-provider switches. Mirror `app_settings.payment_methods`
   // (`{click, payme}`), toggled from the admin panel. When a provider is off
-  // the app hides its tile at every selection point (checkout, tariff purchase,
-  // AR-token top-up) and the backend refuses to mint its checkout link. Default
+  // the app hides its tile at every selection point (checkout, order pay,
+  // wallet top-up, tariff purchase, AR-token top-up) and the backend refuses to mint its checkout link. Default
   // *enabled*: a missing setting or a failed fetch must never hide every payment
   // option (the opposite of [tariffEnabled], which defaults off).
 
@@ -77,8 +77,7 @@ class RemoteConfig {
   bool paymeEnabled = true;
 
   static const _tariffHiveKey = 'remote_config.tariff_enabled';
-  static const _androidMinVersionHiveKey =
-      'remote_config.android_min_version';
+  static const _androidMinVersionHiveKey = 'remote_config.android_min_version';
   static const _iosMinVersionHiveKey = 'remote_config.ios_min_version';
   static const _maintenanceEnabledHiveKey = 'remote_config.maintenance_enabled';
   static const _maintenanceMessageHiveKey = 'remote_config.maintenance_message';
@@ -240,10 +239,7 @@ class RemoteConfig {
     }
 
     if (value is! Map) return (androidMin: null, iosMin: null);
-    return (
-      androidMin: minOf(value['android']),
-      iosMin: minOf(value['ios']),
-    );
+    return (androidMin: minOf(value['android']), iosMin: minOf(value['ios']));
   }
 
   Future<void> _refreshMaintenance(WoodyApiClient api, Box box) async {
@@ -287,10 +283,7 @@ class RemoteConfig {
     final raw = value['enabled'];
     final enabled = raw == true || raw == 'true';
     final msg = value['message'];
-    return (
-      enabled: enabled,
-      message: msg is String ? msg.trim() : '',
-    );
+    return (enabled: enabled, message: msg is String ? msg.trim() : '');
   }
 
   Future<void> _refreshSupportContacts(WoodyApiClient api, Box box) async {

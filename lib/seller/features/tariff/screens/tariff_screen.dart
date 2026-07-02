@@ -289,11 +289,7 @@ class _PendingBanner extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 alignment: Alignment.center,
-                child: Icon(
-                  Iconsax.clock,
-                  size: 20,
-                  color: c.onPrimarySoft,
-                ),
+                child: Icon(Iconsax.clock, size: 20, color: c.onPrimarySoft),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -637,7 +633,10 @@ class _CurrentPlanCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          Divider(height: 1, color: AppColors.sellerPrimary.withValues(alpha: 0.18)),
+          Divider(
+            height: 1,
+            color: AppColors.sellerPrimary.withValues(alpha: 0.18),
+          ),
           const SizedBox(height: 12),
           // Prefer the server's localized features (identical to upgrade cards);
           // fall back to the synthesized limit list only if the row is missing.
@@ -1038,65 +1037,84 @@ class _PriceRow extends StatelessWidget {
     final suffix = period == BillingPeriod.monthly
         ? '/ ${tr('tariff.month')}'
         : '/ ${tr('tariff.year')}';
+    final savings = period == BillingPeriod.yearly ? plan.yearlySavingsUzs : 0;
 
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 220),
-      switchInCurve: Curves.easeOutCubic,
-      switchOutCurve: Curves.easeInCubic,
-      transitionBuilder: (child, animation) => FadeTransition(
-        opacity: animation,
-        child: SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(0, 0.12),
-            end: Offset.zero,
-          ).animate(animation),
-          child: child,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 220),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          transitionBuilder: (child, animation) => FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 0.12),
+                end: Offset.zero,
+              ).animate(animation),
+              child: child,
+            ),
+          ),
+          child: Row(
+            key: ValueKey('${plan.code}.${period.code}'),
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                _formatPrice(price),
+                style: TextStyle(
+                  fontFamily: AppFonts.seller,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  color: c.ink,
+                  letterSpacing: -0.6,
+                  height: 1.0,
+                ),
+              ),
+              const SizedBox(width: 5),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 3),
+                child: Text(
+                  "so'm",
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: c.ink,
+                    letterSpacing: -0.1,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 5),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(
+                  suffix,
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: c.grey,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
-      child: Row(
-        key: ValueKey('${plan.code}.${period.code}'),
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
+        if (savings > 0) ...[
+          const SizedBox(height: 4),
           Text(
-            _formatPrice(price),
+            tr('tariff.yearly_save_amount', args: [_formatPrice(savings)]),
             style: TextStyle(
               fontFamily: AppFonts.seller,
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              color: c.ink,
-              letterSpacing: -0.6,
-              height: 1.0,
-            ),
-          ),
-          const SizedBox(width: 5),
-          Padding(
-            padding: const EdgeInsets.only(bottom: 3),
-            child: Text(
-              "so'm",
-              style: TextStyle(
-                fontFamily: AppFonts.seller,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: c.ink,
-                letterSpacing: -0.1,
-              ),
-            ),
-          ),
-          const SizedBox(width: 5),
-          Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: Text(
-              suffix,
-              style: TextStyle(
-                fontFamily: AppFonts.seller,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: c.grey,
-              ),
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: AppColors.sellerPrimary,
+              letterSpacing: -0.1,
             ),
           ),
         ],
-      ),
+      ],
     );
   }
 }

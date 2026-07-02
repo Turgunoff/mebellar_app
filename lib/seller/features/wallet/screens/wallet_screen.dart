@@ -4,6 +4,7 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../config/remote_config.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -514,7 +515,20 @@ class _TopUpSectionState extends State<_TopUpSection> {
         ? formatThousands(widget.suggestedAmount)
         : '',
   );
-  PaymentProvider _provider = PaymentProvider.payme;
+  late PaymentProvider _provider;
+
+  bool get _anyProviderEnabled =>
+      RemoteConfig.instance.paymeEnabled || RemoteConfig.instance.clickEnabled;
+
+  @override
+  void initState() {
+    super.initState();
+    _provider = RemoteConfig.instance.paymeEnabled
+        ? PaymentProvider.payme
+        : (RemoteConfig.instance.clickEnabled
+              ? PaymentProvider.click
+              : PaymentProvider.payme);
+  }
 
   @override
   void dispose() {
@@ -523,6 +537,7 @@ class _TopUpSectionState extends State<_TopUpSection> {
   }
 
   Future<void> _submit() async {
+    if (!_anyProviderEnabled) return;
     final amount = int.tryParse(_amountCtrl.text.replaceAll(' ', '')) ?? 0;
     final cubit = context.read<SellerWalletCubit>();
     if (amount <= 0) {
@@ -643,25 +658,41 @@ class _TopUpSectionState extends State<_TopUpSection> {
             ),
           ),
           const SizedBox(height: 10),
-          _ProviderTile(
-            brand: _kPaymeTeal,
-            wordmark: 'Payme',
-            label: tr('seller.wallet_via_payme'),
-            selected: _provider == PaymentProvider.payme,
-            onTap: submitting
-                ? null
-                : () => setState(() => _provider = PaymentProvider.payme),
-          ),
-          const SizedBox(height: 10),
-          _ProviderTile(
-            brand: _kClickBlue,
-            wordmark: 'Click',
-            label: tr('seller.wallet_via_click'),
-            selected: _provider == PaymentProvider.click,
-            onTap: submitting
-                ? null
-                : () => setState(() => _provider = PaymentProvider.click),
-          ),
+          if (RemoteConfig.instance.paymeEnabled)
+            _ProviderTile(
+              brand: _kPaymeTeal,
+              wordmark: 'Payme',
+              label: tr('seller.wallet_via_payme'),
+              selected: _provider == PaymentProvider.payme,
+              onTap: submitting
+                  ? null
+                  : () => setState(() => _provider = PaymentProvider.payme),
+            ),
+          if (RemoteConfig.instance.paymeEnabled &&
+              RemoteConfig.instance.clickEnabled)
+            const SizedBox(height: 10),
+          if (RemoteConfig.instance.clickEnabled)
+            _ProviderTile(
+              brand: _kClickBlue,
+              wordmark: 'Click',
+              label: tr('seller.wallet_via_click'),
+              selected: _provider == PaymentProvider.click,
+              onTap: submitting
+                  ? null
+                  : () => setState(() => _provider = PaymentProvider.click),
+            ),
+          if (!_anyProviderEnabled) ...[
+            const SizedBox(height: 4),
+            Text(
+              tr('seller.payment_unavailable'),
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
+                fontSize: 12.5,
+                color: c.grey,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
           const SizedBox(height: 18),
           DecoratedBox(
             decoration: BoxDecoration(
@@ -681,7 +712,9 @@ class _TopUpSectionState extends State<_TopUpSection> {
               width: double.infinity,
               height: 54,
               child: FilledButton.icon(
-                onPressed: submitting ? null : _submit,
+                onPressed: (submitting || !_anyProviderEnabled)
+                    ? null
+                    : _submit,
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.sellerPrimary,
                   foregroundColor: Colors.white,
@@ -921,7 +954,10 @@ class _ErrorView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          TextButton(onPressed: onRetry, child: Text(tr('seller.reviews_retry'))),
+          TextButton(
+            onPressed: onRetry,
+            child: Text(tr('seller.reviews_retry')),
+          ),
         ],
       ),
     );

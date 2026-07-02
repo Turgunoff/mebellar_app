@@ -225,6 +225,16 @@ class SubscriptionPlan extends Equatable {
   bool get hasUnlimitedImages => maxImagesPerProduct < 0;
   bool get isFree => priceMonthly == 0;
 
+  /// Yearly billing charges `monthly × 10` (2 months free). Savings vs paying
+  /// monthly for 12 months.
+  static const yearlyBillableMonths = 10;
+
+  int get yearlySavingsUzs {
+    if (isFree || priceMonthly == 0) return 0;
+    final monthly = priceMonthly.round();
+    return monthly * (12 - yearlyBillableMonths);
+  }
+
   /// Resolves a price for the given billing period. The DB currently only
   /// stores `price_monthly`; until `price_yearly` is added, yearly is
   /// derived as `monthly × 10` (the standard ~17% annual discount). Add a
@@ -232,7 +242,8 @@ class SubscriptionPlan extends Equatable {
   num priceFor(BillingPeriod period) {
     return switch (period) {
       BillingPeriod.monthly => priceMonthly,
-      BillingPeriod.yearly => priceMonthly * 10,
+      BillingPeriod.yearly =>
+        priceMonthly * SubscriptionPlan.yearlyBillableMonths,
     };
   }
 
