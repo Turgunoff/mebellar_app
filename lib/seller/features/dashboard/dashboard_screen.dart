@@ -157,7 +157,7 @@ class _DashboardContent extends StatelessWidget {
             onTap: () => context.go('/seller/analytics'),
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 14),
 
         // ---- Trial-bonus urgency banner (FOMO) — only on the trial plan ---
         if (data.plan.isTrial) ...[
@@ -168,12 +168,12 @@ class _DashboardContent extends StatelessWidget {
               ai3dLimit: data.ai3dLimit,
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 14),
         ],
 
         // ---- KPI grid (real numbers + week-over-week deltas) --------------
         _h(_KpiGrid(data: data)),
-        const SizedBox(height: 26),
+        const SizedBox(height: 22),
 
         // ---- Achievements — bleeds full-width -----------------------------
         _h(
@@ -868,8 +868,8 @@ class _DashboardSkeleton extends StatelessWidget {
         physics: const NeverScrollableScrollPhysics(),
         children: [
           // Hero card
-          const _ShimmerBox(height: 188, radius: 24),
-          const SizedBox(height: 20),
+          const _ShimmerBox(height: 132, radius: 20),
+          const SizedBox(height: 14),
           // KPI grid
           GridView.count(
             crossAxisCount: 2,

@@ -75,7 +75,10 @@ class AnalyticsFmt {
       return tr('analytics.time_weeks_ago', args: [(diff.inDays / 7).floor()]);
     }
     if (diff.inDays < 365) {
-      return tr('analytics.time_months_ago', args: [(diff.inDays / 30).floor()]);
+      return tr(
+        'analytics.time_months_ago',
+        args: [(diff.inDays / 30).floor()],
+      );
     }
     return tr('analytics.time_years_ago', args: [(diff.inDays / 365).floor()]);
   }
@@ -252,15 +255,15 @@ class MiniKpiCard extends StatelessWidget {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final accent = color ?? AnalyticsTokens.positive;
     return Container(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+      padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
       decoration: BoxDecoration(
         color: c.surface,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: dark ? 0.26 : 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -269,54 +272,57 @@ class MiniKpiCard extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 28,
-            height: 28,
+            width: 26,
+            height: 26,
             decoration: BoxDecoration(
               color: accent.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(7),
             ),
-            child: Icon(icon, size: 16, color: accent),
+            child: Icon(icon, size: 15, color: accent),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Text(
             label,
-            maxLines: 1,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontFamily: AppFonts.seller,
-              fontSize: 11,
+              fontSize: 10,
               fontWeight: FontWeight.w500,
               color: c.grey,
-              height: 1.2,
+              height: 1.15,
             ),
           ),
-          const SizedBox(height: 4),
-          RichText(
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            text: TextSpan(
-              text: value,
-              style: TextStyle(
-                fontFamily: AppFonts.seller,
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: c.ink,
-                letterSpacing: -0.3,
-                height: 1.1,
-              ),
-              children: [
-                if (unit != null)
-                  TextSpan(
-                    text: '  $unit',
-                    style: TextStyle(
-                      fontFamily: AppFonts.seller,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: c.greyMid,
-                      letterSpacing: 0,
+          const SizedBox(height: 3),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: RichText(
+              maxLines: 1,
+              text: TextSpan(
+                text: value,
+                style: TextStyle(
+                  fontFamily: AppFonts.seller,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: c.ink,
+                  letterSpacing: -0.3,
+                  height: 1.1,
+                ),
+                children: [
+                  if (unit != null)
+                    TextSpan(
+                      text: ' $unit',
+                      style: TextStyle(
+                        fontFamily: AppFonts.seller,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w600,
+                        color: c.greyMid,
+                        letterSpacing: 0,
+                      ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
@@ -418,41 +424,44 @@ class HeroMetric extends StatelessWidget {
               ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Expanded(
-              child: RichText(
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                text: TextSpan(
-                  text: value,
-                  style: TextStyle(
-                    fontFamily: AppFonts.seller,
-                    fontSize: 26,
-                    fontWeight: FontWeight.w800,
-                    color: c.ink,
-                    letterSpacing: -0.7,
-                    height: 1.1,
-                  ),
-                  children: [
-                    if (unit != null)
-                      TextSpan(
-                        text: '  $unit',
-                        style: TextStyle(
-                          fontFamily: AppFonts.seller,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: c.greyMid,
-                          letterSpacing: 0,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: RichText(
+                  maxLines: 1,
+                  text: TextSpan(
+                    text: value,
+                    style: TextStyle(
+                      fontFamily: AppFonts.seller,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: c.ink,
+                      letterSpacing: -0.6,
+                      height: 1.1,
+                    ),
+                    children: [
+                      if (unit != null)
+                        TextSpan(
+                          text: '  $unit',
+                          style: TextStyle(
+                            fontFamily: AppFonts.seller,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: c.greyMid,
+                            letterSpacing: 0,
+                          ),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             TrendChip(deltaPercent: deltaPercent, tone: tone),
           ],
         ),
@@ -480,7 +489,7 @@ class AnalyticsTabBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
     return SizedBox(
-      height: 40,
+      height: 36,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 20),

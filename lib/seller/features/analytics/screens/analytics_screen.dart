@@ -55,14 +55,14 @@ class _AnalyticsView extends StatelessWidget {
                       context.read<SellerAnalyticsCubit>().changeRange(r),
                   onCustomPick: () => _pickCustomRange(context, state.filter),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 _TabBar(
                   active: state.tab,
                   enabled: !state.isInitialLoad,
                   onChanged: (tab) =>
                       context.read<SellerAnalyticsCubit>().changeTab(tab),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Expanded(child: _AnalyticsBody(state: state)),
               ],
             );
@@ -185,7 +185,7 @@ class _AnalyticsHeader extends StatelessWidget {
     final c = SellerColors.of(context);
     return Container(
       color: c.background,
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 8),
       child: Row(
         children: [
           Expanded(
@@ -193,11 +193,11 @@ class _AnalyticsHeader extends StatelessWidget {
               tr('analytics.title'),
               style: TextStyle(
                 fontFamily: AppFonts.seller,
-                fontSize: 24,
+                fontSize: 20,
                 fontWeight: FontWeight.w700,
                 color: c.ink,
                 height: 1.15,
-                letterSpacing: -0.4,
+                letterSpacing: -0.35,
               ),
             ),
           ),
@@ -235,12 +235,12 @@ class _RangeSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     final selected = filter.range;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 4, 0, 0),
+      padding: const EdgeInsets.fromLTRB(0, 2, 0, 0),
       child: Row(
         children: [
           Expanded(
             child: SizedBox(
-              height: 36,
+              height: 34,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -303,8 +303,8 @@ class _RangeSegment extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         curve: Curves.easeOut,
-        height: 36,
-        padding: const EdgeInsets.symmetric(horizontal: 14),
+        height: 34,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: active ? AppColors.sellerPrimary : c.divider,
@@ -357,7 +357,7 @@ class _CustomRangeButton extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         curve: Curves.easeOut,
-        height: 36,
+        height: 34,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
           color: active ? AppColors.sellerPrimary : c.surface,

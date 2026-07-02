@@ -25,7 +25,7 @@ class ReviewsTab extends StatelessWidget {
     final reviews = snapshot.reviews;
     final granularity = snapshot.filter.granularityFor(DateTime.now());
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
       physics: const BouncingScrollPhysics(
         parent: AlwaysScrollableScrollPhysics(),
       ),
@@ -62,7 +62,7 @@ class _ReviewsHeroCard extends StatelessWidget {
     final c = SellerColors.of(context);
     final hasData = reviews.total > 0;
     return AnalyticsCard(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

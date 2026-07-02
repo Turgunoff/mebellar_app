@@ -22,17 +22,17 @@ class SalesTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
       physics: const BouncingScrollPhysics(
         parent: AlwaysScrollableScrollPhysics(),
       ),
       children: [
         _SalesChartCard(snapshot: snapshot, refreshing: refreshing),
-        const SizedBox(height: 14),
+        const SizedBox(height: 10),
         _SecondaryKpiRow(snapshot: snapshot),
-        const SizedBox(height: 24),
+        const SizedBox(height: 18),
         _CategoryDistributionSection(snapshot: snapshot),
-        const SizedBox(height: 24),
+        const SizedBox(height: 18),
         _TopProductsSection(snapshot: snapshot),
       ],
     );
@@ -56,12 +56,13 @@ class _SalesChartCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final caption = _captions[snapshot.range] ?? tr('analytics.sales_caption_fallback');
+    final caption =
+        _captions[snapshot.range] ?? tr('analytics.sales_caption_fallback');
     final values = snapshot.series.map((p) => p.revenue).toList();
     final dates = snapshot.series.map((p) => p.bucketStart).toList();
     final granularity = snapshot.filter.granularityFor(DateTime.now());
     return AnalyticsCard(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -72,7 +73,7 @@ class _SalesChartCard extends StatelessWidget {
             deltaPercent: snapshot.deltaPercent,
             refreshing: refreshing,
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
           if (values.isEmpty)
             _ChartEmpty(message: tr('analytics.sales_empty_chart'))
           else
@@ -82,7 +83,7 @@ class _SalesChartCard extends StatelessWidget {
               granularity: granularity,
               valueFormatter: (v) => AnalyticsFmt.uzs(v),
               unit: tr('analytics.unit_uzs'),
-              height: 180,
+              height: 140,
             ),
         ],
       ),
@@ -416,7 +417,7 @@ class _ChartEmpty extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
     return Container(
-      height: 160,
+      height: 130,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: c.fillSoft,

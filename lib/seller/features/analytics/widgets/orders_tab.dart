@@ -27,7 +27,7 @@ class OrdersTab extends StatelessWidget {
     final orders = snapshot.orders;
     final granularity = snapshot.filter.granularityFor(DateTime.now());
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
       physics: const BouncingScrollPhysics(
         parent: AlwaysScrollableScrollPhysics(),
       ),
@@ -37,9 +37,9 @@ class OrdersTab extends StatelessWidget {
           granularity: granularity,
           refreshing: refreshing,
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 10),
         _OrdersKpiRow(orders: orders),
-        const SizedBox(height: 24),
+        const SizedBox(height: 18),
         _StatusBreakdownCard(orders: orders),
       ],
     );
@@ -62,7 +62,7 @@ class _OrdersHeroCard extends StatelessWidget {
     final values = orders.series.map((p) => p.count.toDouble() as num).toList();
     final dates = orders.series.map((p) => p.bucketStart).toList();
     return AnalyticsCard(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -73,7 +73,7 @@ class _OrdersHeroCard extends StatelessWidget {
             deltaPercent: orders.deltaPercent,
             refreshing: refreshing,
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
           if (values.isEmpty || values.every((v) => v == 0))
             _ChartPlaceholder(message: tr('analytics.orders_empty_chart'))
           else
@@ -83,7 +83,7 @@ class _OrdersHeroCard extends StatelessWidget {
               granularity: granularity,
               valueFormatter: (v) => v.round().toString(),
               unit: tr('analytics.unit_pcs'),
-              height: 160,
+              height: 140,
             ),
         ],
       ),

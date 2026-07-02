@@ -45,9 +45,9 @@ class _HeroSalesCardState extends State<HeroSalesCard> {
     return GestureDetector(
       onTap: widget.onTap,
       child: Container(
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(20),
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -55,9 +55,9 @@ class _HeroSalesCardState extends State<HeroSalesCard> {
           ),
           boxShadow: [
             BoxShadow(
-              color: DashKit.indigo.withValues(alpha: 0.35),
-              blurRadius: 22,
-              offset: const Offset(0, 10),
+              color: DashKit.indigo.withValues(alpha: 0.28),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
@@ -65,72 +65,64 @@ class _HeroSalesCardState extends State<HeroSalesCard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
+                Icon(
+                  Iconsax.wallet_3,
+                  size: 14,
+                  color: Colors.white.withValues(alpha: 0.85),
+                ),
+                const SizedBox(width: 6),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Iconsax.wallet_3,
-                            size: 15,
-                            color: Colors.white.withValues(alpha: 0.85),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            caption,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.white.withValues(alpha: 0.85),
-                              height: 1.1,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.baseline,
-                          textBaseline: TextBaseline.alphabetic,
-                          children: [
-                            Text(
-                              DashKit.money(selectedValue),
-                              style: const TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
-                                height: 1.0,
-                                letterSpacing: -1.0,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              tr('common.currency_uzs'),
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white.withValues(alpha: 0.7),
-                                height: 1.0,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    caption,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white.withValues(alpha: 0.85),
+                      height: 1.1,
+                    ),
                   ),
                 ),
-                const SizedBox(width: 10),
                 _HeroDeltaChip(deltaPercent: widget.deltaPercent),
               ],
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 6),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(
+                    DashKit.money(selectedValue),
+                    style: const TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      height: 1.0,
+                      letterSpacing: -0.8,
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    tr('common.currency_uzs'),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white.withValues(alpha: 0.7),
+                      height: 1.0,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
             SizedBox(
-              height: 78,
+              height: 54,
               child: LayoutBuilder(
                 builder: (context, c) {
                   return GestureDetector(
@@ -141,7 +133,7 @@ class _HeroSalesCardState extends State<HeroSalesCard> {
                     onPanEnd: (_) => setState(() => _selected = null),
                     onTapUp: (_) => setState(() => _selected = null),
                     child: CustomPaint(
-                      size: Size(c.maxWidth, 78),
+                      size: Size(c.maxWidth, 54),
                       painter: _SparklinePainter(
                         values: widget.series,
                         selectedIndex: _selected,
@@ -151,7 +143,7 @@ class _HeroSalesCardState extends State<HeroSalesCard> {
                 },
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -159,7 +151,7 @@ class _HeroSalesCardState extends State<HeroSalesCard> {
                   Text(
                     widget.weekdayLabels[i],
                     style: TextStyle(
-                      fontSize: 10,
+                      fontSize: 9,
                       fontWeight: _selected == i
                           ? FontWeight.w700
                           : FontWeight.w500,

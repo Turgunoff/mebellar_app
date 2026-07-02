@@ -24,7 +24,7 @@ class CustomersTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final customers = snapshot.customers;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
       physics: const BouncingScrollPhysics(
         parent: AlwaysScrollableScrollPhysics(),
       ),
@@ -50,7 +50,7 @@ class _CustomersHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnalyticsCard(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       child: HeroMetric(
         caption: tr('analytics.customers_hero_caption'),
         value: customers.unique.toString(),
@@ -325,7 +325,10 @@ class _TopCustomerTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  tr('analytics.customers_order_count', args: [customer.ordersCount]),
+                  tr(
+                    'analytics.customers_order_count',
+                    args: [customer.ordersCount],
+                  ),
                   style: TextStyle(
                     fontFamily: AppFonts.seller,
                     fontSize: 12,
