@@ -6,7 +6,7 @@
 > admin, marketing site, mobile app), how they fit together, the data model, the API
 > surface, integrations, deployment, and how to run each piece locally.
 >
-> Generated 2026-06-25 from a fresh code analysis of all four repositories. Treat
+> Generated 2026-07-03 from a fresh code analysis of all four repositories. Treat
 > versions/counts as accurate-at-time-of-writing snapshots; verify against the live
 > source before relying on exact numbers.
 
@@ -24,10 +24,11 @@ AI Interior Designer + product authoring; Meshy for photo-to-3D model generation
 ### Standout / differentiating features
 - **Phone + OTP passwordless auth** (no email/password) via Eskiz SMS.
 - **AR furniture preview**: buyers place real-scale 3D models in their room (native ARCore/ARKit) or view them in a WebGL viewer; furniture **sets** support multi-object placement.
-- **Photo-to-3D pipeline**: sellers upload 3 photos of a product → Meshy generates a `.glb` model → auto/admin-reviewed → available to buyers. Monetized per AR "token".
+- **Admin-mediated photo-to-3D pipeline**: sellers *request* a 3D model per product part → admin picks photos and sends to Meshy → `.glb` auto-generated → admin QC → available to buyers. Monetized per AR "token" (first request per part free).
 - **AI Interior Designer**: customers chat + upload a room photo → grounded furniture recommendations from the live catalog (vision + RAG over products).
 - **AI product authoring**: sellers upload product photos → vision model pre-fills the product card (category, attributes, colors, dimensions).
-- **Seller tariffs/subscriptions**, **seller wallet** with commission + soft-freeze, **trial bonuses**, **support chat**, **FCM notifications**, **realtime chat**.
+- **Deferred online payment**: seller accepts order → customer pays exact total (delivery fee locked in at acceptance) via Payme/Click deep link; cash orders skip straight to `confirmed`.
+- **Seller tariffs/subscriptions**, **seller wallet** with commission + soft-freeze, **trial bonus**, **support chat**, **FCM notifications**, **realtime chat**, **marketplace health analytics** (retention, cohorts, product views, seller health), **GA4 app-usage dashboard**.
 
 ---
 
@@ -66,7 +67,8 @@ retired Supabase-era specs).
                                                 ├─ JWT auth (OTP via Eskiz)
                                                 ├─ Realtime (in-proc / Redis)
                                                 └─ Integrations: Eskiz, Payme/Click,
-                                                   Meshy, Azure OpenAI/Vision, Firebase FCM
+                                                   Meshy, Azure OpenAI/Vision, Firebase FCM,
+                                                   GA4 (via Cloud Run proxy)
 ```
 
 **Key architectural fact:** `woody_backend` is the only thing that touches the database,
@@ -99,42 +101,44 @@ they hold no DB credentials. The marketing site makes **no API calls at all**.
 ### 3.2 Layout (`app/`)
 - `main.py` — `create_app()` factory + lifespan (opens DB pool, broker, dispatcher, AR worker).
 - `settings.py` — `Settings` (pydantic-settings), `get_settings()` cached. `.env.example` is canonical.
-- `cli.py` — `woody migrate|downgrade|current|history|serve`.
+- `cli.py` — `woody migrate|downgrade|current|history|serve|seed-tariffs|seed-achievements`.
 - `deps.py` / `deps_auth.py` / `deps_read.py` — auth guards (`get_current_user`, `require_admin`, `require_role`) and DI wiring.
-- `api/v1/` — **35+ routers** (see API surface below).
+- `api/v1/` — **37 routers** (see API surface below).
 - `security/` — `jwt.py`, `otp.py` (HMAC-SHA256 + per-row salt), `phones.py` (E.164), `rbac.py`.
-- `services/` — repositories (read/write split behind Protocols), OTP, notifications dispatcher, realtime broker, AI suggest, AI designer, AR pipeline worker, payment links, tariff expiry sweeper, wallet/debt sweeper, embeddings, Payme merchant state machine.
-- `clients/` — `database.py`, `eskiz.py`, `storage.py` (R2), `fcm.py`, `meshy.py`, `azure_openai.py`, `azure_embeddings.py`, `azure_vision_embeddings.py`.
-- `domain/` — pydantic models, `enums.py`, `i18n.py` (`MultilingualText` uz/ru/en), AR token pricing, Payme fiscal constants.
+- `services/` — repositories (read/write split behind Protocols), OTP, notifications dispatcher, realtime broker, AI suggest, AI designer, AR pipeline worker, payment links, tariff expiry sweeper, wallet/debt sweeper, embeddings, Payme merchant state machine, product views, achievements seed, tariffs seed.
+- `clients/` — `database.py`, `eskiz.py`, `storage.py` (R2), `fcm.py`, `meshy.py`, `azure_openai.py`, `azure_embeddings.py`, `azure_vision_embeddings.py`, `ga4_proxy.py`.
+- `domain/` — pydantic models, `enums.py`, `i18n.py` (`MultilingualText` uz/ru/en), AR token pricing, Payme fiscal constants, `engagement.py`, `marketplace_analytics.py`.
 - `utils/` — GLB→USDZ conversion (iOS AR), GLB compression.
-- `alembic/versions/` — **~64 migrations (0001–0064)**; heavy DDL kept in hand-written `sql/` files.
+- `ga4_proxy/` — standalone Cloud Run service (GA4 Data API reader; no JSON keys on `api.woody.uz`).
+- `alembic/versions/` — **80 migrations (0001–0080)**; heavy DDL kept in hand-written `sql/` files.
 
 ### 3.3 Database (PostgreSQL + pgvector)
 - Requires the `pgvector` extension (e.g. `pgvector/pgvector:pg16`/`pg17` Docker image). Migration 0044 enables it; later migrations add `products.embedding` (text, 1536) and `products.image_embedding` (visual, 1024).
-- **~64 Alembic migrations**, every one with both `upgrade()` and `downgrade()` (verified by `tests/test_migrations.py`).
+- **80 Alembic migrations**, every one with both `upgrade()` and `downgrade()` (verified by `tests/test_migrations.py`).
 - **Core tables (30+):**
   - **Auth:** `profiles` (phone, role, app_metadata), `otp_codes`, `refresh_tokens`, `device_tokens`.
-  - **Catalog:** `categories`, `subcategories`, `products` (incl. `ar_model_url`, embeddings), `product_attributes`, `product_images`, `product_colors`, `product_sets` + `set_items`.
+  - **Catalog:** `categories`, `subcategories`, `products` (incl. `ar_model_url`, `max_delivery_fee`, embeddings), `product_attributes`, `product_images`, `product_colors`, `product_sets` + `set_items`, `product_views` (impression events).
   - **Commerce:** `orders`, `order_items`, order status history, `tariff_plans`, `subscription_receipts`.
   - **Seller:** `shops`, `seller_wallets`, `wallet_transactions`, `wallet_deposits`.
   - **Reviews:** `reviews` (+ moderation), attachments.
   - **Chat:** seller↔customer rooms + messages + attachments; **support** chats (customer↔admin) separate.
-  - **AR:** `ar_models`, `product_ar_parts` (per-part models), AR token purchases/grants.
-  - **AI:** `ai_chat_logs` (no image stored, `has_image` flag only).
+  - **AR:** `product_ar_parts` (per-part models + request states), AR token purchases/grants.
+  - **AI:** `ai_chat_logs` (no image stored, `has_image` flag only; optional `image_url` for admin review).
   - **Payments:** Payme transactions (fiscalization), payment/checkout state.
   - **Notifications:** `notifications` (coarse `notification_type` generated column for inbox tabs).
+  - **Achievements:** seller milestone catalogue + per-seller unlock rows.
 
 ### 3.4 API surface (all under `/api/v1`)
 Logical groups (base paths + representative endpoints):
 
 - **Health:** `GET /health` (unauthenticated).
-- **Auth (OTP+JWT):** `POST /auth/otp/request {phone,lang}`, `POST /auth/otp/verify {phone,code}` → token pair, `POST /auth/refresh`, `POST /auth/logout`. `GET /me` resolves effective role per-request.
-- **Catalog (public/customer):** `GET /catalog/categories`, `GET /catalog/products` (search/filter/sort/paginate), `GET /catalog/products/{id}`, `/catalog/attributes` (public), product reviews.
+- **Auth (OTP+JWT):** `POST /auth/otp/request {phone,lang}`, `POST /auth/otp/verify {phone,code}` → token pair, `POST /auth/refresh`, `POST /auth/logout`. `GET /me` resolves effective role per-request. Optional `REVIEW_TEST_PHONE`/`REVIEW_TEST_OTP` bypass for app-store review (off by default).
+- **Catalog (public/customer):** `GET /catalog/categories`, `GET /catalog/products` (search/filter/sort/paginate), `GET /catalog/products/{id}`, `POST /catalog/products/{id}/view` (record impression, deduped 30 min/viewer), `/catalog/attributes` (public), product reviews. Public settings: `GET /catalog/settings/maintenance`, `…/support_contacts`, `…/payment_methods`.
 - **Customer:** `/customer/cart`, `/customer/favorites`, `/customer/orders` (+ create/cancel/cancellation-reasons), `/customer/reviews`, `/customer/payment/checkout-links`, `/customer/storage/upload-url`.
-- **Seller:** `/seller/me` (+ `PATCH /seller/me/alerts`), `/seller/shop`, `/seller/products` (CRUD, archive/restore, `POST /seller/products/ai-suggest`, `POST /seller/products/{id}/ar-scan/photos`), `/seller/ar-tokens/*`, `/seller/orders` (+ status, `PATCH …/delivery-fee` locked after acceptance), `/seller/sets`, `/seller/tariff/*`, `/seller/wallet/*`, `/seller/dashboard`, `/seller/analytics`, `/seller/achievements`.
+- **Seller:** `/seller/me` (+ `PATCH /seller/me/alerts`), `/seller/shop`, `/seller/products` (CRUD, archive/restore, `POST /seller/products/ai-suggest`), `/seller/products/{id}/ar-request` (request 3D per part — primary AR workflow), `/seller/products/{id}/ar-scan/photos` (legacy direct Meshy scan — still present), `/seller/products/{id}/ar-parts`, `/seller/ar-tokens/*`, `/seller/orders` (+ status incl. `awaiting_payment`, `PATCH …/delivery-fee` locked after acceptance), `/seller/sets`, `/seller/tariff/*`, `/seller/wallet/*`, `/seller/dashboard`, `/seller/analytics`, `/seller/achievements`.
 - **Chat:** `GET /chat/rooms`, messages (text/image), `WS /ws/chat/{room_id}`. One chat row per `order_id` (UNIQUE); customer lazy-creates; stays open forever.
 - **AI Designer:** `POST /ai/chat` (room photo + text → grounded suggestions), `GET /ai/chat/history`. Gated by `AI_DESIGNER_ENABLED`.
-- **Admin / moderation:** `/admin/orders`, `/admin/products` (approve/reject), `/admin/sellers` (verify/suspend/reactivate, KYC docs), `/admin/customers`, `/admin/shops` (unlist/relist), `/admin/categories`, `/admin/tariffs/plans` (CRUD + per-plan AR grant), `/admin/wallets`, `/admin/reviews`, `/admin/notifications/send`, `/admin/settings`, `/admin/managers` (super_admin only), `/admin/dashboard`, `/admin/analytics`, `/admin/ai/logs`, `/admin/banners`, `/admin/news`, `/admin/sets`, `/admin/support/*`, `/admin/achievements`, `/admin/storage/*` (presigned URLs).
+- **Admin / moderation:** `/admin/orders`, `/admin/products` (approve/reject), `/admin/sellers` (verify/suspend/reactivate, KYC docs), `/admin/customers`, `/admin/shops` (unlist/relist), `/admin/categories`, `/admin/tariffs/plans` (CRUD + per-plan AR grant), `/admin/wallets`, `/admin/reviews`, `/admin/notifications/send`, `/admin/settings` (maintenance, support contacts, payment-method toggles, app min-version, receiving card), `/admin/managers` (super_admin only), `/admin/dashboard`, `/admin/analytics` (overview, engagement, retention, cohorts, seller-health, product-views, ar-tokens), `/admin/ar-requests` (AR request queue — send-to-meshy / reject), `/admin/ai/logs`, `/admin/banners`, `/admin/news`, `/admin/sets`, `/admin/support/*`, `/admin/achievements`, `/admin/storage/*` (presigned URLs).
 - **Realtime:** `WS /ws/chat/{id}`, `WS /ws/support/{id}`, `WS /ws/notifications`.
 - **Webhooks:** `POST /webhooks/payme` (HTTP Basic with `PAYME_MERCHANT_KEY`; 6 RPC methods + fiscalization; handles order payments, AR tokens, and tariff subscriptions), `POST /internal/ar-webhook` (Meshy/AR callback, secret header).
 
@@ -146,27 +150,33 @@ Logical groups (base paths + representative endpoints):
 - **Delegable scopes:** orders, products, sellers, shops, customers, reviews, categories, analytics, achievements. **Owner-only:** settings, managers, tariffs, wallets, banners, news, notifications, support, ai-logs.
 - Deleted/blocked accounts are force-logged-out (per-request gate returns `401 account_inactive`).
 
-### 3.6 Integrations & feature flags
+### 3.6 Order lifecycle (deferred payment)
+- **Cash:** `pending` → seller accepts → `confirmed` → `preparing` → `shipped` → `delivered`.
+- **Online (Payme/Click):** `pending` → seller accepts + sets exact delivery fee → `awaiting_payment` (customer notified, pays via deep link) → `confirmed` → …
+- Products carry `max_delivery_fee` (seller's estimated range at listing time); exact fee entered per order at acceptance.
+
+### 3.7 Integrations & feature flags
 | Integration | Client | Purpose | Key env vars / flags |
 |---|---|---|---|
 | **Eskiz SMS** | `clients/eskiz.py` | OTP delivery (uz/ru/en templates, Android SMS-Retriever hash `mH1HhnJpGqi`) | `ESKIZ_EMAIL/PASSWORD/SENDER`, `ESKIZ_MESSAGE_TEMPLATE_{UZ,RU,EN}` |
 | **Cloudflare R2** | `clients/storage.py` (boto3) | Object storage; presigned PUT(300s)/GET(600s); many buckets | `R2_ENDPOINT_URL`, `R2_ACCESS_KEY_ID/SECRET`, `R2_*_PUBLIC_BASE_URL` |
 | **Firebase FCM** | `clients/fcm.py` (firebase-admin; NoOp default) | Push notifications via DB-trigger + dispatcher | `NOTIFICATIONS_ENABLED`, `FCM_SERVICE_ACCOUNT_PATH` |
 | **Payme + Click** | payment-link service + `payme_webhook` | Deep-link checkout (no saved cards) + merchant webhook + fiscalization | `PAYME_MERCHANT_ID`, `PAYME_MERCHANT_KEY`, `CLICK_*` |
-| **Meshy** | `clients/meshy.py` | Photo→3D `.glb` generation (background poller) | `AR_PIPELINE_ENABLED`, `MESHY_API_KEY`, `MESHY_BASE_URL` |
+| **Meshy** | `clients/meshy.py` | Photo→3D `.glb` generation (background poller; admin-triggered from AR-requests queue) | `AR_PIPELINE_ENABLED`, `MESHY_API_KEY`, `MESHY_BASE_URL` |
 | **Azure OpenAI** | `clients/azure_openai.py` + embeddings | AI product authoring, AI designer chat, dedupe | `AZURE_OPENAI_ENDPOINT/_API_KEY/_DEPLOYMENT`, `AI_SUGGEST_ENABLED`, `AI_DESIGNER_ENABLED`, `PRODUCT_DEDUPE_ENABLED` |
 | **Azure AI Vision** | `clients/azure_vision_embeddings.py` | Multimodal embeddings for visual RAG | `AZURE_VISION_ENDPOINT/_KEY`, `VISUAL_RAG_ENABLED` |
+| **GA4 (Cloud Run proxy)** | `clients/ga4_proxy.py` + `ga4_proxy/` service | Mobile app engagement metrics for admin dashboard (no GCP keys on API server) | `GA4_PROXY_URL`, `GA4_PROXY_API_KEY` |
 | **Redis** | broker | Multi-worker WebSocket fan-out (in-proc fallback) | `REDIS_URL` |
 
 Required runtime env always: `DATABASE_URL`, `JWT_SECRET`, `SUPER_ADMIN_PHONE`, plus Eskiz + R2.
-Most AI/AR/notification features are **off by default** and flip on via env flags (graceful degradation: disabled AI endpoints return `available=false`, payment 503s, etc.).
+Most AI/AR/notification/GA4 features are **off by default** and flip on via env flags (graceful degradation: disabled AI endpoints return `available=false`, payment 503s, engagement returns `available=false`, etc.).
 
-### 3.7 Tests & deploy
-- **pytest + pytest-asyncio**, ~77 test files / **800+ tests**: endpoint smoke + auth-gate tests, unit (security/services), `test_migrations.py` (up+down), SQL-parse validation (pglast), some integration. Fakes in `tests/_fakes.py` implement repo Protocols (no DB needed for service tests).
+### 3.8 Tests & deploy
+- **pytest + pytest-asyncio**, **91 test files / ~1300 tests**: endpoint smoke + auth-gate tests, unit (security/services), `test_migrations.py` (up+down), SQL-parse validation (pglast), some integration. Fakes in `tests/_fakes.py` implement repo Protocols (no DB needed for service tests).
 - **Run:** `.venv/bin/pytest` (or single file). Lint: `ruff check app/ tests/`.
 - **Deploy:** push to `main` → GitHub Actions `deploy.yml` → SSH → `git reset --hard origin/main` → docker compose rebuild → `woody migrate` → health-check `…/api/v1/docs`. Prod on `api.woody.uz` (port 4001 behind nginx). **No path filter** — any push to backend main redeploys prod.
 
-### 3.8 Run locally
+### 3.9 Run locally
 ```bash
 python3.11 -m venv .venv && .venv/bin/pip install -e '.[dev]'
 cp .env.example .env   # fill DATABASE_URL, JWT_SECRET, SUPER_ADMIN_PHONE, ESKIZ_*, R2_*
@@ -181,30 +191,30 @@ cp .env.example .env   # fill DATABASE_URL, JWT_SECRET, SUPER_ADMIN_PHONE, ESKIZ
 
 ### 4.1 Stack
 - **Flutter, Dart SDK `^3.11.5`**. App package `com.mebellar.app`, internal name `woody_app`.
-- **Version `1.0.27+27`** (versionName+versionCode). Android minSdk 26; iOS 15.0+.
+- **Version `1.0.33+33`** (versionName+versionCode). Android minSdk 26; iOS 15.0+.
 - **State:** `flutter_bloc` (Bloc/Cubit) + `bloc_concurrency` + `equatable`. **DI:** `GetIt` with modular registration (`core_module`, `auth_module`, `catalog_module`, `seller_module`, scope modules). **Module order matters.**
-- **Routing:** customer uses `go_router`; seller uses `StatefulShellRoute.indexedStack` (5 tabs) — nested pushes must use `rootNavigator: true`.
+- **Routing:** customer uses `go_router`; seller uses `StatefulShellRoute.indexedStack` (5 tabs) — nested pushes must use `rootNavigator: true`. Deferred deep links resolved at boot via `DeferredDeepLinkService`.
 - **Networking:** `dio` wrapped in `WoodyApiClient` → base `api.woody.uz` + `/api/v1`; Bearer from `TokenStore` (secure storage); 401 → single `/auth/refresh`, failure → forced sign-out; normalized `ApiError` (handles 429 `Retry-After`). Realtime via `web_socket_channel` (`wss://api.woody.uz/api/v1/realtime/ws`). Uploads via presigned R2 PUT.
 - **Local storage:** **Hive** boxes (settings, cache, cart, favorites, newsReads, pendingRoute, onboardingDraft, aiChatHistory) + `flutter_secure_storage` (tokens) + dedicated `GlbCacheManager` for 3D models.
-- **Notifications/analytics:** `firebase_messaging`, `flutter_local_notifications`, `app_badge_plus` (launcher badge), `firebase_analytics`, `firebase_crashlytics`, `facebook_app_events` (separate `FacebookAnalyticsService`), App Tracking Transparency.
+- **Notifications/analytics:** `firebase_messaging`, `flutter_local_notifications`, `app_badge_plus` (launcher badge), `firebase_analytics`, `firebase_crashlytics`, `facebook_app_events` (separate `FacebookAnalyticsService`), App Tracking Transparency. Product detail fires `view_item` + `POST /catalog/products/{id}/view` for DB analytics.
 - **AR/3D/media:** `model_viewer_plus` (WebGL `<model-viewer>` in `webview_flutter`), `ar_flutter_plugin_plus` (native ARCore/ARKit multi-object), `camera`/`image_picker`/`flutter_image_compress`, `gal` (save to gallery), `vector_math`.
 - **Maps/misc:** `yandex_mapkit` + `geolocator` + `permission_handler`; `flutter_phoenix` (mode-switch restart); `in_app_update`, `in_app_review`, `smart_auth` (OTP autofill), `record`+`just_audio` (voice notes), `fl_chart`, `lottie`.
 - **No `google_fonts` package** — TTFs bundled under `assets/google_fonts/` (Inter, Manrope, PlayfairDisplay, PlusJakartaSans).
 
 ### 4.2 Architecture (`lib/`)
 - `main.dart` (Firebase/Crashlytics/Hive boot) · `config/` · `auth/` (phone→OTP→profile modal).
-- `core/` — analytics, auth (`AuthCubit`, `AppModeCubit`), DI, i18n, logging (Talker), maps, notifications (FCM, badge sync, active-chat trackers), realtime, storage, theme, updates, widgets.
+- `core/` — analytics, auth (`AuthCubit`, `AppModeCubit`), DI, i18n, logging (Talker), maps, notifications (FCM, badge sync, active-chat trackers), realtime, storage, theme, updates, widgets, deeplink.
 - `customer/` — `customer_app.dart`, `router.dart`, plus `features/`.
 - `seller/` — `seller_app.dart`, `seller_router.dart`, plus `features/`.
 - `shared/` — chat (per-order), AR utilities, models, repositories (abstract `Woody*Repository` + impl + in-memory mocks), payments, widgets.
 
 ### 4.3 Features
-- **Customer:** auth, home feed (carousel + infinite scroll + grid/list + sort), search (adaptive facets), category browse, product detail (AR/3D badge, attributes, reviews, seller contact, self-purchase blocked), hybrid cart (local Hive + backend, login gate at checkout), favorites (hybrid, union-merge on login), checkout (address via Yandex Maps → payment → place, split delivery/installation fees, Payme/Click), orders + per-order chat, reviews (rating lock, in-app review at 4★+), notifications inbox (tabs: All/Orders/System), profile, AR token wallet (`ArTokensScreen`), **AI Interior Designer** (root-scope singleton, non-blocking UX), support chat (text/image/voice).
-- **Seller:** verification/KYC onboarding, dashboard, products CRUD with **AI photo-fill** + per-part AR scan, orders (status timeline, delivery-fee lock), reviews, wallet (balance + transactions + soft-freeze), tariff/subscription, analytics (charts), furniture **sets** (multi-object AR), alert flags (DB-backed), full **dark mode**.
+- **Customer:** auth, home feed (carousel + infinite scroll + grid/list + sort), search (adaptive facets), category browse, product detail (AR/3D badge, attributes, reviews, seller contact, self-purchase blocked, view tracking), hybrid cart (local Hive + backend, login gate at checkout), favorites (hybrid, union-merge on login), checkout (address via Yandex Maps → payment method selection → place; deferred payment note for online; split delivery/installation fees, Payme/Click), orders + per-order chat + `awaiting_payment` pay bar, reviews (rating lock, in-app review at 4★+), notifications inbox (tabs: All/Orders/System), profile, AR token wallet (`ArTokensScreen`), **AI Interior Designer** (root-scope singleton, non-blocking UX), support chat (text/image/voice), maintenance overlay (reads `GET /catalog/settings/maintenance` at boot).
+- **Seller:** verification/KYC onboarding, dashboard (bonus urgency banner, wallet debt banner, leaderboard, achievements), products CRUD with **AI photo-fill** + **AR request per part** (admin-mediated workflow; first request free), `max_delivery_fee` slider on product form, orders (status timeline incl. `awaiting_payment`, delivery-fee lock), reviews, wallet (balance + transactions + soft-freeze), tariff/subscription, analytics (charts), furniture **sets** (multi-object AR), alert flags (DB-backed), full **dark mode**.
 - **AR system:** (1) buyer WebGL viewer (`buyer_ar_viewer_screen.dart`, real-scale, watermarked save-to-gallery); (2) native multi-object set viewer (`set_ar_viewer_screen.dart`, ARCore/ARKit, place/rotate/delete nodes); (3) 2D sticker fallback for non-AR devices. Per-part models, GLB file-cache (`GlbCacheService`, file://), capability gate via `canActivateAR` (not src-mapping).
 
 ### 4.4 i18n
-- **Custom Dart translation bundles** (no `.arb`) under `lib/core/i18n/translations/` — ~30 files, languages **uz (baseline) / ru / en**. `tr('namespace.key')`, context-free. **Boot guard** throws in debug if ru/en drift below uz. `AppLocaleController` stamps `Accept-Language` on every API call so backend localizes dynamic content too. Customer portal fully localized (~182 strings migrated); seller portal localization is the next pass.
+- **Custom Dart translation bundles** (no `.arb`) under `lib/core/i18n/translations/` — **29 files**, languages **uz (baseline) / ru / en**. `tr('namespace.key')`, context-free. **Boot guard** throws in debug if ru/en drift below uz. `AppLocaleController` stamps `Accept-Language` on every API call so backend localizes dynamic content too. **Both customer and seller portals are fully localized** (seller copy lives in `seller_translations.dart`, `seller_orders_translations.dart`, `add_product_translations.dart`, `tariff_translations.dart`, etc.).
 
 ### 4.5 Release / OTA (Shorebird)
 - `shorebird.yaml` app id `c1639a0d-e4a4-4606-bf14-4b4195fa061e`. **Dart-only changes are OTA-patchable**; anything native (new pubspec deps, native plugins like `ar_flutter_plugin_plus`, permission/manifest changes, Flutter SDK bump, new bundled assets) needs a **full store release**.
@@ -212,7 +222,7 @@ cp .env.example .env   # fill DATABASE_URL, JWT_SECRET, SUPER_ADMIN_PHONE, ESKIZ
 - **iOS specifics:** Flutter SPM **disabled** (avoids Firebase module redefinition); `Podfile.lock` aligned to Firebase 11.15.0. iOS code-share warnings have appeared — next iOS App Store build should be a fresh `shorebird release ios`.
 
 ### 4.6 Tests & run
-- **Tests:** `flutter_test` + `bloc_test` + `mocktail`, golden tests (tagged `golden`, excluded in CI), `integration_test`. Mock the abstract repo interfaces, never raw `dio`; inject a Noop `AnalyticsService`. ~677–751 tests historically green.
+- **Tests:** `flutter_test` + `bloc_test` + `mocktail`, golden tests (tagged `golden`, excluded in CI), `integration_test`. Mock the abstract repo interfaces, never raw `dio`; inject a Noop `AnalyticsService`.
 - **Run:** needs `env/prod.json` (`WOODY_API_URL`, `YANDEX_GEOCODER_API_KEY`, optional `PAYME_*`, `SCREENSHOT_MODE`).
   ```bash
   flutter run --dart-define-from-file=env/prod.json
@@ -234,11 +244,11 @@ cp .env.example .env   # fill DATABASE_URL, JWT_SECRET, SUPER_ADMIN_PHONE, ESKIZ
 ### 5.2 Layout & pages
 - `app/login/` — OTP login (server actions `requestOtp`/`verifyOtp`).
 - `app/(admin)/` — guarded route group (`layout.tsx` calls `requireAdmin()`):
-  - **Delegable (moderator scopes):** `/` dashboard, `/orders`, `/customers`, `/reviews`, `/products`, `/ar-models` (per-part approve/reject/retry + 3D viewer), `/sets`, `/categories` (multilingual), `/shops`, `/sellers` (verification + KYC docs), `/analytics`.
-  - **Owner-only (super_admin):** `/banners`, `/news`, `/achievements`, `/notifications`, `/tariffs` (plans CRUD + master on/off + per-plan AR grant), `/wallets` (top-ups + online payments moderation), `/support`, `/ai-logs`, `/managers` (scope delegation), `/settings` (typed GUI: receiving card, app min-version, flags).
+  - **Delegable (moderator scopes):** `/` dashboard, `/analytics` (platform KPIs), `/app-usage` (GA4 engagement — DAU, sessions, top screens/events), `/marketplace-health` (retention, cohorts, seller health, product-view conversion), `/orders`, `/customers`, `/reviews`, `/products`, `/ar-models` (AR request queue + per-part approve/reject/send-to-meshy + 3D viewer), `/sets`, `/categories` (multilingual), `/shops`, `/sellers` (verification + KYC docs), `/achievements`.
+  - **Owner-only (super_admin):** `/banners`, `/news`, `/notifications`, `/tariffs` (plans CRUD + master on/off + per-plan AR grant), `/wallets` (top-ups + online payments moderation), `/support`, `/ai-logs`, `/managers` (scope delegation), `/settings` (typed GUI: receiving card, app min-version, maintenance mode, support contacts, payment-method toggles).
 - `lib/api/client.ts` — `apiFetch<T>` (Bearer from httpOnly cookie, throws `ApiError`). `lib/queries/*` (reads), `lib/actions/*` (writes). `lib/auth/admin-guard.ts` (`requireAdmin/requireRole/requirePermission`), `lib/auth/roles.ts` (RBAC mirror). `lib/enums.ts`, `lib/i18n.ts` (`pickLang` uz→ru→en), `lib/storage.ts` (signed R2 URLs).
 - `proxy.ts` — edge middleware, cheap cookie-presence gate (not JWT validation).
-- `components/admin/` — `sidebar-nav` (role/scope gating), `status-badge`, `safe-image` (fallback), `banner-form`, `category-form`, charts, row-action components.
+- `components/admin/` — `sidebar-nav` (role/scope gating, grouped nav), `status-badge`, `safe-image` (fallback), `banner-form`, `category-form`, `ar-requests-table`, engagement charts, marketplace-health panels, row-action components.
 
 ### 5.3 Auth & integration
 - OTP login → JWT pair stored as **httpOnly cookies**. `GET /me` returns `{user_id, phone, role, permissions}`. `hasPermission(role, permissions, scope)`: super_admin → all; manager + `null` permissions → full moderator; manager + array → scope must be listed.
@@ -282,10 +292,12 @@ cp .env.example .env   # fill DATABASE_URL, JWT_SECRET, SUPER_ADMIN_PHONE, ESKIZ
 
 - **Backend is canonical.** Any behavior change usually starts in `woody_backend` (route + migration + tests), then mirrors into the app and admin (enums, request/response shapes). The marketing site is independent.
 - **Migrations are first-class.** Schema changes go through Alembic with up+down; prod deploy runs `woody migrate`. Never hand-edit prod schema.
-- **Feature flags gate the expensive integrations** (AI, AR, FCM, payments). In dev they're off and endpoints degrade gracefully; don't assume a feature is "broken" if its flag/key is unset.
+- **Feature flags gate the expensive integrations** (AI, AR, FCM, payments, GA4). In dev they're off and endpoints degrade gracefully; don't assume a feature is "broken" if its flag/key is unset.
 - **Three-way enum + RBAC sync** is a recurring footgun — see §2.
+- **AR workflow is admin-mediated.** Sellers `POST …/ar-request`; admin picks photos and `POST …/send-to-meshy` from `/admin/ar-requests`. The legacy seller-direct `ar-scan/photos` path still exists but is not the primary flow.
+- **Deferred payment** is live: online orders pause at `awaiting_payment` until the customer pays the seller-locked total.
 - **Mobile OTA discipline:** prefer Dart-only changes for Shorebird patches; native changes force a full store release. iOS has the SPM-disabled / Firebase-pods caveat.
-- **Secrets live only in the backend** (and CI). The app ships `env/*.json` (non-secret URLs/keys), admin uses httpOnly cookies, frontend has none.
+- **Secrets live only in the backend** (and CI). The app ships `env/*.json` (non-secret URLs/keys), admin uses httpOnly cookies, frontend has none. GA4 credentials stay on Cloud Run, not `api.woody.uz`.
 - **Languages:** product is uz/ru/en; backend localizes dynamic content via `Accept-Language`; OTP SMS has three Eskiz templates. The repo owner communicates in Uzbek (mixed technical English).
 
 ### Repo quick-reference
@@ -299,9 +311,11 @@ cp .env.example .env   # fill DATABASE_URL, JWT_SECRET, SUPER_ADMIN_PHONE, ESKIZ
 ### Glossary
 - **Woody / Mebellar** — same product (Woody is the brand, Mebellar the legacy name).
 - **Seller** — furniture shop/workshop; **Customer** — buyer; **Manager** — scoped moderator; **super_admin** — single owner (env phone).
-- **AR token** — unit of currency for generating/placing 3D models; first part free, then token-priced.
+- **AR token** — unit of currency for generating/placing 3D models; first part request free, re-requests token-priced.
 - **Set** — a furniture bundle (e.g. bedroom set) that supports multi-object AR placement.
-- **Tariff** — seller subscription plan (limits, AR grant, features); paid via Payme webhook.
+- **Tariff** — seller subscription plan (limits, AR grant, AI quotas, features); paid via Payme webhook or receipt upload + admin moderation.
+- **Deferred payment** — online checkout where the customer pays only after the seller accepts and sets the exact delivery fee (`awaiting_payment` status).
+- **GA4 proxy** — Cloud Run microservice (`ga4_proxy/`) that reads Firebase Analytics / GA4 and exposes engagement metrics to the backend without GCP JSON keys on the API server.
 
 ---
 
