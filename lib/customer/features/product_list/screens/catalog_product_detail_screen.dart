@@ -11,6 +11,7 @@ import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/services/facebook_analytics_service.dart';
 import '../../../../core/auth/auth_cubit.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/network/woody_api_client.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../core/result/result.dart';
 import '../../../../core/theme/app_fonts.dart';
@@ -187,7 +188,17 @@ class _CatalogProductDetailScreenState
         ),
       );
     }
+    unawaited(_logBackendProductView(widget.product.id));
   }
+
+  Future<void> _logBackendProductView(String productId) async {
+    try {
+      await sl<WoodyApiClient>().post<dynamic>(
+        '/catalog/products/$productId/view',
+      );
+    } catch (_) {
+      // Best-effort catalog analytics — must not affect the detail UX.
+    }
 
   @override
   void dispose() {
@@ -1176,7 +1187,10 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
                 if (summary.count > shown.length) ...[
                   const SizedBox(height: 12),
                   Text(
-                    tr('product.reviews_more_count', args: [summary.count - shown.length]),
+                    tr(
+                      'product.reviews_more_count',
+                      args: [summary.count - shown.length],
+                    ),
                     style: _ts(
                       size: 12.5,
                       weight: FontWeight.w600,
