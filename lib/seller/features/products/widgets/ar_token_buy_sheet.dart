@@ -23,6 +23,8 @@ const Color _kClickBlue = Color(0xFF0073FF);
 
 enum ArTokenBuyResult { onlineLaunched, manualSubmitted }
 
+enum _PayMode { online, card }
+
 /// Opens the AR-token top-up sheet. Returns how the seller chose to pay so the
 /// caller can refresh + show the right follow-up snackbar.
 Future<ArTokenBuyResult?> showArTokenBuySheet(
@@ -59,14 +61,17 @@ class _ArTokenBuySheet extends StatefulWidget {
 class _ArTokenBuySheetState extends State<_ArTokenBuySheet> {
   String? _packageCode;
   late PaymentProvider _provider;
+  late _PayMode _payMode;
   bool _buyingOnline = false;
   bool _submittingManual = false;
   String? _error;
-  late Future<TariffPaymentInstructions> _instructions;
+  Future<TariffPaymentInstructions>? _instructionsFuture;
   File? _screenshotFile;
 
   bool get _anyProviderEnabled =>
       RemoteConfig.instance.paymeEnabled || RemoteConfig.instance.clickEnabled;
+
+  bool get _showPayModeSwitcher => _anyProviderEnabled;
 
   ArTokenPackage? get _selectedPackage {
     final code = _packageCode;
@@ -89,7 +94,21 @@ class _ArTokenBuySheetState extends State<_ArTokenBuySheet> {
         : (RemoteConfig.instance.clickEnabled
               ? PaymentProvider.click
               : PaymentProvider.payme);
-    _instructions = sl<ArTokenRepository>().paymentInstructions();
+    _payMode = _anyProviderEnabled ? _PayMode.online : _PayMode.card;
+    if (_payMode == _PayMode.card) _ensureInstructions();
+  }
+
+  void _ensureInstructions() {
+    _instructionsFuture ??= sl<ArTokenRepository>().paymentInstructions();
+  }
+
+  void _selectPayMode(_PayMode mode) {
+    if (_payMode == mode) return;
+    setState(() {
+      _payMode = mode;
+      _error = null;
+      if (mode == _PayMode.card) _ensureInstructions();
+    });
   }
 
   Future<void> _payOnline() async {
@@ -134,14 +153,6 @@ class _ArTokenBuySheetState extends State<_ArTokenBuySheet> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(tr('tariff.card_copied'))));
-  }
-
-  Future<void> _copyNote(String note) async {
-    await Clipboard.setData(ClipboardData(text: note));
-    if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(tr('tariff.note_copied'))));
   }
 
   Future<void> _pickScreenshot() async {
@@ -203,8 +214,8 @@ class _ArTokenBuySheetState extends State<_ArTokenBuySheet> {
     return Padding(
       padding: EdgeInsets.only(bottom: bottomInset),
       child: DraggableScrollableSheet(
-        initialChildSize: 0.88,
-        minChildSize: 0.5,
+        initialChildSize: _payMode == _PayMode.card ? 0.88 : 0.72,
+        minChildSize: 0.45,
         maxChildSize: 0.95,
         expand: false,
         builder: (_, scrollController) => Container(
@@ -264,18 +275,26 @@ class _ArTokenBuySheetState extends State<_ArTokenBuySheet> {
                         ? null
                         : () => setState(() => _packageCode = pkg.code),
                   ),
-                if (_anyProviderEnabled) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    tr('seller.payment_method'),
-                    style: TextStyle(
-                      fontFamily: AppFonts.seller,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13,
-                      color: c.ink,
-                    ),
+                const SizedBox(height: 12),
+                Text(
+                  tr('seller.payment_method'),
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: c.ink,
                   ),
-                  const SizedBox(height: 8),
+                ),
+                const SizedBox(height: 10),
+                if (_showPayModeSwitcher) ...[
+                  _PayModeBar(
+                    mode: _payMode,
+                    busy: busy,
+                    onSelect: _selectPayMode,
+                  ),
+                  const SizedBox(height: 14),
+                ],
+                if (_payMode == _PayMode.online) ...[
                   if (RemoteConfig.instance.paymeEnabled)
                     _ProviderChoice(
                       brand: _kPaymeTeal,
@@ -338,148 +357,17 @@ class _ArTokenBuySheetState extends State<_ArTokenBuySheet> {
                           : Text(tr('seller.pay_action')),
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(child: Divider(color: c.divider)),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Text(
-                          tr('tariff.pay_or_manual'),
-                          style: TextStyle(
-                            fontFamily: AppFonts.seller,
-                            fontSize: 12,
-                            color: c.grey,
-                          ),
-                        ),
-                      ),
-                      Expanded(child: Divider(color: c.divider)),
-                    ],
+                ] else
+                  _ManualPaySection(
+                    instructionsFuture: _instructionsFuture,
+                    selected: selected,
+                    screenshotFile: _screenshotFile,
+                    busy: busy,
+                    submitting: _submittingManual,
+                    onCopyCard: _copyCard,
+                    onPickScreenshot: _pickScreenshot,
+                    onSubmit: _submitManual,
                   ),
-                  const SizedBox(height: 20),
-                ],
-                FutureBuilder<TariffPaymentInstructions>(
-                  future: _instructions,
-                  builder: (context, snap) {
-                    if (snap.connectionState != ConnectionState.done) {
-                      return const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 24),
-                        child: Center(child: CircularProgressIndicator()),
-                      );
-                    }
-                    if (snap.hasError || !snap.hasData) {
-                      return Text(
-                        tr('tariff.instructions_load_failed'),
-                        style: TextStyle(
-                          fontFamily: AppFonts.seller,
-                          fontSize: 13,
-                          color: AppColors.sellerNegative,
-                        ),
-                      );
-                    }
-                    final ins = snap.data!;
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (selected != null) ...[
-                          Text(
-                            _fmtUzs(selected.priceUzs),
-                            style: TextStyle(
-                              fontFamily: AppFonts.seller,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 16,
-                              color: c.ink,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                        ],
-                        _CardBlock(
-                          number: ins.cardNumber,
-                          holder: ins.cardHolder,
-                          bank: ins.bankName,
-                          onCopy: () => _copyCard(ins.cardNumber),
-                        ),
-                        const SizedBox(height: 10),
-                        _NoteBlock(
-                          note: ins.note,
-                          onCopy: () => _copyNote(ins.note),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          tr('tariff.upload_screenshot_title'),
-                          style: TextStyle(
-                            fontFamily: AppFonts.seller,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14,
-                            color: c.ink,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          tr('tariff.upload_screenshot_hint'),
-                          style: TextStyle(
-                            fontFamily: AppFonts.seller,
-                            fontSize: 12,
-                            color: c.grey,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        OutlinedButton.icon(
-                          onPressed: busy ? null : _pickScreenshot,
-                          icon: const Icon(Icons.image_outlined, size: 20),
-                          label: Text(
-                            _screenshotFile == null
-                                ? tr('tariff.upload_screenshot')
-                                : tr('seller.ar_manual_receipt_selected'),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size.fromHeight(48),
-                            side: BorderSide(color: c.divider),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        SizedBox(
-                          width: double.infinity,
-                          child: FilledButton.icon(
-                            onPressed:
-                                (_screenshotFile != null &&
-                                    _packageCode != null &&
-                                    !busy)
-                                ? _submitManual
-                                : null,
-                            icon: _submittingManual
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : const Icon(Icons.check_circle_outline),
-                            label: Text(tr('seller.ar_manual_submit')),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: c.gold,
-                              foregroundColor: Colors.white,
-                              disabledBackgroundColor: c.gold.withValues(
-                                alpha: 0.4,
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 15),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              textStyle: const TextStyle(
-                                fontFamily: AppFonts.seller,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 15,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
                 if (_error != null) ...[
                   const SizedBox(height: 12),
                   Text(
@@ -497,6 +385,258 @@ class _ArTokenBuySheetState extends State<_ArTokenBuySheet> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _PayModeBar extends StatelessWidget {
+  const _PayModeBar({
+    required this.mode,
+    required this.busy,
+    required this.onSelect,
+  });
+
+  final _PayMode mode;
+  final bool busy;
+  final ValueChanged<_PayMode> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: c.fillFaint,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: c.divider),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _PayModeChip(
+              label: tr('seller.ar_pay_mode_online'),
+              icon: Icons.smartphone_rounded,
+              selected: mode == _PayMode.online,
+              onTap: busy ? null : () => onSelect(_PayMode.online),
+            ),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: _PayModeChip(
+              label: tr('seller.ar_pay_mode_card'),
+              icon: Icons.credit_card_rounded,
+              selected: mode == _PayMode.card,
+              onTap: busy ? null : () => onSelect(_PayMode.card),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PayModeChip extends StatelessWidget {
+  const _PayModeChip({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    return Material(
+      color: selected ? c.surface : Colors.transparent,
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            border: selected
+                ? Border.all(color: c.primary.withValues(alpha: 0.35))
+                : null,
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 18, color: selected ? c.primary : c.grey),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: AppFonts.seller,
+                  fontSize: 11.5,
+                  fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                  color: selected ? c.ink : c.grey,
+                  height: 1.2,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ManualPaySection extends StatelessWidget {
+  const _ManualPaySection({
+    required this.instructionsFuture,
+    required this.selected,
+    required this.screenshotFile,
+    required this.busy,
+    required this.submitting,
+    required this.onCopyCard,
+    required this.onPickScreenshot,
+    required this.onSubmit,
+  });
+
+  final Future<TariffPaymentInstructions>? instructionsFuture;
+  final ArTokenPackage? selected;
+  final File? screenshotFile;
+  final bool busy;
+  final bool submitting;
+  final Future<void> Function(String) onCopyCard;
+  final VoidCallback onPickScreenshot;
+  final VoidCallback onSubmit;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    final future = instructionsFuture;
+    if (future == null) {
+      return const SizedBox.shrink();
+    }
+    return FutureBuilder<TariffPaymentInstructions>(
+      future: future,
+      builder: (context, snap) {
+        if (snap.connectionState != ConnectionState.done) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+        if (snap.hasError || !snap.hasData) {
+          return Text(
+            tr('tariff.instructions_load_failed'),
+            style: TextStyle(
+              fontFamily: AppFonts.seller,
+              fontSize: 13,
+              color: AppColors.sellerNegative,
+            ),
+          );
+        }
+        final ins = snap.data!;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (selected != null) ...[
+              Text(
+                _fmtUzs(selected!.priceUzs),
+                style: TextStyle(
+                  fontFamily: AppFonts.seller,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                  color: c.ink,
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+            _CardBlock(
+              number: ins.cardNumber,
+              holder: ins.cardHolder,
+              bank: ins.bankName,
+              onCopy: () => onCopyCard(ins.cardNumber),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              tr('tariff.upload_screenshot_title'),
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+                color: c.ink,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              tr('tariff.upload_screenshot_hint'),
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
+                fontSize: 12,
+                color: c.grey,
+              ),
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: busy ? null : onPickScreenshot,
+              icon: const Icon(Icons.image_outlined, size: 20),
+              label: Text(
+                screenshotFile == null
+                    ? tr('tariff.upload_screenshot')
+                    : tr('seller.ar_manual_receipt_selected'),
+              ),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+                side: BorderSide(color: c.divider),
+              ),
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: (screenshotFile != null && !busy) ? onSubmit : null,
+                icon: submitting
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.check_circle_outline),
+                label: Text(tr('seller.ar_manual_submit')),
+                style: FilledButton.styleFrom(
+                  backgroundColor: c.gold,
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: c.gold.withValues(alpha: 0.4),
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  textStyle: const TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -567,60 +707,6 @@ class _CardBlock extends StatelessWidget {
                 color: c.greyMid,
               ),
             ),
-        ],
-      ),
-    );
-  }
-}
-
-class _NoteBlock extends StatelessWidget {
-  const _NoteBlock({required this.note, required this.onCopy});
-
-  final String note;
-  final VoidCallback onCopy;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = SellerColors.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: c.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: c.divider),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.tag_outlined, size: 18, color: c.gold),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  note,
-                  style: TextStyle(
-                    fontFamily: AppFonts.seller,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                    color: c.ink,
-                  ),
-                ),
-                Text(
-                  tr('tariff.note_hint'),
-                  style: TextStyle(
-                    fontFamily: AppFonts.seller,
-                    fontSize: 11.5,
-                    color: c.grey,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            onPressed: onCopy,
-            icon: Icon(Icons.copy_outlined, color: c.gold, size: 18),
-          ),
         ],
       ),
     );
