@@ -199,6 +199,7 @@ class _CatalogProductDetailScreenState
     } catch (_) {
       // Best-effort catalog analytics — must not affect the detail UX.
     }
+  }
 
   @override
   void dispose() {

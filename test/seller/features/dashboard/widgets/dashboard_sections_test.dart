@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:woody_app/seller/features/dashboard/data/dashboard_models.dart';
 import 'package:woody_app/seller/features/dashboard/screens/achievements_screen.dart';
 import 'package:woody_app/seller/features/dashboard/widgets/achievements_strip.dart';
@@ -139,9 +140,13 @@ void main() {
     );
     expect(tester.takeException(), isNull);
     // FOMO countdown (uz default bundle) + the "{used}/{limit}" quota meter.
-    expect(find.text('🎁 Bonus tarifingiz tugashiga 29 kun qoldi'), findsOneWidget);
+    expect(
+      find.text('🎁 Bonus tarifingiz tugashiga 29 kun qoldi'),
+      findsOneWidget,
+    );
     expect(find.text('1/3 ishlatildi'), findsOneWidget);
-    expect(find.text('Imkoniyatlarni ko\'rish'), findsOneWidget);
+    // Whole banner is tappable — arrow replaces the old full-width CTA label.
+    expect(find.byIcon(Iconsax.arrow_right_3_copy), findsOneWidget);
   });
 
   testWidgets('BonusUrgencyBanner flips copy at the boundaries', (
@@ -237,8 +242,17 @@ void main() {
 
   test('LeaderboardEntry.displayName trusts the server-provided name', () {
     // Anonymisation is the server's job now — the client shows what it gets.
-    const me = LeaderboardEntry(rank: 4, shopName: 'Zumar Mebel', revenue: 1, isMe: true);
-    const other = LeaderboardEntry(rank: 1, shopName: 'B•••• M••••', revenue: 1);
+    const me = LeaderboardEntry(
+      rank: 4,
+      shopName: 'Zumar Mebel',
+      revenue: 1,
+      isMe: true,
+    );
+    const other = LeaderboardEntry(
+      rank: 1,
+      shopName: 'B•••• M••••',
+      revenue: 1,
+    );
     expect(me.displayName, 'Zumar Mebel');
     expect(other.displayName, 'B•••• M••••');
   });

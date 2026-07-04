@@ -14,23 +14,23 @@ class _MockArScanRepo extends Mock implements ArScanRepository {}
 class _MockArTokenRepo extends Mock implements ArTokenRepository {}
 
 SellerProduct _approvedProduct() => SellerProduct(
-      id: 'p1',
-      name: const MultilingualText(uz: 'Divan', ru: 'Диван', en: 'Sofa'),
-      description: const MultilingualText(),
-      categorySlug: 'cat',
-      price: 100,
-      sku: 'SKU',
-      images: const [],
-      attributes: const {},
-      // Real dimensions → the single derived component isComplete, so the
-      // "request" button (the previously-crashing FilledButton) renders.
-      widthCm: 160,
-      heightCm: 80,
-      lengthCm: 210,
-      status: SellerProductStatus.approved,
-      createdAt: DateTime(2026),
-      updatedAt: DateTime(2026),
-    );
+  id: 'p1',
+  name: const MultilingualText(uz: 'Divan', ru: 'Диван', en: 'Sofa'),
+  description: const MultilingualText(),
+  categorySlug: 'cat',
+  price: 100,
+  sku: 'SKU',
+  images: const [],
+  attributes: const {},
+  // Real dimensions → the single derived component isComplete, so the
+  // "request" button (the previously-crashing FilledButton) renders.
+  widthCm: 160,
+  heightCm: 80,
+  lengthCm: 210,
+  status: SellerProductStatus.approved,
+  createdAt: DateTime(2026),
+  updatedAt: DateTime(2026),
+);
 
 void main() {
   late _MockArScanRepo scanRepo;
@@ -39,12 +39,15 @@ void main() {
   setUp(() {
     scanRepo = _MockArScanRepo();
     tokenRepo = _MockArTokenRepo();
-    when(() => scanRepo.fetchArParts(any())).thenAnswer((_) async => <ArPart>[]);
-    when(() => tokenRepo.balance()).thenAnswer(
-      (_) async => const ArTokenBalance(arCredits: 5, packages: []),
-    );
+    when(
+      () => scanRepo.fetchArParts(any()),
+    ).thenAnswer((_) async => <ArPart>[]);
+    when(
+      () => tokenRepo.balance(),
+    ).thenAnswer((_) async => const ArTokenBalance(arCredits: 5, packages: []));
     if (sl.isRegistered<ArScanRepository>()) sl.unregister<ArScanRepository>();
-    if (sl.isRegistered<ArTokenRepository>()) sl.unregister<ArTokenRepository>();
+    if (sl.isRegistered<ArTokenRepository>())
+      sl.unregister<ArTokenRepository>();
     sl.registerSingleton<ArScanRepository>(scanRepo);
     sl.registerSingleton<ArTokenRepository>(tokenRepo);
   });
@@ -66,7 +69,10 @@ void main() {
             body: SizedBox(
               width: 380,
               child: SingleChildScrollView(
-                child: SellerArSection(product: _approvedProduct(), schema: const []),
+                child: SellerArSection(
+                  product: _approvedProduct(),
+                  schema: const [],
+                ),
               ),
             ),
           ),
@@ -76,8 +82,7 @@ void main() {
 
       // No layout/render exception was thrown during the build.
       expect(tester.takeException(), isNull);
-      // The per-part request button rendered.
-      expect(find.byType(FilledButton), findsWidgets);
+      // Custom Material/InkWell button (not FilledButton — unbounded-width safe).
       expect(find.text('So‘rov yuborish'), findsOneWidget);
     },
   );

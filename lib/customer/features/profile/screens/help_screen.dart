@@ -310,26 +310,33 @@ class _CompactFaqTile extends StatelessWidget {
         dividerColor: Colors.transparent,
         splashColor: PremiumTokens.accent.withValues(alpha: 0.06),
       ),
-      child: ExpansionTile(
-        visualDensity: VisualDensity.compact,
-        minTileHeight: 46,
-        tilePadding: const EdgeInsets.fromLTRB(16, 0, 12, 0),
-        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-        iconColor: PremiumTokens.accent,
-        collapsedIconColor: pt.greyLight,
-        title: Text(
-          item.question,
-          style: PremiumTokens.body(size: 13, weight: FontWeight.w500),
-        ),
-        children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              item.answer,
-              style: PremiumTokens.body(size: 13, color: pt.grey, height: 1.5),
-            ),
+      child: Material(
+        color: Colors.transparent,
+        child: ExpansionTile(
+          visualDensity: VisualDensity.compact,
+          minTileHeight: 46,
+          tilePadding: const EdgeInsets.fromLTRB(16, 0, 12, 0),
+          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          iconColor: PremiumTokens.accent,
+          collapsedIconColor: pt.greyLight,
+          title: Text(
+            item.question,
+            style: PremiumTokens.body(size: 13, weight: FontWeight.w500),
           ),
-        ],
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                item.answer,
+                style: PremiumTokens.body(
+                  size: 13,
+                  color: pt.grey,
+                  height: 1.5,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
