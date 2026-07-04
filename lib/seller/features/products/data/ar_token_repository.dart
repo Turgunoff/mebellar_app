@@ -106,6 +106,9 @@ abstract class ArTokenRepository {
     int offset = 0,
   });
 
+  /// Abandon a pending checkout the seller opened but didn't pay.
+  Future<void> cancelPurchase(String purchaseId);
+
   /// Start a top-up: mint a Payme/Click checkout deep-link for the package
   /// (`POST /seller/ar-tokens/buy`). Returns the URL the seller opens to pay
   /// plus the purchase `reference` the webhook keys on — the app persists the
@@ -153,6 +156,11 @@ class WoodyArTokenRepository implements ArTokenRepository {
       for (final row in res.whereType<Map<String, dynamic>>())
         ArTokenPurchase.fromJson(row),
     ];
+  }
+
+  @override
+  Future<void> cancelPurchase(String purchaseId) async {
+    await _api.patch<void>('/seller/ar-tokens/purchases/$purchaseId/cancel');
   }
 
   @override

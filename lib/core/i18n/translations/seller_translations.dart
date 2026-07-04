@@ -339,6 +339,10 @@ const Map<String, dynamic> sellerUz = {
   'ar_purchase_status_cancelled': 'Bekor qilindi',
   'ar_purchase_provider_payme': 'Payme',
   'ar_purchase_provider_click': 'Click',
+  'ar_purchase_cancel_title': 'Xaridni bekor qilasizmi?',
+  'ar_purchase_cancel_subtitle':
+      'To‘lov qilinmagan — bekor qilsangiz, bu yozuv tarixda “Bekor qilindi” bo‘ladi.',
+  'ar_purchase_cancel_action': 'Bekor qilish',
   'wallet_info_purpose_title': 'Vazifasi',
   'wallet_info_purpose_desc':
       'Hamyon platforma orqali qilingan muvaffaqiyatli savdolardan tushadigan komissiyalarni to\'lash uchun ishlatiladi.',
@@ -688,6 +692,10 @@ const Map<String, dynamic> sellerRu = {
   'ar_purchase_status_cancelled': 'Отменено',
   'ar_purchase_provider_payme': 'Payme',
   'ar_purchase_provider_click': 'Click',
+  'ar_purchase_cancel_title': 'Отменить покупку?',
+  'ar_purchase_cancel_subtitle':
+      'Оплата не прошла — после отмены запись будет помечена как «Отменено».',
+  'ar_purchase_cancel_action': 'Отменить',
   'wallet_info_purpose_title': 'Назначение',
   'wallet_info_purpose_desc':
       'Кошелёк используется для оплаты комиссий с успешных продаж, совершённых через платформу.',
@@ -1034,6 +1042,10 @@ const Map<String, dynamic> sellerEn = {
   'ar_purchase_status_cancelled': 'Cancelled',
   'ar_purchase_provider_payme': 'Payme',
   'ar_purchase_provider_click': 'Click',
+  'ar_purchase_cancel_title': 'Cancel this purchase?',
+  'ar_purchase_cancel_subtitle':
+      'Payment was not completed — it will show as cancelled in your history.',
+  'ar_purchase_cancel_action': 'Cancel',
   'wallet_info_purpose_title': 'Purpose',
   'wallet_info_purpose_desc':
       'The wallet is used to pay the commission on successful sales made through the platform.',

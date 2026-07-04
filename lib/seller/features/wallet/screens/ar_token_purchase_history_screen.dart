@@ -5,6 +5,8 @@ import '../../../../core/i18n/i18n.dart';
 import '../../../../core/logging/app_logger.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
+import '../../../../shared/payments/pending_payment.dart';
+import '../../../../shared/payments/pending_payment_service.dart';
 import '../../products/data/ar_token_repository.dart';
 
 /// Full AR-token purchase ledger — every checkout intent the seller started,
@@ -50,6 +52,42 @@ class _ArTokenPurchaseHistoryScreenState
           _failed = true;
         });
       }
+    }
+  }
+
+  Future<void> _confirmCancel(ArTokenPurchase purchase) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(tr('seller.ar_purchase_cancel_title')),
+        content: Text(tr('seller.ar_purchase_cancel_subtitle')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(tr('common.back')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            child: Text(tr('seller.ar_purchase_cancel_action')),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    try {
+      await sl<ArTokenRepository>().cancelPurchase(purchase.id);
+      final pending = await sl<PendingPaymentService>().peek();
+      if (pending != null &&
+          pending.kind == PendingPaymentKind.arTokens &&
+          pending.reference == purchase.id) {
+        await sl<PendingPaymentService>().clear();
+      }
+      if (mounted) await _load();
+    } catch (e, st) {
+      appLog.handle(e, st, '[ar-purchase-history] cancel failed');
     }
   }
 
@@ -111,7 +149,12 @@ class _ArTokenPurchaseHistoryScreenState
         itemCount: items.length,
         itemBuilder: (context, index) => Padding(
           padding: const EdgeInsets.only(bottom: 10),
-          child: _PurchaseTile(purchase: items[index]),
+          child: _PurchaseTile(
+            purchase: items[index],
+            onCancel: items[index].isPending
+                ? () => _confirmCancel(items[index])
+                : null,
+          ),
         ),
       ),
     );
@@ -171,9 +214,10 @@ class _EmptyHistory extends StatelessWidget {
 }
 
 class _PurchaseTile extends StatelessWidget {
-  const _PurchaseTile({required this.purchase});
+  const _PurchaseTile({required this.purchase, this.onCancel});
 
   final ArTokenPurchase purchase;
+  final VoidCallback? onCancel;
 
   static final _uzs = NumberFormat('#,##0', 'uz_UZ');
   static final _when = DateFormat('d MMM yyyy, HH:mm');
@@ -278,6 +322,33 @@ class _PurchaseTile extends StatelessWidget {
                                 ),
                               ],
                             ),
+                            if (onCancel != null) ...[
+                              const SizedBox(height: 8),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton(
+                                  onPressed: onCancel,
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: c.warning,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  child: Text(
+                                    tr('seller.ar_purchase_cancel_action'),
+                                    style: TextStyle(
+                                      fontFamily: AppFonts.seller,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),
