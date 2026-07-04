@@ -76,14 +76,12 @@ class MainActivity : FlutterActivity() {
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "isArSupported" -> {
-                        // FEATURE_CAMERA_AR ("android.hardware.camera.ar") is
-                        // declared only by ARCore-certified devices (API 24+;
-                        // our minSdk is 26).
                         val supported = packageManager.hasSystemFeature(
                             PackageManager.FEATURE_CAMERA_AR,
                         )
                         result.success(supported)
                     }
+                    "launchQuickLook" -> result.notImplemented()
                     else -> result.notImplemented()
                 }
             }

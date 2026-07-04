@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'dart:convert' show base64Decode;
 
-import 'package:flutter/foundation.dart' show Uint8List, compute, visibleForTesting;
+import 'package:flutter/foundation.dart'
+    show Uint8List, compute, visibleForTesting;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -16,6 +17,7 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../core/services/facebook_analytics_service.dart';
 import '../../../../core/theme/app_fonts.dart';
+import '../../../../shared/ar/ar_activation.dart';
 import '../../../../shared/ar/ar_loading_overlay.dart';
 import '../../../../shared/ar/ar_set_piece.dart';
 import '../../../../shared/ar/glb_cache_manager.dart';
@@ -377,7 +379,10 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
                           Align(
                             alignment: Alignment.centerRight,
                             child: Padding(
-                              padding: const EdgeInsets.only(right: 8, bottom: 14),
+                              padding: const EdgeInsets.only(
+                                right: 8,
+                                bottom: 14,
+                              ),
                               child: ArModelSwitcherButton(
                                 activeName: part.name,
                                 index: state.selectedIndex,
@@ -412,28 +417,19 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
     );
   }
 
-  /// Launches the model-viewer AR session (Scene Viewer / WebXR / Quick Look),
-  /// gated on model-viewer's own `canActivateAR` — the exact signal the seller
-  /// viewer's (working) native AR button uses.
-  ///
-  /// We deliberately DON'T pre-check the native `FEATURE_CAMERA_AR` hardware
-  /// flag any more: it's declared only by devices that ship ARCore as a system
-  /// feature, so it reads `false` on the many phones that get ARCore via the
-  /// installable "Google Play Services for AR". That false-negative forced the
-  /// 2D fallback on AR-capable buyer devices while the seller viewer (no such
-  /// gate) worked on the very same hardware — the bug this fixes. `canActivateAR`
-  /// is the accurate runtime gate; when it's genuinely false we still route to
-  /// the in-app 2D fallback via the `unsupported` message (never a Play Store
-  /// dead-end).
+  /// Launches platform AR for the selected part. iOS opens native Quick Look
+  /// when a `.usdz` is available; Android keeps model-viewer's Scene Viewer
+  /// path (`canActivateAR` → `activateAR()`).
   Future<void> _activateAr() async {
-    final web = _web;
-    if (web == null) return;
-    await web.runJavaScript(
-      "(function(){var mv=document.querySelector('model-viewer');"
-      'if(!mv){return;}'
-      'if(mv.canActivateAR){mv.activateAR();}'
-      "else{$_arChannel.postMessage('unsupported');}})();",
+    final outcome = await ArActivation.activate(
+      web: _web,
+      arChannel: _arChannel,
+      usdzUrl: _part.usdzUrl,
+      cache: widget.glbCache ?? GlbCacheService(),
     );
+    if (outcome == ArActivationOutcome.unsupported && mounted) {
+      _openFallback();
+    }
   }
 
   /// Lets the buyer pick how to preview the piece before launching: native

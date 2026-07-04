@@ -10,6 +10,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import '../../../core/i18n/i18n.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_fonts.dart';
+import '../../ar/ar_activation.dart';
 import '../../ar/ar_loading_overlay.dart';
 import '../../ar/ar_scale.dart';
 import '../../ar/glb_cache_manager.dart';
@@ -430,18 +431,19 @@ class _Product3DPreviewScreenState extends State<Product3DPreviewScreen> {
     );
   }
 
-  /// Launches the model-viewer AR session for the active part, gated on
-  /// model-viewer's own `canActivateAR`; routes to the 2D fallback via the
-  /// `unsupported` message when AR genuinely isn't available.
+  /// Launches platform AR for the active part. iOS uses native Quick Look
+  /// (WKWebView's `canActivateAR` is a false-negative there); Android keeps
+  /// the model-viewer Scene Viewer path.
   Future<void> _activateAr() async {
-    final web = _web;
-    if (web == null) return;
-    await web.runJavaScript(
-      "(function(){var mv=document.querySelector('model-viewer');"
-      'if(!mv){return;}'
-      'if(mv.canActivateAR){mv.activateAR();}'
-      "else{$_arChannel.postMessage('unsupported');}})();",
+    final outcome = await ArActivation.activate(
+      web: _web,
+      arChannel: _arChannel,
+      usdzUrl: _active.usdzUrl,
+      cache: _cache,
     );
+    if (outcome == ArActivationOutcome.unsupported && mounted) {
+      _openFallback();
+    }
   }
 
   Future<void> _ensureCameraThen(
