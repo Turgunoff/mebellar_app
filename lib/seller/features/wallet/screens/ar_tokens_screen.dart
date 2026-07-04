@@ -25,7 +25,6 @@ class ArTokensScreen extends StatefulWidget {
 
 class _ArTokensScreenState extends State<ArTokensScreen> {
   ArTokenBalance? _balance;
-  List<ArTokenPurchase> _recentPurchases = const [];
   bool _loading = true;
   bool _failed = false;
 
@@ -41,15 +40,10 @@ class _ArTokensScreenState extends State<ArTokensScreen> {
       _failed = false;
     });
     try {
-      final repo = sl<ArTokenRepository>();
-      final results = await Future.wait([
-        repo.balance(),
-        repo.purchaseHistory(limit: 5),
-      ]);
+      final balance = await sl<ArTokenRepository>().balance();
       if (mounted) {
         setState(() {
-          _balance = results[0] as ArTokenBalance;
-          _recentPurchases = results[1] as List<ArTokenPurchase>;
+          _balance = balance;
           _loading = false;
         });
       }
@@ -67,18 +61,22 @@ class _ArTokensScreenState extends State<ArTokensScreen> {
   Future<void> _openBuyTokens() async {
     final balance = _balance;
     if (balance == null) return;
-    final started = await showArTokenBuySheet(
+    final result = await showArTokenBuySheet(
       context,
       packages: balance.packages,
     );
-    if (!mounted || !started) return;
+    if (!mounted || result == null) return;
     await _load();
     if (!mounted) return;
+    final message = switch (result) {
+      ArTokenBuyResult.onlineLaunched => tr(
+        'seller.ar_tokens_finish_payment_notice',
+      ),
+      ArTokenBuyResult.manualSubmitted => tr('seller.ar_manual_submitted'),
+    };
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(content: Text(tr('seller.ar_tokens_finish_payment_notice'))),
-      );
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _openHistory() {
@@ -145,13 +143,6 @@ class _ArTokensScreenState extends State<ArTokensScreen> {
           _BalanceCard(credits: balance.arCredits),
           const SizedBox(height: 16),
           const _HowItWorksCard(),
-          if (_recentPurchases.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            _RecentPurchasesCard(
-              purchases: _recentPurchases,
-              onViewAll: _openHistory,
-            ),
-          ],
           if (balance.packages.isNotEmpty) ...[
             const SizedBox(height: 16),
             _BuyButton(onPressed: _openBuyTokens),
@@ -431,163 +422,6 @@ class _BuyButton extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _RecentPurchasesCard extends StatelessWidget {
-  const _RecentPurchasesCard({
-    required this.purchases,
-    required this.onViewAll,
-  });
-
-  final List<ArTokenPurchase> purchases;
-  final VoidCallback onViewAll;
-
-  static final _uzs = NumberFormat('#,##0', 'uz_UZ');
-  static final _when = DateFormat('d MMM, HH:mm');
-
-  @override
-  Widget build(BuildContext context) {
-    final c = SellerColors.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: c.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: c.divider),
-      ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 8, 8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    tr('seller.ar_purchase_recent_title'),
-                    style: TextStyle(
-                      fontFamily: AppFonts.seller,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      color: c.ink,
-                    ),
-                  ),
-                ),
-                TextButton(
-                  onPressed: onViewAll,
-                  child: Text(
-                    tr('seller.ar_purchase_view_all'),
-                    style: TextStyle(
-                      fontFamily: AppFonts.seller,
-                      fontWeight: FontWeight.w700,
-                      color: c.gold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          for (var i = 0; i < purchases.length; i++) ...[
-            if (i > 0) Divider(height: 1, indent: 52, color: c.divider),
-            _RecentPurchaseRow(purchase: purchases[i], uzs: _uzs, when: _when),
-          ],
-          const SizedBox(height: 4),
-        ],
-      ),
-    );
-  }
-}
-
-class _RecentPurchaseRow extends StatelessWidget {
-  const _RecentPurchaseRow({
-    required this.purchase,
-    required this.uzs,
-    required this.when,
-  });
-
-  final ArTokenPurchase purchase;
-  final NumberFormat uzs;
-  final DateFormat when;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = SellerColors.of(context);
-    final statusColor = purchase.isPaid
-        ? c.positive
-        : purchase.isCancelled
-        ? c.grey
-        : c.warning;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      child: Row(
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: c.goldBg,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(Icons.bolt_rounded, size: 18, color: c.gold),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  tr(
-                    'seller.ar_token_count',
-                    namedArgs: {'count': '${purchase.tokens}'},
-                  ),
-                  style: TextStyle(
-                    fontFamily: AppFonts.seller,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: c.ink,
-                  ),
-                ),
-                Text(
-                  '${uzs.format(purchase.amountUzs)} ${tr('common.currency_uzs')}',
-                  style: TextStyle(
-                    fontFamily: AppFonts.seller,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: c.grey,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                purchase.isPaid
-                    ? tr('seller.ar_purchase_status_paid')
-                    : purchase.isCancelled
-                    ? tr('seller.ar_purchase_status_cancelled')
-                    : tr('seller.ar_purchase_status_pending'),
-                style: TextStyle(
-                  fontFamily: AppFonts.seller,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
-                  color: statusColor,
-                ),
-              ),
-              Text(
-                when.format(purchase.createdAt.toLocal()),
-                style: TextStyle(
-                  fontFamily: AppFonts.seller,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  color: c.greyMid,
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }

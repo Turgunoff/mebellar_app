@@ -176,7 +176,7 @@ class _ArTokenPurchaseHistoryScreenState
           return _PurchaseTile(
             purchase: purchase,
             isCancelling: _cancellingId == purchase.id,
-            onCancel: purchase.isPending
+            onCancel: purchase.canCancel
                 ? () => _confirmCancel(purchase)
                 : null,
           );
@@ -256,9 +256,11 @@ class _PurchaseTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
     final palette = _statusPalette(c, purchase.status);
-    final providerLabel = purchase.provider == 'click'
-        ? tr('seller.ar_purchase_provider_click')
-        : tr('seller.ar_purchase_provider_payme');
+    final providerLabel = switch (purchase.provider) {
+      'click' => tr('seller.ar_purchase_provider_click'),
+      'manual' => tr('seller.ar_purchase_provider_manual'),
+      _ => tr('seller.ar_purchase_provider_payme'),
+    };
 
     return Container(
       decoration: BoxDecoration(
@@ -385,6 +387,8 @@ class _PurchaseTile extends StatelessWidget {
   static String _statusLabel(String status) => switch (status) {
     'paid' => tr('seller.ar_purchase_status_paid'),
     'cancelled' => tr('seller.ar_purchase_status_cancelled'),
+    'pending_review' => tr('seller.ar_purchase_status_pending_review'),
+    'rejected' => tr('seller.ar_purchase_status_rejected'),
     _ => tr('seller.ar_purchase_status_pending'),
   };
 
@@ -392,6 +396,11 @@ class _PurchaseTile extends StatelessWidget {
       switch (status) {
         'paid' => (fg: c.positive, bg: c.positiveBg),
         'cancelled' => (fg: c.grey, bg: c.fillSoft),
+        'rejected' => (fg: AppColors.sellerNegative, bg: c.fillSoft),
+        'pending_review' => (
+          fg: c.primary,
+          bg: c.primary.withValues(alpha: 0.1),
+        ),
         _ => (fg: c.warning, bg: c.warningBg),
       };
 }

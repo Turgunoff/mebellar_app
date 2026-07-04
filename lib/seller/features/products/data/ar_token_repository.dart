@@ -1,5 +1,10 @@
+import 'dart:io';
+
+import '../../../../core/auth/auth_repository.dart';
 import '../../../../core/network/woody_api_client.dart';
+import '../../../../core/storage/r2_upload_client.dart';
 import '../../../../shared/repositories/payment_repository.dart';
+import '../../../../shared/repositories/tariff_repository.dart';
 
 /// One purchasable AR-token bundle (mirrors backend `ArTokenPackage`).
 class ArTokenPackage {
@@ -81,7 +86,10 @@ class ArTokenPurchase {
 
   bool get isPaid => status == 'paid';
   bool get isPending => status == 'pending';
+  bool get isPendingReview => status == 'pending_review';
   bool get isCancelled => status == 'cancelled';
+  bool get isRejected => status == 'rejected';
+  bool get canCancel => isPending || isPendingReview;
 
   factory ArTokenPurchase.fromJson(Map<String, dynamic> json) =>
       ArTokenPurchase(
@@ -109,6 +117,21 @@ abstract class ArTokenRepository {
   /// Abandon a pending checkout the seller opened but didn't pay.
   Future<void> cancelPurchase(String purchaseId);
 
+  /// Platform receiving card for P2P top-ups (`GET /seller/ar-tokens/payment-instructions`).
+  Future<TariffPaymentInstructions> paymentInstructions();
+
+  /// Upload a payment receipt screenshot to R2 (`payment-receipts` bucket).
+  Future<String> uploadPaymentScreenshot({
+    required File file,
+    required String fileExtension,
+  });
+
+  /// Submit a manual card transfer + receipt (`POST /seller/ar-tokens/purchases/manual`).
+  Future<ArTokenPurchase> submitManualPurchase({
+    required String packageCode,
+    required String paymentScreenshotPath,
+  });
+
   /// Start a top-up: mint a Payme/Click checkout deep-link for the package
   /// (`POST /seller/ar-tokens/buy`). Returns the URL the seller opens to pay
   /// plus the purchase `reference` the webhook keys on — the app persists the
@@ -131,9 +154,17 @@ class ArTokenCheckout {
 }
 
 class WoodyArTokenRepository implements ArTokenRepository {
-  WoodyArTokenRepository({required WoodyApiClient api}) : _api = api;
+  WoodyArTokenRepository({
+    required WoodyApiClient api,
+    required AuthRepository auth,
+    required R2UploadClient uploads,
+  }) : _api = api,
+       _auth = auth,
+       _uploads = uploads;
 
   final WoodyApiClient _api;
+  final AuthRepository _auth;
+  final R2UploadClient _uploads;
 
   @override
   Future<ArTokenBalance> balance() async {
@@ -162,6 +193,63 @@ class WoodyArTokenRepository implements ArTokenRepository {
   Future<void> cancelPurchase(String purchaseId) async {
     await _api.patch<void>('/seller/ar-tokens/purchases/$purchaseId/cancel');
   }
+
+  @override
+  Future<TariffPaymentInstructions> paymentInstructions() async {
+    final body = await _api.get<Map<String, dynamic>>(
+      '/seller/ar-tokens/payment-instructions',
+    );
+    return TariffPaymentInstructions(
+      cardNumber: body['card_number'] as String? ?? '',
+      cardHolder: body['card_holder'] as String? ?? '',
+      bankName: body['bank_name'] as String? ?? '',
+      note: body['note'] as String? ?? '',
+      telegramSupportUrl: body['telegram_support_url'] as String? ?? '',
+    );
+  }
+
+  @override
+  Future<String> uploadPaymentScreenshot({
+    required File file,
+    required String fileExtension,
+  }) async {
+    final userId = _auth.currentUserId;
+    if (userId == null) {
+      throw StateError('auth_required');
+    }
+    final ext = fileExtension.toLowerCase();
+    final path =
+        '$userId/ar-token-${DateTime.now().millisecondsSinceEpoch}.$ext';
+    final result = await _uploads.upload(
+      bucket: R2Bucket.paymentReceipts,
+      path: path,
+      bytes: await file.readAsBytes(),
+      contentType: _contentType(ext),
+    );
+    return result.path;
+  }
+
+  @override
+  Future<ArTokenPurchase> submitManualPurchase({
+    required String packageCode,
+    required String paymentScreenshotPath,
+  }) async {
+    final body = await _api.post<Map<String, dynamic>>(
+      '/seller/ar-tokens/purchases/manual',
+      body: {
+        'package_code': packageCode,
+        'payment_screenshot_path': paymentScreenshotPath,
+      },
+    );
+    return ArTokenPurchase.fromJson(body);
+  }
+
+  String _contentType(String ext) => switch (ext) {
+    'png' => 'image/png',
+    'webp' => 'image/webp',
+    'pdf' => 'application/pdf',
+    _ => 'image/jpeg',
+  };
 
   @override
   Future<ArTokenCheckout> buy({

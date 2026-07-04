@@ -86,7 +86,11 @@ void registerSellerModule(GetIt sl) {
   // AR tokenisation: balance read + package purchase (Payme) for the metered
   // generation flow.
   sl.registerLazySingleton<ArTokenRepository>(
-    () => WoodyArTokenRepository(api: sl<WoodyApiClient>()),
+    () => WoodyArTokenRepository(
+      api: sl<WoodyApiClient>(),
+      auth: sl<AuthRepository>(),
+      uploads: sl<R2UploadClient>(),
+    ),
   );
   sl.registerLazySingleton<AttributesRepository>(
     () => WoodyAttributesRepository(api: sl<WoodyApiClient>()),
