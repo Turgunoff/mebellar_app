@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.compile.JavaCompile
+
 allprojects {
     repositories {
         google()
@@ -17,6 +19,21 @@ subprojects {
 }
 subprojects {
     project.evaluationDependsOn(":app")
+}
+
+// Third-party plugin modules still compile with Java 8 — suppress noisy javac
+// lint (obsolete source/target, unchecked, deprecation) from pub-cache builds.
+subprojects {
+    tasks.withType<JavaCompile>().configureEach {
+        options.compilerArgs.addAll(
+            listOf(
+                "-nowarn",
+                "-Xlint:-options",
+                "-Xlint:-unchecked",
+                "-Xlint:-deprecation",
+            ),
+        )
+    }
 }
 
 tasks.register<Delete>("clean") {

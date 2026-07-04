@@ -7,6 +7,7 @@ Failure mapDioError(DioException error) {
     case DioExceptionType.connectionTimeout:
     case DioExceptionType.receiveTimeout:
     case DioExceptionType.sendTimeout:
+    case DioExceptionType.transformTimeout:
     case DioExceptionType.connectionError:
       return NetworkFailure(message: error.message ?? 'Network error');
     case DioExceptionType.badResponse:

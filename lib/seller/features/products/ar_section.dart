@@ -74,7 +74,9 @@ class _SellerArSectionState extends State<SellerArSection> {
 
   Future<void> _loadParts() async {
     try {
-      final parts = await sl<ArScanRepository>().fetchArParts(widget.product.id);
+      final parts = await sl<ArScanRepository>().fetchArParts(
+        widget.product.id,
+      );
       if (mounted) {
         setState(() {
           _parts = parts;
@@ -101,8 +103,10 @@ class _SellerArSectionState extends State<SellerArSection> {
   /// a set) is adopted onto the first piece with no part yet, so an existing
   /// model is never stranded or duplicated.
   List<_ArRow> _rows() {
-    final components =
-        resolveArScanComponents(schema: widget.schema, product: widget.product);
+    final components = resolveArScanComponents(
+      schema: widget.schema,
+      product: widget.product,
+    );
     final rows = <String, _ArRow>{
       for (final c in components) c.partKey: _ArRow(component: c, part: null),
     };
@@ -110,14 +114,17 @@ class _SellerArSectionState extends State<SellerArSection> {
     final orphans = <ArPart>[];
     for (final part in _parts) {
       if (rows.containsKey(part.partKey)) {
-        rows[part.partKey] =
-            _ArRow(component: rows[part.partKey]!.component, part: part);
+        rows[part.partKey] = _ArRow(
+          component: rows[part.partKey]!.component,
+          part: part,
+        );
       } else {
         orphans.add(part);
       }
     }
     for (final orphan in orphans) {
-      final adoptable = orphan.hasModel ||
+      final adoptable =
+          orphan.hasModel ||
           orphan.isProcessing ||
           orphan.isPending ||
           orphan.isFailed ||
@@ -132,7 +139,10 @@ class _SellerArSectionState extends State<SellerArSection> {
         }
       }
       if (freeKey != null) {
-        rows[freeKey] = _ArRow(component: rows[freeKey]!.component, part: orphan);
+        rows[freeKey] = _ArRow(
+          component: rows[freeKey]!.component,
+          part: orphan,
+        );
       } else {
         rows[orphan.partKey] = _ArRow(part: orphan);
       }
@@ -143,7 +153,8 @@ class _SellerArSectionState extends State<SellerArSection> {
   // ── Actions ────────────────────────────────────────────────────────────────
 
   /// Requests (or re-requests) a 3D model for one part. The first request is
-  /// free; a re-request costs 1 token, so we confirm + balance-check first.
+  /// free while the shop's bonus quota has headroom; after that (or on a
+  /// re-request) 1 token is locked — confirm + balance-check first.
   /// Incomplete dimensions route to the edit form instead of a doomed request.
   Future<void> _request(_ArRow row) async {
     final component = row.component;
@@ -151,9 +162,14 @@ class _SellerArSectionState extends State<SellerArSection> {
       await _showNeedDimensionsDialog();
       return;
     }
-    if (row.part?.freeScanUsed ?? false) {
-      final tokens = _balance?.arCredits;
-      if (tokens != null && tokens <= 0) {
+    final needsToken =
+        _balance?.requestNeedsToken(
+          partFreeScanUsed: row.part?.freeScanUsed ?? false,
+        ) ??
+        false;
+    if (needsToken) {
+      final tokens = _balance?.arCredits ?? 0;
+      if (tokens <= 0) {
         await _promptBuyTokens();
         return;
       }
@@ -209,7 +225,10 @@ class _SellerArSectionState extends State<SellerArSection> {
       setState(() {
         _parts = [
           for (final p in _parts)
-            if (p.id == part.id) p.copyWith(isArVisible: part.isArVisible) else p,
+            if (p.id == part.id)
+              p.copyWith(isArVisible: part.isArVisible)
+            else
+              p,
         ];
       });
       _showSnack(tr('seller.ar_visibility_toggle_failed'), isError: true);
@@ -358,6 +377,18 @@ class _SellerArSectionState extends State<SellerArSection> {
     if (goEdit == true) widget.onEdit?.call();
   }
 
+  bool _canSubmitRequest(_ArRow row) {
+    final component = row.component;
+    if (component == null || !component.isComplete) return true;
+    final needsToken =
+        _balance?.requestNeedsToken(
+          partFreeScanUsed: row.part?.freeScanUsed ?? false,
+        ) ??
+        false;
+    if (!needsToken) return true;
+    return (_balance?.arCredits ?? 0) > 0;
+  }
+
   void _showSnack(String message, {bool isError = false}) {
     final c = SellerColors.of(context);
     ScaffoldMessenger.of(context)
@@ -389,91 +420,114 @@ class _SellerArSectionState extends State<SellerArSection> {
     return Container(
       decoration: BoxDecoration(
         color: c.surface,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: c.divider),
       ),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 44,
-                height: 44,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
                   color: c.primarySoft,
-                  borderRadius: BorderRadius.circular(13),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(Icons.view_in_ar_rounded, color: c.onPrimarySoft),
+                child: Icon(
+                  Icons.view_in_ar_rounded,
+                  size: 20,
+                  color: c.onPrimarySoft,
+                ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
-                child: Text(
-                  tr('seller.ar_scan_card_title'),
-                  style: TextStyle(
-                    fontFamily: AppFonts.seller,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                    color: c.ink,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      tr('seller.ar_scan_card_title'),
+                      style: TextStyle(
+                        fontFamily: AppFonts.seller,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: c.ink,
+                        height: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      tr('seller.ar_scan_card_description'),
+                      style: TextStyle(
+                        fontFamily: AppFonts.seller,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: c.grey,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          Text(
-            tr('seller.ar_scan_card_description'),
-            style: TextStyle(
-              fontFamily: AppFonts.seller,
-              fontSize: 13.5,
-              fontWeight: FontWeight.w500,
-              color: c.grey,
-              height: 1.4,
-            ),
-          ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           _TokenBanner(
             credits: _balance?.arCredits,
+            ai3dUsed: _balance?.ai3dUsed,
+            ai3dLimit: _balance?.ai3dLimit,
             onTopUp: _openTokens,
           ),
-          const SizedBox(height: 12),
           if (!_partsLoaded)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
+              padding: const EdgeInsets.symmetric(vertical: 10),
               child: Center(
                 child: SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(strokeWidth: 2.4, color: c.primary),
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.2,
+                    color: c.primary,
+                  ),
                 ),
               ),
             )
           else if (rows.isEmpty)
-            Text(
-              tr('seller.ar_scan_no_components'),
-              style: TextStyle(
-                fontFamily: AppFonts.seller,
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: c.grey,
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                tr('seller.ar_scan_no_components'),
+                style: TextStyle(
+                  fontFamily: AppFonts.seller,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w500,
+                  color: c.grey,
+                  height: 1.3,
+                ),
               ),
             )
-          else
-            ...[
-              for (var i = 0; i < rows.length; i++) ...[
-                if (i > 0) Divider(height: 22, color: c.divider),
-                _PartTile(
-                  row: rows[i],
-                  busy: _busy.contains(rows[i].component?.partKey),
-                  onRequest: () => _request(rows[i]),
-                  onView: rows[i].part != null ? () => _openViewer(rows[i].part!) : null,
-                  onToggleVisibility: rows[i].part != null
-                      ? () => _toggleVisibility(rows[i].part!)
-                      : null,
-                ),
-              ],
+          else ...[
+            const SizedBox(height: 8),
+            for (var i = 0; i < rows.length; i++) ...[
+              if (i > 0) Divider(height: 16, color: c.divider),
+              _PartTile(
+                row: rows[i],
+                busy: _busy.contains(rows[i].component?.partKey),
+                canRequest: _canSubmitRequest(rows[i]),
+                showTitle: rows.length > 1,
+                onRequest: () => _request(rows[i]),
+                onView: rows[i].part != null
+                    ? () => _openViewer(rows[i].part!)
+                    : null,
+                onToggleVisibility: rows[i].part != null
+                    ? () => _toggleVisibility(rows[i].part!)
+                    : null,
+              ),
             ],
+          ],
         ],
       ),
     );
@@ -496,6 +550,8 @@ class _PartTile extends StatelessWidget {
   const _PartTile({
     required this.row,
     required this.busy,
+    required this.canRequest,
+    required this.showTitle,
     required this.onRequest,
     this.onView,
     this.onToggleVisibility,
@@ -503,6 +559,8 @@ class _PartTile extends StatelessWidget {
 
   final _ArRow row;
   final bool busy;
+  final bool canRequest;
+  final bool showTitle;
   final VoidCallback onRequest;
   final VoidCallback? onView;
   final VoidCallback? onToggleVisibility;
@@ -522,30 +580,33 @@ class _PartTile extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                row.label,
-                style: TextStyle(
-                  fontFamily: AppFonts.seller,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: c.ink,
+              if (showTitle) ...[
+                Text(
+                  row.label,
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: c.ink,
+                    height: 1.2,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 2),
+                const SizedBox(height: 1),
+              ],
               Text(
                 subtitle,
                 style: TextStyle(
                   fontFamily: AppFonts.seller,
-                  fontSize: 12.5,
+                  fontSize: 12,
                   fontWeight: FontWeight.w500,
                   color: subtitleColor,
-                  height: 1.35,
+                  height: 1.25,
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 8),
         _trailing(context, c, part, status),
       ],
     );
@@ -590,7 +651,11 @@ class _PartTile extends StatelessWidget {
   ) {
     switch (status) {
       case 'pending':
-        return _StatusChip(label: tr('seller.ar_part_pending_chip'), color: c.info, bg: c.infoBg);
+        return _StatusChip(
+          label: tr('seller.ar_part_pending_chip'),
+          color: c.info,
+          bg: c.infoBg,
+        );
       case 'processing':
         return SizedBox(
           width: 22,
@@ -628,7 +693,7 @@ class _PartTile extends StatelessWidget {
           icon: Icons.autorenew_rounded,
           color: c.primary,
           busy: busy,
-          onTap: onRequest,
+          onTap: canRequest ? onRequest : null,
         );
       default:
         return _PrimaryButton(
@@ -636,7 +701,7 @@ class _PartTile extends StatelessWidget {
           icon: Icons.auto_awesome_rounded,
           color: c.primary,
           busy: busy,
-          onTap: onRequest,
+          onTap: canRequest ? onRequest : null,
         );
     }
   }
@@ -666,33 +731,33 @@ class _PrimaryButton extends StatelessWidget {
     // constraint. Material + InkWell + a mainAxisSize.min Row just sizes to its
     // content, so it lays out correctly in that slot.
     return Material(
-      color: color,
+      color: onTap == null && !busy ? color.withValues(alpha: 0.45) : color,
       borderRadius: BorderRadius.circular(12),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: busy ? null : onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               if (busy)
                 const SizedBox(
-                  width: 16,
-                  height: 16,
+                  width: 14,
+                  height: 14,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
                     color: Colors.white,
                   ),
                 )
               else
-                Icon(icon, size: 18, color: Colors.white),
-              const SizedBox(width: 8),
+                Icon(icon, size: 16, color: Colors.white),
+              const SizedBox(width: 6),
               Text(
                 label,
                 style: const TextStyle(
                   fontFamily: AppFonts.seller,
-                  fontSize: 14,
+                  fontSize: 13,
                   fontWeight: FontWeight.w700,
                   color: Colors.white,
                 ),
@@ -706,7 +771,11 @@ class _PrimaryButton extends StatelessWidget {
 }
 
 class _StatusChip extends StatelessWidget {
-  const _StatusChip({required this.label, required this.color, required this.bg});
+  const _StatusChip({
+    required this.label,
+    required this.color,
+    required this.bg,
+  });
   final String label;
   final Color color;
   final Color bg;
@@ -714,13 +783,16 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(10)),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(8),
+      ),
       child: Text(
         label,
         style: TextStyle(
           fontFamily: AppFonts.seller,
-          fontSize: 12.5,
+          fontSize: 11.5,
           fontWeight: FontWeight.w700,
           color: color,
         ),
@@ -731,35 +803,65 @@ class _StatusChip extends StatelessWidget {
 
 /// The AR-token balance / quota banner with a top-up shortcut.
 class _TokenBanner extends StatelessWidget {
-  const _TokenBanner({required this.credits, required this.onTopUp});
+  const _TokenBanner({
+    required this.credits,
+    required this.onTopUp,
+    this.ai3dUsed,
+    this.ai3dLimit,
+  });
   final int? credits;
+  final int? ai3dUsed;
+  final int? ai3dLimit;
   final VoidCallback onTopUp;
+
+  String _summary() {
+    final count = credits ?? 0;
+    final tokens = tr(
+      'seller.ar_tokens_balance',
+    ).replaceFirst('{count}', '$count');
+    final limit = ai3dLimit;
+    if (limit == null || limit <= 0) return tokens;
+    final used = ai3dUsed ?? 0;
+    if (used >= limit && count <= 0) {
+      return '$tokens · ${tr('seller.ar_quota_exhausted_short')}';
+    }
+    return '$tokens · ${tr('dashboard.bonus_banner_ai3d_value', args: ['$used', '$limit'])}';
+  }
 
   @override
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
+    final limit = ai3dLimit;
+    final quotaExhausted =
+        limit != null &&
+        limit > 0 &&
+        (ai3dUsed ?? 0) >= limit &&
+        (credits ?? 0) <= 0;
+    final accent = quotaExhausted ? c.negative : c.gold;
     return InkWell(
       onTap: onTopUp,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(10),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color: c.goldBg,
-          borderRadius: BorderRadius.circular(12),
+          color: quotaExhausted ? c.negativeBg : c.goldBg,
+          borderRadius: BorderRadius.circular(10),
         ),
         child: Row(
           children: [
-            Icon(Icons.bolt_rounded, size: 18, color: c.gold),
-            const SizedBox(width: 8),
+            Icon(Icons.bolt_rounded, size: 16, color: accent),
+            const SizedBox(width: 6),
             Expanded(
               child: Text(
-                tr('seller.ar_tokens_balance')
-                    .replaceFirst('{count}', '${credits ?? 0}'),
+                _summary(),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontFamily: AppFonts.seller,
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w700,
-                  color: c.ink,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: quotaExhausted ? c.negative : c.ink,
+                  height: 1.25,
                 ),
               ),
             ),
@@ -767,12 +869,12 @@ class _TokenBanner extends StatelessWidget {
               tr('seller.ar_tokens_top_up'),
               style: TextStyle(
                 fontFamily: AppFonts.seller,
-                fontSize: 13.5,
+                fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: c.gold,
+                color: accent,
               ),
             ),
-            Icon(Icons.chevron_right_rounded, size: 18, color: c.gold),
+            Icon(Icons.chevron_right_rounded, size: 16, color: accent),
           ],
         ),
       ),
@@ -855,8 +957,9 @@ class _ActionDialog extends StatelessWidget {
                   backgroundColor: primaryColor,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape:
-                      RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                 ),
                 child: Text(
                   primaryLabel,

@@ -94,7 +94,7 @@ const Map<String, dynamic> sellerUz = {
   'ar_scan_card_title': '3D model (AR)',
   'info_tooltip': 'Ma’lumot',
   'ar_scan_card_description':
-      'Har bir qism uchun alohida model. So‘rov yuboring — admin tekshirib, AI orqali model yasaydi. Birinchi so‘rov bepul, keyingisi 1 token.',
+      'Admin tasdiqlagach AI model yasaydi. Keyingi so‘rovlar 1 token.',
   'ar_scan_no_components':
       'Avval mahsulot o‘lchamlarini qo‘shing — har bir qism o‘lchami 3D model uchun kerak.',
   'ar_part_default_label': 'Asosiy',
@@ -114,6 +114,9 @@ const Map<String, dynamic> sellerUz = {
       'So‘rov adminga yuborildi. Tekshirilgach model paydo bo‘ladi.',
   'ar_request_failed': 'So‘rov yuborib bo‘lmadi. Keyinroq urinib ko‘ring.',
   'ar_tokens_balance': 'Mavjud tokenlar: {count}',
+  'ar_quota_exhausted_hint':
+      'Bepul AI 3D limiti tugadi. Yangi so\'rov uchun token sotib oling.',
+  'ar_quota_exhausted_short': 'Bepul limit tugadi',
   'ar_tokens_top_up': 'To‘ldirish',
   'ar_info_title': '3D skan (AR) nima?',
   'ar_info_intro':
@@ -325,6 +328,17 @@ const Map<String, dynamic> sellerUz = {
   'ar_tokens_bullet_shared_pool':
       'Tokenlar do‘konning barcha mahsulotlari uchun umumiy — bir marta sotib oling, xohlagan mahsulotga ishlating.',
   'ar_tokens_load_failed': 'Token balansini yuklab bo‘lmadi',
+  'ar_purchase_history_title': 'Xaridlar tarixi',
+  'ar_purchase_history_empty': 'Hali xarid yo‘q',
+  'ar_purchase_history_empty_hint':
+      'AR token sotib olganingizdan keyin to‘lovlar shu yerda ko‘rinadi.',
+  'ar_purchase_recent_title': 'So‘nggi xaridlar',
+  'ar_purchase_view_all': 'Barchasi',
+  'ar_purchase_status_paid': 'To‘landi',
+  'ar_purchase_status_pending': 'Kutilmoqda',
+  'ar_purchase_status_cancelled': 'Bekor qilindi',
+  'ar_purchase_provider_payme': 'Payme',
+  'ar_purchase_provider_click': 'Click',
   'wallet_info_purpose_title': 'Vazifasi',
   'wallet_info_purpose_desc':
       'Hamyon platforma orqali qilingan muvaffaqiyatli savdolardan tushadigan komissiyalarni to\'lash uchun ishlatiladi.',
@@ -431,7 +445,7 @@ const Map<String, dynamic> sellerRu = {
   'ar_scan_card_title': '3D-модель (AR)',
   'info_tooltip': 'Информация',
   'ar_scan_card_description':
-      'Отдельная модель для каждой части. Отправьте запрос — администратор проверит и создаст модель через ИИ. Первый запрос бесплатно, следующий — 1 токен.',
+      'После проверки админом ИИ создаёт модель. Далее — 1 токен за запрос.',
   'ar_scan_no_components':
       'Сначала добавьте размеры товара — размер каждой части нужен для 3D-модели.',
   'ar_part_default_label': 'Основная',
@@ -451,6 +465,9 @@ const Map<String, dynamic> sellerRu = {
       'Запрос отправлен администратору. После проверки появится модель.',
   'ar_request_failed': 'Не удалось отправить запрос. Попробуйте позже.',
   'ar_tokens_balance': 'Доступно токенов: {count}',
+  'ar_quota_exhausted_hint':
+      'Бесплатный лимит AI 3D исчерпан. Купите токены для нового запроса.',
+  'ar_quota_exhausted_short': 'Бесплатный лимит исчерпан',
   'ar_tokens_top_up': 'Пополнить',
   'ar_info_title': 'Что такое 3D-скан (AR)?',
   'ar_info_intro':
@@ -660,6 +677,17 @@ const Map<String, dynamic> sellerRu = {
   'ar_tokens_bullet_shared_pool':
       'Токены общие для всех товаров магазина — купите один раз и тратьте на любой товар.',
   'ar_tokens_load_failed': 'Не удалось загрузить баланс токенов',
+  'ar_purchase_history_title': 'История покупок',
+  'ar_purchase_history_empty': 'Покупок пока нет',
+  'ar_purchase_history_empty_hint':
+      'После покупки AR-токенов платежи появятся здесь.',
+  'ar_purchase_recent_title': 'Недавние покупки',
+  'ar_purchase_view_all': 'Все',
+  'ar_purchase_status_paid': 'Оплачено',
+  'ar_purchase_status_pending': 'Ожидает',
+  'ar_purchase_status_cancelled': 'Отменено',
+  'ar_purchase_provider_payme': 'Payme',
+  'ar_purchase_provider_click': 'Click',
   'wallet_info_purpose_title': 'Назначение',
   'wallet_info_purpose_desc':
       'Кошелёк используется для оплаты комиссий с успешных продаж, совершённых через платформу.',
@@ -764,7 +792,7 @@ const Map<String, dynamic> sellerEn = {
   'ar_scan_card_title': '3D model (AR)',
   'info_tooltip': 'Info',
   'ar_scan_card_description':
-      'A separate model for each part. Send a request — an admin reviews it and generates the model with AI. The first request is free, the next costs 1 token.',
+      'After admin review, AI builds the model. Further requests cost 1 token.',
   'ar_scan_no_components':
       'First add the product dimensions — each part\'s size is needed for the 3D model.',
   'ar_part_default_label': 'Main',
@@ -784,6 +812,9 @@ const Map<String, dynamic> sellerEn = {
       'Request sent to the admin. The model will appear once reviewed.',
   'ar_request_failed': 'Could not send the request. Please try again later.',
   'ar_tokens_balance': 'Available tokens: {count}',
+  'ar_quota_exhausted_hint':
+      'Free AI 3D quota used up. Buy tokens to send a new request.',
+  'ar_quota_exhausted_short': 'Free quota used up',
   'ar_tokens_top_up': 'Top up',
   'ar_info_title': 'What is 3D scan (AR)?',
   'ar_info_intro':
@@ -992,6 +1023,17 @@ const Map<String, dynamic> sellerEn = {
   'ar_tokens_bullet_shared_pool':
       'Tokens are shared across all your shop\'s products — buy once, use on any product.',
   'ar_tokens_load_failed': 'Couldn\'t load the token balance',
+  'ar_purchase_history_title': 'Purchase history',
+  'ar_purchase_history_empty': 'No purchases yet',
+  'ar_purchase_history_empty_hint':
+      'After you buy AR tokens, payments will show up here.',
+  'ar_purchase_recent_title': 'Recent purchases',
+  'ar_purchase_view_all': 'See all',
+  'ar_purchase_status_paid': 'Paid',
+  'ar_purchase_status_pending': 'Pending',
+  'ar_purchase_status_cancelled': 'Cancelled',
+  'ar_purchase_provider_payme': 'Payme',
+  'ar_purchase_provider_click': 'Click',
   'wallet_info_purpose_title': 'Purpose',
   'wallet_info_purpose_desc':
       'The wallet is used to pay the commission on successful sales made through the platform.',

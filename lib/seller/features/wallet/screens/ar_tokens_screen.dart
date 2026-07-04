@@ -7,6 +7,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../products/data/ar_token_repository.dart';
 import '../../products/widgets/ar_token_buy_sheet.dart';
+import 'ar_token_purchase_history_screen.dart';
 
 /// Dedicated AR-token wallet — the seller's token balance + the top-up flow.
 ///
@@ -24,6 +25,7 @@ class ArTokensScreen extends StatefulWidget {
 
 class _ArTokensScreenState extends State<ArTokensScreen> {
   ArTokenBalance? _balance;
+  List<ArTokenPurchase> _recentPurchases = const [];
   bool _loading = true;
   bool _failed = false;
 
@@ -39,10 +41,15 @@ class _ArTokensScreenState extends State<ArTokensScreen> {
       _failed = false;
     });
     try {
-      final balance = await sl<ArTokenRepository>().balance();
+      final repo = sl<ArTokenRepository>();
+      final results = await Future.wait([
+        repo.balance(),
+        repo.purchaseHistory(limit: 5),
+      ]);
       if (mounted) {
         setState(() {
-          _balance = balance;
+          _balance = results[0] as ArTokenBalance;
+          _recentPurchases = results[1] as List<ArTokenPurchase>;
           _loading = false;
         });
       }
@@ -70,12 +77,21 @@ class _ArTokensScreenState extends State<ArTokensScreen> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        SnackBar(
-          content: Text(
-            tr('seller.ar_tokens_finish_payment_notice'),
-          ),
-        ),
+        SnackBar(content: Text(tr('seller.ar_tokens_finish_payment_notice'))),
       );
+  }
+
+  void _openHistory() {
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute(
+            settings: const RouteSettings(name: '/ar-token-purchase-history'),
+            builder: (_) => const ArTokenPurchaseHistoryScreen(),
+          ),
+        )
+        .then((_) {
+          if (mounted) _load();
+        });
   }
 
   @override
@@ -97,6 +113,13 @@ class _ArTokensScreenState extends State<ArTokensScreen> {
           ),
         ),
         iconTheme: IconThemeData(color: c.ink),
+        actions: [
+          IconButton(
+            tooltip: tr('seller.ar_purchase_history_title'),
+            onPressed: _openHistory,
+            icon: Icon(Icons.history_rounded, color: c.ink),
+          ),
+        ],
       ),
       body: _buildBody(c),
     );
@@ -120,10 +143,17 @@ class _ArTokensScreenState extends State<ArTokensScreen> {
         ),
         children: [
           _BalanceCard(credits: balance.arCredits),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           const _HowItWorksCard(),
+          if (_recentPurchases.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _RecentPurchasesCard(
+              purchases: _recentPurchases,
+              onViewAll: _openHistory,
+            ),
+          ],
           if (balance.packages.isNotEmpty) ...[
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             _BuyButton(onPressed: _openBuyTokens),
           ],
         ],
@@ -155,38 +185,30 @@ class _BalanceCard extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: _gradient[1].withValues(alpha: 0.38),
-            blurRadius: 28,
+            color: _gradient[1].withValues(alpha: 0.32),
+            blurRadius: 20,
             spreadRadius: -6,
-            offset: const Offset(0, 16),
+            offset: const Offset(0, 12),
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
         child: Stack(
           children: [
             Positioned(
-              top: -50,
-              right: -30,
+              top: -40,
+              right: -24,
               child: _Bloom(
-                size: 150,
+                size: 120,
                 color: Colors.white.withValues(alpha: 0.10),
               ),
             ),
-            Positioned(
-              bottom: -60,
-              left: -20,
-              child: _Bloom(
-                size: 140,
-                color: Colors.white.withValues(alpha: 0.06),
-              ),
-            ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(22, 20, 22, 20),
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -196,7 +218,7 @@ class _BalanceCard extends StatelessWidget {
                         tr('seller.ar_tokens_available_tokens'),
                         style: TextStyle(
                           fontFamily: AppFonts.seller,
-                          fontSize: 13,
+                          fontSize: 12.5,
                           fontWeight: FontWeight.w500,
                           color: Colors.white.withValues(alpha: 0.85),
                           letterSpacing: 0.2,
@@ -205,7 +227,7 @@ class _BalanceCard extends StatelessWidget {
                       const Spacer(),
                       Icon(
                         Icons.bolt_rounded,
-                        size: 20,
+                        size: 18,
                         color: Colors.white.withValues(alpha: 0.9),
                       ),
                       const SizedBox(width: 4),
@@ -213,7 +235,7 @@ class _BalanceCard extends StatelessWidget {
                         'AR',
                         style: TextStyle(
                           fontFamily: AppFonts.seller,
-                          fontSize: 12,
+                          fontSize: 11,
                           fontWeight: FontWeight.w800,
                           color: Colors.white.withValues(alpha: 0.9),
                           letterSpacing: 2,
@@ -221,7 +243,7 @@ class _BalanceCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 10),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.baseline,
                     textBaseline: TextBaseline.alphabetic,
@@ -230,7 +252,7 @@ class _BalanceCard extends StatelessWidget {
                         '$credits',
                         style: const TextStyle(
                           fontFamily: AppFonts.seller,
-                          fontSize: 40,
+                          fontSize: 34,
                           fontWeight: FontWeight.w800,
                           color: Colors.white,
                           letterSpacing: -1,
@@ -239,12 +261,12 @@ class _BalanceCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Padding(
-                        padding: const EdgeInsets.only(bottom: 5),
+                        padding: const EdgeInsets.only(bottom: 4),
                         child: Text(
                           tr('seller.ar_tokens_token_unit'),
                           style: TextStyle(
                             fontFamily: AppFonts.seller,
-                            fontSize: 16,
+                            fontSize: 15,
                             fontWeight: FontWeight.w600,
                             color: Colors.white.withValues(alpha: 0.85),
                           ),
@@ -414,6 +436,163 @@ class _BuyButton extends StatelessWidget {
   }
 }
 
+class _RecentPurchasesCard extends StatelessWidget {
+  const _RecentPurchasesCard({
+    required this.purchases,
+    required this.onViewAll,
+  });
+
+  final List<ArTokenPurchase> purchases;
+  final VoidCallback onViewAll;
+
+  static final _uzs = NumberFormat('#,##0', 'uz_UZ');
+  static final _when = DateFormat('d MMM, HH:mm');
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        color: c.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: c.divider),
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 8, 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    tr('seller.ar_purchase_recent_title'),
+                    style: TextStyle(
+                      fontFamily: AppFonts.seller,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: c.ink,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: onViewAll,
+                  child: Text(
+                    tr('seller.ar_purchase_view_all'),
+                    style: TextStyle(
+                      fontFamily: AppFonts.seller,
+                      fontWeight: FontWeight.w700,
+                      color: c.gold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          for (var i = 0; i < purchases.length; i++) ...[
+            if (i > 0) Divider(height: 1, indent: 52, color: c.divider),
+            _RecentPurchaseRow(purchase: purchases[i], uzs: _uzs, when: _when),
+          ],
+          const SizedBox(height: 4),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecentPurchaseRow extends StatelessWidget {
+  const _RecentPurchaseRow({
+    required this.purchase,
+    required this.uzs,
+    required this.when,
+  });
+
+  final ArTokenPurchase purchase;
+  final NumberFormat uzs;
+  final DateFormat when;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    final statusColor = purchase.isPaid
+        ? c.positive
+        : purchase.isCancelled
+        ? c.grey
+        : c.warning;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: c.goldBg,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(Icons.bolt_rounded, size: 18, color: c.gold),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  tr(
+                    'seller.ar_token_count',
+                    namedArgs: {'count': '${purchase.tokens}'},
+                  ),
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: c.ink,
+                  ),
+                ),
+                Text(
+                  '${uzs.format(purchase.amountUzs)} ${tr('common.currency_uzs')}',
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: c.grey,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                purchase.isPaid
+                    ? tr('seller.ar_purchase_status_paid')
+                    : purchase.isCancelled
+                    ? tr('seller.ar_purchase_status_cancelled')
+                    : tr('seller.ar_purchase_status_pending'),
+                style: TextStyle(
+                  fontFamily: AppFonts.seller,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                  color: statusColor,
+                ),
+              ),
+              Text(
+                when.format(purchase.createdAt.toLocal()),
+                style: TextStyle(
+                  fontFamily: AppFonts.seller,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: c.greyMid,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ErrorView extends StatelessWidget {
   const _ErrorView({required this.onRetry});
 
@@ -438,7 +617,10 @@ class _ErrorView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          TextButton(onPressed: onRetry, child: Text(tr('seller.reviews_retry'))),
+          TextButton(
+            onPressed: onRetry,
+            child: Text(tr('seller.reviews_retry')),
+          ),
         ],
       ),
     );

@@ -46,8 +46,9 @@ void main() {
       () => tokenRepo.balance(),
     ).thenAnswer((_) async => const ArTokenBalance(arCredits: 5, packages: []));
     if (sl.isRegistered<ArScanRepository>()) sl.unregister<ArScanRepository>();
-    if (sl.isRegistered<ArTokenRepository>())
+    if (sl.isRegistered<ArTokenRepository>()) {
       sl.unregister<ArTokenRepository>();
+    }
     sl.registerSingleton<ArScanRepository>(scanRepo);
     sl.registerSingleton<ArTokenRepository>(tokenRepo);
   });
@@ -86,4 +87,48 @@ void main() {
       expect(find.text('So‘rov yuborish'), findsOneWidget);
     },
   );
+
+  testWidgets('disables request when bonus quota is exhausted and no tokens', (
+    tester,
+  ) async {
+    when(() => tokenRepo.balance()).thenAnswer(
+      (_) async => const ArTokenBalance(
+        arCredits: 0,
+        packages: [],
+        ai3dUsed: 3,
+        ai3dLimit: 3,
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 380,
+            child: SingleChildScrollView(
+              child: SellerArSection(
+                product: _approvedProduct(),
+                schema: const [],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('So‘rov yuborish'));
+    await tester.pumpAndSettle();
+
+    verifyNever(
+      () => scanRepo.requestArModel(
+        productId: any(named: 'productId'),
+        partKey: any(named: 'partKey'),
+        label: any(named: 'label'),
+        heightCm: any(named: 'heightCm'),
+        widthCm: any(named: 'widthCm'),
+        lengthCm: any(named: 'lengthCm'),
+      ),
+    );
+  });
 }

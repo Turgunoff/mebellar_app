@@ -237,8 +237,9 @@ class _SellerHomeShellState extends State<SellerHomeShell> {
           builder: (context, unreadChats) => SellerBottomNav(
             currentIndex: _index,
             onChanged: (i) {
-              if (i != _index)
+              if (i != _index) {
                 AppNavigationLogger.logTabSwitch(i, _tabNames[i]);
+              }
               setState(() => _index = i);
             },
             items: [
