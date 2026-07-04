@@ -5,12 +5,19 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:woody_app/core/auth/auth_repository.dart';
 import 'package:woody_app/core/network/token_store.dart';
 import 'package:woody_app/core/network/woody_api_client.dart';
+import 'package:woody_app/core/storage/r2_upload_client.dart';
 import 'package:woody_app/seller/features/products/data/ar_token_repository.dart';
 import 'package:woody_app/shared/repositories/payment_repository.dart';
 
 class _MockSecureStorage extends Mock implements FlutterSecureStorage {}
+
+// balance/buy tests never touch auth or uploads — unstubbed mocks satisfy the ctor.
+class _MockAuth extends Mock implements AuthRepository {}
+
+class _MockUploads extends Mock implements R2UploadClient {}
 
 const _json = {
   Headers.contentTypeHeader: [Headers.jsonContentType],
@@ -43,10 +50,15 @@ void main() {
   setUp(() async {
     final storage = _MockSecureStorage();
     final mem = <String, String>{};
-    when(() => storage.read(key: any(named: 'key')))
-        .thenAnswer((i) async => mem[i.namedArguments[#key] as String]);
-    when(() => storage.write(key: any(named: 'key'), value: any(named: 'value')))
-        .thenAnswer((i) async {
+    when(
+      () => storage.read(key: any(named: 'key')),
+    ).thenAnswer((i) async => mem[i.namedArguments[#key] as String]);
+    when(
+      () => storage.write(
+        key: any(named: 'key'),
+        value: any(named: 'value'),
+      ),
+    ).thenAnswer((i) async {
       mem[i.namedArguments[#key] as String] =
           i.namedArguments[#value] as String;
     });
@@ -68,7 +80,14 @@ void main() {
       ),
     )..httpClientAdapter = adapter;
     final api = WoodyApiClient(tokens: store, dio: dio);
-    return (repo: WoodyArTokenRepository(api: api), adapter: adapter);
+    return (
+      repo: WoodyArTokenRepository(
+        api: api,
+        auth: _MockAuth(),
+        uploads: _MockUploads(),
+      ),
+      adapter: adapter,
+    );
   }
 
   test('balance parses ar_credits + packages', () async {
@@ -92,34 +111,39 @@ void main() {
     expect(balance.packages[1].code, 'pack5');
     expect(balance.packages[1].tokens, 5);
     expect(balance.packages[1].priceUzs, 60000);
-    expect(h.adapter.calls.single.uri.path, endsWith('/seller/ar-tokens/balance'));
+    expect(
+      h.adapter.calls.single.uri.path,
+      endsWith('/seller/ar-tokens/balance'),
+    );
   });
 
-  test('buy posts package_code + provider and returns the checkout url + reference',
-      () async {
-    final h = make(
-      (_) => (
-        200,
-        jsonEncode({
-          'provider': 'payme',
-          'checkout_url': 'https://checkout.paycom.uz/abc',
-          'amount': 45000,
-          'reference': 'purchase-7',
-        }),
-      ),
-    );
+  test(
+    'buy posts package_code + provider and returns the checkout url + reference',
+    () async {
+      final h = make(
+        (_) => (
+          200,
+          jsonEncode({
+            'provider': 'payme',
+            'checkout_url': 'https://checkout.paycom.uz/abc',
+            'amount': 45000,
+            'reference': 'purchase-7',
+          }),
+        ),
+      );
 
-    final checkout = await h.repo.buy(
-      packageCode: 'pack5',
-      provider: PaymentProvider.payme,
-    );
+      final checkout = await h.repo.buy(
+        packageCode: 'pack5',
+        provider: PaymentProvider.payme,
+      );
 
-    expect(checkout.url, 'https://checkout.paycom.uz/abc');
-    // The reference is surfaced so the caller can mark a pending payment.
-    expect(checkout.reference, 'purchase-7');
-    final call = h.adapter.calls.single;
-    expect(call.method, 'POST');
-    expect(call.uri.path, endsWith('/seller/ar-tokens/buy'));
-    expect(call.data, {'package_code': 'pack5', 'provider': 'payme'});
-  });
+      expect(checkout.url, 'https://checkout.paycom.uz/abc');
+      // The reference is surfaced so the caller can mark a pending payment.
+      expect(checkout.reference, 'purchase-7');
+      final call = h.adapter.calls.single;
+      expect(call.method, 'POST');
+      expect(call.uri.path, endsWith('/seller/ar-tokens/buy'));
+      expect(call.data, {'package_code': 'pack5', 'provider': 'payme'});
+    },
+  );
 }
