@@ -9,6 +9,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../core/deeplink/deferred_deep_link_service.dart';
 import '../config/app_mode.dart';
 import '../config/screenshot_mode.dart';
 import '../core/deep_links/deep_link_service.dart';
@@ -47,6 +48,9 @@ import 'features/home/widgets/premium/premium_tokens.dart';
 import 'features/notifications/cubit/notifications_cubit.dart';
 import 'features/profile/screens/profile_guest_screen.dart';
 import 'features/profile/screens/profile_screen.dart';
+import '../customer/navigation/product_escape_hatch.dart';
+import 'features/onboarding/screens/onboarding_screen.dart'
+    as customer_onboarding;
 import 'router.dart';
 import 'widgets/glass_bottom_nav.dart';
 
@@ -60,6 +64,7 @@ class CustomerApp extends StatefulWidget {
 class _CustomerAppState extends State<CustomerApp> with WidgetsBindingObserver {
   late final GoRouter _router = buildCustomerRouter();
   StreamSubscription<DeepLinkTarget>? _deepLinkSub;
+  bool _normalizedShareStack = false;
 
   @override
   void initState() {
@@ -67,6 +72,8 @@ class _CustomerAppState extends State<CustomerApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _consumePendingRoute();
+      _replayBootDeepLink();
+      _normalizeColdShareStack();
     });
     if (sl.isRegistered<DeepLinkService>()) {
       _deepLinkSub = sl<DeepLinkService>().watch().listen(_onDeepLink);
@@ -124,6 +131,29 @@ class _CustomerAppState extends State<CustomerApp> with WidgetsBindingObserver {
     if (route != null) navigateCustomerRoute(_router, route);
   }
 
+  /// Clipboard / first-install deferred product link — replay on top of home
+  /// once the shell is mounted (skipped when onboarding still owns navigation).
+  void _replayBootDeepLink() {
+    if (!mounted) return;
+    if (!customer_onboarding.isOnboardingSeen()) return;
+    final route = DeferredDeepLink.take();
+    if (route == null) return;
+    replayCustomerDeepLink(_router, route);
+  }
+
+  /// Universal / App Link cold start can land on a lone product detail with no
+  /// home underneath — replay through home so Back has somewhere to go.
+  void _normalizeColdShareStack() {
+    if (!mounted || _normalizedShareStack) return;
+    _normalizedShareStack = true;
+    if (!customer_onboarding.isOnboardingSeen()) return;
+    final paths = currentStackPaths(context);
+    if (paths.length != 1 || paths.single != customerProductDetailPath) return;
+    final loc = _router.routerDelegate.currentConfiguration.uri.path;
+    if (!loc.startsWith('/product-detail/')) return;
+    replayCustomerDeepLink(_router, loc);
+  }
+
   /// A consumed seller-verdict notification means the cached `/me` seller
   /// status (the "Ko'rib chiqilmoqda" / "Tasdiqlandi" banner) is stale —
   /// refetch it so the profile the user lands on already shows the verdict,
@@ -145,7 +175,7 @@ class _CustomerAppState extends State<CustomerApp> with WidgetsBindingObserver {
   void _onDeepLink(DeepLinkTarget target) {
     if (!mounted) return;
     if (target.mode == AppMode.customer) {
-      _router.go(target.route);
+      navigateCustomerRoute(_router, target.route);
     } else if (sl.isRegistered<NotificationHandler>()) {
       sl<NotificationHandler>().savePendingRoute(
         target.route,

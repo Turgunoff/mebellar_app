@@ -48,7 +48,7 @@ class MockDeepLinkService implements DeepLinkService {
   /// (and across cold starts triggered by a tray push). Pass `null` in
   /// tests to fall back to an in-process slot.
   MockDeepLinkService({Box? pendingRouteBox})
-      : _pendingRouteBox = pendingRouteBox;
+    : _pendingRouteBox = pendingRouteBox;
 
   final _controller = StreamController<DeepLinkTarget>.broadcast();
   final Box? _pendingRouteBox;
@@ -62,10 +62,7 @@ class MockDeepLinkService implements DeepLinkService {
   /// be listed in the Apple `apple-app-site-association` and Android
   /// `assetlinks.json` deploys. Both the bare apex and the `www.` host are
   /// accepted.
-  static const Set<String> _webHosts = {
-    'woody.uz',
-    'www.woody.uz',
-  };
+  static const Set<String> _webHosts = {'woody.uz', 'www.woody.uz'};
 
   /// Memory fallback used when no Hive box is wired (unit tests).
   String? _pendingRouteMem;
@@ -136,6 +133,21 @@ class MockDeepLinkService implements DeepLinkService {
       );
     }
 
+    // Share / universal links (`/product/:id`, `/shop/:id`) land on the
+    // customer product detail or shop profile.
+    if (first == 'product' && segments.length >= 2) {
+      return DeepLinkTarget(
+        mode: AppMode.customer,
+        route: '/product-detail/${segments[1]}',
+      );
+    }
+    if (first == 'shop' && segments.length >= 2) {
+      return DeepLinkTarget(
+        mode: AppMode.customer,
+        route: '/shop/${segments[1]}',
+      );
+    }
+
     // Customer routes — orders, products, catalog, search, cart, favorites,
     // shops. Default fallback: anything we don't recognise lands on the
     // customer home so the user isn't dropped on a dead end.
@@ -153,7 +165,8 @@ class MockDeepLinkService implements DeepLinkService {
     if (knownCustomer.contains(first)) {
       return DeepLinkTarget(
         mode: AppMode.customer,
-        route: '/${segments.join('/')}'
+        route:
+            '/${segments.join('/')}'
             '${uri.query.isEmpty ? '' : '?${uri.query}'}',
       );
     }

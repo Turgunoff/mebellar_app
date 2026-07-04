@@ -61,16 +61,31 @@ void navigateCustomerRoute(GoRouter router, String route) {
   router.push(route);
 }
 
+/// Replays a boot-time deferred deep link (clipboard install attribution) or an
+/// onboarding/tutorial hand-off: lands on Home first, then pushes the target so
+/// Back always has a real origin underneath.
+void replayCustomerDeepLink(GoRouter router, String? route) {
+  final target = route?.trim();
+  if (target == null || target.isEmpty || target == '/') {
+    router.go('/');
+    return;
+  }
+  router.go('/');
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    navigateCustomerRoute(router, target);
+  });
+}
+
 /// Customer-side navigation. The shell hosts the bottom tabs; the rest are
 /// pushed on top via `context.push(...)`. Filters propagate via query params
 /// so deep links like `/product-list?categoryId=sofas` reproduce the same
 /// state.
 GoRouter buildCustomerRouter() {
   return GoRouter(
-    // A deferred deep link resolved at boot (see DeferredDeepLinkService)
-    // becomes the initial location; the tutorial gate below still runs first
-    // on a fresh install, then `onDone` replays it.
-    initialLocation: DeferredDeepLink.pendingLocation ?? '/',
+    // Home is always the router root so share / universal links can push product
+    // detail on top (Back → home). Deferred clipboard links replay via
+    // [replayCustomerDeepLink] after onboarding clears.
+    initialLocation: '/',
     navigatorKey: customerNavigatorKey,
     observers: [
       AppNavigationLogger(),
@@ -114,7 +129,10 @@ GoRouter buildCustomerRouter() {
         // shared product the user installed the app to see) instead of just
         // dropping them on home. `take()` clears it so it can't fire twice.
         builder: (context, state) => CustomerTutorialScreen(
-          onDone: () => context.go(DeferredDeepLink.take() ?? '/'),
+          onDone: () => replayCustomerDeepLink(
+            GoRouter.of(context),
+            DeferredDeepLink.take(),
+          ),
         ),
       ),
       GoRoute(
@@ -122,7 +140,10 @@ GoRouter buildCustomerRouter() {
         // First-launch 3D onboarding (the redirect gate above lands here).
         // On finish, replay any deferred deep link captured at boot, else home.
         builder: (context, state) => customer_onboarding.OnboardingScreen(
-          onDone: () => context.go(DeferredDeepLink.take() ?? '/'),
+          onDone: () => replayCustomerDeepLink(
+            GoRouter.of(context),
+            DeferredDeepLink.take(),
+          ),
         ),
       ),
       GoRoute(

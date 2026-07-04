@@ -8,6 +8,7 @@ import '../../../../shared/ar/glb_cache_manager.dart';
 import '../../../../shared/models/ar_part.dart';
 import '../../../../shared/models/product_model.dart';
 import '../../../../shared/models/product_set.dart';
+import '../../../../shared/repositories/product_data_source.dart';
 import '../../../../shared/repositories/woody_set_repository.dart';
 
 /// Lifecycle of the model currently shown in the 3D viewer:
@@ -71,16 +72,17 @@ class ArViewerPart extends Equatable {
 
   /// One of a product's own per-part models (a garnitur's bed, wardrobe, …).
   /// Parts carry no thumbnail, so the selector chip falls back to a cube glyph.
-  factory ArViewerPart.fromArPart(ArPart p, {String? posterUrl}) => ArViewerPart(
-    id: p.id,
-    name: p.label,
-    glbUrl: p.arModelUrl ?? '',
-    usdzUrl: p.usdzUrl,
-    posterUrl: posterUrl,
-    widthCm: p.widthCm,
-    heightCm: p.heightCm,
-    depthCm: p.depthCm,
-  );
+  factory ArViewerPart.fromArPart(ArPart p, {String? posterUrl}) =>
+      ArViewerPart(
+        id: p.id,
+        name: p.label,
+        glbUrl: p.arModelUrl ?? '',
+        usdzUrl: p.usdzUrl,
+        posterUrl: posterUrl,
+        widthCm: p.widthCm,
+        heightCm: p.heightCm,
+        depthCm: p.depthCm,
+      );
 
   /// Maps this togglable model to the native multi-object placement value type.
   /// Lets the inline viewer hand its whole part list (a garnitur's bed/wardrobe/
@@ -182,8 +184,11 @@ class ArViewerCubit extends Cubit<ArViewerState> {
     required ProductModel product,
     required GlbCacheService cache,
     WoodySetRepository? setRepository,
+    ProductDataSource? productDataSource,
   }) : _cache = cache,
        _setRepo = setRepository,
+       _dataSource = productDataSource,
+       _productId = product.id,
        _setId = product.hasSet ? product.setId : null,
        _productParts = product.arParts,
        _posterUrl = product.thumbnail,
@@ -193,12 +198,15 @@ class ArViewerCubit extends Cubit<ArViewerState> {
 
   final GlbCacheService _cache;
   final WoodySetRepository? _setRepo;
+  final ProductDataSource? _dataSource;
+  final String _productId;
   final String? _setId;
 
   /// This product's own per-part models (a garnitur listing's bed, wardrobe,
   /// …). When ≥2 carry a model, the viewer toggles between them — taking
-  /// precedence over set-member hydration.
-  final List<ArPart> _productParts;
+  /// precedence over set-member hydration. Populated from the opener's product
+  /// or refreshed from catalog detail when the list row omitted `ar_parts`.
+  List<ArPart> _productParts;
 
   /// The product photo, reused as the poster for every part chip (parts have no
   /// thumbnail of their own).
@@ -210,6 +218,7 @@ class ArViewerCubit extends Cubit<ArViewerState> {
   int _loadToken = 0;
 
   Future<void> _bootstrap() async {
+    await _refreshProductArParts();
     await _load(0);
     // A multi-part product (a garnitur listing with its own bed/wardrobe/…
     // models) drives the toggle directly. Only when the product isn't itself
@@ -217,6 +226,23 @@ class ArViewerCubit extends Cubit<ArViewerState> {
     if (_hydrateFromProductParts()) return;
     final setId = _setId;
     if (setId != null && _setRepo != null) await _hydrateSet(setId);
+  }
+
+  /// `ar_parts` is detail-only — list/feed rows never carry it. Refresh from
+  /// catalog detail when the opener passed a shallow product so garnitur buyers
+  /// get the same part toggle the seller preview has.
+  Future<void> _refreshProductArParts() async {
+    if (_productParts.isNotEmpty) return;
+    final ds = _dataSource;
+    if (ds == null) return;
+    try {
+      final detail = await ds.getById(_productId);
+      if (!isClosed && detail.arParts.isNotEmpty) {
+        _productParts = detail.arParts;
+      }
+    } catch (e, st) {
+      appLog.handle(e, st, '[ar-viewer] product detail refresh failed');
+    }
   }
 
   /// Builds the toggle from this product's own per-part models. Returns true

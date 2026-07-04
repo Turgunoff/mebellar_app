@@ -1,4 +1,4 @@
-﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:woody_app/config/app_mode.dart';
@@ -20,8 +20,7 @@ void main() {
       service.overrideStatus(ConnectivityStatus.offline);
       service.overrideStatus(ConnectivityStatus.online);
       await Future<void>.delayed(const Duration(milliseconds: 20));
-      expect(received,
-          [ConnectivityStatus.offline, ConnectivityStatus.online]);
+      expect(received, [ConnectivityStatus.offline, ConnectivityStatus.online]);
       await sub.cancel();
       await service.dispose();
     });
@@ -42,34 +41,48 @@ void main() {
 
   group('MockDeepLinkService URI routing', () {
     test('woody:// scheme routes to customer mode', () {
-      final target =
-          MockDeepLinkService.parse('woody://orders/ord-1001');
+      final target = MockDeepLinkService.parse('woody://orders/ord-1001');
       expect(target?.mode, AppMode.customer);
       expect(target?.route, '/orders/ord-1001');
     });
 
     test('https://woody.uz/... routes the same way', () {
-      final target =
-          MockDeepLinkService.parse('https://woody.uz/orders/ord-1001');
+      final target = MockDeepLinkService.parse(
+        'https://woody.uz/orders/ord-1001',
+      );
       expect(target?.mode, AppMode.customer);
       expect(target?.route, '/orders/ord-1001');
     });
 
     test('seller-prefixed routes flip the mode', () {
-      final target =
-          MockDeepLinkService.parse('woody://seller/products/sp-7');
+      final target = MockDeepLinkService.parse('woody://seller/products/sp-7');
       expect(target?.mode, AppMode.seller);
       expect(target?.route, '/seller/products/sp-7');
     });
 
+    test('product share URL maps to product detail', () {
+      final target = MockDeepLinkService.parse(
+        'https://woody.uz/product/64cb13d9-39a3-4254-b69b-cc2ab42950ba',
+      );
+      expect(target?.mode, AppMode.customer);
+      expect(
+        target?.route,
+        '/product-detail/64cb13d9-39a3-4254-b69b-cc2ab42950ba',
+      );
+    });
+
     test('unknown hosts return null (drop)', () {
       expect(MockDeepLinkService.parse('https://example.com/foo'), isNull);
-      expect(MockDeepLinkService.parse('not-a-uri at all'), anyOf(isNull, isA<DeepLinkTarget>()));
+      expect(
+        MockDeepLinkService.parse('not-a-uri at all'),
+        anyOf(isNull, isA<DeepLinkTarget>()),
+      );
     });
 
     test('search query string survives parsing', () {
       final target = MockDeepLinkService.parse(
-          'https://woody.uz/catalog?category=sofas');
+        'https://woody.uz/catalog?category=sofas',
+      );
       expect(target?.mode, AppMode.customer);
       expect(target?.route, contains('catalog'));
       expect(target?.route, contains('category=sofas'));
@@ -81,7 +94,8 @@ void main() {
 
     setUp(() async {
       box = await Hive.openBox(
-          'test_cache_${DateTime.now().millisecondsSinceEpoch}');
+        'test_cache_${DateTime.now().millisecondsSinceEpoch}',
+      );
     });
 
     tearDown(() async {
@@ -100,8 +114,10 @@ void main() {
       final store = CacheStore(box);
       // Manually inject an entry with a past expiry timestamp.
       box.put('stale', '"value"');
-      box.put('stale__ts',
-          DateTime.now().subtract(const Duration(minutes: 1)).toIso8601String());
+      box.put(
+        'stale__ts',
+        DateTime.now().subtract(const Duration(minutes: 1)).toIso8601String(),
+      );
       expect(store.getJson('stale', (d) => d), isNull);
       // Stale rows are deleted on access so subsequent calls are clean.
       expect(box.get('stale'), isNull);

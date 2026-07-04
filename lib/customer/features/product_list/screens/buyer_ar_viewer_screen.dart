@@ -22,6 +22,7 @@ import '../../../../shared/ar/ar_loading_overlay.dart';
 import '../../../../shared/ar/ar_set_piece.dart';
 import '../../../../shared/ar/glb_cache_manager.dart';
 import '../../../../shared/models/product_model.dart';
+import '../../../../shared/repositories/product_data_source.dart';
 import '../../../../shared/repositories/woody_set_repository.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../cubit/ar_viewer_cubit.dart';
@@ -94,6 +95,9 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
         (sl.isRegistered<WoodySetRepository>()
             ? sl<WoodySetRepository>()
             : null),
+    productDataSource: sl.isRegistered<ProductDataSource>()
+        ? sl<ProductDataSource>()
+        : null,
   );
 
   /// Set once the WebView controller exists — needed to run JS, but NOT a

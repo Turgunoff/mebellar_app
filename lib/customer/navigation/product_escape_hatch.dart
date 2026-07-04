@@ -172,3 +172,22 @@ void escapeProductRabbitHole(BuildContext context) {
     router.pop();
   }
 }
+
+/// App-bar and system back for the customer product detail screen.
+///
+/// Pops when a browsing origin sits underneath (home, list, shop, …). When the
+/// stack is only product detail(s) — a cold share-link / universal-link open —
+/// routes Home instead of no-op'ing or exiting the app.
+void navigateProductDetailBack(BuildContext context) {
+  final router = GoRouter.of(context);
+  if (router.canPop()) {
+    router.pop();
+    return;
+  }
+  final plan = resolveProductEscapePlan(currentStackPaths(context));
+  if (plan.isHomeFallback) {
+    router.go('/');
+    return;
+  }
+  router.go('/');
+}

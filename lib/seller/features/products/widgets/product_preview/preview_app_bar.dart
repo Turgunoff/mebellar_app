@@ -24,6 +24,7 @@ class PreviewAppBar extends StatelessWidget {
     this.titleOpacity = 0,
     this.extraActions = const [],
     this.onShare,
+    this.onBack,
     this.galleryOverlay,
   });
 
@@ -47,6 +48,9 @@ class PreviewAppBar extends StatelessWidget {
   /// where sharing is meaningless (e.g. the seller's pre-publish preview),
   /// which keeps the button inert.
   final VoidCallback? onShare;
+
+  /// Back affordance. Defaults to [Navigator.maybePop] when null.
+  final VoidCallback? onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -86,7 +90,7 @@ class PreviewAppBar extends StatelessWidget {
         padding: const EdgeInsets.all(8),
         child: PreviewGlassIconButton(
           icon: Iconsax.arrow_left_2_copy,
-          onTap: () => Navigator.of(context).maybePop(),
+          onTap: onBack ?? () => Navigator.of(context).maybePop(),
         ),
       ),
       actions: [

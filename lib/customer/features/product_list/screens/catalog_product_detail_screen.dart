@@ -15,6 +15,7 @@ import '../../../../core/network/woody_api_client.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../core/result/result.dart';
 import '../../../../core/theme/app_fonts.dart';
+import '../../../navigation/product_escape_hatch.dart';
 import '../widgets/ar_entry_points.dart';
 import '../../../../shared/constants/product_colors.dart';
 import '../../../../shared/models/attribute_definition.dart';
@@ -309,152 +310,161 @@ class _CatalogProductDetailScreenState
         product.hasInstallation ||
         product.warrantyMonths > 0;
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          CustomScrollView(
-            controller: _scrollController,
-            physics: const BouncingScrollPhysics(
-              parent: AlwaysScrollableScrollPhysics(),
-            ),
-            slivers: [
-              PreviewAppBar(
-                images: product.images,
-                heroTagPrefix: 'product-${product.id}',
-                productName: product.name,
-                titleOpacity: _titleOpacity,
-                onShare: () => shareProduct(product),
-                // Floating "3D / AR" glass badge on the carousel — only when a
-                // QC-approved .glb exists.
-                galleryOverlay: product.hasAr
-                    ? ArGlassBadge(product: product)
-                    : null,
-                extraActions: [
-                  // Context-aware escape hatch — collapses a deep recommendation
-                  // rabbit hole straight back to the browsing surface the user
-                  // started from. Hidden until it earns its place (≥2 deep).
-                  if (escapeLook != null)
+    return PopScope(
+      canPop: GoRouter.of(context).canPop(),
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) navigateProductDetailBack(context);
+      },
+      child: Scaffold(
+        body: Stack(
+          children: [
+            CustomScrollView(
+              controller: _scrollController,
+              physics: const BouncingScrollPhysics(
+                parent: AlwaysScrollableScrollPhysics(),
+              ),
+              slivers: [
+                PreviewAppBar(
+                  images: product.images,
+                  heroTagPrefix: 'product-${product.id}',
+                  productName: product.name,
+                  titleOpacity: _titleOpacity,
+                  onBack: () => navigateProductDetailBack(context),
+                  onShare: () => shareProduct(product),
+                  // Floating "3D / AR" glass badge on the carousel — only when a
+                  // QC-approved .glb exists.
+                  galleryOverlay: product.hasAr
+                      ? ArGlassBadge(product: product)
+                      : null,
+                  extraActions: [
+                    // Context-aware escape hatch — collapses a deep recommendation
+                    // rabbit hole straight back to the browsing surface the user
+                    // started from. Hidden until it earns its place (≥2 deep).
+                    if (escapeLook != null)
+                      Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: Tooltip(
+                          message: tr(escapeLook.tooltipKey),
+                          child: PreviewGlassIconButton(
+                            icon: escapeLook.icon,
+                            onTap: () => escapeProductRabbitHole(context),
+                          ),
+                        ),
+                      ),
                     Padding(
                       padding: const EdgeInsets.all(8),
-                      child: Tooltip(
-                        message: tr(escapeLook.tooltipKey),
-                        child: PreviewGlassIconButton(
-                          icon: escapeLook.icon,
-                          onTap: () => escapeProductRabbitHole(context),
+                      child: BlocSelector<FavoritesBloc, FavoritesState, bool>(
+                        selector: (state) => state.isFavorite(product.id),
+                        builder: (context, isFav) => PreviewGlassIconButton(
+                          icon: isFav ? Icons.favorite : Icons.favorite_border,
+                          color: isFav ? PremiumTokens.accent : null,
+                          onTap: () => context.read<FavoritesBloc>().add(
+                            FavoriteToggled(Product.fromModel(product)),
+                          ),
                         ),
                       ),
                     ),
-                  Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: BlocSelector<FavoritesBloc, FavoritesState, bool>(
-                      selector: (state) => state.isFavorite(product.id),
-                      builder: (context, isFav) => PreviewGlassIconButton(
-                        icon: isFav ? Icons.favorite : Icons.favorite_border,
-                        color: isFav ? PremiumTokens.accent : null,
-                        onTap: () => context.read<FavoritesBloc>().add(
-                          FavoriteToggled(Product.fromModel(product)),
-                        ),
-                      ),
+                  ],
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 150),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _TitlePriceCard(product: product),
+                        // Premium AR call-to-action — sits below the in-stock
+                        // status and above the colour selector. Only when a
+                        // QC-approved .glb exists.
+                        if (product.hasAr)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 14),
+                            child: ArPromoCard(product: product),
+                          ),
+                        // Whole-set "view in your room" entry — shown when this
+                        // product belongs to a furniture set (garnitur).
+                        if (product.hasSet)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 14),
+                            child: SetArPromoCard(product: product),
+                          ),
+                        for (final card in [
+                          // Colours sit right under the price — they are the
+                          // first thing a furniture buyer looks for, and the
+                          // pick is mandatory before adding to the cart.
+                          if (colorOptions.isNotEmpty)
+                            _ColorsCard(
+                              key: _colorsCardKey,
+                              options: colorOptions,
+                              selectedSlug: _selectedColor,
+                              showError: _colorError,
+                              onSelect: (slug) => setState(() {
+                                _selectedColor = slug;
+                                _colorError = false;
+                              }),
+                            ),
+                          if (shopName.isNotEmpty)
+                            PremiumProductSellerCard(
+                              fallbackName: shopName,
+                              shopId: product.shopId,
+                            ),
+                          if (hasMeta)
+                            MetaCard(
+                              category: categoryName.isEmpty
+                                  ? '—'
+                                  : categoryName,
+                              subcategory: product.subcategoryName,
+                              material: product.material,
+                            ),
+                          if (description.isNotEmpty)
+                            DescriptionCard(text: description),
+                          if (attributeRows.isNotEmpty)
+                            AttributesCard(rows: attributeRows),
+                          if (setDimensionGroups.isNotEmpty)
+                            SetDimensionsCard(groups: setDimensionGroups),
+                          if (hasTypedDimensions)
+                            DimensionsCard(
+                              lengthCm: product.depthCm,
+                              widthCm: product.widthCm,
+                              heightCm: product.heightCm,
+                            ),
+                          if (showLogistics)
+                            LogisticsCard(
+                              productionTimeDays: product.productionTimeDays,
+                              hasDelivery: product.hasDelivery,
+                              deliveryPrice: product.deliveryPrice,
+                              maxDeliveryFee: product.maxDeliveryFee,
+                              hasInstallation: product.hasInstallation,
+                              installationPrice: product.installationPrice,
+                              warrantyMonths: product.warrantyMonths,
+                            ),
+                        ]) ...[const SizedBox(height: 14), card],
+                        _ReviewsSection(productId: product.id),
+                        _SimilarSection(productId: product.id),
+                      ],
                     ),
-                  ),
-                ],
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 150),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _TitlePriceCard(product: product),
-                      // Premium AR call-to-action — sits below the in-stock
-                      // status and above the colour selector. Only when a
-                      // QC-approved .glb exists.
-                      if (product.hasAr)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 14),
-                          child: ArPromoCard(product: product),
-                        ),
-                      // Whole-set "view in your room" entry — shown when this
-                      // product belongs to a furniture set (garnitur).
-                      if (product.hasSet)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 14),
-                          child: SetArPromoCard(product: product),
-                        ),
-                      for (final card in [
-                        // Colours sit right under the price — they are the
-                        // first thing a furniture buyer looks for, and the
-                        // pick is mandatory before adding to the cart.
-                        if (colorOptions.isNotEmpty)
-                          _ColorsCard(
-                            key: _colorsCardKey,
-                            options: colorOptions,
-                            selectedSlug: _selectedColor,
-                            showError: _colorError,
-                            onSelect: (slug) => setState(() {
-                              _selectedColor = slug;
-                              _colorError = false;
-                            }),
-                          ),
-                        if (shopName.isNotEmpty)
-                          PremiumProductSellerCard(
-                            fallbackName: shopName,
-                            shopId: product.shopId,
-                          ),
-                        if (hasMeta)
-                          MetaCard(
-                            category: categoryName.isEmpty ? '—' : categoryName,
-                            subcategory: product.subcategoryName,
-                            material: product.material,
-                          ),
-                        if (description.isNotEmpty)
-                          DescriptionCard(text: description),
-                        if (attributeRows.isNotEmpty)
-                          AttributesCard(rows: attributeRows),
-                        if (setDimensionGroups.isNotEmpty)
-                          SetDimensionsCard(groups: setDimensionGroups),
-                        if (hasTypedDimensions)
-                          DimensionsCard(
-                            lengthCm: product.depthCm,
-                            widthCm: product.widthCm,
-                            heightCm: product.heightCm,
-                          ),
-                        if (showLogistics)
-                          LogisticsCard(
-                            productionTimeDays: product.productionTimeDays,
-                            hasDelivery: product.hasDelivery,
-                            deliveryPrice: product.deliveryPrice,
-                            maxDeliveryFee: product.maxDeliveryFee,
-                            hasInstallation: product.hasInstallation,
-                            installationPrice: product.installationPrice,
-                            warrantyMonths: product.warrantyMonths,
-                          ),
-                      ]) ...[const SizedBox(height: 14), card],
-                      _ReviewsSection(productId: product.id),
-                      _SimilarSection(productId: product.id),
-                    ],
                   ),
                 ),
-              ),
-            ],
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            // Grey out the buy actions on the viewer's OWN product. Surgical
-            // rebuild: only the bar reacts to auth, not the whole detail.
-            child: BlocSelector<AuthCubit, AppAuthState, bool>(
-              selector: (s) =>
-                  s is AppAuthAuthenticated && product.isOwnedBy(s.userId),
-              builder: (context, isOwnProduct) => _BottomBar(
-                product: product,
-                onAddToCart: _handleAddToCart,
-                isOwnProduct: isOwnProduct,
+              ],
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              // Grey out the buy actions on the viewer's OWN product. Surgical
+              // rebuild: only the bar reacts to auth, not the whole detail.
+              child: BlocSelector<AuthCubit, AppAuthState, bool>(
+                selector: (s) =>
+                    s is AppAuthAuthenticated && product.isOwnedBy(s.userId),
+                builder: (context, isOwnProduct) => _BottomBar(
+                  product: product,
+                  onAddToCart: _handleAddToCart,
+                  isOwnProduct: isOwnProduct,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

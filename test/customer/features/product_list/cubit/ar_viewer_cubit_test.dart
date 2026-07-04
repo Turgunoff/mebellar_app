@@ -6,6 +6,7 @@ import 'package:woody_app/shared/ar/glb_cache_manager.dart';
 import 'package:woody_app/shared/models/ar_part.dart';
 import 'package:woody_app/shared/models/product_model.dart';
 import 'package:woody_app/shared/models/product_set.dart';
+import 'package:woody_app/shared/repositories/product_data_source.dart';
 import 'package:woody_app/shared/repositories/woody_set_repository.dart';
 
 /// Controllable in-memory stand-in for the file cache. Tracks which model URLs
@@ -40,6 +41,8 @@ class _FakeCache extends GlbCacheService {
 
 class _MockSetRepo extends Mock implements WoodySetRepository {}
 
+class _MockProductDataSource extends Mock implements ProductDataSource {}
+
 ProductModel _product({
   required String id,
   String name = 'Part',
@@ -67,11 +70,8 @@ ProductModel _product({
   depthCm: depthCm,
 );
 
-ArPart _part(String id, {String? url}) => ArPart(
-  id: id,
-  label: id,
-  arModelUrl: url ?? 'https://cdn/$id.glb',
-);
+ArPart _part(String id, {String? url}) =>
+    ArPart(id: id, label: id, arModelUrl: url ?? 'https://cdn/$id.glb');
 
 void main() {
   group('ArViewerCubit — single product', () {
@@ -81,7 +81,10 @@ void main() {
       'cache miss downloads once then renders from file://',
       build: () {
         cache = _FakeCache();
-        return ArViewerCubit(product: _product(id: 'a'), cache: cache);
+        return ArViewerCubit(
+          product: _product(id: 'a'),
+          cache: cache,
+        );
       },
       wait: const Duration(milliseconds: 20),
       verify: (cubit) {
@@ -97,7 +100,10 @@ void main() {
       'cache hit renders straight from file:// with no download',
       build: () {
         final cache = _FakeCache(cached: {'https://cdn/a.glb'});
-        return ArViewerCubit(product: _product(id: 'a'), cache: cache);
+        return ArViewerCubit(
+          product: _product(id: 'a'),
+          cache: cache,
+        );
       },
       wait: const Duration(milliseconds: 20),
       verify: (cubit) {
@@ -204,10 +210,11 @@ void main() {
         expect(cubit.state.parts.length, 3);
         expect(cubit.state.hasMultipleParts, isTrue);
         expect(cubit.state.selectedPart.id, 'wardrobe');
-        expect(
-          cubit.state.parts.map((p) => p.name),
-          ['Krovat', 'Shkaf', 'Tryumo'],
-        );
+        expect(cubit.state.parts.map((p) => p.name), [
+          'Krovat',
+          'Shkaf',
+          'Tryumo',
+        ]);
       },
     );
 
@@ -366,6 +373,27 @@ void main() {
       ),
       wait: const Duration(milliseconds: 20),
       verify: (cubit) => expect(cubit.state.hasMultipleParts, isFalse),
+    );
+
+    blocTest<ArViewerCubit, ArViewerState>(
+      'fetches ar_parts from catalog detail when the opener had a list row',
+      build: () {
+        final ds = _MockProductDataSource();
+        when(() => ds.getById('bed')).thenAnswer(
+          (_) async =>
+              _product(id: 'bed', arParts: [_part('bed'), _part('wardrobe')]),
+        );
+        return ArViewerCubit(
+          product: _product(id: 'bed'),
+          cache: _FakeCache(),
+          productDataSource: ds,
+        );
+      },
+      wait: const Duration(milliseconds: 20),
+      verify: (cubit) {
+        expect(cubit.state.hasMultipleParts, isTrue);
+        expect(cubit.state.parts.map((p) => p.name), ['bed', 'wardrobe']);
+      },
     );
   });
 }

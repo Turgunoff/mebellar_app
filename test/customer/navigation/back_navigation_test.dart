@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:woody_app/customer/navigation/product_escape_hatch.dart';
 
 /// Regression guard for the reported bug: "Back from AI chat / a category lands
 /// on the Cart tab (index 2) instead of the previous screen."
@@ -161,10 +162,7 @@ class _ProductListReplica extends StatelessWidget {
   );
 }
 
-/// `Navigator.of(context).maybePop()` — verbatim with [PreviewAppBar]'s back
-/// button (lib/seller/.../product_preview/preview_app_bar.dart), which the
-/// customer product detail screen reuses. A plain Material pop, not a
-/// `context.go`: it must return to the origin tab, never reset the shell.
+/// Mirrors [PreviewAppBar]'s customer back — [navigateProductDetailBack].
 class _ProductDetailReplica extends StatelessWidget {
   const _ProductDetailReplica();
   @override
@@ -173,7 +171,7 @@ class _ProductDetailReplica extends StatelessWidget {
       leading: IconButton(
         key: const Key('detail-back'),
         icon: const Icon(Icons.arrow_back),
-        onPressed: () => Navigator.of(context).maybePop(),
+        onPressed: () => navigateProductDetailBack(context),
       ),
       title: const Text('detail'),
     ),
@@ -380,5 +378,20 @@ void main() {
 
     expect(find.text('shell-tab-0'), findsOneWidget);
     expect(find.text('shell-tab-$_cartTab'), findsNothing);
+  });
+
+  testWidgets('Product share cold deep-link back falls through to Home', (
+    tester,
+  ) async {
+    final router = _router(initialLocation: '/product-detail/p1');
+    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+    await tester.pumpAndSettle();
+    expect(find.text('product-detail'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('detail-back')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('shell-tab-0'), findsOneWidget);
+    expect(find.text('product-detail'), findsNothing);
   });
 }
