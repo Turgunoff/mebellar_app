@@ -14,6 +14,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/payments/pending_payment.dart';
 import '../../../../shared/payments/pending_payment_service.dart';
+import '../../../../shared/payments/manual_payment_pending_screen.dart';
 import '../../../../shared/repositories/payment_repository.dart';
 import '../../../../shared/repositories/tariff_repository.dart';
 import '../../../../shared/utils/image_upload.dart';
@@ -29,12 +30,12 @@ class ArTokenBuySection extends StatefulWidget {
     super.key,
     required this.packages,
     required this.onOnlineLaunched,
-    required this.onManualSubmitted,
+    this.onFlowCompleted,
   });
 
   final List<ArTokenPackage> packages;
   final VoidCallback onOnlineLaunched;
-  final VoidCallback onManualSubmitted;
+  final VoidCallback? onFlowCompleted;
 
   @override
   State<ArTokenBuySection> createState() => _ArTokenBuySectionState();
@@ -191,13 +192,21 @@ class _ArTokenBuySectionState extends State<ArTokenBuySection> {
         file: file,
         fileExtension: ext.isEmpty ? 'jpg' : ext,
       );
-      await repo.submitManualPurchase(
+      final purchase = await repo.submitManualPurchase(
         packageCode: pkg,
         paymentScreenshotPath: path,
       );
       if (!mounted) return;
       setState(() => _screenshotFile = null);
-      widget.onManualSubmitted();
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          settings: const RouteSettings(name: '/seller-ar-token-pending'),
+          builder: (_) => ManualPaymentPendingScreen(
+            args: ArTokenPurchasePendingArgs(purchase: purchase),
+          ),
+        ),
+      );
+      if (mounted) widget.onFlowCompleted?.call();
     } catch (e) {
       if (mounted) {
         setState(() {

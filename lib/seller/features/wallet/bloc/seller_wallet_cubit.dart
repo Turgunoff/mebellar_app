@@ -111,13 +111,13 @@ class SellerWalletCubit extends Cubit<SellerWalletState> {
   }
 
   /// Manual card transfer: uploads are done by the UI; this submits the pending
-  /// moderation row. Returns true on success (wallet reloads to surface the
-  /// pending banner).
-  Future<bool> submitManualTopup({
+  /// moderation row. Returns the created top-up on success (wallet reloads so
+  /// the pending banner stays in sync).
+  Future<WalletTopUp?> submitManualTopup({
     required int amount,
     required String paymentScreenshotPath,
   }) async {
-    if (state.manualTopUpStatus == ManualTopUpStatus.submitting) return false;
+    if (state.manualTopUpStatus == ManualTopUpStatus.submitting) return null;
     emit(
       state.copyWith(
         manualTopUpStatus: ManualTopUpStatus.submitting,
@@ -125,25 +125,25 @@ class SellerWalletCubit extends Cubit<SellerWalletState> {
       ),
     );
     try {
-      await _wallet.submitManualTopup(
+      final topUp = await _wallet.submitManualTopup(
         amount: amount,
         paymentScreenshotPath: paymentScreenshotPath,
       );
-      if (isClosed) return false;
+      if (isClosed) return null;
       await load();
-      if (isClosed) return false;
+      if (isClosed) return null;
       emit(state.copyWith(manualTopUpStatus: ManualTopUpStatus.idle));
-      return true;
+      return topUp;
     } catch (e, st) {
       appLog.handle(e, st, 'SellerWalletCubit.submitManualTopup');
-      if (isClosed) return false;
+      if (isClosed) return null;
       emit(
         state.copyWith(
           manualTopUpStatus: ManualTopUpStatus.failure,
           error: apiErrorMessage(e),
         ),
       );
-      return false;
+      return null;
     }
   }
 

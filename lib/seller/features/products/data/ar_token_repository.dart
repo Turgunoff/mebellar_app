@@ -33,12 +33,14 @@ class ArTokenBalance {
     required this.packages,
     this.ai3dUsed = 0,
     this.ai3dLimit,
+    this.pendingPurchase,
   });
 
   final int arCredits;
   final List<ArTokenPackage> packages;
   final int ai3dUsed;
   final int? ai3dLimit;
+  final ArTokenPurchase? pendingPurchase;
 
   /// True when this part's request must lock 1 AR token (re-request or bonus
   /// quota exhausted). Mirrors backend `ar_request_should_bill`.
@@ -53,6 +55,11 @@ class ArTokenBalance {
     arCredits: (json['ar_credits'] as num?)?.toInt() ?? 0,
     ai3dUsed: (json['ai_3d_used'] as num?)?.toInt() ?? 0,
     ai3dLimit: (json['ai_3d_limit'] as num?)?.toInt(),
+    pendingPurchase: json['pending_purchase'] is Map<String, dynamic>
+        ? ArTokenPurchase.fromJson(
+            json['pending_purchase'] as Map<String, dynamic>,
+          )
+        : null,
     packages: [
       for (final p
           in (json['packages'] as List<dynamic>? ?? const [])
@@ -90,6 +97,15 @@ class ArTokenPurchase {
   bool get isCancelled => status == 'cancelled';
   bool get isRejected => status == 'rejected';
   bool get canCancel => isPending || isPendingReview;
+
+  bool get isResolved => isPaid || isRejected || isCancelled;
+
+  /// 24-hour SLA for manual (P2P) purchases awaiting admin review.
+  Duration get slaRemaining {
+    final due = createdAt.add(const Duration(hours: 24));
+    final left = due.difference(DateTime.now());
+    return left.isNegative ? Duration.zero : left;
+  }
 
   factory ArTokenPurchase.fromJson(Map<String, dynamic> json) =>
       ArTokenPurchase(

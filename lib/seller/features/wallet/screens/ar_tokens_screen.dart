@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../core/logging/app_logger.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
+import '../../../../shared/models/seller_wallet.dart';
+import '../../../../shared/payments/manual_payment_pending_screen.dart';
 import '../../products/data/ar_token_repository.dart';
 import '../../products/widgets/ar_token_buy_section.dart';
 import 'ar_token_purchase_history_screen.dart';
@@ -60,14 +63,6 @@ class _ArTokensScreenState extends State<ArTokensScreen> {
       ..showSnackBar(
         SnackBar(content: Text(tr('seller.ar_tokens_finish_payment_notice'))),
       );
-  }
-
-  void _onManualSubmitted() {
-    if (!mounted) return;
-    _load();
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(tr('seller.ar_manual_submitted'))));
   }
 
   void _openHistory() {
@@ -132,14 +127,29 @@ class _ArTokensScreenState extends State<ArTokensScreen> {
         ),
         children: [
           _BalanceCard(credits: balance.arCredits),
+          if (balance.pendingPurchase != null) ...[
+            const SizedBox(height: 12),
+            _PendingPurchaseBanner(
+              purchase: balance.pendingPurchase!,
+              onReturned: _load,
+            ),
+          ],
           const SizedBox(height: 16),
           const _HowItWorksCard(),
-          if (balance.packages.isNotEmpty) ...[
+          if (balance.packages.isNotEmpty &&
+              balance.pendingPurchase == null) ...[
             const SizedBox(height: 16),
             ArTokenBuySection(
               packages: balance.packages,
               onOnlineLaunched: _onOnlineLaunched,
-              onManualSubmitted: _onManualSubmitted,
+              onFlowCompleted: _load,
+            ),
+          ],
+          if (balance.pendingPurchase != null) ...[
+            const SizedBox(height: 16),
+            _PendingPurchaseLockedCard(
+              purchase: balance.pendingPurchase!,
+              onReturned: _load,
             ),
           ],
         ],
@@ -365,6 +375,157 @@ class _Bullet extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _PendingPurchaseBanner extends StatelessWidget {
+  const _PendingPurchaseBanner({
+    required this.purchase,
+    required this.onReturned,
+  });
+
+  final ArTokenPurchase purchase;
+  final VoidCallback onReturned;
+
+  void _openPending(BuildContext context) {
+    Navigator.of(context)
+        .push<void>(
+          MaterialPageRoute<void>(
+            settings: const RouteSettings(name: '/seller-ar-token-pending'),
+            builder: (_) => ManualPaymentPendingScreen(
+              args: ArTokenPurchasePendingArgs(purchase: purchase),
+            ),
+          ),
+        )
+        .then((_) => onReturned());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _openPending(context),
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: c.progressBg,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
+            children: [
+              Icon(Iconsax.clock, color: c.progress, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  tr(
+                    'seller.ar_pending_purchase_notice',
+                    namedArgs: {
+                      'count': '${purchase.tokens}',
+                      'amount': formatSom(purchase.amountUzs),
+                    },
+                  ),
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: c.progress,
+                    height: 1.35,
+                  ),
+                ),
+              ),
+              Icon(Iconsax.arrow_right_3, color: c.progress, size: 18),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Replaces the buy block while a purchase is in flight — mirrors tariff's
+/// disabled "Tasdiqlash kutilmoqda" CTA.
+class _PendingPurchaseLockedCard extends StatelessWidget {
+  const _PendingPurchaseLockedCard({
+    required this.purchase,
+    required this.onReturned,
+  });
+
+  final ArTokenPurchase purchase;
+  final VoidCallback onReturned;
+
+  void _openPending(BuildContext context) {
+    Navigator.of(context)
+        .push<void>(
+          MaterialPageRoute<void>(
+            settings: const RouteSettings(name: '/seller-ar-token-pending'),
+            builder: (_) => ManualPaymentPendingScreen(
+              args: ArTokenPurchasePendingArgs(purchase: purchase),
+            ),
+          ),
+        )
+        .then((_) => onReturned());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: c.surface,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: c.divider),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            tr('seller.ar_buy_title'),
+            style: TextStyle(
+              fontFamily: AppFonts.seller,
+              fontWeight: FontWeight.w800,
+              fontSize: 16,
+              color: c.ink,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            tr('tariff.pending_banner_subtitle'),
+            style: TextStyle(
+              fontFamily: AppFonts.seller,
+              fontSize: 12.5,
+              color: c.grey,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 14),
+          FilledButton(
+            onPressed: () => _openPending(context),
+            style: FilledButton.styleFrom(
+              backgroundColor: c.divider,
+              foregroundColor: c.greyMid,
+              disabledBackgroundColor: c.divider,
+              disabledForegroundColor: c.greyMid,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+            child: Text(
+              tr('tariff.cta_pending'),
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -309,6 +309,8 @@ const Map<String, dynamic> sellerUz = {
       'Balansingiz minusga kirdi. Xizmat ko\'rsatish to\'xtatilmasligi uchun {hours} soat ichida hisobni to\'ldiring.',
   'wallet_pending_topup_notice':
       '{amount} so\'mlik to\'lovingiz ko\'rib chiqilmoqda.',
+  'ar_pending_purchase_notice':
+      '{count} token ({amount} so\'m) to\'lovi ko\'rib chiqilmoqda.',
   'wallet_enter_topup_amount': 'To\'ldirish summasini kiriting.',
   'wallet_min_topup_amount': 'Minimal to\'ldirish summasi — {min} so\'m.',
   'wallet_select_pay_mode': 'To\'lov turini tanlang.',
@@ -325,6 +327,16 @@ const Map<String, dynamic> sellerUz = {
   'wallet_topup_button': 'To\'ldirish',
   'wallet_manual_submitted':
       'So‘rovingiz yuborildi — admin tasdiqlagach balans to‘ldiriladi.',
+  'manual_payment_approved_title': 'To‘lov tasdiqlandi',
+  'manual_payment_rejected_title': 'To‘lov tasdiqlanmadi',
+  'manual_payment_rejected_subtitle':
+      'Iltimos, qayta urinib ko‘ring yoki support bilan bog‘laning.',
+  'wallet_topup_approved_subtitle': '{amount} so‘m hisobingizga qo‘shildi.',
+  'ar_purchase_approved_subtitle': '{count} ta token balansingizga qo‘shildi.',
+  'manual_payment_wallet_note':
+      'Balans tasdiqlanguncha joriy summa o‘zgarishsiz qoladi.',
+  'manual_payment_ar_note':
+      'Tokenlar tasdiqlanguncha joriy balans o‘zgarishsiz qoladi.',
   'wallet_load_failed': 'Hamyonni yuklab bo\'lmadi',
   'wallet_history_title': 'Hamyon tarixi',
   'wallet_history_empty': 'Hali harakat yo\'q',
@@ -691,6 +703,8 @@ const Map<String, dynamic> sellerRu = {
   'wallet_debt_grace_notice':
       'Ваш баланс ушёл в минус. Чтобы обслуживание не приостановилось, пополните счёт в течение {hours} ч.',
   'wallet_pending_topup_notice': 'Ваш платёж на {amount} сум обрабатывается.',
+  'ar_pending_purchase_notice':
+      'Платёж за {count} токенов ({amount} сум) на проверке.',
   'wallet_enter_topup_amount': 'Введите сумму пополнения.',
   'wallet_min_topup_amount': 'Минимальная сумма пополнения — {min} сум.',
   'wallet_select_pay_mode': 'Выберите способ оплаты.',
@@ -707,6 +721,15 @@ const Map<String, dynamic> sellerRu = {
   'wallet_topup_button': 'Пополнить',
   'wallet_manual_submitted':
       'Заявка отправлена — баланс пополнится после подтверждения.',
+  'manual_payment_approved_title': 'Платёж подтверждён',
+  'manual_payment_rejected_title': 'Платёж не подтверждён',
+  'manual_payment_rejected_subtitle':
+      'Попробуйте снова или свяжитесь с поддержкой.',
+  'wallet_topup_approved_subtitle': 'На баланс зачислено {amount} сум.',
+  'ar_purchase_approved_subtitle': 'На баланс добавлено {count} токенов.',
+  'manual_payment_wallet_note': 'До подтверждения текущий баланс не изменится.',
+  'manual_payment_ar_note':
+      'До подтверждения текущий баланс токенов не изменится.',
   'wallet_load_failed': 'Не удалось загрузить кошелёк',
   'wallet_history_title': 'История кошелька',
   'wallet_history_empty': 'Пока нет операций',
@@ -1070,6 +1093,8 @@ const Map<String, dynamic> sellerEn = {
       'Your balance went negative. Top up within {hours} hours to keep your shop active.',
   'wallet_pending_topup_notice':
       'Your {amount} UZS payment is being processed.',
+  'ar_pending_purchase_notice':
+      'Your {count}-token payment ({amount} UZS) is being reviewed.',
   'wallet_enter_topup_amount': 'Enter a top-up amount.',
   'wallet_min_topup_amount': 'Minimum top-up amount is {min} UZS.',
   'wallet_select_pay_mode': 'Choose a payment type.',
@@ -1086,6 +1111,15 @@ const Map<String, dynamic> sellerEn = {
   'wallet_topup_button': 'Top up',
   'wallet_manual_submitted':
       'Request submitted — your balance will be credited after admin approval.',
+  'manual_payment_approved_title': 'Payment approved',
+  'manual_payment_rejected_title': 'Payment not approved',
+  'manual_payment_rejected_subtitle': 'Please try again or contact support.',
+  'wallet_topup_approved_subtitle': '{amount} UZS was added to your balance.',
+  'ar_purchase_approved_subtitle': '{count} tokens were added to your balance.',
+  'manual_payment_wallet_note':
+      'Your current balance stays unchanged until approval.',
+  'manual_payment_ar_note':
+      'Your token balance stays unchanged until approval.',
   'wallet_load_failed': 'Couldn\'t load the wallet',
   'wallet_history_title': 'Wallet history',
   'wallet_history_empty': 'No activity yet',

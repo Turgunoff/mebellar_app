@@ -19,6 +19,7 @@ import '../../../../shared/payments/pending_payment.dart';
 import '../../../../shared/payments/pending_payment_service.dart';
 import '../../../../shared/repositories/payment_repository.dart';
 import '../../../../shared/repositories/seller_wallet_repository.dart';
+import '../../../../shared/payments/manual_payment_pending_screen.dart';
 import '../../../../shared/repositories/tariff_repository.dart';
 import '../../../../shared/utils/image_upload.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
@@ -487,35 +488,54 @@ class _PendingTopUpCard extends StatelessWidget {
 
   final WalletTopUp topUp;
 
+  void _openPending(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        settings: const RouteSettings(name: '/seller-wallet-pending'),
+        builder: (_) => ManualPaymentPendingScreen(
+          args: WalletTopUpPendingArgs(topUp: topUp),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: c.progressBg,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _openPending(context),
         borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          Icon(Iconsax.clock, color: c.progress, size: 20),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              tr(
-                'seller.wallet_pending_topup_notice',
-                namedArgs: {'amount': formatSom(topUp.amount)},
-              ),
-              style: TextStyle(
-                fontFamily: AppFonts.seller,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: c.progress,
-                height: 1.35,
-              ),
-            ),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: c.progressBg,
+            borderRadius: BorderRadius.circular(16),
           ),
-        ],
+          child: Row(
+            children: [
+              Icon(Iconsax.clock, color: c.progress, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  tr(
+                    'seller.wallet_pending_topup_notice',
+                    namedArgs: {'amount': formatSom(topUp.amount)},
+                  ),
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: c.progress,
+                    height: 1.35,
+                  ),
+                ),
+              ),
+              Icon(Iconsax.arrow_right_3, color: c.progress, size: 18),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -696,21 +716,23 @@ class _TopUpSectionState extends State<_TopUpSection> {
       );
       return;
     }
-    final ok = await cubit.submitManualTopup(
+    final topUp = await cubit.submitManualTopup(
       amount: amount,
       paymentScreenshotPath: path,
     );
     if (!mounted) return;
-    if (ok) {
+    if (topUp != null) {
       setState(() {
         _screenshotFile = null;
         _amountCtrl.clear();
       });
-      _showSnack(
-        context,
-        tr('seller.wallet_manual_submitted'),
-        icon: Iconsax.tick_circle,
-        tone: _SnackTone.success,
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(
+          settings: const RouteSettings(name: '/seller-wallet-pending'),
+          builder: (_) => ManualPaymentPendingScreen(
+            args: WalletTopUpPendingArgs(topUp: topUp),
+          ),
+        ),
       );
     } else {
       cubit.acknowledgeManualTopUpResult();

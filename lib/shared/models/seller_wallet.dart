@@ -151,6 +151,19 @@ class WalletTopUp extends Equatable {
 
   bool get isPending => status == 'pending';
 
+  bool get isApproved => status == 'approved';
+
+  bool get isRejected => status == 'rejected';
+
+  bool get isResolved => isApproved || isRejected || status == 'cancelled';
+
+  /// 24-hour SLA — mirrors tariff manual-payment pending screens.
+  Duration get slaRemaining {
+    final due = submittedAt.add(const Duration(hours: 24));
+    final left = due.difference(DateTime.now());
+    return left.isNegative ? Duration.zero : left;
+  }
+
   @override
   List<Object?> get props => [id, amount, status, submittedAt, rejectionReason];
 }
