@@ -42,6 +42,14 @@ const Map<String, dynamic> ordersUz = {
   'not_rated_yet': 'Hali baholanmagan',
   'rated_label': 'Baholangan',
   'rate_action': 'Baholash',
+  'payment_method': 'To\'lov usuli',
+  'payment_status': 'To\'lov holati',
+  'payment_cash': 'Naqd to\'lov',
+  'payment_payme': 'Payme',
+  'payment_click': 'Click',
+  'payment_unpaid': 'To\'lanmagan',
+  'payment_paid': 'To\'langan',
+  'payment_refunded': 'Qaytarilgan',
 };
 
 const Map<String, dynamic> ordersRu = {
@@ -84,6 +92,14 @@ const Map<String, dynamic> ordersRu = {
   'not_rated_yet': 'Ещё не оценено',
   'rated_label': 'Оценено',
   'rate_action': 'Оценить',
+  'payment_method': 'Способ оплаты',
+  'payment_status': 'Статус оплаты',
+  'payment_cash': 'Наличными',
+  'payment_payme': 'Payme',
+  'payment_click': 'Click',
+  'payment_unpaid': 'Не оплачен',
+  'payment_paid': 'Оплачен',
+  'payment_refunded': 'Возвращён',
 };
 
 const Map<String, dynamic> ordersEn = {
@@ -126,6 +142,14 @@ const Map<String, dynamic> ordersEn = {
   'not_rated_yet': 'Not rated yet',
   'rated_label': 'Rated',
   'rate_action': 'Rate',
+  'payment_method': 'Payment method',
+  'payment_status': 'Payment status',
+  'payment_cash': 'Cash on delivery',
+  'payment_payme': 'Payme',
+  'payment_click': 'Click',
+  'payment_unpaid': 'Unpaid',
+  'payment_paid': 'Paid',
+  'payment_refunded': 'Refunded',
 };
 
 const Map<String, dynamic> orderStatusUz = {

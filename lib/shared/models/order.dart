@@ -164,6 +164,7 @@ class Order extends Equatable {
     required this.deliveryMethod,
     required this.paymentMethod,
     this.paymentProvider = 'cash',
+    this.paymentStatus = 'unpaid',
     required this.status,
     required this.itemsTotal,
     required this.deliveryFee,
@@ -192,6 +193,7 @@ class Order extends Equatable {
   /// the backend `payment_provider`. Drives which `/orders/{id}/pay/{provider}`
   /// deep-link the customer launches when the order is `awaiting_payment`.
   final String paymentProvider;
+  final String paymentStatus;
   final OrderStatus status;
   final num itemsTotal;
   final num deliveryFee;
@@ -236,6 +238,7 @@ class Order extends Equatable {
         json['payment_method'] as String?,
       ),
       paymentProvider: (json['payment_provider'] as String?) ?? 'cash',
+      paymentStatus: (json['payment_status'] as String?) ?? 'unpaid',
       status: OrderStatus.fromCode(json['status'] as String?),
       itemsTotal: (json['items_total'] as num?) ?? 0,
       deliveryFee: (json['delivery_fee'] as num?) ?? 0,

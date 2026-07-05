@@ -18,6 +18,7 @@ class PaymentSummaryCard extends StatelessWidget {
     required this.delivery,
     required this.total,
     required this.paymentMethod,
+    this.deliveryShowsCurrency = true,
     this.proposedDelivery,
     this.feeAdjustmentNote,
     this.onSetFee,
@@ -27,6 +28,7 @@ class PaymentSummaryCard extends StatelessWidget {
   final String delivery;
   final String total;
   final String paymentMethod;
+  final bool deliveryShowsCurrency;
   final String? proposedDelivery;
   final String? feeAdjustmentNote;
   final VoidCallback? onSetFee;
@@ -48,6 +50,7 @@ class PaymentSummaryCard extends StatelessWidget {
           _SummaryLine(
             label: tr('seller_orders.delivery_label'),
             value: delivery,
+            showCurrency: deliveryShowsCurrency,
           ),
           const SizedBox(height: 14),
           const _DashedDivider(),
@@ -111,11 +114,7 @@ class PaymentSummaryCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Icon(
-                        Iconsax.warning_2,
-                        size: 16,
-                        color: c.warning,
-                      ),
+                      Icon(Iconsax.warning_2, size: 16, color: c.warning),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -129,7 +128,10 @@ class PaymentSummaryCard extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        tr('seller_orders.amount_uzs', args: [proposedDelivery!]),
+                        tr(
+                          'seller_orders.amount_uzs',
+                          args: [proposedDelivery!],
+                        ),
                         style: TextStyle(
                           fontFamily: AppFonts.seller,
                           fontSize: 13,
@@ -241,10 +243,15 @@ class PaymentSummaryCard extends StatelessWidget {
 }
 
 class _SummaryLine extends StatelessWidget {
-  const _SummaryLine({required this.label, required this.value});
+  const _SummaryLine({
+    required this.label,
+    required this.value,
+    this.showCurrency = true,
+  });
 
   final String label;
   final String value;
+  final bool showCurrency;
 
   @override
   Widget build(BuildContext context) {
@@ -275,16 +282,17 @@ class _SummaryLine extends StatelessWidget {
               height: 1.2,
             ),
             children: [
-              TextSpan(
-                text: '  UZS',
-                style: TextStyle(
-                  fontFamily: AppFonts.seller,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: c.greyMid,
-                  letterSpacing: 0,
+              if (showCurrency)
+                TextSpan(
+                  text: '  UZS',
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: c.greyMid,
+                    letterSpacing: 0,
+                  ),
                 ),
-              ),
             ],
           ),
         ),

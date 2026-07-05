@@ -200,7 +200,8 @@ class _OrderDetailView extends StatelessWidget {
         return Scaffold(
           backgroundColor: c.background,
           appBar: OrderAppBar(
-            orderId: order?.orderNumber ?? tr('seller_orders.detail_title_fallback'),
+            orderId:
+                order?.orderNumber ?? tr('seller_orders.detail_title_fallback'),
             orderUuid: order?.id,
           ),
           body: _buildBody(context, state, order),
@@ -244,10 +245,9 @@ class _OrderDetailView extends StatelessWidget {
       order.status,
       SellerColors.of(context),
     );
-    final subtotal = order.items.fold<num>(0, (sum, it) => sum + it.lineTotal);
-    final delivery = order.grandTotal > subtotal
-        ? order.grandTotal - subtotal
-        : 0;
+    final subtotal = order.itemsTotal > 0
+        ? order.itemsTotal
+        : order.items.fold<num>(0, (sum, it) => sum + it.lineTotal);
     final feePending =
         order.feeAdjustmentStatus == FeeAdjustmentStatus.pendingCustomer;
     // The invoice is editable only while the order is still pending. Once the
@@ -281,15 +281,18 @@ class _OrderDetailView extends StatelessWidget {
             address: order.address.streetLine,
             recipientName: order.address.recipientName,
             phone: order.address.phone,
+            latitude: order.address.lat,
+            longitude: order.address.lng,
           ),
           const SizedBox(height: 14),
           ItemsCard(items: _mapItems(order.items)),
           const SizedBox(height: 14),
           PaymentSummaryCard(
             subtotal: formatOrderAmount(subtotal),
-            delivery: formatOrderAmount(delivery),
+            delivery: _deliveryValue(order),
+            deliveryShowsCurrency: _deliveryShowsCurrency(order),
             total: formatOrderAmount(order.grandTotal),
-            paymentMethod: _paymentLabel(order.paymentMethod),
+            paymentMethod: _paymentLabel(order),
             proposedDelivery: feePending
                 ? formatOrderAmount(order.proposedDeliveryFee ?? 0)
                 : null,
@@ -312,11 +315,36 @@ class _OrderDetailView extends StatelessWidget {
     OrderStatus.cancelled => 0,
   };
 
-  static String _paymentLabel(model.OrderPaymentMethod method) =>
-      switch (method) {
-        model.OrderPaymentMethod.cashOnDelivery => tr('seller_orders.payment_cash'),
-        model.OrderPaymentMethod.card => tr('seller_orders.payment_card'),
+  static String _paymentLabel(model.Order order) =>
+      switch (order.paymentProvider) {
+        'cash' => tr('seller_orders.payment_cash'),
+        'payme' => tr('seller_orders.payment_payme'),
+        'click' => tr('seller_orders.payment_click'),
+        _ => order.paymentProvider,
       };
+
+  static String _deliveryValue(model.Order order) {
+    if (order.feeAdjustmentStatus == FeeAdjustmentStatus.pendingCustomer &&
+        order.proposedDeliveryFee != null) {
+      return formatOrderAmount(order.proposedDeliveryFee!);
+    }
+    if (order.deliveryFee > 0) {
+      return formatOrderAmount(order.deliveryFee);
+    }
+    if (order.status == OrderStatus.pending) {
+      return tr('seller_orders.delivery_not_set');
+    }
+    return formatOrderAmount(0);
+  }
+
+  static bool _deliveryShowsCurrency(model.Order order) {
+    if (order.feeAdjustmentStatus == FeeAdjustmentStatus.pendingCustomer &&
+        order.proposedDeliveryFee != null) {
+      return true;
+    }
+    if (order.deliveryFee > 0) return true;
+    return order.status != OrderStatus.pending;
+  }
 
   /// Maps domain [model.OrderItem]s to the detail kit's display struct.
   /// `order_items` stores no per-row product name, so the line is labelled by
@@ -327,7 +355,10 @@ class _OrderDetailView extends StatelessWidget {
         OrderItem(
           name: (it.productName.uz?.isNotEmpty ?? false)
               ? it.productName.uz!
-              : tr('seller_orders.item_fallback_name', args: [_shortId(it.productId)]),
+              : tr(
+                  'seller_orders.item_fallback_name',
+                  args: [_shortId(it.productId)],
+                ),
           qty: it.quantity,
           unitPriceLabel: formatOrderAmount(it.unitPrice),
           subtotalLabel: formatOrderAmount(it.lineTotal),

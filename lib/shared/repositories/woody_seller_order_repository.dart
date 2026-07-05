@@ -171,6 +171,10 @@ class WoodySellerOrderRepository implements SellerOrderRepository {
   /// seller list/detail screens never render the shop card, so a placeholder
   /// shop is supplied by `Order.fromJson`; the buyer's contact info maps onto
   /// an [Address] from `customer_name` / `customer_phone` / `delivery_address`.
+  ///
+  /// The backend shape differs from the customer order row (`subtotal` vs
+  /// `items_total`, `installation_fee` vs `services_fee`, `payment_provider`
+  /// without `payment_method`), so we normalise before [Order.fromJson].
   Order _toOrder(Map<String, dynamic> row) {
     final id = row['id'] as String? ?? '';
     final itemsRaw = (row['items'] as List<dynamic>?) ?? const [];
@@ -178,7 +182,20 @@ class WoodySellerOrderRepository implements SellerOrderRepository {
         .whereType<Map<String, dynamic>>()
         .map(_toOrderItem)
         .toList(growable: false);
-    return Order.fromJson(row, items: items, address: _toAddress(id, row));
+    final itemsSum = items.fold<num>(0, (sum, it) => sum + it.lineTotal);
+    final paymentProvider = row['payment_provider'] as String? ?? 'cash';
+    final normalized = Map<String, dynamic>.from(row)
+      ..['items_total'] = (row['subtotal'] as num?) ?? itemsSum
+      ..['services_fee'] = row['installation_fee'] ?? 0
+      ..['delivery_method'] = 'delivery'
+      ..['payment_method'] = paymentProvider == 'cash'
+          ? 'cash_on_delivery'
+          : 'card';
+    return Order.fromJson(
+      normalized,
+      items: items,
+      address: _toAddress(id, row),
+    );
   }
 
   /// Maps a backend [SellerOrderItem]. The backend's `product_image` carries
@@ -209,6 +226,8 @@ class WoodySellerOrderRepository implements SellerOrderRepository {
       region: const Region(id: '_', code: '_', name: MultilingualText()),
       city: const Region(id: '_', code: '_', name: MultilingualText()),
       streetLine: row['delivery_address'] as String? ?? '',
+      lat: (row['delivery_latitude'] as num?)?.toDouble(),
+      lng: (row['delivery_longitude'] as num?)?.toDouble(),
     );
   }
 }

@@ -41,7 +41,27 @@ Map<String, dynamic> _order(String id, {String status = 'pending'}) => {
   'id': id,
   'status': status,
   'total_amount': 100000,
+  'subtotal': 90000,
+  'delivery_fee': 0,
+  'installation_fee': 10000,
+  'payment_provider': 'payme',
+  'payment_status': 'unpaid',
+  'delivery_address': 'Toshkent, Chilonzor',
+  'delivery_latitude': 41.476,
+  'delivery_longitude': 69.127,
+  'customer_name': 'Ali',
+  'customer_phone': '+998901234567',
   'created_at': '2026-01-01T00:00:00Z',
+  'items': [
+    {
+      'id': 'i1',
+      'product_id': 'p1',
+      'product_name': 'Divan',
+      'quantity': 1,
+      'price': 90000,
+      'color_slug': 'beige',
+    },
+  ],
 };
 
 void main() {
@@ -97,6 +117,14 @@ void main() {
 
     expect(result.isOk, isTrue);
     expect(result.valueOrNull?.single.id, 'o1');
+    final order = result.valueOrNull!.single;
+    expect(order.itemsTotal, 90000);
+    expect(order.deliveryFee, 0);
+    expect(order.servicesFee, 10000);
+    expect(order.paymentProvider, 'payme');
+    expect(order.address.lat, 41.476);
+    expect(order.address.lng, 69.127);
+    expect(order.items.single.colorSlug, 'beige');
     expect(h.adapter.calls.single.uri.path, endsWith('/seller/orders'));
   });
 

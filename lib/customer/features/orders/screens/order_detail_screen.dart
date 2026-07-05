@@ -303,6 +303,29 @@ class _Body extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
+          Text(
+            tr('checkout.step_payment'),
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 8),
+          _SectionCard(
+            child: Column(
+              children: [
+                _row(
+                  context,
+                  tr('orders.payment_method'),
+                  _paymentProviderLabel(order.paymentProvider),
+                ),
+                const SizedBox(height: 10),
+                _row(
+                  context,
+                  tr('orders.payment_status'),
+                  _paymentStatusLabel(order.paymentStatus),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
           // Totals
           _SectionCard(
             child: Column(
@@ -316,7 +339,7 @@ class _Body extends StatelessWidget {
                 _row(
                   context,
                   tr('checkout.delivery_fee'),
-                  '${priceFormat.format(order.deliveryFee)} so\'m',
+                  _deliveryFeeLabel(order, priceFormat),
                 ),
                 Divider(color: pt.divider, height: 24),
                 _row(
@@ -386,6 +409,33 @@ class _Body extends StatelessWidget {
       ],
     );
   }
+}
+
+String _paymentProviderLabel(String provider) => switch (provider) {
+  'cash' => tr('orders.payment_cash'),
+  'payme' => tr('orders.payment_payme'),
+  'click' => tr('orders.payment_click'),
+  _ => provider,
+};
+
+String _paymentStatusLabel(String status) => switch (status) {
+  'paid' => tr('orders.payment_paid'),
+  'refunded' => tr('orders.payment_refunded'),
+  _ => tr('orders.payment_unpaid'),
+};
+
+String _deliveryFeeLabel(Order order, NumberFormat priceFormat) {
+  if (order.feeAdjustmentStatus == FeeAdjustmentStatus.pendingCustomer &&
+      order.proposedDeliveryFee != null) {
+    return tr(
+      'common.sum_suffix',
+      namedArgs: {'value': priceFormat.format(order.proposedDeliveryFee)},
+    );
+  }
+  if (order.deliveryFee > 0) {
+    return '${priceFormat.format(order.deliveryFee)} so\'m';
+  }
+  return tr('checkout.delivery_seller_sets');
 }
 
 /// A light, theme-aware container for the order-detail sections. Uses the

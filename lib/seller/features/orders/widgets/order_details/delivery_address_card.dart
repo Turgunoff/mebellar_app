@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../../core/i18n/i18n.dart';
 import '../../../../../core/theme/app_colors.dart';
@@ -12,17 +13,23 @@ class DeliveryAddressCard extends StatelessWidget {
     required this.address,
     required this.recipientName,
     required this.phone,
+    this.latitude,
+    this.longitude,
   });
 
   final String address;
   final String recipientName;
   final String phone;
+  final double? latitude;
+  final double? longitude;
 
   @override
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
     final hasContact = recipientName.isNotEmpty || phone.isNotEmpty;
     final hasAddress = address.isNotEmpty;
+
+    final hasCoords = latitude != null && longitude != null;
 
     return SectionCard(
       child: Column(
@@ -40,11 +47,7 @@ class DeliveryAddressCard extends StatelessWidget {
                   color: c.infoBg,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(
-                  Iconsax.location,
-                  size: 18,
-                  color: c.info,
-                ),
+                child: Icon(Iconsax.location, size: 18, color: c.info),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -108,6 +111,39 @@ class DeliveryAddressCard extends StatelessWidget {
                         ),
                       ],
                     ],
+                    if (hasCoords) ...[
+                      const SizedBox(height: 8),
+                      InkWell(
+                        onTap: () => _openMap(latitude!, longitude!),
+                        borderRadius: BorderRadius.circular(8),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 2),
+                          child: Row(
+                            children: [
+                              Icon(Iconsax.map, size: 13, color: c.info),
+                              const SizedBox(width: 5),
+                              Expanded(
+                                child: Text(
+                                  tr(
+                                    'seller_orders.coordinates_label',
+                                    args: [
+                                      latitude!.toStringAsFixed(5),
+                                      longitude!.toStringAsFixed(5),
+                                    ],
+                                  ),
+                                  style: TextStyle(
+                                    fontFamily: AppFonts.seller,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: c.info,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -116,5 +152,12 @@ class DeliveryAddressCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _openMap(double lat, double lng) async {
+    final uri = Uri.parse(
+      'https://yandex.com/maps/?ll=$lng,$lat&z=16&pt=$lng,$lat',
+    );
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 }

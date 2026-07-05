@@ -450,11 +450,13 @@ class WoodyOrderRepository implements OrderRepository {
         (row['delivery_fee'] as num?) ??
         (totalAmount > itemsTotal ? totalAmount - itemsTotal : 0);
     final paymentProvider = row['payment_provider'] as String? ?? 'cash';
+    final shopName = row['shop_name'] as String?;
+    final shopId = row['shop_id'] as String?;
 
     return Order(
       id: id,
       orderNumber: _orderNumber(id),
-      shop: _unknownShop,
+      shop: _shopFromApi(shopId, shopName),
       items: items,
       address: _addressFromText(row['delivery_address'] as String?, id),
       deliveryMethod: OrderDeliveryMethod.delivery,
@@ -462,6 +464,7 @@ class WoodyOrderRepository implements OrderRepository {
           ? OrderPaymentMethod.cashOnDelivery
           : OrderPaymentMethod.card,
       paymentProvider: paymentProvider,
+      paymentStatus: row['payment_status'] as String? ?? 'unpaid',
       status: status,
       itemsTotal: itemsTotal,
       deliveryFee: deliveryFee,
@@ -470,11 +473,25 @@ class WoodyOrderRepository implements OrderRepository {
       createdAt: createdAt,
       timeline: _syntheticTimeline(status, createdAt),
       cancelReason: row['cancellation_reason'] as String?,
+      cancelReasonCode: row['cancel_reason_code'] as String?,
+      cancelReasonText: row['cancel_reason_text'] as String?,
       proposedDeliveryFee: row['proposed_delivery_fee'] as num?,
+      feeAdjustmentNote: row['fee_adjustment_note'] as String?,
       feeAdjustmentStatus: FeeAdjustmentStatus.fromCode(
         row['fee_adjustment_status'] as String?,
       ),
     );
+  }
+
+  static Shop _shopFromApi(String? shopId, String? shopName) {
+    if (shopId != null && shopName != null && shopName.isNotEmpty) {
+      return Shop(
+        id: shopId,
+        slug: shopId,
+        name: MultilingualText(uz: shopName, ru: shopName, en: shopName),
+      );
+    }
+    return _unknownShop;
   }
 
   static OrderItem _rowToOrderItem(dynamic raw) {
