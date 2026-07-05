@@ -11,7 +11,7 @@ import '../../../../shared/repositories/tariff_repository.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/error_state.dart';
 import '../bloc/tariff_bloc.dart';
-import '../widgets/payment_instructions_sheet.dart';
+import '../screens/tariff_payment_screen.dart';
 import 'tariff_history_screen.dart';
 import 'tariff_pending_screen.dart';
 
@@ -142,18 +142,19 @@ class _TariffBody extends StatelessWidget {
   final TariffState state;
 
   Future<void> _onUpgrade(BuildContext context, SubscriptionPlan plan) async {
-    final result = await showPaymentInstructionsSheet(
-      context,
-      plan: plan.asEnum,
-      period: state.period,
+    final result = await Navigator.of(context).push<TariffPaymentResult>(
+      MaterialPageRoute(
+        settings: const RouteSettings(name: '/seller-tariff-payment'),
+        builder: (_) => TariffPaymentScreen(plan: plan, period: state.period),
+      ),
     );
-    if (result != null && context.mounted) {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          settings: const RouteSettings(name: '/seller-tariff-pending'),
-          builder: (_) => TariffPendingScreen(subscription: result),
-        ),
-      );
+    if (!context.mounted) return;
+    if (result == TariffPaymentResult.onlineLaunched) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(content: Text(tr('tariff.online_launched_notice'))),
+        );
     }
   }
 

@@ -2,12 +2,14 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../config/remote_config.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
+import '../../../../core/network/api_error_messages.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/payments/pending_payment.dart';
@@ -18,47 +20,30 @@ import '../../../../shared/utils/image_upload.dart';
 import '../../../../shared/widgets/payment_provider_tile.dart';
 import '../data/ar_token_repository.dart';
 
-enum ArTokenBuyResult { onlineLaunched, manualSubmitted }
-
 enum _PayMode { online, card }
 
-/// Opens the AR-token top-up sheet. Returns how the seller chose to pay so the
-/// caller can refresh + show the right follow-up snackbar.
-Future<ArTokenBuyResult?> showArTokenBuySheet(
-  BuildContext context, {
-  required List<ArTokenPackage> packages,
-}) async {
-  return showModalBottomSheet<ArTokenBuyResult>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (_) => _ArTokenBuySheet(packages: packages),
-  );
-}
-
-String _fmtUzs(int value) {
-  final digits = value.toString();
-  final buf = StringBuffer();
-  for (var i = 0; i < digits.length; i++) {
-    if (i > 0 && (digits.length - i) % 3 == 0) buf.write(' ');
-    buf.write(digits[i]);
-  }
-  return tr('common.uzs_amount', namedArgs: {'amount': buf.toString()});
-}
-
-class _ArTokenBuySheet extends StatefulWidget {
-  const _ArTokenBuySheet({required this.packages});
+/// Inline AR-token purchase block — package pick + Payme/Click or P2P card.
+/// Lives on [ArTokensScreen]; no minimum amount (package price is fixed).
+class ArTokenBuySection extends StatefulWidget {
+  const ArTokenBuySection({
+    super.key,
+    required this.packages,
+    required this.onOnlineLaunched,
+    required this.onManualSubmitted,
+  });
 
   final List<ArTokenPackage> packages;
+  final VoidCallback onOnlineLaunched;
+  final VoidCallback onManualSubmitted;
 
   @override
-  State<_ArTokenBuySheet> createState() => _ArTokenBuySheetState();
+  State<ArTokenBuySection> createState() => _ArTokenBuySectionState();
 }
 
-class _ArTokenBuySheetState extends State<_ArTokenBuySheet> {
+class _ArTokenBuySectionState extends State<ArTokenBuySection> {
   String? _packageCode;
-  late PaymentProvider _provider;
-  late _PayMode _payMode;
+  PaymentProvider? _provider;
+  _PayMode? _payMode;
   bool _buyingOnline = false;
   bool _submittingManual = false;
   String? _error;
@@ -79,20 +64,18 @@ class _ArTokenBuySheetState extends State<_ArTokenBuySheet> {
     return null;
   }
 
+  bool _providerIsEnabled(PaymentProvider provider) => switch (provider) {
+    PaymentProvider.payme => RemoteConfig.instance.paymeEnabled,
+    PaymentProvider.click => RemoteConfig.instance.clickEnabled,
+  };
+
   @override
   void initState() {
     super.initState();
-    if (widget.packages.isNotEmpty) {
-      final mid = widget.packages.length ~/ 2;
-      _packageCode = widget.packages[mid].code;
+    if (!_showPayModeSwitcher) {
+      _payMode = _PayMode.card;
+      _ensureInstructions();
     }
-    _provider = RemoteConfig.instance.paymeEnabled
-        ? PaymentProvider.payme
-        : (RemoteConfig.instance.clickEnabled
-              ? PaymentProvider.click
-              : PaymentProvider.payme);
-    _payMode = _anyProviderEnabled ? _PayMode.online : _PayMode.card;
-    if (_payMode == _PayMode.card) _ensureInstructions();
   }
 
   void _ensureInstructions() {
@@ -103,6 +86,8 @@ class _ArTokenBuySheetState extends State<_ArTokenBuySheet> {
     if (_payMode == mode) return;
     setState(() {
       _payMode = mode;
+      _provider = null;
+      _screenshotFile = null;
       _error = null;
       if (mode == _PayMode.card) _ensureInstructions();
     });
@@ -110,7 +95,25 @@ class _ArTokenBuySheetState extends State<_ArTokenBuySheet> {
 
   Future<void> _payOnline() async {
     final pkg = _packageCode;
-    if (pkg == null || _buyingOnline || _submittingManual) return;
+    final provider = _provider;
+    if (pkg == null ||
+        provider == null ||
+        !_providerIsEnabled(provider) ||
+        _buyingOnline ||
+        _submittingManual) {
+      if (pkg == null) {
+        _showSnack(
+          tr('seller.ar_select_package_hint'),
+          tone: _SnackTone.neutral,
+        );
+      } else if (provider == null || !_providerIsEnabled(provider)) {
+        _showSnack(
+          tr('seller.wallet_select_payment_method_hint'),
+          tone: _SnackTone.neutral,
+        );
+      }
+      return;
+    }
     setState(() {
       _buyingOnline = true;
       _error = null;
@@ -118,7 +121,7 @@ class _ArTokenBuySheetState extends State<_ArTokenBuySheet> {
     try {
       final checkout = await sl<ArTokenRepository>().buy(
         packageCode: pkg,
-        provider: _provider,
+        provider: provider,
       );
       final reference = checkout.reference;
       if (reference != null &&
@@ -133,13 +136,17 @@ class _ArTokenBuySheetState extends State<_ArTokenBuySheet> {
       if (uri != null && checkout.url.isNotEmpty) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       }
-      if (mounted) Navigator.of(context).pop(ArTokenBuyResult.onlineLaunched);
-    } catch (_) {
+      if (mounted) widget.onOnlineLaunched();
+    } catch (e) {
       if (mounted) {
         setState(() {
           _buyingOnline = false;
-          _error = tr('seller.ar_buy_checkout_failed');
+          _error = apiErrorMessage(e);
         });
+      }
+    } finally {
+      if (mounted && _buyingOnline) {
+        setState(() => _buyingOnline = false);
       }
     }
   }
@@ -147,23 +154,23 @@ class _ArTokenBuySheetState extends State<_ArTokenBuySheet> {
   Future<void> _copyCard(String number) async {
     await Clipboard.setData(ClipboardData(text: number.replaceAll(' ', '')));
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(tr('tariff.card_copied'))));
+    _showSnack(tr('tariff.card_copied'), tone: _SnackTone.neutral);
   }
 
   Future<void> _pickScreenshot() async {
-    final messenger = ScaffoldMessenger.of(context);
     try {
       final picked = await ImageUploadHelper().pick(
         source: ImageSource.gallery,
       );
       if (picked == null) return;
-      setState(() => _screenshotFile = picked.file);
+      setState(() {
+        _screenshotFile = picked.file;
+        _error = null;
+      });
     } on ImagePickError catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) _showSnack(e.message, tone: _SnackTone.error);
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.toString())));
+      if (mounted) _showSnack(e.toString(), tone: _SnackTone.error);
     }
   }
 
@@ -188,204 +195,240 @@ class _ArTokenBuySheetState extends State<_ArTokenBuySheet> {
         packageCode: pkg,
         paymentScreenshotPath: path,
       );
-      if (mounted) {
-        Navigator.of(context).pop(ArTokenBuyResult.manualSubmitted);
-      }
-    } catch (_) {
+      if (!mounted) return;
+      setState(() => _screenshotFile = null);
+      widget.onManualSubmitted();
+    } catch (e) {
       if (mounted) {
         setState(() {
           _submittingManual = false;
-          _error = tr('seller.ar_manual_failed');
+          _error = apiErrorMessage(e);
         });
       }
+    } finally {
+      if (mounted && _submittingManual) {
+        setState(() => _submittingManual = false);
+      }
     }
+  }
+
+  void _showSnack(String message, {required _SnackTone tone}) {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: switch (tone) {
+          _SnackTone.success => AppColors.sellerPositive,
+          _SnackTone.error => AppColors.sellerNegative,
+          _SnackTone.neutral => null,
+        },
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final selected = _selectedPackage;
     final busy = _buyingOnline || _submittingManual;
+    final canSubmitOnline =
+        _packageCode != null &&
+        _provider != null &&
+        _providerIsEnabled(_provider!) &&
+        !busy;
 
-    return Padding(
-      padding: EdgeInsets.only(bottom: bottomInset),
-      child: DraggableScrollableSheet(
-        initialChildSize: _payMode == _PayMode.card ? 0.88 : 0.72,
-        minChildSize: 0.45,
-        maxChildSize: 0.95,
-        expand: false,
-        builder: (_, scrollController) => Container(
-          decoration: BoxDecoration(
-            color: c.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: SafeArea(
-            top: false,
-            child: ListView(
-              controller: scrollController,
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: c.divider,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Icon(Icons.bolt_rounded, color: c.gold, size: 22),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        tr('seller.ar_buy_title'),
-                        style: TextStyle(
-                          fontFamily: AppFonts.seller,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 17,
-                          color: c.ink,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  tr('seller.ar_buy_subtitle'),
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: c.surface,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: c.divider),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.bolt_rounded, color: c.gold, size: 22),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  tr('seller.ar_buy_title'),
                   style: TextStyle(
                     fontFamily: AppFonts.seller,
-                    fontSize: 12.5,
-                    color: c.grey,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                for (final pkg in widget.packages)
-                  _PackageTile(
-                    pkg: pkg,
-                    selected: pkg.code == _packageCode,
-                    onTap: busy
-                        ? null
-                        : () => setState(() => _packageCode = pkg.code),
-                  ),
-                const SizedBox(height: 12),
-                Text(
-                  tr('seller.payment_method'),
-                  style: TextStyle(
-                    fontFamily: AppFonts.seller,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
                     color: c.ink,
+                    letterSpacing: -0.2,
                   ),
                 ),
-                const SizedBox(height: 10),
-                if (_showPayModeSwitcher) ...[
-                  _PayModeBar(
-                    mode: _payMode,
-                    busy: busy,
-                    onSelect: _selectPayMode,
-                  ),
-                  const SizedBox(height: 14),
-                ],
-                if (_payMode == _PayMode.online) ...[
-                  if (RemoteConfig.instance.paymeVisible)
-                    PaymentProviderTile(
-                      provider: PaymentProvider.payme,
-                      label: tr('seller.pay_via_payme'),
-                      selected: _provider == PaymentProvider.payme,
-                      comingSoon: RemoteConfig.instance.paymeComingSoon,
-                      style: PaymentProviderTileStyle.seller,
-                      onTap: busy || !RemoteConfig.instance.paymeEnabled
-                          ? null
-                          : () => setState(
-                              () => _provider = PaymentProvider.payme,
-                            ),
-                    ),
-                  if (RemoteConfig.instance.clickVisible) ...[
-                    if (RemoteConfig.instance.paymeVisible)
-                      const SizedBox(height: 8),
-                    PaymentProviderTile(
-                      provider: PaymentProvider.click,
-                      label: tr('seller.pay_via_click'),
-                      selected: _provider == PaymentProvider.click,
-                      comingSoon: RemoteConfig.instance.clickComingSoon,
-                      style: PaymentProviderTileStyle.seller,
-                      onTap: busy || !RemoteConfig.instance.clickEnabled
-                          ? null
-                          : () => setState(
-                              () => _provider = PaymentProvider.click,
-                            ),
-                    ),
-                  ],
-                  const SizedBox(height: 14),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: (_packageCode != null && !busy)
-                          ? _payOnline
-                          : null,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: c.primary,
-                        disabledBackgroundColor: c.primary.withValues(
-                          alpha: 0.4,
-                        ),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 15),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        textStyle: const TextStyle(
-                          fontFamily: AppFonts.seller,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 15,
-                        ),
-                      ),
-                      child: _buyingOnline
-                          ? const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.6,
-                                color: Colors.white,
-                              ),
-                            )
-                          : Text(tr('seller.pay_action')),
-                    ),
-                  ),
-                ] else
-                  _ManualPaySection(
-                    instructionsFuture: _instructionsFuture,
-                    selected: selected,
-                    screenshotFile: _screenshotFile,
-                    busy: busy,
-                    submitting: _submittingManual,
-                    onCopyCard: _copyCard,
-                    onPickScreenshot: _pickScreenshot,
-                    onSubmit: _submitManual,
-                  ),
-                if (_error != null) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    _error!,
-                    style: TextStyle(
-                      fontFamily: AppFonts.seller,
-                      fontSize: 12.5,
-                      color: AppColors.sellerNegative,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            tr('seller.ar_buy_subtitle'),
+            style: TextStyle(
+              fontFamily: AppFonts.seller,
+              fontSize: 12.5,
+              color: c.grey,
+              height: 1.35,
             ),
           ),
-        ),
+          const SizedBox(height: 14),
+          for (final pkg in widget.packages)
+            _PackageTile(
+              pkg: pkg,
+              selected: pkg.code == _packageCode,
+              onTap: busy
+                  ? null
+                  : () => setState(() => _packageCode = pkg.code),
+            ),
+          if (_packageCode == null) ...[
+            const SizedBox(height: 8),
+            Text(
+              tr('seller.ar_select_package_hint'),
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: c.grey,
+              ),
+            ),
+          ],
+          const SizedBox(height: 16),
+          if (_showPayModeSwitcher) ...[
+            _PayModeBar(mode: _payMode, busy: busy, onSelect: _selectPayMode),
+            if (_payMode == null) ...[
+              const SizedBox(height: 10),
+              Text(
+                tr('seller.wallet_select_pay_mode'),
+                style: TextStyle(
+                  fontFamily: AppFonts.seller,
+                  fontSize: 12.5,
+                  color: c.grey,
+                ),
+              ),
+            ],
+            const SizedBox(height: 14),
+          ],
+          if (_payMode != _PayMode.card &&
+              (_showPayModeSwitcher || _anyProviderEnabled)) ...[
+            Text(
+              tr('seller.payment_method'),
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: c.ink,
+              ),
+            ),
+            const SizedBox(height: 10),
+            if (RemoteConfig.instance.paymeVisible)
+              PaymentProviderTile(
+                provider: PaymentProvider.payme,
+                label: tr('seller.pay_via_payme'),
+                selected: _provider == PaymentProvider.payme,
+                comingSoon: RemoteConfig.instance.paymeComingSoon,
+                style: PaymentProviderTileStyle.seller,
+                onTap: busy || !RemoteConfig.instance.paymeEnabled
+                    ? null
+                    : () => setState(() => _provider = PaymentProvider.payme),
+              ),
+            if (RemoteConfig.instance.paymeVisible &&
+                RemoteConfig.instance.clickVisible)
+              const SizedBox(height: 8),
+            if (RemoteConfig.instance.clickVisible)
+              PaymentProviderTile(
+                provider: PaymentProvider.click,
+                label: tr('seller.pay_via_click'),
+                selected: _provider == PaymentProvider.click,
+                comingSoon: RemoteConfig.instance.clickComingSoon,
+                style: PaymentProviderTileStyle.seller,
+                onTap: busy || !RemoteConfig.instance.clickEnabled
+                    ? null
+                    : () => setState(() => _provider = PaymentProvider.click),
+              ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              height: 54,
+              child: FilledButton.icon(
+                onPressed: canSubmitOnline ? _payOnline : null,
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.sellerPrimary,
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: AppColors.sellerPrimary.withValues(
+                    alpha: 0.35,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                icon: _buyingOnline
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Iconsax.wallet_add_1, size: 19),
+                label: Text(
+                  _buyingOnline
+                      ? tr('seller.wallet_opening')
+                      : tr('seller.pay_action'),
+                  style: const TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+          ] else if (_payMode == _PayMode.card ||
+              (!_showPayModeSwitcher && !_anyProviderEnabled))
+            _ManualPaySection(
+              instructionsFuture: _instructionsFuture,
+              selected: selected,
+              screenshotFile: _screenshotFile,
+              busy: busy,
+              submitting: _submittingManual,
+              packageSelected: _packageCode != null,
+              onCopyCard: _copyCard,
+              onPickScreenshot: _pickScreenshot,
+              onSubmit: _submitManual,
+            ),
+          if (_error != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              _error!,
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
+                fontSize: 12.5,
+                color: AppColors.sellerNegative,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
+}
+
+enum _SnackTone { success, error, neutral }
+
+String _fmtUzs(int value) {
+  final digits = value.toString();
+  final buf = StringBuffer();
+  for (var i = 0; i < digits.length; i++) {
+    if (i > 0 && (digits.length - i) % 3 == 0) buf.write(' ');
+    buf.write(digits[i]);
+  }
+  return tr('common.uzs_amount', namedArgs: {'amount': buf.toString()});
 }
 
 class _PayModeBar extends StatelessWidget {
@@ -395,7 +438,7 @@ class _PayModeBar extends StatelessWidget {
     required this.onSelect,
   });
 
-  final _PayMode mode;
+  final _PayMode? mode;
   final bool busy;
   final ValueChanged<_PayMode> onSelect;
 
@@ -506,6 +549,7 @@ class _ManualPaySection extends StatelessWidget {
     required this.screenshotFile,
     required this.busy,
     required this.submitting,
+    required this.packageSelected,
     required this.onCopyCard,
     required this.onPickScreenshot,
     required this.onSubmit,
@@ -516,6 +560,7 @@ class _ManualPaySection extends StatelessWidget {
   final File? screenshotFile;
   final bool busy;
   final bool submitting;
+  final bool packageSelected;
   final Future<void> Function(String) onCopyCard;
   final VoidCallback onPickScreenshot;
   final VoidCallback onSubmit;
@@ -524,9 +569,8 @@ class _ManualPaySection extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
     final future = instructionsFuture;
-    if (future == null) {
-      return const SizedBox.shrink();
-    }
+    if (future == null) return const SizedBox.shrink();
+
     return FutureBuilder<TariffPaymentInstructions>(
       future: future,
       builder: (context, snap) {
@@ -601,42 +645,92 @@ class _ManualPaySection extends StatelessWidget {
                 side: BorderSide(color: c.divider),
               ),
             ),
-            const SizedBox(height: 14),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: (screenshotFile != null && !busy) ? onSubmit : null,
-                icon: submitting
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
+            if (screenshotFile case final file?) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: c.positiveBg,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: c.positive.withValues(alpha: 0.25)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.check_circle_rounded,
+                      color: c.positive,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        tr(
+                          'seller.wallet_receipt_attached',
+                          namedArgs: {'name': _receiptLabel(file)},
                         ),
-                      )
-                    : const Icon(Icons.check_circle_outline),
-                label: Text(tr('seller.ar_manual_submit')),
-                style: FilledButton.styleFrom(
-                  backgroundColor: c.gold,
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: c.gold.withValues(alpha: 0.4),
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: AppFonts.seller,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: c.ink,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            if (screenshotFile != null) ...[
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                height: 54,
+                child: FilledButton.icon(
+                  onPressed: (!busy && packageSelected) ? onSubmit : null,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: c.gold,
+                    foregroundColor: AppColors.sellerInk,
+                    disabledBackgroundColor: c.gold.withValues(alpha: 0.35),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
-                  textStyle: const TextStyle(
-                    fontFamily: AppFonts.seller,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 15,
+                  icon: submitting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.sellerInk,
+                          ),
+                        )
+                      : const Icon(Icons.check_circle_outline),
+                  label: Text(
+                    tr('seller.ar_manual_submit'),
+                    style: const TextStyle(
+                      fontFamily: AppFonts.seller,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 15,
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
           ],
         );
       },
     );
+  }
+
+  static String _receiptLabel(File file) {
+    final name = file.path.split('/').last;
+    if (name.isNotEmpty) return name;
+    return tr('seller.ar_manual_receipt_selected');
   }
 }
 

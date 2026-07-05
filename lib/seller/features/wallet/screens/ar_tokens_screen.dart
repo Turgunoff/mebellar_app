@@ -6,16 +6,10 @@ import '../../../../core/logging/app_logger.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../products/data/ar_token_repository.dart';
-import '../../products/widgets/ar_token_buy_sheet.dart';
+import '../../products/widgets/ar_token_buy_section.dart';
 import 'ar_token_purchase_history_screen.dart';
 
-/// Dedicated AR-token wallet — the seller's token balance + the top-up flow.
-///
-/// This is the single home for buying AR tokens: the seller product detail
-/// screen now only *shows* the balance, and all purchasing happens here. The
-/// checkout deep-link is launched by [showArTokenBuySheet]; settlement is
-/// reconciled globally by the app's PaymentRecoveryGate on return, so this
-/// screen just refreshes the balance and reminds the seller to finish paying.
+/// Dedicated AR-token wallet — balance, inline purchase, and history.
 class ArTokensScreen extends StatefulWidget {
   const ArTokensScreen({super.key});
 
@@ -58,25 +52,22 @@ class _ArTokensScreenState extends State<ArTokensScreen> {
     }
   }
 
-  Future<void> _openBuyTokens() async {
-    final balance = _balance;
-    if (balance == null) return;
-    final result = await showArTokenBuySheet(
-      context,
-      packages: balance.packages,
-    );
-    if (!mounted || result == null) return;
-    await _load();
+  void _onOnlineLaunched() {
     if (!mounted) return;
-    final message = switch (result) {
-      ArTokenBuyResult.onlineLaunched => tr(
-        'seller.ar_tokens_finish_payment_notice',
-      ),
-      ArTokenBuyResult.manualSubmitted => tr('seller.ar_manual_submitted'),
-    };
+    _load();
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+      ..showSnackBar(
+        SnackBar(content: Text(tr('seller.ar_tokens_finish_payment_notice'))),
+      );
+  }
+
+  void _onManualSubmitted() {
+    if (!mounted) return;
+    _load();
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(tr('seller.ar_manual_submitted'))));
   }
 
   void _openHistory() {
@@ -145,7 +136,11 @@ class _ArTokensScreenState extends State<ArTokensScreen> {
           const _HowItWorksCard(),
           if (balance.packages.isNotEmpty) ...[
             const SizedBox(height: 16),
-            _BuyButton(onPressed: _openBuyTokens),
+            ArTokenBuySection(
+              packages: balance.packages,
+              onOnlineLaunched: _onOnlineLaunched,
+              onManualSubmitted: _onManualSubmitted,
+            ),
           ],
         ],
       ),
@@ -370,59 +365,6 @@ class _Bullet extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-/// Full-width gold CTA that opens the top-up sheet.
-class _BuyButton extends StatelessWidget {
-  const _BuyButton({required this.onPressed});
-
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = SellerColors.of(context);
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onPressed,
-        child: Ink(
-          height: 54,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [c.goldBright, c.gold],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: c.gold.withValues(alpha: 0.30),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.bolt_rounded, size: 20, color: AppColors.sellerInk),
-              const SizedBox(width: 10),
-              Text(
-                tr('seller.ar_buy_title'),
-                style: TextStyle(
-                  fontFamily: AppFonts.seller,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 15,
-                  color: AppColors.sellerInk,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

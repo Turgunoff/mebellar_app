@@ -41,6 +41,8 @@ const Map<String, dynamic> tariffUz = {
       'Ilovada to\'lang — to\'lov tasdiqlangach tarif avtomatik ulanadi.',
   'pay_or_manual': 'yoki karta orqali qo\'lda',
   'pay_launch_failed': 'To\'lov ilovasini ochib bo\'lmadi',
+  'online_launched_notice':
+      'To\'lovni Payme/Click ilovasida yakunlang — tasdiqlangach tarif avtomatik ulanadi.',
   'tap_to_copy': 'Karta raqamini ko\'chirish uchun bosing',
   'card_copied': 'Karta raqami ko\'chirildi',
   'note_copied': 'Izoh ko\'chirildi',
@@ -147,6 +149,8 @@ const Map<String, dynamic> tariffRu = {
       'Оплатите в приложении — после подтверждения тариф подключится автоматически.',
   'pay_or_manual': 'или вручную картой',
   'pay_launch_failed': 'Не удалось открыть приложение оплаты',
+  'online_launched_notice':
+      'Завершите оплату в Payme/Click — тариф подключится автоматически.',
   'tap_to_copy': 'Нажмите, чтобы скопировать номер карты',
   'card_copied': 'Номер карты скопирован',
   'note_copied': 'Примечание скопировано',
@@ -252,6 +256,8 @@ const Map<String, dynamic> tariffEn = {
       'Pay in the app — the plan activates automatically once the payment is confirmed.',
   'pay_or_manual': 'or pay manually by card',
   'pay_launch_failed': 'Could not open the payment app',
+  'online_launched_notice':
+      'Finish payment in Payme/Click — your plan activates automatically.',
   'tap_to_copy': 'Tap to copy card number',
   'card_copied': 'Card number copied',
   'note_copied': 'Note copied',
