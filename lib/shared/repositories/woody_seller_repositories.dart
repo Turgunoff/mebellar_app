@@ -615,24 +615,22 @@ class WoodySellerAnalyticsRepository implements SellerAnalyticsRepository {
 
     final query = <String, dynamic>{
       'granularity': granularity,
-      if (filter.range == AnalyticsRange.custom) ...{
-        'from': window.start.toIso8601String(),
-        'to': window.endExclusive.toIso8601String(),
-      } else
-        'days': filter.range.days ?? 30,
+      'from': window.start.toIso8601String(),
+      'to': window.endExclusive.toIso8601String(),
     };
 
     final body = await _api.get<Map<String, dynamic>>(
       '/seller/analytics',
       query: query,
     );
-    return _mapSnapshot(body, filter);
+    return _mapSnapshot(body, filter, now: clock);
   });
 
   AnalyticsSnapshot _mapSnapshot(
     Map<String, dynamic> body,
-    AnalyticsFilter filter,
-  ) {
+    AnalyticsFilter filter, {
+    required DateTime now,
+  }) {
     final points = (body['points'] as List?) ?? const [];
     final revenueSeries = <RevenuePoint>[];
     for (final raw in points) {
@@ -644,6 +642,7 @@ class WoodySellerAnalyticsRepository implements SellerAnalyticsRepository {
         ),
       );
     }
+    final filledRevenue = filter.fillRevenueSeries(revenueSeries, now: now);
 
     final topProducts = ((body['top_products'] as List?) ?? const [])
         .whereType<Map<String, dynamic>>()
@@ -672,15 +671,18 @@ class WoodySellerAnalyticsRepository implements SellerAnalyticsRepository {
             .toList();
 
     final ordersBody = body['orders'] as Map<String, dynamic>? ?? const {};
-    final ordersSeries = ((ordersBody['series'] as List?) ?? const [])
-        .whereType<Map<String, dynamic>>()
-        .map(
-          (raw) => OrdersPoint(
-            bucketStart: DateTime.parse(raw['bucket'] as String).toUtc(),
-            count: (raw['count'] as num?)?.toInt() ?? 0,
-          ),
-        )
-        .toList();
+    final ordersSeries = filter.fillOrdersSeries(
+      ((ordersBody['series'] as List?) ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(
+            (raw) => OrdersPoint(
+              bucketStart: DateTime.parse(raw['bucket'] as String).toUtc(),
+              count: (raw['count'] as num?)?.toInt() ?? 0,
+            ),
+          )
+          .toList(),
+      now: now,
+    );
     final byStatus = ((ordersBody['by_status'] as List?) ?? const [])
         .whereType<Map<String, dynamic>>()
         .map(
@@ -703,15 +705,18 @@ class WoodySellerAnalyticsRepository implements SellerAnalyticsRepository {
         }
       });
     }
-    final reviewSeries = ((reviewsBody['series'] as List?) ?? const [])
-        .whereType<Map<String, dynamic>>()
-        .map(
-          (raw) => OrdersPoint(
-            bucketStart: DateTime.parse(raw['bucket'] as String).toUtc(),
-            count: (raw['count'] as num?)?.toInt() ?? 0,
-          ),
-        )
-        .toList();
+    final reviewSeries = filter.fillOrdersSeries(
+      ((reviewsBody['series'] as List?) ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(
+            (raw) => OrdersPoint(
+              bucketStart: DateTime.parse(raw['bucket'] as String).toUtc(),
+              count: (raw['count'] as num?)?.toInt() ?? 0,
+            ),
+          )
+          .toList(),
+      now: now,
+    );
     final recentReviews = ((reviewsBody['recent'] as List?) ?? const [])
         .whereType<Map<String, dynamic>>()
         .map(
@@ -753,7 +758,7 @@ class WoodySellerAnalyticsRepository implements SellerAnalyticsRepository {
       avgOrderValue:
           (body['avg_order_value'] as num?) ??
           (ordersCount == 0 ? 0 : totalRevenue / ordersCount),
-      series: revenueSeries,
+      series: filledRevenue,
       topProducts: topProducts,
       categoryBreakdown: categoryBreakdown,
       orders: OrdersBreakdown(

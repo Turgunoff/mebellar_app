@@ -47,12 +47,7 @@ enum AnalyticsRange {
 
 /// The four high-level analytics views. Pivots the screen between
 /// revenue, fulfilment, customer-voice and customer-spend metrics.
-enum AnalyticsTab {
-  sales,
-  orders,
-  reviews,
-  customers,
-}
+enum AnalyticsTab { sales, orders, reviews, customers }
 
 /// Resolved filter handed to the repository. Holds the active preset plus
 /// the optional custom-range bounds — both pieces live in one value so the
@@ -93,7 +88,8 @@ class AnalyticsFilter extends Equatable {
   AnalyticsWindow windowFor(DateTime now) {
     final endExclusive = _startOfNextDay(now);
     if (range == AnalyticsRange.custom) {
-      final start = customStart ?? endExclusive.subtract(const Duration(days: 30));
+      final start =
+          customStart ?? endExclusive.subtract(const Duration(days: 30));
       final end = customEnd ?? now;
       final startUtc = DateTime.utc(start.year, start.month, start.day);
       final endExclUtc = _startOfNextDay(end);
@@ -171,6 +167,77 @@ class AnalyticsFilter extends Equatable {
 
   @override
   List<Object?> get props => [range, customStart, customEnd];
+}
+
+/// Zero-fills sparse backend series so charts always span the full filter
+/// window (e.g. all 30 days, not just days with sales).
+extension AnalyticsSeriesFill on AnalyticsFilter {
+  List<DateTime> bucketTimeline(DateTime now) {
+    final window = windowFor(now);
+    final g = granularityFor(now);
+    final count = bucketsFor(now);
+    final buckets = <DateTime>[];
+    for (var i = 0; i < count; i++) {
+      final bucket = switch (g) {
+        BucketGranularity.hour => window.start.add(Duration(hours: i)),
+        BucketGranularity.day => window.start.add(Duration(days: i)),
+        BucketGranularity.month => () {
+          final monthIndex = window.start.month - 1 + i;
+          return DateTime.utc(
+            window.start.year + monthIndex ~/ 12,
+            monthIndex % 12 + 1,
+          );
+        }(),
+      };
+      if (!bucket.isBefore(window.endExclusive)) break;
+      buckets.add(bucket);
+    }
+    return buckets;
+  }
+
+  String _bucketKey(DateTime dt, BucketGranularity g) {
+    final utc = dt.toUtc();
+    return switch (g) {
+      BucketGranularity.hour =>
+        '${utc.year}-${utc.month}-${utc.day}T${utc.hour}',
+      BucketGranularity.day => '${utc.year}-${utc.month}-${utc.day}',
+      BucketGranularity.month => '${utc.year}-${utc.month}',
+    };
+  }
+
+  List<RevenuePoint> fillRevenueSeries(
+    List<RevenuePoint> sparse, {
+    required DateTime now,
+  }) {
+    final g = granularityFor(now);
+    final byKey = {
+      for (final p in sparse) _bucketKey(p.bucketStart, g): p.revenue,
+    };
+    return bucketTimeline(now)
+        .map(
+          (b) => RevenuePoint(
+            bucketStart: b,
+            revenue: byKey[_bucketKey(b, g)] ?? 0,
+          ),
+        )
+        .toList();
+  }
+
+  List<OrdersPoint> fillOrdersSeries(
+    List<OrdersPoint> sparse, {
+    required DateTime now,
+  }) {
+    final g = granularityFor(now);
+    final byKey = {
+      for (final p in sparse) _bucketKey(p.bucketStart, g): p.count,
+    };
+    return bucketTimeline(now)
+        .map(
+          (b) =>
+              OrdersPoint(bucketStart: b, count: byKey[_bucketKey(b, g)] ?? 0),
+        )
+        .toList();
+  }
 }
 
 class AnalyticsWindow extends Equatable {
@@ -303,14 +370,14 @@ class OrdersBreakdown extends Equatable {
   final int activeCount;
 
   factory OrdersBreakdown.empty() => const OrdersBreakdown(
-        total: 0,
-        previousTotal: 0,
-        byStatus: [],
-        series: [],
-        deliveredCount: 0,
-        cancelledCount: 0,
-        activeCount: 0,
-      );
+    total: 0,
+    previousTotal: 0,
+    byStatus: [],
+    series: [],
+    deliveredCount: 0,
+    cancelledCount: 0,
+    activeCount: 0,
+  );
 
   /// delivered / (delivered + cancelled). `null` when both are zero (no
   /// completed lifecycle to compute from).
@@ -333,14 +400,14 @@ class OrdersBreakdown extends Equatable {
 
   @override
   List<Object?> get props => [
-        total,
-        previousTotal,
-        byStatus,
-        series,
-        deliveredCount,
-        cancelledCount,
-        activeCount,
-      ];
+    total,
+    previousTotal,
+    byStatus,
+    series,
+    deliveredCount,
+    cancelledCount,
+    activeCount,
+  ];
 }
 
 /// One row in the "recent reviews" preview list. Trimmed down vs. the
@@ -400,14 +467,14 @@ class ReviewsBreakdown extends Equatable {
   final List<ReviewPreview> recent;
 
   factory ReviewsBreakdown.empty() => const ReviewsBreakdown(
-        total: 0,
-        previousTotal: 0,
-        average: 0,
-        distribution: {1: 0, 2: 0, 3: 0, 4: 0, 5: 0},
-        repliedCount: 0,
-        series: [],
-        recent: [],
-      );
+    total: 0,
+    previousTotal: 0,
+    average: 0,
+    distribution: {1: 0, 2: 0, 3: 0, 4: 0, 5: 0},
+    repliedCount: 0,
+    series: [],
+    recent: [],
+  );
 
   double? get replyRate {
     if (total == 0) return null;
@@ -420,8 +487,15 @@ class ReviewsBreakdown extends Equatable {
   }
 
   @override
-  List<Object?> get props =>
-      [total, previousTotal, average, distribution, repliedCount, series, recent];
+  List<Object?> get props => [
+    total,
+    previousTotal,
+    average,
+    distribution,
+    repliedCount,
+    series,
+    recent,
+  ];
 }
 
 /// One row in the "top mijozlar" list.
@@ -466,12 +540,12 @@ class CustomersBreakdown extends Equatable {
   final List<TopCustomer> topCustomers;
 
   factory CustomersBreakdown.empty() => const CustomersBreakdown(
-        unique: 0,
-        previousUnique: 0,
-        newCustomers: 0,
-        returningCustomers: 0,
-        topCustomers: [],
-      );
+    unique: 0,
+    previousUnique: 0,
+    newCustomers: 0,
+    returningCustomers: 0,
+    topCustomers: [],
+  );
 
   double? get returningShare {
     if (unique == 0) return null;
@@ -484,8 +558,13 @@ class CustomersBreakdown extends Equatable {
   }
 
   @override
-  List<Object?> get props =>
-      [unique, previousUnique, newCustomers, returningCustomers, topCustomers];
+  List<Object?> get props => [
+    unique,
+    previousUnique,
+    newCustomers,
+    returningCustomers,
+    topCustomers,
+  ];
 }
 
 /// The full analytics snapshot the screen renders. One instance per
@@ -525,19 +604,19 @@ class AnalyticsSnapshot extends Equatable {
   final CustomersBreakdown customers;
 
   factory AnalyticsSnapshot.empty(AnalyticsFilter filter) => AnalyticsSnapshot(
-        filter: filter,
-        totalRevenue: 0,
-        previousRevenue: 0,
-        ordersCount: 0,
-        unitsSold: 0,
-        avgOrderValue: 0,
-        series: const [],
-        topProducts: const [],
-        categoryBreakdown: const [],
-        orders: OrdersBreakdown.empty(),
-        reviews: ReviewsBreakdown.empty(),
-        customers: CustomersBreakdown.empty(),
-      );
+    filter: filter,
+    totalRevenue: 0,
+    previousRevenue: 0,
+    ordersCount: 0,
+    unitsSold: 0,
+    avgOrderValue: 0,
+    series: const [],
+    topProducts: const [],
+    categoryBreakdown: const [],
+    orders: OrdersBreakdown.empty(),
+    reviews: ReviewsBreakdown.empty(),
+    customers: CustomersBreakdown.empty(),
+  );
 
   /// Convenience accessor used by the chart title — keeps backwards
   /// compatibility with the previous `snapshot.range` callsites.
@@ -556,17 +635,17 @@ class AnalyticsSnapshot extends Equatable {
 
   @override
   List<Object?> get props => [
-        filter,
-        totalRevenue,
-        previousRevenue,
-        ordersCount,
-        unitsSold,
-        avgOrderValue,
-        series,
-        topProducts,
-        categoryBreakdown,
-        orders,
-        reviews,
-        customers,
-      ];
+    filter,
+    totalRevenue,
+    previousRevenue,
+    ordersCount,
+    unitsSold,
+    avgOrderValue,
+    series,
+    topProducts,
+    categoryBreakdown,
+    orders,
+    reviews,
+    customers,
+  ];
 }
