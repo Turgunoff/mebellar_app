@@ -593,11 +593,10 @@ class WoodyShopSettingsRepository implements ShopSettingsRepository {
   });
 }
 
-/// REST-backed seller analytics — `GET /seller/analytics?granularity&days`.
-/// The backend returns a single revenue/orders time series (no per-product,
-/// per-category, customer or review breakdowns yet), so this maps the series +
-/// derived totals and leaves the richer breakdowns empty. Enriching the
-/// backend response is a follow-up; the screen degrades to the trend + totals.
+/// REST-backed seller analytics — `GET /seller/analytics`.
+/// Revenue, units sold, top products and category slices count only
+/// **delivered** orders; the orders tab still shows all non-cancelled
+/// orders created in the window.
 class WoodySellerAnalyticsRepository implements SellerAnalyticsRepository {
   WoodySellerAnalyticsRepository({required WoodyApiClient api}) : _api = api;
 
@@ -609,53 +608,181 @@ class WoodySellerAnalyticsRepository implements SellerAnalyticsRepository {
     DateTime? now,
   }) => runCatching(() async {
     final clock = now ?? DateTime.now();
-    final days = filter.range.days ?? 30;
+    final window = filter.windowFor(clock);
     final granularity = filter.granularityFor(clock) == BucketGranularity.month
         ? 'month'
         : 'day';
+
+    final query = <String, dynamic>{
+      'granularity': granularity,
+      if (filter.range == AnalyticsRange.custom) ...{
+        'from': window.start.toIso8601String(),
+        'to': window.endExclusive.toIso8601String(),
+      } else
+        'days': filter.range.days ?? 30,
+    };
+
     final body = await _api.get<Map<String, dynamic>>(
       '/seller/analytics',
-      query: {'granularity': granularity, 'days': days},
+      query: query,
     );
-    final points = (body['points'] as List?) ?? const [];
-    if (points.isEmpty) return AnalyticsSnapshot.empty(filter);
+    return _mapSnapshot(body, filter);
+  });
 
+  AnalyticsSnapshot _mapSnapshot(
+    Map<String, dynamic> body,
+    AnalyticsFilter filter,
+  ) {
+    final points = (body['points'] as List?) ?? const [];
     final revenueSeries = <RevenuePoint>[];
-    final ordersSeries = <OrdersPoint>[];
-    num totalRevenue = 0;
-    var ordersCount = 0;
     for (final raw in points) {
       if (raw is! Map<String, dynamic>) continue;
-      final bucket = DateTime.parse(raw['bucket'] as String).toUtc();
-      final revenue = (raw['revenue'] as num?) ?? 0;
-      final orders = ((raw['orders'] as num?) ?? 0).toInt();
-      revenueSeries.add(RevenuePoint(bucketStart: bucket, revenue: revenue));
-      ordersSeries.add(OrdersPoint(bucketStart: bucket, count: orders));
-      totalRevenue += revenue;
-      ordersCount += orders;
+      revenueSeries.add(
+        RevenuePoint(
+          bucketStart: DateTime.parse(raw['bucket'] as String).toUtc(),
+          revenue: (raw['revenue'] as num?) ?? 0,
+        ),
+      );
     }
+
+    final topProducts = ((body['top_products'] as List?) ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .map(
+          (raw) => TopProduct(
+            productId: raw['product_id'] as String? ?? '',
+            name: raw['name'] as String? ?? '',
+            unitsSold: (raw['units_sold'] as num?)?.toInt() ?? 0,
+            revenue: (raw['revenue'] as num?) ?? 0,
+            imageUrl: raw['image'] as String?,
+          ),
+        )
+        .toList();
+
+    final categoryBreakdown =
+        ((body['category_breakdown'] as List?) ?? const [])
+            .whereType<Map<String, dynamic>>()
+            .map(
+              (raw) => CategorySlice(
+                categoryId: raw['category_id'] as String?,
+                label: raw['label'] as String? ?? '',
+                revenue: (raw['revenue'] as num?) ?? 0,
+                percent: (raw['percent'] as num?)?.toDouble() ?? 0,
+              ),
+            )
+            .toList();
+
+    final ordersBody = body['orders'] as Map<String, dynamic>? ?? const {};
+    final ordersSeries = ((ordersBody['series'] as List?) ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .map(
+          (raw) => OrdersPoint(
+            bucketStart: DateTime.parse(raw['bucket'] as String).toUtc(),
+            count: (raw['count'] as num?)?.toInt() ?? 0,
+          ),
+        )
+        .toList();
+    final byStatus = ((ordersBody['by_status'] as List?) ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .map(
+          (raw) => StatusSlice(
+            status: raw['status'] as String? ?? '',
+            count: (raw['count'] as num?)?.toInt() ?? 0,
+            percent: (raw['percent'] as num?)?.toDouble() ?? 0,
+          ),
+        )
+        .toList();
+
+    final reviewsBody = body['reviews'] as Map<String, dynamic>? ?? const {};
+    final reviewDistribution = <int, int>{1: 0, 2: 0, 3: 0, 4: 0, 5: 0};
+    final distRaw = reviewsBody['distribution'];
+    if (distRaw is Map) {
+      distRaw.forEach((key, value) {
+        final star = int.tryParse(key.toString());
+        if (star != null && star >= 1 && star <= 5) {
+          reviewDistribution[star] = (value as num?)?.toInt() ?? 0;
+        }
+      });
+    }
+    final reviewSeries = ((reviewsBody['series'] as List?) ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .map(
+          (raw) => OrdersPoint(
+            bucketStart: DateTime.parse(raw['bucket'] as String).toUtc(),
+            count: (raw['count'] as num?)?.toInt() ?? 0,
+          ),
+        )
+        .toList();
+    final recentReviews = ((reviewsBody['recent'] as List?) ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .map(
+          (raw) => ReviewPreview(
+            id: raw['id'] as String? ?? '',
+            rating: (raw['rating'] as num?)?.toInt() ?? 0,
+            customerName: raw['customer_name'] as String? ?? '—',
+            productName: raw['product_name'] as String? ?? '—',
+            comment: raw['comment'] as String? ?? '',
+            createdAt: DateTime.parse(raw['created_at'] as String),
+            hasReply: raw['has_reply'] as bool? ?? false,
+          ),
+        )
+        .toList();
+
+    final customersBody =
+        body['customers'] as Map<String, dynamic>? ?? const {};
+    final topCustomers = ((customersBody['top_customers'] as List?) ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .map(
+          (raw) => TopCustomer(
+            customerId: raw['customer_id'] as String? ?? '',
+            name: raw['name'] as String? ?? '—',
+            ordersCount: (raw['orders_count'] as num?)?.toInt() ?? 0,
+            totalSpent: (raw['total_spent'] as num?) ?? 0,
+          ),
+        )
+        .toList();
+
+    final totalRevenue = (body['total_revenue'] as num?) ?? 0;
+    final ordersCount = (body['orders_count'] as num?)?.toInt() ?? 0;
 
     return AnalyticsSnapshot(
       filter: filter,
       totalRevenue: totalRevenue,
-      previousRevenue: 0,
+      previousRevenue: (body['previous_revenue'] as num?) ?? 0,
       ordersCount: ordersCount,
-      unitsSold: 0,
-      avgOrderValue: ordersCount == 0 ? 0 : totalRevenue / ordersCount,
+      unitsSold: (body['units_sold'] as num?)?.toInt() ?? 0,
+      avgOrderValue:
+          (body['avg_order_value'] as num?) ??
+          (ordersCount == 0 ? 0 : totalRevenue / ordersCount),
       series: revenueSeries,
-      topProducts: const [],
-      categoryBreakdown: const [],
+      topProducts: topProducts,
+      categoryBreakdown: categoryBreakdown,
       orders: OrdersBreakdown(
-        total: ordersCount,
-        previousTotal: 0,
-        byStatus: const [],
+        total: (ordersBody['total'] as num?)?.toInt() ?? 0,
+        previousTotal: (ordersBody['previous_total'] as num?)?.toInt() ?? 0,
+        byStatus: byStatus,
         series: ordersSeries,
-        deliveredCount: 0,
-        cancelledCount: 0,
-        activeCount: ordersCount,
+        deliveredCount: (ordersBody['delivered_count'] as num?)?.toInt() ?? 0,
+        cancelledCount: (ordersBody['cancelled_count'] as num?)?.toInt() ?? 0,
+        activeCount: (ordersBody['active_count'] as num?)?.toInt() ?? 0,
       ),
-      reviews: ReviewsBreakdown.empty(),
-      customers: CustomersBreakdown.empty(),
+      reviews: ReviewsBreakdown(
+        total: (reviewsBody['total'] as num?)?.toInt() ?? 0,
+        previousTotal: (reviewsBody['previous_total'] as num?)?.toInt() ?? 0,
+        average: (reviewsBody['average'] as num?)?.toDouble() ?? 0,
+        distribution: reviewDistribution,
+        repliedCount: (reviewsBody['replied_count'] as num?)?.toInt() ?? 0,
+        series: reviewSeries,
+        recent: recentReviews,
+      ),
+      customers: CustomersBreakdown(
+        unique: (customersBody['unique'] as num?)?.toInt() ?? 0,
+        previousUnique:
+            (customersBody['previous_unique'] as num?)?.toInt() ?? 0,
+        newCustomers: (customersBody['new_customers'] as num?)?.toInt() ?? 0,
+        returningCustomers:
+            (customersBody['returning_customers'] as num?)?.toInt() ?? 0,
+        topCustomers: topCustomers,
+      ),
     );
-  });
+  }
 }
