@@ -13,6 +13,7 @@ import '../../../../core/result/result.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/models/tariff.dart';
+import '../../../../shared/payments/manual_payment_pending_screen.dart';
 import '../../../../shared/payments/pending_payment.dart';
 import '../../../../shared/payments/pending_payment_service.dart';
 import '../../../../shared/repositories/payment_repository.dart';
@@ -20,10 +21,9 @@ import '../../../../shared/repositories/tariff_repository.dart';
 import '../../../../shared/utils/image_upload.dart';
 import '../../../../shared/widgets/payment_provider_tile.dart';
 import '../bloc/tariff_upgrade_bloc.dart';
-import 'tariff_pending_screen.dart';
 
 /// Popped when the seller opened a Payme/Click checkout and left for the
-/// payment app. Manual submissions navigate to [TariffPendingScreen] directly.
+/// payment app. Manual submissions navigate to [ManualPaymentPendingScreen].
 enum TariffPaymentResult { onlineLaunched }
 
 enum _PayMode { online, card }
@@ -212,7 +212,9 @@ class _TariffPaymentViewState extends State<_TariffPaymentView> {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             settings: const RouteSettings(name: '/seller-tariff-pending'),
-            builder: (_) => TariffPendingScreen(subscription: subscription),
+            builder: (_) => ManualPaymentPendingScreen(
+              args: TariffSubscriptionPendingArgs(subscription: subscription),
+            ),
           ),
         );
       },

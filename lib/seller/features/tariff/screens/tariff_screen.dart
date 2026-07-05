@@ -7,14 +7,13 @@ import 'package:woody_app/core/i18n/i18n.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/models/tariff.dart';
-import '../../../../shared/payments/payment_pending_copy.dart';
+import '../../../../shared/payments/manual_payment_pending_screen.dart';
 import '../../../../shared/repositories/tariff_repository.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/error_state.dart';
 import '../bloc/tariff_bloc.dart';
 import '../screens/tariff_payment_screen.dart';
 import 'tariff_history_screen.dart';
-import 'tariff_pending_screen.dart';
 
 // Every colour is read from `SellerColors.of(context)` per build so the screen
 // flips with the seller theme — the pending/expiry banner brand tint uses
@@ -279,7 +278,9 @@ class _PendingBanner extends StatelessWidget {
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(
             settings: const RouteSettings(name: '/seller-tariff-pending'),
-            builder: (_) => TariffPendingScreen(subscription: subscription),
+            builder: (_) => ManualPaymentPendingScreen(
+              args: TariffSubscriptionPendingArgs(subscription: subscription),
+            ),
           ),
         ),
         child: Padding(

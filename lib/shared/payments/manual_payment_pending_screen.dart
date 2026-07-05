@@ -6,10 +6,13 @@ import '../../core/di/service_locator.dart';
 import '../../core/i18n/i18n.dart';
 import '../../core/theme/app_colors.dart';
 import '../../seller/features/products/data/ar_token_repository.dart';
+import '../../seller/features/tariff/screens/tariff_history_screen.dart';
 import '../../seller/features/wallet/screens/ar_token_purchase_history_screen.dart';
 import '../../seller/features/wallet/screens/wallet_history_screen.dart';
 import '../models/seller_wallet.dart';
+import '../models/tariff.dart';
 import '../repositories/seller_wallet_repository.dart';
+import '../repositories/tariff_repository.dart';
 import 'payment_pending_copy.dart';
 
 /// Shared pending screen for seller payments — P2P (admin review) and online
@@ -99,6 +102,36 @@ final class WalletDepositPendingArgs extends ManualPaymentPendingArgs {
   bool get isStillPending => _deposit.isPending;
 }
 
+final class TariffSubscriptionPendingArgs extends ManualPaymentPendingArgs {
+  TariffSubscriptionPendingArgs({required TariffSubscription subscription})
+    : _subscription = subscription,
+      super(
+        referenceId: subscription.id,
+        submittedAt: subscription.submittedAt,
+      );
+
+  final TariffSubscription _subscription;
+
+  TariffSubscription get subscription => _subscription;
+
+  int get amount => _subscription.amount;
+
+  @override
+  bool get isManualReview =>
+      _subscription.paymentScreenshotUrl != null &&
+      _subscription.paymentScreenshotUrl!.isNotEmpty;
+
+  @override
+  bool get isStillPending => _subscription.status.isPending;
+
+  @override
+  Duration get slaRemaining => _subscription.slaRemaining;
+
+  TariffSubscriptionPendingArgs copyWithSubscription(
+    TariffSubscription subscription,
+  ) => TariffSubscriptionPendingArgs(subscription: subscription);
+}
+
 class ManualPaymentPendingScreen extends StatefulWidget {
   const ManualPaymentPendingScreen({super.key, required this.args});
 
@@ -175,6 +208,28 @@ class _ManualPaymentPendingScreenState
             return;
           }
           setState(() => _live = next);
+        case TariffSubscriptionPendingArgs(:final subscription):
+          final repo = sl<TariffRepository>();
+          TariffSubscription? match;
+          final pending = (await repo.currentPending()).valueOrNull;
+          if (pending?.id == subscription.id) {
+            match = pending;
+          } else {
+            final history = (await repo.history()).valueOrNull ?? const [];
+            match = history
+                .where((row) => row.id == subscription.id)
+                .cast<TariffSubscription?>()
+                .firstOrNull;
+          }
+          if (match == null || !mounted) return;
+          final next = (_live as TariffSubscriptionPendingArgs)
+              .copyWithSubscription(match);
+          if (_live.isStillPending && !match.status.isPending) {
+            await _showTariffResolution(next);
+            if (mounted) Navigator.of(context).pop();
+            return;
+          }
+          setState(() => _live = next);
       }
     } catch (_) {
       // Best-effort polling — network blips shouldn't crash the screen.
@@ -208,21 +263,53 @@ class _ManualPaymentPendingScreenState
     if (mounted) Navigator.of(context).pop();
   }
 
+  Future<void> _confirmCancelTariff() async {
+    final subscription = (_live as TariffSubscriptionPendingArgs).subscription;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(tr('tariff.cancel_title')),
+        content: Text(tr('tariff.cancel_subtitle')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(tr('common.back')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            child: Text(tr('orders.cancel')),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    await sl<TariffRepository>().cancelPending(subscription.id);
+    if (mounted) Navigator.of(context).pop();
+  }
+
   Future<void> _showWalletDepositPaid(WalletDeposit deposit) async {
     await _showResolution(WalletDepositPendingArgs(deposit: deposit));
   }
 
   Future<void> _showResolution(ManualPaymentPendingArgs resolved) async {
+    if (resolved is TariffSubscriptionPendingArgs) {
+      return _showTariffResolution(resolved);
+    }
     if (!mounted) return;
     final approved = switch (resolved) {
       WalletTopUpPendingArgs(:final topUp) => topUp.isApproved,
       WalletDepositPendingArgs() => true,
       ArTokenPurchasePendingArgs(:final purchase) => purchase.isPaid,
+      TariffSubscriptionPendingArgs() => throw StateError('tariff'),
     };
     final rejectionReason = switch (resolved) {
       WalletTopUpPendingArgs(:final topUp) => topUp.rejectionReason,
       WalletDepositPendingArgs() => null,
       ArTokenPurchasePendingArgs() => null,
+      TariffSubscriptionPendingArgs() => throw StateError('tariff'),
     };
     await showDialog<void>(
       context: context,
@@ -260,7 +347,50 @@ class _ManualPaymentPendingScreenState
           ArTokenPurchasePendingArgs() => tr(
             'seller.manual_payment_rejected_subtitle',
           ),
+          TariffSubscriptionPendingArgs() => throw StateError('tariff'),
         }),
+        actions: [
+          if (!approved)
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(tr('tariff.try_again')),
+            ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(tr('common.ok')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showTariffResolution(
+    TariffSubscriptionPendingArgs resolved,
+  ) async {
+    if (!mounted) return;
+    final sub = resolved.subscription;
+    final approved = sub.status.isApproved;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: Icon(
+          approved ? Icons.check_circle_outline : Icons.cancel_outlined,
+          size: 36,
+          color: approved
+              ? SellerColors.of(ctx).positive
+              : Theme.of(ctx).colorScheme.error,
+        ),
+        title: Text(
+          approved ? tr('tariff.approved_title') : tr('tariff.rejected_title'),
+        ),
+        content: Text(
+          approved
+              ? tr(
+                  'tariff.approved_subtitle',
+                  args: [tr('tariff.plan.${sub.plan.code}_label')],
+                )
+              : (sub.rejectionReason ?? tr('tariff.rejected_subtitle')),
+        ),
         actions: [
           if (!approved)
             TextButton(
@@ -286,6 +416,10 @@ class _ManualPaymentPendingScreenState
       ArTokenPurchasePendingArgs() => MaterialPageRoute<void>(
         settings: const RouteSettings(name: '/ar-token-purchase-history'),
         builder: (_) => const ArTokenPurchaseHistoryScreen(),
+      ),
+      TariffSubscriptionPendingArgs() => MaterialPageRoute<void>(
+        settings: const RouteSettings(name: '/seller-tariff-history'),
+        builder: (_) => const TariffHistoryScreen(),
       ),
     };
     Navigator.of(context).push(route);
@@ -354,6 +488,17 @@ class _ManualPaymentPendingScreenState
                 style: TextStyle(color: scheme.error),
               ),
             ),
+          if (_live case TariffSubscriptionPendingArgs(
+            :final subscription,
+          ) when subscription.status.isPending && _live.isStillPending)
+            TextButton.icon(
+              onPressed: _confirmCancelTariff,
+              icon: Icon(Icons.cancel_outlined, color: scheme.error),
+              label: Text(
+                tr('tariff.cancel_request'),
+                style: TextStyle(color: scheme.error),
+              ),
+            ),
         ],
       ),
     );
@@ -363,6 +508,7 @@ class _ManualPaymentPendingScreenState
     WalletTopUpPendingArgs() ||
     WalletDepositPendingArgs() => tr('seller.wallet_history_title'),
     ArTokenPurchasePendingArgs() => tr('seller.ar_purchase_history_title'),
+    TariffSubscriptionPendingArgs() => tr('tariff.history'),
   };
 }
 
@@ -456,6 +602,8 @@ class _SummaryCard extends StatelessWidget {
               WalletTopUpPendingArgs() || WalletDepositPendingArgs() =>
                 Icons.account_balance_wallet_outlined,
               ArTokenPurchasePendingArgs() => Icons.bolt_rounded,
+              TariffSubscriptionPendingArgs() =>
+                Icons.workspace_premium_outlined,
             }),
             title: Text(switch (args) {
               WalletTopUpPendingArgs() || WalletDepositPendingArgs() => tr(
@@ -464,6 +612,9 @@ class _SummaryCard extends StatelessWidget {
               ArTokenPurchasePendingArgs(:final purchase) => tr(
                 'seller.ar_token_count',
                 namedArgs: {'count': '${purchase.tokens}'},
+              ),
+              TariffSubscriptionPendingArgs(:final subscription) => tr(
+                'tariff.plan.${subscription.plan.code}_label',
               ),
             }),
             subtitle: Text(switch (args) {
@@ -479,6 +630,9 @@ class _SummaryCard extends StatelessWidget {
               ArTokenPurchasePendingArgs() => tr(
                 'seller.pending_online_subtitle',
               ),
+              TariffSubscriptionPendingArgs(:final subscription) => tr(
+                'tariff.period_${subscription.period.code}',
+              ),
             }),
             trailing: Text(switch (args) {
               WalletTopUpPendingArgs(:final amount) ||
@@ -487,8 +641,20 @@ class _SummaryCard extends StatelessWidget {
               ) => '${priceFormat.format(amount)} so\'m',
               ArTokenPurchasePendingArgs(:final amountUzs) =>
                 '${priceFormat.format(amountUzs)} so\'m',
+              TariffSubscriptionPendingArgs(:final amount) =>
+                '${priceFormat.format(amount)} so\'m',
             }, style: Theme.of(context).textTheme.titleMedium),
           ),
+          if (args case TariffSubscriptionPendingArgs())
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: Text(
+                tr('tariff.current_remains'),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: scheme.outline),
+              ),
+            ),
         ],
       ),
     );
