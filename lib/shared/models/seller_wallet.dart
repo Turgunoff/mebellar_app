@@ -199,7 +199,11 @@ class WalletTopUp extends Equatable {
 
   bool get isRejected => status == 'rejected';
 
-  bool get isResolved => isApproved || isRejected || status == 'cancelled';
+  bool get isCancelled => status == 'cancelled';
+
+  bool get canCancel => isPending;
+
+  bool get isResolved => isApproved || isRejected || isCancelled;
 
   /// 24-hour SLA — mirrors tariff manual-payment pending screens.
   Duration get slaRemaining {

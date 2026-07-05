@@ -66,6 +66,11 @@ class WoodySellerWalletRepository implements SellerWalletRepository {
   }
 
   @override
+  Future<void> cancelTopUp(String topUpId) async {
+    await _api.patch<void>('/seller/wallet/topups/$topUpId/cancel');
+  }
+
+  @override
   Future<List<WalletTransaction>> fetchTransactions({
     int limit = 50,
     int offset = 0,

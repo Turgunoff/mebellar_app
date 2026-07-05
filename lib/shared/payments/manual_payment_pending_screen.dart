@@ -175,6 +175,10 @@ class _ManualPaymentPendingScreenState
               .firstOrNull;
           if (match == null || !mounted) return;
           final next = (_live as WalletTopUpPendingArgs).copyWithTopUp(match);
+          if (_live.isStillPending && match.isCancelled) {
+            if (mounted) Navigator.of(context).pop();
+            return;
+          }
           if (_live.isStillPending && match.isResolved) {
             await _showResolution(next);
             if (mounted) Navigator.of(context).pop();
@@ -234,6 +238,33 @@ class _ManualPaymentPendingScreenState
     } catch (_) {
       // Best-effort polling — network blips shouldn't crash the screen.
     }
+  }
+
+  Future<void> _confirmCancelWallet() async {
+    final topUp = (_live as WalletTopUpPendingArgs).topUp;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(tr('tariff.cancel_title')),
+        content: Text(tr('tariff.cancel_subtitle')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(tr('common.back')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            child: Text(tr('orders.cancel')),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    await sl<SellerWalletRepository>().cancelTopUp(topUp.id);
+    if (mounted) Navigator.of(context).pop();
   }
 
   Future<void> _confirmCancelAr() async {
@@ -477,6 +508,17 @@ class _ManualPaymentPendingScreenState
             label: Text(_historyLabel),
           ),
           const SizedBox(height: 8),
+          if (_live case WalletTopUpPendingArgs(
+            :final topUp,
+          ) when topUp.canCancel && _live.isStillPending)
+            TextButton.icon(
+              onPressed: _confirmCancelWallet,
+              icon: Icon(Icons.cancel_outlined, color: scheme.error),
+              label: Text(
+                tr('tariff.cancel_request'),
+                style: TextStyle(color: scheme.error),
+              ),
+            ),
           if (_live case ArTokenPurchasePendingArgs(
             :final purchase,
           ) when purchase.canCancel && _live.isStillPending)

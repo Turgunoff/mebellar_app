@@ -31,6 +31,9 @@ abstract class SellerWalletRepository {
   /// Manual top-up moderation rows, newest first (`GET /seller/wallet/topups`).
   Future<List<WalletTopUp>> fetchTopUps();
 
+  /// Withdraw a pending manual top-up (`PATCH /seller/wallet/topups/{id}/cancel`).
+  Future<void> cancelTopUp(String topUpId);
+
   /// Ledger history (`GET /seller/wallet/transactions`).
   Future<List<WalletTransaction>> fetchTransactions({
     int limit = 50,
