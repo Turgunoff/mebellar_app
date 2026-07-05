@@ -6,6 +6,7 @@ import '../../../../core/i18n/i18n.dart';
 import '../../../../core/logging/app_logger.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
+import '../../../../shared/payments/payment_pending_copy.dart';
 import '../../../../shared/models/seller_wallet.dart';
 import '../../../../shared/repositories/seller_wallet_repository.dart';
 
@@ -317,7 +318,7 @@ class _TopUpTile extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Text(
-                reason,
+                resolvePaymentCancellationReason(reason),
                 style: TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 13,

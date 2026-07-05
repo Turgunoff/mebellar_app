@@ -49,6 +49,22 @@ String pendingSubtitle({required bool manualReview}) => manualReview
     ? tr('tariff.pending_subtitle')
     : tr('seller.pending_online_subtitle');
 
+/// Machine code written by the backend when a manual payment SLA lapses.
+const kPaymentSlaExpiredReason = 'sla_expired';
+
+bool isSlaExpiredCancellation(String? reason) =>
+    reason == kPaymentSlaExpiredReason;
+
+String resolvePaymentCancellationReason(String? reason) {
+  if (isSlaExpiredCancellation(reason)) {
+    return tr('seller.payment_sla_expired_message');
+  }
+  if (reason != null && reason.trim().isNotEmpty) {
+    return reason.trim();
+  }
+  return tr('seller.manual_payment_rejected_subtitle');
+}
+
 String pendingSlaTitle({required bool manualReview}) => manualReview
     ? tr('tariff.sla_title')
     : tr('seller.pending_online_sla_title');

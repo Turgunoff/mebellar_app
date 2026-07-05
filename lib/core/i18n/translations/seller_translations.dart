@@ -339,6 +339,11 @@ const Map<String, dynamic> sellerUz = {
   'manual_payment_rejected_title': 'To‘lov tasdiqlanmadi',
   'manual_payment_rejected_subtitle':
       'Iltimos, qayta urinib ko‘ring yoki support bilan bog‘laning.',
+  'payment_sla_expired_title': 'So\'rov bekor qilindi',
+  'payment_sla_expired_message':
+      '24 soat ichida admin tomonidan tasdiqlanmaganligi sababli so\'rovingiz avtomatik bekor qilindi. Agar to\'lovni amalga oshirgan bo\'lsangiz, qayta yuborishingiz yoki qo\'llab-quvvatlash xizmati bilan bog\'lanishingiz mumkin.',
+  'payment_sla_expired_timer_hint':
+      'Muddat tugadi — so\'rov tez orada avtomatik bekor qilinadi.',
   'wallet_topup_approved_subtitle': '{amount} so‘m hisobingizga qo‘shildi.',
   'ar_purchase_approved_subtitle': '{count} ta token balansingizga qo‘shildi.',
   'manual_payment_wallet_note':
@@ -740,6 +745,11 @@ const Map<String, dynamic> sellerRu = {
   'manual_payment_rejected_title': 'Платёж не подтверждён',
   'manual_payment_rejected_subtitle':
       'Попробуйте снова или свяжитесь с поддержкой.',
+  'payment_sla_expired_title': 'Заявка отменена',
+  'payment_sla_expired_message':
+      'Заявка автоматически отменена: администратор не подтвердил оплату в течение 24 часов. Если вы уже перевели деньги, отправьте заявку снова или свяжитесь с поддержкой.',
+  'payment_sla_expired_timer_hint':
+      'Срок истёк — заявка скоро будет отменена автоматически.',
   'wallet_topup_approved_subtitle': 'На баланс зачислено {amount} сум.',
   'ar_purchase_approved_subtitle': 'На баланс добавлено {count} токенов.',
   'manual_payment_wallet_note': 'До подтверждения текущий баланс не изменится.',
@@ -1137,6 +1147,11 @@ const Map<String, dynamic> sellerEn = {
   'manual_payment_approved_title': 'Payment approved',
   'manual_payment_rejected_title': 'Payment not approved',
   'manual_payment_rejected_subtitle': 'Please try again or contact support.',
+  'payment_sla_expired_title': 'Request cancelled',
+  'payment_sla_expired_message':
+      'Your request was automatically cancelled because an admin did not approve it within 24 hours. If you already paid, you can submit again or contact support.',
+  'payment_sla_expired_timer_hint':
+      'Time is up — your request will be cancelled automatically soon.',
   'wallet_topup_approved_subtitle': '{amount} UZS was added to your balance.',
   'ar_purchase_approved_subtitle': '{count} tokens were added to your balance.',
   'manual_payment_wallet_note':

@@ -80,6 +80,7 @@ class ArTokenPurchase {
     required this.status,
     required this.createdAt,
     required this.updatedAt,
+    this.rejectionReason,
   });
 
   final String id;
@@ -90,6 +91,7 @@ class ArTokenPurchase {
   final String status;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final String? rejectionReason;
 
   bool get isPaid => status == 'paid';
   bool get isPending => status == 'pending';
@@ -117,6 +119,7 @@ class ArTokenPurchase {
         status: json['status'] as String? ?? 'pending',
         createdAt: DateTime.parse(json['created_at'] as String),
         updatedAt: DateTime.parse(json['updated_at'] as String),
+        rejectionReason: json['rejection_reason'] as String?,
       );
 }
 

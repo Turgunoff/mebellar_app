@@ -177,13 +177,8 @@ class _ManualPaymentPendingScreenState
               .firstOrNull;
           if (match == null || !mounted) return;
           final next = (_live as WalletTopUpPendingArgs).copyWithTopUp(match);
-          if (_live.isStillPending && match.isCancelled) {
-            if (mounted) Navigator.of(context).pop();
-            return;
-          }
           if (_live.isStillPending && match.isResolved) {
-            await _showResolution(next);
-            if (mounted) Navigator.of(context).pop();
+            await _handleResolved(next);
             return;
           }
           setState(() => _live = next);
@@ -209,8 +204,7 @@ class _ManualPaymentPendingScreenState
             match,
           );
           if (_live.isStillPending && match.isResolved) {
-            await _showResolution(next);
-            if (mounted) Navigator.of(context).pop();
+            await _handleResolved(next);
             return;
           }
           setState(() => _live = next);
@@ -323,6 +317,62 @@ class _ManualPaymentPendingScreenState
     if (mounted) Navigator.of(context).pop();
   }
 
+  Future<void> _handleResolved(ManualPaymentPendingArgs resolved) async {
+    if (resolved is TariffSubscriptionPendingArgs) {
+      await _showTariffResolution(resolved);
+      if (mounted) Navigator.of(context).pop();
+      return;
+    }
+
+    final cancelled = switch (resolved) {
+      WalletTopUpPendingArgs(:final topUp) => topUp.isCancelled,
+      ArTokenPurchasePendingArgs(:final purchase) => purchase.isCancelled,
+      WalletDepositPendingArgs() => false,
+      TariffSubscriptionPendingArgs() => false,
+    };
+    final slaReason = switch (resolved) {
+      WalletTopUpPendingArgs(:final topUp) => topUp.rejectionReason,
+      ArTokenPurchasePendingArgs(:final purchase) => purchase.rejectionReason,
+      WalletDepositPendingArgs() => null,
+      TariffSubscriptionPendingArgs() => null,
+    };
+
+    if (cancelled) {
+      if (isSlaExpiredCancellation(slaReason)) {
+        await _showSlaExpiredDialog();
+      }
+    } else {
+      await _showResolution(resolved);
+    }
+    if (mounted) Navigator.of(context).pop();
+  }
+
+  Future<void> _showSlaExpiredDialog() async {
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: Icon(
+          Iconsax.timer_1,
+          size: 36,
+          color: SellerColors.of(ctx).primary,
+        ),
+        title: Text(tr('seller.payment_sla_expired_title')),
+        content: Text(tr('seller.payment_sla_expired_message')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(tr('tariff.try_again')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(tr('common.ok')),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _showWalletDepositPaid(WalletDeposit deposit) async {
     await _showResolution(WalletDepositPendingArgs(deposit: deposit));
   }
@@ -372,14 +422,14 @@ class _ManualPaymentPendingScreenState
             'seller.ar_purchase_approved_subtitle',
             namedArgs: {'count': '${purchase.tokens}'},
           ),
-          WalletTopUpPendingArgs() =>
-            rejectionReason ?? tr('seller.manual_payment_rejected_subtitle'),
+          WalletTopUpPendingArgs() => resolvePaymentCancellationReason(
+            rejectionReason,
+          ),
           WalletDepositPendingArgs() => tr(
             'seller.manual_payment_rejected_subtitle',
           ),
-          ArTokenPurchasePendingArgs() => tr(
-            'seller.manual_payment_rejected_subtitle',
-          ),
+          ArTokenPurchasePendingArgs(:final purchase) =>
+            resolvePaymentCancellationReason(purchase.rejectionReason),
           TariffSubscriptionPendingArgs() => throw StateError('tariff'),
         }),
         actions: [
@@ -402,19 +452,34 @@ class _ManualPaymentPendingScreenState
   ) async {
     if (!mounted) return;
     final sub = resolved.subscription;
+    if (sub.status == TariffUpgradeStatus.cancelled &&
+        !isSlaExpiredCancellation(sub.rejectionReason)) {
+      return;
+    }
     final approved = sub.status.isApproved;
+    final slaExpired = isSlaExpiredCancellation(sub.rejectionReason);
     await showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         icon: Icon(
-          approved ? Icons.check_circle_outline : Icons.cancel_outlined,
+          approved
+              ? Icons.check_circle_outline
+              : slaExpired
+              ? Iconsax.timer_1
+              : Icons.cancel_outlined,
           size: 36,
           color: approved
               ? SellerColors.of(ctx).positive
+              : slaExpired
+              ? SellerColors.of(ctx).primary
               : Theme.of(ctx).colorScheme.error,
         ),
         title: Text(
-          approved ? tr('tariff.approved_title') : tr('tariff.rejected_title'),
+          approved
+              ? tr('tariff.approved_title')
+              : slaExpired
+              ? tr('seller.payment_sla_expired_title')
+              : tr('tariff.rejected_title'),
         ),
         content: Text(
           approved
@@ -422,7 +487,7 @@ class _ManualPaymentPendingScreenState
                   'tariff.approved_subtitle',
                   args: [tr('tariff.plan.${sub.plan.code}_label')],
                 )
-              : (sub.rejectionReason ?? tr('tariff.rejected_subtitle')),
+              : resolvePaymentCancellationReason(sub.rejectionReason),
         ),
         actions: [
           if (!approved)
@@ -768,12 +833,17 @@ class _SlaCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            tr(
-              'tariff.submitted_at',
-              args: [
-                DateFormat('dd MMM, HH:mm', lang).format(submittedAt.toLocal()),
-              ],
-            ),
+            remaining == Duration.zero
+                ? tr('seller.payment_sla_expired_timer_hint')
+                : tr(
+                    'tariff.submitted_at',
+                    args: [
+                      DateFormat(
+                        'dd MMM, HH:mm',
+                        lang,
+                      ).format(submittedAt.toLocal()),
+                    ],
+                  ),
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: AppFonts.seller,

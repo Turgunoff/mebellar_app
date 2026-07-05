@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/models/tariff.dart';
+import '../../../../shared/payments/payment_pending_copy.dart';
 import '../../../../shared/repositories/tariff_repository.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/empty_state.dart';
@@ -17,8 +18,8 @@ class TariffHistoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => TariffBloc(sl<TariffRepository>())
-        ..add(const TariffRequested()),
+      create: (_) =>
+          TariffBloc(sl<TariffRepository>())..add(const TariffRequested()),
       child: const _HistoryView(),
     );
   }
@@ -34,27 +35,28 @@ class _HistoryView extends StatelessWidget {
       body: BlocBuilder<TariffBloc, TariffState>(
         builder: (context, state) {
           return switch (state.status) {
-            TariffStatus.initial ||
-            TariffStatus.loading =>
-              const Center(child: BrandLoadingIndicator()),
+            TariffStatus.initial || TariffStatus.loading => const Center(
+              child: BrandLoadingIndicator(),
+            ),
             TariffStatus.failure when state.history.isEmpty => ErrorState(
-                message: state.error,
-                onRetry: () =>
-                    context.read<TariffBloc>().add(const TariffRequested()),
-              ),
-            _ => state.history.isEmpty
-                ? EmptyState(
-                    icon: Icons.history,
-                    title: tr('tariff.history_empty'),
-                    message: tr('tariff.history_empty_hint'),
-                  )
-                : ListView.separated(
-                    padding: const EdgeInsets.all(12),
-                    itemCount: state.history.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 8),
-                    itemBuilder: (context, i) =>
-                        _HistoryTile(subscription: state.history[i]),
-                  ),
+              message: state.error,
+              onRetry: () =>
+                  context.read<TariffBloc>().add(const TariffRequested()),
+            ),
+            _ =>
+              state.history.isEmpty
+                  ? EmptyState(
+                      icon: Icons.history,
+                      title: tr('tariff.history_empty'),
+                      message: tr('tariff.history_empty_hint'),
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.all(12),
+                      itemCount: state.history.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 8),
+                      itemBuilder: (context, i) =>
+                          _HistoryTile(subscription: state.history[i]),
+                    ),
           };
         },
       ),
@@ -72,7 +74,11 @@ class _HistoryTile extends StatelessWidget {
     final priceFormat = NumberFormat('#,###', lang);
     final dateFmt = DateFormat('dd MMM yyyy', lang);
     final scheme = Theme.of(context).colorScheme;
-    final palette = _palette(scheme, SellerColors.of(context), subscription.status);
+    final palette = _palette(
+      scheme,
+      SellerColors.of(context),
+      subscription.status,
+    );
 
     return Card(
       shape: RoundedRectangleBorder(
@@ -94,7 +100,9 @@ class _HistoryTile extends StatelessWidget {
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 4),
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: palette.bg,
                     borderRadius: BorderRadius.circular(20),
@@ -113,9 +121,9 @@ class _HistoryTile extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               tr('tariff.period_${subscription.period.code}'),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: scheme.outline,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: scheme.outline),
             ),
             const SizedBox(height: 8),
             Row(
@@ -134,17 +142,20 @@ class _HistoryTile extends StatelessWidget {
             if (subscription.expiresAt != null) ...[
               const SizedBox(height: 4),
               Text(
-                tr('tariff.expires_at',
-                    args: [dateFmt.format(subscription.expiresAt!.toLocal())]),
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: scheme.outline,
-                    ),
+                tr(
+                  'tariff.expires_at',
+                  args: [dateFmt.format(subscription.expiresAt!.toLocal())],
+                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: scheme.outline),
               ),
             ],
-            if (subscription.rejectionReason != null) ...[
+            if (subscription.rejectionReason case final reason?
+                when reason.isNotEmpty) ...[
               const SizedBox(height: 6),
               Text(
-                subscription.rejectionReason!,
+                resolvePaymentCancellationReason(reason),
                 style: TextStyle(color: scheme.error, fontSize: 12),
               ),
             ],
@@ -161,25 +172,19 @@ class _HistoryTile extends StatelessWidget {
   ) {
     return switch (status) {
       TariffUpgradeStatus.none => (
-          bg: s.surfaceContainerHighest,
-          fg: s.onSurface,
-        ),
+        bg: s.surfaceContainerHighest,
+        fg: s.onSurface,
+      ),
       TariffUpgradeStatus.pending => (
-          bg: s.tertiaryContainer,
-          fg: s.onTertiaryContainer,
-        ),
-      TariffUpgradeStatus.approved => (
-          bg: c.positiveBg,
-          fg: c.positive,
-        ),
+        bg: s.tertiaryContainer,
+        fg: s.onTertiaryContainer,
+      ),
+      TariffUpgradeStatus.approved => (bg: c.positiveBg, fg: c.positive),
       TariffUpgradeStatus.rejected => (
-          bg: s.errorContainer,
-          fg: s.onErrorContainer,
-        ),
-      TariffUpgradeStatus.cancelled => (
-          bg: s.surfaceContainer,
-          fg: s.outline,
-        ),
+        bg: s.errorContainer,
+        fg: s.onErrorContainer,
+      ),
+      TariffUpgradeStatus.cancelled => (bg: s.surfaceContainer, fg: s.outline),
     };
   }
 }
