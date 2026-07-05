@@ -31,7 +31,8 @@ class ShopAchievement extends Equatable {
   final String? descriptionRu;
   final String? descriptionEn;
 
-  /// Buyer-facing reward/trust blurb (uz/ru/en) — the badge's description.
+  /// Buyer-facing reward/trust blurb (uz/ru/en) from the catalogue — used on
+  /// the seller dashboard only. The public shop page uses `shop.badge_*` i18n.
   final String? rewardUz;
   final String? rewardRu;
   final String? rewardEn;

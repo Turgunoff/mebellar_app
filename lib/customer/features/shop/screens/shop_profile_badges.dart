@@ -36,6 +36,20 @@ FaIconData achievementBadgeIcon(String name) => switch (name) {
   _ => FontAwesomeIcons.trophy,
 };
 
+/// Buyer-facing title for a public trust badge. Falls back to the catalogue
+/// title when [code] is unknown (shouldn't happen for [_kPublicBadgeCodes]).
+String publicBadgeTitle(String code, ShopAchievement achievement, String lang) {
+  final key = 'shop.badge_${code}_title';
+  final localized = tr(key);
+  if (localized != key) return localized;
+  return achievement.localizedTitle(lang);
+}
+
+/// Buyer-facing blurb — never the seller-dashboard `reward_*` copy.
+String publicBadgeDescription(String code) {
+  return tr('shop.badge_${code}_desc');
+}
+
 /// The only milestones a buyer sees — high-value SOCIAL PROOF badges that build
 /// trust. Internal/administrative milestones (product-count tiers, etc.) are
 /// deliberately excluded so the shop header stays meaningful to shoppers.
@@ -102,11 +116,18 @@ class _BadgePill extends StatelessWidget {
       curve: Curves.easeOutBack,
       builder: (context, t, child) => Opacity(
         opacity: t.clamp(0.0, 1.0),
-        child: Transform.scale(scale: 0.8 + 0.2 * t.clamp(0.0, 1.0), child: child),
+        child: Transform.scale(
+          scale: 0.8 + 0.2 * t.clamp(0.0, 1.0),
+          child: child,
+        ),
       ),
       child: Semantics(
         button: true,
-        label: achievement.localizedTitle(context.locale.languageCode),
+        label: publicBadgeTitle(
+          achievement.code,
+          achievement,
+          context.locale.languageCode,
+        ),
         child: Material(
           color: Colors.transparent,
           shape: const CircleBorder(),
@@ -205,8 +226,8 @@ class _AchievementSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final pt = tokens;
     final lang = context.locale.languageCode;
-    // The buyer-facing reward blurb is the trust-building description here.
-    final description = achievement.localizedReward(lang).trim();
+    final title = publicBadgeTitle(achievement.code, achievement, lang);
+    final description = publicBadgeDescription(achievement.code);
     return SafeArea(
       top: false,
       child: Container(
@@ -232,7 +253,7 @@ class _AchievementSheet extends StatelessWidget {
             _Medallion(icon: achievementBadgeIcon(achievement.icon), size: 76),
             const SizedBox(height: 18),
             Text(
-              achievement.localizedTitle(lang),
+              title,
               textAlign: TextAlign.center,
               style: _ts(
                 size: 18,

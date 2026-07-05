@@ -9,7 +9,8 @@ const Map<String, dynamic> shopUz = {
   'phone_copied': 'Telefon nusxalandi: {}',
   'telegram_failed': 'Telegram ochilmadi',
   'coming_soon_title': 'Do\'kon sahifasi tez kunda!',
-  'coming_soon_body': 'Do\'kon haqida to\'liq ma\'lumot va barcha mahsulotlar yaqinda ko\'rinadi.',
+  'coming_soon_body':
+      'Do\'kon haqida to\'liq ma\'lumot va barcha mahsulotlar yaqinda ko\'rinadi.',
   'products_section_title': 'Mahsulotlar',
   'since_year': '{year}-yildan beri',
   'stat_products': 'Mahsulot',
@@ -37,6 +38,22 @@ const Map<String, dynamic> shopUz = {
   'open_24h': '24 soat',
   'achievements_title': 'Yutuqlar',
   'earned_badge': 'Qo\'lga kiritilgan nishon',
+  // Buyer-facing trust badges (only these 5 appear on the public shop page).
+  'badge_first_sale_title': 'Faol sotuvchi',
+  'badge_first_sale_desc':
+      'Bu do\'kon Woody\'da kamida bitta buyurtmani muvaffaqiyatli yetkazib bergan.',
+  'badge_high_revenue_title': 'Ishonchli hamkor',
+  'badge_high_revenue_desc':
+      '10 million so\'mdan ortiq savdo qilgan ishonchli do\'kon.',
+  'badge_top_rated_title': 'Mijozlar yoqimtoyi',
+  'badge_top_rated_desc':
+      'Mijozlar tomonidan yuqori baho va ijobiy sharhlar olgan do\'kon.',
+  'badge_fast_processor_title': 'Chaqmoq',
+  'badge_fast_processor_desc':
+      'Buyurtmalarni tez qabul qiladigan faol do\'kon.',
+  'badge_ar_master_title': 'Virtual ko\'rgazma',
+  'badge_ar_master_desc':
+      'Mahsulotlarni 3D va AR rejimida ko\'rish imkoniyati mavjud.',
   'price_uzs': '{price} UZS',
   'no_products_yet': 'Hozircha mahsulot yo\'q',
   'load_failed': 'Do\'kon ma\'lumotlarini yuklab bo\'lmadi',
@@ -53,7 +70,8 @@ const Map<String, dynamic> shopRu = {
   'phone_copied': 'Телефон скопирован: {}',
   'telegram_failed': 'Не удалось открыть Telegram',
   'coming_soon_title': 'Страница магазина скоро будет!',
-  'coming_soon_body': 'Полная информация о магазине и все товары появятся совсем скоро.',
+  'coming_soon_body':
+      'Полная информация о магазине и все товары появятся совсем скоро.',
   'products_section_title': 'Товары',
   'since_year': 'На платформе с {year} года',
   'stat_products': 'Товары',
@@ -81,6 +99,19 @@ const Map<String, dynamic> shopRu = {
   'open_24h': 'Круглосуточно',
   'achievements_title': 'Достижения',
   'earned_badge': 'Полученный значок',
+  'badge_first_sale_title': 'Активный продавец',
+  'badge_first_sale_desc':
+      'Этот магазин успешно доставил хотя бы один заказ на Woody.',
+  'badge_high_revenue_title': 'Надёжный партнёр',
+  'badge_high_revenue_desc': 'Надёжный магазин с оборотом более 10 млн сум.',
+  'badge_top_rated_title': 'Любимец клиентов',
+  'badge_top_rated_desc':
+      'Магазин с высокими оценками и положительными отзывами.',
+  'badge_fast_processor_title': 'Молния',
+  'badge_fast_processor_desc': 'Магазин, который быстро принимает заказы.',
+  'badge_ar_master_title': 'Виртуальная выставка',
+  'badge_ar_master_desc':
+      'Можно просматривать товары в 3D и дополненной реальности.',
   'price_uzs': '{price} сум',
   'no_products_yet': 'Пока нет товаров',
   'load_failed': 'Не удалось загрузить данные магазина',
@@ -97,7 +128,8 @@ const Map<String, dynamic> shopEn = {
   'phone_copied': 'Phone copied: {}',
   'telegram_failed': 'Could not open Telegram',
   'coming_soon_title': 'Shop page coming soon!',
-  'coming_soon_body': 'Full shop details and all products will be available very soon.',
+  'coming_soon_body':
+      'Full shop details and all products will be available very soon.',
   'products_section_title': 'Products',
   'since_year': 'Since {year}',
   'stat_products': 'Products',
@@ -125,6 +157,18 @@ const Map<String, dynamic> shopEn = {
   'open_24h': '24 hours',
   'achievements_title': 'Achievements',
   'earned_badge': 'Earned badge',
+  'badge_first_sale_title': 'Active seller',
+  'badge_first_sale_desc':
+      'This shop has successfully delivered at least one order on Woody.',
+  'badge_high_revenue_title': 'Trusted partner',
+  'badge_high_revenue_desc':
+      'A trusted shop with over 10 million UZS in sales.',
+  'badge_top_rated_title': 'Customer favorite',
+  'badge_top_rated_desc': 'Highly rated by customers with positive reviews.',
+  'badge_fast_processor_title': 'Lightning',
+  'badge_fast_processor_desc': 'A shop that accepts orders quickly.',
+  'badge_ar_master_title': 'Virtual showroom',
+  'badge_ar_master_desc': 'Products can be viewed in 3D and augmented reality.',
   'price_uzs': '{price} UZS',
   'no_products_yet': 'No products yet',
   'load_failed': 'Couldn\'t load shop information',
