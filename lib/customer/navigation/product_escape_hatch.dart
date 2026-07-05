@@ -136,16 +136,23 @@ EscapeHatchLook escapeHatchLook(ProductEscapePlan plan) {
   };
 }
 
-/// The stack of route *patterns* (bottom → top) currently held by the customer
-/// router. Shell matches (none in the customer router today) collapse to '' and
-/// simply never match the product pattern.
-List<String> currentStackPaths(BuildContext context) {
-  final config = GoRouter.of(context).routerDelegate.currentConfiguration;
+/// The stack of route *patterns* (bottom → top) for [router]. Prefer this over
+/// [currentStackPaths] when the caller sits above `MaterialApp.router` (e.g.
+/// `CustomerApp.initState` post-frame hooks) — that outer context has no
+/// `GoRouter` ancestor.
+List<String> currentStackPathsFor(GoRouter router) {
+  final config = router.routerDelegate.currentConfiguration;
   return [
     for (final match in config.matches)
       if (match.route case final GoRoute route) route.path else '',
   ];
 }
+
+/// The stack of route *patterns* (bottom → top) currently held by the customer
+/// router. Shell matches (none in the customer router today) collapse to '' and
+/// simply never match the product pattern.
+List<String> currentStackPaths(BuildContext context) =>
+    currentStackPathsFor(GoRouter.of(context));
 
 /// Reads the live stack and returns the plan for the screen on top. Use this for
 /// the AppBar's icon/visibility.

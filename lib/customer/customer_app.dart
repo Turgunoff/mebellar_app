@@ -147,7 +147,7 @@ class _CustomerAppState extends State<CustomerApp> with WidgetsBindingObserver {
     if (!mounted || _normalizedShareStack) return;
     _normalizedShareStack = true;
     if (!customer_onboarding.isOnboardingSeen()) return;
-    final paths = currentStackPaths(context);
+    final paths = currentStackPathsFor(_router);
     if (paths.length != 1 || paths.single != customerProductDetailPath) return;
     final loc = _router.routerDelegate.currentConfiguration.uri.path;
     if (!loc.startsWith('/product-detail/')) return;

@@ -679,9 +679,7 @@ class _ContactCard extends StatelessWidget {
       await Clipboard.setData(ClipboardData(text: phone));
       messenger.showSnackBar(
         SnackBar(
-          content: Text(
-            tr('shop.phone_copied_2', namedArgs: {'phone': phone}),
-          ),
+          content: Text(tr('shop.phone_copied_2', namedArgs: {'phone': phone})),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -944,11 +942,16 @@ class _HoursCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              _SectionTitle(text: tr('shop.working_hours_title'), accent: accent),
+              _SectionTitle(
+                text: tr('shop.working_hours_title'),
+                accent: accent,
+              ),
               const Spacer(),
-              _OpenPill(openNow: openNow),
+              _CallStatusPill(openNow: openNow),
             ],
           ),
+          const SizedBox(height: 8),
+          _OnlineOrdersHint(),
           const SizedBox(height: 12),
           for (final day in DayOfWeek.values) ...[
             _HoursRow(
@@ -969,8 +972,8 @@ class _HoursCard extends StatelessWidget {
   }
 }
 
-class _OpenPill extends StatelessWidget {
-  const _OpenPill({required this.openNow});
+class _CallStatusPill extends StatelessWidget {
+  const _CallStatusPill({required this.openNow});
 
   final bool openNow;
 
@@ -995,11 +998,32 @@ class _OpenPill extends StatelessWidget {
           ),
           const SizedBox(width: 6),
           Text(
-            openNow ? tr('shop.open_now') : tr('shop.closed_now'),
+            openNow ? tr('shop.call_open_now') : tr('shop.call_closed_now'),
             style: _ts(size: 11.5, weight: FontWeight.w700, color: color),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _OnlineOrdersHint extends StatelessWidget {
+  const _OnlineOrdersHint();
+
+  @override
+  Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
+    return Row(
+      children: [
+        Icon(Iconsax.shopping_bag, size: 14, color: pt.success),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            tr('shop.online_orders_always'),
+            style: _ts(size: 12, weight: FontWeight.w500, color: pt.greyLight),
+          ),
+        ),
+      ],
     );
   }
 }
