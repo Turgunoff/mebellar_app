@@ -1,10 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../core/di/service_locator.dart';
 import '../../core/i18n/i18n.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_fonts.dart';
 import '../../seller/features/products/data/ar_token_repository.dart';
 import '../../seller/features/tariff/screens/tariff_history_screen.dart';
 import '../../seller/features/wallet/screens/ar_token_purchase_history_screen.dart';
@@ -458,89 +460,105 @@ class _ManualPaymentPendingScreenState
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final c = SellerColors.of(context);
     final manualReview = _live.isManualReview;
+    final canCancel = switch (_live) {
+      WalletTopUpPendingArgs(:final topUp) =>
+        topUp.canCancel && _live.isStillPending,
+      ArTokenPurchasePendingArgs(:final purchase) =>
+        purchase.canCancel && _live.isStillPending,
+      TariffSubscriptionPendingArgs(:final subscription) =>
+        subscription.status.isPending && _live.isStillPending,
+      WalletDepositPendingArgs() => false,
+    };
     return Scaffold(
-      appBar: AppBar(title: Text(tr('tariff.pending_title'))),
+      backgroundColor: c.background,
+      appBar: AppBar(
+        backgroundColor: c.background,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        foregroundColor: c.ink,
+        title: Text(
+          tr('tariff.pending_title'),
+          style: TextStyle(
+            fontFamily: AppFonts.seller,
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: c.ink,
+            letterSpacing: -0.2,
+          ),
+        ),
+      ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
+        physics: const BouncingScrollPhysics(
+          parent: AlwaysScrollableScrollPhysics(),
+        ),
         children: [
-          const SizedBox(height: 24),
-          Center(
-            child: Container(
-              width: 96,
-              height: 96,
-              decoration: BoxDecoration(
-                color: scheme.tertiaryContainer,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.hourglass_top_outlined,
-                size: 56,
-                color: scheme.onTertiaryContainer,
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            pendingHeadline(manualReview: manualReview),
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            pendingSubtitle(manualReview: manualReview),
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyLarge,
-          ),
-          const SizedBox(height: 24),
+          _PendingHero(manualReview: manualReview),
+          const SizedBox(height: 28),
           _SlaCard(
             remaining: _live.slaRemaining,
             submittedAt: _live.submittedAt,
             manualReview: manualReview,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           _SummaryCard(args: _live),
-          const SizedBox(height: 24),
-          OutlinedButton.icon(
-            onPressed: _openHistory,
-            icon: const Icon(Icons.history),
-            label: Text(_historyLabel),
+          const SizedBox(height: 28),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: OutlinedButton.icon(
+              onPressed: _openHistory,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: c.primary,
+                side: BorderSide(color: c.divider),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              icon: Icon(Iconsax.clock, size: 20, color: c.primary),
+              label: Text(
+                _historyLabel,
+                style: TextStyle(
+                  fontFamily: AppFonts.seller,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                ),
+              ),
+            ),
           ),
-          const SizedBox(height: 8),
-          if (_live case WalletTopUpPendingArgs(
-            :final topUp,
-          ) when topUp.canCancel && _live.isStillPending)
-            TextButton.icon(
-              onPressed: _confirmCancelWallet,
-              icon: Icon(Icons.cancel_outlined, color: scheme.error),
-              label: Text(
-                tr('tariff.cancel_request'),
-                style: TextStyle(color: scheme.error),
+          if (canCancel) ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: TextButton.icon(
+                onPressed: switch (_live) {
+                  WalletTopUpPendingArgs() => _confirmCancelWallet,
+                  ArTokenPurchasePendingArgs() => _confirmCancelAr,
+                  TariffSubscriptionPendingArgs() => _confirmCancelTariff,
+                  WalletDepositPendingArgs() => null,
+                },
+                style: TextButton.styleFrom(
+                  foregroundColor: c.negative,
+                  backgroundColor: c.negativeBg.withValues(alpha: 0.45),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                icon: Icon(Iconsax.close_circle, size: 18, color: c.negative),
+                label: Text(
+                  tr('tariff.cancel_request'),
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
               ),
             ),
-          if (_live case ArTokenPurchasePendingArgs(
-            :final purchase,
-          ) when purchase.canCancel && _live.isStillPending)
-            TextButton.icon(
-              onPressed: _confirmCancelAr,
-              icon: Icon(Icons.cancel_outlined, color: scheme.error),
-              label: Text(
-                tr('tariff.cancel_request'),
-                style: TextStyle(color: scheme.error),
-              ),
-            ),
-          if (_live case TariffSubscriptionPendingArgs(
-            :final subscription,
-          ) when subscription.status.isPending && _live.isStillPending)
-            TextButton.icon(
-              onPressed: _confirmCancelTariff,
-              icon: Icon(Icons.cancel_outlined, color: scheme.error),
-              label: Text(
-                tr('tariff.cancel_request'),
-                style: TextStyle(color: scheme.error),
-              ),
-            ),
+          ],
         ],
       ),
     );
@@ -552,6 +570,103 @@ class _ManualPaymentPendingScreenState
     ArTokenPurchasePendingArgs() => tr('seller.ar_purchase_history_title'),
     TariffSubscriptionPendingArgs() => tr('tariff.history'),
   };
+}
+
+class _PendingHero extends StatelessWidget {
+  const _PendingHero({required this.manualReview});
+
+  final bool manualReview;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    final accent = manualReview ? c.progress : c.primary;
+    final accentBg = manualReview ? c.progressBg : c.primarySoft;
+    return Column(
+      children: [
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: accentBg.withValues(alpha: 0.55),
+              ),
+            ),
+            Container(
+              width: 88,
+              height: 88,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [accent, accent.withValues(alpha: 0.82)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: accent.withValues(alpha: 0.28),
+                    blurRadius: 24,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Icon(
+                manualReview ? Iconsax.timer_1 : Iconsax.flash_circle,
+                size: 40,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 22),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: accentBg,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Text(
+            tr('tariff.pending_title'),
+            style: TextStyle(
+              fontFamily: AppFonts.seller,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: accent,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
+        Text(
+          pendingHeadline(manualReview: manualReview),
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: AppFonts.seller,
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            color: c.ink,
+            letterSpacing: -0.4,
+            height: 1.25,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          pendingSubtitle(manualReview: manualReview),
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: AppFonts.seller,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: c.grey,
+            height: 1.45,
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class _SlaCard extends StatelessWidget {
@@ -576,46 +691,130 @@ class _SlaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final lang = context.locale.languageCode;
-    final scheme = Theme.of(context).colorScheme;
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: scheme.outlineVariant),
+    final accent = manualReview ? c.progress : c.primary;
+    const total = Duration(hours: 24);
+    final elapsed = total - remaining;
+    final progress = (elapsed.inSeconds / total.inSeconds).clamp(0.0, 1.0);
+    final parts = _formatRemaining(remaining).split(':');
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: c.surface,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: c.divider),
+        boxShadow: [
+          BoxShadow(
+            color: c.ink.withValues(alpha: 0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Text(
-              pendingSlaTitle(manualReview: manualReview),
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _formatRemaining(remaining),
-              style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                fontFeatures: const [FontFeature.tabularFigures()],
-                fontWeight: FontWeight.w800,
-                color: scheme.primary,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(Iconsax.timer, size: 18, color: accent),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  pendingSlaTitle(manualReview: manualReview),
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: c.ink,
+                  ),
+                ),
               ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 6,
+              backgroundColor: c.trackBg,
+              color: accent,
             ),
-            const SizedBox(height: 4),
-            Text(
-              tr(
-                'tariff.submitted_at',
-                args: [
-                  DateFormat(
-                    'dd MMM, HH:mm',
-                    lang,
-                  ).format(submittedAt.toLocal()),
-                ],
-              ),
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: scheme.outline),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (var i = 0; i < parts.length; i++) ...[
+                if (i > 0)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    child: Text(
+                      ':',
+                      style: TextStyle(
+                        fontFamily: AppFonts.seller,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w300,
+                        color: c.greyMid,
+                        height: 1,
+                      ),
+                    ),
+                  ),
+                _TimeBox(value: parts[i], accent: accent),
+              ],
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            tr(
+              'tariff.submitted_at',
+              args: [
+                DateFormat('dd MMM, HH:mm', lang).format(submittedAt.toLocal()),
+              ],
             ),
-          ],
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: AppFonts.seller,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: c.greyMid,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TimeBox extends StatelessWidget {
+  const _TimeBox({required this.value, required this.accent});
+
+  final String value;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    return Container(
+      width: 72,
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      decoration: BoxDecoration(
+        color: c.fillSoft,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: c.divider),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        value,
+        style: TextStyle(
+          fontFamily: AppFonts.seller,
+          fontSize: 26,
+          fontWeight: FontWeight.w800,
+          color: accent,
+          fontFeatures: const [FontFeature.tabularFigures()],
+          height: 1,
         ),
       ),
     );
@@ -629,74 +828,147 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
     final lang = context.locale.languageCode;
     final priceFormat = NumberFormat('#,###', lang);
-    final scheme = Theme.of(context).colorScheme;
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: scheme.outlineVariant),
+    final icon = switch (args) {
+      WalletTopUpPendingArgs() ||
+      WalletDepositPendingArgs() => Iconsax.wallet_3,
+      ArTokenPurchasePendingArgs() => Iconsax.flash_1,
+      TariffSubscriptionPendingArgs() => Iconsax.crown_1,
+    };
+    final title = switch (args) {
+      WalletTopUpPendingArgs() ||
+      WalletDepositPendingArgs() => tr('seller.wallet_topup_section_title'),
+      ArTokenPurchasePendingArgs(:final purchase) => tr(
+        'seller.ar_token_count',
+        namedArgs: {'count': '${purchase.tokens}'},
+      ),
+      TariffSubscriptionPendingArgs(:final subscription) => tr(
+        'tariff.plan.${subscription.plan.code}_label',
+      ),
+    };
+    final note = switch (args) {
+      WalletTopUpPendingArgs() => tr('seller.manual_payment_wallet_note'),
+      WalletDepositPendingArgs() => tr('seller.pending_online_subtitle'),
+      ArTokenPurchasePendingArgs() when args.isManualReview => tr(
+        'seller.manual_payment_ar_note',
+      ),
+      ArTokenPurchasePendingArgs() => tr('seller.pending_online_subtitle'),
+      TariffSubscriptionPendingArgs(:final subscription) => tr(
+        'tariff.period_${subscription.period.code}',
+      ),
+    };
+    final amountLabel = switch (args) {
+      WalletTopUpPendingArgs(:final amount) ||
+      WalletDepositPendingArgs(
+        :final amount,
+      ) => '${priceFormat.format(amount)} so\'m',
+      ArTokenPurchasePendingArgs(:final amountUzs) =>
+        '${priceFormat.format(amountUzs)} so\'m',
+      TariffSubscriptionPendingArgs(:final amount) =>
+        '${priceFormat.format(amount)} so\'m',
+    };
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: c.surface,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: c.divider),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          ListTile(
-            leading: Icon(switch (args) {
-              WalletTopUpPendingArgs() || WalletDepositPendingArgs() =>
-                Icons.account_balance_wallet_outlined,
-              ArTokenPurchasePendingArgs() => Icons.bolt_rounded,
-              TariffSubscriptionPendingArgs() =>
-                Icons.workspace_premium_outlined,
-            }),
-            title: Text(switch (args) {
-              WalletTopUpPendingArgs() || WalletDepositPendingArgs() => tr(
-                'seller.wallet_topup_section_title',
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: c.primarySoft,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                alignment: Alignment.center,
+                child: Icon(icon, size: 22, color: c.primary),
               ),
-              ArTokenPurchasePendingArgs(:final purchase) => tr(
-                'seller.ar_token_count',
-                namedArgs: {'count': '${purchase.tokens}'},
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontFamily: AppFonts.seller,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: c.ink,
+                        letterSpacing: -0.1,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      note,
+                      style: TextStyle(
+                        fontFamily: AppFonts.seller,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w500,
+                        color: c.grey,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              TariffSubscriptionPendingArgs(:final subscription) => tr(
-                'tariff.plan.${subscription.plan.code}_label',
-              ),
-            }),
-            subtitle: Text(switch (args) {
-              WalletTopUpPendingArgs() => tr(
-                'seller.manual_payment_wallet_note',
-              ),
-              WalletDepositPendingArgs() => tr(
-                'seller.pending_online_subtitle',
-              ),
-              ArTokenPurchasePendingArgs() when args.isManualReview => tr(
-                'seller.manual_payment_ar_note',
-              ),
-              ArTokenPurchasePendingArgs() => tr(
-                'seller.pending_online_subtitle',
-              ),
-              TariffSubscriptionPendingArgs(:final subscription) => tr(
-                'tariff.period_${subscription.period.code}',
-              ),
-            }),
-            trailing: Text(switch (args) {
-              WalletTopUpPendingArgs(:final amount) ||
-              WalletDepositPendingArgs(
-                :final amount,
-              ) => '${priceFormat.format(amount)} so\'m',
-              ArTokenPurchasePendingArgs(:final amountUzs) =>
-                '${priceFormat.format(amountUzs)} so\'m',
-              TariffSubscriptionPendingArgs(:final amount) =>
-                '${priceFormat.format(amount)} so\'m',
-            }, style: Theme.of(context).textTheme.titleMedium),
+            ],
           ),
-          if (args case TariffSubscriptionPendingArgs())
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-              child: Text(
-                tr('tariff.current_remains'),
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: scheme.outline),
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: c.fillFaint,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              children: [
+                Text(
+                  tr('seller.wallet_amount_label'),
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: c.greyMid,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  amountLabel,
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    color: c.ink,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (args case TariffSubscriptionPendingArgs()) ...[
+            const SizedBox(height: 10),
+            Text(
+              tr('tariff.current_remains'),
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: c.greyMid,
+                height: 1.35,
               ),
             ),
+          ],
         ],
       ),
     );
