@@ -26,6 +26,7 @@ class CartItemModel extends Equatable {
     this.createdAt,
     this.hasDelivery = false,
     this.deliveryPrice = 0,
+    this.maxDeliveryFee = 0,
     this.hasInstallation = false,
     this.installationPrice = 0,
   });
@@ -55,13 +56,15 @@ class CartItemModel extends Equatable {
   // affects the first paint, never what the customer is charged.
   final bool hasDelivery;
   final num deliveryPrice;
+  final int maxDeliveryFee;
   final bool hasInstallation;
   final num installationPrice;
 
   double get lineTotal => productPrice * quantity;
 
   /// Delivery contribution for this line (0 when the product offers none).
-  double get deliveryFee => hasDelivery ? (deliveryPrice * quantity).toDouble() : 0;
+  double get deliveryFee =>
+      hasDelivery ? (deliveryPrice * quantity).toDouble() : 0;
 
   /// Full installation cost for this line if the customer opts in (0 when the
   /// product offers none). The toggle decides whether it's added to the total.
@@ -81,6 +84,7 @@ class CartItemModel extends Equatable {
     DateTime? createdAt,
     bool? hasDelivery,
     num? deliveryPrice,
+    int? maxDeliveryFee,
     bool? hasInstallation,
     num? installationPrice,
   }) {
@@ -97,6 +101,7 @@ class CartItemModel extends Equatable {
       createdAt: createdAt ?? this.createdAt,
       hasDelivery: hasDelivery ?? this.hasDelivery,
       deliveryPrice: deliveryPrice ?? this.deliveryPrice,
+      maxDeliveryFee: maxDeliveryFee ?? this.maxDeliveryFee,
       hasInstallation: hasInstallation ?? this.hasInstallation,
       installationPrice: installationPrice ?? this.installationPrice,
     );
@@ -124,6 +129,7 @@ class CartItemModel extends Equatable {
       selectedColor: selectedColor,
       hasDelivery: product.hasDelivery,
       deliveryPrice: product.deliveryPrice,
+      maxDeliveryFee: product.maxDeliveryFee,
       hasInstallation: product.hasInstallation,
       installationPrice: product.installationPrice,
     );
@@ -167,6 +173,7 @@ class CartItemModel extends Equatable {
       // the order quote re-derives the authoritative amounts from the catalog.
       hasDelivery: snapshot['has_delivery'] as bool? ?? false,
       deliveryPrice: (snapshot['delivery_price'] as num?) ?? 0,
+      maxDeliveryFee: (snapshot['max_delivery_fee'] as num?)?.toInt() ?? 0,
       hasInstallation: snapshot['has_installation'] as bool? ?? false,
       installationPrice: (snapshot['installation_price'] as num?) ?? 0,
     );
@@ -184,6 +191,7 @@ class CartItemModel extends Equatable {
     if (selectedColor != null) 'color': selectedColor,
     if (hasDelivery) 'has_delivery': hasDelivery,
     if (deliveryPrice != 0) 'delivery_price': deliveryPrice,
+    if (maxDeliveryFee > 0) 'max_delivery_fee': maxDeliveryFee,
     if (hasInstallation) 'has_installation': hasInstallation,
     if (installationPrice != 0) 'installation_price': installationPrice,
   };
@@ -208,6 +216,7 @@ class CartItemModel extends Equatable {
     // cart/checkout state instead of being swallowed as "unchanged".
     hasDelivery,
     deliveryPrice,
+    maxDeliveryFee,
     hasInstallation,
     installationPrice,
   ];

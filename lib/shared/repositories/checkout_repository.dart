@@ -24,14 +24,21 @@ abstract class CheckoutRepository {
     required String deliveryAddress,
     String paymentMethod = 'cash',
     bool wantInstallation = false,
+    double? deliveryLatitude,
+    double? deliveryLongitude,
   });
 }
 
 class CheckoutOrderLine {
-  const CheckoutOrderLine({required this.productId, required this.quantity});
+  const CheckoutOrderLine({
+    required this.productId,
+    required this.quantity,
+    this.colorSlug,
+  });
 
   final String productId;
   final int quantity;
+  final String? colorSlug;
 }
 
 /// Invoice breakdown returned by `POST /orders/quote`. `installationFee` is the
@@ -77,7 +84,11 @@ class WoodyCheckoutRepository implements CheckoutRepository {
       body: {
         'items': [
           for (final l in lines)
-            {'product_id': l.productId, 'quantity': l.quantity},
+            {
+              'product_id': l.productId,
+              'quantity': l.quantity,
+              if (l.colorSlug != null) 'color_slug': l.colorSlug,
+            },
         ],
         'delivery_address': deliveryAddress,
         'want_installation': wantInstallation,
@@ -92,15 +103,23 @@ class WoodyCheckoutRepository implements CheckoutRepository {
     required String deliveryAddress,
     String paymentMethod = 'cash',
     bool wantInstallation = false,
+    double? deliveryLatitude,
+    double? deliveryLongitude,
   }) async {
     final body = await _api.post<Map<String, dynamic>>(
       '/orders',
       body: {
         'items': [
           for (final l in lines)
-            {'product_id': l.productId, 'quantity': l.quantity},
+            {
+              'product_id': l.productId,
+              'quantity': l.quantity,
+              if (l.colorSlug != null) 'color_slug': l.colorSlug,
+            },
         ],
         'delivery_address': deliveryAddress,
+        if (deliveryLatitude != null) 'delivery_latitude': deliveryLatitude,
+        if (deliveryLongitude != null) 'delivery_longitude': deliveryLongitude,
         'payment_method': paymentMethod,
         'want_installation': wantInstallation,
       },

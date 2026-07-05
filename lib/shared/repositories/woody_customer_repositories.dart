@@ -413,14 +413,18 @@ class WoodyOrderRepository implements OrderRepository {
 
   @override
   Future<Order> approveFeeAdjustment(String id) async {
-    // Backend doesn't expose fee adjustment yet — return the latest order
-    // unchanged so the UI stops spinning. Phase 4 wires the real endpoint.
-    return getById(id);
+    final row = await _api.post<Map<String, dynamic>>(
+      '/orders/$id/fee-adjustment/approve',
+    );
+    return _rowToOrder(row);
   }
 
   @override
   Future<Order> rejectFeeAdjustment(String id) async {
-    return getById(id);
+    final row = await _api.post<Map<String, dynamic>>(
+      '/orders/$id/fee-adjustment/reject',
+    );
+    return _rowToOrder(row);
   }
 
   @override
@@ -442,7 +446,10 @@ class WoodyOrderRepository implements OrderRepository {
     final itemRows = (row['items'] as List<dynamic>?) ?? const [];
     final items = itemRows.map<OrderItem>(_rowToOrderItem).toList();
     final itemsTotal = items.fold<num>(0, (s, it) => s + it.lineTotal);
-    final deliveryFee = totalAmount > itemsTotal ? totalAmount - itemsTotal : 0;
+    final deliveryFee =
+        (row['delivery_fee'] as num?) ??
+        (totalAmount > itemsTotal ? totalAmount - itemsTotal : 0);
+    final paymentProvider = row['payment_provider'] as String? ?? 'cash';
 
     return Order(
       id: id,
@@ -451,7 +458,10 @@ class WoodyOrderRepository implements OrderRepository {
       items: items,
       address: _addressFromText(row['delivery_address'] as String?, id),
       deliveryMethod: OrderDeliveryMethod.delivery,
-      paymentMethod: OrderPaymentMethod.cashOnDelivery,
+      paymentMethod: paymentProvider == 'cash'
+          ? OrderPaymentMethod.cashOnDelivery
+          : OrderPaymentMethod.card,
+      paymentProvider: paymentProvider,
       status: status,
       itemsTotal: itemsTotal,
       deliveryFee: deliveryFee,

@@ -40,12 +40,20 @@ class ShopOrderGroup extends Equatable {
   double get installationFee =>
       items.fold(0.0, (s, it) => s + it.installationFee);
 
-  /// Whether every line in this group prices its own delivery (even when that
-  /// price is 0 = free). When false, no product pre-prices delivery, so the
-  /// seller proposes it after placement and the card shows "Sotuvchi
-  /// belgilaydi" rather than a misleading "Tekin".
-  bool get deliveryPriced =>
-      items.isNotEmpty && items.every((it) => it.hasDelivery);
+  /// Whether every line offers delivery with a fixed checkout price (> 0).
+  bool get deliveryFixedPriced =>
+      items.isNotEmpty &&
+      items.every((it) => it.hasDelivery && it.deliveryPrice > 0);
+
+  /// Seller sets the exact fee after reviewing the address (has_delivery but no
+  /// fixed delivery_price).
+  bool get deliveryDeferred =>
+      items.isNotEmpty &&
+      items.every((it) => it.hasDelivery && it.deliveryPrice <= 0);
+
+  /// Max estimated delivery across lines (for the deferred "0 – max" hint).
+  int get maxDeliveryFeeEstimate =>
+      items.fold(0, (sum, it) => sum + it.maxDeliveryFee * it.quantity);
 
   @override
   List<Object?> get props => [shopId, items];
@@ -58,6 +66,8 @@ class CheckoutState extends Equatable {
     this.payment = CheckoutPayment.cash,
     this.checkoutUrl,
     this.deliveryAddress = '',
+    this.deliveryLatitude,
+    this.deliveryLongitude,
     this.placedOrderIds = const [],
     this.installationByShop = const {},
     this.quotesByShop = const {},
@@ -73,6 +83,8 @@ class CheckoutState extends Equatable {
   /// externally.
   final String? checkoutUrl;
   final String deliveryAddress;
+  final double? deliveryLatitude;
+  final double? deliveryLongitude;
 
   /// Order IDs created during [submit] — populated on success.
   final List<String> placedOrderIds;
@@ -93,7 +105,10 @@ class CheckoutState extends Equatable {
 
   bool get hasAddress => deliveryAddress.trim().isNotEmpty;
 
-  /// Whether the order is ready to submit — every method only needs a delivery
+  /// Whether any shop defers delivery pricing to the seller after checkout.
+  bool get hasDeferredDelivery => groups.any((g) => g.deliveryDeferred);
+
+  /// The order is ready to submit — every method only needs a delivery
   /// address (Payme/Click open their app after the order is placed).
   bool get canSubmit => hasAddress;
 
@@ -162,6 +177,9 @@ class CheckoutState extends Equatable {
     CheckoutPayment? payment,
     String? checkoutUrl,
     String? deliveryAddress,
+    double? deliveryLatitude,
+    double? deliveryLongitude,
+    bool clearDeliveryCoordinates = false,
     List<String>? placedOrderIds,
     Map<String, bool>? installationByShop,
     Map<String, CheckoutQuote>? quotesByShop,
@@ -173,6 +191,12 @@ class CheckoutState extends Equatable {
     payment: payment ?? this.payment,
     checkoutUrl: checkoutUrl ?? this.checkoutUrl,
     deliveryAddress: deliveryAddress ?? this.deliveryAddress,
+    deliveryLatitude: clearDeliveryCoordinates
+        ? null
+        : (deliveryLatitude ?? this.deliveryLatitude),
+    deliveryLongitude: clearDeliveryCoordinates
+        ? null
+        : (deliveryLongitude ?? this.deliveryLongitude),
     placedOrderIds: placedOrderIds ?? this.placedOrderIds,
     installationByShop: installationByShop ?? this.installationByShop,
     quotesByShop: quotesByShop ?? this.quotesByShop,
@@ -186,6 +210,8 @@ class CheckoutState extends Equatable {
     payment,
     checkoutUrl,
     deliveryAddress,
+    deliveryLatitude,
+    deliveryLongitude,
     placedOrderIds,
     installationByShop,
     quotesByShop,
@@ -239,9 +265,16 @@ class CheckoutCubit extends Cubit<CheckoutState> {
     unawaited(_analytics?.paymentInfoAdded(paymentType: payment.name));
   }
 
-  void updateAddress(String address) {
+  void updateAddress(String address, {double? latitude, double? longitude}) {
     final trimmed = address.trim();
-    emit(state.copyWith(deliveryAddress: trimmed));
+    emit(
+      state.copyWith(
+        deliveryAddress: trimmed,
+        deliveryLatitude: latitude,
+        deliveryLongitude: longitude,
+        clearDeliveryCoordinates: latitude == null && longitude == null,
+      ),
+    );
     if (trimmed.isNotEmpty) {
       unawaited(_analytics?.shippingInfoAdded());
     }
@@ -292,7 +325,11 @@ class CheckoutCubit extends Cubit<CheckoutState> {
       return await _checkout.quote(
         lines: [
           for (final it in group.items)
-            CheckoutOrderLine(productId: it.productId, quantity: it.quantity),
+            CheckoutOrderLine(
+              productId: it.productId,
+              quantity: it.quantity,
+              colorSlug: it.selectedColor,
+            ),
         ],
         deliveryAddress: state.deliveryAddress,
         wantInstallation: state.wantsInstallationFor(group.shopId),
@@ -312,14 +349,19 @@ class CheckoutCubit extends Cubit<CheckoutState> {
       for (final group in state.groups) {
         // One order per shop group → POST /orders. The backend resolves the
         // caller from the JWT and computes the authoritative total from product
-        // prices (so total_amount/price/status aren't client-supplied). Per-item
-        // colour isn't persisted on the Woody order yet — a known limitation.
+        // prices (so total_amount/price/status aren't client-supplied).
         final orderId = await _checkout.placeOrder(
           lines: [
             for (final it in group.items)
-              CheckoutOrderLine(productId: it.productId, quantity: it.quantity),
+              CheckoutOrderLine(
+                productId: it.productId,
+                quantity: it.quantity,
+                colorSlug: it.selectedColor,
+              ),
           ],
           deliveryAddress: state.deliveryAddress,
+          deliveryLatitude: state.deliveryLatitude,
+          deliveryLongitude: state.deliveryLongitude,
           // Stored on the order so seller-accept can branch (cash → confirmed,
           // online → awaiting_payment). Deferred payment: NO charge here.
           paymentMethod: state.payment.name,

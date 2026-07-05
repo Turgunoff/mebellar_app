@@ -9,6 +9,8 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:yandex_mapkit/yandex_mapkit.dart';
 
 import '../../../../config/app_config.dart';
+import '../../../../core/maps/uzbekistan_bounds.dart';
+import '../../../../core/i18n/i18n.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/maps/yandex_mapkit_initializer.dart';
 import '../../../../core/platform/location_facade.dart';
@@ -448,15 +450,25 @@ class _MapAddressPickerScreenState extends State<MapAddressPickerScreen> {
                   isGeocoding: _isGeocoding,
                   onConfirm: () {
                     final address = _geocodedAddress;
-                    if (address != null && address.trim().isNotEmpty) {
-                      Navigator.of(context).pop(
-                        PickedLocation(
-                          address: address.trim(),
-                          latitude: _pickedPoint.latitude,
-                          longitude: _pickedPoint.longitude,
+                    if (address == null || address.trim().isEmpty) return;
+                    if (!UzbekistanBounds.contains(
+                      latitude: _pickedPoint.latitude,
+                      longitude: _pickedPoint.longitude,
+                    )) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(tr('address.outside_service_area')),
                         ),
                       );
+                      return;
                     }
+                    Navigator.of(context).pop(
+                      PickedLocation(
+                        address: address.trim(),
+                        latitude: _pickedPoint.latitude,
+                        longitude: _pickedPoint.longitude,
+                      ),
+                    );
                   },
                   pt: pt,
                   accent: widget.accent,

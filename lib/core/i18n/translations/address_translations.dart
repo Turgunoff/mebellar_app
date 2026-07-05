@@ -24,6 +24,8 @@ const Map<String, dynamic> addressUz = {
   'map_label': 'Xaritada belgilash',
   'tap_map_hint': 'Joyni tanlash uchun bosing',
   'delete_title': 'Manzilni o\'chirishni xohlaysizmi?',
+  'outside_service_area':
+      'Yetkazib berish faqat O\'zbekiston hududida mavjud. Iltimos, xaritada O\'zbekiston ichidagi manzilni tanlang.',
 };
 
 const Map<String, dynamic> addressRu = {
@@ -50,6 +52,8 @@ const Map<String, dynamic> addressRu = {
   'map_label': 'Отметить на карте',
   'tap_map_hint': 'Нажмите, чтобы выбрать точку',
   'delete_title': 'Удалить адрес?',
+  'outside_service_area':
+      'Доставка доступна только по Узбекистану. Выберите адрес внутри страны на карте.',
 };
 
 const Map<String, dynamic> addressEn = {
@@ -76,6 +80,8 @@ const Map<String, dynamic> addressEn = {
   'map_label': 'Mark on map',
   'tap_map_hint': 'Tap to drop the pin',
   'delete_title': 'Delete this address?',
+  'outside_service_area':
+      'Delivery is only available within Uzbekistan. Please pick an address inside the country on the map.',
 };
 
 const Map<String, dynamic> regionUz = {

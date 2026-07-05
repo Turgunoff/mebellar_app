@@ -292,7 +292,11 @@ class _DeliveryCard extends StatelessWidget {
                 ),
               );
           if (picked != null && context.mounted) {
-            context.read<CheckoutCubit>().updateAddress(picked.address);
+            context.read<CheckoutCubit>().updateAddress(
+              picked.address,
+              latitude: picked.latitude,
+              longitude: picked.longitude,
+            );
           }
         },
         borderRadius: BorderRadius.circular(20),
@@ -475,7 +479,8 @@ class _PaymentCard extends StatelessWidget {
                   : null,
             ),
           ],
-          if (state.payment != CheckoutPayment.cash) ...[
+          if (state.payment != CheckoutPayment.cash ||
+              state.hasDeferredDelivery) ...[
             const SizedBox(height: 12),
             Container(
               width: double.infinity,
@@ -753,7 +758,9 @@ class _GroupFees extends StatelessWidget {
         const SizedBox(height: 10),
         _DeliveryRow(
           deliveryFee: state.deliveryFeeFor(group),
-          deliveryPriced: group.deliveryPriced,
+          deliveryFixedPriced: group.deliveryFixedPriced,
+          deliveryDeferred: group.deliveryDeferred,
+          maxDeliveryFee: group.maxDeliveryFeeEstimate,
           pt: pt,
         ),
         if (state.installationAvailableFor(group)) ...[
@@ -792,21 +799,29 @@ class _GroupFees extends StatelessWidget {
   }
 }
 
-/// A delivery line: the amount, "Tekin" when every line prices its own delivery
-/// to zero, or "Sotuvchi belgilaydi" when no product pre-prices it.
+/// A delivery line: fixed amount, "Tekin" when explicitly free, a deferred
+/// seller-set fee, or hidden when the product offers no delivery.
 class _DeliveryRow extends StatelessWidget {
   const _DeliveryRow({
     required this.deliveryFee,
-    required this.deliveryPriced,
+    required this.deliveryFixedPriced,
+    required this.deliveryDeferred,
+    required this.maxDeliveryFee,
     required this.pt,
   });
 
   final double deliveryFee;
-  final bool deliveryPriced;
+  final bool deliveryFixedPriced;
+  final bool deliveryDeferred;
+  final int maxDeliveryFee;
   final PremiumTokens pt;
 
   @override
   Widget build(BuildContext context) {
+    if (!deliveryFixedPriced && !deliveryDeferred) {
+      return const SizedBox.shrink();
+    }
+
     return Row(
       children: [
         Expanded(
@@ -824,22 +839,27 @@ class _DeliveryRow extends StatelessWidget {
               color: pt.dark,
             ),
           )
-        else if (deliveryPriced)
+        else if (deliveryDeferred)
+          Text(
+            maxDeliveryFee > 0
+                ? tr(
+                    'checkout.delivery_deferred_range',
+                    namedArgs: {'max': _fmt(maxDeliveryFee)},
+                  )
+                : tr('checkout.delivery_seller_sets'),
+            style: PremiumTokens.body(
+              size: 13,
+              weight: FontWeight.w500,
+              color: context.customColors.warning,
+            ),
+          )
+        else
           Text(
             tr('checkout.delivery_free'),
             style: PremiumTokens.body(
               size: 14,
               weight: FontWeight.w700,
               color: pt.success,
-            ),
-          )
-        else
-          Text(
-            tr('checkout.delivery_seller_sets'),
-            style: PremiumTokens.body(
-              size: 13,
-              weight: FontWeight.w500,
-              color: context.customColors.warning,
             ),
           ),
       ],
