@@ -98,6 +98,12 @@ class RemoteConfig {
   /// Any online provider tile should be shown (enabled or coming soon).
   bool get anyOnlineProviderVisible => clickVisible || paymeVisible;
 
+  /// Minimum wallet top-up in whole so'm (online Payme/Click + manual card).
+  /// Mirrors `app_settings.payment_methods.min_topup_uzs`; default 50 000.
+  static const defaultMinWalletTopUp = 50000;
+
+  int minWalletTopUp = defaultMinWalletTopUp;
+
   static const _tariffHiveKey = 'remote_config.tariff_enabled';
   static const _androidMinVersionHiveKey = 'remote_config.android_min_version';
   static const _iosMinVersionHiveKey = 'remote_config.ios_min_version';
@@ -108,6 +114,7 @@ class RemoteConfig {
   static const _telegramChannelHiveKey = 'remote_config.telegram_channel';
   static const _clickModeHiveKey = 'remote_config.click_mode';
   static const _paymeModeHiveKey = 'remote_config.payme_mode';
+  static const _minWalletTopUpHiveKey = 'remote_config.min_wallet_topup_uzs';
   // Legacy bool keys — read once when migrating cached values.
   static const _clickEnabledHiveKey = 'remote_config.click_enabled';
   static const _paymeEnabledHiveKey = 'remote_config.payme_enabled';
@@ -179,6 +186,10 @@ class RemoteConfig {
             ? PaymentProviderMode.enabled
             : PaymentProviderMode.hidden;
       }
+    }
+    final minTopUp = box.get(_minWalletTopUpHiveKey);
+    if (minTopUp is int && minTopUp >= 1000) {
+      minWalletTopUp = minTopUp;
     }
   }
 
@@ -397,13 +408,16 @@ class RemoteConfig {
       final body = await api
           .get<Map<String, dynamic>>('/catalog/settings/payment_methods')
           .timeout(const Duration(seconds: 6));
-      final (:click, :payme) = parsePaymentMethods(body['value']);
+      final (:click, :payme, :minTopUpUzs) = parsePaymentMethods(body['value']);
       clickMode = click;
       paymeMode = payme;
+      minWalletTopUp = minTopUpUzs;
       await box.put(_clickModeHiveKey, click.name);
       await box.put(_paymeModeHiveKey, payme.name);
+      await box.put(_minWalletTopUpHiveKey, minTopUpUzs);
       appLog.info(
-        '[remote-config] payment_methods click=${click.name} payme=${payme.name}',
+        '[remote-config] payment_methods click=${click.name} payme=${payme.name} '
+        'min_topup=$minTopUpUzs',
       );
     } on ApiError catch (e, st) {
       if (e.isNotFound) {
@@ -411,8 +425,10 @@ class RemoteConfig {
         // blackout) rather than resetting to off.
         clickMode = PaymentProviderMode.enabled;
         paymeMode = PaymentProviderMode.enabled;
+        minWalletTopUp = defaultMinWalletTopUp;
         await box.put(_clickModeHiveKey, PaymentProviderMode.enabled.name);
         await box.put(_paymeModeHiveKey, PaymentProviderMode.enabled.name);
+        await box.put(_minWalletTopUpHiveKey, defaultMinWalletTopUp);
         return;
       }
       appLog.handle(
@@ -429,20 +445,30 @@ class RemoteConfig {
     }
   }
 
-  /// Extracts per-provider modes from the `payment_methods` jsonb value:
-  /// `{"click": "enabled", "payme": "coming_soon"}`. Backward-compatible with
-  /// the original bool flags. A missing or malformed field reads as *enabled*.
-  static ({PaymentProviderMode click, PaymentProviderMode payme})
+  /// Extracts per-provider modes and min top-up from the `payment_methods`
+  /// jsonb value. Backward-compatible with the original bool flags.
+  static ({
+    PaymentProviderMode click,
+    PaymentProviderMode payme,
+    int minTopUpUzs,
+  })
   parsePaymentMethods(dynamic value) {
     if (value is! Map) {
       return (
         click: PaymentProviderMode.enabled,
         payme: PaymentProviderMode.enabled,
+        minTopUpUzs: defaultMinWalletTopUp,
       );
     }
     return (
       click: parsePaymentProviderMode(value['click']),
       payme: parsePaymentProviderMode(value['payme']),
+      minTopUpUzs: _parseMinTopUpUzs(value['min_topup_uzs']),
     );
+  }
+
+  static int _parseMinTopUpUzs(dynamic raw) {
+    if (raw is num && raw >= 1000) return raw.toInt();
+    return defaultMinWalletTopUp;
   }
 }

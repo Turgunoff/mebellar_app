@@ -144,6 +144,24 @@ void main() {
       expect(partial.payme, PaymentProviderMode.enabled);
     });
 
+    test('reads min_topup_uzs with provider modes', () {
+      final parsed = RemoteConfig.parsePaymentMethods({
+        'click': 'enabled',
+        'payme': 'hidden',
+        'min_topup_uzs': 100_000,
+      });
+      expect(parsed.minTopUpUzs, 100_000);
+      expect(parsed.payme, PaymentProviderMode.hidden);
+    });
+
+    test('missing min_topup_uzs defaults to 50_000', () {
+      final parsed = RemoteConfig.parsePaymentMethods({
+        'click': 'enabled',
+        'payme': 'enabled',
+      });
+      expect(parsed.minTopUpUzs, RemoteConfig.defaultMinWalletTopUp);
+    });
+
     test('tolerates legacy bool flags', () {
       final parsed = RemoteConfig.parsePaymentMethods({
         'click': 'false',

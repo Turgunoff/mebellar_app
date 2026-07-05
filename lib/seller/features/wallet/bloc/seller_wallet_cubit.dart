@@ -10,6 +10,8 @@ enum WalletStatus { loading, ready, failure }
 
 enum DepositStatus { idle, starting, failure }
 
+enum ManualTopUpStatus { idle, submitting, failure }
+
 /// Single-state cubit for the wallet screen: the balance/debt snapshot and the
 /// automated top-up (deposit) lifecycle. A top-up opens a Payme/Click deep-link;
 /// the balance is credited by the webhook and reconciled when the seller returns
@@ -50,9 +52,14 @@ class SellerWalletCubit extends Cubit<SellerWalletState> {
     required PaymentProvider provider,
   }) async {
     if (state.depositStatus == DepositStatus.starting) return null;
-    emit(state.copyWith(depositStatus: DepositStatus.starting, clearError: true));
+    emit(
+      state.copyWith(depositStatus: DepositStatus.starting, clearError: true),
+    );
     try {
-      final link = await _wallet.createDeposit(amount: amount, provider: provider);
+      final link = await _wallet.createDeposit(
+        amount: amount,
+        provider: provider,
+      );
       _pendingDepositId = link.reference;
       if (isClosed) return link;
       emit(state.copyWith(depositStatus: DepositStatus.idle));
@@ -61,7 +68,10 @@ class SellerWalletCubit extends Cubit<SellerWalletState> {
       appLog.handle(e, st, 'SellerWalletCubit.startDeposit');
       if (isClosed) return null;
       emit(
-        state.copyWith(depositStatus: DepositStatus.failure, error: e.toString()),
+        state.copyWith(
+          depositStatus: DepositStatus.failure,
+          error: e.toString(),
+        ),
       );
       return null;
     }
@@ -98,6 +108,52 @@ class SellerWalletCubit extends Cubit<SellerWalletState> {
   void acknowledgeDepositResult() {
     emit(state.copyWith(depositStatus: DepositStatus.idle, clearError: true));
   }
+
+  /// Manual card transfer: uploads are done by the UI; this submits the pending
+  /// moderation row. Returns true on success (wallet reloads to surface the
+  /// pending banner).
+  Future<bool> submitManualTopup({
+    required int amount,
+    required String paymentScreenshotPath,
+  }) async {
+    if (state.manualTopUpStatus == ManualTopUpStatus.submitting) return false;
+    emit(
+      state.copyWith(
+        manualTopUpStatus: ManualTopUpStatus.submitting,
+        clearError: true,
+      ),
+    );
+    try {
+      await _wallet.submitManualTopup(
+        amount: amount,
+        paymentScreenshotPath: paymentScreenshotPath,
+      );
+      if (isClosed) return false;
+      await load();
+      if (isClosed) return false;
+      emit(state.copyWith(manualTopUpStatus: ManualTopUpStatus.idle));
+      return true;
+    } catch (e, st) {
+      appLog.handle(e, st, 'SellerWalletCubit.submitManualTopup');
+      if (isClosed) return false;
+      emit(
+        state.copyWith(
+          manualTopUpStatus: ManualTopUpStatus.failure,
+          error: e.toString(),
+        ),
+      );
+      return false;
+    }
+  }
+
+  void acknowledgeManualTopUpResult() {
+    emit(
+      state.copyWith(
+        manualTopUpStatus: ManualTopUpStatus.idle,
+        clearError: true,
+      ),
+    );
+  }
 }
 
 class SellerWalletState extends Equatable {
@@ -105,18 +161,21 @@ class SellerWalletState extends Equatable {
     this.status = WalletStatus.loading,
     this.wallet = const SellerWallet(),
     this.depositStatus = DepositStatus.idle,
+    this.manualTopUpStatus = ManualTopUpStatus.idle,
     this.error,
   });
 
   final WalletStatus status;
   final SellerWallet wallet;
   final DepositStatus depositStatus;
+  final ManualTopUpStatus manualTopUpStatus;
   final String? error;
 
   SellerWalletState copyWith({
     WalletStatus? status,
     SellerWallet? wallet,
     DepositStatus? depositStatus,
+    ManualTopUpStatus? manualTopUpStatus,
     String? error,
     bool clearError = false,
   }) {
@@ -124,10 +183,17 @@ class SellerWalletState extends Equatable {
       status: status ?? this.status,
       wallet: wallet ?? this.wallet,
       depositStatus: depositStatus ?? this.depositStatus,
+      manualTopUpStatus: manualTopUpStatus ?? this.manualTopUpStatus,
       error: clearError ? null : (error ?? this.error),
     );
   }
 
   @override
-  List<Object?> get props => [status, wallet, depositStatus, error];
+  List<Object?> get props => [
+    status,
+    wallet,
+    depositStatus,
+    manualTopUpStatus,
+    error,
+  ];
 }

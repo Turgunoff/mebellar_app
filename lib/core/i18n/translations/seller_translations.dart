@@ -309,6 +309,10 @@ const Map<String, dynamic> sellerUz = {
   'wallet_pending_topup_notice':
       '{amount} so\'mlik to\'lovingiz ko\'rib chiqilmoqda.',
   'wallet_enter_topup_amount': 'To\'ldirish summasini kiriting.',
+  'wallet_min_topup_amount': 'Minimal to\'ldirish summasi — {min} so\'m.',
+  'wallet_select_pay_mode': 'To\'lov turini tanlang.',
+  'wallet_select_payment_method_hint': 'To\'lov usulini tanlang.',
+  'wallet_receipt_attached': 'Chek biriktirildi: {name}',
   'wallet_topup_section_title': 'Hisobni to\'ldirish',
   'wallet_topup_section_subtitle':
       'Summani kiriting va to\'lov usulini tanlang — balans avtomatik to\'ldiriladi.',
@@ -318,7 +322,19 @@ const Map<String, dynamic> sellerUz = {
   'wallet_via_click': 'Click ilovasi orqali',
   'wallet_opening': 'Ochilmoqda…',
   'wallet_topup_button': 'To\'ldirish',
+  'wallet_manual_submitted':
+      'So‘rovingiz yuborildi — admin tasdiqlagach balans to‘ldiriladi.',
   'wallet_load_failed': 'Hamyonni yuklab bo\'lmadi',
+  'wallet_history_title': 'Hamyon tarixi',
+  'wallet_history_empty': 'Hali harakat yo\'q',
+  'wallet_history_empty_hint':
+      'To\'ldirish so\'rovlari va balans harakati shu yerda ko\'rinadi.',
+  'wallet_topup_requests_title': 'To\'ldirish so\'rovlari',
+  'wallet_activity_title': 'Balans harakati',
+  'wallet_topup_status_pending': 'Ko\'rib chiqilmoqda',
+  'wallet_topup_status_approved': 'Tasdiqlandi',
+  'wallet_topup_status_rejected': 'Rad etildi',
+  'wallet_topup_status_cancelled': 'Bekor qilindi',
   'ar_tokens_finish_payment_notice':
       'To‘lovni ilovada yakunlang — tasdiqlangach tokenlar qo‘shiladi.',
   'ar_tokens_available_tokens': 'Mavjud tokenlar',
@@ -674,6 +690,10 @@ const Map<String, dynamic> sellerRu = {
       'Ваш баланс ушёл в минус. Чтобы обслуживание не приостановилось, пополните счёт в течение {hours} ч.',
   'wallet_pending_topup_notice': 'Ваш платёж на {amount} сум обрабатывается.',
   'wallet_enter_topup_amount': 'Введите сумму пополнения.',
+  'wallet_min_topup_amount': 'Минимальная сумма пополнения — {min} сум.',
+  'wallet_select_pay_mode': 'Выберите способ оплаты.',
+  'wallet_select_payment_method_hint': 'Выберите платёжную систему.',
+  'wallet_receipt_attached': 'Чек прикреплён: {name}',
   'wallet_topup_section_title': 'Пополнить счёт',
   'wallet_topup_section_subtitle':
       'Введите сумму и выберите способ оплаты — баланс пополнится автоматически.',
@@ -683,7 +703,19 @@ const Map<String, dynamic> sellerRu = {
   'wallet_via_click': 'Через приложение Click',
   'wallet_opening': 'Открываем…',
   'wallet_topup_button': 'Пополнить',
+  'wallet_manual_submitted':
+      'Заявка отправлена — баланс пополнится после подтверждения.',
   'wallet_load_failed': 'Не удалось загрузить кошелёк',
+  'wallet_history_title': 'История кошелька',
+  'wallet_history_empty': 'Пока нет операций',
+  'wallet_history_empty_hint':
+      'Заявки на пополнение и движения баланса появятся здесь.',
+  'wallet_topup_requests_title': 'Заявки на пополнение',
+  'wallet_activity_title': 'Движения баланса',
+  'wallet_topup_status_pending': 'На проверке',
+  'wallet_topup_status_approved': 'Подтверждено',
+  'wallet_topup_status_rejected': 'Отклонено',
+  'wallet_topup_status_cancelled': 'Отменено',
   'ar_tokens_finish_payment_notice':
       'Завершите оплату в приложении — после подтверждения токены будут начислены.',
   'ar_tokens_available_tokens': 'Доступные токены',
@@ -1036,6 +1068,10 @@ const Map<String, dynamic> sellerEn = {
   'wallet_pending_topup_notice':
       'Your {amount} UZS payment is being processed.',
   'wallet_enter_topup_amount': 'Enter a top-up amount.',
+  'wallet_min_topup_amount': 'Minimum top-up amount is {min} UZS.',
+  'wallet_select_pay_mode': 'Choose a payment type.',
+  'wallet_select_payment_method_hint': 'Select a payment provider.',
+  'wallet_receipt_attached': 'Receipt attached: {name}',
   'wallet_topup_section_title': 'Top up balance',
   'wallet_topup_section_subtitle':
       'Enter an amount and pick a payment method — your balance tops up automatically.',
@@ -1045,7 +1081,19 @@ const Map<String, dynamic> sellerEn = {
   'wallet_via_click': 'Via the Click app',
   'wallet_opening': 'Opening…',
   'wallet_topup_button': 'Top up',
+  'wallet_manual_submitted':
+      'Request submitted — your balance will be credited after admin approval.',
   'wallet_load_failed': 'Couldn\'t load the wallet',
+  'wallet_history_title': 'Wallet history',
+  'wallet_history_empty': 'No activity yet',
+  'wallet_history_empty_hint':
+      'Top-up requests and balance movements will show up here.',
+  'wallet_topup_requests_title': 'Top-up requests',
+  'wallet_activity_title': 'Balance activity',
+  'wallet_topup_status_pending': 'Under review',
+  'wallet_topup_status_approved': 'Approved',
+  'wallet_topup_status_rejected': 'Rejected',
+  'wallet_topup_status_cancelled': 'Cancelled',
   'ar_tokens_finish_payment_notice':
       'Finish the payment in the app — tokens are added once it\'s confirmed.',
   'ar_tokens_available_tokens': 'Available tokens',

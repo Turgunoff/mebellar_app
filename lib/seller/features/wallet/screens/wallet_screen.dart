@@ -1,12 +1,17 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../config/remote_config.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
+import '../../../../core/result/result.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/models/seller_wallet.dart';
@@ -14,17 +19,19 @@ import '../../../../shared/payments/pending_payment.dart';
 import '../../../../shared/payments/pending_payment_service.dart';
 import '../../../../shared/repositories/payment_repository.dart';
 import '../../../../shared/repositories/seller_wallet_repository.dart';
+import '../../../../shared/repositories/tariff_repository.dart';
+import '../../../../shared/utils/image_upload.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/payment_provider_tile.dart';
 import '../../products/widgets/product_form/thousands_formatter.dart';
 import '../bloc/seller_wallet_cubit.dart';
 import '../widgets/wallet_info_bottom_sheet.dart';
+import 'wallet_history_screen.dart';
 
-/// Seller wallet — balance, debt state, automated Payme/Click top-up, ledger.
-/// A top-up opens the payment app via a deep-link; the balance is credited by
-/// the Merchant webhook and reconciled on return (the global PaymentRecoveryGate
-/// shows the settled outcome, and the screen refreshes the balance once the
-/// deposit confirms — see [SellerWalletCubit.reconcileDeposit]).
+/// Seller wallet — balance, debt state, Payme/Click or manual card top-up, ledger.
+/// Online top-up opens the payment app via a deep-link; manual top-up shows the
+/// platform card + receipt upload for admin approval. Both reconcile on return
+/// (online via [SellerWalletCubit.reconcileDeposit] + PaymentRecoveryGate).
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
 
@@ -107,6 +114,26 @@ class _WalletView extends StatelessWidget {
           ),
         ),
         iconTheme: IconThemeData(color: c.ink),
+        actions: [
+          IconButton(
+            tooltip: tr('seller.wallet_history_title'),
+            onPressed: () {
+              Navigator.of(context)
+                  .push(
+                    MaterialPageRoute(
+                      settings: const RouteSettings(name: '/wallet-history'),
+                      builder: (_) => const WalletHistoryScreen(),
+                    ),
+                  )
+                  .then((_) {
+                    if (context.mounted) {
+                      context.read<SellerWalletCubit>().refresh();
+                    }
+                  });
+            },
+            icon: Icon(Icons.history_rounded, color: c.ink),
+          ),
+        ],
       ),
       body: BlocConsumer<SellerWalletCubit, SellerWalletState>(
         listenWhen: (prev, next) => prev.depositStatus != next.depositStatus,
@@ -507,24 +534,60 @@ class _TopUpSection extends StatefulWidget {
 }
 
 class _TopUpSectionState extends State<_TopUpSection> {
+  int get _minTopUpUzs => RemoteConfig.instance.minWalletTopUp;
+
   late final TextEditingController _amountCtrl = TextEditingController(
-    text: widget.suggestedAmount > 0
+    text: widget.suggestedAmount >= _minTopUpUzs
         ? formatThousands(widget.suggestedAmount)
         : '',
   );
-  late PaymentProvider _provider;
+  PaymentProvider? _provider;
+  _WalletPayMode? _payMode;
+  File? _screenshotFile;
+  Future<Result<TariffPaymentInstructions>>? _instructionsFuture;
 
   bool get _anyProviderEnabled =>
       RemoteConfig.instance.anyOnlineProviderEnabled;
 
+  bool get _showPayModeSwitcher => _anyProviderEnabled;
+
+  int? get _parsedAmount {
+    final amount = int.tryParse(_amountCtrl.text.replaceAll(' ', '')) ?? 0;
+    return amount > 0 ? amount : null;
+  }
+
+  bool get _amountValid {
+    final amount = _parsedAmount;
+    return amount != null && amount >= _minTopUpUzs;
+  }
+
+  bool _providerIsEnabled(PaymentProvider provider) => switch (provider) {
+    PaymentProvider.payme => RemoteConfig.instance.paymeEnabled,
+    PaymentProvider.click => RemoteConfig.instance.clickEnabled,
+  };
+
   @override
   void initState() {
     super.initState();
-    _provider = RemoteConfig.instance.paymeEnabled
-        ? PaymentProvider.payme
-        : (RemoteConfig.instance.clickEnabled
-              ? PaymentProvider.click
-              : PaymentProvider.payme);
+    _amountCtrl.addListener(() => setState(() {}));
+    if (!_showPayModeSwitcher) {
+      _payMode = _WalletPayMode.card;
+      _ensureInstructions();
+    }
+  }
+
+  void _ensureInstructions() {
+    _instructionsFuture ??= sl<TariffRepository>().paymentInstructions();
+  }
+
+  void _selectPayMode(_WalletPayMode mode) {
+    if (_payMode == mode) return;
+    setState(() {
+      _payMode = mode;
+      _provider = null;
+      _screenshotFile = null;
+      if (mode == _WalletPayMode.card) _ensureInstructions();
+    });
   }
 
   @override
@@ -533,11 +596,12 @@ class _TopUpSectionState extends State<_TopUpSection> {
     super.dispose();
   }
 
-  Future<void> _submit() async {
+  Future<void> _submitOnline() async {
     if (!_anyProviderEnabled) return;
-    final amount = int.tryParse(_amountCtrl.text.replaceAll(' ', '')) ?? 0;
+    final amount = _parsedAmount;
+    final provider = _provider;
     final cubit = context.read<SellerWalletCubit>();
-    if (amount <= 0) {
+    if (amount == null) {
       _showSnack(
         context,
         tr('seller.wallet_enter_topup_amount'),
@@ -546,12 +610,30 @@ class _TopUpSectionState extends State<_TopUpSection> {
       );
       return;
     }
+    if (amount < _minTopUpUzs) {
+      _showSnack(
+        context,
+        tr(
+          'seller.wallet_min_topup_amount',
+          namedArgs: {'min': formatThousands(_minTopUpUzs)},
+        ),
+        icon: Iconsax.info_circle,
+        tone: _SnackTone.neutral,
+      );
+      return;
+    }
+    if (provider == null || !_providerIsEnabled(provider)) {
+      _showSnack(
+        context,
+        tr('seller.wallet_select_payment_method_hint'),
+        icon: Iconsax.info_circle,
+        tone: _SnackTone.neutral,
+      );
+      return;
+    }
     FocusScope.of(context).unfocus();
-    final link = await cubit.startDeposit(amount: amount, provider: _provider);
+    final link = await cubit.startDeposit(amount: amount, provider: provider);
     if (link == null || !mounted) return;
-    // Mark the top-up in flight BEFORE handing off so the global
-    // PaymentRecoveryGate reconciles it (and shows the settled outcome) when the
-    // seller returns from the payment app.
     final reference = link.reference;
     if (reference != null &&
         reference.isNotEmpty &&
@@ -563,15 +645,96 @@ class _TopUpSectionState extends State<_TopUpSection> {
     }
     final uri = Uri.tryParse(link.checkoutUrl);
     if (uri != null && link.checkoutUrl.isNotEmpty) {
-      // externalApplication forces the OS to open the Payme/Click app.
       await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  Future<void> _copyCard(String number) async {
+    await Clipboard.setData(ClipboardData(text: number.replaceAll(' ', '')));
+    if (!mounted) return;
+    _showSnack(
+      context,
+      tr('tariff.card_copied'),
+      icon: Iconsax.copy,
+      tone: _SnackTone.neutral,
+    );
+  }
+
+  Future<void> _pickScreenshot() async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final picked = await ImageUploadHelper().pick(
+        source: ImageSource.gallery,
+      );
+      if (picked == null) return;
+      setState(() => _screenshotFile = picked.file);
+    } on ImagePickError catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.toString())));
+    }
+  }
+
+  Future<void> _submitManual() async {
+    final amount = _parsedAmount;
+    final file = _screenshotFile;
+    if (amount == null || amount < _minTopUpUzs || file == null) return;
+    FocusScope.of(context).unfocus();
+    final cubit = context.read<SellerWalletCubit>();
+    final upload = await sl<TariffRepository>().uploadPaymentScreenshot(
+      file: file,
+      fileExtension: file.path.split('.').last,
+    );
+    if (!mounted) return;
+    final path = upload.valueOrNull;
+    if (path == null) {
+      _showSnack(
+        context,
+        upload.failureOrNull?.message ?? tr('seller.ar_manual_failed'),
+        icon: Iconsax.warning_2,
+        tone: _SnackTone.error,
+      );
+      return;
+    }
+    final ok = await cubit.submitManualTopup(
+      amount: amount,
+      paymentScreenshotPath: path,
+    );
+    if (!mounted) return;
+    if (ok) {
+      setState(() => _screenshotFile = null);
+      _showSnack(
+        context,
+        tr('seller.wallet_manual_submitted'),
+        icon: Iconsax.tick_circle,
+        tone: _SnackTone.success,
+      );
+    } else if (widget.state.manualTopUpStatus == ManualTopUpStatus.failure) {
+      cubit.acknowledgeManualTopUpResult();
+      _showSnack(
+        context,
+        tr('seller.ar_manual_failed'),
+        icon: Iconsax.warning_2,
+        tone: _SnackTone.error,
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
-    final submitting = widget.state.depositStatus == DepositStatus.starting;
+    final submittingOnline =
+        widget.state.depositStatus == DepositStatus.starting;
+    final submittingManual =
+        widget.state.manualTopUpStatus == ManualTopUpStatus.submitting;
+    final busy = submittingOnline || submittingManual;
+    final amount = _parsedAmount;
+    final amountValid = _amountValid;
+    final canSubmitOnline =
+        amountValid &&
+        _provider != null &&
+        _providerIsEnabled(_provider!) &&
+        !submittingOnline;
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -644,110 +807,532 @@ class _TopUpSectionState extends State<_TopUpSection> {
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          Text(
-            tr('seller.wallet_payment_method'),
-            style: TextStyle(
-              fontFamily: AppFonts.seller,
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: c.ink,
-            ),
-          ),
-          const SizedBox(height: 10),
-          if (RemoteConfig.instance.paymeVisible)
-            PaymentProviderTile(
-              provider: PaymentProvider.payme,
-              label: tr('seller.wallet_via_payme'),
-              selected: _provider == PaymentProvider.payme,
-              comingSoon: RemoteConfig.instance.paymeComingSoon,
-              style: PaymentProviderTileStyle.seller,
-              onTap: submitting || !RemoteConfig.instance.paymeEnabled
-                  ? null
-                  : () => setState(() => _provider = PaymentProvider.payme),
-            ),
-          if (RemoteConfig.instance.paymeVisible &&
-              RemoteConfig.instance.clickVisible)
-            const SizedBox(height: 10),
-          if (RemoteConfig.instance.clickVisible)
-            PaymentProviderTile(
-              provider: PaymentProvider.click,
-              label: tr('seller.wallet_via_click'),
-              selected: _provider == PaymentProvider.click,
-              comingSoon: RemoteConfig.instance.clickComingSoon,
-              style: PaymentProviderTileStyle.seller,
-              onTap: submitting || !RemoteConfig.instance.clickEnabled
-                  ? null
-                  : () => setState(() => _provider = PaymentProvider.click),
-            ),
-          if (!_anyProviderEnabled) ...[
-            const SizedBox(height: 4),
+          if (amount != null && !amountValid) ...[
+            const SizedBox(height: 8),
             Text(
-              tr('seller.payment_unavailable'),
+              tr(
+                'seller.wallet_min_topup_amount',
+                namedArgs: {'min': formatThousands(_minTopUpUzs)},
+              ),
               style: TextStyle(
                 fontFamily: AppFonts.seller,
-                fontSize: 12.5,
-                color: c.grey,
+                fontSize: 12,
                 fontWeight: FontWeight.w600,
+                color: AppColors.sellerNegative,
               ),
             ),
           ],
-          const SizedBox(height: 18),
-          DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: submitting
-                  ? null
-                  : [
-                      BoxShadow(
-                        color: AppColors.sellerPrimary.withValues(alpha: 0.32),
-                        blurRadius: 18,
-                        spreadRadius: -4,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-            ),
-            child: SizedBox(
-              width: double.infinity,
-              height: 54,
-              child: FilledButton.icon(
-                onPressed: (submitting || !_anyProviderEnabled)
-                    ? null
-                    : _submit,
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.sellerPrimary,
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: AppColors.sellerPrimary.withValues(
-                    alpha: 0.55,
-                  ),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+          if (amountValid) ...[
+            const SizedBox(height: 16),
+            if (_showPayModeSwitcher) ...[
+              _WalletPayModeBar(
+                mode: _payMode,
+                busy: busy,
+                onSelect: _selectPayMode,
+              ),
+              if (_payMode == null) ...[
+                const SizedBox(height: 10),
+                Text(
+                  tr('seller.wallet_select_pay_mode'),
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontSize: 12.5,
+                    color: c.grey,
                   ),
                 ),
-                icon: submitting
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Iconsax.wallet_add_1, size: 19),
-                label: Text(
-                  submitting
-                      ? tr('seller.wallet_opening')
-                      : tr('seller.wallet_topup_button'),
-                  style: const TextStyle(
+              ],
+              const SizedBox(height: 14),
+            ],
+            if (_payMode == _WalletPayMode.online ||
+                (!_showPayModeSwitcher && _anyProviderEnabled)) ...[
+              Text(
+                tr('seller.wallet_payment_method'),
+                style: TextStyle(
+                  fontFamily: AppFonts.seller,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: c.ink,
+                ),
+              ),
+              const SizedBox(height: 10),
+              if (RemoteConfig.instance.paymeVisible)
+                PaymentProviderTile(
+                  provider: PaymentProvider.payme,
+                  label: tr('seller.wallet_via_payme'),
+                  selected: _provider == PaymentProvider.payme,
+                  comingSoon: RemoteConfig.instance.paymeComingSoon,
+                  style: PaymentProviderTileStyle.seller,
+                  onTap: busy || !RemoteConfig.instance.paymeEnabled
+                      ? null
+                      : () => setState(() => _provider = PaymentProvider.payme),
+                ),
+              if (RemoteConfig.instance.paymeVisible &&
+                  RemoteConfig.instance.clickVisible)
+                const SizedBox(height: 10),
+              if (RemoteConfig.instance.clickVisible)
+                PaymentProviderTile(
+                  provider: PaymentProvider.click,
+                  label: tr('seller.wallet_via_click'),
+                  selected: _provider == PaymentProvider.click,
+                  comingSoon: RemoteConfig.instance.clickComingSoon,
+                  style: PaymentProviderTileStyle.seller,
+                  onTap: busy || !RemoteConfig.instance.clickEnabled
+                      ? null
+                      : () => setState(() => _provider = PaymentProvider.click),
+                ),
+              if (_provider == null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  tr('seller.wallet_select_payment_method_hint'),
+                  style: TextStyle(
                     fontFamily: AppFonts.seller,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 12.5,
+                    color: c.grey,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 18),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: canSubmitOnline
+                      ? [
+                          BoxShadow(
+                            color: AppColors.sellerPrimary.withValues(
+                              alpha: 0.32,
+                            ),
+                            blurRadius: 18,
+                            spreadRadius: -4,
+                            offset: const Offset(0, 10),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 54,
+                  child: FilledButton.icon(
+                    onPressed: canSubmitOnline ? _submitOnline : null,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.sellerPrimary,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: AppColors.sellerPrimary
+                          .withValues(alpha: 0.35),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    icon: submittingOnline
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(Iconsax.wallet_add_1, size: 19),
+                    label: Text(
+                      submittingOnline
+                          ? tr('seller.wallet_opening')
+                          : tr('seller.wallet_topup_button'),
+                      style: const TextStyle(
+                        fontFamily: AppFonts.seller,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
                 ),
               ),
+            ] else if (_payMode == _WalletPayMode.card ||
+                (!_showPayModeSwitcher && !_anyProviderEnabled))
+              _WalletManualTopUpSection(
+                instructionsFuture: _instructionsFuture,
+                amount: amount,
+                screenshotFile: _screenshotFile,
+                busy: busy,
+                submitting: submittingManual,
+                onCopyCard: _copyCard,
+                onPickScreenshot: _pickScreenshot,
+                onSubmit: _submitManual,
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+enum _WalletPayMode { online, card }
+
+class _WalletPayModeBar extends StatelessWidget {
+  const _WalletPayModeBar({
+    required this.mode,
+    required this.busy,
+    required this.onSelect,
+  });
+
+  final _WalletPayMode? mode;
+  final bool busy;
+  final ValueChanged<_WalletPayMode> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: c.fillFaint,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: c.divider),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _WalletPayModeChip(
+              label: tr('seller.ar_pay_mode_online'),
+              icon: Icons.smartphone_rounded,
+              selected: mode == _WalletPayMode.online,
+              onTap: busy ? null : () => onSelect(_WalletPayMode.online),
             ),
           ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: _WalletPayModeChip(
+              label: tr('seller.ar_pay_mode_card'),
+              icon: Icons.credit_card_rounded,
+              selected: mode == _WalletPayMode.card,
+              onTap: busy ? null : () => onSelect(_WalletPayMode.card),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WalletPayModeChip extends StatelessWidget {
+  const _WalletPayModeChip({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    return Material(
+      color: selected ? c.surface : Colors.transparent,
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            border: selected
+                ? Border.all(color: c.primary.withValues(alpha: 0.35))
+                : null,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 18, color: selected ? c.primary : c.grey),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: AppFonts.seller,
+                  fontSize: 11.5,
+                  fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                  color: selected ? c.ink : c.grey,
+                  height: 1.2,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _WalletManualTopUpSection extends StatelessWidget {
+  const _WalletManualTopUpSection({
+    required this.instructionsFuture,
+    required this.amount,
+    required this.screenshotFile,
+    required this.busy,
+    required this.submitting,
+    required this.onCopyCard,
+    required this.onPickScreenshot,
+    required this.onSubmit,
+  });
+
+  final Future<Result<TariffPaymentInstructions>>? instructionsFuture;
+  final int? amount;
+  final File? screenshotFile;
+  final bool busy;
+  final bool submitting;
+  final Future<void> Function(String) onCopyCard;
+  final VoidCallback onPickScreenshot;
+  final VoidCallback onSubmit;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    final future = instructionsFuture;
+    if (future == null) return const SizedBox.shrink();
+
+    return FutureBuilder<Result<TariffPaymentInstructions>>(
+      future: future,
+      builder: (context, snap) {
+        if (snap.connectionState != ConnectionState.done) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+        final result = snap.data;
+        if (result == null || result.failureOrNull != null) {
+          return Text(
+            tr('tariff.instructions_load_failed'),
+            style: TextStyle(
+              fontFamily: AppFonts.seller,
+              fontSize: 13,
+              color: AppColors.sellerNegative,
+            ),
+          );
+        }
+        final ins = result.valueOrNull!;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (amount != null) ...[
+              Text(
+                tr(
+                  'common.uzs_amount',
+                  namedArgs: {'amount': formatSom(amount!)},
+                ),
+                style: TextStyle(
+                  fontFamily: AppFonts.seller,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                  color: c.ink,
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+            _WalletCardBlock(
+              number: ins.cardNumber,
+              holder: ins.cardHolder,
+              bank: ins.bankName,
+              onCopy: () => onCopyCard(ins.cardNumber),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              tr('tariff.upload_screenshot_title'),
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+                color: c.ink,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              tr('tariff.upload_screenshot_hint'),
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
+                fontSize: 12,
+                color: c.grey,
+              ),
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: busy ? null : onPickScreenshot,
+              icon: const Icon(Icons.image_outlined, size: 20),
+              label: Text(
+                screenshotFile == null
+                    ? tr('tariff.upload_screenshot')
+                    : tr('seller.ar_manual_receipt_selected'),
+              ),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+                side: BorderSide(color: c.divider),
+              ),
+            ),
+            if (screenshotFile case final file?) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: c.positiveBg,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: c.positive.withValues(alpha: 0.25)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.check_circle_rounded,
+                      color: c.positive,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        tr(
+                          'seller.wallet_receipt_attached',
+                          namedArgs: {'name': _receiptLabel(file)},
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: AppFonts.seller,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: c.ink,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            if (screenshotFile != null) ...[
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                height: 54,
+                child: FilledButton.icon(
+                  onPressed: (!busy && amount != null) ? onSubmit : null,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.sellerPrimary,
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor: AppColors.sellerPrimary.withValues(
+                      alpha: 0.35,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  icon: submitting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.check_circle_outline),
+                  label: Text(
+                    tr('seller.ar_manual_submit'),
+                    style: const TextStyle(
+                      fontFamily: AppFonts.seller,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+
+  static String _receiptLabel(File file) {
+    final name = file.path.split('/').last;
+    if (name.isNotEmpty) return name;
+    return tr('seller.ar_manual_receipt_selected');
+  }
+}
+
+class _WalletCardBlock extends StatelessWidget {
+  const _WalletCardBlock({
+    required this.number,
+    required this.holder,
+    required this.bank,
+    required this.onCopy,
+  });
+
+  final String number;
+  final String holder;
+  final String bank;
+  final VoidCallback onCopy;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: c.fillFaint,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: c.divider),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  number,
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 17,
+                    letterSpacing: 0.5,
+                    color: c.ink,
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: tr('tariff.tap_to_copy'),
+                onPressed: onCopy,
+                icon: Icon(Icons.copy_outlined, color: c.gold, size: 20),
+              ),
+            ],
+          ),
+          if (holder.isNotEmpty)
+            Text(
+              holder,
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: c.grey,
+              ),
+            ),
+          if (bank.isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Text(
+              bank,
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
+                fontSize: 12,
+                color: c.greyMid,
+              ),
+            ),
+          ],
         ],
       ),
     );

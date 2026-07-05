@@ -20,4 +20,20 @@ abstract class SellerWalletRepository {
   /// app (`GET /seller/wallet/deposit/{id}/status`): `pending` → `paid` once the
   /// webhook credits the balance, or `cancelled`.
   Future<String> depositStatus(String depositId);
+
+  /// Manual card transfer + receipt screenshot (`POST /seller/wallet/topups`).
+  /// Creates a pending moderation row; admin approval credits the balance.
+  Future<WalletTopUp> submitManualTopup({
+    required int amount,
+    required String paymentScreenshotPath,
+  });
+
+  /// Manual top-up moderation rows, newest first (`GET /seller/wallet/topups`).
+  Future<List<WalletTopUp>> fetchTopUps();
+
+  /// Ledger history (`GET /seller/wallet/transactions`).
+  Future<List<WalletTransaction>> fetchTransactions({
+    int limit = 50,
+    int offset = 0,
+  });
 }

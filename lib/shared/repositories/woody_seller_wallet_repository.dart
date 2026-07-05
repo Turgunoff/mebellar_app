@@ -4,8 +4,9 @@ import 'payment_repository.dart';
 import 'seller_wallet_repository.dart';
 
 /// REST-backed wallet — `GET /seller/wallet`, `POST /seller/wallet/deposit`,
-/// `GET /seller/wallet/deposit/{id}/status`. Top-ups are automated Payme/Click
-/// deep-links (webhook-credited); there is no screenshot upload anymore.
+/// `POST /seller/wallet/topups`, `GET /seller/wallet/deposit/{id}/status`.
+/// Online top-ups open a Payme/Click deep-link (webhook-credited); manual
+/// top-ups upload a receipt screenshot for admin approval.
 class WoodySellerWalletRepository implements SellerWalletRepository {
   WoodySellerWalletRepository({required WoodyApiClient api}) : _api = api;
 
@@ -38,5 +39,44 @@ class WoodySellerWalletRepository implements SellerWalletRepository {
       '/seller/wallet/deposit/$depositId/status',
     );
     return body['status'] as String? ?? 'pending';
+  }
+
+  @override
+  Future<WalletTopUp> submitManualTopup({
+    required int amount,
+    required String paymentScreenshotPath,
+  }) async {
+    final body = await _api.post<Map<String, dynamic>>(
+      '/seller/wallet/topups',
+      body: {
+        'amount': amount,
+        'payment_screenshot_path': paymentScreenshotPath,
+      },
+    );
+    return WalletTopUp.fromJson(body);
+  }
+
+  @override
+  Future<List<WalletTopUp>> fetchTopUps() async {
+    final body = await _api.get<List<dynamic>>('/seller/wallet/topups');
+    return body
+        .whereType<Map<String, dynamic>>()
+        .map(WalletTopUp.fromJson)
+        .toList(growable: false);
+  }
+
+  @override
+  Future<List<WalletTransaction>> fetchTransactions({
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    final body = await _api.get<List<dynamic>>(
+      '/seller/wallet/transactions',
+      query: {'limit': limit, 'offset': offset},
+    );
+    return body
+        .whereType<Map<String, dynamic>>()
+        .map(WalletTransaction.fromJson)
+        .toList(growable: false);
   }
 }
