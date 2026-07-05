@@ -127,6 +127,8 @@ const Map<String, dynamic> errorUz = {
   'order_not_found': 'Buyurtma topilmadi',
   'order_not_payable': 'Bu buyurtma uchun to\'lov qilib bo\'lmaydi',
   'payments_unavailable': 'Onlayn to\'lov hozircha mavjud emas',
+  'wallet_topup_below_minimum':
+      'Minimal to\'ldirish summasi yetarli emas. Summani ko\'paytiring.',
 };
 
 const Map<String, dynamic> errorRu = {
@@ -146,6 +148,8 @@ const Map<String, dynamic> errorRu = {
   'order_not_found': 'Заказ не найден',
   'order_not_payable': 'Этот заказ нельзя оплатить',
   'payments_unavailable': 'Онлайн-оплата пока недоступна',
+  'wallet_topup_below_minimum':
+      'Сумма меньше минимального пополнения. Увеличьте сумму.',
 };
 
 const Map<String, dynamic> errorEn = {
@@ -165,6 +169,8 @@ const Map<String, dynamic> errorEn = {
   'order_not_found': 'Order not found',
   'order_not_payable': 'This order can\'t be paid',
   'payments_unavailable': 'Online payment is not available yet',
+  'wallet_topup_below_minimum':
+      'Amount is below the minimum top-up. Increase the amount.',
 };
 
 const Map<String, dynamic> langUz = {

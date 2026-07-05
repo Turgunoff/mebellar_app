@@ -20,6 +20,7 @@ const Map<String, String> _codeMessages = {
   'order_not_found': 'error.order_not_found',
   'order_not_payable': 'error.order_not_payable',
   'payments_unavailable': 'error.payments_unavailable',
+  'wallet_topup_below_minimum': 'error.wallet_topup_below_minimum',
 };
 
 /// Maps an [ApiError] (or any thrown object) to a localised, user-facing

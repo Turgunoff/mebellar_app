@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/logging/app_logger.dart';
+import '../../../../core/network/api_error_messages.dart';
 import '../../../../shared/models/seller_wallet.dart';
 import '../../../../shared/repositories/payment_repository.dart';
 import '../../../../shared/repositories/seller_wallet_repository.dart';
@@ -139,7 +140,7 @@ class SellerWalletCubit extends Cubit<SellerWalletState> {
       emit(
         state.copyWith(
           manualTopUpStatus: ManualTopUpStatus.failure,
-          error: e.toString(),
+          error: apiErrorMessage(e),
         ),
       );
       return false;
