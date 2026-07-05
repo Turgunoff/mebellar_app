@@ -9,6 +9,7 @@ import '../auth/auth_repository.dart';
 import '../auth/sign_out.dart';
 import '../logging/app_logger.dart';
 import '../notifications/app_badge_service.dart';
+import '../notifications/badge_sync_controller.dart';
 import '../storage/hive_boxes.dart';
 import '../../customer/features/ai_designer/models/ai_chat_message.dart';
 import 'auth_module.dart';
@@ -171,11 +172,18 @@ Future<void> _wipeLocalUserData() async {
     appLog.handle(e, st, 'logout: clear settings keys failed');
   }
 
-  // Clear the launcher app-icon badge + its persisted tally so the next user
+  // Clear the launcher app-icon badge + in-memory sync state so the next user
   // (or a fresh guest) on this device never inherits the previous account's
-  // unread count. setCount/clear is internally guarded, so a launcher without
-  // badge support or a plugin-less isolate is a safe no-op.
-  if (sl.isRegistered<AppBadgeService>()) {
+  // unread count. Prefer [BadgeSyncController.clearOnLogout] when registered —
+  // it also zeroes the controller's cached tallies so a chat-stream re-emission
+  // can't bump the badge back up after [AppBadgeService.clear].
+  if (sl.isRegistered<BadgeSyncController>()) {
+    try {
+      await sl<BadgeSyncController>().clearOnLogout();
+    } catch (e, st) {
+      appLog.handle(e, st, 'logout: clear badge sync failed');
+    }
+  } else if (sl.isRegistered<AppBadgeService>()) {
     try {
       await sl<AppBadgeService>().clear();
     } catch (e, st) {

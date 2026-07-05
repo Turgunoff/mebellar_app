@@ -4,8 +4,10 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../config/app_mode.dart';
 import '../../../../core/auth/auth_repository.dart';
+import '../../../../core/di/service_locator.dart';
 import '../../../../core/network/api_error_messages.dart';
 import '../../../../core/network/token_store.dart';
+import '../../../../core/notifications/badge_sync_controller.dart';
 import '../../../../core/realtime/woody_realtime_service.dart';
 import '../../../../shared/models/notification_model.dart';
 import '../../../../shared/repositories/news_repository.dart';
@@ -95,6 +97,17 @@ class NotificationsCubit extends Cubit<NotificationsState> {
       final authed = pair != null;
       if (authed == _wasAuthed) return;
       _wasAuthed = authed;
+      if (!authed) {
+        emit(
+          const NotificationsState(
+            status: NotificationsStatus.ready,
+            items: [],
+          ),
+        );
+        if (sl.isRegistered<BadgeSyncController>()) {
+          unawaited(sl<BadgeSyncController>().clearOnLogout());
+        }
+      }
       load();
     });
     _eventsSub = _realtime?.eventsOfType('notification').listen((_) => load());
@@ -118,6 +131,12 @@ class NotificationsCubit extends Cubit<NotificationsState> {
   void _emitMerged(List<NotificationModel> items) {
     items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     emit(state.copyWith(status: NotificationsStatus.ready, items: items));
+    _nudgeOsBadge();
+  }
+
+  void _nudgeOsBadge() {
+    if (!sl.isRegistered<BadgeSyncController>()) return;
+    unawaited(sl<BadgeSyncController>().refreshNotificationUnread());
   }
 
   Future<void> load() async {
@@ -195,6 +214,7 @@ class NotificationsCubit extends Cubit<NotificationsState> {
     final next = List<NotificationModel>.from(previous);
     next[idx] = target.copyWith(isRead: true);
     emit(state.copyWith(items: next));
+    _nudgeOsBadge();
     try {
       if (target.kind == NotificationKind.news) {
         await _newsRepo?.markRead(id);
@@ -223,6 +243,7 @@ class NotificationsCubit extends Cubit<NotificationsState> {
         .map((n) => (!n.isRead && onSurface(n)) ? n.copyWith(isRead: true) : n)
         .toList(growable: false);
     emit(state.copyWith(items: next));
+    _nudgeOsBadge();
 
     final visibleNewsIds = isCustomer
         ? previous

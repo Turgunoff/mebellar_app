@@ -249,9 +249,12 @@ void registerCatalogModule(GetIt sl) {
   sl.registerLazySingleton<BadgeSyncController>(
     () => BadgeSyncController(
       badge: sl<AppBadgeService>(),
-      notifications: sl<NotificationsRepository>(),
+      notifications: sl<NotificationDataSource>(),
       chats: sl<ChatRepository>(),
       mode: sl<AppModeCubit>(),
+      realtime: sl.isRegistered<WoodyRealtimeService>()
+          ? sl<WoodyRealtimeService>()
+          : null,
     ),
   );
 

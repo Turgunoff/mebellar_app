@@ -5,12 +5,10 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
 
-import '../../../config/app_mode.dart';
 import '../../../config/remote_config.dart';
 import '../../../core/di/service_locator.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../customer/features/notifications/cubit/notifications_cubit.dart';
-import '../../../shared/models/notification_model.dart';
 import '../../../shared/models/order.dart';
 import '../../../shared/models/order_status.dart';
 import '../../../shared/widgets/brand_refresh_indicator.dart';
@@ -385,13 +383,10 @@ class _NotificationBell extends StatelessWidget {
     );
   }
 
-  /// Counts unread rows whose `targetMode` is seller. Matches the filter the
-  /// seller inbox screen applies, so the badge and the list agree.
-  static int _sellerUnread(NotificationsState state) {
-    return state.items
-        .where((n) => !n.isRead && n.kind.targetMode == AppMode.seller)
-        .length;
-  }
+  /// Counts unread rows whose destination is the seller surface. Uses
+  /// [NotificationsState.sellerUnreadCount] so payload-scoped kinds (wallet
+  /// top-up, chat, …) match the seller inbox filter.
+  static int _sellerUnread(NotificationsState state) => state.sellerUnreadCount;
 
   @override
   Widget build(BuildContext context) {
@@ -401,7 +396,7 @@ class _NotificationBell extends StatelessWidget {
     return BlocProvider<NotificationsCubit>.value(
       value: sl<NotificationsCubit>(),
       child: BlocBuilder<NotificationsCubit, NotificationsState>(
-        buildWhen: (a, b) => _sellerUnread(a) != _sellerUnread(b),
+        buildWhen: (a, b) => a.sellerUnreadCount != b.sellerUnreadCount,
         builder: (context, state) => _BellShell(
           onTap: () => _open(context),
           unreadCount: _sellerUnread(state),

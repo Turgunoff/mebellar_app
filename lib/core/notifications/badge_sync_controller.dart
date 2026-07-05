@@ -5,8 +5,9 @@ import 'package:flutter/widgets.dart';
 import '../../config/app_mode.dart';
 import '../../shared/models/chat.dart';
 import '../../shared/repositories/chat_repository.dart';
-import '../../shared/repositories/notifications_repository.dart';
+import '../../shared/repositories/notifications_data_source.dart';
 import '../auth/app_mode_cubit.dart';
+import '../realtime/woody_realtime_service.dart';
 import 'app_badge_service.dart';
 
 /// Keeps the OS launcher badge in lock-step with the in-app unread total
@@ -14,12 +15,10 @@ import 'app_badge_service.dart';
 /// truth that supersedes the naive +1 tally the FCM background isolate keeps
 /// while the process is dead.
 ///
-/// Why mirror the live count instead of only incrementing in the background: a
-/// blind tally drifts — a chat read on another device, a push for an item the
-/// user already read, a broadcast that isn't a personal unread. Driving the
-/// badge from the same realtime streams the in-app badges use (the home-bell
-/// unread + the `Suhbatlar` unread) means it can never diverge from what the
-/// user actually sees, and it self-heals the background tally on resume.
+/// Notification unread is pulled from [NotificationDataSource.unreadCount] (the
+/// backend total) rather than the legacy [NotificationsRepository] in-memory
+/// cache, which is never seeded at boot and would leave the launcher badge at
+/// zero until something explicitly called `list()`.
 ///
 /// Root-scoped: it outlives the customer<->seller Phoenix rebirth and reads the
 /// active mode from [AppModeCubit] (root-scoped too) so chat unread is counted
@@ -28,40 +27,42 @@ import 'app_badge_service.dart';
 class BadgeSyncController with WidgetsBindingObserver {
   BadgeSyncController({
     required AppBadgeService badge,
-    required NotificationsRepository notifications,
+    required NotificationDataSource notifications,
     required ChatRepository chats,
     required AppModeCubit mode,
+    WoodyRealtimeService? realtime,
   }) : _badge = badge,
        _notifications = notifications,
        _chats = chats,
-       _mode = mode;
+       _mode = mode,
+       _realtime = realtime;
 
   final AppBadgeService _badge;
-  final NotificationsRepository _notifications;
+  final NotificationDataSource _notifications;
   final ChatRepository _chats;
   final AppModeCubit _mode;
+  final WoodyRealtimeService? _realtime;
 
-  StreamSubscription<int>? _notifSub;
   StreamSubscription<List<Chat>>? _chatsSub;
   StreamSubscription<AppMode>? _modeSub;
+  StreamSubscription<RealtimeEvent>? _realtimeSub;
 
   List<Chat> _lastChats = const [];
   int _notifUnread = 0;
   bool _started = false;
 
-  /// Subscribes to the unread streams + lifecycle. Idempotent — calling twice
-  /// is a no-op. Seeds the notification count synchronously; the chat count
-  /// arrives on the first stream emission (the chat repo pushes the cached list
-  /// when the inbox loads or a push nudges it).
+  /// Subscribes to chat unread + lifecycle. Idempotent — calling twice is a
+  /// no-op. Seeds notification unread from the backend; chat count arrives on
+  /// the first stream emission.
   void start() {
     if (_started) return;
     _started = true;
 
-    _notifUnread = _notifications.unreadCount();
-    _notifSub = _notifications.watchUnread().listen((count) {
-      _notifUnread = count;
-      _push();
-    }, onError: (_) {});
+    unawaited(refreshNotificationUnread());
+
+    _realtimeSub = _realtime?.eventsOfType('notification').listen((_) {
+      unawaited(refreshNotificationUnread());
+    });
 
     _chatsSub = _chats.myChatsStream().listen((chats) {
       _lastChats = chats;
@@ -73,7 +74,28 @@ class BadgeSyncController with WidgetsBindingObserver {
     _modeSub = _mode.stream.listen((_) => _push());
 
     WidgetsBinding.instance.addObserver(this);
+  }
+
+  /// Re-fetches the server-side unread notification total and updates the OS
+  /// badge. Called at boot, on resume, after inbox mutations, and on realtime
+  /// `notification` events. When the session is gone (logout / 401), falls back
+  /// to zero instead of keeping the previous user's tally alive.
+  Future<void> refreshNotificationUnread() async {
+    try {
+      _notifUnread = await _notifications.unreadCount();
+    } catch (_) {
+      _notifUnread = 0;
+    }
     _push();
+  }
+
+  /// Wipes in-memory unread state and clears the launcher badge. Called from
+  /// logout teardown so a later chat-stream emission or a failed refresh can't
+  /// repaint the previous account's count.
+  Future<void> clearOnLogout() async {
+    _notifUnread = 0;
+    _lastChats = const [];
+    await _badge.clear();
   }
 
   ChatSenderRole get _viewer => switch (_mode.state) {
@@ -90,8 +112,10 @@ class BadgeSyncController with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // On resume, re-assert the authoritative total: while the app sat in the
     // background the FCM isolate may have bumped the OS badge with its naive +1
-    // tally, so reconcile it back to the true unread count the streams hold.
-    if (state == AppLifecycleState.resumed) _push();
+    // tally, so reconcile from the server + live chat rows.
+    if (state == AppLifecycleState.resumed) {
+      unawaited(refreshNotificationUnread());
+    }
   }
 
   /// Tears down subscriptions + the lifecycle observer. Root-scoped in
@@ -99,7 +123,7 @@ class BadgeSyncController with WidgetsBindingObserver {
   /// the controller leaves no dangling listeners.
   Future<void> dispose() async {
     WidgetsBinding.instance.removeObserver(this);
-    await _notifSub?.cancel();
+    await _realtimeSub?.cancel();
     await _chatsSub?.cancel();
     await _modeSub?.cancel();
     _started = false;
