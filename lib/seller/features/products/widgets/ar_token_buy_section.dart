@@ -198,7 +198,7 @@ class _ArTokenBuySectionState extends State<ArTokenBuySection> {
       );
       if (!mounted) return;
       setState(() => _screenshotFile = null);
-      await Navigator.of(context).push<void>(
+      await Navigator.of(context).pushReplacement<void>(
         MaterialPageRoute<void>(
           settings: const RouteSettings(name: '/seller-ar-token-pending'),
           builder: (_) => ManualPaymentPendingScreen(

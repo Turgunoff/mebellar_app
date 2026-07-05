@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -20,6 +21,8 @@ import '../../../../shared/payments/pending_payment_service.dart';
 import '../../../../shared/repositories/payment_repository.dart';
 import '../../../../shared/repositories/seller_wallet_repository.dart';
 import '../../../../shared/payments/manual_payment_pending_screen.dart';
+import '../../../../shared/payments/payment_pending_copy.dart';
+import '../../../../shared/payments/seller_payment_refresh.dart';
 import '../../../../shared/repositories/tariff_repository.dart';
 import '../../../../shared/utils/image_upload.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
@@ -48,17 +51,24 @@ class _WalletScreenState extends State<WalletScreen>
   static const _seenInfoKey = 'has_seen_wallet_info';
 
   late final SellerWalletCubit _cubit;
+  StreamSubscription<PendingPaymentKind>? _refreshSub;
 
   @override
   void initState() {
     super.initState();
     _cubit = SellerWalletCubit(sl<SellerWalletRepository>())..load();
     WidgetsBinding.instance.addObserver(this);
+    _refreshSub = SellerPaymentRefreshHub.instance.stream.listen((kind) {
+      if (kind == PendingPaymentKind.walletDeposit && mounted) {
+        unawaited(_cubit.refresh());
+      }
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) => _maybeAutoShowInfo());
   }
 
   @override
   void dispose() {
+    _refreshSub?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _cubit.close();
     super.dispose();
@@ -142,7 +152,7 @@ class _WalletView extends StatelessWidget {
           if (state.depositStatus == DepositStatus.failure) {
             _showSnack(
               context,
-              tr('seller.wallet_deposit_start_failed'),
+              state.error ?? tr('seller.wallet_deposit_start_failed'),
               icon: Iconsax.close_circle,
               tone: _SnackTone.error,
             );
@@ -177,8 +187,18 @@ class _WalletView extends StatelessWidget {
                   const SizedBox(height: 12),
                   _PendingTopUpCard(topUp: wallet.pendingTopUp!),
                 ],
+                if (wallet.pendingDeposit != null) ...[
+                  const SizedBox(height: 12),
+                  _PendingDepositCard(deposit: wallet.pendingDeposit!),
+                ],
                 const SizedBox(height: 20),
-                _TopUpSection(state: state, suggestedAmount: wallet.debtAmount),
+                if (wallet.hasPendingPayment)
+                  _WalletPendingLockedCard(wallet: wallet)
+                else
+                  _TopUpSection(
+                    state: state,
+                    suggestedAmount: wallet.debtAmount,
+                  ),
                 if (wallet.transactions.isNotEmpty) ...[
                   const SizedBox(height: 28),
                   Text(
@@ -519,9 +539,9 @@ class _PendingTopUpCard extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  tr(
-                    'seller.wallet_pending_topup_notice',
-                    namedArgs: {'amount': formatSom(topUp.amount)},
+                  pendingBannerNotice(
+                    manualReview: true,
+                    amountSom: topUp.amount,
                   ),
                   style: TextStyle(
                     fontFamily: AppFonts.seller,
@@ -536,6 +556,147 @@ class _PendingTopUpCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _PendingDepositCard extends StatelessWidget {
+  const _PendingDepositCard({required this.deposit});
+
+  final WalletDeposit deposit;
+
+  void _openPending(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        settings: const RouteSettings(name: '/seller-wallet-pending'),
+        builder: (_) => ManualPaymentPendingScreen(
+          args: WalletDepositPendingArgs(deposit: deposit),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _openPending(context),
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: c.progressBg,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
+            children: [
+              Icon(Iconsax.clock, color: c.progress, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  pendingBannerNotice(
+                    manualReview: false,
+                    amountSom: deposit.amount,
+                  ),
+                  style: TextStyle(
+                    fontFamily: AppFonts.seller,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: c.progress,
+                    height: 1.35,
+                  ),
+                ),
+              ),
+              Icon(Iconsax.arrow_right_3, color: c.progress, size: 18),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _WalletPendingLockedCard extends StatelessWidget {
+  const _WalletPendingLockedCard({required this.wallet});
+
+  final SellerWallet wallet;
+
+  void _openPending(BuildContext context) {
+    final route = switch ((wallet.pendingTopUp, wallet.pendingDeposit)) {
+      (final topUp?, _) => ManualPaymentPendingScreen(
+        args: WalletTopUpPendingArgs(topUp: topUp),
+      ),
+      (_, final deposit?) => ManualPaymentPendingScreen(
+        args: WalletDepositPendingArgs(deposit: deposit),
+      ),
+      _ => null,
+    };
+    if (route == null) return;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        settings: const RouteSettings(name: '/seller-wallet-pending'),
+        builder: (_) => route,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    final manualReview = wallet.pendingTopUp != null;
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: c.surface,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: c.divider),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            tr('seller.wallet_topup_section_title'),
+            style: TextStyle(
+              fontFamily: AppFonts.seller,
+              fontWeight: FontWeight.w800,
+              fontSize: 16,
+              color: c.ink,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            pendingSubtitle(manualReview: manualReview),
+            style: TextStyle(
+              fontFamily: AppFonts.seller,
+              fontSize: 12.5,
+              color: c.grey,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 14),
+          FilledButton(
+            onPressed: () => _openPending(context),
+            style: FilledButton.styleFrom(
+              backgroundColor: c.divider,
+              foregroundColor: c.greyMid,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+            child: Text(
+              tr('tariff.cta_pending'),
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -666,6 +827,9 @@ class _TopUpSectionState extends State<_TopUpSection> {
     final uri = Uri.tryParse(link.checkoutUrl);
     if (uri != null && link.checkoutUrl.isNotEmpty) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+    if (mounted) {
+      await cubit.refresh();
     }
   }
 

@@ -8,6 +8,7 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/models/tariff.dart';
 import '../../../../shared/repositories/tariff_repository.dart';
+import '../../../../shared/payments/payment_pending_copy.dart';
 import '../bloc/tariff_bloc.dart';
 import 'tariff_history_screen.dart';
 
@@ -23,8 +24,8 @@ class TariffPendingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => TariffBloc(sl<TariffRepository>())
-        ..add(const TariffRequested()),
+      create: (_) =>
+          TariffBloc(sl<TariffRepository>())..add(const TariffRequested()),
       child: _PendingView(initial: subscription),
     );
   }
@@ -89,9 +90,11 @@ class _PendingViewState extends State<_PendingView> {
         // Resolution detection вЂ” same idea as the catalog screen, but here we
         // also need to react to mid-screen approval/rejection by surfacing a
         // dialog the user can dismiss.
-        final wasPending = (a.pending?.id == widget.initial.id) &&
+        final wasPending =
+            (a.pending?.id == widget.initial.id) &&
             (a.pending?.status.isPending ?? false);
-        final nowResolved = wasPending &&
+        final nowResolved =
+            wasPending &&
             (b.pending == null ||
                 b.pending!.id != widget.initial.id ||
                 !b.pending!.status.isPending);
@@ -119,6 +122,9 @@ class _PendingViewState extends State<_PendingView> {
                 (s) => s.id == widget.initial.id,
                 orElse: () => widget.initial,
               );
+        final manualReview =
+            live.paymentScreenshotUrl != null &&
+            live.paymentScreenshotUrl!.isNotEmpty;
         return Scaffold(
           appBar: AppBar(title: Text(tr('tariff.pending_title'))),
           body: ListView(
@@ -142,18 +148,18 @@ class _PendingViewState extends State<_PendingView> {
               ),
               const SizedBox(height: 24),
               Text(
-                tr('tariff.pending_headline'),
+                pendingHeadline(manualReview: manualReview),
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               const SizedBox(height: 8),
               Text(
-                tr('tariff.pending_subtitle'),
+                pendingSubtitle(manualReview: manualReview),
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
               const SizedBox(height: 24),
-              _SlaCard(subscription: live),
+              _SlaCard(subscription: live, manualReview: manualReview),
               const SizedBox(height: 16),
               _SubscriptionSummary(subscription: live),
               const SizedBox(height: 24),
@@ -173,8 +179,10 @@ class _PendingViewState extends State<_PendingView> {
               if (live.status.isPending)
                 TextButton.icon(
                   onPressed: () => _confirmCancel(live),
-                  icon: Icon(Icons.cancel_outlined,
-                      color: Theme.of(context).colorScheme.error),
+                  icon: Icon(
+                    Icons.cancel_outlined,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
                   label: Text(
                     tr('tariff.cancel_request'),
                     style: TextStyle(
@@ -205,13 +213,17 @@ class _PendingViewState extends State<_PendingView> {
               ? SellerColors.of(ctx).positive
               : Theme.of(ctx).colorScheme.error,
         ),
-        title: Text(approved
-            ? tr('tariff.approved_title')
-            : tr('tariff.rejected_title')),
-        content: Text(approved
-            ? tr('tariff.approved_subtitle',
-                args: [tr('tariff.plan.${resolved.plan.code}_label')])
-            : (resolved.rejectionReason ?? tr('tariff.rejected_subtitle'))),
+        title: Text(
+          approved ? tr('tariff.approved_title') : tr('tariff.rejected_title'),
+        ),
+        content: Text(
+          approved
+              ? tr(
+                  'tariff.approved_subtitle',
+                  args: [tr('tariff.plan.${resolved.plan.code}_label')],
+                )
+              : (resolved.rejectionReason ?? tr('tariff.rejected_subtitle')),
+        ),
         actions: [
           if (!approved)
             TextButton(
@@ -229,8 +241,10 @@ class _PendingViewState extends State<_PendingView> {
 }
 
 class _SlaCard extends StatelessWidget {
-  const _SlaCard({required this.subscription});
+  const _SlaCard({required this.subscription, required this.manualReview});
+
   final TariffSubscription subscription;
+  final bool manualReview;
 
   String _formatRemaining(Duration d) {
     final hours = d.inHours;
@@ -255,27 +269,32 @@ class _SlaCard extends StatelessWidget {
         child: Column(
           children: [
             Text(
-              tr('tariff.sla_title'),
+              pendingSlaTitle(manualReview: manualReview),
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
             Text(
               _formatRemaining(subscription.slaRemaining),
               style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                    fontWeight: FontWeight.w800,
-                    color: scheme.primary,
-                  ),
+                fontFeatures: const [FontFeature.tabularFigures()],
+                fontWeight: FontWeight.w800,
+                color: scheme.primary,
+              ),
             ),
             const SizedBox(height: 4),
             Text(
-              tr('tariff.submitted_at', args: [
-                DateFormat('dd MMM, HH:mm', lang)
-                    .format(subscription.submittedAt.toLocal())
-              ]),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: scheme.outline,
-                  ),
+              tr(
+                'tariff.submitted_at',
+                args: [
+                  DateFormat(
+                    'dd MMM, HH:mm',
+                    lang,
+                  ).format(subscription.submittedAt.toLocal()),
+                ],
+              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: scheme.outline),
             ),
           ],
         ),
@@ -313,9 +332,9 @@ class _SubscriptionSummary extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: Text(
               tr('tariff.current_remains'),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: scheme.outline,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: scheme.outline),
             ),
           ),
         ],

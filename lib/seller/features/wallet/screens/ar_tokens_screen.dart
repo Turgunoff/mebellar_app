@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
@@ -6,8 +8,10 @@ import '../../../../core/i18n/i18n.dart';
 import '../../../../core/logging/app_logger.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
-import '../../../../shared/models/seller_wallet.dart';
 import '../../../../shared/payments/manual_payment_pending_screen.dart';
+import '../../../../shared/payments/payment_pending_copy.dart';
+import '../../../../shared/payments/pending_payment.dart';
+import '../../../../shared/payments/seller_payment_refresh.dart';
 import '../../products/data/ar_token_repository.dart';
 import '../../products/widgets/ar_token_buy_section.dart';
 import 'ar_token_purchase_history_screen.dart';
@@ -20,15 +24,37 @@ class ArTokensScreen extends StatefulWidget {
   State<ArTokensScreen> createState() => _ArTokensScreenState();
 }
 
-class _ArTokensScreenState extends State<ArTokensScreen> {
+class _ArTokensScreenState extends State<ArTokensScreen>
+    with WidgetsBindingObserver {
   ArTokenBalance? _balance;
   bool _loading = true;
   bool _failed = false;
+  StreamSubscription<PendingPaymentKind>? _refreshSub;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _refreshSub = SellerPaymentRefreshHub.instance.stream.listen((kind) {
+      if (kind == PendingPaymentKind.arTokens && mounted) {
+        unawaited(_load());
+      }
+    });
     _load();
+  }
+
+  @override
+  void dispose() {
+    _refreshSub?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_load());
+    }
   }
 
   Future<void> _load() async {
@@ -404,6 +430,10 @@ class _PendingPurchaseBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
+    final manualReview = isManualPaymentReview(
+      provider: purchase.provider,
+      status: purchase.status,
+    );
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -421,12 +451,10 @@ class _PendingPurchaseBanner extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  tr(
-                    'seller.ar_pending_purchase_notice',
-                    namedArgs: {
-                      'count': '${purchase.tokens}',
-                      'amount': formatSom(purchase.amountUzs),
-                    },
+                  pendingBannerNotice(
+                    manualReview: manualReview,
+                    amountSom: purchase.amountUzs,
+                    tokenCount: purchase.tokens,
                   ),
                   style: TextStyle(
                     fontFamily: AppFonts.seller,
@@ -473,6 +501,10 @@ class _PendingPurchaseLockedCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
+    final manualReview = isManualPaymentReview(
+      provider: purchase.provider,
+      status: purchase.status,
+    );
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -494,7 +526,7 @@ class _PendingPurchaseLockedCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            tr('tariff.pending_banner_subtitle'),
+            pendingSubtitle(manualReview: manualReview),
             style: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 12.5,

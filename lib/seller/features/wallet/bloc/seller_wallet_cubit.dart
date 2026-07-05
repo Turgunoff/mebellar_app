@@ -71,7 +71,7 @@ class SellerWalletCubit extends Cubit<SellerWalletState> {
       emit(
         state.copyWith(
           depositStatus: DepositStatus.failure,
-          error: e.toString(),
+          error: apiErrorMessage(e),
         ),
       );
       return null;

@@ -117,6 +117,35 @@ void main() {
     );
   });
 
+  test('balance parses pending_purchase', () async {
+    final h = make(
+      (_) => (
+        200,
+        jsonEncode({
+          'ar_credits': 2,
+          'packages': [],
+          'pending_purchase': {
+            'id': 'p-1',
+            'package_code': 'single',
+            'tokens': 1,
+            'amount_uzs': 15000,
+            'provider': 'payme',
+            'status': 'pending',
+            'created_at': '2026-01-01T00:00:00Z',
+            'updated_at': '2026-01-01T00:00:00Z',
+          },
+        }),
+      ),
+    );
+
+    final balance = await h.repo.balance();
+
+    expect(balance.pendingPurchase, isNotNull);
+    expect(balance.pendingPurchase!.tokens, 1);
+    expect(balance.pendingPurchase!.provider, 'payme');
+    expect(balance.pendingPurchase!.isPending, isTrue);
+  });
+
   test(
     'buy posts package_code + provider and returns the checkout url + reference',
     () async {

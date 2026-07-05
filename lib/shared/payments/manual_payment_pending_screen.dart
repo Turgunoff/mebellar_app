@@ -10,9 +10,10 @@ import '../../seller/features/wallet/screens/ar_token_purchase_history_screen.da
 import '../../seller/features/wallet/screens/wallet_history_screen.dart';
 import '../models/seller_wallet.dart';
 import '../repositories/seller_wallet_repository.dart';
+import 'payment_pending_copy.dart';
 
-/// Shared "Kutilmoqda" screen for manual (P2P card + receipt) payments that
-/// await admin approval — wallet top-ups and AR-token purchases.
+/// Shared pending screen for seller payments — P2P (admin review) and online
+/// (Payme/Click webhook settlement).
 sealed class ManualPaymentPendingArgs {
   ManualPaymentPendingArgs({
     required this.referenceId,
@@ -21,6 +22,8 @@ sealed class ManualPaymentPendingArgs {
 
   final String referenceId;
   final DateTime submittedAt;
+
+  bool get isManualReview;
 
   Duration get slaRemaining {
     final due = submittedAt.add(const Duration(hours: 24));
@@ -43,6 +46,9 @@ final class WalletTopUpPendingArgs extends ManualPaymentPendingArgs {
   int get amount => _topUp.amount;
 
   @override
+  bool get isManualReview => true;
+
+  @override
   bool get isStillPending => _topUp.isPending;
 
   WalletTopUpPendingArgs copyWithTopUp(WalletTopUp topUp) =>
@@ -63,10 +69,34 @@ final class ArTokenPurchasePendingArgs extends ManualPaymentPendingArgs {
   int get amountUzs => _purchase.amountUzs;
 
   @override
-  bool get isStillPending => _purchase.isPendingReview;
+  bool get isManualReview => isManualPaymentReview(
+    provider: _purchase.provider,
+    status: _purchase.status,
+  );
+
+  @override
+  bool get isStillPending => _purchase.isPending || _purchase.isPendingReview;
 
   ArTokenPurchasePendingArgs copyWithPurchase(ArTokenPurchase purchase) =>
       ArTokenPurchasePendingArgs(purchase: purchase);
+}
+
+final class WalletDepositPendingArgs extends ManualPaymentPendingArgs {
+  WalletDepositPendingArgs({required WalletDeposit deposit})
+    : _deposit = deposit,
+      super(referenceId: deposit.id, submittedAt: deposit.createdAt);
+
+  final WalletDeposit _deposit;
+
+  WalletDeposit get deposit => _deposit;
+
+  int get amount => _deposit.amount;
+
+  @override
+  bool get isManualReview => false;
+
+  @override
+  bool get isStillPending => _deposit.isPending;
 }
 
 class ManualPaymentPendingScreen extends StatefulWidget {
@@ -118,6 +148,17 @@ class _ManualPaymentPendingScreenState
             return;
           }
           setState(() => _live = next);
+        case WalletDepositPendingArgs(:final deposit):
+          final status = await sl<SellerWalletRepository>().depositStatus(
+            deposit.id,
+          );
+          if (!mounted) return;
+          if (status == 'paid') {
+            await _showWalletDepositPaid(deposit);
+            if (mounted) Navigator.of(context).pop();
+          } else if (status == 'cancelled') {
+            if (mounted) Navigator.of(context).pop();
+          }
         case ArTokenPurchasePendingArgs(:final purchase):
           final rows = await sl<ArTokenRepository>().purchaseHistory(limit: 50);
           final match = rows
@@ -167,14 +208,20 @@ class _ManualPaymentPendingScreenState
     if (mounted) Navigator.of(context).pop();
   }
 
+  Future<void> _showWalletDepositPaid(WalletDeposit deposit) async {
+    await _showResolution(WalletDepositPendingArgs(deposit: deposit));
+  }
+
   Future<void> _showResolution(ManualPaymentPendingArgs resolved) async {
     if (!mounted) return;
     final approved = switch (resolved) {
       WalletTopUpPendingArgs(:final topUp) => topUp.isApproved,
+      WalletDepositPendingArgs() => true,
       ArTokenPurchasePendingArgs(:final purchase) => purchase.isPaid,
     };
     final rejectionReason = switch (resolved) {
       WalletTopUpPendingArgs(:final topUp) => topUp.rejectionReason,
+      WalletDepositPendingArgs() => null,
       ArTokenPurchasePendingArgs() => null,
     };
     await showDialog<void>(
@@ -197,12 +244,19 @@ class _ManualPaymentPendingScreenState
             'seller.wallet_topup_approved_subtitle',
             namedArgs: {'amount': formatSom(topUp.amount)},
           ),
+          WalletDepositPendingArgs(:final deposit) when approved => tr(
+            'seller.wallet_topup_approved_subtitle',
+            namedArgs: {'amount': formatSom(deposit.amount)},
+          ),
           ArTokenPurchasePendingArgs(:final purchase) when approved => tr(
             'seller.ar_purchase_approved_subtitle',
             namedArgs: {'count': '${purchase.tokens}'},
           ),
           WalletTopUpPendingArgs() =>
             rejectionReason ?? tr('seller.manual_payment_rejected_subtitle'),
+          WalletDepositPendingArgs() => tr(
+            'seller.manual_payment_rejected_subtitle',
+          ),
           ArTokenPurchasePendingArgs() => tr(
             'seller.manual_payment_rejected_subtitle',
           ),
@@ -224,7 +278,8 @@ class _ManualPaymentPendingScreenState
 
   void _openHistory() {
     final route = switch (_live) {
-      WalletTopUpPendingArgs() => MaterialPageRoute<void>(
+      WalletTopUpPendingArgs() ||
+      WalletDepositPendingArgs() => MaterialPageRoute<void>(
         settings: const RouteSettings(name: '/seller-wallet-history'),
         builder: (_) => const WalletHistoryScreen(),
       ),
@@ -239,6 +294,7 @@ class _ManualPaymentPendingScreenState
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final manualReview = _live.isManualReview;
     return Scaffold(
       appBar: AppBar(title: Text(tr('tariff.pending_title'))),
       body: ListView(
@@ -262,13 +318,13 @@ class _ManualPaymentPendingScreenState
           ),
           const SizedBox(height: 24),
           Text(
-            tr('tariff.pending_headline'),
+            pendingHeadline(manualReview: manualReview),
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.headlineSmall,
           ),
           const SizedBox(height: 8),
           Text(
-            tr('tariff.pending_subtitle'),
+            pendingSubtitle(manualReview: manualReview),
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyLarge,
           ),
@@ -276,6 +332,7 @@ class _ManualPaymentPendingScreenState
           _SlaCard(
             remaining: _live.slaRemaining,
             submittedAt: _live.submittedAt,
+            manualReview: manualReview,
           ),
           const SizedBox(height: 16),
           _SummaryCard(args: _live),
@@ -303,16 +360,22 @@ class _ManualPaymentPendingScreenState
   }
 
   String get _historyLabel => switch (_live) {
-    WalletTopUpPendingArgs() => tr('seller.wallet_history_title'),
+    WalletTopUpPendingArgs() ||
+    WalletDepositPendingArgs() => tr('seller.wallet_history_title'),
     ArTokenPurchasePendingArgs() => tr('seller.ar_purchase_history_title'),
   };
 }
 
 class _SlaCard extends StatelessWidget {
-  const _SlaCard({required this.remaining, required this.submittedAt});
+  const _SlaCard({
+    required this.remaining,
+    required this.submittedAt,
+    required this.manualReview,
+  });
 
   final Duration remaining;
   final DateTime submittedAt;
+  final bool manualReview;
 
   String _formatRemaining(Duration d) {
     final hours = d.inHours;
@@ -337,7 +400,7 @@ class _SlaCard extends StatelessWidget {
         child: Column(
           children: [
             Text(
-              tr('tariff.sla_title'),
+              pendingSlaTitle(manualReview: manualReview),
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
@@ -390,11 +453,12 @@ class _SummaryCard extends StatelessWidget {
         children: [
           ListTile(
             leading: Icon(switch (args) {
-              WalletTopUpPendingArgs() => Icons.account_balance_wallet_outlined,
+              WalletTopUpPendingArgs() || WalletDepositPendingArgs() =>
+                Icons.account_balance_wallet_outlined,
               ArTokenPurchasePendingArgs() => Icons.bolt_rounded,
             }),
             title: Text(switch (args) {
-              WalletTopUpPendingArgs() => tr(
+              WalletTopUpPendingArgs() || WalletDepositPendingArgs() => tr(
                 'seller.wallet_topup_section_title',
               ),
               ArTokenPurchasePendingArgs(:final purchase) => tr(
@@ -406,13 +470,21 @@ class _SummaryCard extends StatelessWidget {
               WalletTopUpPendingArgs() => tr(
                 'seller.manual_payment_wallet_note',
               ),
-              ArTokenPurchasePendingArgs() => tr(
+              WalletDepositPendingArgs() => tr(
+                'seller.pending_online_subtitle',
+              ),
+              ArTokenPurchasePendingArgs() when args.isManualReview => tr(
                 'seller.manual_payment_ar_note',
+              ),
+              ArTokenPurchasePendingArgs() => tr(
+                'seller.pending_online_subtitle',
               ),
             }),
             trailing: Text(switch (args) {
-              WalletTopUpPendingArgs(:final amount) =>
-                '${priceFormat.format(amount)} so\'m',
+              WalletTopUpPendingArgs(:final amount) ||
+              WalletDepositPendingArgs(
+                :final amount,
+              ) => '${priceFormat.format(amount)} so\'m',
               ArTokenPurchasePendingArgs(:final amountUzs) =>
                 '${priceFormat.format(amountUzs)} so\'m',
             }, style: Theme.of(context).textTheme.titleMedium),

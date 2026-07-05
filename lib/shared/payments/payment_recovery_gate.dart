@@ -28,6 +28,7 @@ class PaymentRecoveryGate extends StatefulWidget {
     super.key,
     required this.child,
     this.onViewDetails,
+    this.onReconciled,
   });
 
   final Widget child;
@@ -36,6 +37,11 @@ class PaymentRecoveryGate extends StatefulWidget {
   /// jump to the orders list). Null for surfaces with nowhere to navigate
   /// (seller AR-token / subscription), where the card just dismisses.
   final void Function(PendingPayment payment)? onViewDetails;
+
+  /// Called after a reconciliation pass settles (or times out). Lets seller
+  /// screens refresh balances when an online payment clears.
+  final void Function(PendingPayment payment, PaymentOutcome outcome)?
+  onReconciled;
 
   @override
   State<PaymentRecoveryGate> createState() => _PaymentRecoveryGateState();
@@ -152,6 +158,7 @@ class _PaymentRecoveryGateState extends State<PaymentRecoveryGate>
         },
       );
     });
+    widget.onReconciled?.call(pending, outcome);
   }
 
   String _title({required bool paid, required bool coldStart}) {

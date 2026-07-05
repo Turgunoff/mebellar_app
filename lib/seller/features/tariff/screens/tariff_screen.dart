@@ -7,6 +7,7 @@ import 'package:woody_app/core/i18n/i18n.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/models/tariff.dart';
+import '../../../../shared/payments/payment_pending_copy.dart';
 import '../../../../shared/repositories/tariff_repository.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/error_state.dart';
@@ -267,6 +268,9 @@ class _PendingBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
+    final manualReview =
+        subscription.paymentScreenshotUrl != null &&
+        subscription.paymentScreenshotUrl!.isNotEmpty;
     return Material(
       color: c.primarySoft,
       borderRadius: BorderRadius.circular(16),
@@ -315,7 +319,9 @@ class _PendingBanner extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      tr('tariff.pending_banner_subtitle'),
+                      manualReview
+                          ? tr('tariff.pending_banner_subtitle')
+                          : tr('tariff.pending_banner_subtitle_online'),
                       style: TextStyle(
                         fontFamily: AppFonts.seller,
                         fontSize: 12,

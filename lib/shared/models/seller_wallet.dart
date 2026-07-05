@@ -17,11 +17,13 @@ class SellerWallet extends Equatable {
     this.isSuspendedDueToDebt = false,
     this.graceUntil,
     this.pendingTopUp,
+    this.pendingDeposit,
     this.transactions = const [],
   });
 
   factory SellerWallet.fromJson(Map<String, dynamic> json) {
     final pending = json['pending_topup'];
+    final pendingDep = json['pending_deposit'];
     return SellerWallet(
       balance: (json['balance'] as num?)?.toInt() ?? 0,
       creditLimit: (json['credit_limit'] as num?)?.toInt() ?? 0,
@@ -30,6 +32,9 @@ class SellerWallet extends Equatable {
       graceUntil: _parseDate(json['debt_grace_period_until']),
       pendingTopUp: pending is Map<String, dynamic>
           ? WalletTopUp.fromJson(pending)
+          : null,
+      pendingDeposit: pendingDep is Map<String, dynamic>
+          ? WalletDeposit.fromJson(pendingDep)
           : null,
       transactions: ((json['transactions'] as List<dynamic>?) ?? const [])
           .whereType<Map<String, dynamic>>()
@@ -44,7 +49,11 @@ class SellerWallet extends Equatable {
   final bool isSuspendedDueToDebt;
   final DateTime? graceUntil;
   final WalletTopUp? pendingTopUp;
+  final WalletDeposit? pendingDeposit;
   final List<WalletTransaction> transactions;
+
+  /// Manual P2P top-up or in-flight Payme/Click deposit awaiting settlement.
+  bool get hasPendingPayment => pendingTopUp != null || pendingDeposit != null;
 
   bool get isHealthy => !isSuspendedDueToDebt && graceUntil == null;
 
@@ -71,8 +80,43 @@ class SellerWallet extends Equatable {
     isSuspendedDueToDebt,
     graceUntil,
     pendingTopUp,
+    pendingDeposit,
     transactions.length,
   ];
+}
+
+/// In-flight Payme/Click wallet deposit (`wallet_deposits.status = pending`).
+class WalletDeposit extends Equatable {
+  const WalletDeposit({
+    required this.id,
+    required this.amount,
+    required this.provider,
+    required this.status,
+    required this.createdAt,
+  });
+
+  factory WalletDeposit.fromJson(Map<String, dynamic> json) {
+    return WalletDeposit(
+      id: json['id'] as String,
+      amount: (json['amount'] as num?)?.toInt() ?? 0,
+      provider: json['provider'] as String? ?? 'payme',
+      status: json['status'] as String? ?? 'pending',
+      createdAt:
+          _parseDate(json['created_at']) ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+    );
+  }
+
+  final String id;
+  final int amount;
+  final String provider;
+  final String status;
+  final DateTime createdAt;
+
+  bool get isPending => status == 'pending';
+
+  @override
+  List<Object?> get props => [id, amount, provider, status, createdAt];
 }
 
 /// One immutable ledger row. Negative [amount] = debit (commission), positive

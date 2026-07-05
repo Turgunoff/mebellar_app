@@ -311,6 +311,14 @@ const Map<String, dynamic> sellerUz = {
       '{amount} so\'mlik to\'lovingiz ko\'rib chiqilmoqda.',
   'ar_pending_purchase_notice':
       '{count} token ({amount} so\'m) to\'lovi ko\'rib chiqilmoqda.',
+  'ar_pending_online_notice':
+      '{count} token ({amount} so\'m) uchun onlayn to\'lov kutilmoqda.',
+  'wallet_pending_deposit_notice':
+      '{amount} so\'mlik onlayn to\'lovingiz kutilmoqda.',
+  'pending_online_headline': 'To\'lov tasdiqlanmoqda',
+  'pending_online_subtitle':
+      'Payme yoki Click ilovasida to\'lovni yakunlang. Tasdiqlangach balans avtomatik yangilanadi.',
+  'pending_online_sla_title': 'To\'lov holati tekshirilmoqda',
   'wallet_enter_topup_amount': 'To\'ldirish summasini kiriting.',
   'wallet_min_topup_amount': 'Minimal to\'ldirish summasi — {min} so\'m.',
   'wallet_select_pay_mode': 'To\'lov turini tanlang.',
@@ -705,6 +713,13 @@ const Map<String, dynamic> sellerRu = {
   'wallet_pending_topup_notice': 'Ваш платёж на {amount} сум обрабатывается.',
   'ar_pending_purchase_notice':
       'Платёж за {count} токенов ({amount} сум) на проверке.',
+  'ar_pending_online_notice':
+      'Ожидается онлайн-оплата за {count} токенов ({amount} сум).',
+  'wallet_pending_deposit_notice': 'Ожидается онлайн-платёж на {amount} сум.',
+  'pending_online_headline': 'Платёж подтверждается',
+  'pending_online_subtitle':
+      'Завершите оплату в Payme или Click — баланс обновится автоматически.',
+  'pending_online_sla_title': 'Проверяем статус платежа',
   'wallet_enter_topup_amount': 'Введите сумму пополнения.',
   'wallet_min_topup_amount': 'Минимальная сумма пополнения — {min} сум.',
   'wallet_select_pay_mode': 'Выберите способ оплаты.',
@@ -1095,6 +1110,14 @@ const Map<String, dynamic> sellerEn = {
       'Your {amount} UZS payment is being processed.',
   'ar_pending_purchase_notice':
       'Your {count}-token payment ({amount} UZS) is being reviewed.',
+  'ar_pending_online_notice':
+      'Online payment for {count} tokens ({amount} UZS) is pending.',
+  'wallet_pending_deposit_notice':
+      'Your online payment of {amount} UZS is pending.',
+  'pending_online_headline': 'Payment is being confirmed',
+  'pending_online_subtitle':
+      'Finish the payment in Payme or Click — your balance updates automatically once it clears.',
+  'pending_online_sla_title': 'Checking payment status',
   'wallet_enter_topup_amount': 'Enter a top-up amount.',
   'wallet_min_topup_amount': 'Minimum top-up amount is {min} UZS.',
   'wallet_select_pay_mode': 'Choose a payment type.',

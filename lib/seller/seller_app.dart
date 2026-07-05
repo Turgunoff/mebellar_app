@@ -23,6 +23,8 @@ import '../main.dart' show AppLocaleScope;
 import '../shared/chat/bloc/total_unread_chats_cubit.dart';
 import '../shared/models/chat.dart';
 import '../shared/payments/payment_recovery_gate.dart';
+import '../shared/payments/pending_payment.dart';
+import '../shared/payments/seller_payment_refresh.dart';
 import '../shared/repositories/chat_repository.dart';
 import '../shared/widgets/network_overlay_wrapper.dart';
 import 'features/analytics/screens/analytics_screen.dart';
@@ -177,7 +179,14 @@ class _SellerAppState extends State<SellerApp> with WidgetsBindingObserver {
           // (resume poll + cold-start probe). No deep-link target — the result
           // card just confirms settlement; the seller's balance/tariff screens
           // refresh on their own.
-          child: PaymentRecoveryGate(child: child ?? const SizedBox.shrink()),
+          child: PaymentRecoveryGate(
+            onReconciled: (payment, outcome) {
+              if (outcome == PaymentOutcome.paid) {
+                SellerPaymentRefreshHub.instance.notify(payment.kind);
+              }
+            },
+            child: child ?? const SizedBox.shrink(),
+          ),
         ),
       ),
     );

@@ -56,6 +56,8 @@ const Map<String, dynamic> tariffUz = {
   'submit': 'Tasdiqlashga yuborish',
   'pending_banner_title': '{} tarifga o\'tish — kutilmoqda',
   'pending_banner_subtitle': 'Admin 24 soat ichida tasdiqlaydi',
+  'pending_banner_subtitle_online':
+      'Payme yoki Click ilovasida to\'lovni yakunlang',
   'pending_title': 'Kutilmoqda',
   'pending_headline': 'To\'lov tasdiqlash kutilmoqda',
   'pending_subtitle':
@@ -164,6 +166,7 @@ const Map<String, dynamic> tariffRu = {
   'submit': 'Отправить на проверку',
   'pending_banner_title': 'Переход на {} — ожидает',
   'pending_banner_subtitle': 'Админ подтвердит в течение 24 часов',
+  'pending_banner_subtitle_online': 'Завершите оплату в Payme или Click',
   'pending_title': 'Ожидает',
   'pending_headline': 'Платёж ожидает подтверждения',
   'pending_subtitle':
@@ -271,6 +274,7 @@ const Map<String, dynamic> tariffEn = {
   'submit': 'Submit for review',
   'pending_banner_title': 'Upgrade to {} — pending',
   'pending_banner_subtitle': 'Admin will approve within 24 hours',
+  'pending_banner_subtitle_online': 'Finish the payment in Payme or Click',
   'pending_title': 'Pending',
   'pending_headline': 'Payment awaiting approval',
   'pending_subtitle':

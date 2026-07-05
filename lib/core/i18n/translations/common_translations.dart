@@ -129,6 +129,8 @@ const Map<String, dynamic> errorUz = {
   'payments_unavailable': 'Onlayn to\'lov hozircha mavjud emas',
   'wallet_topup_below_minimum':
       'Minimal to\'ldirish summasi yetarli emas. Summani ko\'paytiring.',
+  'payment_already_pending':
+      'Kutilayotgan to\'lov bor. Avval uni yakunlang yoki bekor qiling.',
 };
 
 const Map<String, dynamic> errorRu = {
@@ -150,6 +152,8 @@ const Map<String, dynamic> errorRu = {
   'payments_unavailable': 'Онлайн-оплата пока недоступна',
   'wallet_topup_below_minimum':
       'Сумма меньше минимального пополнения. Увеличьте сумму.',
+  'payment_already_pending':
+      'Уже есть незавершённый платёж. Завершите или отмените его.',
 };
 
 const Map<String, dynamic> errorEn = {
@@ -171,6 +175,8 @@ const Map<String, dynamic> errorEn = {
   'payments_unavailable': 'Online payment is not available yet',
   'wallet_topup_below_minimum':
       'Amount is below the minimum top-up. Increase the amount.',
+  'payment_already_pending':
+      'You already have a pending payment. Finish or cancel it first.',
 };
 
 const Map<String, dynamic> langUz = {

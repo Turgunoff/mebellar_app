@@ -21,6 +21,7 @@ const Map<String, String> _codeMessages = {
   'order_not_payable': 'error.order_not_payable',
   'payments_unavailable': 'error.payments_unavailable',
   'wallet_topup_below_minimum': 'error.wallet_topup_below_minimum',
+  'payment_already_pending': 'error.payment_already_pending',
 };
 
 /// Maps an [ApiError] (or any thrown object) to a localised, user-facing
