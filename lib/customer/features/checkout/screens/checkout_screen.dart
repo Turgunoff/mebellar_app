@@ -5,7 +5,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -26,7 +25,7 @@ import '../../../../shared/repositories/payment_repository.dart';
 import '../../../../shared/widgets/product_color_chip.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../cubit/checkout_cubit.dart';
-import '../../../../r.dart';
+import '../../../../shared/widgets/payment_provider_tile.dart';
 import 'map_address_picker_screen.dart';
 
 class CheckoutScreen extends StatelessWidget {
@@ -448,32 +447,32 @@ class _PaymentCard extends StatelessWidget {
           ),
           // Online providers are gated by the admin `payment_methods` switch;
           // the spacing rides inside each block so hiding a tile leaves no gap.
-          if (RemoteConfig.instance.paymeEnabled) ...[
+          if (RemoteConfig.instance.paymeVisible) ...[
             const SizedBox(height: 8),
-            _ProviderTile(
-              brand: _kPaymeTeal,
-              assetPath: AssetLogo.payme,
-              chipColor: _kPaymeChip,
-              title: tr('payment.pay_with_payme'),
+            PaymentProviderTile(
+              provider: PaymentProvider.payme,
+              label: tr('payment.pay_with_payme'),
               selected: state.payment == CheckoutPayment.payme,
-              onTap: () => context.read<CheckoutCubit>().selectPayment(
-                CheckoutPayment.payme,
-              ),
-              pt: pt,
+              comingSoon: RemoteConfig.instance.paymeComingSoon,
+              onTap: RemoteConfig.instance.paymeEnabled
+                  ? () => context.read<CheckoutCubit>().selectPayment(
+                      CheckoutPayment.payme,
+                    )
+                  : null,
             ),
           ],
-          if (RemoteConfig.instance.clickEnabled) ...[
+          if (RemoteConfig.instance.clickVisible) ...[
             const SizedBox(height: 8),
-            _ProviderTile(
-              brand: _kClickBlue,
-              assetPath: AssetLogo.click,
-              chipColor: _kClickChip,
-              title: tr('payment.pay_with_click'),
+            PaymentProviderTile(
+              provider: PaymentProvider.click,
+              label: tr('payment.pay_with_click'),
               selected: state.payment == CheckoutPayment.click,
-              onTap: () => context.read<CheckoutCubit>().selectPayment(
-                CheckoutPayment.click,
-              ),
-              pt: pt,
+              comingSoon: RemoteConfig.instance.clickComingSoon,
+              onTap: RemoteConfig.instance.clickEnabled
+                  ? () => context.read<CheckoutCubit>().selectPayment(
+                      CheckoutPayment.click,
+                    )
+                  : null,
             ),
           ],
           if (state.payment != CheckoutPayment.cash) ...[
@@ -509,100 +508,6 @@ class _PaymentCard extends StatelessWidget {
             ),
           ],
         ],
-      ),
-    );
-  }
-}
-
-// Official provider brand colours (used for the checkout tiles + selection
-// ring). Constants — they don't flip in dark mode, by design.
-const Color _kPaymeTeal = Color(0xFF00A19A);
-const Color _kClickBlue = Color(0xFF0073FF);
-
-// Per-brand logo-chip backgrounds. Each official SVG renders best on its own
-// backing, so these stay constant across light/dark: Payme's self-contained
-// cyan wordmark sits on white; Click's white-text wordmark needs a dark navy
-// to stay legible (it would vanish on the light tile fill).
-const Color _kPaymeChip = Colors.white;
-const Color _kClickChip = Color(0xFF0A1730);
-
-/// A prominent payment-provider tile: the official provider logo on its brand
-/// chip, the action label, and a selection ring in the brand colour.
-class _ProviderTile extends StatelessWidget {
-  const _ProviderTile({
-    required this.brand,
-    required this.assetPath,
-    required this.chipColor,
-    required this.title,
-    required this.selected,
-    required this.onTap,
-    required this.pt,
-  });
-
-  final Color brand;
-  final String assetPath;
-  final Color chipColor;
-  final String title;
-  final bool selected;
-  final VoidCallback onTap;
-  final PremiumTokens pt;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOut,
-        decoration: BoxDecoration(
-          color: selected ? brand.withValues(alpha: 0.08) : pt.imageBg,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: selected ? brand : Colors.transparent,
-            width: 1.5,
-          ),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        child: Row(
-          children: [
-            // Official provider logo on its brand chip (uniform footprint so
-            // both tiles align; BoxFit.contain keeps each wordmark's ratio).
-            Container(
-              width: 68,
-              height: 38,
-              alignment: Alignment.center,
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: chipColor,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: SvgPicture.asset(assetPath, fit: BoxFit.contain),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Text(
-                title,
-                style: PremiumTokens.body(size: 14, weight: FontWeight.w600),
-              ),
-            ),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: selected ? brand : Colors.transparent,
-                border: Border.all(
-                  color: selected ? brand : pt.greyLight,
-                  width: 2,
-                ),
-              ),
-              child: selected
-                  ? const Icon(Icons.check, size: 12, color: Colors.white)
-                  : null,
-            ),
-          ],
-        ),
       ),
     );
   }

@@ -24,9 +24,12 @@ class IosQuickLookLauncher {
     final path = await _localPath(url, cache: cache);
     if (path == null) return false;
 
+    final quickLookPath = await _ensureUsdzExtension(path);
+    if (quickLookPath == null) return false;
+
     try {
       final ok = await _channel.invokeMethod<bool>('launchQuickLook', {
-        'path': path,
+        'path': quickLookPath,
       });
       return ok ?? false;
     } catch (e, st) {
@@ -51,10 +54,39 @@ class IosQuickLookLauncher {
     return null;
   }
 
+  /// Quick Look identifies USDZ by the `.usdz` extension. [GlbCacheService]
+  /// stores downloads via `flutter_cache_manager`, which maps the
+  /// `model/vnd.usdz+zip` Content-Type to a `.vnd` (or `.vnd.usdz+zip`) suffix —
+  /// valid bytes, wrong name, so QL shows a generic "data" preview instead of AR.
+  static Future<String?> _ensureUsdzExtension(String path) async {
+    if (path.toLowerCase().endsWith('.usdz')) return path;
+
+    final src = File(path);
+    if (!await src.exists()) return null;
+
+    try {
+      final dest = File(
+        '${src.parent.path}/woody_ar_${src.path.hashCode.abs()}.usdz',
+      );
+      if (!await dest.exists()) {
+        await src.copy(dest.path);
+      }
+      return dest.path;
+    } catch (e, st) {
+      appLog.handle(e, st, '[ios-quick-look] usdz extension fix failed');
+      return null;
+    }
+  }
+
   /// Test seam for [localPath] resolution without invoking the method channel.
   @visibleForTesting
   static Future<String?> localPathForTest(
     String url, {
     GlbCacheService? cache,
   }) => _localPath(url, cache: cache);
+
+  /// Test seam for [_ensureUsdzExtension].
+  @visibleForTesting
+  static Future<String?> ensureUsdzExtensionForTest(String path) =>
+      _ensureUsdzExtension(path);
 }

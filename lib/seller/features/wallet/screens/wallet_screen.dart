@@ -15,13 +15,10 @@ import '../../../../shared/payments/pending_payment_service.dart';
 import '../../../../shared/repositories/payment_repository.dart';
 import '../../../../shared/repositories/seller_wallet_repository.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
+import '../../../../shared/widgets/payment_provider_tile.dart';
 import '../../products/widgets/product_form/thousands_formatter.dart';
 import '../bloc/seller_wallet_cubit.dart';
 import '../widgets/wallet_info_bottom_sheet.dart';
-
-/// Official provider brand colours for the top-up tiles.
-const Color _kPaymeTeal = Color(0xFF00A19A);
-const Color _kClickBlue = Color(0xFF0073FF);
 
 /// Seller wallet — balance, debt state, automated Payme/Click top-up, ledger.
 /// A top-up opens the payment app via a deep-link; the balance is credited by
@@ -518,7 +515,7 @@ class _TopUpSectionState extends State<_TopUpSection> {
   late PaymentProvider _provider;
 
   bool get _anyProviderEnabled =>
-      RemoteConfig.instance.paymeEnabled || RemoteConfig.instance.clickEnabled;
+      RemoteConfig.instance.anyOnlineProviderEnabled;
 
   @override
   void initState() {
@@ -658,26 +655,28 @@ class _TopUpSectionState extends State<_TopUpSection> {
             ),
           ),
           const SizedBox(height: 10),
-          if (RemoteConfig.instance.paymeEnabled)
-            _ProviderTile(
-              brand: _kPaymeTeal,
-              wordmark: 'Payme',
+          if (RemoteConfig.instance.paymeVisible)
+            PaymentProviderTile(
+              provider: PaymentProvider.payme,
               label: tr('seller.wallet_via_payme'),
               selected: _provider == PaymentProvider.payme,
-              onTap: submitting
+              comingSoon: RemoteConfig.instance.paymeComingSoon,
+              style: PaymentProviderTileStyle.seller,
+              onTap: submitting || !RemoteConfig.instance.paymeEnabled
                   ? null
                   : () => setState(() => _provider = PaymentProvider.payme),
             ),
-          if (RemoteConfig.instance.paymeEnabled &&
-              RemoteConfig.instance.clickEnabled)
+          if (RemoteConfig.instance.paymeVisible &&
+              RemoteConfig.instance.clickVisible)
             const SizedBox(height: 10),
-          if (RemoteConfig.instance.clickEnabled)
-            _ProviderTile(
-              brand: _kClickBlue,
-              wordmark: 'Click',
+          if (RemoteConfig.instance.clickVisible)
+            PaymentProviderTile(
+              provider: PaymentProvider.click,
               label: tr('seller.wallet_via_click'),
               selected: _provider == PaymentProvider.click,
-              onTap: submitting
+              comingSoon: RemoteConfig.instance.clickComingSoon,
+              style: PaymentProviderTileStyle.seller,
+              onTap: submitting || !RemoteConfig.instance.clickEnabled
                   ? null
                   : () => setState(() => _provider = PaymentProvider.click),
             ),
@@ -750,82 +749,6 @@ class _TopUpSectionState extends State<_TopUpSection> {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// A branded payment-app choice (wordmark badge + label + selection ring),
-/// mirroring the AR-token / tariff top-up sheets.
-class _ProviderTile extends StatelessWidget {
-  const _ProviderTile({
-    required this.brand,
-    required this.wordmark,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final Color brand;
-  final String wordmark;
-  final String label;
-  final bool selected;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = SellerColors.of(context);
-    return Material(
-      color: selected ? brand.withValues(alpha: 0.08) : c.fillSoft,
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: selected ? brand : c.divider,
-              width: selected ? 1.6 : 1,
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 54,
-                height: 32,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: brand,
-                  borderRadius: BorderRadius.circular(7),
-                ),
-                child: Text(
-                  wordmark,
-                  style: const TextStyle(
-                    fontFamily: AppFonts.seller,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 12,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    fontFamily: AppFonts.seller,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13.5,
-                    color: c.ink,
-                  ),
-                ),
-              ),
-              if (selected) Icon(Icons.check_circle, color: brand, size: 20),
-            ],
-          ),
-        ),
       ),
     );
   }

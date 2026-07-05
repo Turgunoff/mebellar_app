@@ -7,7 +7,8 @@ const Map<String, dynamic> checkoutUz = {
   'step_address': 'Yetkazib berish manzili',
   'step_delivery': 'Yetkazib berish usuli',
   'step_payment': 'To\'lov usuli',
-  'deferred_payment_note': 'Sotuvchi manzilni tekshirib yetkazib berish narxini kiritgach, to\'lovni amalga oshirishingiz mumkin.',
+  'deferred_payment_note':
+      'Sotuvchi manzilni tekshirib yetkazib berish narxini kiritgach, to\'lovni amalga oshirishingiz mumkin.',
   'step_confirm': 'Tasdiqlash',
   'delivery_address': 'Yetkazib berish manzili',
   'delivery_fee': 'Yetkazib berish',
@@ -53,7 +54,8 @@ const Map<String, dynamic> checkoutRu = {
   'step_address': 'Адрес доставки',
   'step_delivery': 'Способ доставки',
   'step_payment': 'Способ оплаты',
-  'deferred_payment_note': 'Оплатить можно после того, как продавец проверит адрес и укажет стоимость доставки.',
+  'deferred_payment_note':
+      'Оплатить можно после того, как продавец проверит адрес и укажет стоимость доставки.',
   'step_confirm': 'Подтверждение',
   'delivery_address': 'Адрес доставки',
   'delivery_fee': 'Доставка',
@@ -99,7 +101,8 @@ const Map<String, dynamic> checkoutEn = {
   'step_address': 'Delivery address',
   'step_delivery': 'Delivery method',
   'step_payment': 'Payment method',
-  'deferred_payment_note': 'You can pay once the seller checks the address and enters the delivery fee.',
+  'deferred_payment_note':
+      'You can pay once the seller checks the address and enters the delivery fee.',
   'step_confirm': 'Confirm',
   'delivery_address': 'Delivery address',
   'delivery_fee': 'Delivery',
@@ -170,6 +173,7 @@ const Map<String, dynamic> paymentUz = {
   'cash_hint': 'Yetkazib bergan kuriyerga to\'lov',
   'pay_with_payme': 'Payme ilovasi orqali to\'lash',
   'pay_with_click': 'Click ilovasi orqali to\'lash',
+  'coming_soon_badge': 'Tez orada',
   // Pending external-payment reconciliation (PaymentRecoveryGate).
   'recovery': {
     'checking': 'To\'lov holati tekshirilmoqda...',
@@ -202,6 +206,7 @@ const Map<String, dynamic> paymentRu = {
   'cash_hint': 'Оплата курьеру при доставке',
   'pay_with_payme': 'Оплатить через приложение Payme',
   'pay_with_click': 'Оплатить через приложение Click',
+  'coming_soon_badge': 'Скоро',
   'recovery': {
     'checking': 'Проверяем статус оплаты...',
     'paid_title': 'Оплата прошла успешно!',
@@ -230,6 +235,7 @@ const Map<String, dynamic> paymentEn = {
   'cash_hint': 'Pay the courier on delivery',
   'pay_with_payme': 'Pay with the Payme app',
   'pay_with_click': 'Pay with the Click app',
+  'coming_soon_badge': 'Coming soon',
   'recovery': {
     'checking': 'Checking payment status...',
     'paid_title': 'Payment successful!',

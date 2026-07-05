@@ -15,11 +15,8 @@ import '../../../../shared/payments/pending_payment_service.dart';
 import '../../../../shared/repositories/payment_repository.dart';
 import '../../../../shared/repositories/tariff_repository.dart';
 import '../../../../shared/utils/image_upload.dart';
+import '../../../../shared/widgets/payment_provider_tile.dart';
 import '../data/ar_token_repository.dart';
-
-/// Official provider brand colours for the top-up tiles.
-const Color _kPaymeTeal = Color(0xFF00A19A);
-const Color _kClickBlue = Color(0xFF0073FF);
 
 enum ArTokenBuyResult { onlineLaunched, manualSubmitted }
 
@@ -69,7 +66,7 @@ class _ArTokenBuySheetState extends State<_ArTokenBuySheet> {
   File? _screenshotFile;
 
   bool get _anyProviderEnabled =>
-      RemoteConfig.instance.paymeEnabled || RemoteConfig.instance.clickEnabled;
+      RemoteConfig.instance.anyOnlineProviderEnabled;
 
   bool get _showPayModeSwitcher => _anyProviderEnabled;
 
@@ -295,27 +292,29 @@ class _ArTokenBuySheetState extends State<_ArTokenBuySheet> {
                   const SizedBox(height: 14),
                 ],
                 if (_payMode == _PayMode.online) ...[
-                  if (RemoteConfig.instance.paymeEnabled)
-                    _ProviderChoice(
-                      brand: _kPaymeTeal,
-                      wordmark: 'Payme',
+                  if (RemoteConfig.instance.paymeVisible)
+                    PaymentProviderTile(
+                      provider: PaymentProvider.payme,
                       label: tr('seller.pay_via_payme'),
                       selected: _provider == PaymentProvider.payme,
-                      onTap: busy
+                      comingSoon: RemoteConfig.instance.paymeComingSoon,
+                      style: PaymentProviderTileStyle.seller,
+                      onTap: busy || !RemoteConfig.instance.paymeEnabled
                           ? null
                           : () => setState(
                               () => _provider = PaymentProvider.payme,
                             ),
                     ),
-                  if (RemoteConfig.instance.clickEnabled) ...[
-                    if (RemoteConfig.instance.paymeEnabled)
+                  if (RemoteConfig.instance.clickVisible) ...[
+                    if (RemoteConfig.instance.paymeVisible)
                       const SizedBox(height: 8),
-                    _ProviderChoice(
-                      brand: _kClickBlue,
-                      wordmark: 'Click',
+                    PaymentProviderTile(
+                      provider: PaymentProvider.click,
                       label: tr('seller.pay_via_click'),
                       selected: _provider == PaymentProvider.click,
-                      onTap: busy
+                      comingSoon: RemoteConfig.instance.clickComingSoon,
+                      style: PaymentProviderTileStyle.seller,
+                      onTap: busy || !RemoteConfig.instance.clickEnabled
                           ? null
                           : () => setState(
                               () => _provider = PaymentProvider.click,
@@ -779,80 +778,6 @@ class _PackageTile extends StatelessWidget {
                 ),
               ],
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ProviderChoice extends StatelessWidget {
-  const _ProviderChoice({
-    required this.brand,
-    required this.wordmark,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final Color brand;
-  final String wordmark;
-  final String label;
-  final bool selected;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = SellerColors.of(context);
-    return Material(
-      color: selected ? brand.withValues(alpha: 0.08) : c.fillFaint,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: selected ? brand : c.divider,
-              width: selected ? 1.6 : 1,
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 54,
-                height: 32,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: brand,
-                  borderRadius: BorderRadius.circular(7),
-                ),
-                child: Text(
-                  wordmark,
-                  style: const TextStyle(
-                    fontFamily: AppFonts.seller,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 12,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    fontFamily: AppFonts.seller,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13.5,
-                    color: c.ink,
-                  ),
-                ),
-              ),
-              if (selected) Icon(Icons.check_circle, color: brand, size: 20),
-            ],
           ),
         ),
       ),

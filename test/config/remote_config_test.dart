@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:woody_app/config/remote_config.dart';
+import 'package:woody_app/shared/payments/payment_provider_mode.dart';
 
 void main() {
   group('RemoteConfig.parseMinVersions', () {
@@ -55,7 +56,10 @@ void main() {
 
     test('disabled by default for partial / missing payloads', () {
       expect(RemoteConfig.parseMaintenance({'message': 'x'}).enabled, isFalse);
-      expect(RemoteConfig.parseMaintenance(<String, dynamic>{}).enabled, isFalse);
+      expect(
+        RemoteConfig.parseMaintenance(<String, dynamic>{}).enabled,
+        isFalse,
+      );
     });
 
     test('non-map payloads read as disabled with empty message', () {
@@ -66,7 +70,10 @@ void main() {
     });
 
     test('tolerates a string "true" flag', () {
-      expect(RemoteConfig.parseMaintenance({'enabled': 'true'}).enabled, isTrue);
+      expect(
+        RemoteConfig.parseMaintenance({'enabled': 'true'}).enabled,
+        isTrue,
+      );
     });
   });
 
@@ -101,28 +108,49 @@ void main() {
   });
 
   group('RemoteConfig.parsePaymentMethods', () {
-    test('reads explicit per-provider flags', () {
-      final parsed =
-          RemoteConfig.parsePaymentMethods({'click': false, 'payme': true});
-      expect(parsed.click, isFalse);
-      expect(parsed.payme, isTrue);
+    test('reads explicit per-provider modes', () {
+      final parsed = RemoteConfig.parsePaymentMethods({
+        'click': 'hidden',
+        'payme': 'enabled',
+      });
+      expect(parsed.click, PaymentProviderMode.hidden);
+      expect(parsed.payme, PaymentProviderMode.enabled);
+    });
+
+    test('reads coming_soon mode', () {
+      final parsed = RemoteConfig.parsePaymentMethods({
+        'click': 'coming_soon',
+        'payme': 'enabled',
+      });
+      expect(parsed.click, PaymentProviderMode.comingSoon);
+      expect(parsed.payme, PaymentProviderMode.enabled);
     });
 
     test('missing / non-map / malformed reads as both enabled', () {
-      // Never a checkout blackout: a missing field or bad payload stays enabled.
-      expect(RemoteConfig.parsePaymentMethods(null).click, isTrue);
-      expect(RemoteConfig.parsePaymentMethods(null).payme, isTrue);
-      expect(RemoteConfig.parsePaymentMethods('x').click, isTrue);
+      expect(
+        RemoteConfig.parsePaymentMethods(null).click,
+        PaymentProviderMode.enabled,
+      );
+      expect(
+        RemoteConfig.parsePaymentMethods(null).payme,
+        PaymentProviderMode.enabled,
+      );
+      expect(
+        RemoteConfig.parsePaymentMethods('x').click,
+        PaymentProviderMode.enabled,
+      );
       final partial = RemoteConfig.parsePaymentMethods({'click': false});
-      expect(partial.click, isFalse);
-      expect(partial.payme, isTrue); // absent → enabled
+      expect(partial.click, PaymentProviderMode.hidden);
+      expect(partial.payme, PaymentProviderMode.enabled);
     });
 
-    test('tolerates string "false" flags', () {
-      final parsed =
-          RemoteConfig.parsePaymentMethods({'click': 'false', 'payme': 'true'});
-      expect(parsed.click, isFalse);
-      expect(parsed.payme, isTrue);
+    test('tolerates legacy bool flags', () {
+      final parsed = RemoteConfig.parsePaymentMethods({
+        'click': 'false',
+        'payme': 'true',
+      });
+      expect(parsed.click, PaymentProviderMode.hidden);
+      expect(parsed.payme, PaymentProviderMode.enabled);
     });
   });
 
