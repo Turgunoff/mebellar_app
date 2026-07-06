@@ -37,3 +37,4 @@ Yozuvlar avtomatik qo'shiladi:
 | 2026-06-28 | 1.0.32+32 | d466f8dca9c7 | ios | 1.0.32: custom force-update overlay (in_app_update removed) + maintenance mode |
 | 2026-07-04 | 1.0.33+33 | e0e1d5f10170 | android | 1.0.33: iOS AR Quick Look, share-link back nav, customer AR part switcher, admin GLB/USDZ badges |
 | 2026-07-04 | 1.0.33+33 | e0e1d5f10170 | ios | 1.0.33: iOS AR Quick Look, share-link back nav, customer AR part switcher, admin GLB/USDZ badges |
+| 2026-07-06 | 1.0.34+34 | 301a5004a898 | android ios | 1.0.34: Crashlytics crash fixes (showcase boot, transient errors, MapKit, iOS AR registrar) |

@@ -16,7 +16,8 @@ const int kCategoryPageSize = 15;
 /// in-category [ProductSearchSort] facet so the feed's options (recommended /
 /// popular / discount) don't leak into the filter sheet.
 enum HomeFeedSort {
-  /// Curated default — in-stock, then discounted, then most-ordered, then new.
+  /// Curated default — server scores 7-day views + AR + image richness,
+  /// multiplied by the seller's tariff boost (`ai_designer_boost_factor`).
   recommended,
 
   /// Highest all-time order volume first ("Eng ommabop").
@@ -180,9 +181,7 @@ abstract class ProductDataSource {
     int limit = kCategoryPageSize,
     int offset = 0,
   });
-  Future<List<ProductModel>> listBySubcategory({
-    required String subcategoryId,
-  });
+  Future<List<ProductModel>> listBySubcategory({required String subcategoryId});
   Future<ProductModel> getById(String id);
 
   /// A page of the home "Siz uchun tavsiya" feed, ordered by [sort]. Drives
@@ -206,10 +205,7 @@ abstract class ProductDataSource {
   /// Rule-based "similar products" for the detail-page carousel. Ranking
   /// (shared subcategory, stock, material, price proximity) is done
   /// server-side by the `get_similar_products` Postgres function.
-  Future<List<ProductModel>> listSimilar(
-    String productId, {
-    int limit = 10,
-  });
+  Future<List<ProductModel>> listSimilar(String productId, {int limit = 10});
 
   /// Synchronous read of the cached first feed page (offset 0, default
   /// [HomeFeedSort.recommended] sort). Returns `null` on cache miss or for
@@ -231,8 +227,7 @@ abstract class ProductDataSource {
 
   /// Synchronous read of a previously-fetched "similar products" carousel.
   /// Returns null on cache miss.
-  List<ProductModel>? peekSimilar(String productId, {int limit = 10}) =>
-      null;
+  List<ProductModel>? peekSimilar(String productId, {int limit = 10}) => null;
 }
 
 class MockProductDataSource extends ProductDataSource {

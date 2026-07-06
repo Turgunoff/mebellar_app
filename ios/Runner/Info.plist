@@ -1,61 +1,61 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-<dict>
-	<key>CADisableMinimumFrameDurationOnPhone</key>
-	<true/>
-	<!-- Hand inbound Universal Links (https://woody.uz/product/* and /shop/*)
+	<dict>
+		<key>CADisableMinimumFrameDurationOnPhone</key>
+		<true/>
+		<!-- Hand inbound Universal Links (https://woody.uz/product/* and /shop/*)
 	     to the Flutter engine so go_router receives the path. Pairs with the
 	     Associated Domains entitlement in Runner.entitlements and the hosted
 	     apple-app-site-association file (path matching lives in the AASA). -->
-	<key>FlutterDeepLinkingEnabled</key>
-	<true/>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Manzilingizni xaritada belgilash uchun joriy joylashuvingiz kerak.</string>
-	<!-- The app only uses when-in-use location, but the geolocator plugin's iOS
+		<key>FlutterDeepLinkingEnabled</key>
+		<true/>
+		<key>NSLocationWhenInUseUsageDescription</key>
+		<string>Manzilingizni xaritada belgilash uchun joriy joylashuvingiz kerak.</string>
+		<!-- The app only uses when-in-use location, but the geolocator plugin's iOS
 	     code references the always-authorization API, so Apple's static scan
 	     (ITMS-90683) requires this purpose string too. -->
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Manzilingizni xaritada belgilash uchun joriy joylashuvingiz kerak.</string>
-	<key>NSCameraUsageDescription</key>
-	<string>Mebelni o'z xonangizda sinab ko'rish (AR) va mahsulot rasmga olish uchun kameradan foydalaniladi.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>Yordam chatida ovozli xabar yozib yuborish uchun mikrofonga ruxsat berishingiz kerak.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Mahsulot rasmlarini yuklash uchun galereyangizdan rasm tanlaysiz.</string>
-	<!-- Write-only Photos access (gal) so the buyer can save the AR screenshot. -->
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>AR ko'rinishidagi mebel suratini galereyangizga saqlash uchun ruxsat kerak.</string>
-	<!-- App Tracking Transparency prompt copy. Shown by
+		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+		<string>Manzilingizni xaritada belgilash uchun joriy joylashuvingiz kerak.</string>
+		<key>NSCameraUsageDescription</key>
+		<string>Mebelni o'z xonangizda sinab ko'rish (AR) va mahsulot rasmga olish uchun kameradan foydalaniladi.</string>
+		<key>NSMicrophoneUsageDescription</key>
+		<string>Yordam chatida ovozli xabar yozib yuborish uchun mikrofonga ruxsat berishingiz kerak.</string>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>Mahsulot rasmlarini yuklash uchun galereyangizdan rasm tanlaysiz.</string>
+		<!-- Write-only Photos access (gal) so the buyer can save the AR screenshot. -->
+		<key>NSPhotoLibraryAddUsageDescription</key>
+		<string>AR ko'rinishidagi mebel suratini galereyangizga saqlash uchun ruxsat kerak.</string>
+		<!-- App Tracking Transparency prompt copy. Shown by
 	     FacebookAnalyticsService.initialize(); declining keeps all Meta
 	     tracking off. -->
-	<key>NSUserTrackingUsageDescription</key>
-	<string>Reklamalarni qiziqishlaringizga moslashtirish va xizmatni yaxshilash uchun faoliyatingizni kuzatishga ruxsat bering.</string>
-	<!-- Required for Firebase Cloud Messaging background message processing. -->
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>remote-notification</string>
-	</array>
-	<!-- url_launcher uses canLaunchUrl('tel:'/'mailto:'/'https:') for the shop "call",
+		<key>NSUserTrackingUsageDescription</key>
+		<string>Reklamalarni qiziqishlaringizga moslashtirish va xizmatni yaxshilash uchun faoliyatingizni kuzatishga ruxsat bering.</string>
+		<!-- Required for Firebase Cloud Messaging background message processing. -->
+		<key>UIBackgroundModes</key>
+		<array>
+			<string>remote-notification</string>
+		</array>
+		<!-- url_launcher uses canLaunchUrl('tel:'/'mailto:'/'https:') for the shop "call",
 	     email, and chat support buttons; on iOS canLaunchUrl returns false for any
 	     scheme not listed here, which would silently disable those buttons. -->
-	<key>LSApplicationQueriesSchemes</key>
-	<array>
-		<string>tel</string>
-		<string>mailto</string>
-		<string>https</string>
-		<string>http</string>
-		<!-- Payme / Click checkout deep links. The backend returns https URLs;
+		<key>LSApplicationQueriesSchemes</key>
+		<array>
+			<string>tel</string>
+			<string>mailto</string>
+			<string>https</string>
+			<string>http</string>
+			<!-- Payme / Click checkout deep links. The backend returns https URLs;
 		     these let the app also query/open the native payment apps. -->
-		<string>payme</string>
-		<string>click</string>
-		<!-- Facebook SDK: lets the SDK detect the Facebook / Messenger apps. -->
-		<string>fbapi</string>
-		<string>fb-messenger-share-api</string>
-		<string>fbauth2</string>
-		<string>fbshareextension</string>
-	</array>
-	<!-- Facebook SDK (facebook_app_events) — production "Woody" Meta app. The
+			<string>payme</string>
+			<string>click</string>
+			<!-- Facebook SDK: lets the SDK detect the Facebook / Messenger apps. -->
+			<string>fbapi</string>
+			<string>fb-messenger-share-api</string>
+			<string>fbauth2</string>
+			<string>fbshareextension</string>
+		</array>
+		<!-- Facebook SDK (facebook_app_events) — production "Woody" Meta app. The
 	     Client Token ships in every binary by design (it is NOT the App Secret).
 	     Auto-init is held OFF (FacebookAutoLogAppEventsEnabled /
 	     FacebookAdvertiserIDCollectionEnabled = false) so the SDK never tracks
@@ -63,107 +63,109 @@
 	     prompt (NSUserTrackingUsageDescription above) and only then enables
 	     collection. On iOS 17+ the SDK also derives tracking consent from ATT
 	     automatically. -->
-	<key>FacebookAppID</key>
-	<string>1558560508989469</string>
-	<key>FacebookClientToken</key>
-	<string>cbc282c9f4fbee55fb7174fd4e6da40c</string>
-	<key>FacebookDisplayName</key>
-	<string>Woody</string>
-	<key>FacebookAutoLogAppEventsEnabled</key>
-	<false/>
-	<key>FacebookAdvertiserIDCollectionEnabled</key>
-	<false/>
-	<!-- fb<AppID> URL scheme — lets the OS hand Meta deferred app-link / install
+		<key>FacebookAppID</key>
+		<string>1558560508989469</string>
+		<key>FacebookClientToken</key>
+		<string>cbc282c9f4fbee55fb7174fd4e6da40c</string>
+		<key>FacebookDisplayName</key>
+		<string>Woody</string>
+		<key>FacebookAutoLogAppEventsEnabled</key>
+		<false/>
+		<key>FacebookAdvertiserIDCollectionEnabled</key>
+		<false/>
+		<!-- fb<AppID> URL scheme — lets the OS hand Meta deferred app-link / install
 	     attribution back to the app. Now a valid scheme (real App ID), so it
 	     passes App Store validation. Harmless without Facebook Login. -->
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>fb1558560508989469</string>
-			</array>
-		</dict>
-	</array>
-	<!-- SKAdNetwork — Apple's privacy-preserving install attribution. Meta's ad
+		<key>CFBundleURLTypes</key>
+		<array>
+			<dict>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<string>fb1558560508989469</string>
+				</array>
+			</dict>
+		</array>
+		<!-- SKAdNetwork — Apple's privacy-preserving install attribution. Meta's ad
 	     network IDs so campaign installs are credited even when the user declines
 	     ATT. The FBSDK pod also contributes these; the toolchain merges dupes. -->
-	<key>SKAdNetworkItems</key>
-	<array>
-		<dict>
-			<key>SKAdNetworkIdentifier</key>
-			<string>v9wttpbfk9.skadnetwork</string>
-		</dict>
-		<dict>
-			<key>SKAdNetworkIdentifier</key>
-			<string>n38lu8286q.skadnetwork</string>
-		</dict>
-	</array>
-	<!-- The app uses only standard HTTPS (exempt encryption); declaring this
+		<key>SKAdNetworkItems</key>
+		<array>
+			<dict>
+				<key>SKAdNetworkIdentifier</key>
+				<string>v9wttpbfk9.skadnetwork</string>
+			</dict>
+			<dict>
+				<key>SKAdNetworkIdentifier</key>
+				<string>n38lu8286q.skadnetwork</string>
+			</dict>
+		</array>
+		<!-- The app uses only standard HTTPS (exempt encryption); declaring this
 	     skips the export-compliance prompt on every App Store / TestFlight upload. -->
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
-	<key>CFBundleDevelopmentRegion</key>
-	<string>$(DEVELOPMENT_LANGUAGE)</string>
-	<key>CFBundleDisplayName</key>
-	<string>Woody</string>
-	<key>CFBundleExecutable</key>
-	<string>$(EXECUTABLE_NAME)</string>
-	<key>CFBundleIdentifier</key>
-	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
-	<key>CFBundleInfoDictionaryVersion</key>
-	<string>6.0</string>
-	<key>CFBundleName</key>
-	<string>woody_app</string>
-	<key>CFBundlePackageType</key>
-	<string>APPL</string>
-	<key>CFBundleShortVersionString</key>
-	<string>$(FLUTTER_BUILD_NAME)</string>
-	<key>CFBundleSignature</key>
-	<string>????</string>
-	<key>CFBundleVersion</key>
-	<string>$(FLUTTER_BUILD_NUMBER)</string>
-	<key>LSRequiresIPhoneOS</key>
-	<true/>
-	<key>UIApplicationSceneManifest</key>
-	<dict>
-		<key>UIApplicationSupportsMultipleScenes</key>
+		<key>ITSAppUsesNonExemptEncryption</key>
 		<false/>
-		<key>UISceneConfigurations</key>
+		<key>CFBundleDevelopmentRegion</key>
+		<string>$(DEVELOPMENT_LANGUAGE)</string>
+		<key>CFBundleDisplayName</key>
+		<string>Woody</string>
+		<key>CFBundleExecutable</key>
+		<string>$(EXECUTABLE_NAME)</string>
+		<key>CFBundleIdentifier</key>
+		<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+		<key>CFBundleInfoDictionaryVersion</key>
+		<string>6.0</string>
+		<key>CFBundleName</key>
+		<string>woody_app</string>
+		<key>CFBundlePackageType</key>
+		<string>APPL</string>
+		<key>CFBundleShortVersionString</key>
+		<string>$(FLUTTER_BUILD_NAME)</string>
+		<key>CFBundleSignature</key>
+		<string>????</string>
+		<key>CFBundleVersion</key>
+		<string>$(FLUTTER_BUILD_NUMBER)</string>
+		<key>LSRequiresIPhoneOS</key>
+		<true/>
+		<key>UIApplicationSceneManifest</key>
 		<dict>
-			<key>UIWindowSceneSessionRoleApplication</key>
-			<array>
-				<dict>
-					<key>UISceneClassName</key>
-					<string>UIWindowScene</string>
-					<key>UISceneConfigurationName</key>
-					<string>flutter</string>
-					<key>UISceneDelegateClassName</key>
-					<string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
-					<key>UISceneStoryboardFile</key>
-					<string>Main</string>
-				</dict>
-			</array>
+			<key>UIApplicationSupportsMultipleScenes</key>
+			<false/>
+			<key>UISceneConfigurations</key>
+			<dict>
+				<key>UIWindowSceneSessionRoleApplication</key>
+				<array>
+					<dict>
+						<key>UISceneClassName</key>
+						<string>UIWindowScene</string>
+						<key>UISceneConfigurationName</key>
+						<string>flutter</string>
+						<key>UISceneDelegateClassName</key>
+						<string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
+						<key>UISceneStoryboardFile</key>
+						<string>Main</string>
+					</dict>
+				</array>
+			</dict>
 		</dict>
+		<key>UIApplicationSupportsIndirectInputEvents</key>
+		<true/>
+		<key>UILaunchStoryboardName</key>
+		<string>LaunchScreen</string>
+		<key>UIMainStoryboardFile</key>
+		<string>Main</string>
+		<key>UISupportedInterfaceOrientations</key>
+		<array>
+			<string>UIInterfaceOrientationPortrait</string>
+			<string>UIInterfaceOrientationLandscapeLeft</string>
+			<string>UIInterfaceOrientationLandscapeRight</string>
+		</array>
+		<key>UISupportedInterfaceOrientations~ipad</key>
+		<array>
+			<string>UIInterfaceOrientationPortrait</string>
+			<string>UIInterfaceOrientationPortraitUpsideDown</string>
+			<string>UIInterfaceOrientationLandscapeLeft</string>
+			<string>UIInterfaceOrientationLandscapeRight</string>
+		</array>
+		<key>UIStatusBarHidden</key>
+		<false/>
 	</dict>
-	<key>UIApplicationSupportsIndirectInputEvents</key>
-	<true/>
-	<key>UILaunchStoryboardName</key>
-	<string>LaunchScreen</string>
-	<key>UIMainStoryboardFile</key>
-	<string>Main</string>
-	<key>UISupportedInterfaceOrientations</key>
-	<array>
-		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
-	</array>
-	<key>UISupportedInterfaceOrientations~ipad</key>
-	<array>
-		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationPortraitUpsideDown</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
-	</array>
-</dict>
 </plist>
