@@ -526,7 +526,7 @@ class _CatalogProductDetailScreenState
     }
     return [
       for (final piece in order)
-        SetDimensionGroup(piece: piece, measures: byPiece[piece]!),
+        SetDimensionGroup(piece: piece, measures: byPiece[piece] ?? const []),
     ];
   }
 

@@ -211,7 +211,7 @@ class RemoteConfig {
       _refreshMaintenance(api, box),
       _refreshSupportContacts(api, box),
       _refreshPaymentMethods(api, box),
-    ]).then((_) {});
+    ]).then((_) {}).catchError((Object _, StackTrace _) {});
     _inflightRefresh = work;
     return work;
   }

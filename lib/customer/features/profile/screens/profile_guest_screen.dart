@@ -7,6 +7,7 @@ import 'package:showcaseview/showcaseview.dart';
 
 import '../../../../auth/auth_bottom_sheet.dart';
 import '../../../../core/i18n/i18n.dart';
+import '../../../../core/widgets/safe_showcase.dart';
 import '../../../../seller/features/onboarding/screens/onboarding_screen.dart';
 import '../../../customer_app.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
@@ -63,7 +64,7 @@ class _ProfileGuestViewState extends State<_ProfileGuestView> {
     final prefs = await SharedPreferences.getInstance();
     if (prefs.getBool(_kSeenSellOnWoodyShowcasePrefKey) ?? false) return;
     if (!mounted) return;
-    ShowCaseWidget.of(context).startShowCase([_sellRowKey]);
+    await safeStartShowCase(context, [_sellRowKey]);
     await prefs.setBool(_kSeenSellOnWoodyShowcasePrefKey, true);
   }
 

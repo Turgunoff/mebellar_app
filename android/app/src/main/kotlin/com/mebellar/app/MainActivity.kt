@@ -29,7 +29,7 @@ class MainActivity : FlutterActivity() {
         if (!apiKeyConfigured) {
             try {
                 MapKitFactory.setApiKey(YANDEX_MAPKIT_API_KEY)
-            } catch (e: AssertionError) {
+            } catch (e: Exception) {
                 // MapKit was already initialized earlier in this process — the
                 // key is set and there is nothing more to do. Benign.
             }

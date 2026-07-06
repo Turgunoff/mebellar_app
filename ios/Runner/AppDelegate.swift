@@ -54,7 +54,10 @@ private final class WoodyQuickLookDataSource: NSObject, QLPreviewControllerDataS
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
 
-    let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "WoodyArChannel")!
+    let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "WoodyArChannel")
+    guard let registrar else {
+      return
+    }
     let channel = FlutterMethodChannel(
       name: "com.mebellar.app/ar",
       binaryMessenger: registrar.messenger()

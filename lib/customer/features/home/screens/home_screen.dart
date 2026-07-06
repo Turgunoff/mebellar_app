@@ -11,6 +11,7 @@ import 'package:shimmer/shimmer.dart';
 import 'package:showcaseview/showcaseview.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/widgets/safe_showcase.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../ar_demo_launcher.dart';
 import '../../../../shared/models/product.dart';
@@ -97,7 +98,7 @@ class _HomeViewState extends State<_HomeView> {
     final keys = <GlobalKey>[if (!seenAr) _arDemoKey, if (!seenAi) _aiFabKey];
     if (keys.isEmpty) return;
 
-    ShowCaseWidget.of(context).startShowCase(keys);
+    await safeStartShowCase(context, keys);
     if (!seenAr) await prefs.setBool(_kSeenArDemoPrefKey, true);
     if (!seenAi) await prefs.setBool(_kSeenAiShowcasePrefKey, true);
   }

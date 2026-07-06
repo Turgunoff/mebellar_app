@@ -23,6 +23,7 @@ import 'core/deeplink/deferred_deep_link_service.dart';
 import 'core/di/service_locator.dart';
 import 'core/i18n/i18n.dart';
 import 'core/logging/app_logger.dart';
+import 'core/logging/transient_errors.dart';
 import 'core/notifications/badge_sync_controller.dart';
 import 'core/notifications/push_service.dart';
 import 'customer/features/notifications/cubit/notifications_cubit.dart';
@@ -75,9 +76,8 @@ Future<void> main() async {
 
         // Flutter framework errors (build/layout/paint exceptions).
         FlutterError.onError = (details) {
-          // Forward to the default handler too so the IDE still prints the
-          // red error overlay in debug.
           FlutterError.presentError(details);
+          if (isExpectedTransientError(details.exception)) return;
           crashlytics.recordFlutterFatalError(details);
         };
 
@@ -85,7 +85,9 @@ Future<void> main() async {
         // streams) end up here. Returning true tells the platform we've
         // handled it — without this the engine logs to stderr too.
         PlatformDispatcher.instance.onError = (error, stack) {
-          crashlytics.recordError(error, stack, fatal: true);
+          if (!isExpectedTransientError(error)) {
+            crashlytics.recordError(error, stack, fatal: true);
+          }
           return true;
         };
 
@@ -108,7 +110,7 @@ Future<void> main() async {
     },
     (error, stack) {
       // Last-resort sink for anything that escaped both Flutter handlers.
-      if (Firebase.apps.isNotEmpty) {
+      if (Firebase.apps.isNotEmpty && !isExpectedTransientError(error)) {
         FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
       }
       appLog.handle(error, stack, 'Uncaught zone error');
