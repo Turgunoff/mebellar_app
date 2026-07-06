@@ -6,6 +6,9 @@ import '../models/product_model.dart';
 /// subsequent [ProductDataSource.listFeed] fetch pull this many rows.
 const int kHomeFeedPageSize = 15;
 
+/// Horizontal "for you" shelf size — matches the backend home-feed default.
+const int kHomeForYouLimit = 12;
+
 /// Page size for the per-category product list's infinite scroll. The first
 /// page and every subsequent [ProductDataSource.listByCategory] fetch pull this
 /// many rows — mirrors [kHomeFeedPageSize] so both feeds page identically.
@@ -43,6 +46,19 @@ class ProductFeedPage extends Equatable {
 
   @override
   List<Object?> get props => [items, total];
+}
+
+/// Personalized home shelf from `GET /catalog/home-feed`.
+class HomeForYouPage extends Equatable {
+  const HomeForYouPage({required this.items, required this.personalized});
+
+  static const empty = HomeForYouPage(items: [], personalized: false);
+
+  final List<ProductModel> items;
+  final bool personalized;
+
+  @override
+  List<Object?> get props => [items, personalized];
 }
 
 /// Ordering options accepted by [ProductDataSource.search]. The search
@@ -184,14 +200,19 @@ abstract class ProductDataSource {
   Future<List<ProductModel>> listBySubcategory({required String subcategoryId});
   Future<ProductModel> getById(String id);
 
-  /// A page of the home "Siz uchun tavsiya" feed, ordered by [sort]. Drives
-  /// the feed's infinite scroll: page N is `offset = N * limit`. Returns the
-  /// catalog-wide [ProductFeedPage.total] so the caller knows when to stop.
+  /// A page of the home trending feed, ordered by [sort]. Drives the feed's
+  /// infinite scroll: page N is `offset = N * limit`. Returns the catalog-wide
+  /// [ProductFeedPage.total] so the caller knows when to stop.
   Future<ProductFeedPage> listFeed({
     int limit = kHomeFeedPageSize,
     int offset = 0,
-    HomeFeedSort sort = HomeFeedSort.recommended,
+    HomeFeedSort sort = HomeFeedSort.popular,
+    List<String> excludeIds = const [],
   });
+
+  /// Personalized horizontal shelf (`GET /catalog/home-feed`). Bearer is
+  /// attached automatically when the user is signed in.
+  Future<HomeForYouPage> fetchForYou({int limit = kHomeForYouLimit});
 
   /// Case-insensitive `ilike` over name + description, narrowed by [filter].
   /// An empty [query] is allowed when [filter] is non-empty, so the user can
@@ -207,11 +228,13 @@ abstract class ProductDataSource {
   /// server-side by the `get_similar_products` Postgres function.
   Future<List<ProductModel>> listSimilar(String productId, {int limit = 10});
 
-  /// Synchronous read of the cached first feed page (offset 0, default
-  /// [HomeFeedSort.recommended] sort). Returns `null` on cache miss or for
-  /// non-caching implementations. The home bloc uses this to paint the feed
-  /// at 0 ms on cold start before the backend RTT lands.
+  /// Synchronous read of the cached first trending page (offset 0, default
+  /// [HomeFeedSort.popular] sort). Returns `null` on cache miss or for
+  /// non-caching implementations.
   ProductFeedPage? peekFeed() => null;
+
+  /// Guest for-you shelf cache (non-personalized fallback only).
+  HomeForYouPage? peekForYou() => null;
 
   /// Synchronous read of a previously-fetched single product. Returns null
   /// on cache miss. The product-detail bloc uses this to render the page
@@ -382,7 +405,8 @@ class MockProductDataSource extends ProductDataSource {
   Future<ProductFeedPage> listFeed({
     int limit = kHomeFeedPageSize,
     int offset = 0,
-    HomeFeedSort sort = HomeFeedSort.recommended,
+    HomeFeedSort sort = HomeFeedSort.popular,
+    List<String> excludeIds = const [],
   }) async {
     await Future<void>.delayed(_delay);
     final sorted = [..._all];
@@ -391,13 +415,24 @@ class MockProductDataSource extends ProductDataSource {
       case HomeFeedSort.newest:
         sorted.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       case HomeFeedSort.popular:
-        // No order history in the mock — proxy popularity by stock depth.
         sorted.sort((a, b) => b.stock.compareTo(a.stock));
       case HomeFeedSort.discount:
         sorted.sort((a, b) => b.discountPercent.compareTo(a.discountPercent));
     }
-    final page = sorted.skip(offset).take(limit).toList(growable: false);
-    return ProductFeedPage(items: page, total: sorted.length);
+    var filtered = sorted;
+    if (excludeIds.isNotEmpty) {
+      final skip = excludeIds.toSet();
+      filtered = sorted.where((p) => !skip.contains(p.id)).toList();
+    }
+    final page = filtered.skip(offset).take(limit).toList(growable: false);
+    return ProductFeedPage(items: page, total: filtered.length);
+  }
+
+  @override
+  Future<HomeForYouPage> fetchForYou({int limit = kHomeForYouLimit}) async {
+    await Future<void>.delayed(_delay);
+    final items = _all.take(limit).toList(growable: false);
+    return HomeForYouPage(items: items, personalized: false);
   }
 
   @override

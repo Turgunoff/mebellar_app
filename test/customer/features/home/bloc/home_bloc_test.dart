@@ -16,14 +16,14 @@ class _MockProductSource extends Mock implements ProductDataSource {}
 HomeBanner _banner(String id) => HomeBanner(id: id, imageUrl: 'https://x/$id');
 
 ProductModel _sp(String id) => ProductModel(
-      id: id,
-      categoryId: 'cat-1',
-      name: 'Product $id',
-      price: 100000,
-      images: const [],
-      stock: 5,
-      createdAt: DateTime.utc(2026, 5, 16),
-    );
+  id: id,
+  categoryId: 'cat-1',
+  name: 'Product $id',
+  price: 100000,
+  images: const [],
+  stock: 5,
+  createdAt: DateTime.utc(2026, 5, 16),
+);
 
 List<ProductModel> _sps(int n) => [for (var i = 0; i < n; i++) _sp('p$i')];
 
@@ -31,7 +31,7 @@ ProductFeedPage _page(List<ProductModel> items, {int? total}) =>
     ProductFeedPage(items: items, total: total ?? items.length);
 
 void main() {
-  setUpAll(() => registerFallbackValue(HomeFeedSort.recommended));
+  setUpAll(() => registerFallbackValue(HomeFeedSort.popular));
 
   late _MockBannerRepo bannerRepo;
   late _MockProductSource productSource;
@@ -39,12 +39,21 @@ void main() {
   setUp(() {
     bannerRepo = _MockBannerRepo();
     productSource = _MockProductSource();
+    when(
+      () => productSource.fetchForYou(limit: any(named: 'limit')),
+    ).thenAnswer(
+      (_) async => const HomeForYouPage(items: [], personalized: false),
+    );
   });
 
-  HomeBloc build() => HomeBloc(
-        bannerRepo: bannerRepo,
-        productSource: productSource,
-      );
+  HomeBloc build() =>
+      HomeBloc(bannerRepo: bannerRepo, productSource: productSource);
+
+  void stubFetchForYou(HomeForYouPage page) {
+    when(
+      () => productSource.fetchForYou(limit: any(named: 'limit')),
+    ).thenAnswer((_) async => page);
+  }
 
   void stubFeed(ProductFeedPage page) {
     when(
@@ -52,14 +61,16 @@ void main() {
         limit: any(named: 'limit'),
         offset: any(named: 'offset'),
         sort: any(named: 'sort'),
+        excludeIds: any(named: 'excludeIds'),
       ),
     ).thenAnswer((_) async => page);
   }
 
   blocTest<HomeBloc, HomeState>(
-    'HomeRequested emits [loading, ready] with banners + recommended',
+    'HomeRequested emits [loading, ready] with banners, forYou + trending',
     build: () {
       when(bannerRepo.list).thenAnswer((_) async => [_banner('b1')]);
+      stubFetchForYou(HomeForYouPage(items: [_sp('fy1')], personalized: true));
       stubFeed(_page([_sp('p1'), _sp('p2')], total: 2));
       return build();
     },
@@ -69,7 +80,8 @@ void main() {
       isA<HomeState>()
           .having((s) => s.status, 'status', HomeStatus.ready)
           .having((s) => s.banners.length, 'banners', 1)
-          .having((s) => s.recommended.length, 'recommended', 2)
+          .having((s) => s.forYou.length, 'forYou', 1)
+          .having((s) => s.trending.length, 'trending', 2)
           .having((s) => s.hasMore, 'hasMore', false),
     ],
   );
@@ -135,17 +147,17 @@ void main() {
       seed: () => HomeState(
         status: HomeStatus.ready,
         banners: [_banner('b0')],
-        recommended: [_sp('p1')],
+        trending: [_sp('p1')],
         hasMore: true,
       ),
       act: (bloc) => bloc.add(const HomeLoadMoreProducts()),
       expect: () => [
         isA<HomeState>()
             .having((s) => s.loadingMore, 'loadingMore', true)
-            .having((s) => s.recommended.length, 'len', 1),
+            .having((s) => s.trending.length, 'len', 1),
         isA<HomeState>()
             .having((s) => s.loadingMore, 'loadingMore', false)
-            .having((s) => s.recommended.length, 'len', 2)
+            .having((s) => s.trending.length, 'len', 2)
             .having((s) => s.hasMore, 'hasMore', false),
       ],
     );
@@ -155,7 +167,7 @@ void main() {
       build: () => build(),
       seed: () => HomeState(
         status: HomeStatus.ready,
-        recommended: [_sp('p1')],
+        trending: [_sp('p1')],
         // hasMore defaults to false.
       ),
       act: (bloc) => bloc.add(const HomeLoadMoreProducts()),
@@ -183,7 +195,7 @@ void main() {
       },
       seed: () => HomeState(
         status: HomeStatus.ready,
-        recommended: [_sp('p1')],
+        trending: [_sp('p1')],
         hasMore: true,
       ),
       act: (bloc) => bloc.add(const HomeLoadMoreProducts()),
@@ -191,7 +203,7 @@ void main() {
         isA<HomeState>().having((s) => s.loadingMore, 'loadingMore', true),
         isA<HomeState>()
             .having((s) => s.loadingMore, 'loadingMore', false)
-            .having((s) => s.recommended.length, 'len kept', 1)
+            .having((s) => s.trending.length, 'len kept', 1)
             .having((s) => s.hasMore, 'hasMore kept', true),
       ],
     );
@@ -213,7 +225,7 @@ void main() {
         await bloc.stream.firstWhere((s) => s.status == HomeStatus.ready);
         bloc.add(const HomeLoadMoreProducts());
         await bloc.stream.firstWhere(
-          (s) => !s.loadingMore && s.recommended.length == 15,
+          (s) => !s.loadingMore && s.trending.length == 15,
         );
         bloc.add(const HomeLoadMoreProducts());
         await bloc.stream.firstWhere((s) => !s.loadingMore);
@@ -252,21 +264,17 @@ void main() {
         stubFeed(_page([_sp('p2'), _sp('p3')], total: 2));
         return build();
       },
-      seed: () => HomeState(
-        status: HomeStatus.ready,
-        recommended: [_sp('p1')],
-      ),
-      act: (bloc) => bloc.add(const HomeSortChanged(HomeFeedSort.popular)),
+      seed: () => HomeState(status: HomeStatus.ready, trending: [_sp('p1')]),
+      act: (bloc) => bloc.add(const HomeSortChanged(HomeFeedSort.discount)),
       expect: () => [
-        // Old items stay on screen under the sort-chip spinner.
         isA<HomeState>()
-            .having((s) => s.sort, 'sort', HomeFeedSort.popular)
+            .having((s) => s.sort, 'sort', HomeFeedSort.discount)
             .having((s) => s.feedReloading, 'reloading', true)
-            .having((s) => s.recommended.length, 'len', 1),
+            .having((s) => s.trending.length, 'len', 1),
         isA<HomeState>()
             .having((s) => s.feedReloading, 'reloading', false)
-            .having((s) => s.sort, 'sort', HomeFeedSort.popular)
-            .having((s) => s.recommended.length, 'len', 2),
+            .having((s) => s.sort, 'sort', HomeFeedSort.discount)
+            .having((s) => s.trending.length, 'len', 2),
       ],
     );
 
@@ -282,19 +290,16 @@ void main() {
         ).thenThrow(Exception('sort down'));
         return build();
       },
-      seed: () => HomeState(
-        status: HomeStatus.ready,
-        recommended: [_sp('p1')],
-      ),
+      seed: () => HomeState(status: HomeStatus.ready, trending: [_sp('p1')]),
       act: (bloc) => bloc.add(const HomeSortChanged(HomeFeedSort.discount)),
       expect: () => [
         isA<HomeState>()
             .having((s) => s.sort, 'sort', HomeFeedSort.discount)
             .having((s) => s.feedReloading, 'reloading', true),
         isA<HomeState>()
-            .having((s) => s.sort, 'sort reverted', HomeFeedSort.recommended)
+            .having((s) => s.sort, 'sort reverted', HomeFeedSort.popular)
             .having((s) => s.feedReloading, 'reloading', false)
-            .having((s) => s.recommended.length, 'len kept', 1)
+            .having((s) => s.trending.length, 'len kept', 1)
             .having((s) => s.error, 'error', isNotNull),
       ],
     );
@@ -304,11 +309,10 @@ void main() {
       build: () => build(),
       seed: () => HomeState(
         status: HomeStatus.ready,
-        recommended: [_sp('p1')],
-        // sort defaults to recommended.
+        trending: [_sp('p1')],
+        // sort defaults to popular.
       ),
-      act: (bloc) =>
-          bloc.add(const HomeSortChanged(HomeFeedSort.recommended)),
+      act: (bloc) => bloc.add(const HomeSortChanged(HomeFeedSort.popular)),
       expect: () => const <HomeState>[],
     );
   });
@@ -333,7 +337,7 @@ void main() {
       seed: () => HomeState(
         status: HomeStatus.ready,
         banners: [_banner('b-uz')],
-        recommended: [_sp('p-uz')],
+        trending: [_sp('p-uz')],
       ),
       act: (_) => controller.setLocale(const Locale('ru')),
       expect: () => [
@@ -341,7 +345,7 @@ void main() {
         isA<HomeState>()
             .having((s) => s.status, 'status', HomeStatus.ready)
             .having((s) => s.banners.single.id, 'banner', 'b-ru')
-            .having((s) => s.recommended.single.id, 'product', 'p-ru'),
+            .having((s) => s.trending.single.id, 'product', 'p-ru'),
       ],
     );
 
@@ -362,7 +366,7 @@ void main() {
       seed: () => HomeState(
         status: HomeStatus.ready,
         banners: [_banner('b-uz')],
-        recommended: [_sp('p-uz')],
+        trending: [_sp('p-uz')],
       ),
       act: (_) => controller.setLocale(const Locale('ru')),
       expect: () => [
@@ -384,7 +388,7 @@ void main() {
     seed: () => HomeState(
       status: HomeStatus.ready,
       banners: [_banner('b0')],
-      recommended: [_sp('p0')],
+      trending: [_sp('p0')],
     ),
     act: (bloc) => bloc.add(const HomeRequested(refresh: true)),
     expect: () => [

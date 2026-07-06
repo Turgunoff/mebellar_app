@@ -58,13 +58,35 @@ class WoodyProductRepository extends ProductDataSource {
   Future<ProductFeedPage> listFeed({
     int limit = kHomeFeedPageSize,
     int offset = 0,
-    HomeFeedSort sort = HomeFeedSort.recommended,
+    HomeFeedSort sort = HomeFeedSort.popular,
+    List<String> excludeIds = const [],
   }) {
-    return _pageRequest({
+    final query = <String, dynamic>{
       'sort': _feedSortParam(sort),
       'limit': limit,
       'offset': offset,
-    });
+      if (excludeIds.isNotEmpty) 'exclude_id': excludeIds,
+    };
+    return _pageRequest(query);
+  }
+
+  @override
+  Future<HomeForYouPage> fetchForYou({int limit = kHomeForYouLimit}) async {
+    final body = await _api.get<Map<String, dynamic>>(
+      '/catalog/home-feed',
+      query: {'limit': limit},
+      retries: 2,
+    );
+    final shelf = body['for_you'];
+    final rows = shelf is Map ? shelf['rows'] : null;
+    final items = rows is List
+        ? rows
+              .whereType<Map<String, dynamic>>()
+              .map(ProductModel.fromJson)
+              .toList(growable: false)
+        : const <ProductModel>[];
+    final personalized = body['personalized'] == true;
+    return HomeForYouPage(items: items, personalized: personalized);
   }
 
   String _feedSortParam(HomeFeedSort sort) => switch (sort) {
@@ -106,9 +128,7 @@ class WoodyProductRepository extends ProductDataSource {
         .toList(growable: false);
   }
 
-  Future<List<ProductModel>> _listRequest(
-    Map<String, dynamic> query,
-  ) async {
+  Future<List<ProductModel>> _listRequest(Map<String, dynamic> query) async {
     final body = await _api.get<Map<String, dynamic>>(
       _basePath,
       query: _stringifyLists(query),
@@ -175,4 +195,3 @@ class WoodyProductRepository extends ProductDataSource {
     };
   }
 }
-

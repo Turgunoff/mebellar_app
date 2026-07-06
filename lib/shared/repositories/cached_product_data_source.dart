@@ -8,9 +8,8 @@ import 'product_data_source.dart';
 /// Caches a deliberately narrow set of the read methods — only the calls
 /// where the cache key space is bounded and re-visit probability is high:
 ///
-///   * [listFeed] — the home feed's first page (offset 0, default sort). One
-///     key, fixed page size. High re-visit on every cold start. Deeper pages
-///     and non-default sorts skip the cache.
+///   * [listFeed] — the home trending feed's first page (offset 0, popular sort).
+///   * [fetchForYou] — guest for-you shelf only (`personalized: false`).
 ///   * [getById] — single product detail. Bounded by product count. Hit on
 ///     deep-link, cart→detail navigation, favourites→detail.
 ///   * [listSimilar] — sibling carousel on the detail page. Bounded by
@@ -44,12 +43,14 @@ class CachedProductDataSource extends ProductDataSource {
   // Key prefixes — namespaced so a future `invalidate('products:')` call
   // wipes every product-shaped row in one pass without touching banners /
   // categories.
-  static const String _kRecommended = 'products:recommended:';
+  static const String _kPopular = 'products:popular:';
+  static const String _kForYou = 'products:forYou:';
   static const String _kById = 'products:byId:';
   static const String _kSimilar = 'products:similar:';
   static const String _kByCategory = 'products:byCategory:';
 
-  static const Duration _ttlRecommended = Duration(hours: 1);
+  static const Duration _ttlPopular = Duration(hours: 1);
+  static const Duration _ttlForYou = Duration(hours: 1);
   static const Duration _ttlById = Duration(hours: 4);
   static const Duration _ttlSimilar = Duration(hours: 4);
   // Category listings are 1h: stock + price churn is per-product, so a
@@ -81,13 +82,31 @@ class CachedProductDataSource extends ProductDataSource {
     return ProductFeedPage(items: products, total: total);
   }
 
+  HomeForYouPage? _decodeForYou(dynamic decoded) {
+    if (decoded is! Map) return null;
+    final items = decoded['items'];
+    if (items is! List) return null;
+    final products = items
+        .whereType<Map>()
+        .map((m) => ProductModel.fromJson(Map<String, dynamic>.from(m)))
+        .toList(growable: false);
+    final personalized = decoded['personalized'] == true;
+    return HomeForYouPage(items: products, personalized: personalized);
+  }
+
   @override
   ProductFeedPage? peekFeed() {
-    // Keyed by the fixed page size — the bloc always requests the first page
-    // at [kHomeFeedPageSize], so one entry covers the cold-start paint.
     return _cache.getJson<ProductFeedPage?>(
-      '$_kRecommended$kHomeFeedPageSize',
+      '$_kPopular$kHomeFeedPageSize',
       _decodeFeed,
+    );
+  }
+
+  @override
+  HomeForYouPage? peekForYou() {
+    return _cache.getJson<HomeForYouPage?>(
+      '$_kForYou$kHomeForYouLimit',
+      _decodeForYou,
     );
   }
 
@@ -118,31 +137,32 @@ class CachedProductDataSource extends ProductDataSource {
   Future<ProductFeedPage> listFeed({
     int limit = kHomeFeedPageSize,
     int offset = 0,
-    HomeFeedSort sort = HomeFeedSort.recommended,
+    HomeFeedSort sort = HomeFeedSort.popular,
+    List<String> excludeIds = const [],
   }) async {
-    // Only the first page of the default curated feed is cacheable — that's the
-    // cold-start paint. Deeper pages (infinite scroll) and non-default sorts
-    // fall through to the network so the cache stays a single entry.
-    final cacheable = offset == 0 && sort == HomeFeedSort.recommended;
+    final cacheable =
+        offset == 0 && sort == HomeFeedSort.popular && excludeIds.isEmpty;
     if (!cacheable) {
-      return _inner.listFeed(limit: limit, offset: offset, sort: sort);
+      return _inner.listFeed(
+        limit: limit,
+        offset: offset,
+        sort: sort,
+        excludeIds: excludeIds,
+      );
     }
 
-    final key = '$_kRecommended$limit';
+    final key = '$_kPopular$limit';
     try {
       final fresh = await _inner.listFeed(
         limit: limit,
         offset: offset,
         sort: sort,
+        excludeIds: excludeIds,
       );
-      _cache.putJson(
-        key,
-        {
-          'items': fresh.items.map((p) => p.toJson()).toList(),
-          'total': fresh.total,
-        },
-        ttl: _ttlRecommended,
-      );
+      _cache.putJson(key, {
+        'items': fresh.items.map((p) => p.toJson()).toList(),
+        'total': fresh.total,
+      }, ttl: _ttlPopular);
       return fresh;
     } catch (e, st) {
       final cached = _cache.getJson<ProductFeedPage?>(key, _decodeFeed);
@@ -151,6 +171,35 @@ class CachedProductDataSource extends ProductDataSource {
           e,
           st,
           'CachedProductDataSource.listFeed: network '
+          'failed, serving ${cached.items.length} cached items',
+        );
+        return cached;
+      }
+      rethrow;
+    }
+  }
+
+  @override
+  Future<HomeForYouPage> fetchForYou({int limit = kHomeForYouLimit}) async {
+    try {
+      final fresh = await _inner.fetchForYou(limit: limit);
+      if (!fresh.personalized) {
+        _cache.putJson('$_kForYou$limit', {
+          'items': fresh.items.map((p) => p.toJson()).toList(),
+          'personalized': fresh.personalized,
+        }, ttl: _ttlForYou);
+      }
+      return fresh;
+    } catch (e, st) {
+      final cached = _cache.getJson<HomeForYouPage?>(
+        '$_kForYou$limit',
+        _decodeForYou,
+      );
+      if (cached != null && cached.items.isNotEmpty) {
+        appLog.handle(
+          e,
+          st,
+          'CachedProductDataSource.fetchForYou: network '
           'failed, serving ${cached.items.length} cached items',
         );
         return cached;
@@ -196,10 +245,7 @@ class CachedProductDataSource extends ProductDataSource {
       );
       return fresh;
     } catch (e, st) {
-      final cached = _cache.getJson<List<ProductModel>>(
-        key,
-        _decodeList,
-      );
+      final cached = _cache.getJson<List<ProductModel>>(key, _decodeList);
       if (cached != null && cached.isNotEmpty) {
         appLog.handle(
           e,
@@ -226,8 +272,7 @@ class CachedProductDataSource extends ProductDataSource {
     // or any filter facet, OR scrolls past page one, we fall through to the
     // network. That keeps cache keys to one per category instead of one per
     // (category × subcategory × filter × sort × page).
-    final cacheable =
-        subcategoryId == null && filter.isDefault && offset == 0;
+    final cacheable = subcategoryId == null && filter.isDefault && offset == 0;
     if (!cacheable) {
       return _inner.listByCategory(
         categoryId: categoryId,
@@ -247,14 +292,10 @@ class CachedProductDataSource extends ProductDataSource {
         limit: limit,
         offset: offset,
       );
-      _cache.putJson(
-        key,
-        {
-          'items': fresh.items.map((p) => p.toJson()).toList(),
-          'total': fresh.total,
-        },
-        ttl: _ttlByCategory,
-      );
+      _cache.putJson(key, {
+        'items': fresh.items.map((p) => p.toJson()).toList(),
+        'total': fresh.total,
+      }, ttl: _ttlByCategory);
       return fresh;
     } catch (e, st) {
       final cached = _cache.getJson<ProductFeedPage?>(key, _decodeFeed);

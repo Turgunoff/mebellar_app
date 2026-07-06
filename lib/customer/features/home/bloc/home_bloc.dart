@@ -33,8 +33,9 @@ class HomeLoadMoreProducts extends HomeEvent {
   const HomeLoadMoreProducts();
 }
 
-/// Re-orders the feed (sort bottom sheet). Resets pagination and refetches the
-/// first page; the current items stay on screen until the new page lands.
+/// Re-orders the trending feed (sort bottom sheet). Resets pagination and
+/// refetches the first page; the current items stay on screen until the new page
+/// lands.
 class HomeSortChanged extends HomeEvent {
   const HomeSortChanged(this.sort);
   final HomeFeedSort sort;
@@ -48,8 +49,10 @@ class HomeState extends Equatable {
   const HomeState({
     this.status = HomeStatus.initial,
     this.banners = const [],
-    this.recommended = const [],
-    this.sort = HomeFeedSort.recommended,
+    this.forYou = const [],
+    this.forYouPersonalized = false,
+    this.trending = const [],
+    this.sort = HomeFeedSort.popular,
     this.hasMore = false,
     this.loadingMore = false,
     this.feedReloading = false,
@@ -58,10 +61,12 @@ class HomeState extends Equatable {
 
   final HomeStatus status;
   final List<HomeBanner> banners;
-  final List<ProductModel> recommended;
+  final List<ProductModel> forYou;
+  final bool forYouPersonalized;
+  final List<ProductModel> trending;
 
-  /// Active ordering of the feed — surfaced in the sort chip and re-sent on
-  /// every page fetch so pagination and ordering stay in lock-step.
+  /// Active ordering of the trending feed — surfaced in the sort chip and
+  /// re-sent on every page fetch so pagination and ordering stay in lock-step.
   final HomeFeedSort sort;
 
   /// Whether another page remains to fetch. Drives the scroll trigger + footer.
@@ -70,8 +75,7 @@ class HomeState extends Equatable {
   /// A next-page append is in flight (footer spinner).
   final bool loadingMore;
 
-  /// A sort change is refetching the first page (sort-chip spinner); the
-  /// current items stay visible until it completes.
+  /// A sort change is refetching the first trending page (sort-chip spinner).
   final bool feedReloading;
 
   final String? error;
@@ -79,7 +83,9 @@ class HomeState extends Equatable {
   HomeState copyWith({
     HomeStatus? status,
     List<HomeBanner>? banners,
-    List<ProductModel>? recommended,
+    List<ProductModel>? forYou,
+    bool? forYouPersonalized,
+    List<ProductModel>? trending,
     HomeFeedSort? sort,
     bool? hasMore,
     bool? loadingMore,
@@ -90,7 +96,9 @@ class HomeState extends Equatable {
     return HomeState(
       status: status ?? this.status,
       banners: banners ?? this.banners,
-      recommended: recommended ?? this.recommended,
+      forYou: forYou ?? this.forYou,
+      forYouPersonalized: forYouPersonalized ?? this.forYouPersonalized,
+      trending: trending ?? this.trending,
       sort: sort ?? this.sort,
       hasMore: hasMore ?? this.hasMore,
       loadingMore: loadingMore ?? this.loadingMore,
@@ -103,7 +111,9 @@ class HomeState extends Equatable {
   List<Object?> get props => [
     status,
     banners,
-    recommended,
+    forYou,
+    forYouPersonalized,
+    trending,
     sort,
     hasMore,
     loadingMore,
@@ -124,21 +134,10 @@ class HomeBloc extends Bloc<HomeEvent, HomeState>
        _networkCubit = networkCubit,
        super(const HomeState()) {
     watchLocale(localeController);
-    // ROADMAP B.7 — droppable: a refresh fired while a load is already in
-    // flight (connectivity retry + manual pull-to-refresh racing) is dropped
-    // rather than queued, so the home feed never double-fetches.
     on<HomeRequested>(_onRequested, transformer: droppable());
-    // Droppable too: rapid scroll past the trigger must not stack up a queue
-    // of identical next-page fetches.
     on<HomeLoadMoreProducts>(_onLoadMore, transformer: droppable());
-    // Restartable: a second sort tap cancels the first in-flight refetch so the
-    // latest choice always wins, even on a slow network.
     on<HomeSortChanged>(_onSortChanged, transformer: restartable());
 
-    // Auto-retry when connectivity comes back. We only fire the refresh
-    // when the previous load actually failed — there's no point hammering
-    // the API every time the user toggles airplane mode if the feed is
-    // already up to date.
     final cubit = _networkCubit;
     if (cubit != null) {
       _netSub = cubit.stream.listen((next) {
@@ -160,102 +159,80 @@ class HomeBloc extends Bloc<HomeEvent, HomeState>
   StreamSubscription<NetworkStatus>? _netSub;
   NetworkStatus _lastNetwork = NetworkStatus.initial;
 
-  // Server-side pagination cursor — the count of *raw* rows fetched so far,
-  // tracked separately from `recommended.length` (which is deduped). Coupling
-  // the next offset to the deduped list stalls the feed whenever a catalog
-  // re-order returns an overlapping page: dedup keeps the list short, so the
-  // offset would stop advancing and re-request the same window forever. Reset
-  // to the first page's size on every full (re)load.
   int _feedOffset = 0;
 
   static const int _pageSize = kHomeFeedPageSize;
 
-  // More rows remain when the last page came back full AND the cursor hasn't
-  // reached the catalog total. Keyed off the *raw* page size (not the deduped
-  // merge), so overlap dedup can never make the feed think it's exhausted —
-  // a short page is the only "last page" signal.
   bool _moreAfter(ProductFeedPage page) =>
       page.items.length >= _pageSize && _feedOffset < page.total;
 
-  // Banners + recommended products arrive pre-localised; reload them in the
-  // new language without flipping the home feed into a loading state.
   @override
   void onLocaleChanged() => add(const HomeRequested(refresh: true));
 
-  // Tier 3 of the network-UX flow: a hard 5s ceiling on the load. Shorter than
-  // Dio's 15s connect / 30s receive timeouts so a dead connection surfaces the
-  // blocking modal fast instead of spinning for 30s. This *races* the request —
-  // it does not cancel the underlying Dio call, which runs to completion in the
-  // background (its late result is discarded, though CachedProductDataSource
-  // still writes it to the cache for next time).
   static const Duration _loadTimeout = Duration(seconds: 5);
 
   Future<void> _onRequested(
     HomeRequested event,
     Emitter<HomeState> emit,
   ) async {
-    // Cache-first paint: if both rails have a fresh cached snapshot, emit
-    // `ready` *before* the network call so the user never sees a spinner on
-    // cold start. We still fetch in the background to refresh the cache;
-    // any deltas land as a second `ready` emit a few hundred ms later. The
-    // cached feed page only matches when we're on the default sort.
     final cachedBanners = _bannerRepo.peek();
-    final cachedFeed = state.sort == HomeFeedSort.recommended
+    final cachedForYou = _productSource.peekForYou();
+    final cachedTrending = state.sort == HomeFeedSort.popular
         ? _productSource.peekFeed()
         : null;
-    final hasCache = cachedBanners != null && cachedFeed != null;
-    final hasData = state.banners.isNotEmpty || state.recommended.isNotEmpty;
+    final hasCache =
+        cachedBanners != null && cachedForYou != null && cachedTrending != null;
+    final hasData =
+        state.banners.isNotEmpty ||
+        state.forYou.isNotEmpty ||
+        state.trending.isNotEmpty;
     if (hasCache && !event.refresh) {
-      _feedOffset = cachedFeed.items.length;
+      _feedOffset = cachedTrending.items.length;
       emit(
         state.copyWith(
           status: HomeStatus.ready,
           banners: cachedBanners,
-          recommended: cachedFeed.items,
-          hasMore: _moreAfter(cachedFeed),
+          forYou: cachedForYou.items,
+          forYouPersonalized: cachedForYou.personalized,
+          trending: cachedTrending.items,
+          hasMore: _moreAfter(cachedTrending),
           loadingMore: false,
           feedReloading: false,
           clearError: true,
         ),
       );
     } else if (!hasData) {
-      // Tier 2 — nothing on screen: show the shimmer. We emit `loading` even on
-      // a refresh (e.g. the retry fired from the blocking modal) so the attempt
-      // is observable: it drives the modal's button spinner, and — because Bloc
-      // de-dupes identical states via Equatable — it guarantees a *repeated*
-      // failure still re-emits (failure → loading → failure) instead of being
-      // swallowed, which would otherwise hang the spinner forever.
       emit(state.copyWith(status: HomeStatus.loading, clearError: true));
     }
 
-    // Capture the sort this fetch was built for. A `HomeSortChanged` runs on a
-    // *separate* handler that restartable() can't reach, so without this guard a
-    // slow first-page fetch could land its old-sort items after the chip already
-    // moved on — leaving the label and the list out of sync.
     final requestedSort = state.sort;
     try {
+      final forYouPage = await _productSource
+          .fetchForYou(limit: kHomeForYouLimit)
+          .timeout(_loadTimeout);
+      final excludeIds = forYouPage.items.map((p) => p.id).toList();
       final results = await Future.wait([
         _bannerRepo.list(),
-        _productSource.listFeed(limit: _pageSize, offset: 0, sort: requestedSort),
+        _productSource.listFeed(
+          limit: _pageSize,
+          offset: 0,
+          sort: requestedSort,
+          excludeIds: excludeIds,
+        ),
       ]).timeout(_loadTimeout);
       if (emit.isDone || state.sort != requestedSort) return;
 
       final banners = results[0] as List<HomeBanner>;
       final page = results[1] as ProductFeedPage;
-      // The cache-paint emit above leaves the feed scrollable while this
-      // refresh is in flight, so the user can scroll into a `HomeLoadMoreProducts`
-      // that appends a page before we land. Detect that (`loadingMore`, or a
-      // feed already longer than this first page) and keep the grown feed +
-      // cursor — refresh only the banners — instead of clobbering it back to
-      // page one. droppable() only dedupes within a handler; it can't see the
-      // separate load-more handler.
       final feedGrew =
-          state.loadingMore || state.recommended.length > page.items.length;
+          state.loadingMore || state.trending.length > page.items.length;
       if (feedGrew) {
         emit(
           state.copyWith(
             status: HomeStatus.ready,
             banners: banners,
+            forYou: forYouPage.items,
+            forYouPersonalized: forYouPage.personalized,
             feedReloading: false,
             clearError: true,
           ),
@@ -267,7 +244,9 @@ class HomeBloc extends Bloc<HomeEvent, HomeState>
         state.copyWith(
           status: HomeStatus.ready,
           banners: banners,
-          recommended: page.items,
+          forYou: forYouPage.items,
+          forYouPersonalized: forYouPage.personalized,
+          trending: page.items,
           hasMore: _moreAfter(page),
           loadingMore: false,
           feedReloading: false,
@@ -275,11 +254,6 @@ class HomeBloc extends Bloc<HomeEvent, HomeState>
         ),
       );
     } catch (e) {
-      // Keep showing the rails we already have (cached snapshot OR the
-      // currently rendered state — e.g. a locale-switch refetch finds the
-      // new language's cache cold) — surface the error only when there is
-      // nothing to display, otherwise the user sees a populated screen with
-      // a transient banner instead of a blank failure.
       if (hasCache || state.status == HomeStatus.ready) {
         emit(state.copyWith(error: apiErrorMessage(e)));
       } else {
@@ -294,7 +268,6 @@ class HomeBloc extends Bloc<HomeEvent, HomeState>
     HomeLoadMoreProducts event,
     Emitter<HomeState> emit,
   ) async {
-    // Only paginate a healthy, settled feed with more rows left.
     if (state.status != HomeStatus.ready ||
         !state.hasMore ||
         state.loadingMore ||
@@ -306,25 +279,18 @@ class HomeBloc extends Bloc<HomeEvent, HomeState>
       final page = await _productSource
           .listFeed(limit: _pageSize, offset: _feedOffset, sort: state.sort)
           .timeout(_loadTimeout);
-      // Advance the raw cursor by what the server actually returned, BEFORE the
-      // dedup — so a fully-overlapping page still moves the window forward
-      // instead of re-requesting the same offset.
       _feedOffset += page.items.length;
-      // Dedup by id so a catalog shift between pages can't double-render a
-      // product; `seen.add` returns false for ids already loaded.
-      final seen = state.recommended.map((p) => p.id).toSet();
+      final seen = state.trending.map((p) => p.id).toSet();
       final fresh = page.items.where((p) => seen.add(p.id)).toList();
-      final merged = [...state.recommended, ...fresh];
+      final merged = [...state.trending, ...fresh];
       emit(
         state.copyWith(
-          recommended: merged,
+          trending: merged,
           hasMore: _moreAfter(page),
           loadingMore: false,
         ),
       );
     } catch (e) {
-      // Soft-fail: keep what we have and clear the spinner. The next scroll
-      // re-arms the trigger, letting the user retry by simply scrolling again.
       emit(state.copyWith(loadingMore: false));
     }
   }
@@ -335,21 +301,18 @@ class HomeBloc extends Bloc<HomeEvent, HomeState>
   ) async {
     if (event.sort == state.sort) return;
     final previous = state.sort;
-    // Keep the current items visible under the sort-chip spinner so the feed
-    // doesn't flash a skeleton on every re-sort; swap them when the page lands.
-    emit(state.copyWith(sort: event.sort, feedReloading: true, clearError: true));
+    emit(
+      state.copyWith(sort: event.sort, feedReloading: true, clearError: true),
+    );
     try {
       final page = await _productSource
           .listFeed(limit: _pageSize, offset: 0, sort: event.sort)
           .timeout(_loadTimeout);
-      // restartable() cancels this handler if a newer sort arrives mid-fetch —
-      // emitting on the dead emitter would throw, and the new handler owns the
-      // state now, so bail.
       if (emit.isDone) return;
       _feedOffset = page.items.length;
       emit(
         state.copyWith(
-          recommended: page.items,
+          trending: page.items,
           hasMore: _moreAfter(page),
           loadingMore: false,
           feedReloading: false,
@@ -357,8 +320,6 @@ class HomeBloc extends Bloc<HomeEvent, HomeState>
       );
     } catch (e) {
       if (emit.isDone) return;
-      // Revert the chip to the previous sort so the label matches the items
-      // still on screen; surface a soft error.
       emit(
         state.copyWith(
           sort: previous,

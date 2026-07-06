@@ -15,6 +15,7 @@ import '../../../../core/widgets/safe_showcase.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../ar_demo_launcher.dart';
 import '../../../../shared/models/product.dart';
+import '../../../../shared/models/product_model.dart';
 import '../../../../shared/repositories/product_data_source.dart';
 import '../../../customer_app.dart';
 import '../../../widgets/network_error_gate.dart';
@@ -141,7 +142,8 @@ class _HomeViewState extends State<_HomeView> {
               final showError =
                   state.status == HomeStatus.failure &&
                   state.banners.isEmpty &&
-                  state.recommended.isEmpty;
+                  state.forYou.isEmpty &&
+                  state.trending.isEmpty;
 
               if (showError) {
                 return CustomScrollView(
@@ -231,7 +233,9 @@ class _HomeViewState extends State<_HomeView> {
                             const SizedBox(height: 16),
                             const _CategoriesRow(),
                             const SizedBox(height: 32),
-                            _RecommendedHeader(
+                            const _ForYouSection(),
+                            const SizedBox(height: 28),
+                            _TrendingHeader(
                               viewMode: viewMode,
                               onViewModeChanged: _viewMode.set,
                             ),
@@ -239,8 +243,8 @@ class _HomeViewState extends State<_HomeView> {
                           ],
                         ),
                       ),
-                      _RecommendedFeed(viewMode: viewMode),
-                      const _RecommendedFeedFooter(),
+                      _TrendingFeed(viewMode: viewMode),
+                      const _TrendingFeedFooter(),
                       const SliverToBoxAdapter(child: SizedBox(height: 24)),
                     ],
                   );
@@ -708,11 +712,9 @@ class _CategoriesRowSkeleton extends StatelessWidget {
 
 // ─────────────────────────── Recommended grid ───────────────────────────
 
-/// Section header for "Siz uchun tavsiya" — title + sort trigger + grid/list
-/// toggle. The toggle writes the parent's [ValueNotifier]; the sort trigger
-/// opens a bottom sheet that dispatches [HomeSortChanged].
-class _RecommendedHeader extends StatelessWidget {
-  const _RecommendedHeader({
+/// Section header for the trending feed — title + sort trigger + grid/list toggle.
+class _TrendingHeader extends StatelessWidget {
+  const _TrendingHeader({
     required this.viewMode,
     required this.onViewModeChanged,
   });
@@ -728,7 +730,7 @@ class _RecommendedHeader extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
-              tr('home.recommended'),
+              tr('home.trending'),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: PremiumTokens.display(size: 22, letterSpacing: -0.3),
@@ -739,6 +741,221 @@ class _RecommendedHeader extends StatelessWidget {
           const SizedBox(width: 8),
           ViewModeToggle(viewMode: viewMode, onChanged: onViewModeChanged),
         ],
+      ),
+    );
+  }
+}
+
+/// Personalized horizontal shelf ("Siz uchun").
+class _ForYouSection extends StatelessWidget {
+  const _ForYouSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<HomeBloc, HomeState>(
+      buildWhen: (a, b) => a.status != b.status || a.forYou != b.forYou,
+      builder: (context, state) {
+        final isLoading =
+            state.status == HomeStatus.loading ||
+            state.status == HomeStatus.initial;
+        if (isLoading) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Text(
+                  tr('home.for_you'),
+                  style: PremiumTokens.display(size: 22, letterSpacing: -0.3),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const _ForYouShelfSkeleton(),
+            ],
+          );
+        }
+        if (state.forYou.isEmpty) return const SizedBox.shrink();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Text(
+                tr('home.for_you'),
+                style: PremiumTokens.display(size: 22, letterSpacing: -0.3),
+              ),
+            ),
+            const SizedBox(height: 16),
+            _ForYouShelf(products: state.forYou),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _ForYouShelf extends StatelessWidget {
+  const _ForYouShelf({required this.products});
+
+  final List<ProductModel> products;
+
+  static const _cardWidth = 168.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 268,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        itemCount: products.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 14),
+        itemBuilder: (context, i) {
+          final p = products[i];
+          return SizedBox(
+            width: _cardWidth,
+            child: BlocSelector<FavoritesBloc, FavoritesState, bool>(
+              selector: (s) => s.isFavorite(p.id),
+              builder: (context, isFav) => PremiumProductCard(
+                imageUrl: p.thumbnail ?? '',
+                name: p.name,
+                subtitle: p.description ?? '',
+                price: formatUzsPrice(p.effectivePrice),
+                oldPrice: p.hasDiscount ? formatUzsPrice(p.price) : null,
+                discountPercent: p.discountPercent,
+                isFavorite: isFav,
+                hasAr: p.hasAr,
+                customImageHeight: 150,
+                onTap: () => context.push('/product-detail/${p.id}', extra: p),
+                onFavoriteToggle: () => context.read<FavoritesBloc>().add(
+                  FavoriteToggled(Product.fromModel(p)),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _ForYouShelfSkeleton extends StatelessWidget {
+  const _ForYouShelfSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
+    return SizedBox(
+      height: 268,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        itemCount: 4,
+        separatorBuilder: (_, _) => const SizedBox(width: 14),
+        itemBuilder: (_, _) => Shimmer.fromColors(
+          baseColor: pt.imageBg,
+          highlightColor: pt.surface,
+          child: Container(
+            width: 168,
+            decoration: BoxDecoration(
+              color: pt.imageBg,
+              borderRadius: BorderRadius.circular(20),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The trending feed — masonry grid or full-width list depending on
+/// [viewMode]. Both layouts share the favourite wiring, the detail-tap, and the
+/// near-end load-more trigger; only the card widget + sliver differ.
+class _TrendingFeed extends StatelessWidget {
+  const _TrendingFeed({required this.viewMode});
+
+  final ProductViewMode viewMode;
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<HomeBloc, HomeState>(
+      buildWhen: (a, b) => a.status != b.status || a.trending != b.trending,
+      builder: (context, state) {
+        final isLoading =
+            state.status == HomeStatus.loading ||
+            state.status == HomeStatus.initial;
+        if (isLoading) {
+          return const SliverToBoxAdapter(child: _TrendingGridSkeleton());
+        }
+        if (state.trending.isEmpty) {
+          return const SliverToBoxAdapter(child: _TrendingEmpty());
+        }
+        return viewMode == ProductViewMode.grid ? _grid(state) : _list(state);
+      },
+    );
+  }
+
+  Widget _grid(HomeState state) {
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+      sliver: SliverMasonryGrid.count(
+        crossAxisCount: 2,
+        mainAxisSpacing: 16,
+        crossAxisSpacing: 16,
+        childCount: state.trending.length,
+        itemBuilder: (context, i) {
+          _maybeLoadMore(context, state, i);
+          final p = state.trending[i];
+          return BlocSelector<FavoritesBloc, FavoritesState, bool>(
+            selector: (s) => s.isFavorite(p.id),
+            builder: (context, isFav) => PremiumProductCard(
+              imageUrl: p.thumbnail ?? '',
+              name: p.name,
+              subtitle: p.description ?? '',
+              price: formatUzsPrice(p.effectivePrice),
+              oldPrice: p.hasDiscount ? formatUzsPrice(p.price) : null,
+              discountPercent: p.discountPercent,
+              isFavorite: isFav,
+              hasAr: p.hasAr,
+              customImageHeight: i.isEven ? 180.0 : 240.0,
+              onTap: () => context.push('/product-detail/${p.id}', extra: p),
+              onFavoriteToggle: () => context.read<FavoritesBloc>().add(
+                FavoriteToggled(Product.fromModel(p)),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _list(HomeState state) {
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+      sliver: SliverList.separated(
+        itemCount: state.trending.length,
+        separatorBuilder: (_, _) => const SizedBox(height: 14),
+        itemBuilder: (context, i) {
+          _maybeLoadMore(context, state, i);
+          final p = state.trending[i];
+          return BlocSelector<FavoritesBloc, FavoritesState, bool>(
+            selector: (s) => s.isFavorite(p.id),
+            builder: (context, isFav) => PremiumProductListCard(
+              imageUrl: p.thumbnail ?? '',
+              name: p.name,
+              subtitle: p.description ?? '',
+              price: formatUzsPrice(p.effectivePrice),
+              oldPrice: p.hasDiscount ? formatUzsPrice(p.price) : null,
+              discountPercent: p.discountPercent,
+              isFavorite: isFav,
+              hasAr: p.hasAr,
+              onTap: () => context.push('/product-detail/${p.id}', extra: p),
+              onFavoriteToggle: () => context.read<FavoritesBloc>().add(
+                FavoriteToggled(Product.fromModel(p)),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -786,104 +1003,10 @@ class _SortButton extends StatelessWidget {
   }
 }
 
-/// The recommended feed — masonry grid or full-width list depending on
-/// [viewMode]. Both layouts share the favourite wiring, the detail-tap, and the
-/// near-end load-more trigger; only the card widget + sliver differ.
-class _RecommendedFeed extends StatelessWidget {
-  const _RecommendedFeed({required this.viewMode});
-
-  final ProductViewMode viewMode;
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocBuilder<HomeBloc, HomeState>(
-      buildWhen: (a, b) =>
-          a.status != b.status || a.recommended != b.recommended,
-      builder: (context, state) {
-        final isLoading =
-            state.status == HomeStatus.loading ||
-            state.status == HomeStatus.initial;
-        if (isLoading) {
-          return const SliverToBoxAdapter(child: _RecommendedGridSkeleton());
-        }
-        if (state.recommended.isEmpty) {
-          return const SliverToBoxAdapter(child: _RecommendedEmpty());
-        }
-        return viewMode == ProductViewMode.grid ? _grid(state) : _list(state);
-      },
-    );
-  }
-
-  Widget _grid(HomeState state) {
-    return SliverPadding(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
-      sliver: SliverMasonryGrid.count(
-        crossAxisCount: 2,
-        mainAxisSpacing: 16,
-        crossAxisSpacing: 16,
-        childCount: state.recommended.length,
-        itemBuilder: (context, i) {
-          _maybeLoadMore(context, state, i);
-          final p = state.recommended[i];
-          return BlocSelector<FavoritesBloc, FavoritesState, bool>(
-            selector: (s) => s.isFavorite(p.id),
-            builder: (context, isFav) => PremiumProductCard(
-              imageUrl: p.thumbnail ?? '',
-              name: p.name,
-              subtitle: p.description ?? '',
-              price: formatUzsPrice(p.effectivePrice),
-              oldPrice: p.hasDiscount ? formatUzsPrice(p.price) : null,
-              discountPercent: p.discountPercent,
-              isFavorite: isFav,
-              hasAr: p.hasAr,
-              customImageHeight: i.isEven ? 180.0 : 240.0,
-              onTap: () => context.push('/product-detail/${p.id}', extra: p),
-              onFavoriteToggle: () => context.read<FavoritesBloc>().add(
-                FavoriteToggled(Product.fromModel(p)),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _list(HomeState state) {
-    return SliverPadding(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
-      sliver: SliverList.separated(
-        itemCount: state.recommended.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 14),
-        itemBuilder: (context, i) {
-          _maybeLoadMore(context, state, i);
-          final p = state.recommended[i];
-          return BlocSelector<FavoritesBloc, FavoritesState, bool>(
-            selector: (s) => s.isFavorite(p.id),
-            builder: (context, isFav) => PremiumProductListCard(
-              imageUrl: p.thumbnail ?? '',
-              name: p.name,
-              subtitle: p.description ?? '',
-              price: formatUzsPrice(p.effectivePrice),
-              oldPrice: p.hasDiscount ? formatUzsPrice(p.price) : null,
-              discountPercent: p.discountPercent,
-              isFavorite: isFav,
-              hasAr: p.hasAr,
-              onTap: () => context.push('/product-detail/${p.id}', extra: p),
-              onFavoriteToggle: () => context.read<FavoritesBloc>().add(
-                FavoriteToggled(Product.fromModel(p)),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
 /// Spinner shown under the feed while the next page appends. Collapses to a
 /// hairline gap when idle.
-class _RecommendedFeedFooter extends StatelessWidget {
-  const _RecommendedFeedFooter();
+class _TrendingFeedFooter extends StatelessWidget {
+  const _TrendingFeedFooter();
 
   @override
   Widget build(BuildContext context) {
@@ -918,7 +1041,7 @@ class _RecommendedFeedFooter extends StatelessWidget {
 void _maybeLoadMore(BuildContext context, HomeState state, int index) {
   if (state.hasMore &&
       !state.loadingMore &&
-      index >= state.recommended.length - 5) {
+      index >= state.trending.length - 5) {
     context.read<HomeBloc>().add(const HomeLoadMoreProducts());
   }
 }
@@ -1033,8 +1156,8 @@ class _SortOption extends StatelessWidget {
   }
 }
 
-class _RecommendedGridSkeleton extends StatelessWidget {
-  const _RecommendedGridSkeleton();
+class _TrendingGridSkeleton extends StatelessWidget {
+  const _TrendingGridSkeleton();
 
   @override
   Widget build(BuildContext context) {
@@ -1062,8 +1185,8 @@ class _RecommendedGridSkeleton extends StatelessWidget {
   }
 }
 
-class _RecommendedEmpty extends StatelessWidget {
-  const _RecommendedEmpty();
+class _TrendingEmpty extends StatelessWidget {
+  const _TrendingEmpty();
 
   @override
   Widget build(BuildContext context) {
