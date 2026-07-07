@@ -38,3 +38,4 @@ Yozuvlar avtomatik qo'shiladi:
 | 2026-07-04 | 1.0.33+33 | e0e1d5f10170 | android | 1.0.33: iOS AR Quick Look, share-link back nav, customer AR part switcher, admin GLB/USDZ badges |
 | 2026-07-04 | 1.0.33+33 | e0e1d5f10170 | ios | 1.0.33: iOS AR Quick Look, share-link back nav, customer AR part switcher, admin GLB/USDZ badges |
 | 2026-07-06 | 1.0.34+34 | 301a5004a898 | android ios | 1.0.34: Crashlytics crash fixes (showcase boot, transient errors, MapKit, iOS AR registrar) |
+| 2026-07-06 | 1.0.35+35 | 51281d85fce6 | android | 1.0.35: personalized home feed (Siz uchun + Ommabop) + splash refresh |

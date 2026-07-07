@@ -24,7 +24,8 @@ import 'package:woody_app/shared/repositories/seller_dashboard_repository.dart';
 
 import '../test/fixtures/mocks/mock/mock_orders_data.dart';
 
-String _unsplash(String id) => 'https://images.unsplash.com/photo-$id?w=1400&q=80';
+String _unsplash(String id) =>
+    'https://images.unsplash.com/photo-$id?w=1400&q=80';
 
 // ─────────────────────────── Products ───────────────────────────
 
@@ -173,10 +174,7 @@ final List<ProductModel> showcaseProducts = [
     description: 'Wood Line · eman, kabel kanali bilan',
     price: 1290000,
     images: [_unsplash('1524758631624-e2822e304c36')],
-    attributes: {
-      'Material': 'Eman',
-      'O‘lchami': '120×60 sm',
-    },
+    attributes: {'Material': 'Eman', 'O‘lchami': '120×60 sm'},
     stock: 15,
     hasDelivery: true,
     deliveryPrice: 100000,
@@ -192,10 +190,7 @@ final List<ProductModel> showcaseProducts = [
     description: 'Mebel House · minimalist dizayn',
     price: 540000,
     images: [_unsplash('1592078615290-033ee584e267')],
-    attributes: {
-      'Material': 'Bук, charm',
-      'Rang': 'Qora',
-    },
+    attributes: {'Material': 'Bук, charm', 'Rang': 'Qora'},
     stock: 24,
     hasDelivery: true,
     deliveryPrice: 80000,
@@ -214,8 +209,9 @@ class ShowcaseProductDataSource extends ProductDataSource {
     int limit = kCategoryPageSize,
     int offset = 0,
   }) async {
-    final results =
-        showcaseProducts.where((p) => p.categoryId == categoryId).toList();
+    final results = showcaseProducts
+        .where((p) => p.categoryId == categoryId)
+        .toList();
     final page = results.skip(offset).take(limit).toList(growable: false);
     return ProductFeedPage(items: page, total: results.length);
   }
@@ -225,6 +221,7 @@ class ShowcaseProductDataSource extends ProductDataSource {
     int limit = kHomeFeedPageSize,
     int offset = 0,
     HomeFeedSort sort = HomeFeedSort.recommended,
+    List<String> excludeIds = const [],
   }) async {
     final sorted = [...showcaseProducts];
     switch (sort) {
@@ -236,32 +233,40 @@ class ShowcaseProductDataSource extends ProductDataSource {
       case HomeFeedSort.discount:
         sorted.sort((a, b) => b.discountPercent.compareTo(a.discountPercent));
     }
-    final page = sorted.skip(offset).take(limit).toList(growable: false);
-    return ProductFeedPage(items: page, total: sorted.length);
+    var filtered = sorted;
+    if (excludeIds.isNotEmpty) {
+      final skip = excludeIds.toSet();
+      filtered = sorted.where((p) => !skip.contains(p.id)).toList();
+    }
+    final page = filtered.skip(offset).take(limit).toList(growable: false);
+    return ProductFeedPage(items: page, total: filtered.length);
+  }
+
+  @override
+  Future<HomeForYouPage> fetchForYou({int limit = kHomeForYouLimit}) async {
+    final items = showcaseProducts.take(limit).toList(growable: false);
+    return HomeForYouPage(items: items, personalized: false);
   }
 
   @override
   Future<List<ProductModel>> listBySubcategory({
     required String subcategoryId,
-  }) async =>
-      showcaseProducts;
+  }) async => showcaseProducts;
 
   @override
-  Future<ProductModel> getById(String id) async =>
-      showcaseProducts.firstWhere(
-        (p) => p.id == id,
-        orElse: () => showcaseProducts.first,
-      );
+  Future<ProductModel> getById(String id) async => showcaseProducts.firstWhere(
+    (p) => p.id == id,
+    orElse: () => showcaseProducts.first,
+  );
 
   @override
   Future<List<ProductModel>> search(
     String query, {
     ProductSearchFilter filter = const ProductSearchFilter(),
     int limit = 30,
-  }) async =>
-      showcaseProducts
-          .where((p) => p.name.toLowerCase().contains(query.toLowerCase()))
-          .toList();
+  }) async => showcaseProducts
+      .where((p) => p.name.toLowerCase().contains(query.toLowerCase()))
+      .toList();
 
   @override
   Future<List<ProductModel>> listSimilar(
@@ -276,52 +281,52 @@ class ShowcaseProductDataSource extends ProductDataSource {
 class ShowcaseBannerRepository extends BannerRepository {
   @override
   Future<List<HomeBanner>> list() async => const [
-        HomeBanner(
-          id: 'show-b1',
-          imageUrl:
-              'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=1200&q=80',
-          title: MultilingualText(
-            uz: 'YOZGI AKSIYA',
-            ru: 'ЛЕТНЯЯ АКЦИЯ',
-            en: 'SUMMER SALE',
-          ),
-          subtitle: MultilingualText(
-            uz: '30% gacha chegirma',
-            ru: 'Скидки до 30%',
-            en: 'Up to 30% off',
-          ),
-        ),
-        HomeBanner(
-          id: 'show-b2',
-          imageUrl:
-              'https://images.unsplash.com/photo-1554995207-c18c203602cb?w=1200&q=80',
-          title: MultilingualText(
-            uz: 'YANGI KOLLEKSIYA',
-            ru: 'НОВАЯ КОЛЛЕКЦИЯ',
-            en: 'NEW COLLECTION',
-          ),
-          subtitle: MultilingualText(
-            uz: 'Premium mebel 2026',
-            ru: 'Премиум мебель 2026',
-            en: 'Premium furniture 2026',
-          ),
-        ),
-        HomeBanner(
-          id: 'show-b3',
-          imageUrl:
-              'https://images.unsplash.com/photo-1631679706909-1844bbd07221?w=1200&q=80',
-          title: MultilingualText(
-            uz: 'BEPUL YETKAZISH',
-            ru: 'БЕСПЛАТНАЯ ДОСТАВКА',
-            en: 'FREE DELIVERY',
-          ),
-          subtitle: MultilingualText(
-            uz: "5 mln so'mdan yuqori buyurtmalarda",
-            ru: 'При заказе от 5 млн сум',
-            en: 'On orders above 5M UZS',
-          ),
-        ),
-      ];
+    HomeBanner(
+      id: 'show-b1',
+      imageUrl:
+          'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=1200&q=80',
+      title: MultilingualText(
+        uz: 'YOZGI AKSIYA',
+        ru: 'ЛЕТНЯЯ АКЦИЯ',
+        en: 'SUMMER SALE',
+      ),
+      subtitle: MultilingualText(
+        uz: '30% gacha chegirma',
+        ru: 'Скидки до 30%',
+        en: 'Up to 30% off',
+      ),
+    ),
+    HomeBanner(
+      id: 'show-b2',
+      imageUrl:
+          'https://images.unsplash.com/photo-1554995207-c18c203602cb?w=1200&q=80',
+      title: MultilingualText(
+        uz: 'YANGI KOLLEKSIYA',
+        ru: 'НОВАЯ КОЛЛЕКЦИЯ',
+        en: 'NEW COLLECTION',
+      ),
+      subtitle: MultilingualText(
+        uz: 'Premium mebel 2026',
+        ru: 'Премиум мебель 2026',
+        en: 'Premium furniture 2026',
+      ),
+    ),
+    HomeBanner(
+      id: 'show-b3',
+      imageUrl:
+          'https://images.unsplash.com/photo-1631679706909-1844bbd07221?w=1200&q=80',
+      title: MultilingualText(
+        uz: 'BEPUL YETKAZISH',
+        ru: 'БЕСПЛАТНАЯ ДОСТАВКА',
+        en: 'FREE DELIVERY',
+      ),
+      subtitle: MultilingualText(
+        uz: "5 mln so'mdan yuqori buyurtmalarda",
+        ru: 'При заказе от 5 млн сум',
+        en: 'On orders above 5M UZS',
+      ),
+    ),
+  ];
 }
 
 // ─────────────────────────── Reviews ───────────────────────────
@@ -375,16 +380,14 @@ class ShowcaseReviewsRepository implements CustomerReviewsRepository {
     required String productId,
     required int rating,
     String? comment,
-  }) async =>
-      throw UnsupportedError('showcase');
+  }) async => throw UnsupportedError('showcase');
 
   @override
   Future<Result<Review>> updateReview({
     required String reviewId,
     required int rating,
     String? comment,
-  }) async =>
-      throw UnsupportedError('showcase');
+  }) async => throw UnsupportedError('showcase');
 }
 
 // ─────────────────────────── Seller dashboard ───────────────────────────
@@ -430,25 +433,24 @@ class ShowcaseSellerDashboardRepository implements SellerDashboardRepository {
       OrderStatus status,
       Duration age,
       num grandTotal,
-    ) =>
-        Order(
-          id: 'show-ord-$suffix',
-          orderNumber: 'M-2026-$suffix',
-          shop: base.shop,
-          items: base.items,
-          address: base.address,
-          deliveryMethod: base.deliveryMethod,
-          paymentMethod: base.paymentMethod,
-          status: status,
-          itemsTotal: grandTotal,
-          deliveryFee: 0,
-          servicesFee: 0,
-          grandTotal: grandTotal,
-          createdAt: now.subtract(age),
-          timeline: [
-            OrderStatusEvent(status: status, timestamp: now.subtract(age)),
-          ],
-        );
+    ) => Order(
+      id: 'show-ord-$suffix',
+      orderNumber: 'M-2026-$suffix',
+      shop: base.shop,
+      items: base.items,
+      address: base.address,
+      deliveryMethod: base.deliveryMethod,
+      paymentMethod: base.paymentMethod,
+      status: status,
+      itemsTotal: grandTotal,
+      deliveryFee: 0,
+      servicesFee: 0,
+      grandTotal: grandTotal,
+      createdAt: now.subtract(age),
+      timeline: [
+        OrderStatusEvent(status: status, timestamp: now.subtract(age)),
+      ],
+    );
 
     return DashboardSnapshot(
       todaysOrders: 7,
@@ -462,7 +464,12 @@ class ShowcaseSellerDashboardRepository implements SellerDashboardRepository {
         expiresAt: now.add(const Duration(days: 23)),
       ),
       recentOrders: [
-        order('1042', OrderStatus.pending, const Duration(minutes: 35), 3990000),
+        order(
+          '1042',
+          OrderStatus.pending,
+          const Duration(minutes: 35),
+          3990000,
+        ),
         order('1041', OrderStatus.shipped, const Duration(hours: 3), 1480000),
         order(
           '1038',
