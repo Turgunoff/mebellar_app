@@ -44,7 +44,6 @@ import '../../../../seller/features/products/widgets/product_preview/preview_app
 import '../../../../seller/features/products/widgets/product_preview/spec_cards.dart';
 import '../../../features/cart/bloc/cart_bloc.dart';
 import '../../../features/favorites/bloc/favorites_bloc.dart';
-import '../../../navigation/product_escape_hatch.dart';
 import '../../../widgets/top_toast.dart';
 import '../../home/widgets/premium/premium_product_card.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
