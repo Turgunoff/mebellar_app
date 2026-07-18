@@ -1,4 +1,6 @@
+import '../../core/network/api_error_messages.dart';
 import '../../core/network/woody_api_client.dart';
+import '../../core/result/result.dart';
 
 /// A checkout provider the app can deep-link into.
 enum PaymentProvider {
@@ -43,9 +45,13 @@ class CheckoutLink {
 /// is no card storage or server-side charge anymore.
 abstract class PaymentRepository {
   /// Mint a checkout URL for one of the user's own orders
-  /// (`POST /orders/{id}/pay/{provider}`). Throws `ApiError` on 404 (not the
-  /// user's order) / 409 (already paid) / 503 (provider unconfigured).
-  Future<CheckoutLink> checkoutUrl({
+  /// (`POST /orders/{id}/pay/{provider}`).
+  ///
+  /// A money command → on the `Result<T>` side of the error-handling boundary:
+  /// returns `Err` (never throws) on 404 (not the user's order) / 409 (already
+  /// paid) / 503 (provider unconfigured); the `Failure.message` is the same
+  /// localised string the UI used to derive from the caught `ApiError`.
+  Future<Result<CheckoutLink>> checkoutUrl({
     required String orderId,
     required PaymentProvider provider,
   });
@@ -57,13 +63,17 @@ class WoodyPaymentRepository implements PaymentRepository {
   final WoodyApiClient _api;
 
   @override
-  Future<CheckoutLink> checkoutUrl({
+  Future<Result<CheckoutLink>> checkoutUrl({
     required String orderId,
     required PaymentProvider provider,
-  }) async {
-    final body = await _api.post<Map<String, dynamic>>(
-      '/orders/$orderId/pay/${provider.slug}',
-    );
-    return CheckoutLink.fromJson(body);
-  }
+  }) =>
+      runCatching(
+        () async {
+          final body = await _api.post<Map<String, dynamic>>(
+            '/orders/$orderId/pay/${provider.slug}',
+          );
+          return CheckoutLink.fromJson(body);
+        },
+        onError: (error, _) => apiErrorToFailure(error),
+      );
 }

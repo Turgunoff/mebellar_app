@@ -184,7 +184,7 @@ class _AttributeField extends StatelessWidget {
           label: label,
           isRequired: definition.isRequired,
           unit: definition.unit,
-          value: value is num ? value : null,
+          value: value is num ? value as num : null,
           onChanged: (v) => onChanged(v),
         );
       case AttributeDataType.text:

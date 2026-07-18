@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/network/api_error_messages.dart';
+import '../../../../core/result/result.dart';
 import '../../../../core/services/facebook_analytics_service.dart';
 import '../../../../shared/models/cart_item_model.dart';
 import '../../../../shared/repositories/cart_repository.dart';
@@ -321,22 +322,21 @@ class CheckoutCubit extends Cubit<CheckoutState> {
   /// can add/remove it locally — [wantInstallation] only sets which figure the
   /// (unused-here) `grand_total` reflects.
   Future<CheckoutQuote?> _quoteGroup(ShopOrderGroup group) async {
-    try {
-      return await _checkout.quote(
-        lines: [
-          for (final it in group.items)
-            CheckoutOrderLine(
-              productId: it.productId,
-              quantity: it.quantity,
-              colorSlug: it.selectedColor,
-            ),
-        ],
-        deliveryAddress: state.deliveryAddress,
-        wantInstallation: state.wantsInstallationFor(group.shopId),
-      );
-    } catch (_) {
-      return null;
-    }
+    final result = await _checkout.quote(
+      lines: [
+        for (final it in group.items)
+          CheckoutOrderLine(
+            productId: it.productId,
+            quantity: it.quantity,
+            colorSlug: it.selectedColor,
+          ),
+      ],
+      deliveryAddress: state.deliveryAddress,
+      wantInstallation: state.wantsInstallationFor(group.shopId),
+    );
+    // A failed quote keeps the last-known-good figure (null → not merged),
+    // exactly as the old catch-returns-null did.
+    return result.valueOrNull;
   }
 
   Future<void> submit(String userId) async {
@@ -350,7 +350,7 @@ class CheckoutCubit extends Cubit<CheckoutState> {
         // One order per shop group → POST /orders. The backend resolves the
         // caller from the JWT and computes the authoritative total from product
         // prices (so total_amount/price/status aren't client-supplied).
-        final orderId = await _checkout.placeOrder(
+        final result = await _checkout.placeOrder(
           lines: [
             for (final it in group.items)
               CheckoutOrderLine(
@@ -369,6 +369,22 @@ class CheckoutCubit extends Cubit<CheckoutState> {
           // priced exactly as that shop's card shows — never the global flag.
           wantInstallation: state.wantsInstallationFor(group.shopId),
         );
+        final String orderId;
+        switch (result) {
+          case Ok(:final value):
+            orderId = value;
+          case Err(:final failure):
+            // A failed placement aborts the whole submit with the same
+            // localised message the caught ApiError used to yield.
+            if (isClosed) return;
+            emit(
+              state.copyWith(
+                status: CheckoutStatus.failure,
+                error: failure.message,
+              ),
+            );
+            return;
+        }
         placedIds.add(orderId);
 
         // Per-shop purchase event — Firebase counts each as one conversion

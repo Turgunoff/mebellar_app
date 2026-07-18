@@ -1,4 +1,6 @@
+import '../../core/network/api_error_messages.dart';
 import '../../core/network/woody_api_client.dart';
+import '../../core/result/result.dart';
 
 /// One order per shop group placed at checkout (`POST /orders`). The backend
 /// resolves the caller from the JWT and computes the authoritative total, so
@@ -9,8 +11,9 @@ import '../../core/network/woody_api_client.dart';
 abstract class CheckoutRepository {
   /// Server-computed invoice preview (`POST /orders/quote`) — subtotal,
   /// delivery fee and the (potential) installation fee for the whole cart.
-  /// No order is written.
-  Future<CheckoutQuote> quote({
+  /// No order is written. A money command → `Result` side of the boundary:
+  /// returns `Err` (never throws) on failure.
+  Future<Result<CheckoutQuote>> quote({
     required List<CheckoutOrderLine> lines,
     required String deliveryAddress,
     required bool wantInstallation,
@@ -18,8 +21,10 @@ abstract class CheckoutRepository {
 
   /// Places the order for one shop group and returns the new order id. The
   /// [paymentMethod] (`cash` | `payme` | `click`) is stored on the order; NO
-  /// charge happens here (deferred payment).
-  Future<String> placeOrder({
+  /// charge happens here (deferred payment). Returns `Err` on failure — the
+  /// `Failure.message` is the same localised string the UI used to derive from
+  /// the caught `ApiError`.
+  Future<Result<String>> placeOrder({
     required List<CheckoutOrderLine> lines,
     required String deliveryAddress,
     String paymentMethod = 'cash',
@@ -74,56 +79,64 @@ class WoodyCheckoutRepository implements CheckoutRepository {
   final WoodyApiClient _api;
 
   @override
-  Future<CheckoutQuote> quote({
+  Future<Result<CheckoutQuote>> quote({
     required List<CheckoutOrderLine> lines,
     required String deliveryAddress,
     required bool wantInstallation,
-  }) async {
-    final body = await _api.post<Map<String, dynamic>>(
-      '/orders/quote',
-      body: {
-        'items': [
-          for (final l in lines)
-            {
-              'product_id': l.productId,
-              'quantity': l.quantity,
-              if (l.colorSlug != null) 'color_slug': l.colorSlug,
+  }) =>
+      runCatching(
+        () async {
+          final body = await _api.post<Map<String, dynamic>>(
+            '/orders/quote',
+            body: {
+              'items': [
+                for (final l in lines)
+                  {
+                    'product_id': l.productId,
+                    'quantity': l.quantity,
+                    if (l.colorSlug != null) 'color_slug': l.colorSlug,
+                  },
+              ],
+              'delivery_address': deliveryAddress,
+              'want_installation': wantInstallation,
             },
-        ],
-        'delivery_address': deliveryAddress,
-        'want_installation': wantInstallation,
-      },
-    );
-    return CheckoutQuote.fromJson(body);
-  }
+          );
+          return CheckoutQuote.fromJson(body);
+        },
+        onError: (error, _) => apiErrorToFailure(error),
+      );
 
   @override
-  Future<String> placeOrder({
+  Future<Result<String>> placeOrder({
     required List<CheckoutOrderLine> lines,
     required String deliveryAddress,
     String paymentMethod = 'cash',
     bool wantInstallation = false,
     double? deliveryLatitude,
     double? deliveryLongitude,
-  }) async {
-    final body = await _api.post<Map<String, dynamic>>(
-      '/orders',
-      body: {
-        'items': [
-          for (final l in lines)
-            {
-              'product_id': l.productId,
-              'quantity': l.quantity,
-              if (l.colorSlug != null) 'color_slug': l.colorSlug,
+  }) =>
+      runCatching(
+        () async {
+          final body = await _api.post<Map<String, dynamic>>(
+            '/orders',
+            body: {
+              'items': [
+                for (final l in lines)
+                  {
+                    'product_id': l.productId,
+                    'quantity': l.quantity,
+                    if (l.colorSlug != null) 'color_slug': l.colorSlug,
+                  },
+              ],
+              'delivery_address': deliveryAddress,
+              'delivery_latitude': ?deliveryLatitude,
+              'delivery_longitude': ?deliveryLongitude,
+              'payment_method': paymentMethod,
+              'want_installation': wantInstallation,
             },
-        ],
-        'delivery_address': deliveryAddress,
-        'delivery_latitude': ?deliveryLatitude,
-        'delivery_longitude': ?deliveryLongitude,
-        'payment_method': paymentMethod,
-        'want_installation': wantInstallation,
-      },
-    );
-    return body['id'] as String;
-  }
+          );
+          return body['id'] as String;
+        },
+        onError: (error, _) => apiErrorToFailure(error),
+      );
 }

@@ -15,6 +15,7 @@ import '../../../../shared/models/review.dart';
 import '../../../../shared/payments/pending_payment.dart';
 import '../../../../shared/payments/pending_payment_service.dart';
 import '../../../../shared/repositories/order_repository.dart';
+import '../../../../core/result/result.dart';
 import '../../../../shared/repositories/payment_repository.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/cancel_reason_sheet.dart';
@@ -939,21 +940,30 @@ class _PayNowBarState extends State<_PayNowBar> {
     setState(() => _busy = true);
     final messenger = ScaffoldMessenger.of(context);
     try {
-      final link = await sl<PaymentRepository>().checkoutUrl(
+      final result = await sl<PaymentRepository>().checkoutUrl(
         orderId: widget.order.id,
         provider: provider,
       );
-      if (sl.isRegistered<PendingPaymentService>()) {
-        await sl<PendingPaymentService>().mark(
-          kind: PendingPaymentKind.order,
-          reference: widget.order.id,
-        );
-      }
-      final uri = Uri.tryParse(link.checkoutUrl);
-      if (uri != null) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      switch (result) {
+        case Err(:final failure):
+          messenger.showSnackBar(
+            SnackBar(content: Text(failure.message)),
+          );
+        case Ok(:final value):
+          if (sl.isRegistered<PendingPaymentService>()) {
+            await sl<PendingPaymentService>().mark(
+              kind: PendingPaymentKind.order,
+              reference: widget.order.id,
+            );
+          }
+          final uri = Uri.tryParse(value.checkoutUrl);
+          if (uri != null) {
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+          }
       }
     } catch (e) {
+      // launchUrl / PendingPaymentService.mark can still throw; the repo call
+      // itself no longer does (its failure arrives as an Err above).
       messenger.showSnackBar(SnackBar(content: Text(apiErrorMessage(e))));
     } finally {
       if (mounted) setState(() => _busy = false);

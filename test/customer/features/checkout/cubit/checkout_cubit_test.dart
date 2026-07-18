@@ -1,6 +1,8 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:woody_app/core/error/failure.dart';
+import 'package:woody_app/core/result/result.dart';
 import 'package:woody_app/customer/features/checkout/cubit/checkout_cubit.dart';
 import 'package:woody_app/shared/models/cart.dart';
 import 'package:woody_app/shared/models/cart_item_model.dart';
@@ -28,15 +30,19 @@ void main() {
     checkout = _MockCheckoutRepo();
     cartRepo = _MockCartRepo();
     payments = _MockPaymentRepo();
-    // Default: the construction-time quote refresh is a no-op (swallowed),
-    // so tests that don't care about quoting stay deterministic.
+    // Default: the construction-time quote refresh returns an Err (the repo is
+    // on the Result side now), so `_quoteGroup` maps it to null and tests that
+    // don't care about quoting stay deterministic.
     when(
       () => checkout.quote(
         lines: any(named: 'lines'),
         deliveryAddress: any(named: 'deliveryAddress'),
         wantInstallation: any(named: 'wantInstallation'),
       ),
-    ).thenThrow(Exception('quote disabled in test'));
+    ).thenAnswer(
+      (_) async =>
+          const Err<CheckoutQuote>(ServerFailure(message: 'quote disabled')),
+    );
   });
 
   CheckoutCubit build({List<CartItemModel> items = const <CartItemModel>[]}) =>
@@ -140,7 +146,10 @@ void main() {
           deliveryAddress: any(named: 'deliveryAddress'),
           wantInstallation: any(named: 'wantInstallation'),
         ),
-      ).thenThrow(Exception('backend unreachable'));
+      ).thenAnswer(
+        (_) async =>
+            const Err<String>(ServerFailure(message: 'backend unreachable')),
+      );
       return build(items: const [item]);
     },
     act: (cubit) => cubit.submit('user-1'),
@@ -208,7 +217,7 @@ void main() {
           deliveryAddress: any(named: 'deliveryAddress'),
           wantInstallation: any(named: 'wantInstallation'),
         ),
-      ).thenAnswer((_) async => 'order');
+      ).thenAnswer((_) async => const Ok<String>('order'));
       when(() => cartRepo.clear()).thenAnswer((_) async => const Cart());
       return build(items: const [installItemA, installItemB]);
     },
@@ -258,7 +267,7 @@ void main() {
           paymentMethod: any(named: 'paymentMethod'),
           wantInstallation: any(named: 'wantInstallation'),
         ),
-      ).thenAnswer((_) async => 'order-1');
+      ).thenAnswer((_) async => const Ok<String>('order-1'));
       when(() => cartRepo.clear()).thenAnswer((_) async => const Cart());
       return buildWithPayments(items: const [item]);
     },
@@ -313,12 +322,14 @@ void main() {
           wantInstallation: any(named: 'wantInstallation'),
         ),
       ).thenAnswer(
-        (_) async => const CheckoutQuote(
-          subtotal: 1000000,
-          deliveryFee: 300000,
-          installationFee: 500000,
-          installationAvailable: true,
-          grandTotal: 1300000,
+        (_) async => const Ok<CheckoutQuote>(
+          CheckoutQuote(
+            subtotal: 1000000,
+            deliveryFee: 300000,
+            installationFee: 500000,
+            installationAvailable: true,
+            grandTotal: 1300000,
+          ),
         ),
       );
       return build(items: const [installItem]);

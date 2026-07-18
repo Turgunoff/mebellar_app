@@ -4,6 +4,8 @@ import 'package:mocktail/mocktail.dart';
 import 'package:woody_app/core/analytics/analytics_service.dart';
 import 'package:woody_app/core/analytics/noop_analytics_service.dart';
 import 'package:woody_app/core/di/service_locator.dart';
+import 'package:woody_app/core/error/failure.dart';
+import 'package:woody_app/core/result/result.dart';
 import 'package:woody_app/customer/features/checkout/screens/checkout_screen.dart';
 import 'package:woody_app/shared/models/cart_item_model.dart';
 import 'package:woody_app/shared/repositories/cart_repository.dart';
@@ -22,8 +24,23 @@ class _MockCartRepo extends Mock implements CartRepository {}
 class _MockPaymentRepo extends Mock implements PaymentRepository {}
 
 void main() {
+  setUpAll(() => registerFallbackValue(const <CheckoutOrderLine>[]));
+
   setUp(() {
-    sl.registerSingleton<CheckoutRepository>(_MockCheckoutRepo());
+    final checkout = _MockCheckoutRepo();
+    // The construction-time quote refresh returns an Err (repo is Result-side
+    // now); `_quoteGroup` maps it to null so the screen keeps its local estimate.
+    when(
+      () => checkout.quote(
+        lines: any(named: 'lines'),
+        deliveryAddress: any(named: 'deliveryAddress'),
+        wantInstallation: any(named: 'wantInstallation'),
+      ),
+    ).thenAnswer(
+      (_) async =>
+          const Err<CheckoutQuote>(ServerFailure(message: 'no quote in test')),
+    );
+    sl.registerSingleton<CheckoutRepository>(checkout);
     sl.registerSingleton<CartRepository>(_MockCartRepo());
     sl.registerSingleton<PaymentRepository>(_MockPaymentRepo());
     sl.registerSingleton<AnalyticsService>(const NoopAnalyticsService());

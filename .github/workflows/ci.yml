@@ -1,0 +1,43 @@
+name: CI
+
+# Static analysis + test gate for the Flutter app. Until now the only workflow
+# was build-apk.yml (an APK artifact, triggered manually / on one feature
+# branch) — nothing ran `flutter analyze` or `flutter test`, so the documented
+# invariants and the ~830-test suite were enforced by human discipline alone.
+# This runs both on every push/PR.
+#
+# No Java/Android toolchain and no env/prod.json are needed: `flutter analyze`
+# is static, and the test suite runs against in-memory fakes (it does not boot
+# the app, so AppConfig.assertConfigured() never fires).
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-app-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze-test:
+    name: Analyze · Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # Blocking: analysis_options.yaml enables strict-casts, so an implicit
+      # dynamic downcast fails here.
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test

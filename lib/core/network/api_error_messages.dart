@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import '../error/failure.dart';
 import '../i18n/i18n.dart';
 import 'api_error.dart';
 
@@ -45,4 +46,32 @@ String apiErrorMessage(Object error) {
   // treat it as a connectivity problem, not a generic crash.
   if (error is TimeoutException) return tr('error.network');
   return tr('error.unknown');
+}
+
+/// Bridges the throw-world ([ApiError] / any thrown object) into the
+/// Result-world [Failure] that `runCatching` returns as an `Err`. The
+/// [Failure.message] is the SAME localised string [apiErrorMessage] produces,
+/// so a repository moving from `throw` to `Result<T>` keeps identical error UX —
+/// the call site reads `failure.message` instead of catching and re-mapping.
+///
+/// Pass it as `runCatching(body, onError: (e, _) => apiErrorToFailure(e))`; it's
+/// the shared bridge for the command-repo migration (see the error-handling
+/// boundary rule card).
+Failure apiErrorToFailure(Object error) {
+  final message = apiErrorMessage(error);
+  if (error is ApiError) {
+    if (error.isUnauthorized) {
+      return AuthFailure(message: message, code: error.code);
+    }
+    if (error.status == 0 || error.code == 'network_error') {
+      return NetworkFailure(message: message, code: error.code);
+    }
+    return ServerFailure(
+      message: message,
+      code: error.code,
+      statusCode: error.status,
+    );
+  }
+  if (error is TimeoutException) return NetworkFailure(message: message);
+  return UnknownFailure(message: message);
 }

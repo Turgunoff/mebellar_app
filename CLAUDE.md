@@ -147,6 +147,32 @@ talking to `WoodyApiClient`) plus an in-memory mock used by tests. Every
 repository runs against `WoodyApiClient` — there is no raw-`Dio`/`Remote*`
 layer left.
 
+### Error-handling boundary (`Result<T>` vs `throw`) — a *deliberate* hybrid
+
+Repositories are split by **risk**, not by whichever paradigm got typed last.
+This is intentional; treat it as a rule, not a migration to "finish everywhere."
+Rule card: [`.claude/rules/error-handling.md`](.claude/rules/error-handling.md).
+
+- **`Result<T>`** (`lib/core/result/result.dart`) is **mandatory for
+  user-initiated commands** where a swallowed error is a business problem —
+  money / orders / seller mutations: `payment`, `checkout`, `order`,
+  `seller_wallet`, `seller_product`, `seller_onboarding`, `tariff`,
+  `verification`, `seller_services`, `reviews` (submit), `shop`,
+  `shop_settings`. The method wraps its body in `runCatching(...)`; callers
+  `fold(ok:, err:)`.
+- **`throw` + global handler is allowed** for read-heavy browsing (only failure
+  UX is a generic "couldn't load, retry") and all local Hive persistence:
+  `product_data_source`, `category`, `banner`, `news`, `notifications`, `chat`
+  reads, `hive_cart`, `hive_favorites`, cache / data-source layers.
+- **A repository is fully-`Result` OR fully-`throw` — never mixed** (interface +
+  `Woody*` impl + mock agree). A mixed file is the smell this rule kills.
+- **Known debt, filled incrementally (tested, highest-risk first):** the command
+  repos `order → seller_wallet → seller_product → seller_onboarding` are still on
+  `throw` and are migrating to `Result<T>`. Each stays fully-`throw` until its
+  turn; new code there is written `Result`-first. **Done:** `payment`
+  (`checkoutUrl`) and `checkout` (`quote` / `placeOrder`) — via `runCatching` +
+  the shared `apiErrorToFailure` bridge in `core/network/api_error_messages.dart`.
+
 ### Theme tokens — never hardcode colours
 
 The app has light and dark mode. **All surface / text / border /

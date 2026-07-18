@@ -1,34 +1,35 @@
 # This file configures the analyzer, which statically analyzes Dart code to
 # check for errors, warnings, and lints.
 #
-# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
-# IDEs (https://dart.dev/tools#ides-and-editors). The analyzer can also be
-# invoked from the command line by running `flutter analyze`.
+# Invoked in the IDE and from the command line via `flutter analyze`. CI runs
+# it blocking on every push/PR (see .github/workflows/ci.yml) — a lint that
+# lands here fails the build, so keep this list honest.
 
-# The following line activates a set of recommended lints for Flutter apps,
-# packages, and plugins designed to encourage good coding practices.
 include: package:flutter_lints/flutter.yaml
 
 analyzer:
+  language:
+    # Turn implicit `dynamic`→T downcasts into analysis errors — the #1 source
+    # of runtime type crashes (an untyped map/JSON value silently assigned to a
+    # typed field). Enabling this surfaced a real bug in the seller attribute
+    # form (a `dynamic` value handed to a `num?` param). We deliberately do NOT
+    # enable strict-raw-types / strict-inference: they only flag idiomatic
+    # `Box<dynamic>` (Hive) and `MaterialPageRoute` without a type arg — ~140
+    # zero-value warnings that would make this gate impractical. strict-casts is
+    # the high-signal one; revisit the other two as a separate cleanup if wanted.
+    strict-casts: true
   exclude:
     - build/**
     - "**/*.g.dart"
     - "**/*.freezed.dart"
 
 linter:
-  # The lint rules applied to this project can be customized in the
-  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
-  # included above or to enable additional rules. A list of all available lints
-  # and their documentation is published at https://dart.dev/lints.
-  #
-  # Instead of disabling a lint rule for the entire project in the
-  # section below, it can also be suppressed for a single line of code
-  # or a specific dart file by using the `// ignore: name_of_lint` and
-  # `// ignore_for_file: name_of_lint` syntax on the line or in the file
-  # producing the lint.
+  # The lint rules applied to this project can be customized in the section
+  # below to disable rules from `package:flutter_lints/flutter.yaml` (included
+  # above) or to enable additional rules. Suppress a single line with
+  # `// ignore: name_of_lint` or a whole file with `// ignore_for_file: ...`.
   rules:
-    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
-    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+    # (none beyond flutter_lints for now)
 
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options
