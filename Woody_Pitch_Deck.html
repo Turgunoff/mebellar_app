@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<title>Woody — Investorlar uchun taqdimot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════════════════════════════════
+   Woody — Investor Deck
+   Brend: Woody Brandbook 2026 (woody_frontend/tailwind.config.ts)
+   Terracotta #C2703D · Charcoal Indigo #1F2933 · Bone #FAF8F5 · Sand #EFE7DD
+   60·30·10 — 60% sirt, 30% charcoal, 10% terracotta (aksent, hech qachon to'ldirma)
+
+   Grafik ranglari: brend palitrasi yolg'iz 2–3 seriyani ajratib bera olmaydi
+   (charcoal/grey chroma floor'dan o'tmaydi), shuning uchun faqat diagrammalar
+   uchun validatsiyadan o'tgan kengaytma ishlatiladi:
+   #C2703D · #2B6FA8 · #7D8B3F — oltita tekshiruvdan ham PASS (light, #FAF8F5).
+   ══════════════════════════════════════════════════════════════════════ */
+
+:root{
+  --terracotta:#C2703D;
+  --terracotta-deep:#A85A2C;
+  --terracotta-tint:#F3E7DC;
+  --ink:#1F2933;
+  --ink-soft:#374151;
+  --ink-muted:#4B5563;
+  --grey:#6B7280;
+  --grey-light:#9AA1AC;
+  --sand:#EFE7DD;
+  --bone:#FAF8F5;
+  --mist:#E7E5E1;
+  --white:#FFFFFF;
+
+  /* Diagramma seriyalari — validatsiyadan o'tgan */
+  --c1:#C2703D;
+  --c2:#2B6FA8;
+  --c3:#7D8B3F;
+
+  --display:'Lora', Georgia, 'Times New Roman', serif;
+  --body:'Manrope', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+html{background:#D8D2CA}
+
+body{
+  font-family:var(--body);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  padding:32px 0;
+}
+
+/* ── Slayd ramkasi ──────────────────────────────────────────────────── */
+.slide{
+  position:relative;
+  width:1280px;
+  height:720px;
+  margin:0 auto 32px;
+  background:var(--bone);
+  padding:64px 80px 72px;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  box-shadow:0 24px 60px -32px rgba(31,41,51,.35);
+}
+
+/* Sahifa raqami + wordmark */
+.slide::after{
+  content:attr(data-n) '   ·   WOODY';
+  position:absolute;
+  right:80px; bottom:34px;
+  font-size:11px; font-weight:600;
+  letter-spacing:.16em;
+  color:var(--grey-light);
+}
+
+/* Yumshoq terracotta hoshiya — brendning "signature rule" ning kattalashgani */
+.slide::before{
+  content:'';
+  position:absolute;
+  left:0; top:0; bottom:0;
+  width:5px;
+  background:var(--terracotta);
+}
+
+/* ── Sarlavha bloki ─────────────────────────────────────────────────── */
+.eyebrow{
+  font-size:11px; font-weight:700;
+  letter-spacing:.2em; text-transform:uppercase;
+  color:var(--terracotta);
+  display:flex; align-items:center; gap:14px;
+  margin-bottom:18px;
+}
+.eyebrow::before{
+  content:''; width:28px; height:2px;
+  background:var(--terracotta); flex:none;
+}
+
+h1{
+  font-family:var(--display);
+  font-weight:600;
+  font-size:44px;
+  line-height:1.12;
+  letter-spacing:-.02em;
+  color:var(--ink);
+}
+
+.sub{
+  margin-top:14px;
+  font-size:16px;
+  line-height:1.55;
+  color:var(--ink-muted);
+  max-width:860px;
+}
+
+.body-area{flex:1;display:flex;flex-direction:column;justify-content:center;padding-top:8px}
+
+/* ── Titul slayd ────────────────────────────────────────────────────── */
+.cover{
+  background:var(--ink);
+  color:var(--white);
+  justify-content:center;
+}
+.cover::before{background:var(--terracotta)}
+.cover::after{color:rgba(255,255,255,.4)}
+.cover .eyebrow{color:var(--terracotta)}
+.wordmark{
+  font-family:var(--display);
+  font-size:104px; font-weight:600;
+  letter-spacing:-.04em; line-height:1;
+  color:var(--white);
+}
+.cover .tag{
+  margin-top:20px;
+  font-size:20px; font-weight:500;
+  color:rgba(255,255,255,.82);
+  letter-spacing:.01em;
+}
+.cover .lede{
+  margin-top:28px; max-width:640px;
+  font-size:16px; line-height:1.6;
+  color:rgba(255,255,255,.62);
+}
+.cover-meta{
+  position:absolute; left:80px; bottom:64px;
+  display:flex; gap:44px;
+  font-size:13px; color:rgba(255,255,255,.55);
+}
+.cover-meta b{display:block;color:var(--white);font-weight:600;font-size:15px;margin-bottom:3px}
+
+/* ── Stat tiles ─────────────────────────────────────────────────────── */
+.stats{display:grid;gap:14px}
+.stats.c4{grid-template-columns:repeat(4,1fr)}
+.stats.c3{grid-template-columns:repeat(3,1fr)}
+.stat{
+  background:var(--white);
+  border:1px solid var(--mist);
+  border-radius:16px;
+  padding:22px 22px 20px;
+}
+.stat .v{
+  font-family:var(--display);
+  font-size:38px; font-weight:600;
+  letter-spacing:-.02em; line-height:1;
+  color:var(--ink);
+}
+.stat .v.acc{color:var(--terracotta)}
+.stat .k{
+  margin-top:10px;
+  font-size:12.5px; line-height:1.45;
+  color:var(--ink-muted);
+}
+
+/* ── Ikki ustunli muammo bloki ──────────────────────────────────────── */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:32px}
+.col-h{
+  font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--terracotta);margin-bottom:16px;
+  padding-bottom:10px;border-bottom:1px solid var(--mist);
+}
+.pt{display:flex;gap:14px;margin-bottom:16px}
+.pt .n{
+  flex:none;width:24px;height:24px;border-radius:50%;
+  background:var(--terracotta-tint);color:var(--terracotta-deep);
+  font-size:11px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+}
+.pt b{display:block;font-size:14.5px;font-weight:700;color:var(--ink);margin-bottom:3px}
+.pt span{font-size:13px;line-height:1.5;color:var(--ink-muted)}
+
+/* ── Feature grid ───────────────────────────────────────────────────── */
+.feat{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.f{
+  background:var(--white);border:1px solid var(--mist);
+  border-radius:16px;padding:20px 22px;
+  border-left:3px solid var(--terracotta);
+}
+.f b{display:block;font-size:15px;font-weight:700;margin-bottom:6px;color:var(--ink)}
+.f span{font-size:13px;line-height:1.5;color:var(--ink-muted)}
+
+/* ── Jadval ─────────────────────────────────────────────────────────── */
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+thead th{
+  text-align:left;font-size:11px;font-weight:700;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--grey);
+  padding:0 14px 10px;border-bottom:1.5px solid var(--ink);
+}
+thead th.num,tbody td.num{text-align:right}
+tbody td{padding:11px 14px;border-bottom:1px solid var(--mist);color:var(--ink-soft)}
+tbody tr:last-child td{border-bottom:none}
+tbody td:first-child{font-weight:600;color:var(--ink)}
+tbody tr.hl td{background:var(--terracotta-tint)}
+tbody tr.hl td:first-child{color:var(--terracotta-deep)}
+.tnum{font-variant-numeric:tabular-nums}
+tbody tr.total td{
+  border-top:1.5px solid var(--ink);border-bottom:none;
+  font-weight:700;color:var(--ink);padding-top:13px;
+}
+
+/* ── Chart primitives ───────────────────────────────────────────────── */
+.chart-title{
+  font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--grey);margin-bottom:14px;
+}
+.legend{display:flex;gap:20px;margin-bottom:14px}
+.legend i{
+  width:11px;height:11px;border-radius:3px;display:inline-block;
+  margin-right:7px;vertical-align:-1px;
+}
+.legend span{font-size:12.5px;font-weight:600;color:var(--ink-soft)}
+.axis-line{stroke:var(--mist);stroke-width:1}
+.axis-txt{font-family:var(--body);font-size:12px;font-weight:600;fill:var(--grey)}
+.val-txt{font-family:var(--body);font-size:13px;font-weight:700;fill:var(--ink)}
+.val-txt.sm{font-size:12px}
+
+/* ── Raqobat jadvali ────────────────────────────────────────────────── */
+.vs td.us{background:var(--terracotta-tint);color:var(--terracotta-deep);font-weight:600}
+
+/* ── Jamoa ──────────────────────────────────────────────────────────── */
+.team{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.member{
+  background:var(--white);border:1px solid var(--mist);
+  border-radius:16px;padding:24px 22px;
+}
+.member .av{
+  width:44px;height:44px;border-radius:50%;
+  background:var(--ink);color:var(--white);
+  font-family:var(--display);font-size:19px;font-weight:600;
+  display:flex;align-items:center;justify-content:center;margin-bottom:16px;
+}
+.member.lead .av{background:var(--terracotta)}
+.member b{display:block;font-size:16px;font-weight:700;color:var(--ink)}
+.member .role{
+  font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--terracotta);margin:5px 0 12px;
+}
+.member p{font-size:12.5px;line-height:1.55;color:var(--ink-muted)}
+
+/* ── Yo'l xaritasi ──────────────────────────────────────────────────── */
+.road{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin-top:6px}
+.ph{padding:0 24px;border-left:2px solid var(--mist);position:relative}
+.ph:first-child{padding-left:0;border-left:none}
+.ph.now{border-left-color:var(--terracotta)}
+.ph .when{
+  font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--terracotta);margin-bottom:8px;
+}
+.ph h3{font-family:var(--display);font-size:19px;font-weight:600;margin-bottom:14px;color:var(--ink)}
+.ph li{
+  font-size:13px;line-height:1.5;color:var(--ink-muted);
+  list-style:none;padding-left:16px;position:relative;margin-bottom:9px;
+}
+.ph li::before{
+  content:'';position:absolute;left:0;top:7px;
+  width:5px;height:5px;border-radius:50%;background:var(--terracotta);
+}
+
+/* ── Ask ────────────────────────────────────────────────────────────── */
+.ask-hero{
+  font-family:var(--display);font-size:76px;font-weight:600;
+  letter-spacing:-.03em;line-height:1;color:var(--terracotta);
+}
+.ask-sub{font-size:16px;color:var(--ink-muted);margin-top:12px;line-height:1.5}
+.ms li{
+  font-size:14px;line-height:1.45;color:var(--ink-soft);
+  list-style:none;padding-left:24px;position:relative;margin-bottom:13px;
+}
+.ms li::before{
+  content:'';position:absolute;left:0;top:5px;width:13px;height:8px;
+  border-left:2px solid var(--terracotta);border-bottom:2px solid var(--terracotta);
+  transform:rotate(-45deg);
+}
+.ms li b{font-weight:700;color:var(--ink)}
+
+/* ── Izoh ───────────────────────────────────────────────────────────── */
+.note{
+  margin-top:auto;padding-top:16px;
+  font-size:11.5px;line-height:1.5;color:var(--grey);
+  border-top:1px solid var(--mist);
+}
+.note b{color:var(--ink-muted);font-weight:700}
+
+/* ── Zich slayd (ko'p kontentli) ────────────────────────────────────── */
+.dense h1{font-size:40px}
+.dense .body-area{justify-content:flex-start;padding-top:22px}
+.dense .chart-title{margin-bottom:10px}
+.dense tbody td{padding:7px 14px}
+.dense thead th{padding-bottom:8px}
+.dense tbody tr.total td{padding-top:9px}
+.dense .note{padding-top:12px}
+
+/* ── Print ──────────────────────────────────────────────────────────── */
+@page{size:1280px 720px;margin:0}
+@media print{
+  html{background:none}
+  body{padding:0}
+  .slide{
+    margin:0;box-shadow:none;
+    page-break-after:always;break-after:page;
+  }
+  .slide:last-child{page-break-after:auto;break-after:auto}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ 01 · TITUL ═══════════════════ -->
+<section class="slide cover" data-n="01">
+  <div class="eyebrow">Investorlar uchun taqdimot · 2026</div>
+  <div class="wordmark">Woody</div>
+  <div class="tag">Mebel uchun vertikal marketplace · O'zbekiston</div>
+  <p class="lede">
+    Faqat mebelga ixtisoslashgan ikki tomonlama platforma. Xaridor mebelni AR orqali
+    o'z xonasida real o'lchamda ko'radi, AI-dizayner bilan maslahatlashadi va
+    tasdiqlangan sotuvchidan buyurtma beradi.
+  </p>
+  <div class="cover-meta">
+    <div><b>Bosqich</b>MVP · production'da</div>
+    <div><b>So'rov</b>$100K Pre-Seed</div>
+    <div><b>Yuridik shaxs</b>Zettacode MCHJ</div>
+    <div><b>Asoschi</b>Eldor Turg'unov</div>
+  </div>
+</section>
+
+<!-- ═══════════════════ 02 · MUAMMO ═══════════════════ -->
+<section class="slide" data-n="02">
+  <div class="eyebrow">Muammo</div>
+  <h1>Mebel savdosi hali ham oflayn, tarqoq va ishonchsiz</h1>
+  <p class="sub">
+    O'zbekistonda mebel asosan bozor, ko'rgazma zali va Instagram/Telegram orqali
+    sotiladi — yagona, ishonchli raqamli kanal yo'q.
+  </p>
+
+  <div class="body-area">
+    <div class="two">
+      <div>
+        <div class="col-h">Xaridor tomoni</div>
+        <div class="pt"><div class="n">1</div><div>
+          <b>Solishtirib bo'lmaydi</b>
+          <span>Narx, sifat va variantlar o'nlab kanalga tarqoq — yagona joyda taqqoslash imkoni yo'q.</span>
+        </div></div>
+        <div class="pt"><div class="n">2</div><div>
+          <b>Xonaga to'g'ri kelishini bilib bo'lmaydi</b>
+          <span>O'lcham va uslub mos keladimi — mebel yetkazib berilgunga qadar noma'lum. Qaytarish esa qimmat.</span>
+        </div></div>
+        <div class="pt"><div class="n">3</div><div>
+          <b>Ishonch kafolatlanmagan</b>
+          <span>Sotuvchi kimligi, kafolat muddati va montaj shartlari har safar boshqacha.</span>
+        </div></div>
+      </div>
+      <div>
+        <div class="col-h">Sotuvchi tomoni</div>
+        <div class="pt"><div class="n">1</div><div>
+          <b>Barqaror vitrina yo'q</b>
+          <span>Kichik ustaxona va brendlar to'liq Instagram/Telegram algoritmiga bog'liq — o'z do'koni yo'q.</span>
+        </div></div>
+        <div class="pt"><div class="n">2</div><div>
+          <b>Tartibsiz boshqaruv</b>
+          <span>Buyurtma, mahsulot va mijoz daftar yoki chatlarda qo'lda yuritiladi.</span>
+        </div></div>
+        <div class="pt"><div class="n">3</div><div>
+          <b>Mijoz jalb qilish qimmat va tasodifiy</b>
+          <span>Har bir yangi xaridor uchun reklama to'lanadi, takroriy savdo kanali qurilmagan.</span>
+        </div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ 03 · BOZOR ═══════════════════ -->
+<section class="slide" data-n="03">
+  <div class="eyebrow">Bozor va vaqt</div>
+  <h1>Tez o'sayotgan raqamli bozor, deyarli bo'sh nisha</h1>
+
+  <div class="body-area">
+    <div class="stats c4" style="margin-bottom:26px">
+      <div class="stat">
+        <div class="v acc">$1.2 mlrd</div>
+        <div class="k">O'zbekiston e-commerce hajmi (2024) — chakana savdoning 3.8% i. <b>TAM</b></div>
+      </div>
+      <div class="stat">
+        <div class="v">~$36 mln</div>
+        <div class="k">Uy-ro'zg'or va mebel onlayn xaridlarning ~3% i. <b>SAM</b> (bugungi holat)</div>
+      </div>
+      <div class="stat">
+        <div class="v">41–47%</div>
+        <div class="k">KPMG prognozi bo'yicha 2022–2027 uchun <b>CAGR</b> — bu prognoz, joriy yillik o'sish emas</div>
+      </div>
+      <div class="stat">
+        <div class="v">33.1 mln</div>
+        <div class="k">Internet foydalanuvchilari — aholining ~89% i (2025 yil oxiri)</div>
+      </div>
+    </div>
+
+    <div class="two" style="gap:44px;align-items:center">
+      <div>
+        <div class="chart-title">E-commerce bozori · prognoz</div>
+        <svg width="480" height="176" viewBox="0 0 480 176" role="img"
+             aria-label="O'zbekiston e-commerce bozori: 2024-yilda 1.2 milliard dollar, 2027-yilga 1.8–2.2 milliard dollar prognoz qilinmoqda.">
+          <line class="axis-line" x1="0" y1="140" x2="480" y2="140"/>
+          <!-- 2024: $1.2B -->
+          <rect x="60" y="80" width="96" height="60" rx="4" fill="var(--c1)"/>
+          <text class="val-txt" x="108" y="70" text-anchor="middle">$1.2 mlrd</text>
+          <text class="axis-txt" x="108" y="160" text-anchor="middle">2024</text>
+          <!-- 2027: $1.8–2.2B (diapazon) -->
+          <rect x="300" y="30" width="96" height="110" rx="4" fill="var(--c1)" opacity=".28"/>
+          <rect x="300" y="50" width="96" height="90" rx="4" fill="var(--c1)"/>
+          <text class="val-txt" x="348" y="20" text-anchor="middle">$1.8–2.2 mlrd</text>
+          <text class="axis-txt" x="348" y="160" text-anchor="middle">2027 (prognoz)</text>
+        </svg>
+      </div>
+      <div>
+        <div class="chart-title">Nega aynan hozir</div>
+        <div class="pt"><div class="n">1</div><div>
+          <b>Texnologiya arzonlashdi</b>
+          <span>2D rasmdan 3D model yasash va vizual AI API'lari endi startap byudjetiga sig'adi.</span>
+        </div></div>
+        <div class="pt"><div class="n">2</div><div>
+          <b>Qurilmalar tayyor</b>
+          <span>ARCore/ARKit ommaviy smartfonlarda — AR uchun alohida qurilma kerak emas.</span>
+        </div></div>
+        <div class="pt"><div class="n">3</div><div>
+          <b>Kategoriya hali egallanmagan</b>
+          <span>Umumiy platformalarda mebel ikkilamchi kategoriya bo'lib qolmoqda.</span>
+        </div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>Manbalar:</b> KPMG Central Asia · hukumat statistikasi · DataReportal Digital 2026.
+    SAM — TAM ning ~3% i sifatida hisoblangan baho, mustaqil auditdan o'tmagan.
+  </div>
+</section>
+
+<!-- ═══════════════════ 04 · YECHIM ═══════════════════ -->
+<section class="slide" data-n="04">
+  <div class="eyebrow">Yechim</div>
+  <h1>Woody — mebel uchun yagona ishonchli marketplace</h1>
+  <p class="sub">
+    Umumiy platformalar keng, Woody chuqur: bitta kategoriyada boshqalar bera olmaydigan
+    tajriba va ishonch.
+  </p>
+
+  <div class="body-area">
+    <div class="feat">
+      <div class="f">
+        <b>AR — o'z xonangizda, real o'lchamda</b>
+        <span>Sotuvchi 3 ta rasm yuklaydi, tizim avtomatik 3D model yasaydi. Xaridor mebelni
+        telefon orqali o'z xonasiga qo'yib ko'radi — haqiqiy o'lchov masshtabida.</span>
+      </div>
+      <div class="f">
+        <b>AI Designer — interyer bo'yicha yordamchi</b>
+        <span>Azure OpenAI asosidagi chat: xaridor xonasini tasvirlaydi, platforma
+        katalogidan mos mebelni tavsiya qiladi.</span>
+      </div>
+      <div class="f">
+        <b>Tasdiqlangan sotuvchilar</b>
+        <span>Hujjat asosida verifikatsiya va "Verified" belgisi. Har bir mahsulotning
+        kafolat muddati katalogda ko'rsatiladi.</span>
+      </div>
+      <div class="f">
+        <b>Yetkazish va montaj — bitta oqimda</b>
+        <span>Yetkazib berish va o'rnatish narxi checkout bosqichida avtomatik hisoblanadi,
+        xaridor uchun yakuniy summa oldindan aniq.</span>
+      </div>
+      <div class="f">
+        <b>Sotuvchi uchun raqamli do'kon</b>
+        <span>O'z vitrinasi, mahsulot va buyurtma boshqaruvi, sotuv analitikasi — bitta
+        panelda. Instagram algoritmiga bog'liqlik tugaydi.</span>
+      </div>
+      <div class="f">
+        <b>AI bilan mahsulot joylash</b>
+        <span>Sotuvchi rasm yuklaydi — nomi, tavsifi va kategoriyasi avtomatik to'ldiriladi.
+        Katalogga chiqish daqiqalar ichida.</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ 05 · MAHSULOT HOLATI ═══════════════════ -->
+<section class="slide" data-n="05">
+  <div class="eyebrow">Hozir qayerdamiz</div>
+  <h1>Mahsulot qurib bo'lindi — endi bozorga chiqamiz</h1>
+  <p class="sub">
+    To'rtala tizim ham production'da ishlayapti. Foydalanuvchi jalb qilish hali
+    boshlanmagan — biz aynan shu bosqichdamiz.
+  </p>
+
+  <div class="body-area">
+    <div class="stats c4" style="margin-bottom:24px">
+      <div class="stat">
+        <div class="v acc">4</div>
+        <div class="k">Production tizim: mobil ilova (iOS/Android), backend API, admin panel, marketing sayti</div>
+      </div>
+      <div class="stat">
+        <div class="v">899</div>
+        <div class="k">Commit — 2026-yil may oyidan buyon, ~10 hafta ichida</div>
+      </div>
+      <div class="stat">
+        <div class="v">3</div>
+        <div class="k">Til to'liq qo'llab-quvvatlanadi: o'zbek, rus, ingliz</div>
+      </div>
+      <div class="stat">
+        <div class="v" style="color:var(--grey)">0</div>
+        <div class="k">Faol foydalanuvchi — ishga tushirishdan oldingi bosqich. Daromad hali yo'q.</div>
+      </div>
+    </div>
+
+    <div class="two" style="gap:40px">
+      <div>
+        <div class="col-h">Ishlayotgan funksiyalar</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;font-size:13px;line-height:1.6;color:var(--ink-muted)">
+          <div>· Katalog, qidiruv, filtr</div>
+          <div>· Savat va buyurtma oqimi</div>
+          <div>· AR ko'rish (real o'lcham)</div>
+          <div>· Rasmdan 3D model yasash</div>
+          <div>· AI Designer chat</div>
+          <div>· AI bilan mahsulot to'ldirish</div>
+          <div>· Sotuvchi verifikatsiyasi</div>
+          <div>· Tarif va hamyon tizimi</div>
+          <div>· Buyurtma bo'yicha chat</div>
+          <div>· Push bildirishnomalar</div>
+          <div>· Sharh va reyting</div>
+          <div>· Admin moderatsiya paneli</div>
+        </div>
+      </div>
+      <div>
+        <div class="col-h">Keyingi bosqichda</div>
+        <div class="pt"><div class="n">1</div><div>
+          <b>Onlayn to'lov</b>
+          <span>Payme / Click integratsiyasi. Bugun barcha buyurtmalar naqd (COD) asosida.</span>
+        </div></div>
+        <div class="pt"><div class="n">2</div><div>
+          <b>Sotuvchilarni jalb qilish</b>
+          <span>Toshkentda dastlabki 50–100 do'kon — to'g'ridan-to'g'ri sotuvlar orqali.</span>
+        </div></div>
+        <div class="pt"><div class="n">3</div><div>
+          <b>Logistika hamkorligi</b>
+          <span>Yetkazib berish va montaj bo'yicha operatorlar bilan shartnomalar.</span>
+        </div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ 06 · BIZNES MODEL ═══════════════════ -->
+<section class="slide" data-n="06">
+  <div class="eyebrow">Biznes model</div>
+  <h1>Xaridor uchun bepul — daromad sotuvchidan</h1>
+  <p class="sub">
+    Ikki oqim: takrorlanuvchi obuna va savdo hajmi bilan o'sadigan komissiya.
+    Free tarif kirish to'sig'ini olib tashlaydi, past komissiya esa yuqoriga ko'tarilishga undaydi.
+  </p>
+
+  <div class="body-area">
+    <div class="two" style="gap:44px;align-items:start">
+      <div>
+        <div class="chart-title">Amaldagi tariflar</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Tarif</th>
+              <th class="num">Narx / oy</th>
+              <th class="num">Mahsulot</th>
+              <th class="num">Komissiya</th>
+            </tr>
+          </thead>
+          <tbody class="tnum">
+            <tr><td>Free</td><td class="num">0</td><td class="num">15</td><td class="num">6%</td></tr>
+            <tr class="hl"><td>Bonus <span style="font-weight:400;font-size:11.5px">· 30 kun</span></td><td class="num">0</td><td class="num">30</td><td class="num">2%</td></tr>
+            <tr><td>Basic</td><td class="num">99 000 so'm</td><td class="num">30</td><td class="num">4%</td></tr>
+            <tr><td>Pro</td><td class="num">299 000 so'm</td><td class="num">100</td><td class="num">2%</td></tr>
+            <tr><td>Enterprise</td><td class="num">999 000 so'm</td><td class="num">cheksiz</td><td class="num">1%</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:12px;color:var(--grey);margin-top:12px;line-height:1.5">
+          Bonus — yangi sotuvchiga birinchi tasdiqlanishda bir marta beriladigan 30 kunlik
+          jalb qilish vositasi. Sotib bo'lmaydi.
+        </p>
+      </div>
+
+      <div>
+        <div class="chart-title">Komissiya narvoni — yuqori tarif, past stavka</div>
+        <svg width="470" height="212" viewBox="0 0 470 212" role="img"
+             aria-label="Komissiya stavkasi tarif bo'yicha: Free 6 foiz, Basic 4 foiz, Bonus 2 foiz, Pro 2 foiz, Enterprise 1 foiz.">
+          <!-- 6% = 300px shkala -->
+          <g font-family="var(--body)">
+            <text class="axis-txt" x="0" y="18">Free</text>
+            <rect x="86" y="6" width="300" height="18" rx="4" fill="var(--c1)"/>
+            <text class="val-txt sm" x="396" y="19">6%</text>
+
+            <text class="axis-txt" x="0" y="58">Basic</text>
+            <rect x="86" y="46" width="200" height="18" rx="4" fill="var(--c1)"/>
+            <text class="val-txt sm" x="296" y="59">4%</text>
+
+            <text class="axis-txt" x="0" y="98">Bonus</text>
+            <rect x="86" y="86" width="100" height="18" rx="4" fill="var(--c1)" opacity=".55"/>
+            <text class="val-txt sm" x="196" y="99">2%</text>
+
+            <text class="axis-txt" x="0" y="138">Pro</text>
+            <rect x="86" y="126" width="100" height="18" rx="4" fill="var(--c1)"/>
+            <text class="val-txt sm" x="196" y="139">2%</text>
+
+            <text class="axis-txt" x="0" y="178">Enterprise</text>
+            <rect x="86" y="166" width="50" height="18" rx="4" fill="var(--c1)"/>
+            <text class="val-txt sm" x="146" y="179">1%</text>
+          </g>
+          <line class="axis-line" x1="86" y1="196" x2="386" y2="196"/>
+          <text class="axis-txt" x="86" y="210">0%</text>
+          <text class="axis-txt" x="386" y="210" text-anchor="end">6%</text>
+        </svg>
+
+        <div style="display:flex;gap:14px;margin-top:18px">
+          <div class="stat" style="flex:1;padding:16px 18px">
+            <div class="v" style="font-size:26px">~4%</div>
+            <div class="k" style="margin-top:6px">O'rtacha take-rate (komissiya + obuna)</div>
+          </div>
+          <div class="stat" style="flex:1;padding:16px 18px">
+            <div class="v" style="font-size:26px">$40–100</div>
+            <div class="k" style="margin-top:6px">1 to'lovchi sotuvchidan oylik daromad</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    Tarif va komissiya qiymatlari — <b>amaldagi ishlab turgan tizimdan</b>
+    (<code>subscription_plans</code>). Valyuta: $1 ≈ 12 050 so'm (2026-yil iyul).
+    Komissiya buyurtma <b>yetkazib berilganda</b> sotuvchi hamyonidan yechiladi.
+  </div>
+</section>
+
+<!-- ═══════════════════ 07 · MOLIYAVIY PROGNOZ ═══════════════════ -->
+<section class="slide dense" data-n="07">
+  <div class="eyebrow">Moliyaviy prognoz · 3 yil</div>
+  <h1>2-yilda operatsion nolga, 3-yilda foydaga</h1>
+
+  <div class="body-area">
+    <div class="two" style="gap:40px;align-items:start;margin-bottom:18px">
+      <div>
+        <div class="chart-title">GMV — platforma orqali o'tadigan savdo hajmi</div>
+        <svg width="470" height="146" viewBox="0 0 470 146" role="img"
+             aria-label="GMV prognozi: 1-yil 1.2 million dollar, 2-yil 7.2 million dollar, 3-yil 24 million dollar.">
+          <line class="axis-line" x1="0" y1="118" x2="470" y2="118"/>
+          <rect x="44" y="113" width="86" height="5" rx="4" fill="var(--c1)"/>
+          <text class="val-txt" x="87" y="104" text-anchor="middle">$1.2 mln</text>
+          <text class="axis-txt" x="87" y="138" text-anchor="middle">Yil 1</text>
+
+          <rect x="192" y="88" width="86" height="30" rx="4" fill="var(--c1)"/>
+          <text class="val-txt" x="235" y="79" text-anchor="middle">$7.2 mln</text>
+          <text class="axis-txt" x="235" y="138" text-anchor="middle">Yil 2</text>
+
+          <rect x="340" y="18" width="86" height="100" rx="4" fill="var(--c1)"/>
+          <text class="val-txt" x="383" y="11" text-anchor="middle">$24.0 mln</text>
+          <text class="axis-txt" x="383" y="138" text-anchor="middle">Yil 3</text>
+        </svg>
+      </div>
+
+      <div>
+        <div class="chart-title">Daromad va xarajat</div>
+        <div class="legend" style="margin-bottom:10px">
+          <span><i style="background:var(--c1)"></i>Daromad</span>
+          <span><i style="background:var(--c2)"></i>Xarajat</span>
+        </div>
+        <svg width="470" height="124" viewBox="0 0 470 124" role="img"
+             aria-label="Daromad va xarajat: 1-yil daromad 60 ming, xarajat 110 ming; 2-yil daromad 346 ming, xarajat 340 ming; 3-yil daromad 1.13 million, xarajat 1.0 million dollar.">
+          <line class="axis-line" x1="0" y1="98" x2="470" y2="98"/>
+          <!-- shkala: $1.13M = 78px -->
+          <!-- Yil 1 -->
+          <rect x="46" y="94" width="38" height="4" rx="4" fill="var(--c1)"/>
+          <rect x="86" y="90" width="38" height="8" rx="4" fill="var(--c2)"/>
+          <text class="val-txt sm" x="85" y="83" text-anchor="middle">$60K / $110K</text>
+          <text class="axis-txt" x="85" y="116" text-anchor="middle">Yil 1</text>
+          <!-- Yil 2 -->
+          <rect x="192" y="74" width="38" height="24" rx="4" fill="var(--c1)"/>
+          <rect x="232" y="74" width="38" height="24" rx="4" fill="var(--c2)"/>
+          <text class="val-txt sm" x="231" y="67" text-anchor="middle">$346K / $340K</text>
+          <text class="axis-txt" x="231" y="116" text-anchor="middle">Yil 2</text>
+          <!-- Yil 3 -->
+          <rect x="338" y="20" width="38" height="78" rx="4" fill="var(--c1)"/>
+          <rect x="378" y="29" width="38" height="69" rx="4" fill="var(--c2)"/>
+          <text class="val-txt sm" x="377" y="13" text-anchor="middle">$1.13M / $1.0M</text>
+          <text class="axis-txt" x="377" y="116" text-anchor="middle">Yil 3</text>
+        </svg>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Ko'rsatkich</th>
+          <th class="num">Yil 1</th>
+          <th class="num">Yil 2</th>
+          <th class="num">Yil 3</th>
+        </tr>
+      </thead>
+      <tbody class="tnum">
+        <tr><td>Ro'yxatdan o'tgan sotuvchilar</td><td class="num">300</td><td class="num">1 200</td><td class="num">3 000</td></tr>
+        <tr><td>To'lovchi sotuvchilar</td><td class="num">60</td><td class="num">300</td><td class="num">900</td></tr>
+        <tr><td>Buyurtmalar (yillik)</td><td class="num">6 000</td><td class="num">36 000</td><td class="num">120 000</td></tr>
+        <tr><td>GMV <span style="font-weight:400;font-size:11.5px;color:var(--grey)">= buyurtma × $200</span></td><td class="num">$1.2 mln</td><td class="num">$7.2 mln</td><td class="num">$24.0 mln</td></tr>
+        <tr><td>Daromad <span style="font-weight:400;font-size:11.5px;color:var(--grey)">komissiya + obuna</span></td><td class="num">$60K</td><td class="num">$346K</td><td class="num">$1.13 mln</td></tr>
+        <tr><td>Xarajat</td><td class="num">$110K</td><td class="num">$340K</td><td class="num">$1.0 mln</td></tr>
+        <tr class="total"><td>Sof natija (EBITDA)</td><td class="num" style="color:var(--c2)">–$50K</td><td class="num">+$6K</td><td class="num" style="color:var(--terracotta-deep)">+$133K</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <b>Asosiy taxminlar:</b> o'rtacha chek $200 · take-rate ~4% · o'rtacha obuna ~$16/oy.
+    GMV har yili buyurtmalar sonidan hisoblangan — mustaqil belgilanmagan.
+    <b>Bu illyustrativ model</b>, real ishga tushirish ma'lumotlari bilan yangilanadi.
+    Yil 3 GMV bugungi SAM ning katta ulushini talab qiladi — bozorning o'zi ham 41–47% CAGR bilan o'sishiga bog'liq.
+  </div>
+</section>
+
+<!-- ═══════════════════ 08 · RAQOBAT ═══════════════════ -->
+<section class="slide" data-n="08">
+  <div class="eyebrow">Raqobat va pozitsiya</div>
+  <h1>Umumiy platformalar keng — Woody chuqur</h1>
+  <p class="sub">
+    Uzum, OLX va BirBir hamma narsani sotadi; mebel ular uchun o'nlab kategoriyadan biri.
+    Woody faqat mebelni, lekin butun xarid yo'lini qamrab oladi.
+  </p>
+
+  <div class="body-area">
+    <table class="vs">
+      <thead>
+        <tr>
+          <th style="width:22%">Mezon</th>
+          <th style="width:26%">Umumiy marketplace</th>
+          <th style="width:26%">Instagram / Telegram</th>
+          <th style="width:26%">Woody</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Fokus</td>
+          <td>Hamma kategoriya — mebel ikkilamchi</td>
+          <td>Tasodifiy, algoritmga bog'liq</td>
+          <td class="us">Faqat mebel — vertikal mutaxassis</td>
+        </tr>
+        <tr>
+          <td>Xonaga mosligini ko'rish</td>
+          <td>Yo'q — faqat rasm</td>
+          <td>Yo'q</td>
+          <td class="us">AR, real o'lchamda o'z xonasida</td>
+        </tr>
+        <tr>
+          <td>Tanlashda yordam</td>
+          <td>Filtr va qidiruv</td>
+          <td>Shaxsiy yozishmalar</td>
+          <td class="us">AI Designer — interyer maslahati</td>
+        </tr>
+        <tr>
+          <td>Sotuvchi ishonchi</td>
+          <td>Umumiy reyting</td>
+          <td>Kafolatlanmagan</td>
+          <td class="us">Hujjat asosida verifikatsiya + belgi</td>
+        </tr>
+        <tr>
+          <td>Mebelga xos xizmat</td>
+          <td>Montaj / kafolat tizimda yo'q</td>
+          <td>Har sotuvchida har xil</td>
+          <td class="us">Yetkazish + montaj narxi checkout'da</td>
+        </tr>
+        <tr>
+          <td>Sotuvchi uchun vositalar</td>
+          <td>Standart e'lon paneli</td>
+          <td>Qo'lda — daftar va chat</td>
+          <td class="us">Do'kon, analitika, AI bilan joylash</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <b>Vertikal strategiya:</b> bitta kategoriyada eng chuqur tajriba — keng platformalar
+    uchun mebelga maxsus AR/AI qurish iqtisodiy jihatdan asosli emas, chunki bu ularning
+    savdo hajmining kichik ulushi.
+  </div>
+</section>
+
+<!-- ═══════════════════ 09 · JAMOA ═══════════════════ -->
+<section class="slide" data-n="09">
+  <div class="eyebrow">Jamoa</div>
+  <h1>Butun mahsulotni ichkarida qurgan jamoa</h1>
+  <p class="sub">
+    Tashqi agentlik yoki autsorsingsiz: mobil ilova, backend, admin panel va barcha
+    AI/AR integratsiyalari o'z jamoamiz tomonidan yozilgan.
+  </p>
+
+  <div class="body-area">
+    <div class="team">
+      <div class="member lead">
+        <div class="av">ET</div>
+        <b>Eldor Turg'unov</b>
+        <div class="role">Asoschi · CEO · Fullstack</div>
+        <p>
+          Murakkab e-commerce tizimlar va API integratsiyalari tajribasi. Woody'da texnik
+          yetakchi: backend (FastAPI), mobil ilova (Flutter) va AR / AI integratsiyalarini
+          shaxsan qurgan. Kompaniyaning 100% ulush egasi.
+        </p>
+      </div>
+      <div class="member">
+        <div class="av">AK</div>
+        <b>Amina Kadirova</b>
+        <div class="role">Frontend Engineer</div>
+        <p>
+          Zamonaviy veb-interfeyslar bo'yicha tajribali. Marketing sayti va admin panel
+          (Next.js) interfeyslari ustida ishlaydi.
+        </p>
+      </div>
+      <div class="member">
+        <div class="av">SK</div>
+        <b>Shahzod Kenjayev</b>
+        <div class="role">CTO</div>
+        <p>
+          Tizim arxitekturasi, bulutli infratuzilma va AI/AR texnologik yo'nalishi bo'yicha
+          strategik yetakchi.
+        </p>
+      </div>
+    </div>
+
+    <div class="stats c3" style="margin-top:24px">
+      <div class="stat">
+        <div class="v acc">~10 hafta</div>
+        <div class="k">To'rtala tizimni noldan production'ga chiqarish uchun ketgan vaqt</div>
+      </div>
+      <div class="stat">
+        <div class="v">899</div>
+        <div class="k">Commit — ishlab chiqish tezligining tekshiriladigan o'lchovi</div>
+      </div>
+      <div class="stat">
+        <div class="v">$0</div>
+        <div class="k">Tashqi ishlab chiqish xarajati — butun stack ichkarida qurilgan</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ 10 · SO'ROV ═══════════════════ -->
+<section class="slide" data-n="10">
+  <div class="eyebrow">Investitsiya so'rovi</div>
+
+  <div class="body-area">
+    <div class="two" style="gap:56px;align-items:start">
+      <div>
+        <div class="ask-hero">$100K</div>
+        <div class="ask-sub">
+          Pre-Seed bosqichi · 18–24 oylik runway.<br>
+          Bugungi bootstrap xarajati ~$200–300/oy — mablag' jamoa va bozorga
+          chiqish uchun ishlatiladi.
+        </div>
+
+        <div class="chart-title" style="margin-top:34px">Mablag' taqsimoti</div>
+        <svg width="524" height="150" viewBox="0 0 524 150" role="img"
+             aria-label="Mablag' taqsimoti: mahsulot va jamoa 45 foiz — 45 ming dollar; marketing va sotuvchi jalb qilish 35 foiz — 35 ming dollar; operatsion va infratuzilma 20 foiz — 20 ming dollar.">
+          <g font-family="var(--body)">
+            <text class="axis-txt" x="0" y="18">45%</text>
+            <rect x="44" y="6" width="180" height="20" rx="4" fill="var(--c1)"/>
+            <text class="val-txt sm" x="234" y="20">$45K · Mahsulot va jamoa</text>
+
+            <text class="axis-txt" x="0" y="66">35%</text>
+            <rect x="44" y="54" width="140" height="20" rx="4" fill="var(--c2)"/>
+            <text class="val-txt sm" x="194" y="68">$35K · Marketing va jalb qilish</text>
+
+            <text class="axis-txt" x="0" y="114">20%</text>
+            <rect x="44" y="102" width="80" height="20" rx="4" fill="var(--c3)"/>
+            <text class="val-txt sm" x="134" y="116">$20K · Operatsion va infratuzilma</text>
+          </g>
+        </svg>
+      </div>
+
+      <div>
+        <div class="col-h">Mablag' ochadigan natijalar · 18–24 oy</div>
+        <ul class="ms">
+          <li><b>500+ ro'yxatdan o'tgan sotuvchi</b>, ulardan 120+ to'lovchi obunachi</li>
+          <li><b>20 000+ faol xaridor</b> — Toshkent va 3 yirik shahar</li>
+          <li><b>~$2.5 mln kumulyativ GMV</b> platforma orqali</li>
+          <li><b>Oylik operatsion nolga chiqish</b> — Seed raundiga tayyor holat</li>
+          <li><b>Payme / Click</b> onlayn to'lov integratsiyasi ishga tushadi</li>
+          <li><b>Logistika hamkorlari</b> bilan yetkazish va montaj shartnomalari</li>
+        </ul>
+
+        <div style="margin-top:26px;padding:20px 22px;background:var(--sand);border-radius:16px">
+          <div style="font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--terracotta-deep);margin-bottom:10px">
+            Nega aynan biz
+          </div>
+          <p style="font-size:13.5px;line-height:1.6;color:var(--ink-soft)">
+            Mahsulot allaqachon qurilgan va ishlayapti — biz g'oyani emas, ijroni
+            moliyalashtirishni so'rayapmiz. Texnik risk ortda qoldi; oldinda faqat
+            bozorga chiqish turibdi.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note" style="display:flex;justify-content:space-between;align-items:flex-end">
+    <div>
+      <b>Woody</b> · Zettacode MCHJ · Toshkent, O'zbekiston<br>
+      woody.uz
+    </div>
+    <div style="text-align:right">
+      <b>Eldor Turg'unov</b> · Asoschi<br>
+      eldorturgunoff@gmail.com · +998 94 643 37 33
+    </div>
+  </div>
+</section>
+
+</body>
+</html>
