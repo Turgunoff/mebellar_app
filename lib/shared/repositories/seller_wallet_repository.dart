@@ -34,6 +34,11 @@ abstract class SellerWalletRepository {
   /// Withdraw a pending manual top-up (`PATCH /seller/wallet/topups/{id}/cancel`).
   Future<void> cancelTopUp(String topUpId);
 
+  /// Withdraw a pending online deposit intent — e.g. an abandoned or failed
+  /// Payme/Click checkout — so a new attempt isn't blocked
+  /// (`PATCH /seller/wallet/deposit/{id}/cancel`).
+  Future<void> cancelDeposit(String depositId);
+
   /// Ledger history (`GET /seller/wallet/transactions`).
   Future<List<WalletTransaction>> fetchTransactions({
     int limit = 50,

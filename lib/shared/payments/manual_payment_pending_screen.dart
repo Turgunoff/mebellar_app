@@ -30,8 +30,13 @@ sealed class ManualPaymentPendingArgs {
 
   bool get isManualReview;
 
+  /// The pending window this screen counts down against. Manual-review flows
+  /// mirror the backend's 24h moderation SLA; online (Payme/Click) flows use
+  /// their own, much shorter window — see [WalletDepositPendingArgs].
+  Duration get slaWindow => const Duration(hours: 24);
+
   Duration get slaRemaining {
-    final due = submittedAt.add(const Duration(hours: 24));
+    final due = submittedAt.add(slaWindow);
     final left = due.difference(DateTime.now());
     return left.isNegative ? Duration.zero : left;
   }
@@ -99,6 +104,15 @@ final class WalletDepositPendingArgs extends ManualPaymentPendingArgs {
 
   @override
   bool get isManualReview => false;
+
+  // Payme/Click is a "pay right now in the app" flow, not an admin-review
+  // queue — a 24h countdown oversells how long the seller actually has and
+  // doesn't match the backend's own transaction lifecycle (Payme's protocol
+  // auto-cancels a created-but-unperformed transaction after 12h; see
+  // `TRANSACTION_TIMEOUT_MS` in woody_backend/app/services/payme_repos.py).
+  // 15 minutes nudges the seller to finish the checkout immediately.
+  @override
+  Duration get slaWindow => const Duration(minutes: 15);
 
   @override
   bool get isStillPending => _deposit.isPending;
@@ -287,6 +301,33 @@ class _ManualPaymentPendingScreenState
     );
     if (ok != true || !mounted) return;
     await sl<ArTokenRepository>().cancelPurchase(purchase.id);
+    if (mounted) Navigator.of(context).pop();
+  }
+
+  Future<void> _confirmCancelDeposit() async {
+    final deposit = (_live as WalletDepositPendingArgs).deposit;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(tr('tariff.cancel_title')),
+        content: Text(tr('tariff.cancel_subtitle')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(tr('common.back')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            child: Text(tr('orders.cancel')),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    await sl<SellerWalletRepository>().cancelDeposit(deposit.id);
     if (mounted) Navigator.of(context).pop();
   }
 
@@ -534,7 +575,8 @@ class _ManualPaymentPendingScreenState
         purchase.canCancel && _live.isStillPending,
       TariffSubscriptionPendingArgs(:final subscription) =>
         subscription.status.isPending && _live.isStillPending,
-      WalletDepositPendingArgs() => false,
+      WalletDepositPendingArgs(:final deposit) =>
+        deposit.canCancel && _live.isStillPending,
     };
     return Scaffold(
       backgroundColor: c.background,
@@ -564,6 +606,7 @@ class _ManualPaymentPendingScreenState
           const SizedBox(height: 28),
           _SlaCard(
             remaining: _live.slaRemaining,
+            window: _live.slaWindow,
             submittedAt: _live.submittedAt,
             manualReview: manualReview,
           ),
@@ -603,7 +646,7 @@ class _ManualPaymentPendingScreenState
                   WalletTopUpPendingArgs() => _confirmCancelWallet,
                   ArTokenPurchasePendingArgs() => _confirmCancelAr,
                   TariffSubscriptionPendingArgs() => _confirmCancelTariff,
-                  WalletDepositPendingArgs() => null,
+                  WalletDepositPendingArgs() => _confirmCancelDeposit,
                 },
                 style: TextButton.styleFrom(
                   foregroundColor: c.negative,
@@ -737,11 +780,13 @@ class _PendingHero extends StatelessWidget {
 class _SlaCard extends StatelessWidget {
   const _SlaCard({
     required this.remaining,
+    required this.window,
     required this.submittedAt,
     required this.manualReview,
   });
 
   final Duration remaining;
+  final Duration window;
   final DateTime submittedAt;
   final bool manualReview;
 
@@ -759,9 +804,8 @@ class _SlaCard extends StatelessWidget {
     final c = SellerColors.of(context);
     final lang = context.locale.languageCode;
     final accent = manualReview ? c.progress : c.primary;
-    const total = Duration(hours: 24);
-    final elapsed = total - remaining;
-    final progress = (elapsed.inSeconds / total.inSeconds).clamp(0.0, 1.0);
+    final elapsed = window - remaining;
+    final progress = (elapsed.inSeconds / window.inSeconds).clamp(0.0, 1.0);
     final parts = _formatRemaining(remaining).split(':');
 
     return Container(

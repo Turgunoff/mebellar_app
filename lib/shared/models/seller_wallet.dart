@@ -115,6 +115,8 @@ class WalletDeposit extends Equatable {
 
   bool get isPending => status == 'pending';
 
+  bool get canCancel => isPending;
+
   @override
   List<Object?> get props => [id, amount, provider, status, createdAt];
 }
