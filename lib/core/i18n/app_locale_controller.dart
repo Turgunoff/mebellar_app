@@ -1,12 +1,18 @@
 import 'package:flutter/widgets.dart';
+import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
+import '../auth/auth_repository.dart';
+import '../logging/app_logger.dart';
 import 'app_translations.dart';
 
 /// Controls the active locale across the entire app. Wraps the value in a
 /// `ValueNotifier<Locale>` so `MaterialApp.router(locale: ...)` rebuilds
 /// when the user changes language. Persists the choice to the Hive
 /// `settings` box so the next launch reuses it.
+///
+/// Also best-effort syncs `preferred_language` to woody_backend (`PATCH /me`)
+/// so FCM pushes arrive in the same language as the UI.
 class AppLocaleController extends ValueNotifier<Locale> {
   AppLocaleController._(super.value, this._box);
 
@@ -41,6 +47,26 @@ class AppLocaleController extends ValueNotifier<Locale> {
     if (next == value) return;
     value = next;
     await _box.put(_settingsKey, next.languageCode);
+    await _syncPreferredLanguage(next.languageCode);
+  }
+
+  /// Push the current UI language to the server when the user is signed in.
+  /// Safe to call after login / resume — no-ops when unauthenticated.
+  Future<void> syncPreferredLanguageToServer() =>
+      _syncPreferredLanguage(value.languageCode);
+
+  Future<void> _syncPreferredLanguage(String code) async {
+    try {
+      final sl = GetIt.instance;
+      if (!sl.isRegistered<AuthRepository>()) return;
+      final repo = sl<AuthRepository>();
+      if (!repo.isAuthenticated) return;
+      await repo.updateProfile(preferredLanguage: code);
+    } catch (e, st) {
+      // Never block a language switch on a network blip — FCM may stay on
+      // the previous language until the next successful sync.
+      appLog.handle(e, st, 'preferred_language sync failed');
+    }
   }
 
   static Locale? _parseLocale(String? code) {

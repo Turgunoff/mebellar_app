@@ -298,6 +298,8 @@ void _wireAuthToPushTokens() {
     if (state is AppAuthAuthenticated) {
       pushService.syncTokenForUser(state.userId);
       unawaited(modeCubit.markSessionActive());
+      // Keep FCM language aligned with the UI locale (preferred_language).
+      unawaited(sl<AppLocaleController>().syncPreferredLanguageToServer());
     } else if (state is AppAuthUnauthenticated && fromStream) {
       // Only demote on a genuine logged-out *transition* delivered by the
       // stream (manual logout or a 401-forced sign-out). The cubit's initial

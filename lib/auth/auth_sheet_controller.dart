@@ -162,6 +162,9 @@ class AuthSheetController extends ChangeNotifier {
       try {
         final me = await repo.fetchMe();
         if (me.hasProfile) {
+          unawaited(
+            maybeAppLocaleController()?.syncPreferredLanguageToServer(),
+          );
           onCompleted?.call();
         } else {
           _step = AuthStep.profile;
@@ -207,7 +210,10 @@ class AuthSheetController extends ChangeNotifier {
     _errorMessage = null;
     _notify();
     try {
-      final me = await repo.updateProfile(fullName: name);
+      final me = await repo.updateProfile(
+        fullName: name,
+        preferredLanguage: maybeAppLocaleController()?.value.languageCode,
+      );
       appLog.info('✓ Profile updated');
       if (sl.isRegistered<ProfileCubit>()) {
         sl<ProfileCubit>().applySignup(
