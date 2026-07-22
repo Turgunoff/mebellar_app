@@ -22,6 +22,7 @@ import '../../../../shared/repositories/payment_repository.dart';
 import '../../../../shared/repositories/seller_wallet_repository.dart';
 import '../../../../shared/payments/manual_payment_pending_screen.dart';
 import '../../../../shared/payments/payment_pending_copy.dart';
+import '../../../../shared/payments/refresh_payment_remote_config.dart';
 import '../../../../shared/payments/seller_payment_refresh.dart';
 import '../../../../shared/repositories/tariff_repository.dart';
 import '../../../../shared/utils/image_upload.dart';
@@ -171,7 +172,12 @@ class _WalletView extends StatelessWidget {
           final wallet = state.wallet;
           return BrandRefreshIndicator(
             color: AppColors.sellerPrimary,
-            onRefresh: () => context.read<SellerWalletCubit>().refresh(),
+            onRefresh: () async {
+              await Future.wait([
+                context.read<SellerWalletCubit>().refresh(),
+                refreshPaymentRemoteConfig(),
+              ]);
+            },
             child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 36),
               physics: const BouncingScrollPhysics(
@@ -751,9 +757,25 @@ class _TopUpSectionState extends State<_TopUpSection> {
   void initState() {
     super.initState();
     _amountCtrl.addListener(() => setState(() {}));
-    if (!_showPayModeSwitcher) {
+    RemoteConfig.instance.addListener(_onPaymentRemoteConfig);
+    _syncFromRemoteConfig();
+    unawaited(refreshPaymentRemoteConfig());
+  }
+
+  void _onPaymentRemoteConfig() {
+    if (!mounted) return;
+    setState(_syncFromRemoteConfig);
+  }
+
+  void _syncFromRemoteConfig() {
+    if (!_anyProviderEnabled) {
       _payMode = _WalletPayMode.card;
+      _provider = null;
       _ensureInstructions();
+      return;
+    }
+    if (_provider != null && !_providerIsEnabled(_provider!)) {
+      _provider = null;
     }
   }
 
@@ -773,6 +795,7 @@ class _TopUpSectionState extends State<_TopUpSection> {
 
   @override
   void dispose() {
+    RemoteConfig.instance.removeListener(_onPaymentRemoteConfig);
     _amountCtrl.dispose();
     super.dispose();
   }

@@ -19,6 +19,7 @@ import '../../orders/cubit/profile_orders_cubit.dart';
 import '../../../../shared/models/cart_item_model.dart';
 import '../../../../shared/payments/pending_payment.dart';
 import '../../../../shared/payments/pending_payment_service.dart';
+import '../../../../shared/payments/refresh_payment_remote_config.dart';
 import '../../../../shared/repositories/cart_repository.dart';
 import '../../../../shared/repositories/checkout_repository.dart';
 import '../../../../shared/repositories/payment_repository.dart';
@@ -421,13 +422,47 @@ class _DeliveryCard extends StatelessWidget {
 
 // ── Section 2: Payment ───────────────────────────────────────────────────────
 
-class _PaymentCard extends StatelessWidget {
+class _PaymentCard extends StatefulWidget {
   const _PaymentCard({required this.state, required this.pt});
   final CheckoutState state;
   final PremiumTokens pt;
 
   @override
+  State<_PaymentCard> createState() => _PaymentCardState();
+}
+
+class _PaymentCardState extends State<_PaymentCard> {
+  @override
+  void initState() {
+    super.initState();
+    RemoteConfig.instance.addListener(_onPaymentRemoteConfig);
+    unawaited(refreshPaymentRemoteConfig());
+  }
+
+  @override
+  void dispose() {
+    RemoteConfig.instance.removeListener(_onPaymentRemoteConfig);
+    super.dispose();
+  }
+
+  void _onPaymentRemoteConfig() {
+    if (!mounted) return;
+    final payment = widget.state.payment;
+    final stillOk = switch (payment) {
+      CheckoutPayment.cash => true,
+      CheckoutPayment.payme => RemoteConfig.instance.paymeEnabled,
+      CheckoutPayment.click => RemoteConfig.instance.clickEnabled,
+    };
+    if (!stillOk) {
+      context.read<CheckoutCubit>().selectPayment(CheckoutPayment.cash);
+    }
+    setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final state = widget.state;
+    final pt = widget.pt;
     return _SectionCard(
       pt: pt,
       child: Column(

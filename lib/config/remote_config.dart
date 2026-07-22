@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../core/logging/app_logger.dart';
@@ -15,8 +16,10 @@ import '../shared/payments/payment_provider_mode.dart';
 /// or `false` on a first launch, so tariff stays *off* rather than wrongly
 /// gating sellers behind a paywall.
 ///
-/// Read synchronously anywhere via [RemoteConfig.instance].
-class RemoteConfig {
+/// Read synchronously anywhere via [RemoteConfig.instance]. Listeners are
+/// notified when `payment_methods` (provider modes + min top-up) changes so
+/// payment surfaces can rebuild without an app restart.
+class RemoteConfig extends ChangeNotifier {
   RemoteConfig._();
 
   static final RemoteConfig instance = RemoteConfig._();
@@ -403,12 +406,22 @@ class RemoteConfig {
     );
   }
 
+  /// Re-fetch only `payment_methods` (provider modes + min wallet top-up).
+  /// Payment screens call this on open so an admin toggle takes effect without
+  /// forcing an app restart. Failures keep the cached value.
+  Future<void> refreshPaymentMethods(WoodyApiClient api, Box box) =>
+      _refreshPaymentMethods(api, box);
+
   Future<void> _refreshPaymentMethods(WoodyApiClient api, Box box) async {
     try {
       final body = await api
           .get<Map<String, dynamic>>('/catalog/settings/payment_methods')
           .timeout(const Duration(seconds: 6));
       final (:click, :payme, :minTopUpUzs) = parsePaymentMethods(body['value']);
+      final changed =
+          clickMode != click ||
+          paymeMode != payme ||
+          minWalletTopUp != minTopUpUzs;
       clickMode = click;
       paymeMode = payme;
       minWalletTopUp = minTopUpUzs;
@@ -419,16 +432,22 @@ class RemoteConfig {
         '[remote-config] payment_methods click=${click.name} payme=${payme.name} '
         'min_topup=$minTopUpUzs',
       );
+      if (changed) notifyListeners();
     } on ApiError catch (e, st) {
       if (e.isNotFound) {
         // Key not configured server-side — keep BOTH enabled (never a checkout
         // blackout) rather than resetting to off.
+        final changed =
+            clickMode != PaymentProviderMode.enabled ||
+            paymeMode != PaymentProviderMode.enabled ||
+            minWalletTopUp != defaultMinWalletTopUp;
         clickMode = PaymentProviderMode.enabled;
         paymeMode = PaymentProviderMode.enabled;
         minWalletTopUp = defaultMinWalletTopUp;
         await box.put(_clickModeHiveKey, PaymentProviderMode.enabled.name);
         await box.put(_paymeModeHiveKey, PaymentProviderMode.enabled.name);
         await box.put(_minWalletTopUpHiveKey, defaultMinWalletTopUp);
+        if (changed) notifyListeners();
         return;
       }
       appLog.handle(

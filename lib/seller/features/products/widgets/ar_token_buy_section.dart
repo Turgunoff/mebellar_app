@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -15,6 +16,7 @@ import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/payments/pending_payment.dart';
 import '../../../../shared/payments/pending_payment_service.dart';
 import '../../../../shared/payments/manual_payment_pending_screen.dart';
+import '../../../../shared/payments/refresh_payment_remote_config.dart';
 import '../../../../shared/repositories/payment_repository.dart';
 import '../../../../shared/repositories/tariff_repository.dart';
 import '../../../../shared/utils/image_upload.dart';
@@ -73,9 +75,31 @@ class _ArTokenBuySectionState extends State<ArTokenBuySection> {
   @override
   void initState() {
     super.initState();
-    if (!_showPayModeSwitcher) {
+    RemoteConfig.instance.addListener(_onPaymentRemoteConfig);
+    _syncFromRemoteConfig();
+    unawaited(refreshPaymentRemoteConfig());
+  }
+
+  @override
+  void dispose() {
+    RemoteConfig.instance.removeListener(_onPaymentRemoteConfig);
+    super.dispose();
+  }
+
+  void _onPaymentRemoteConfig() {
+    if (!mounted) return;
+    setState(_syncFromRemoteConfig);
+  }
+
+  void _syncFromRemoteConfig() {
+    if (!_anyProviderEnabled) {
       _payMode = _PayMode.card;
+      _provider = null;
       _ensureInstructions();
+      return;
+    }
+    if (_provider != null && !_providerIsEnabled(_provider!)) {
+      _provider = null;
     }
   }
 
