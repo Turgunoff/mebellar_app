@@ -1,5 +1,6 @@
 import '../../../../core/i18n/i18n.dart';
 import '../../../../core/network/woody_api_client.dart';
+import '../../../../shared/models/product_model.dart';
 import '../models/ai_chat_message.dart';
 
 /// A product the AI surfaced as a recommendation for the user's room. Mirrors
@@ -10,32 +11,64 @@ class AiRecommendedProduct {
     required this.id,
     required this.name,
     required this.price,
+    this.sellerId,
     this.imageUrl,
     this.shopName,
     this.arModelUrl,
+    this.arStatus,
+    this.hasDelivery = false,
+    this.deliveryPrice = 0,
   });
 
   final String id;
   final String name;
   final double price;
+
+  /// Owning seller id (`sellers.id` = JWT `sub`). Used to disable Add to Cart
+  /// when the viewer is looking at their own listing.
+  final String? sellerId;
   final String? imageUrl;
   final String? shopName;
 
   /// Public URL of the QC-approved 3D model. The backend only sends it for an
   /// approved model, so a non-null value drives the "3D / AR" card badge.
   final String? arModelUrl;
+  final String? arStatus;
+  final bool hasDelivery;
+  final double deliveryPrice;
 
   /// True when this recommendation has a published AR model.
   bool get hasAr => arModelUrl != null && arModelUrl!.isNotEmpty;
+
+  /// Compact [ProductModel] for cart / favorites / AR without leaving chat.
+  ProductModel toProductModel() => ProductModel(
+    id: id,
+    categoryId: '',
+    name: name,
+    price: price,
+    images: imageUrl == null ? const [] : [imageUrl!],
+    sellerId: sellerId,
+    shopName: shopName,
+    stock: 0,
+    createdAt: DateTime.now(),
+    hasDelivery: hasDelivery,
+    deliveryPrice: deliveryPrice,
+    arModelUrl: arModelUrl,
+    arStatus: hasAr ? 'approved' : (arStatus ?? 'none'),
+  );
 
   factory AiRecommendedProduct.fromJson(Map<String, dynamic> json) {
     return AiRecommendedProduct(
       id: json['id'] as String,
       name: json['name'] as String? ?? '',
       price: (json['price'] as num?)?.toDouble() ?? 0,
+      sellerId: json['seller_id'] as String?,
       imageUrl: json['image_url'] as String?,
       shopName: json['shop_name'] as String?,
       arModelUrl: json['ar_model_url'] as String?,
+      arStatus: json['ar_status'] as String?,
+      hasDelivery: json['has_delivery'] as bool? ?? false,
+      deliveryPrice: (json['delivery_price'] as num?)?.toDouble() ?? 0,
     );
   }
 }
@@ -48,11 +81,17 @@ class AiDesignerReply {
     required this.available,
     required this.reply,
     required this.products,
+    this.state,
+    this.quickReplies = const [],
     this.logId,
   });
 
   final bool available;
   final String reply;
+
+  /// Server pacing state: `clarifying` | `recommending` | `refuse`.
+  final String? state;
+  final List<String> quickReplies;
   final List<AiRecommendedProduct> products;
 
   /// Id of the persisted chat-log row, echoed back so the UI can rate this
@@ -68,9 +107,19 @@ class AiDesignerReply {
               .map(AiRecommendedProduct.fromJson)
               .toList(growable: false)
         : const <AiRecommendedProduct>[];
+    final rawChips = json['quick_replies'];
+    final chips = rawChips is List
+        ? rawChips
+              .whereType<String>()
+              .map((s) => s.trim())
+              .where((s) => s.isNotEmpty)
+              .toList(growable: false)
+        : const <String>[];
     return AiDesignerReply(
       available: json['available'] as bool? ?? false,
       reply: json['reply'] as String? ?? '',
+      state: json['state'] as String?,
+      quickReplies: chips,
       products: products,
       logId: json['log_id'] as String?,
     );

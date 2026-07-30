@@ -8,7 +8,7 @@ import 'product_data_source.dart';
 /// Caches a deliberately narrow set of the read methods — only the calls
 /// where the cache key space is bounded and re-visit probability is high:
 ///
-///   * [listFeed] — the home trending feed's first page (offset 0, popular sort).
+///   * [listFeed] — the home trending feed's first page (offset 0, recommended sort).
 ///   * [fetchForYou] — guest for-you shelf only (`personalized: false`).
 ///   * [getById] — single product detail. Bounded by product count. Hit on
 ///     deep-link, cart→detail navigation, favourites→detail.
@@ -43,13 +43,13 @@ class CachedProductDataSource extends ProductDataSource {
   // Key prefixes — namespaced so a future `invalidate('products:')` call
   // wipes every product-shaped row in one pass without touching banners /
   // categories.
-  static const String _kPopular = 'products:popular:';
+  static const String _kFeed = 'products:recommended:';
   static const String _kForYou = 'products:forYou:';
   static const String _kById = 'products:byId:';
   static const String _kSimilar = 'products:similar:';
   static const String _kByCategory = 'products:byCategory:';
 
-  static const Duration _ttlPopular = Duration(hours: 1);
+  static const Duration _ttlFeed = Duration(hours: 1);
   static const Duration _ttlForYou = Duration(hours: 1);
   static const Duration _ttlById = Duration(hours: 4);
   static const Duration _ttlSimilar = Duration(hours: 4);
@@ -97,7 +97,7 @@ class CachedProductDataSource extends ProductDataSource {
   @override
   ProductFeedPage? peekFeed() {
     return _cache.getJson<ProductFeedPage?>(
-      '$_kPopular$kHomeFeedPageSize',
+      '$_kFeed$kHomeFeedPageSize',
       _decodeFeed,
     );
   }
@@ -137,11 +137,11 @@ class CachedProductDataSource extends ProductDataSource {
   Future<ProductFeedPage> listFeed({
     int limit = kHomeFeedPageSize,
     int offset = 0,
-    HomeFeedSort sort = HomeFeedSort.popular,
+    HomeFeedSort sort = HomeFeedSort.recommended,
     List<String> excludeIds = const [],
   }) async {
     final cacheable =
-        offset == 0 && sort == HomeFeedSort.popular && excludeIds.isEmpty;
+        offset == 0 && sort == HomeFeedSort.recommended && excludeIds.isEmpty;
     if (!cacheable) {
       return _inner.listFeed(
         limit: limit,
@@ -151,7 +151,7 @@ class CachedProductDataSource extends ProductDataSource {
       );
     }
 
-    final key = '$_kPopular$limit';
+    final key = '$_kFeed$limit';
     try {
       final fresh = await _inner.listFeed(
         limit: limit,
@@ -162,7 +162,7 @@ class CachedProductDataSource extends ProductDataSource {
       _cache.putJson(key, {
         'items': fresh.items.map((p) => p.toJson()).toList(),
         'total': fresh.total,
-      }, ttl: _ttlPopular);
+      }, ttl: _ttlFeed);
       return fresh;
     } catch (e, st) {
       final cached = _cache.getJson<ProductFeedPage?>(key, _decodeFeed);

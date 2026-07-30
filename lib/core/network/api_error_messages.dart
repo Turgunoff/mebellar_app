@@ -17,6 +17,7 @@ const Map<String, String> _codeMessages = {
   'multi_shop_cart_not_supported': 'error.multi_shop_cart',
   'invalid_attachment_url': 'error.attachment_invalid',
   'wallet_suspended': 'error.wallet_suspended',
+  'self_purchase_not_allowed': 'ai_designer.self_purchase_warning',
   // Checkout deep-links (POST /orders/{id}/pay/payme · /pay/click).
   'order_not_found': 'error.order_not_found',
   'order_not_payable': 'error.order_not_payable',

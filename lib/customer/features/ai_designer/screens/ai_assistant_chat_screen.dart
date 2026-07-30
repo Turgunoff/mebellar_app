@@ -12,9 +12,14 @@ import 'package:lottie/lottie.dart';
 import '../../../../auth/auth_bottom_sheet.dart';
 import '../../../../core/auth/auth_cubit.dart';
 import '../../../../core/i18n/i18n.dart';
+import '../../../../shared/models/product.dart';
 import '../../../../shared/widgets/product_ar_badge.dart';
 import '../../../widgets/price_format.dart';
+import '../../../widgets/top_toast.dart';
+import '../../cart/bloc/cart_bloc.dart';
+import '../../favorites/bloc/favorites_bloc.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
+import '../../product_list/widgets/ar_entry_points.dart';
 import '../cubit/ai_designer_cubit.dart';
 import '../data/ai_designer_repository.dart';
 import '../models/ai_chat_message.dart';
@@ -102,6 +107,7 @@ class AiAssistantChatScreen extends StatelessWidget {
         child: Column(
           children: const [
             Expanded(child: _MessageList()),
+            _QuickRepliesBar(),
             _Composer(),
           ],
         ),
@@ -510,7 +516,7 @@ class _ProductShelf extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(top: 8, bottom: 2),
       child: SizedBox(
-        height: 196,
+        height: 248,
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
           physics: const BouncingScrollPhysics(),
@@ -531,11 +537,20 @@ class _ProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
+    final isFav = context.select<FavoritesBloc, bool>(
+      (b) => b.state.isFavorite(product.id),
+    );
+    final userId = context.select<AuthCubit, String?>(
+      (c) => c.state is AppAuthAuthenticated
+          ? (c.state as AppAuthAuthenticated).userId
+          : null,
+    );
+    final isOwnProduct = product.toProductModel().isOwnedBy(userId);
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () => context.push('/product-detail/${product.id}'),
       child: Container(
-        width: 150,
+        width: 156,
         decoration: BoxDecoration(
           color: pt.surface,
           borderRadius: BorderRadius.circular(16),
@@ -580,11 +595,26 @@ class _ProductCard extends StatelessWidget {
                       left: 8,
                       child: ProductArBadge(compact: true),
                     ),
+                  Positioned(
+                    top: 6,
+                    right: 6,
+                    child: _CardIconButton(
+                      icon: isFav ? Iconsax.heart : Iconsax.heart_copy,
+                      filled: isFav,
+                      tooltip: tr('ai_designer.favorite'),
+                      onTap: () {
+                        final model = product.toProductModel();
+                        context.read<FavoritesBloc>().add(
+                          FavoriteToggled(Product.fromModel(model)),
+                        );
+                      },
+                    ),
+                  ),
                 ],
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -610,12 +640,182 @@ class _ProductCard extends StatelessWidget {
                       color: PremiumTokens.accent,
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _CardActionButton(
+                          label: isOwnProduct
+                              ? tr('ai_designer.your_own_product')
+                              : tr('ai_designer.add_to_cart'),
+                          onTap: isOwnProduct
+                              ? null
+                              : () {
+                                  context.read<CartBloc>().add(
+                                    AddToCart(product.toProductModel()),
+                                  );
+                                  showTopToast(
+                                    context,
+                                    message: tr('ai_designer.added_to_cart'),
+                                  );
+                                },
+                        ),
+                      ),
+                      if (product.hasAr) ...[
+                        const SizedBox(width: 6),
+                        _CardIconButton(
+                          icon: Iconsax.box_1,
+                          tooltip: tr('ai_designer.view_in_ar'),
+                          onTap: () => openBuyerArViewer(
+                            context,
+                            product.toProductModel(),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ],
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _CardActionButton extends StatelessWidget {
+  const _CardActionButton({required this.label, this.onTap});
+
+  final String label;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
+    final enabled = onTap != null;
+    return Material(
+      color: enabled
+          ? PremiumTokens.accent.withValues(alpha: 0.12)
+          : pt.imageBg,
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: PremiumTokens.body(
+              size: 11,
+              weight: FontWeight.w700,
+              color: enabled ? PremiumTokens.accent : pt.grey,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CardIconButton extends StatelessWidget {
+  const _CardIconButton({
+    required this.icon,
+    required this.onTap,
+    this.tooltip,
+    this.filled = false,
+  });
+
+  final IconData icon;
+  final VoidCallback onTap;
+  final String? tooltip;
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
+    final child = Material(
+      color: filled
+          ? PremiumTokens.accent.withValues(alpha: 0.14)
+          : pt.surface.withValues(alpha: 0.92),
+      shape: const CircleBorder(),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(7),
+          child: Icon(
+            icon,
+            size: 16,
+            color: filled ? PremiumTokens.accent : pt.dark,
+          ),
+        ),
+      ),
+    );
+    if (tooltip == null) return child;
+    return Tooltip(message: tooltip!, child: child);
+  }
+}
+
+/// Suggested replies from the latest AI turn — tappable chips above the
+/// composer. Hidden while empty or while a reply is in flight.
+class _QuickRepliesBar extends StatelessWidget {
+  const _QuickRepliesBar();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<AiDesignerCubit, AiDesignerState>(
+      buildWhen: (a, b) =>
+          a.quickReplies != b.quickReplies || a.pending != b.pending,
+      builder: (context, state) {
+        if (state.sending || state.quickReplies.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        final pt = PremiumTokens.of(context);
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+          child: SizedBox(
+            height: 36,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              itemCount: state.quickReplies.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
+              itemBuilder: (_, i) {
+                final chip = state.quickReplies[i];
+                return Material(
+                  color: pt.surface,
+                  borderRadius: BorderRadius.circular(18),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(18),
+                    onTap: () =>
+                        context.read<AiDesignerCubit>().sendMessage(text: chip),
+                    child: Container(
+                      alignment: Alignment.center,
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: pt.divider),
+                      ),
+                      child: Text(
+                        chip,
+                        style: PremiumTokens.body(
+                          size: 13,
+                          weight: FontWeight.w600,
+                          color: pt.dark,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -815,24 +1015,16 @@ class _ComposerState extends State<_Composer> {
     return showModalBottomSheet<ImageSource>(
       context: context,
       backgroundColor: pt.surface,
+      showDragHandle: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
       builder: (ctx) => SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(8, 8, 8, 16),
+          padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 36,
-                height: 4,
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                decoration: BoxDecoration(
-                  color: pt.greyLight,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
               ListTile(
                 leading: Icon(Iconsax.gallery, color: pt.dark),
                 title: Text(

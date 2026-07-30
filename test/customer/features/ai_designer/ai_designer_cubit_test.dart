@@ -94,6 +94,59 @@ void main() {
     expect(cubit.state.sending, isFalse);
   });
 
+  test('emits quick replies and products from the structured reply', () async {
+    when(
+      () => repo.chat(
+        message: any(named: 'message'),
+        imageUrl: any(named: 'imageUrl'),
+        imagePath: any(named: 'imagePath'),
+        history: any(named: 'history'),
+      ),
+    ).thenAnswer(
+      (_) async => AiDesignerReply(
+        available: true,
+        reply: 'Mana divanlar',
+        state: 'recommending',
+        quickReplies: const ['Arzonroq', 'Yana'],
+        products: [
+          AiRecommendedProduct(
+            id: 'p1',
+            name: 'Divan',
+            price: 1e6,
+            arModelUrl: 'https://cdn.example/a.glb',
+          ),
+        ],
+      ),
+    );
+    final cubit = build();
+    await cubit.sendMessage(text: 'zal uchun divan');
+
+    expect(cubit.state.quickReplies, ['Arzonroq', 'Yana']);
+    final aiId = cubit.state.messages.last.id;
+    expect(cubit.state.products[aiId], hasLength(1));
+    expect(cubit.state.products[aiId]!.single.hasAr, isTrue);
+
+    // Next send clears chips until the new reply lands.
+    when(
+      () => repo.chat(
+        message: any(named: 'message'),
+        imageUrl: any(named: 'imageUrl'),
+        imagePath: any(named: 'imagePath'),
+        history: any(named: 'history'),
+      ),
+    ).thenAnswer(
+      (_) async => const AiDesignerReply(
+        available: true,
+        reply: 'ok',
+        products: [],
+        quickReplies: [],
+      ),
+    );
+    final pending = cubit.sendMessage(text: 'Arzonroq');
+    expect(cubit.state.quickReplies, isEmpty);
+    await pending;
+  });
+
   test('does not duplicate the in-flight turn into history', () async {
     final cubit = build();
     await cubit.sendMessage(text: 'birinchi');

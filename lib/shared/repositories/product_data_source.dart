@@ -206,7 +206,7 @@ abstract class ProductDataSource {
   Future<ProductFeedPage> listFeed({
     int limit = kHomeFeedPageSize,
     int offset = 0,
-    HomeFeedSort sort = HomeFeedSort.popular,
+    HomeFeedSort sort = HomeFeedSort.recommended,
     List<String> excludeIds = const [],
   });
 
@@ -229,7 +229,7 @@ abstract class ProductDataSource {
   Future<List<ProductModel>> listSimilar(String productId, {int limit = 10});
 
   /// Synchronous read of the cached first trending page (offset 0, default
-  /// [HomeFeedSort.popular] sort). Returns `null` on cache miss or for
+  /// [HomeFeedSort.recommended] sort). Returns `null` on cache miss or for
   /// non-caching implementations.
   ProductFeedPage? peekFeed() => null;
 
@@ -405,7 +405,7 @@ class MockProductDataSource extends ProductDataSource {
   Future<ProductFeedPage> listFeed({
     int limit = kHomeFeedPageSize,
     int offset = 0,
-    HomeFeedSort sort = HomeFeedSort.popular,
+    HomeFeedSort sort = HomeFeedSort.recommended,
     List<String> excludeIds = const [],
   }) async {
     await Future<void>.delayed(_delay);

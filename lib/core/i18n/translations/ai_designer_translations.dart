@@ -29,6 +29,13 @@ const Map<String, dynamic> aiDesignerUz = {
   'image_limit_reached':
       'Kunlik rasm yuborish chegarasiga yetdingiz. Matn yuborishda davom '
       'etishingiz mumkin.',
+  'add_to_cart': 'Savatga',
+  'added_to_cart': 'Savatga qo\'shildi',
+  'your_own_product': 'Sizning mahsulotingiz',
+  'self_purchase_warning':
+      'O\'z do\'koningiz mahsulotini savatga qo\'sha olmaysiz.',
+  'favorite': 'Sevimli',
+  'view_in_ar': 'AR da ko\'rish',
 };
 
 const Map<String, dynamic> aiDesignerRu = {
@@ -58,6 +65,13 @@ const Map<String, dynamic> aiDesignerRu = {
   'image_expired': 'Срок хранения фото истёк',
   'image_limit_reached':
       'Вы достигли дневного лимита загрузки фото. Можете продолжить текстом.',
+  'add_to_cart': 'В корзину',
+  'added_to_cart': 'Добавлено в корзину',
+  'your_own_product': 'Ваш товар',
+  'self_purchase_warning':
+      'Вы не можете добавить в корзину товар собственного магазина.',
+  'favorite': 'В избранное',
+  'view_in_ar': 'Смотреть в AR',
 };
 
 const Map<String, dynamic> aiDesignerEn = {
@@ -87,4 +101,11 @@ const Map<String, dynamic> aiDesignerEn = {
   'image_expired': 'Photo expired',
   'image_limit_reached':
       'You\'ve hit today\'s photo upload limit. You can keep chatting with text.',
+  'add_to_cart': 'Add to cart',
+  'added_to_cart': 'Added to cart',
+  'your_own_product': 'Your product',
+  'self_purchase_warning':
+      'You cannot add products from your own store to the cart.',
+  'favorite': 'Favorite',
+  'view_in_ar': 'View in AR',
 };

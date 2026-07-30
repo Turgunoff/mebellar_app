@@ -243,6 +243,53 @@ void main() {
   });
 
   test(
+    'chat parses quick_replies, state, and enriched product fields',
+    () async {
+      final h = make(
+        (_) => (
+          200,
+          jsonEncode({
+            'available': true,
+            'reply': 'Mana divanlar',
+            'state': 'recommending',
+            'quick_replies': ['Arzonroq', 'Yana ko\'rsat'],
+            'products': [
+              {
+                'id': '11111111-1111-1111-1111-111111111111',
+                'name': 'Divan Pro',
+                'price': 4500000,
+                'seller_id': '22222222-2222-2222-2222-222222222222',
+                'image_url': 'https://cdn.example/p.webp',
+                'shop_name': 'Atelier',
+                'ar_model_url': 'https://cdn.example/p.glb',
+                'ar_status': 'approved',
+                'has_delivery': true,
+                'delivery_price': 50000,
+              },
+            ],
+            'log_id': 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+          }),
+        ),
+      );
+
+      final reply = await h.repo.chat(message: 'zal uchun divan');
+      expect(reply.state, 'recommending');
+      expect(reply.quickReplies, ['Arzonroq', "Yana ko'rsat"]);
+      expect(reply.products, hasLength(1));
+      final p = reply.products.single;
+      expect(p.sellerId, '22222222-2222-2222-2222-222222222222');
+      expect(p.hasAr, isTrue);
+      expect(p.arStatus, 'approved');
+      expect(p.hasDelivery, isTrue);
+      expect(p.deliveryPrice, 50000);
+      final model = p.toProductModel();
+      expect(model.sellerId, p.sellerId);
+      expect(model.arStatus, 'approved');
+      expect(model.hasDelivery, isTrue);
+    },
+  );
+
+  test(
     'fetchHistory restores image_url, and flags a purged photo as expired',
     () async {
       final h = make(

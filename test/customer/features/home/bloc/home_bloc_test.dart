@@ -297,7 +297,7 @@ void main() {
             .having((s) => s.sort, 'sort', HomeFeedSort.discount)
             .having((s) => s.feedReloading, 'reloading', true),
         isA<HomeState>()
-            .having((s) => s.sort, 'sort reverted', HomeFeedSort.popular)
+            .having((s) => s.sort, 'sort reverted', HomeFeedSort.recommended)
             .having((s) => s.feedReloading, 'reloading', false)
             .having((s) => s.trending.length, 'len kept', 1)
             .having((s) => s.error, 'error', isNotNull),
@@ -310,9 +310,9 @@ void main() {
       seed: () => HomeState(
         status: HomeStatus.ready,
         trending: [_sp('p1')],
-        // sort defaults to popular.
+        // sort defaults to recommended.
       ),
-      act: (bloc) => bloc.add(const HomeSortChanged(HomeFeedSort.popular)),
+      act: (bloc) => bloc.add(const HomeSortChanged(HomeFeedSort.recommended)),
       expect: () => const <HomeState>[],
     );
   });

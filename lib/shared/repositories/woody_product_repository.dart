@@ -58,7 +58,7 @@ class WoodyProductRepository extends ProductDataSource {
   Future<ProductFeedPage> listFeed({
     int limit = kHomeFeedPageSize,
     int offset = 0,
-    HomeFeedSort sort = HomeFeedSort.popular,
+    HomeFeedSort sort = HomeFeedSort.recommended,
     List<String> excludeIds = const [],
   }) {
     final query = <String, dynamic>{

@@ -1076,20 +1076,12 @@ class _SortSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pt = PremiumTokens.of(context);
+    // Theme already draws the drag handle (`showDragHandle: true`) — don't
+    // add a second bar here or the sheet shows two stacked dashes.
     return SafeArea(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            margin: const EdgeInsets.only(top: 12, bottom: 8),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: pt.greyLight,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
             child: Align(

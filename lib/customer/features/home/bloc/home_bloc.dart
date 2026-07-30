@@ -52,7 +52,7 @@ class HomeState extends Equatable {
     this.forYou = const [],
     this.forYouPersonalized = false,
     this.trending = const [],
-    this.sort = HomeFeedSort.popular,
+    this.sort = HomeFeedSort.recommended,
     this.hasMore = false,
     this.loadingMore = false,
     this.feedReloading = false,
@@ -177,7 +177,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState>
   ) async {
     final cachedBanners = _bannerRepo.peek();
     final cachedForYou = _productSource.peekForYou();
-    final cachedTrending = state.sort == HomeFeedSort.popular
+    final cachedTrending = state.sort == HomeFeedSort.recommended
         ? _productSource.peekFeed()
         : null;
     final hasCache =

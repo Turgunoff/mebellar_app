@@ -18,6 +18,7 @@ class AiDesignerState extends Equatable {
     this.messages = const [],
     this.products = const {},
     this.localImages = const {},
+    this.quickReplies = const [],
     this.pending = 0,
     this.error,
   });
@@ -34,6 +35,10 @@ class AiDesignerState extends Equatable {
   /// so it renders in the thread for this session only.
   final Map<String, Uint8List> localImages;
 
+  /// Suggested replies from the latest AI turn — rendered as tappable chips
+  /// above the composer. Cleared when the user sends the next message.
+  final List<String> quickReplies;
+
   /// Number of AI replies currently in flight. A COUNTER, not a bool, so the
   /// user can fire consecutive messages without the UI blocking — the typing
   /// indicator stays up until the LAST reply lands.
@@ -49,6 +54,7 @@ class AiDesignerState extends Equatable {
     List<AiChatMessage>? messages,
     Map<String, List<AiRecommendedProduct>>? products,
     Map<String, Uint8List>? localImages,
+    List<String>? quickReplies,
     int? pending,
     String? error,
     bool clearError = false,
@@ -57,13 +63,21 @@ class AiDesignerState extends Equatable {
       messages: messages ?? this.messages,
       products: products ?? this.products,
       localImages: localImages ?? this.localImages,
+      quickReplies: quickReplies ?? this.quickReplies,
       pending: pending ?? this.pending,
       error: clearError ? null : (error ?? this.error),
     );
   }
 
   @override
-  List<Object?> get props => [messages, products, localImages, pending, error];
+  List<Object?> get props => [
+    messages,
+    products,
+    localImages,
+    quickReplies,
+    pending,
+    error,
+  ];
 }
 
 /// Drives the AI interior-designer chat.
@@ -221,6 +235,7 @@ class AiDesignerCubit extends Cubit<AiDesignerState> {
       state.copyWith(
         messages: [...state.messages, userMessage],
         localImages: localImages,
+        quickReplies: const [],
         pending: state.pending + 1,
         clearError: true,
       ),
@@ -290,6 +305,7 @@ class AiDesignerCubit extends Cubit<AiDesignerState> {
         state.copyWith(
           messages: [...state.messages, aiMessage],
           products: products,
+          quickReplies: reply.quickReplies,
           pending: state.pending - 1,
         ),
       );
