@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_fonts.dart';
@@ -8,6 +10,8 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/models/tariff.dart';
 import '../../../../shared/payments/manual_payment_pending_screen.dart';
+import '../../../../shared/payments/pending_payment.dart';
+import '../../../../shared/payments/seller_payment_refresh.dart';
 import '../../../../shared/repositories/tariff_repository.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/error_state.dart';
@@ -35,10 +39,35 @@ class TariffScreen extends StatelessWidget {
 
 // =============================================================================
 // 1. View — scaffold + listener that refreshes once admin resolves a pending
-//    upgrade so the snapshot reflects the new plan / new history row.
+//    upgrade so the snapshot reflects the new plan / new history row. Also
+//    listens to [SellerPaymentRefreshHub] so a Payme/Click tariff settle
+//    refetches without a manual pull-to-refresh.
 // =============================================================================
-class _TariffView extends StatelessWidget {
+class _TariffView extends StatefulWidget {
   const _TariffView();
+
+  @override
+  State<_TariffView> createState() => _TariffViewState();
+}
+
+class _TariffViewState extends State<_TariffView> {
+  StreamSubscription<PendingPaymentKind>? _refreshSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshSub = SellerPaymentRefreshHub.instance.stream.listen((kind) {
+      if (kind == PendingPaymentKind.subscription && mounted) {
+        context.read<TariffBloc>().add(const TariffRequested());
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshSub?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

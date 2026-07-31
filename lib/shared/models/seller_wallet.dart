@@ -159,6 +159,9 @@ class WalletTransaction extends Equatable {
     'commission' => 'Komissiya',
     'topup' => "Hisob to'ldirish",
     'refund' => 'Qaytarish',
+    'order_income' => 'Buyurtma daromadi',
+    'withdrawal_hold' => 'Pul yechish',
+    'withdrawal_refund' => 'Yechish qaytarildi',
     _ => 'Tuzatish',
   };
 
@@ -216,6 +219,60 @@ class WalletTopUp extends Equatable {
 
   @override
   List<Object?> get props => [id, amount, status, submittedAt, rejectionReason];
+}
+
+/// Card payout request (`wallet_withdrawals`) — amount held until admin review.
+class WalletWithdrawal extends Equatable {
+  const WalletWithdrawal({
+    required this.id,
+    required this.amount,
+    required this.cardNumber,
+    required this.status,
+    required this.createdAt,
+    this.rejectionReason,
+  });
+
+  factory WalletWithdrawal.fromJson(Map<String, dynamic> json) {
+    return WalletWithdrawal(
+      id: json['id'] as String,
+      amount: (json['amount'] as num?)?.toInt() ?? 0,
+      cardNumber: json['card_number'] as String? ?? '',
+      status: json['status'] as String? ?? 'pending',
+      createdAt:
+          _parseDate(json['created_at']) ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+      rejectionReason: json['rejection_reason'] as String?,
+    );
+  }
+
+  final String id;
+  final int amount;
+  final String cardNumber;
+  final String status;
+  final DateTime createdAt;
+  final String? rejectionReason;
+
+  bool get isPending => status == 'pending';
+
+  bool get isApproved => status == 'approved';
+
+  bool get isRejected => status == 'rejected';
+
+  String get maskedCard {
+    final digits = cardNumber.replaceAll(RegExp(r'\D'), '');
+    if (digits.length < 4) return cardNumber;
+    return '**** ${digits.substring(digits.length - 4)}';
+  }
+
+  @override
+  List<Object?> get props => [
+    id,
+    amount,
+    cardNumber,
+    status,
+    createdAt,
+    rejectionReason,
+  ];
 }
 
 /// "1234567" → "1 234 567" — the so'm thousands grouping used across seller

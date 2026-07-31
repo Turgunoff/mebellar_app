@@ -44,4 +44,14 @@ abstract class SellerWalletRepository {
     int limit = 50,
     int offset = 0,
   });
+
+  /// Request a card payout (`POST /seller/wallet/withdraw`). Holds the amount
+  /// immediately; admin approve keeps it, reject refunds.
+  Future<WalletWithdrawal> requestWithdrawal({
+    required int amount,
+    required String cardNumber,
+  });
+
+  /// Withdrawal requests (`GET /seller/wallet/withdrawals`).
+  Future<List<WalletWithdrawal>> fetchWithdrawals({String? status});
 }

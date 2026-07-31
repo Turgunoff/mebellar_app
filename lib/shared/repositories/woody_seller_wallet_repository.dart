@@ -89,4 +89,31 @@ class WoodySellerWalletRepository implements SellerWalletRepository {
         .map(WalletTransaction.fromJson)
         .toList(growable: false);
   }
+
+  @override
+  Future<WalletWithdrawal> requestWithdrawal({
+    required int amount,
+    required String cardNumber,
+  }) async {
+    final body = await _api.post<Map<String, dynamic>>(
+      '/seller/wallet/withdraw',
+      body: {
+        'amount': amount,
+        'card_number': cardNumber.replaceAll(RegExp(r'\D'), ''),
+      },
+    );
+    return WalletWithdrawal.fromJson(body);
+  }
+
+  @override
+  Future<List<WalletWithdrawal>> fetchWithdrawals({String? status}) async {
+    final body = await _api.get<List<dynamic>>(
+      '/seller/wallet/withdrawals',
+      query: {'status': ?status},
+    );
+    return body
+        .whereType<Map<String, dynamic>>()
+        .map(WalletWithdrawal.fromJson)
+        .toList(growable: false);
+  }
 }

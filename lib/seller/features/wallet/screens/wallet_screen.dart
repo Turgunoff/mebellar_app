@@ -148,7 +148,9 @@ class _WalletView extends StatelessWidget {
         ],
       ),
       body: BlocConsumer<SellerWalletCubit, SellerWalletState>(
-        listenWhen: (prev, next) => prev.depositStatus != next.depositStatus,
+        listenWhen: (prev, next) =>
+            prev.depositStatus != next.depositStatus ||
+            prev.withdrawStatus != next.withdrawStatus,
         listener: (context, state) {
           if (state.depositStatus == DepositStatus.failure) {
             _showSnack(
@@ -158,6 +160,23 @@ class _WalletView extends StatelessWidget {
               tone: _SnackTone.error,
             );
             context.read<SellerWalletCubit>().acknowledgeDepositResult();
+          }
+          if (state.withdrawStatus == WithdrawStatus.success) {
+            _showSnack(
+              context,
+              tr('seller.wallet_withdraw_success'),
+              icon: Iconsax.tick_circle,
+              tone: _SnackTone.success,
+            );
+            context.read<SellerWalletCubit>().acknowledgeWithdrawResult();
+          } else if (state.withdrawStatus == WithdrawStatus.failure) {
+            _showSnack(
+              context,
+              state.error ?? tr('seller.wallet_withdraw_failed'),
+              icon: Iconsax.close_circle,
+              tone: _SnackTone.error,
+            );
+            context.read<SellerWalletCubit>().acknowledgeWithdrawResult();
           }
         },
         builder: (context, state) {
@@ -728,6 +747,7 @@ class _TopUpSectionState extends State<_TopUpSection> {
         ? formatThousands(widget.suggestedAmount)
         : '',
   );
+  late final TextEditingController _cardCtrl = TextEditingController();
   PaymentProvider? _provider;
   _WalletPayMode? _payMode;
   File? _screenshotFile;
@@ -736,17 +756,29 @@ class _TopUpSectionState extends State<_TopUpSection> {
   bool get _anyProviderEnabled =>
       RemoteConfig.instance.anyOnlineProviderEnabled;
 
-  bool get _showPayModeSwitcher => _anyProviderEnabled;
+  /// Always show the switcher so sellers can reach card withdrawal even when
+  /// online top-up providers are temporarily off.
+  bool get _showPayModeSwitcher => true;
 
   int? get _parsedAmount {
     final amount = int.tryParse(_amountCtrl.text.replaceAll(' ', '')) ?? 0;
     return amount > 0 ? amount : null;
   }
 
+  String get _cardDigits => _cardCtrl.text.replaceAll(RegExp(r'\D'), '');
+
   bool get _amountValid {
     final amount = _parsedAmount;
     return amount != null && amount >= _minTopUpUzs;
   }
+
+  bool get _withdrawAmountValid {
+    final amount = _parsedAmount;
+    final balance = widget.state.wallet.balance;
+    return amount != null && amount > 0 && amount <= balance;
+  }
+
+  bool get _cardValid => _cardDigits.length >= 16 && _cardDigits.length <= 19;
 
   bool _providerIsEnabled(PaymentProvider provider) => switch (provider) {
     PaymentProvider.payme => RemoteConfig.instance.paymeEnabled,
@@ -757,6 +789,7 @@ class _TopUpSectionState extends State<_TopUpSection> {
   void initState() {
     super.initState();
     _amountCtrl.addListener(() => setState(() {}));
+    _cardCtrl.addListener(() => setState(() {}));
     RemoteConfig.instance.addListener(_onPaymentRemoteConfig);
     _syncFromRemoteConfig();
     unawaited(refreshPaymentRemoteConfig());
@@ -768,14 +801,11 @@ class _TopUpSectionState extends State<_TopUpSection> {
   }
 
   void _syncFromRemoteConfig() {
-    if (!_anyProviderEnabled) {
-      _payMode = _WalletPayMode.card;
-      _provider = null;
-      _ensureInstructions();
-      return;
-    }
     if (_provider != null && !_providerIsEnabled(_provider!)) {
       _provider = null;
+    }
+    if (_payMode == _WalletPayMode.online && !_anyProviderEnabled) {
+      _ensureInstructions();
     }
   }
 
@@ -789,7 +819,9 @@ class _TopUpSectionState extends State<_TopUpSection> {
       _payMode = mode;
       _provider = null;
       _screenshotFile = null;
-      if (mode == _WalletPayMode.card) _ensureInstructions();
+      if (mode == _WalletPayMode.online && !_anyProviderEnabled) {
+        _ensureInstructions();
+      }
     });
   }
 
@@ -797,6 +829,7 @@ class _TopUpSectionState extends State<_TopUpSection> {
   void dispose() {
     RemoteConfig.instance.removeListener(_onPaymentRemoteConfig);
     _amountCtrl.dispose();
+    _cardCtrl.dispose();
     super.dispose();
   }
 
@@ -932,6 +965,50 @@ class _TopUpSectionState extends State<_TopUpSection> {
     }
   }
 
+  Future<void> _submitWithdraw() async {
+    final amount = _parsedAmount;
+    final cubit = context.read<SellerWalletCubit>();
+    if (amount == null || amount <= 0) {
+      _showSnack(
+        context,
+        tr('seller.wallet_withdraw_enter_amount'),
+        icon: Iconsax.info_circle,
+        tone: _SnackTone.neutral,
+      );
+      return;
+    }
+    if (amount > cubit.state.wallet.balance) {
+      _showSnack(
+        context,
+        tr('seller.wallet_withdraw_amount_too_high'),
+        icon: Iconsax.info_circle,
+        tone: _SnackTone.neutral,
+      );
+      return;
+    }
+    if (!_cardValid) {
+      _showSnack(
+        context,
+        tr('seller.wallet_withdraw_enter_card'),
+        icon: Iconsax.info_circle,
+        tone: _SnackTone.neutral,
+      );
+      return;
+    }
+    FocusScope.of(context).unfocus();
+    final row = await cubit.requestWithdrawal(
+      amount: amount,
+      cardNumber: _cardDigits,
+    );
+    if (!mounted) return;
+    if (row != null) {
+      setState(() {
+        _amountCtrl.clear();
+        _cardCtrl.clear();
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
@@ -939,14 +1016,19 @@ class _TopUpSectionState extends State<_TopUpSection> {
         widget.state.depositStatus == DepositStatus.starting;
     final submittingManual =
         widget.state.manualTopUpStatus == ManualTopUpStatus.submitting;
-    final busy = submittingOnline || submittingManual;
+    final submittingWithdraw =
+        widget.state.withdrawStatus == WithdrawStatus.submitting;
+    final busy = submittingOnline || submittingManual || submittingWithdraw;
     final amount = _parsedAmount;
     final amountValid = _amountValid;
+    final isWithdraw = _payMode == _WalletPayMode.card;
     final canSubmitOnline =
         amountValid &&
         _provider != null &&
         _providerIsEnabled(_provider!) &&
         !submittingOnline;
+    final canSubmitWithdraw =
+        _withdrawAmountValid && _cardValid && !submittingWithdraw;
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -959,7 +1041,9 @@ class _TopUpSectionState extends State<_TopUpSection> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            tr('seller.wallet_topup_section_title'),
+            isWithdraw
+                ? tr('seller.ar_pay_mode_card')
+                : tr('seller.wallet_topup_section_title'),
             style: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 16,
@@ -970,7 +1054,9 @@ class _TopUpSectionState extends State<_TopUpSection> {
           ),
           const SizedBox(height: 6),
           Text(
-            tr('seller.wallet_topup_section_subtitle'),
+            isWithdraw
+                ? tr('seller.wallet_withdraw_section_subtitle')
+                : tr('seller.wallet_topup_section_subtitle'),
             style: TextStyle(
               fontFamily: AppFonts.seller,
               fontSize: 12.5,
@@ -1019,13 +1105,27 @@ class _TopUpSectionState extends State<_TopUpSection> {
               ),
             ),
           ),
-          if (amount != null && !amountValid) ...[
+          if (!isWithdraw && amount != null && !amountValid) ...[
             const SizedBox(height: 8),
             Text(
               tr(
                 'seller.wallet_min_topup_amount',
                 namedArgs: {'min': formatThousands(_minTopUpUzs)},
               ),
+              style: TextStyle(
+                fontFamily: AppFonts.seller,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.sellerNegative,
+              ),
+            ),
+          ],
+          if (isWithdraw &&
+              amount != null &&
+              amount > widget.state.wallet.balance) ...[
+            const SizedBox(height: 8),
+            Text(
+              tr('seller.wallet_withdraw_amount_too_high'),
               style: TextStyle(
                 fontFamily: AppFonts.seller,
                 fontSize: 12,
@@ -1054,8 +1154,17 @@ class _TopUpSectionState extends State<_TopUpSection> {
             ],
             const SizedBox(height: 14),
           ],
-          if (_payMode != _WalletPayMode.card &&
-              (_showPayModeSwitcher || _anyProviderEnabled)) ...[
+          if (isWithdraw)
+            _WalletWithdrawFields(
+              cardCtrl: _cardCtrl,
+              busy: busy,
+              submitting: submittingWithdraw,
+              canSubmit: canSubmitWithdraw,
+              onSubmit: _submitWithdraw,
+            )
+          else if (_payMode != _WalletPayMode.card &&
+              (_payMode == _WalletPayMode.online || _payMode == null) &&
+              _anyProviderEnabled) ...[
             Text(
               tr('seller.wallet_payment_method'),
               style: TextStyle(
@@ -1147,8 +1256,7 @@ class _TopUpSectionState extends State<_TopUpSection> {
                 ),
               ),
             ),
-          ] else if (_payMode == _WalletPayMode.card ||
-              (!_showPayModeSwitcher && !_anyProviderEnabled))
+          ] else if (_payMode == _WalletPayMode.online && !_anyProviderEnabled)
             _WalletManualTopUpSection(
               instructionsFuture: _instructionsFuture,
               amount: amount,
@@ -1167,6 +1275,131 @@ class _TopUpSectionState extends State<_TopUpSection> {
 }
 
 enum _WalletPayMode { online, card }
+
+class _WalletWithdrawFields extends StatelessWidget {
+  const _WalletWithdrawFields({
+    required this.cardCtrl,
+    required this.busy,
+    required this.submitting,
+    required this.canSubmit,
+    required this.onSubmit,
+  });
+
+  final TextEditingController cardCtrl;
+  final bool busy;
+  final bool submitting;
+  final bool canSubmit;
+  final VoidCallback onSubmit;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SellerColors.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TextField(
+          controller: cardCtrl,
+          enabled: !busy,
+          keyboardType: TextInputType.number,
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            LengthLimitingTextInputFormatter(19),
+            _CardNumberFormatter(),
+          ],
+          style: TextStyle(
+            fontFamily: AppFonts.seller,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: c.ink,
+            letterSpacing: 1.2,
+          ),
+          decoration: InputDecoration(
+            labelText: tr('seller.wallet_card_number_label'),
+            labelStyle: TextStyle(fontFamily: AppFonts.seller, color: c.grey),
+            prefixIcon: Icon(Iconsax.card, color: c.greyMid, size: 20),
+            filled: true,
+            fillColor: c.fillSoft,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 16,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: c.divider),
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: c.divider),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: c.primary, width: 1.6),
+            ),
+          ),
+        ),
+        const SizedBox(height: 18),
+        SizedBox(
+          width: double.infinity,
+          height: 54,
+          child: FilledButton.icon(
+            onPressed: canSubmit ? onSubmit : null,
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.sellerPrimary,
+              foregroundColor: Colors.white,
+              disabledBackgroundColor: AppColors.sellerPrimary.withValues(
+                alpha: 0.35,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            icon: submitting
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Iconsax.send_2, size: 19),
+            label: Text(
+              submitting
+                  ? tr('seller.wallet_withdraw_submitting')
+                  : tr('seller.wallet_withdraw_button'),
+              style: const TextStyle(
+                fontFamily: AppFonts.seller,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Groups card digits as `XXXX XXXX XXXX XXXX`.
+class _CardNumberFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final digits = newValue.text.replaceAll(RegExp(r'\D'), '');
+    final buf = StringBuffer();
+    for (var i = 0; i < digits.length; i++) {
+      if (i > 0 && i % 4 == 0) buf.write(' ');
+      buf.write(digits[i]);
+    }
+    final formatted = buf.toString();
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
 
 class _WalletPayModeBar extends StatelessWidget {
   const _WalletPayModeBar({

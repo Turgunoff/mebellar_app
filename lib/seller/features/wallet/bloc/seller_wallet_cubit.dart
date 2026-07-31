@@ -13,6 +13,8 @@ enum DepositStatus { idle, starting, failure }
 
 enum ManualTopUpStatus { idle, submitting, failure }
 
+enum WithdrawStatus { idle, submitting, success, failure }
+
 /// Single-state cubit for the wallet screen: the balance/debt snapshot and the
 /// automated top-up (deposit) lifecycle. A top-up opens a Payme/Click deep-link;
 /// the balance is credited by the webhook and reconciled when the seller returns
@@ -155,6 +157,45 @@ class SellerWalletCubit extends Cubit<SellerWalletState> {
       ),
     );
   }
+
+  /// Card payout: holds [amount] and opens a pending admin-review row.
+  Future<WalletWithdrawal?> requestWithdrawal({
+    required int amount,
+    required String cardNumber,
+  }) async {
+    if (state.withdrawStatus == WithdrawStatus.submitting) return null;
+    emit(
+      state.copyWith(
+        withdrawStatus: WithdrawStatus.submitting,
+        clearError: true,
+      ),
+    );
+    try {
+      final row = await _wallet.requestWithdrawal(
+        amount: amount,
+        cardNumber: cardNumber,
+      );
+      if (isClosed) return null;
+      await load();
+      if (isClosed) return null;
+      emit(state.copyWith(withdrawStatus: WithdrawStatus.success));
+      return row;
+    } catch (e, st) {
+      appLog.handle(e, st, 'SellerWalletCubit.requestWithdrawal');
+      if (isClosed) return null;
+      emit(
+        state.copyWith(
+          withdrawStatus: WithdrawStatus.failure,
+          error: apiErrorMessage(e),
+        ),
+      );
+      return null;
+    }
+  }
+
+  void acknowledgeWithdrawResult() {
+    emit(state.copyWith(withdrawStatus: WithdrawStatus.idle, clearError: true));
+  }
 }
 
 class SellerWalletState extends Equatable {
@@ -163,6 +204,7 @@ class SellerWalletState extends Equatable {
     this.wallet = const SellerWallet(),
     this.depositStatus = DepositStatus.idle,
     this.manualTopUpStatus = ManualTopUpStatus.idle,
+    this.withdrawStatus = WithdrawStatus.idle,
     this.error,
   });
 
@@ -170,6 +212,7 @@ class SellerWalletState extends Equatable {
   final SellerWallet wallet;
   final DepositStatus depositStatus;
   final ManualTopUpStatus manualTopUpStatus;
+  final WithdrawStatus withdrawStatus;
   final String? error;
 
   SellerWalletState copyWith({
@@ -177,6 +220,7 @@ class SellerWalletState extends Equatable {
     SellerWallet? wallet,
     DepositStatus? depositStatus,
     ManualTopUpStatus? manualTopUpStatus,
+    WithdrawStatus? withdrawStatus,
     String? error,
     bool clearError = false,
   }) {
@@ -185,6 +229,7 @@ class SellerWalletState extends Equatable {
       wallet: wallet ?? this.wallet,
       depositStatus: depositStatus ?? this.depositStatus,
       manualTopUpStatus: manualTopUpStatus ?? this.manualTopUpStatus,
+      withdrawStatus: withdrawStatus ?? this.withdrawStatus,
       error: clearError ? null : (error ?? this.error),
     );
   }
@@ -195,6 +240,7 @@ class SellerWalletState extends Equatable {
     wallet,
     depositStatus,
     manualTopUpStatus,
+    withdrawStatus,
     error,
   ];
 }

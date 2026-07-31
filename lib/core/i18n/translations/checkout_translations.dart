@@ -29,6 +29,10 @@ const Map<String, dynamic> checkoutUz = {
       'Har bir do\'kondan alohida buyurtma joylashtirildi. Sotuvchilar tez orada siz bilan bog\'lanadi.',
   'success_single_body':
       'Buyurtmangiz muvaffaqiyatli joylashtirildi. Tez orada siz bilan bog\'lanamiz.',
+  'online_placed_single_title': 'Buyurtma joylashtirildi',
+  'online_placed_multi_title': '{} ta buyurtma joylashtirildi',
+  'online_placed_body':
+      'Sotuvchi yetkazib berish narxini belgilagach, buyurtmalar ro\'yxatidan to\'lovni amalga oshirishingiz mumkin.',
   'view_my_orders': 'Buyurtmalarimni ko\'rish',
   'back_to_home': 'Asosiy sahifaga qaytish',
   'address_enter_prompt': 'Manzilni kiriting...',
@@ -77,6 +81,10 @@ const Map<String, dynamic> checkoutRu = {
       'По каждому магазину оформлен отдельный заказ. Продавцы свяжутся с вами в ближайшее время.',
   'success_single_body':
       'Ваш заказ успешно оформлен. Мы свяжемся с вами в ближайшее время.',
+  'online_placed_single_title': 'Заказ оформлен',
+  'online_placed_multi_title': 'Оформлено заказов: {}',
+  'online_placed_body':
+      'После того как продавец укажет стоимость доставки, оплатите заказ в списке заказов.',
   'view_my_orders': 'Посмотреть мои заказы',
   'back_to_home': 'Вернуться на главную',
   'address_enter_prompt': 'Укажите адрес...',
@@ -125,6 +133,10 @@ const Map<String, dynamic> checkoutEn = {
       'A separate order was placed for each shop. The sellers will contact you shortly.',
   'success_single_body':
       'Your order was placed successfully. We will contact you shortly.',
+  'online_placed_single_title': 'Order placed',
+  'online_placed_multi_title': '{} orders placed',
+  'online_placed_body':
+      'Once the seller sets the delivery fee, you can pay from your orders list.',
   'view_my_orders': 'View my orders',
   'back_to_home': 'Back to home',
   'address_enter_prompt': 'Enter address...',

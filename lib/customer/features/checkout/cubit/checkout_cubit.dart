@@ -14,6 +14,10 @@ import '../../../../shared/repositories/payment_repository.dart';
 
 /// How the customer pays. `payme` / `click` mint a checkout deep-link the app
 /// opens after the order is placed; `cash` is COD (no link).
+///
+/// Online checkout is **deferred**: place-order only stores the method. The
+/// Payme/Click deep-link is minted later from order detail once status is
+/// `awaiting_payment` (see [PaymentRepository.checkoutUrl]).
 enum CheckoutPayment { cash, payme, click }
 
 enum CheckoutStatus { idle, submitting, success, failure }

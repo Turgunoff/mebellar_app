@@ -7,7 +7,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../../config/remote_config.dart';
 import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/auth/auth_cubit.dart';
@@ -17,8 +16,6 @@ import '../../../../core/services/facebook_analytics_service.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 import '../../orders/cubit/profile_orders_cubit.dart';
 import '../../../../shared/models/cart_item_model.dart';
-import '../../../../shared/payments/pending_payment.dart';
-import '../../../../shared/payments/pending_payment_service.dart';
 import '../../../../shared/payments/refresh_payment_remote_config.dart';
 import '../../../../shared/repositories/cart_repository.dart';
 import '../../../../shared/repositories/checkout_repository.dart';
@@ -128,44 +125,114 @@ class _CheckoutView extends StatelessWidget {
   }
 
   /// On success, branch on the payment method:
-  ///   * **External (Payme/Click):** the order is placed but UNPAID. We mark it
-  ///     as a pending payment BEFORE handing off (so a mid-payment app-kill is
-  ///     recoverable on cold start), launch the provider app, and land the
-  ///     customer on their orders list — NO premature "order accepted" modal.
-  ///     The [PaymentRecoveryGate] confirms settlement when they return.
-  ///   * **Cash on delivery:** there's no payment to confirm — the order is
-  ///     genuinely accepted, so we show the receipt dialog as before.
+  ///   * **Cash on delivery:** show the receipt dialog — the order is genuinely
+  ///     accepted with no further payment step at checkout.
+  ///   * **Online (Payme/Click):** payment is deferred until the seller sets the
+  ///     delivery fee (`awaiting_payment`). Do NOT claim "accepted" like COD and
+  ///     do NOT expect [CheckoutState.checkoutUrl] (never minted at place-order).
+  ///     Explain the next step, then land on `/orders`. The customer pays later
+  ///     from order detail; [PaymentRecoveryGate] reconciles on return.
   Future<void> _onCheckoutSuccess(
     BuildContext context,
     CheckoutState state,
   ) async {
-    final url = state.checkoutUrl;
-    final isExternal = url != null && url.isNotEmpty;
+    if (!context.mounted) return;
 
-    if (isExternal && state.placedOrderIds.isNotEmpty) {
-      // The backend keys the Payme/Click account on the order id, so the first
-      // placed order is the reference the status poll fetches.
-      if (sl.isRegistered<PendingPaymentService>()) {
-        await sl<PendingPaymentService>().mark(
-          kind: PendingPaymentKind.order,
-          reference: state.placedOrderIds.first,
-        );
-      }
-      final uri = Uri.tryParse(url);
-      // externalApplication forces the OS to open the Payme/Click app rather
-      // than an in-app WebView.
-      if (uri != null) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      }
-      if (!context.mounted) return;
-      // The order exists (unpaid) — surface it in the list instead of claiming
-      // success. The recovery overlay polls on top of this on return.
-      context.go('/orders');
+    final isOnline =
+        state.payment == CheckoutPayment.payme ||
+        state.payment == CheckoutPayment.click;
+
+    if (isOnline) {
+      await _showOnlinePlacedDialog(context, state.placedOrderIds.length);
       return;
     }
 
-    if (!context.mounted) return;
     _showSuccessDialog(context, state.placedOrderIds.length);
+  }
+
+  Future<void> _showOnlinePlacedDialog(BuildContext context, int orderCount) {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        final pt = PremiumTokens.of(ctx);
+        final multiOrder = orderCount > 1;
+        return AlertDialog(
+          backgroundColor: pt.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 28,
+            vertical: 32,
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: PremiumTokens.accent.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Iconsax.card,
+                  color: PremiumTokens.accent,
+                  size: 36,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                multiOrder
+                    ? tr(
+                        'checkout.online_placed_multi_title',
+                        args: [orderCount],
+                      )
+                    : tr('checkout.online_placed_single_title'),
+                textAlign: TextAlign.center,
+                style: PremiumTokens.display(size: 20, letterSpacing: -0.3),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                tr('checkout.online_placed_body'),
+                textAlign: TextAlign.center,
+                style: PremiumTokens.body(
+                  size: 14,
+                  color: pt.grey,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 28),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: FilledButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    if (context.mounted) context.go('/orders');
+                  },
+                  style: FilledButton.styleFrom(
+                    backgroundColor: PremiumTokens.accent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: Text(
+                    tr('checkout.view_my_orders'),
+                    style: PremiumTokens.body(
+                      size: 15,
+                      weight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   void _showSuccessDialog(BuildContext context, int orderCount) {
