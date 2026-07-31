@@ -35,12 +35,15 @@ class TariffBlockedView extends StatelessWidget {
             if (snapshot != null) ...[
               const SizedBox(height: 6),
               Text(
-                tr('add_product.products_count_line', namedArgs: {
-                  'count': snapshot!.activeProductsCount.toString(),
-                  'max': snapshot!.plan.isUnlimited
-                      ? '∞'
-                      : snapshot!.plan.maxActiveProducts.toString(),
-                }),
+                tr(
+                  'add_product.products_count_line',
+                  namedArgs: {
+                    'count': snapshot!.activeProductsCount.toString(),
+                    'max': snapshot!.isUnlimitedProducts
+                        ? '∞'
+                        : snapshot!.effectiveMaxProducts.toString(),
+                  },
+                ),
                 style: TextStyle(
                   fontFamily: AppFonts.seller,
                   fontSize: 13,

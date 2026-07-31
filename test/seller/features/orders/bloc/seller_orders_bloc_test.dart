@@ -39,6 +39,23 @@ void main() {
     );
 
     blocTest<SellerOrdersBloc, SellerOrdersState>(
+      'load success badgeCount equals pending order count',
+      build: () {
+        repo.listResult = Ok([
+          makeOrder(id: 'a', status: OrderStatus.pending),
+          makeOrder(id: 'b', status: OrderStatus.pending),
+          makeOrder(id: 'c', status: OrderStatus.shipped),
+        ]);
+        return SellerOrdersBloc(repo);
+      },
+      act: (bloc) => bloc.add(const SellerOrdersRequested()),
+      verify: (bloc) {
+        expect(bloc.state.badgeCount, 2);
+        expect(bloc.state.unreadNewIds, isEmpty);
+      },
+    );
+
+    blocTest<SellerOrdersBloc, SellerOrdersState>(
       'load failure surfaces failure.message',
       build: () {
         repo.listResult = const Err(ServerFailure(message: 'boom'));
@@ -88,7 +105,7 @@ void main() {
     );
 
     blocTest<SellerOrdersBloc, SellerOrdersState>(
-      'switching to new tab clears unread',
+      'switching to new tab clears unread set but pending badge stays',
       build: () {
         repo.listResult = const Ok(<Order>[]);
         return SellerOrdersBloc(repo);
@@ -105,7 +122,9 @@ void main() {
       wait: const Duration(milliseconds: 20),
       verify: (bloc) {
         expect(bloc.state.tab, SellerOrdersTab.newTab);
-        expect(bloc.state.badgeCount, 0);
+        expect(bloc.state.unreadNewIds, isEmpty);
+        // Bottom-nav badge tracks all pending orders, not just unread.
+        expect(bloc.state.badgeCount, 1);
       },
     );
 

@@ -26,9 +26,9 @@ const Map<String, dynamic> tariffUz = {
   'cta_pending': 'Tasdiqlash kutilmoqda',
   'cta_upgrade': 'Tanlash',
   'cta_downgrade': 'Bepul tarifga o\'tish',
-  // Server-driven plans (Sprint 10): per-plan feature bullets live in
-  // `subscription_plans.features_uz` / `features_ru`. The product-cap row is
-  // computed client-side from `max_products` using the two keys below.
+  // Server-driven plans (Sprint 10): most feature bullets live in
+  // `subscription_plans.features_*`. The product-cap row is always computed
+  // client-side from live `max_products` via the keys below.
   'feature_unlimited_products': 'Cheksiz mahsulotlar',
   'feature_products': '{} tagacha aktiv mahsulot',
   'feature_images_all': '10 tagacha rasm yuklash',

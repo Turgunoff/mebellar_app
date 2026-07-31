@@ -89,7 +89,7 @@ class SellerDashboardCubit extends Cubit<SellerDashboardState> {
             // not kpis.products_active which is approved-only.
             productsCount: snap.tariff.activeProductsCount,
             plan: snap.tariff.plan,
-            productLimit: snap.tariff.plan.maxActiveProducts,
+            productLimit: snap.tariff.effectiveMaxProducts,
             tariffDaysLeft: snap.tariff.daysUntilExpiry,
             ai3dUsed: snap.tariff.ai3dUsed,
             ai3dLimit: snap.tariff.ai3dLimit,
@@ -188,7 +188,7 @@ class SellerDashboardData extends Equatable {
     this.pendingOrders = 0,
     this.productsCount = 0,
     this.plan = TariffPlan.free,
-    this.productLimit = 3,
+    this.productLimit = 15,
     this.tariffDaysLeft,
     this.ai3dUsed = 0,
     this.ai3dLimit,
@@ -254,7 +254,7 @@ class SellerDashboardData extends Equatable {
 
   bool get hasRecentOrders => recentOrders.isNotEmpty;
   bool get productLimitExceeded =>
-      !plan.isUnlimited && productsCount > productLimit;
+      productLimit >= 0 && productsCount > productLimit;
 
   SellerDashboardData copyWith({
     String? sellerName,

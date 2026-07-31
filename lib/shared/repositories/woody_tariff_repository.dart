@@ -45,6 +45,7 @@ class WoodyTariffRepository implements TariffRepository {
       plan: TariffPlan.fromCode(body['plan_code'] as String?),
       activeProductsCount:
           (body['active_products_count'] as num?)?.toInt() ?? 0,
+      maxProducts: (body['max_products'] as num?)?.toInt(),
       startedAt: startedRaw == null ? null : DateTime.tryParse(startedRaw),
       expiresAt: expiresRaw == null ? null : DateTime.tryParse(expiresRaw),
       ai3dUsed: (body['ai_3d_used'] as num?)?.toInt() ?? 0,

@@ -70,6 +70,7 @@ class WoodySellerDashboardRepository implements SellerDashboardRepository {
         activeProductsCount:
             (tariffBody?['active_products_count'] as num?)?.toInt() ??
             activeProducts,
+        maxProducts: (tariffBody?['max_products'] as num?)?.toInt(),
         startedAt: _parseDate(tariffBody?['started_at']),
         expiresAt: _parseDate(tariffBody?['expires_at']),
         ai3dUsed: (tariffBody?['ai_3d_used'] as num?)?.toInt() ?? 0,

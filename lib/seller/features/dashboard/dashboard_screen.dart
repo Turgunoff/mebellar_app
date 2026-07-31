@@ -481,7 +481,7 @@ class _KpiGrid extends StatelessWidget {
     final exceeded = tariffEnabled && data.productLimitExceeded;
     // Active-product quota: "N / cap" for capped plans, plain "N" when the
     // plan is unlimited (or tariffs are off). Subtitle shows the real plan.
-    final productsValue = tariffEnabled && !data.plan.isUnlimited
+    final productsValue = tariffEnabled && data.productLimit >= 0
         ? '${data.productsCount} / ${data.productLimit}'
         : '${data.productsCount}';
     return GridView.count(

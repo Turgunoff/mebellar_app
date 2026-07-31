@@ -4,11 +4,14 @@ import 'package:equatable/equatable.dart';
 /// lockstep with the row backing each `code`. `-1` everywhere = unlimited.
 /// Yearly price is ~10x monthly (≈17% off) per the spec.
 enum TariffPlan {
+  // Compile-time fallbacks — must stay in lockstep with
+  // woody_backend `tariffs_seed.TARIFFS_SEED`. Live gating prefers
+  // `SubscriptionPlan.maxProducts` / `TariffSnapshot.maxProducts` from the API.
   free(
     'free',
-    maxActiveProducts: 3,
+    maxActiveProducts: 15,
     maxImagesPerProduct: -1,
-    commissionRate: 10.0,
+    commissionRate: 6.0,
     monthlyPriceUzs: 0,
     yearlyPriceUzs: 0,
   ),
@@ -16,7 +19,7 @@ enum TariffPlan {
   // Granted only by the backend; never purchasable — the seller catalogue
   // renders it only as the current-plan card, never as a selectable upgrade.
   // Re-cut from the old generous version (200 products / 0%) to STRICT caps:
-  // 30 products, 4% commission, sets on, and — the whole point — only 3 AI 3D
+  // 30 products, 2% commission, sets on, and — the whole point — only 3 AI 3D
   // models so a fresh seller can't run up unbounded 3D-generation API costs.
   // Display values mirror `subscription_plans` (code 'trial'); the card itself
   // renders the live `features_*` bullets from the server.
@@ -24,24 +27,25 @@ enum TariffPlan {
     'trial',
     maxActiveProducts: 30,
     maxImagesPerProduct: -1,
-    commissionRate: 4.0,
+    commissionRate: 2.0,
     monthlyPriceUzs: 0,
     yearlyPriceUzs: 0,
     allowsSets: true,
   ),
   basic(
     'basic',
-    maxActiveProducts: 15,
+    maxActiveProducts: 30,
     maxImagesPerProduct: -1,
-    commissionRate: 7.0,
+    commissionRate: 4.0,
     monthlyPriceUzs: 99_000,
     yearlyPriceUzs: 990_000,
+    allowsSets: true,
   ),
   pro(
     'pro',
     maxActiveProducts: 100,
     maxImagesPerProduct: -1,
-    commissionRate: 4.0,
+    commissionRate: 2.0,
     monthlyPriceUzs: 299_000,
     yearlyPriceUzs: 2_990_000,
     recommended: true,
@@ -51,7 +55,7 @@ enum TariffPlan {
     'enterprise',
     maxActiveProducts: -1,
     maxImagesPerProduct: -1,
-    commissionRate: 2.0,
+    commissionRate: 1.0,
     monthlyPriceUzs: 999_000,
     yearlyPriceUzs: 9_990_000,
     allowsSets: true,
@@ -304,6 +308,7 @@ class TariffSnapshot extends Equatable {
   const TariffSnapshot({
     required this.plan,
     required this.activeProductsCount,
+    this.maxProducts,
     this.startedAt,
     this.expiresAt,
     this.ai3dUsed = 0,
@@ -312,6 +317,11 @@ class TariffSnapshot extends Equatable {
 
   final TariffPlan plan;
   final int activeProductsCount;
+
+  /// Live cap from `/seller/tariff/current` / dashboard `tariff.max_products`.
+  /// Null only in older fixtures — then [effectiveMaxProducts] falls back to
+  /// the [TariffPlan] enum default.
+  final int? maxProducts;
 
   /// When the active subscription window opened. Paired with [expiresAt]
   /// it gives the exact elapsed/remaining fraction for the progress ring.
@@ -330,8 +340,13 @@ class TariffSnapshot extends Equatable {
   /// unset/0). For [TariffPlan.trial] this is the hard cap of 3.
   final int? ai3dLimit;
 
+  /// Prefer the API cap; enum is only a cold-start / offline fallback.
+  int get effectiveMaxProducts => maxProducts ?? plan.maxActiveProducts;
+
+  bool get isUnlimitedProducts => effectiveMaxProducts < 0;
+
   bool get reachedLimit =>
-      !plan.isUnlimited && activeProductsCount >= plan.maxActiveProducts;
+      !isUnlimitedProducts && activeProductsCount >= effectiveMaxProducts;
 
   /// Whole AI 3D models still available (clamped ≥ 0). Null when the quota is
   /// unlimited or unset — the urgency bar only renders for a finite cap.
@@ -350,7 +365,8 @@ class TariffSnapshot extends Equatable {
     return (ai3dUsed / limit).clamp(0.0, 1.0);
   }
 
-  bool get canAddMoreProducts => plan.canAddMoreProducts(activeProductsCount);
+  bool get canAddMoreProducts =>
+      isUnlimitedProducts || activeProductsCount < effectiveMaxProducts;
 
   /// Whole days until [expiresAt] (rounded up; never negative). Null when
   /// the plan has no expiry.
@@ -385,6 +401,7 @@ class TariffSnapshot extends Equatable {
   List<Object?> get props => [
     plan,
     activeProductsCount,
+    maxProducts,
     startedAt,
     expiresAt,
     ai3dUsed,

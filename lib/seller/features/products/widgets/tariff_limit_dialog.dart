@@ -1,4 +1,4 @@
-﻿import 'package:woody_app/core/i18n/i18n.dart';
+import 'package:woody_app/core/i18n/i18n.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../shared/models/tariff.dart';
@@ -14,19 +14,25 @@ Future<void> showTariffLimitDialog(
   return showDialog<void>(
     context: context,
     builder: (ctx) => AlertDialog(
-      icon: Icon(Icons.lock_outline,
-          color: Theme.of(ctx).colorScheme.primary, size: 36),
+      icon: Icon(
+        Icons.lock_outline,
+        color: Theme.of(ctx).colorScheme.primary,
+        size: 36,
+      ),
       title: Text(tr('tariff.limit_title')),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            tr('tariff.limit_subtitle', args: [
-              '${snapshot.activeProductsCount}',
-              snapshot.plan.isUnlimited
-                  ? tr('tariff.infinity_symbol')
-                  : '${snapshot.plan.maxActiveProducts}',
-            ]),
+            tr(
+              'tariff.limit_subtitle',
+              args: [
+                '${snapshot.activeProductsCount}',
+                snapshot.isUnlimitedProducts
+                    ? tr('tariff.infinity_symbol')
+                    : '${snapshot.effectiveMaxProducts}',
+              ],
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 12),

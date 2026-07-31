@@ -526,20 +526,20 @@ class _CurrentPlanCard extends StatelessWidget {
       rate == rate.roundToDouble() ? '${rate.toInt()}' : '$rate';
 
   List<String> _limitLines() {
-    final plan = snapshot.plan;
+    final planEnum = snapshot.plan;
+    final cap = plan?.maxProducts ?? snapshot.effectiveMaxProducts;
+    final commission = plan?.commissionRate ?? planEnum.commissionRate;
+    final allowsSets = plan?.allowsSets ?? planEnum.allowsSets;
     final lines = <String>[
-      plan.isUnlimited
+      cap < 0
           ? tr('tariff.current_limit_products_unlimited')
-          : tr(
-              'tariff.current_limit_products',
-              args: ['${plan.maxActiveProducts}'],
-            ),
+          : tr('tariff.current_limit_products', args: ['$cap']),
       tr(
         'tariff.current_limit_commission',
-        args: [_commissionLabel(plan.commissionRate)],
+        args: [_commissionLabel(commission.toDouble())],
       ),
     ];
-    if (plan.allowsSets) lines.add(tr('tariff.current_limit_sets'));
+    if (allowsSets) lines.add(tr('tariff.current_limit_sets'));
     final limit = snapshot.ai3dLimit;
     if (limit != null && limit >= 0) {
       lines.add(
@@ -1128,9 +1128,9 @@ class _PriceRow extends StatelessWidget {
 }
 
 // -----------------------------------------------------------------------------
-// 6d. Feature list — fully server-driven. The product/image limit lines are
-//     computed from the plan's caps; the rest of the bullets come straight
-//     from `subscription_plans.features_uz` / `features_ru`.
+// 6d. Feature list — product cap is always interpolated from live
+//     `max_products`; remaining bullets come from `features_{uz,ru,en}`
+//     (skipping the server's first product-cap line to avoid a duplicate).
 // -----------------------------------------------------------------------------
 class _FeatureList extends StatelessWidget {
   const _FeatureList({required this.plan});
@@ -1141,12 +1141,18 @@ class _FeatureList extends StatelessWidget {
   Widget build(BuildContext context) {
     final lang = AppTranslations.instance.locale.languageCode;
 
-    // Fully backend-driven: every bullet (products, commission, sets, AI 3D,
-    // AI authoring, search boost) is authored per plan in
-    // `subscription_plans.features_{uz,ru,en}` and rendered verbatim — no
-    // hardcoded rows, so feature copy changes without an app release.
-    final lines = plan.featuresForLocale(lang);
-    if (lines.isEmpty) return const SizedBox.shrink();
+    final productLine = plan.hasUnlimitedProducts
+        ? tr('tariff.current_limit_products_unlimited')
+        : tr('tariff.current_limit_products', args: ['${plan.maxProducts}']);
+
+    final serverLines = plan.featuresForLocale(lang);
+    // Seed authors the product cap as the first bullet — drop it so the
+    // interpolated line above is the single source of truth.
+    final rest = serverLines.length > 1
+        ? serverLines.sublist(1)
+        : const <String>[];
+
+    final lines = <String>[productLine, ...rest];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

@@ -62,6 +62,7 @@ class AddProductShopContext {
   TariffSnapshot get tariffSnapshot => TariffSnapshot(
     plan: plan.asEnum,
     activeProductsCount: activeProductsCount,
+    maxProducts: plan.maxProducts,
   );
 }
 

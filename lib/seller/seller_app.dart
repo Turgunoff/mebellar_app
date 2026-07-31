@@ -29,6 +29,7 @@ import '../shared/repositories/chat_repository.dart';
 import '../shared/widgets/network_overlay_wrapper.dart';
 import 'features/analytics/screens/analytics_screen.dart';
 import 'features/dashboard/dashboard_screen.dart';
+import 'features/orders/bloc/seller_orders_bloc.dart';
 import 'features/orders/screens/seller_orders_screen.dart';
 import 'features/products/screens/seller_products_screen.dart';
 import 'features/profile/profile_screen.dart';
@@ -234,51 +235,62 @@ class _SellerHomeShellState extends State<SellerHomeShell> {
 
   @override
   Widget build(BuildContext context) {
-    // Provides the unread-chats count to both the profile screen's "Suhbatlar"
-    // row and the Profile-tab nav badge below — mirrors the go_router shell.
-    return BlocProvider<TotalUnreadChatsCubit>(
-      create: (_) =>
-          TotalUnreadChatsCubit(sl<ChatRepository>(), ChatSenderRole.seller),
-      child: Scaffold(
-        appBar: null,
-        body: Column(children: [Expanded(child: _bodyForTab(_index))]),
-        bottomNavigationBar: BlocBuilder<TotalUnreadChatsCubit, int>(
-          builder: (context, unreadChats) => SellerBottomNav(
-            currentIndex: _index,
-            onChanged: (i) {
-              if (i != _index) {
-                AppNavigationLogger.logTabSwitch(i, _tabNames[i]);
-              }
-              setState(() => _index = i);
-            },
-            items: [
-              SellerNavItem(
-                icon: Iconsax.element_3_copy,
-                activeIcon: Iconsax.element_3,
-                label: tr('seller.tab_dashboard'),
-              ),
-              SellerNavItem(
-                icon: Iconsax.box_copy,
-                activeIcon: Iconsax.box,
-                label: tr('seller.tab_products'),
-              ),
-              SellerNavItem(
-                icon: Iconsax.shopping_bag_copy,
-                activeIcon: Iconsax.shopping_bag,
-                label: tr('seller.tab_orders'),
-              ),
-              SellerNavItem(
-                icon: Iconsax.chart_2_copy,
-                activeIcon: Iconsax.chart_2,
-                label: tr('seller.tab_analytics'),
-              ),
-              SellerNavItem(
-                icon: Iconsax.user_copy,
-                activeIcon: Iconsax.user,
-                label: tr('profile.title'),
-                badge: unreadChats,
-              ),
-            ],
+    // Mirrors SellerRouterShell: orders + unread-chats badges stay live at
+    // the shell level regardless of which tab is painted.
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<SellerOrdersBloc>.value(value: sl<SellerOrdersBloc>()),
+        BlocProvider<TotalUnreadChatsCubit>(
+          create: (_) => TotalUnreadChatsCubit(
+            sl<ChatRepository>(),
+            ChatSenderRole.seller,
+          ),
+        ),
+      ],
+      child: BlocBuilder<SellerOrdersBloc, SellerOrdersState>(
+        buildWhen: (prev, curr) => prev.badgeCount != curr.badgeCount,
+        builder: (context, ordersState) => Scaffold(
+          appBar: null,
+          body: Column(children: [Expanded(child: _bodyForTab(_index))]),
+          bottomNavigationBar: BlocBuilder<TotalUnreadChatsCubit, int>(
+            builder: (context, unreadChats) => SellerBottomNav(
+              currentIndex: _index,
+              onChanged: (i) {
+                if (i != _index) {
+                  AppNavigationLogger.logTabSwitch(i, _tabNames[i]);
+                }
+                setState(() => _index = i);
+              },
+              items: [
+                SellerNavItem(
+                  icon: Iconsax.element_3_copy,
+                  activeIcon: Iconsax.element_3,
+                  label: tr('seller.tab_dashboard'),
+                ),
+                SellerNavItem(
+                  icon: Iconsax.box_copy,
+                  activeIcon: Iconsax.box,
+                  label: tr('seller.tab_products'),
+                ),
+                SellerNavItem(
+                  icon: Iconsax.shopping_bag_copy,
+                  activeIcon: Iconsax.shopping_bag,
+                  label: tr('seller.tab_orders'),
+                  badge: ordersState.badgeCount,
+                ),
+                SellerNavItem(
+                  icon: Iconsax.chart_2_copy,
+                  activeIcon: Iconsax.chart_2,
+                  label: tr('seller.tab_analytics'),
+                ),
+                SellerNavItem(
+                  icon: Iconsax.user_copy,
+                  activeIcon: Iconsax.user,
+                  label: tr('profile.title'),
+                  badge: unreadChats,
+                ),
+              ],
+            ),
           ),
         ),
       ),

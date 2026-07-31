@@ -13,9 +13,10 @@ extension SellerOrdersTabFilter on SellerOrdersTab {
   bool matches(Order order) {
     return switch (this) {
       SellerOrdersTab.newTab => order.status == OrderStatus.pending,
-      SellerOrdersTab.active => order.status == OrderStatus.confirmed ||
-          order.status == OrderStatus.preparing ||
-          order.status == OrderStatus.shipped,
+      SellerOrdersTab.active =>
+        order.status == OrderStatus.confirmed ||
+            order.status == OrderStatus.preparing ||
+            order.status == OrderStatus.shipped,
       SellerOrdersTab.done => order.status == OrderStatus.delivered,
       SellerOrdersTab.cancelled => order.status == OrderStatus.cancelled,
     };
@@ -72,17 +73,18 @@ class SellerOrdersState extends Equatable {
   final List<Order> orders;
   final SellerOrdersTab tab;
 
-  /// Ids of pending orders that arrived since the user last opened the
-  /// "New" tab — drives the badge count on the bottom-nav and tab.
+  /// Ids of pending orders that arrived via realtime while the seller was
+  /// not on the "New" tab. Kept for insert/update bookkeeping; the bottom-nav
+  /// badge itself uses [badgeCount] (all pending orders).
   final Set<String> unreadNewIds;
   final String? error;
 
-  List<Order> get visibleOrders =>
-      orders.where((o) => tab.matches(o)).toList();
+  List<Order> get visibleOrders => orders.where((o) => tab.matches(o)).toList();
 
-  /// Count of pending orders that arrived since the user last opened the
-  /// "New" tab — drives the badge count on the bottom-nav and tab.
-  int get badgeCount => unreadNewIds.length;
+  /// Pending ("Yangi") order count — drives the bottom-nav Orders tab badge.
+  /// Stays visible until every pending order is accepted / cancelled, so a
+  /// cold start with existing new orders still shows the indicator.
+  int get badgeCount => countFor(SellerOrdersTab.newTab);
 
   /// Number of orders that fall under [tab] — drives the tab-bar count
   /// badges. Only the New and Active tabs surface this in the UI.
@@ -115,24 +117,29 @@ class SellerOrdersBloc extends Bloc<SellerOrdersEvent, SellerOrdersState> {
     on<SellerOrdersTabChanged>((event, emit) {
       // Switching to the "new" tab clears the unread badge.
       final clearUnread = event.tab == SellerOrdersTab.newTab;
-      emit(state.copyWith(
-        tab: event.tab,
-        unreadNewIds: clearUnread ? const {} : state.unreadNewIds,
-      ));
+      emit(
+        state.copyWith(
+          tab: event.tab,
+          unreadNewIds: clearUnread ? const {} : state.unreadNewIds,
+        ),
+      );
     });
     on<SellerOrdersUnreadCleared>(
-        (_, emit) => emit(state.copyWith(unreadNewIds: const {})));
+      (_, emit) => emit(state.copyWith(unreadNewIds: const {})),
+    );
     on<_SellerOrderInserted>(_onInserted);
     on<_SellerOrderUpdated>(_onUpdated);
 
-    _newSub = _repo.newOrders().listen((order) => add(_SellerOrderInserted(order)));
+    _newSub = _repo.newOrders().listen(
+      (order) => add(_SellerOrderInserted(order)),
+    );
     // Mirror server-side UPDATEs into the list state so a customer cancel
     // (or status flip from another session) is reflected without a manual
     // refresh. The detail bloc still uses `pushOrderUpdate` for snappier
     // local feedback when the seller themselves takes an action.
-    _updateSub = _repo
-        .orderUpdates()
-        .listen((order) => add(_SellerOrderUpdated(order)));
+    _updateSub = _repo.orderUpdates().listen(
+      (order) => add(_SellerOrderUpdated(order)),
+    );
   }
 
   final SellerOrderRepository _repo;
@@ -143,14 +150,17 @@ class SellerOrdersBloc extends Bloc<SellerOrdersEvent, SellerOrdersState> {
     SellerOrdersRequested event,
     Emitter<SellerOrdersState> emit,
   ) async {
-    emit(state.copyWith(
-        status: SellerOrdersStatus.loading, clearError: true));
+    emit(state.copyWith(status: SellerOrdersStatus.loading, clearError: true));
     final result = await _repo.list();
     result.fold(
-      ok: (list) => emit(
-          state.copyWith(status: SellerOrdersStatus.ready, orders: list)),
-      err: (failure) => emit(state.copyWith(
-          status: SellerOrdersStatus.failure, error: failure.message)),
+      ok: (list) =>
+          emit(state.copyWith(status: SellerOrdersStatus.ready, orders: list)),
+      err: (failure) => emit(
+        state.copyWith(
+          status: SellerOrdersStatus.failure,
+          error: failure.message,
+        ),
+      ),
     );
   }
 
@@ -166,10 +176,7 @@ class SellerOrdersBloc extends Bloc<SellerOrdersEvent, SellerOrdersState> {
     emit(state.copyWith(orders: nextOrders, unreadNewIds: unread));
   }
 
-  void _onUpdated(
-    _SellerOrderUpdated event,
-    Emitter<SellerOrdersState> emit,
-  ) {
+  void _onUpdated(_SellerOrderUpdated event, Emitter<SellerOrdersState> emit) {
     final idx = state.orders.indexWhere((o) => o.id == event.order.id);
     if (idx < 0) return;
     final next = List<Order>.from(state.orders);
