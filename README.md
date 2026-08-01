@@ -1,12 +1,12 @@
 # Woody — Two-Sided Furniture Marketplace (Flutter)
 
-> Internal codename: **Woody** (`pubspec.yaml` → `name: woody_app`). Brand: **Woody** — an Uzbekistan-focused furniture (`mebel`) marketplace. App id `com.mebellar.app`, version `1.0.26+26`.
+> Internal codename: **Woody** (`pubspec.yaml` → `name: woody_app`). Brand: **Woody** — an Uzbekistan-focused furniture (`mebel`) marketplace. App id `com.mebellar.app`, version `1.0.36+36`.
 
 [![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter)](https://flutter.dev)
 [![Dart](https://img.shields.io/badge/Dart-^3.11.5-0175C2?logo=dart)](https://dart.dev)
 [![Backend](https://img.shields.io/badge/Backend-woody__backend%20(FastAPI)-009688)](https://api.woody.uz)
 
-> **Authoritative docs:** the operational brain is [`CLAUDE.md`](./CLAUDE.md); the component spec is [`woody_mobile_tz.md`](./woody_mobile_tz.md); the platform master spec is [`../TZ.md`](../TZ.md). Deep-dive guides live in [`docs/`](./docs/). This README is a high-level orientation.
+> **Authoritative docs:** the operational brain is [`CLAUDE.md`](./CLAUDE.md); the platform master spec is [`../docs/TZ.md`](../docs/TZ.md) (v1.1+). [`woody_mobile_tz.md`](./woody_mobile_tz.md) is a redirect stub. Deep-dive guides live in [`docs/`](./docs/). This README is a high-level orientation.
 
 ### Where this app sits in the Woody / Mebellar ecosystem
 
@@ -41,8 +41,8 @@ A single user identity can be both a buyer and a seller. The app switches betwee
 | --- | --- |
 | **Catalog discovery** | Multi-level categories, search, filters, banners, premium home feed (infinite scroll + sort). |
 | **Two-sided onboarding** | All users sign in by **phone + SMS OTP**; sellers run a multi-step onboarding + KYC verification flow. |
-| **Order fulfillment** | Customers place orders (currently **COD**), sellers fulfill them; both sides see status via the Woody **WebSocket** feed with FCM push fallback. |
-| **Monetization** | Sellers pay a tariff subscription + commission settled through a wallet ledger (soft-freeze on debt). |
+| **Order fulfillment** | Customers place orders with **cash (COD)** or **online Payme/Click** (both LIVE). Online funds use Woody **internal escrow** (not Payme Safe/Split); sellers fulfill; status via **WebSocket** + FCM. |
+| **Monetization** | Tariff subscription + commission. On `delivered`, online orders credit seller `order_income` (net of commission); withdrawals via admin-approved `wallet_withdrawals`. Soft-freeze on debt. |
 | **Engagement** | FCM push notifications (per-chat collapse + order/fee events) drive return visits. |
 
 ---
@@ -79,7 +79,7 @@ A single user identity can be both a buyer and a seller. The app switches betwee
 | Connectivity | `connectivity_plus` `^6.1.0`, `internet_connection_checker_plus` `^2.5.2` |
 | Auth helpers | `smart_auth` `^3.2.0` (Android SMS autofill), `mask_text_input_formatter` `^2.9.0` |
 | Analytics (Meta) | `facebook_app_events` `^0.30.1`, `app_tracking_transparency` `^2.0.6` |
-| App lifecycle | `in_app_update` `^4.2.3`, `in_app_review` `^2.0.10`, `package_info_plus` `^8.1.0`, `url_launcher` `^6.3.1`, `share_plus` `^12.0.2` |
+| App lifecycle | `in_app_review` `^2.0.10`, `package_info_plus` `^8.1.0`, `url_launcher` `^6.3.1`, `share_plus` `^12.0.2` |
 | UI / charts | `fl_chart` `^0.69.0`, `lottie` `^3.1.2`, `shimmer` `^3.0.0`, `flutter_svg` `^2.0.10`, `flutter_staggered_grid_view` `^0.7.0`, `smooth_page_indicator` `^1.2.0`, `iconsax_flutter` `^1.0.0`, `font_awesome_flutter` `^11.0.0` |
 | Localization / time | `intl` `^0.20.2`, `clock` `^1.1.1` |
 | Logging | custom `AppLogger` → Crashlytics |
@@ -315,7 +315,7 @@ Shorebird hot-fixes shipped builds **without store review** — but **only Dart 
 
 - A patchable store build MUST come from `shorebird release`, not `flutter build` / `build_release.sh`.
 - `patch` runs `check` first and aborts on a native/asset/Flutter blocker (`--force` bypasses, not recommended).
-- The ledger ([`tools/shorebird/releases.md`](./tools/shorebird/releases.md)) is append-only history (latest `1.0.26+26`, SHA `4c945889c331`). `app_id` `c1639a0d-e4a4-4606-bf14-4b4195fa061e`.
+- The ledger ([`tools/shorebird/releases.md`](./tools/shorebird/releases.md)) is append-only history (latest `1.0.36+36` — see ledger for SHA). `app_id` `c1639a0d-e4a4-4606-bf14-4b4195fa061e`.
 
 See [`docs/release-shorebird.md`](./docs/release-shorebird.md) for the full OTA rules and iOS SPM / Firebase 11.15.0 caveats.
 
@@ -333,8 +333,8 @@ See [`docs/release-shorebird.md`](./docs/release-shorebird.md) for the full OTA 
 | [`docs/release-shorebird.md`](./docs/release-shorebird.md) | OTA rules + ledger + iOS SPM / Firebase caveats. |
 | [`CLAUDE.md`](./CLAUDE.md) | **Start here** — operational brain: architecture, conventions, gotchas, do-not-break invariants. |
 | [`.claude/rules/`](./.claude/rules/) | Distilled invariant cards (architecture, theming, i18n, backend-api, testing). |
-| [`woody_mobile_tz.md`](./woody_mobile_tz.md) | Component-level technical spec for the mobile app. |
-| [`../TZ.md`](../TZ.md) | Platform **Master Technical Specification** (single source of truth). |
+| [`woody_mobile_tz.md`](./woody_mobile_tz.md) | Redirect stub → workspace [`../docs/TZ.md`](../docs/TZ.md). |
+| [`../docs/TZ.md`](../docs/TZ.md) | Platform **Master Technical Specification** (single source of truth, v1.1+). |
 | [`../docs/_archive/workspace_audit_2026_06_18.md`](../docs/_archive/workspace_audit_2026_06_18.md) | 2026-06-18 code-health audit (incl. the mobile findings) — archived, all resolved. |
 | [`store/`](./store/) | App Store / Play listings + privacy policy. |
 

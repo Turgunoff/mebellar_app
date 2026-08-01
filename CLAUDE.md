@@ -5,7 +5,7 @@ distinct modes (customer + seller) inside one binary, backed by a custom
 FastAPI backend (`woody_backend` at `api.woody.uz`). Package name
 `com.mebellar.app`, internal Dart package name `woody_app`.
 
-> **Workspace master spec:** [`../TZ.md`](../TZ.md) is the single source of truth for the whole platform. This file is the operational brain for the Flutter app.
+> **Workspace master spec:** [`../docs/TZ.md`](../docs/TZ.md) (v1.1+) is the single source of truth for the whole platform. This file is the operational brain for the Flutter app. (`AGENTS.md` was merged here and removed.)
 
 ## Tech stack
 
@@ -38,13 +38,14 @@ lib/
 │   ├── router.dart              GoRouter (FirebaseAnalyticsObserver attached)
 │   └── features/                home, search, product_list, cart,
 │                                checkout, orders, favorites, profile,
-│                                categories, chats, notifications, reviews
+│                                categories, chats, notifications, reviews,
+│                                shop, ai_designer
 ├── seller/
 │   ├── seller_app.dart          MaterialApp.router for seller
 │   ├── seller_router.dart       StatefulShellRoute, 5 tabs
 │   └── features/                dashboard, products, orders, analytics,
 │                                profile, settings, onboarding, verification,
-│                                reviews, tariff, notifications
+│                                reviews, tariff, notifications, wallet
 └── shared/
     ├── chat/                    SHARED chat module (used by both modes)
     │   ├── bloc/                ChatsListCubit, ChatThreadCubit
@@ -127,6 +128,13 @@ Invariants:
   not a committed token.
 
 ## Architecture conventions
+
+
+### Platform money, push & privacy (Aug 2026)
+
+- **Internal escrow (not Payme Safe/Split):** online Payme/Click payment is held by Woody; on order `delivered`, the backend settles commission and credits seller `order_income`; sellers request card payouts via `wallet_withdrawals` (admin approve/reject). Details: workspace [`../docs/TZ.md`](../docs/TZ.md) monetization / escrow sections.
+- **Hybrid inbox + push prefs:** guests read public news via `/catalog/news`; signed-in personal alerts via `/notifications`. `promo_push_enabled` → Flutter FCM topic `news`; `order_push_enabled` → backend may suppress OS FCM for ORDER types while keeping the in-app inbox.
+- **Analytics privacy:** Settings **"Foydalanish statistikasi"** disables Firebase Analytics + Crashlytics (and Meta gated events) at toggle time and on cold boot via Hive. Never reintroduce always-on collection.
 
 ### Two-mode shell
 
@@ -364,6 +372,10 @@ to a bloc, update the matching test or it will fail.
 
 This brain captures the state after a multi-session redesign:
 
+- **Internal escrow + withdrawals, hybrid push prefs, analytics privacy (2026-08)** —
+  online settlement credits `order_income` on `delivered` (not Payme Safe/Split);
+  Settings toggles for promo/order push and **"Foydalanish statistikasi"** (Analytics +
+  Crashlytics). See § Platform money, push & privacy above and workspace TZ v1.1.
 - **Full Supabase → woody_backend migration** — `supabase_flutter` dropped
   entirely; every repository, auth, realtime, storage and the seller
   add-product / tariff / services / attributes flows now run against the
