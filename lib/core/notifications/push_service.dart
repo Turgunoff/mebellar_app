@@ -24,6 +24,14 @@ import 'notification_handler.dart';
 /// every install that has notifications enabled.
 const String kNewsTopic = 'news';
 
+/// Hive (settings box) key for the promo / news topic preference. Mirrored
+/// to `profiles.promo_push_enabled` when the user is signed in.
+const String kPromoPushEnabledKey = 'promo_push_enabled';
+
+/// Hive (settings box) key for transactional order-update pushes. Mirrored
+/// to `profiles.order_push_enabled` — the backend is the enforcement point.
+const String kOrderPushEnabledKey = 'order_push_enabled';
+
 /// Android notification channel id. Must match the
 /// `default_notification_channel_id` meta-data in AndroidManifest.xml so
 /// the OS routes background pushes through the same channel that
@@ -360,15 +368,21 @@ class PushService {
         ?.createNotificationChannel(channel);
   }
 
-  /// Triggers the OS notification permission dialog and subscribes the
-  /// device to the `news` topic on success. Idempotent within a session —
-  /// once the user has responded (allow / deny), subsequent calls are a
-  /// no-op so we don't re-pester them.
+  /// Triggers the OS notification permission dialog and, when [enableNewsTopic]
+  /// is true, subscribes the device to the `news` topic on success. Idempotent
+  /// within a session — once the user has responded (allow / deny), subsequent
+  /// calls are a no-op so we don't re-pester them.
   ///
   /// Call this **after** the user reaches the home screen — never from the
   /// splash or onboarding, where the prompt would feel intrusive and is
   /// known to lower opt-in rates significantly.
-  Future<void> requestPermissionAndSubscribe() async {
+  ///
+  /// Pass [enableNewsTopic]: false when the user has opted out of promo pushes
+  /// in Settings (Hive `promo_push_enabled`) so a cold permission grant does
+  /// not re-subscribe them to marketing topics.
+  Future<void> requestPermissionAndSubscribe({
+    bool enableNewsTopic = true,
+  }) async {
     if (_permissionRequested) return;
     _permissionRequested = true;
 
@@ -403,9 +417,14 @@ class PushService {
         sound: true,
       );
 
-      await _messaging.subscribeToTopic(kNewsTopic);
-      appLog.info('Subscribed to FCM topic: $kNewsTopic');
-      debugPrint('[FCM] subscribed to topic: $kNewsTopic');
+      if (enableNewsTopic) {
+        await _messaging.subscribeToTopic(kNewsTopic);
+        appLog.info('Subscribed to FCM topic: $kNewsTopic');
+        debugPrint('[FCM] subscribed to topic: $kNewsTopic');
+      } else {
+        appLog.info('Skipping FCM topic subscribe (promo push disabled)');
+        debugPrint('[FCM] promo push disabled — skip topic subscribe');
+      }
     } on FirebaseException catch (e, st) {
       // Reset so a manual retry (e.g. settings toggle later) can re-prompt.
       _permissionRequested = false;
@@ -443,11 +462,32 @@ class PushService {
     debugPrint('[FCM] APNs token not set — $action');
   }
 
-  /// Stop receiving the news topic — call from logout / "disable news"
-  /// preference toggle if we add one later.
+  /// Subscribe to the marketing / news topic. Called from Settings when the
+  /// user re-enables "Push bildirishnomalar", and from the initial permission
+  /// flow when the preference is on.
+  Future<void> subscribeToNews() async {
+    try {
+      await _messaging.subscribeToTopic(kNewsTopic);
+      appLog.info('Subscribed to FCM topic: $kNewsTopic');
+      debugPrint('[FCM] subscribed to topic: $kNewsTopic');
+    } on FirebaseException catch (e, st) {
+      if (_isApnsTokenNotReady(e)) {
+        _logApnsNotReady('skipping topic subscribe');
+        return;
+      }
+      appLog.handle(e, st, 'PushService.subscribeToNews failed');
+    } catch (e, st) {
+      appLog.handle(e, st, 'PushService.subscribeToNews failed');
+    }
+  }
+
+  /// Stop receiving the news topic — call from logout / Settings when the
+  /// user disables promo push.
   Future<void> unsubscribeFromNews() async {
     try {
       await _messaging.unsubscribeFromTopic(kNewsTopic);
+      appLog.info('Unsubscribed from FCM topic: $kNewsTopic');
+      debugPrint('[FCM] unsubscribed from topic: $kNewsTopic');
     } on FirebaseException catch (e, st) {
       if (_isApnsTokenNotReady(e)) {
         _logApnsNotReady('skipping topic unsubscribe');
@@ -456,6 +496,15 @@ class PushService {
       appLog.handle(e, st, 'PushService.unsubscribeFromNews failed');
     } catch (e, st) {
       appLog.handle(e, st, 'PushService.unsubscribeFromNews failed');
+    }
+  }
+
+  /// Apply the promo-push preference to the FCM `news` topic subscription.
+  Future<void> setPromoTopicEnabled(bool enabled) async {
+    if (enabled) {
+      await subscribeToNews();
+    } else {
+      await unsubscribeFromNews();
     }
   }
 

@@ -5,11 +5,15 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../../core/analytics/analytics_service.dart';
+import '../../../../core/auth/auth_cubit.dart';
+import '../../../../core/auth/auth_repository.dart';
 import '../../../../core/cache/app_cache_cubit.dart';
 import '../../../../core/cache/clear_cache_dialog.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../core/i18n/language_picker.dart';
+import '../../../../core/logging/app_logger.dart';
+import '../../../../core/notifications/push_service.dart';
 import '../../../../core/storage/hive_boxes.dart';
 import '../../../../core/theme/theme_cubit.dart';
 import '../../../../core/theme/theme_mode_picker.dart';
@@ -26,11 +30,14 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _pushNotifications = true;
   bool _orderUpdates = true;
+  bool _orderUpdatesBusy = false;
   // Persisted across launches via Hive (settings box). Hydrate once at
   // open and write through on every toggle.
   bool _analyticsEnabled = true;
 
   static const _analyticsBoxKey = 'analytics_collection_enabled';
+
+  Box get _settingsBox => sl<Box>(instanceName: HiveBoxes.settings);
 
   @override
   void initState() {
@@ -43,19 +50,89 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _hydrate() async {
-    final box = sl<Box>(instanceName: HiveBoxes.settings);
-    final stored = box.get(_analyticsBoxKey);
-    if (stored is bool && stored != _analyticsEnabled && mounted) {
-      setState(() => _analyticsEnabled = stored);
-      await sl<AnalyticsService>().setAnalyticsEnabled(stored);
+    final box = _settingsBox;
+    final storedAnalytics = box.get(_analyticsBoxKey);
+    final storedPromo = box.get(kPromoPushEnabledKey);
+    final storedOrder = box.get(kOrderPushEnabledKey);
+
+    if (!mounted) return;
+    setState(() {
+      if (storedAnalytics is bool) _analyticsEnabled = storedAnalytics;
+      if (storedPromo is bool) _pushNotifications = storedPromo;
+      if (storedOrder is bool) _orderUpdates = storedOrder;
+    });
+    if (storedAnalytics is bool) {
+      await sl<AnalyticsService>().setAnalyticsEnabled(storedAnalytics);
+    }
+
+    // Server is source of truth when signed in — refresh Hive + topic state.
+    if (!mounted) return;
+    if (context.read<AuthCubit>().state is! AppAuthAuthenticated) return;
+    try {
+      final me = await sl<AuthRepository>().fetchMe();
+      if (!mounted) return;
+      setState(() {
+        _pushNotifications = me.promoPushEnabled;
+        _orderUpdates = me.orderPushEnabled;
+      });
+      await box.put(kPromoPushEnabledKey, me.promoPushEnabled);
+      await box.put(kOrderPushEnabledKey, me.orderPushEnabled);
+      if (sl.isRegistered<PushService>()) {
+        await sl<PushService>().setPromoTopicEnabled(me.promoPushEnabled);
+      }
+    } catch (e, st) {
+      appLog.handle(e, st, 'SettingsScreen hydrate push prefs failed');
     }
   }
 
   Future<void> _setAnalyticsEnabled(bool value) async {
     setState(() => _analyticsEnabled = value);
-    final box = sl<Box>(instanceName: HiveBoxes.settings);
-    await box.put(_analyticsBoxKey, value);
+    await _settingsBox.put(_analyticsBoxKey, value);
     await sl<AnalyticsService>().setAnalyticsEnabled(value);
+  }
+
+  Future<void> _setPromoPushEnabled(bool value) async {
+    setState(() => _pushNotifications = value);
+    await _settingsBox.put(kPromoPushEnabledKey, value);
+    if (sl.isRegistered<PushService>()) {
+      await sl<PushService>().setPromoTopicEnabled(value);
+    }
+    if (!mounted) return;
+    if (context.read<AuthCubit>().state is! AppAuthAuthenticated) return;
+    try {
+      await sl<AuthRepository>().updateProfile(promoPushEnabled: value);
+    } catch (e, st) {
+      appLog.handle(e, st, 'SettingsScreen sync promo_push_enabled failed');
+    }
+  }
+
+  Future<void> _setOrderUpdatesEnabled(bool value) async {
+    if (_orderUpdatesBusy) return;
+    final previous = _orderUpdates;
+    setState(() {
+      _orderUpdates = value;
+      _orderUpdatesBusy = true;
+    });
+    await _settingsBox.put(kOrderPushEnabledKey, value);
+
+    if (!mounted) return;
+    if (context.read<AuthCubit>().state is! AppAuthAuthenticated) {
+      setState(() => _orderUpdatesBusy = false);
+      return;
+    }
+    try {
+      await sl<AuthRepository>().updateProfile(orderPushEnabled: value);
+      if (mounted) setState(() => _orderUpdatesBusy = false);
+    } catch (e, st) {
+      appLog.handle(e, st, 'SettingsScreen sync order_push_enabled failed');
+      await _settingsBox.put(kOrderPushEnabledKey, previous);
+      if (mounted) {
+        setState(() {
+          _orderUpdates = previous;
+          _orderUpdatesBusy = false;
+        });
+      }
+    }
   }
 
   void _showAnalyticsInfo(BuildContext context) {
@@ -283,14 +360,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 icon: Iconsax.notification,
                 title: tr('settings.push_notifications'),
                 value: _pushNotifications,
-                onChanged: (v) => setState(() => _pushNotifications = v),
+                onChanged: _setPromoPushEnabled,
               ),
               const _RowDivider(),
               _SwitchRow(
                 icon: Iconsax.box,
                 title: tr('settings.order_updates'),
                 value: _orderUpdates,
-                onChanged: (v) => setState(() => _orderUpdates = v),
+                onChanged: _orderUpdatesBusy ? null : _setOrderUpdatesEnabled,
               ),
             ],
           ),
@@ -484,7 +561,7 @@ class _SwitchRow extends StatelessWidget {
   final String title;
   final String? subtitle;
   final bool value;
-  final ValueChanged<bool> onChanged;
+  final ValueChanged<bool>? onChanged;
   final VoidCallback? onInfoTap;
 
   @override

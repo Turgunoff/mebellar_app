@@ -118,6 +118,8 @@ class AuthRepository {
     String? email,
     String? preferredLanguage,
     String? avatarUrl,
+    bool? promoPushEnabled,
+    bool? orderPushEnabled,
   }) async {
     final payload = <String, dynamic>{};
     if (fullName != null) payload['full_name'] = fullName;
@@ -126,6 +128,12 @@ class AuthRepository {
       payload['preferred_language'] = preferredLanguage;
     }
     if (avatarUrl != null) payload['avatar_url'] = avatarUrl;
+    if (promoPushEnabled != null) {
+      payload['promo_push_enabled'] = promoPushEnabled;
+    }
+    if (orderPushEnabled != null) {
+      payload['order_push_enabled'] = orderPushEnabled;
+    }
     final body = await _api.patch<Map<String, dynamic>>('/me', body: payload);
     return Me.fromJson(body);
   }

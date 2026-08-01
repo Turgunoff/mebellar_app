@@ -11,6 +11,8 @@ class Me {
     this.avatarUrl,
     this.isSellerPending = false,
     this.role,
+    this.promoPushEnabled = true,
+    this.orderPushEnabled = true,
     this.sellerProfile,
   });
 
@@ -26,6 +28,14 @@ class Me {
   /// Recomputed server-side per request — never trust the JWT claim alone.
   final String? role;
 
+  /// Marketing / news FCM topic preference (`profiles.promo_push_enabled`).
+  final bool promoPushEnabled;
+
+  /// Transactional order-update FCM preference (`profiles.order_push_enabled`).
+  /// When false the backend still writes the in-app inbox row but skips the
+  /// OS-level push.
+  final bool orderPushEnabled;
+
   /// Seller surface — populated by a separate endpoint once approved. Until
   /// Phase 4 wires `/seller/me`, this stays null on every `/me` response.
   final SellerProfile? sellerProfile;
@@ -39,6 +49,8 @@ class Me {
     String? preferredLanguage,
     String? avatarUrl,
     bool? isSellerPending,
+    bool? promoPushEnabled,
+    bool? orderPushEnabled,
     SellerProfile? sellerProfile,
   }) {
     return Me(
@@ -50,6 +62,8 @@ class Me {
       avatarUrl: avatarUrl ?? this.avatarUrl,
       isSellerPending: isSellerPending ?? this.isSellerPending,
       role: role,
+      promoPushEnabled: promoPushEnabled ?? this.promoPushEnabled,
+      orderPushEnabled: orderPushEnabled ?? this.orderPushEnabled,
       sellerProfile: sellerProfile ?? this.sellerProfile,
     );
   }
@@ -64,8 +78,12 @@ class Me {
       avatarUrl: json['avatar_url'] as String?,
       isSellerPending: json['is_seller_pending'] as bool? ?? false,
       role: json['role'] as String?,
+      promoPushEnabled: json['promo_push_enabled'] as bool? ?? true,
+      orderPushEnabled: json['order_push_enabled'] as bool? ?? true,
       sellerProfile: json['seller_profile'] is Map<String, dynamic>
-          ? SellerProfile.fromJson(json['seller_profile'] as Map<String, dynamic>)
+          ? SellerProfile.fromJson(
+              json['seller_profile'] as Map<String, dynamic>,
+            )
           : null,
     );
   }
@@ -127,8 +145,9 @@ class SellerProfile {
       contactEmail: contactEmail ?? this.contactEmail,
       telegramUsername: telegramUsername ?? this.telegramUsername,
       shopId: shopId ?? this.shopId,
-      rejectionReason:
-          clearRejectionReason ? null : (rejectionReason ?? this.rejectionReason),
+      rejectionReason: clearRejectionReason
+          ? null
+          : (rejectionReason ?? this.rejectionReason),
       bonusScreenSeen: bonusScreenSeen ?? this.bonusScreenSeen,
       rejectionAlertDismissed:
           rejectionAlertDismissed ?? this.rejectionAlertDismissed,
@@ -137,8 +156,9 @@ class SellerProfile {
 
   factory SellerProfile.fromJson(Map<String, dynamic> json) {
     return SellerProfile(
-      verificationStatus:
-          VerificationStatus.fromCode(json['verification_status'] as String?),
+      verificationStatus: VerificationStatus.fromCode(
+        json['verification_status'] as String?,
+      ),
       businessType: BusinessType.fromCode(json['business_type'] as String?),
       legalName: json['legal_name'] as String?,
       contactPhone: json['contact_phone'] as String?,

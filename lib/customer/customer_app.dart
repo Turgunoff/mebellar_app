@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../core/auth/auth_cubit.dart';
 import '../core/auth/session_revalidator.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -21,6 +22,7 @@ import '../core/notifications/notification_handler.dart';
 import '../core/notifications/push_service.dart';
 import '../core/services/facebook_analytics_service.dart';
 import '../core/connectivity/network_cubit.dart';
+import '../core/storage/hive_boxes.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/theme_cubit.dart';
 import '../core/updates/app_update_gate.dart';
@@ -344,7 +346,18 @@ class _CustomerHomeShellState extends State<CustomerHomeShell> {
     if (sl.isRegistered<PushService>() && !kScreenshotMode) {
       Future<void>.delayed(_permissionPromptDelay, () {
         if (!mounted) return;
-        sl<PushService>().requestPermissionAndSubscribe();
+        // Honour a prior Settings opt-out so a cold permission grant does not
+        // re-subscribe the device to the marketing `news` topic.
+        var enableNews = true;
+        if (sl.isRegistered<Box>(instanceName: HiveBoxes.settings)) {
+          final stored = sl<Box>(
+            instanceName: HiveBoxes.settings,
+          ).get(kPromoPushEnabledKey);
+          if (stored is bool) enableNews = stored;
+        }
+        sl<PushService>().requestPermissionAndSubscribe(
+          enableNewsTopic: enableNews,
+        );
       });
     }
     // Bring Meta (Facebook) App Events online once the home feed is up. On iOS
