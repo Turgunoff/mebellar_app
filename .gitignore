@@ -74,6 +74,10 @@ serviceAccountKey.json
 /env/*.json
 !env/example.json
 
+# Shorebird per-project API key (SHOREBIRD_TOKEN). Never commit — each
+# machine / CI secret holds its own; tools/shorebird.sh loads this file.
+.shorebird_token
+
 # Claude Code — per-user settings stay local; shared settings.json
 # (with hook wiring) is committed for the team. Skill installs are
 # managed by the user's CLI, not the repo.

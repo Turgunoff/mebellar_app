@@ -1,0 +1,4 @@
+# Copy to .shorebird_token (gitignored) and paste the key from
+# https://console.shorebird.dev → Account → API Keys.
+# tools/shorebird.sh loads this automatically for release/patch.
+export SHOREBIRD_TOKEN='sb_api_REPLACE_ME'

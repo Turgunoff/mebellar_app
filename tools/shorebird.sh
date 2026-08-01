@@ -43,6 +43,10 @@ ENV_FILE="env/prod.json"
 SYMBOLS_DIR="build/symbols"
 DIST_DIR="dist"                       # store uploads land here (gitignored)
 LEDGER="tools/shorebird/releases.md"  # .md, not .log — *.log is gitignored
+# Per-project Shorebird API key. Lets each repo bind its own account without
+# `shorebird logout`/`login` when you juggle multiple orgs on one machine.
+# Gitignored — never commit. Format: `export SHOREBIRD_TOKEN='sb_api_…'`
+TOKEN_FILE=".shorebird_token"
 
 # ── shorebird on PATH ─────────────────────────────────────────────────────
 # The installer adds ~/.shorebird/bin to interactive shells; a script may not
@@ -55,6 +59,24 @@ if ! command -v shorebird >/dev/null 2>&1; then
   exit 1
 fi
 
+# Prefer the project token over a global interactive login so Woody release
+# never accidentally hits another account's org.
+load_shorebird_token() {
+  if [ -n "${SHOREBIRD_TOKEN:-}" ]; then
+    return 0
+  fi
+  if [ -f "$TOKEN_FILE" ]; then
+    # shellcheck disable=SC1090
+    set -a
+    # shellcheck disable=SC1091
+    source "$TOKEN_FILE"
+    set +a
+  fi
+  if [ -z "${SHOREBIRD_TOKEN:-}" ]; then
+    echo "⚠️  $TOKEN_FILE yo'q / SHOREBIRD_TOKEN bo'sh — global shorebird login ishlatiladi." >&2
+    echo "    Multi-account uchun: console → API Keys → $TOKEN_FILE ga yozing." >&2
+  fi
+}
 # ── helpers ───────────────────────────────────────────────────────────────
 pubspec_version() {
   grep -E '^version:' pubspec.yaml | head -1 | awk '{print $2}'
@@ -325,6 +347,7 @@ case "$CMD" in
         echo "✗ android/key.properties yo'q — release debug kalit bilan imzolanadi." >&2; exit 1; }
     done
     require_env
+    load_shorebird_token
     warn_if_dirty
     local_version="$(pubspec_version)"
     echo "→ Shorebird release  $local_version  (${PLATFORMS[*]})"
@@ -345,6 +368,7 @@ case "$CMD" in
         echo "✗ iOS patch faqat macOS'da. Bu mashinada 'android' ishlating." >&2; exit 1; }
     done
     require_env
+    load_shorebird_token
     [ -z "$RELEASE_VERSION" ] && RELEASE_VERSION="$(pubspec_version)"
 
     # Preflight: classify against the recorded release before building.
