@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
-import '../../../../core/analytics/analytics_service.dart';
+import '../../../../core/analytics/analytics_privacy.dart';
 import '../../../../core/auth/auth_cubit.dart';
 import '../../../../core/auth/auth_repository.dart';
 import '../../../../core/cache/app_cache_cubit.dart';
@@ -35,8 +35,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // open and write through on every toggle.
   bool _analyticsEnabled = true;
 
-  static const _analyticsBoxKey = 'analytics_collection_enabled';
-
   Box get _settingsBox => sl<Box>(instanceName: HiveBoxes.settings);
 
   @override
@@ -51,19 +49,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _hydrate() async {
     final box = _settingsBox;
-    final storedAnalytics = box.get(_analyticsBoxKey);
+    final storedAnalytics = readAnalyticsCollectionEnabled(box);
     final storedPromo = box.get(kPromoPushEnabledKey);
     final storedOrder = box.get(kOrderPushEnabledKey);
 
     if (!mounted) return;
     setState(() {
-      if (storedAnalytics is bool) _analyticsEnabled = storedAnalytics;
+      _analyticsEnabled = storedAnalytics;
       if (storedPromo is bool) _pushNotifications = storedPromo;
       if (storedOrder is bool) _orderUpdates = storedOrder;
     });
-    if (storedAnalytics is bool) {
-      await sl<AnalyticsService>().setAnalyticsEnabled(storedAnalytics);
-    }
+    // Re-assert the SDK state in case boot somehow skipped apply (e.g. a
+    // hot-restart path that remounts Settings without re-running main).
+    await applyAnalyticsCollectionEnabled(storedAnalytics);
 
     // Server is source of truth when signed in — refresh Hive + topic state.
     if (!mounted) return;
@@ -87,8 +85,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _setAnalyticsEnabled(bool value) async {
     setState(() => _analyticsEnabled = value);
-    await _settingsBox.put(_analyticsBoxKey, value);
-    await sl<AnalyticsService>().setAnalyticsEnabled(value);
+    await _settingsBox.put(kAnalyticsCollectionEnabledKey, value);
+    await applyAnalyticsCollectionEnabled(value);
   }
 
   Future<void> _setPromoPushEnabled(bool value) async {

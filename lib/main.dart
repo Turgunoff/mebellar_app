@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:ui';
 
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_phoenix/flutter_phoenix.dart';
@@ -13,6 +13,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'config/app_config.dart';
+import 'core/analytics/analytics_privacy.dart';
 import 'core/network/woody_api_client.dart';
 import 'config/app_mode.dart';
 import 'config/remote_config.dart';
@@ -70,9 +71,13 @@ Future<void> main() async {
 
       if (Firebase.apps.isNotEmpty) {
         final crashlytics = FirebaseCrashlytics.instance;
-        // Skip collection in debug so local crashes don't pollute the prod
-        // dashboard. Release builds always report.
-        await crashlytics.setCrashlyticsCollectionEnabled(!kDebugMode);
+        // Mute collection until Hive is open and the privacy preference is
+        // applied in `_bootstrapAndRun`. Leaving the Firebase defaults ON
+        // here would leak events/crashes for a whole session when the user
+        // previously opted out but hasn't opened Settings yet. Debug stays
+        // off forever via the later apply (`enabled && !kDebugMode`).
+        await FirebaseAnalytics.instance.setAnalyticsCollectionEnabled(false);
+        await crashlytics.setCrashlyticsCollectionEnabled(false);
 
         // Flutter framework errors (build/layout/paint exceptions).
         FlutterError.onError = (details) {
@@ -152,6 +157,15 @@ Future<void> _bootstrapAndRun() async {
   // Firebase + Crashlytics + FCM background handler were already wired by
   // `main`; this function just boots the rest of the app.
   await initRootScope();
+
+  // Enforce the Settings "Foydalanish statistikasi" preference BEFORE any
+  // screen mounts / FirebaseAnalyticsObserver fires. Hive is open now via
+  // initRootScope; default is true (first launch). Opt-out disables
+  // Analytics + Crashlytics + Meta in one shot.
+  final privacyBox = sl<Box>(instanceName: HiveBoxes.settings);
+  await applyAnalyticsCollectionEnabled(
+    readAnalyticsCollectionEnabled(privacyBox),
+  );
 
   final initialMode = getInitialMode();
   await initModeScope(initialMode);

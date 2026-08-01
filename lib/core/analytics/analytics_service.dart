@@ -15,9 +15,12 @@ abstract class AnalyticsService {
   /// sign-out so further events are anonymous.
   Future<void> setUserId(String? userId);
 
-  /// Master switch — used by the settings screen's "Analytics yig'ish"
-  /// toggle. Off ⇒ events are dropped at the SDK boundary; on ⇒ collection
-  /// resumes immediately.
+  /// Master switch — used by the settings screen's "Foydalanish statistikasi"
+  /// toggle. Off ⇒ Firebase Analytics collection stops at the SDK boundary
+  /// and Crashlytics collection is disabled; on ⇒ both resume (Crashlytics
+  /// still stays off in debug builds). Prefer the shared
+  /// `applyAnalyticsCollectionEnabled` helper at call sites so Meta /
+  /// Facebook App Events honour the same preference.
   Future<void> setAnalyticsEnabled(bool enabled);
 
   /// Records the current screen — feeds Firebase's screen_view dashboard

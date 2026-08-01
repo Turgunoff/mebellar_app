@@ -1,4 +1,7 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:flutter/foundation.dart';
 
 import '../logging/app_logger.dart';
 import 'analytics_service.dart';
@@ -10,10 +13,24 @@ import 'analytics_service.dart';
 /// extra configuration. Custom names are used only where there is no
 /// matching predefined event (chat, seller_*, language_changed, …).
 class FirebaseAnalyticsService implements AnalyticsService {
-  FirebaseAnalyticsService({FirebaseAnalytics? analytics})
-    : _analytics = analytics ?? FirebaseAnalytics.instance;
+  FirebaseAnalyticsService({
+    FirebaseAnalytics? analytics,
+    FirebaseCrashlytics? crashlytics,
+  }) : _analytics = analytics ?? FirebaseAnalytics.instance,
+       _crashlytics = crashlytics;
 
   final FirebaseAnalytics _analytics;
+
+  /// Optional so unit tests can inject a fake / leave Crashlytics unwired
+  /// when Firebase isn't initialised. Live app leaves it null and resolves
+  /// via [FirebaseCrashlytics.instance] only when an app is registered.
+  final FirebaseCrashlytics? _crashlytics;
+
+  FirebaseCrashlytics? get _crashlyticsOrNull {
+    if (_crashlytics != null) return _crashlytics;
+    if (Firebase.apps.isEmpty) return null;
+    return FirebaseCrashlytics.instance;
+  }
 
   /// Common defaults applied to every parameter map. Pulled out so adding
   /// e.g. an A/B-test cohort tag in the future is a one-line change.
@@ -49,6 +66,24 @@ class FirebaseAnalyticsService implements AnalyticsService {
       await _analytics.setAnalyticsCollectionEnabled(enabled);
     } catch (e, st) {
       appLog.handle(e, st, 'analytics: setAnalyticsEnabled failed');
+    }
+    // Same privacy toggle gates Crashlytics: an opt-out must stop crash
+    // reports too (App Store / Play privacy + the Settings copy that says
+    // stats help find errors). Debug builds always stay off so local
+    // crashes never pollute the prod dashboard.
+    final crashlytics = _crashlyticsOrNull;
+    if (crashlytics != null) {
+      try {
+        await crashlytics.setCrashlyticsCollectionEnabled(
+          enabled && !kDebugMode,
+        );
+      } catch (e, st) {
+        appLog.handle(
+          e,
+          st,
+          'analytics: setCrashlyticsCollectionEnabled failed',
+        );
+      }
     }
   }
 

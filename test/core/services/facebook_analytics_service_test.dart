@@ -107,6 +107,45 @@ void main() {
       expect(callsTo('activateApp'), hasLength(1));
     });
 
+    test('privacy opt-out suppresses Meta even when ATT is granted', () async {
+      final service = build(true);
+      await service.setPrivacyCollectionAllowed(false);
+      await service.initialize();
+
+      expect(service.isEnabled, isFalse);
+      expect(callsTo('setAutoLogAppEventsEnabled').last.arguments, isFalse);
+      expect(
+        callsTo('setAdvertiserIdCollectionEnabled').last.arguments,
+        isFalse,
+      );
+      expect(callsTo('activateApp'), isEmpty);
+
+      calls.clear();
+      await service.logPurchase(1000, 'UZS');
+      expect(callsTo('logPurchase'), isEmpty);
+    });
+
+    test(
+      'privacy toggle mid-session turns Meta off without re-prompting',
+      () async {
+        final gate = _FakeConsentGate(true);
+        final service = FacebookAnalyticsService(
+          events: FacebookAppEvents(),
+          consent: gate,
+        );
+        await service.initialize();
+        expect(service.isEnabled, isTrue);
+        expect(gate.calls, 1);
+
+        calls.clear();
+        await service.setPrivacyCollectionAllowed(false);
+        expect(service.isEnabled, isFalse);
+        expect(callsTo('setAutoLogAppEventsEnabled').single.arguments, isFalse);
+        // ATT must not be asked again when privacy flips.
+        expect(gate.calls, 1);
+      },
+    );
+
     test('initialize is idempotent — consent asked once', () async {
       final gate = _FakeConsentGate(true);
       final service = FacebookAnalyticsService(

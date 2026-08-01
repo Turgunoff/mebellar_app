@@ -12,7 +12,7 @@ import 'meta_consent_gate.dart';
 /// conversion sink, used for ad-campaign attribution (installs, the e-commerce
 /// funnel, and a few custom high-value signals).
 ///
-/// ## Consent-first
+/// Consent-first
 ///
 /// The SDK is wired to NOT auto-initialise: `FacebookAutoLogAppEventsEnabled`
 /// / `FacebookAdvertiserIDCollectionEnabled` (iOS) and the matching
@@ -23,7 +23,12 @@ import 'meta_consent_gate.dart';
 /// - **iOS** gates everything on App Tracking Transparency. If the user
 ///   declines the ATT prompt, [initialize] leaves the SDK disabled and every
 ///   event method becomes a no-op — we respect the choice.
-/// - **Android** has no ATT; [initialize] turns the SDK on immediately.
+/// - **Android** has no ATT; [initialize] turns the SDK on immediately
+///   *unless* the in-app "Foydalanish statistikasi" privacy toggle has opted
+///   out (see [setPrivacyCollectionAllowed]).
+///
+/// Both gates must pass — ATT (iOS) AND the Hive analytics preference —
+/// before any Meta event is sent.
 ///
 /// ## Non-throwing
 ///
@@ -55,8 +60,27 @@ class FacebookAnalyticsService {
   bool _initialized = false;
   bool _enabled = false;
 
-  /// Whether Meta tracking is live (consent granted + SDK turned on).
+  /// ATT / platform consent from the last [initialize] call. Kept separate
+  /// from [_privacyAllowed] so flipping the Settings toggle doesn't need to
+  /// re-prompt ATT — it just re-ANDs the two gates.
+  bool _attAllowed = false;
+
+  /// In-app privacy preference (Hive `analytics_collection_enabled`). Defaults
+  /// to true until boot / Settings applies the stored value.
+  bool _privacyAllowed = true;
+
+  /// Whether Meta tracking is live (consent granted + privacy allowed + SDK on).
   bool get isEnabled => _enabled;
+
+  /// Applies the Settings "Foydalanish statistikasi" preference. Safe to call
+  /// before or after [initialize] — before, it just stashes the value for
+  /// initialize to honour; after, it immediately turns Meta collection on/off
+  /// without re-prompting ATT.
+  Future<void> setPrivacyCollectionAllowed(bool allowed) async {
+    _privacyAllowed = allowed;
+    if (!_initialized) return;
+    await _applyEnabledState(activateIfNewlyEnabled: false);
+  }
 
   /// Resolves consent and brings the SDK online (or leaves it off). Idempotent
   /// — safe to call from multiple entry points / across mode switches; the ATT
@@ -67,26 +91,34 @@ class FacebookAnalyticsService {
     if (_initialized) return;
     _initialized = true;
 
-    bool allowed;
     try {
-      allowed = await _consent.requestTrackingAuthorization();
+      _attAllowed = await _consent.requestTrackingAuthorization();
     } catch (e, st) {
       // A failed ATT round-trip must never crash boot — fail closed (no
       // tracking) and move on.
       appLog.handle(e, st, 'FacebookAnalyticsService: consent resolution');
-      allowed = false;
+      _attAllowed = false;
     }
+
+    await _applyEnabledState(activateIfNewlyEnabled: true);
+  }
+
+  /// Recomputes `_enabled = ATT ∧ privacy` and mirrors it onto the SDK
+  /// switches. [activateIfNewlyEnabled] records the activation event only on
+  /// the first successful enable (initialize path) — toggling privacy back
+  /// on mid-session shouldn't re-fire activateApp.
+  Future<void> _applyEnabledState({
+    required bool activateIfNewlyEnabled,
+  }) async {
+    final allowed = _attAllowed && _privacyAllowed;
+    final wasEnabled = _enabled;
     _enabled = allowed;
 
     await _safe(() async {
-      // Mirror the consent decision onto the SDK's runtime switches. With
-      // native auto-init disabled, THIS is what actually starts (or withholds)
-      // collection.
       await _fb.setAutoLogAppEventsEnabled(allowed);
       await _fb.setAdvertiserIdCollectionEnabled(allowed);
-      if (allowed) {
+      if (allowed && activateIfNewlyEnabled && !wasEnabled) {
         if (kDebugMode) await _fb.setDebugLoggingEnabled(true);
-        // Records the activation (install/session) now that consent is in.
         await _fb.activateApp();
       }
     });
@@ -94,6 +126,8 @@ class FacebookAnalyticsService {
     _console(
       allowed
           ? '✅ SDK initialised — tracking authorised'
+          : _attAllowed && !_privacyAllowed
+          ? '🔒 SDK suppressed — in-app analytics privacy opt-out'
           : '🔒 SDK initialised — tracking declined (events suppressed)',
     );
   }
