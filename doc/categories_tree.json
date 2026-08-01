@@ -1,0 +1,2484 @@
+[
+  {
+    "id": "c0000000-0000-4000-a000-000000000001",
+    "name": "Divanlar",
+    "name_uz": "Divanlar",
+    "name_ru": "Диваны",
+    "name_en": null,
+    "subtitle": "Qulay va zamonaviy divanlar",
+    "sort_order": 1,
+    "is_active": true,
+    "image_url": "https://pub-2d9766f038544b82b726a75834fbe8a2.r2.dev/af567dbf-337d-4ad9-8823-9eb965360a81.jpg",
+    "icon_url": "https://picsum.photos/seed/mebellar-sofa-icon/200/200",
+    "subcategories": [
+      {
+        "id": "5b000000-0000-4000-a000-000000000001",
+        "name": "Burchak divanlar",
+        "category_id": "c0000000-0000-4000-a000-000000000001"
+      },
+      {
+        "id": "5b000000-0000-4000-a000-000000000003",
+        "name": "Divan-krovatlar",
+        "category_id": "c0000000-0000-4000-a000-000000000001"
+      },
+      {
+        "id": "5b000000-0000-4000-a000-000000000002",
+        "name": "To'g'ri divanlar",
+        "category_id": "c0000000-0000-4000-a000-000000000001"
+      }
+    ],
+    "attributes": [
+      {
+        "id": "8a86b25a-77be-5d94-b625-048669c4ce24",
+        "key": "sofa_type",
+        "label_uz": "Divan turi",
+        "label_ru": "Тип дивана",
+        "label_en": null,
+        "data_type": "select",
+        "unit": null,
+        "is_required": true,
+        "sort_order": 1,
+        "options": [
+          {
+            "id": "8a2fbc2e-ceec-5d81-bda5-d62be2e61bbc",
+            "value": "straight",
+            "label_uz": "To'g'ri divan",
+            "label_ru": "Прямой диван",
+            "label_en": null,
+            "sort_order": 1
+          },
+          {
+            "id": "4cf62302-7b6e-5407-bcc1-a06c9bb74e5e",
+            "value": "corner",
+            "label_uz": "Burchak divan",
+            "label_ru": "Угловой диван",
+            "label_en": null,
+            "sort_order": 2
+          },
+          {
+            "id": "6cb7bf6b-b727-5b7d-8fe1-ae90e1b6d043",
+            "value": "sofa_bed",
+            "label_uz": "Divan-krovat",
+            "label_ru": "Диван-кровать",
+            "label_en": null,
+            "sort_order": 3
+          },
+          {
+            "id": "7593f3e0-dc92-5fc0-87d1-7dd2cf18c445",
+            "value": "modular",
+            "label_uz": "Modulli divan",
+            "label_ru": "Модульный диван",
+            "label_en": null,
+            "sort_order": 4
+          },
+          {
+            "id": "0ac210f6-d3cc-59d2-98a1-f6541dfde186",
+            "value": "ottoman",
+            "label_uz": "Banketka / Puf",
+            "label_ru": "Банкетка / Пуф",
+            "label_en": null,
+            "sort_order": 5
+          }
+        ]
+      },
+      {
+        "id": "93080dbb-bbeb-5f8c-9d1d-6d88d5f13d92",
+        "key": "width_cm",
+        "label_uz": "Eni",
+        "label_ru": "Ширина",
+        "label_en": null,
+        "data_type": "number",
+        "unit": "sm",
+        "is_required": true,
+        "sort_order": 2,
+        "options": []
+      },
+      {
+        "id": "2e14ea9f-8309-53e7-bd59-e1a23b27bdb9",
+        "key": "depth_cm",
+        "label_uz": "Chuqurligi",
+        "label_ru": "Глубина",
+        "label_en": null,
+        "data_type": "number",
+        "unit": "sm",
+        "is_required": true,
+        "sort_order": 3,
+        "options": []
+      },
+      {
+        "id": "cc81a500-8bb2-5722-8c0c-622d848abfee",
+        "key": "height_cm",
+        "label_uz": "Balandligi",
+        "label_ru": "Высота",
+        "label_en": null,
+        "data_type": "number",
+        "unit": "sm",
+        "is_required": false,
+        "sort_order": 4,
+        "options": []
+      },
+      {
+        "id": "b15cbeb4-fdb7-5065-bec6-e73334683e2d",
+        "key": "transform_mechanism",
+        "label_uz": "Yotqizish mexanizmi",
+        "label_ru": "Механизм трансформации",
+        "label_en": null,
+        "data_type": "select",
+        "unit": null,
+        "is_required": false,
+        "sort_order": 5,
+        "options": [
+          {
+            "id": "cda61995-a96c-561f-a76a-5f250798fe6a",
+            "value": "none",
+            "label_uz": "Yo'q",
+            "label_ru": "Нет",
+            "label_en": null,
+            "sort_order": 1
+          },
+          {
+            "id": "35d75ea9-76d1-5b0e-8b72-6dacca34224d",
+            "value": "evrobook",
+            "label_uz": "Yevrokitob",
+            "label_ru": "Еврокнижка",
+            "label_en": null,
+            "sort_order": 2
+          },
+          {
+            "id": "fd244827-98ef-5ddd-8820-4b401485055b",
+            "value": "dolphin",
+            "label_uz": "Delfin",
+            "label_ru": "Дельфин",
+            "label_en": null,
+            "sort_order": 3
+          },
+          {
+            "id": "0877ec7c-7d1e-5cad-911c-8f20d80da368",
+            "value": "accordion",
+            "label_uz": "Akkordeon",
+            "label_ru": "Аккордеон",
+            "label_en": null,
+            "sort_order": 4
+          },
+          {
+            "id": "7084faa0-9257-56d7-bfc7-4d668889542c",
+            "value": "book",
+            "label_uz": "Klassik kitob",
+            "label_ru": "Книжка",
+            "label_en": null,
+            "sort_order": 5
+          },
+          {
+            "id": "542275ff-8404-5d87-95e0-8a27a7fc5848",
+            "value": "click_clack",
+            "label_uz": "Klik-klak",
+            "label_ru": "Клик-кляк",
+            "label_en": null,
+            "sort_order": 6
+          },
+          {
+            "id": "a04341d0-de1b-5d25-b16e-7492d2282814",
+            "value": "pull_out",
+            "label_uz": "Chiqariladigan (vykatnoy)",
+            "label_ru": "Выкатной",
+            "label_en": null,
+            "sort_order": 7
+          }
+        ]
+      },
+      {
+        "id": "aaad3b98-dfe7-5d4a-868a-4db7b7cf3a50",
+        "key": "sleeping_width_cm",
+        "label_uz": "Yotoq joyi eni",
+        "label_ru": "Ширина спального места",
+        "label_en": null,
+        "data_type": "number",
+        "unit": "sm",
+        "is_required": false,
+        "sort_order": 6,
+        "options": []
+      },
+      {
+        "id": "28d04035-85b2-5307-a198-3a0c6a02f20e",
+        "key": "upholstery_material",
+        "label_uz": "Qoplama materiali",
+        "label_ru": "Материал обивки",
+        "label_en": null,
+        "data_type": "select",
+        "unit": null,
+        "is_required": true,
+        "sort_order": 7,
+        "options": [
+          {
+            "id": "d4d76a15-e9c2-512a-9220-fbe0933c9811",
+            "value": "velour",
+            "label_uz": "Velyur",
+            "label_ru": "Велюр",
+            "label_en": null,
+            "sort_order": 1
+          },
+          {
+            "id": "a456035c-de82-55e7-b169-76a690b7d8ed",
+            "value": "rogozhka",
+            "label_uz": "Rogojka",
+            "label_ru": "Рогожка",
+            "label_en": null,
+            "sort_order": 2
+          },
+          {
+            "id": "395e8e30-482c-527e-af9a-cf8008094ae2",
+            "value": "chenille",
+            "label_uz": "Shenill",
+            "label_ru": "Шенилл",
+            "label_en": null,
+            "sort_order": 3
+          },
+          {
+            "id": "fb6e2665-7ae9-5d2f-ac93-636b615b095f",
+            "value": "eco_leather",
+            "label_uz": "Sun'iy teri (ekokoja)",
+            "label_ru": "Экокожа",
+            "label_en": null,
+            "sort_order": 4
+          },
+          {
+            "id": "f62b4190-18b2-547d-a385-c4549697ff91",
+            "value": "genuine_leather",
+            "label_uz": "Tabiiy teri",
+            "label_ru": "Натуральная кожа",
+            "label_en": null,
+            "sort_order": 5
+          },
+          {
+            "id": "09b934ce-e7b6-574d-850f-565e5214fe92",
+            "value": "flock",
+            "label_uz": "Flok",
+            "label_ru": "Флок",
+            "label_en": null,
+            "sort_order": 6
+          },
+          {
+            "id": "9d5805c2-41ac-57e9-a570-634242c836e9",
+            "value": "tapestry",
+            "label_uz": "Gobelen",
+            "label_ru": "Гобелен",
+            "label_en": null,
+            "sort_order": 7
+          },
+          {
+            "id": "732caf67-04cb-5074-8d01-f6ba2b8b9b99",
+            "value": "jacquard",
+            "label_uz": "Jakkard",
+            "label_ru": "Жаккард",
+            "label_en": null,
+            "sort_order": 8
+          }
+        ]
+      },
+      {
+        "id": "e289c49b-587f-5e7b-a779-db0f55510ff6",
+        "key": "filler_material",
+        "label_uz": "To'ldiruvchi",
+        "label_ru": "Наполнитель",
+        "label_en": null,
+        "data_type": "select",
+        "unit": null,
+        "is_required": false,
+        "sort_order": 8,
+        "options": [
+          {
+            "id": "e4553ffd-3a4f-5cf9-b060-6f254b6a2964",
+            "value": "ppu",
+            "label_uz": "Penopoliuretan (PPU)",
+            "label_ru": "Пенополиуретан (ППУ)",
+            "label_en": null,
+            "sort_order": 1
+          },
+          {
+            "id": "b04dea9e-b4de-588f-803d-ae3fb66c8891",
+            "value": "spring_block",
+            "label_uz": "Prujinali blok",
+            "label_ru": "Пружинный блок",
+            "label_en": null,
+            "sort_order": 2
+          },
+          {
+            "id": "cffbcfc1-c421-55d4-b5ee-2d0aafc20ec0",
+            "value": "holofiber",
+            "label_uz": "Holofayber",
+            "label_ru": "Холлофайбер",
+            "label_en": null,
+            "sort_order": 3
+          },
+          {
+            "id": "20897859-0633-55cd-bbef-02906957d650",
+            "value": "combined",
+            "label_uz": "Aralash (PPU + prujina)",
+            "label_ru": "Комбинированный (ППУ + пружина)",
+            "label_en": null,
+            "sort_order": 4
+          }
+        ]
+      },
+      {
+        "id": "2ded5c65-8f7a-5dd1-904f-817afe117b22",
+        "key": "frame_material",
+        "label_uz": "Karkas materiali",
+        "label_ru": "Материал каркаса",
+        "label_en": null,
+        "data_type": "select",
+        "unit": null,
+        "is_required": false,
+        "sort_order": 9,
+        "options": [
+          {
+            "id": "993a0d09-25b0-548c-b875-29c2fab27137",
+            "value": "solid_wood",
+            "label_uz": "Tabiiy yog'och (massiv)",
+            "label_ru": "Массив дерева",
+            "label_en": null,
+            "sort_order": 1
+          },
+          {
+            "id": "820de9f6-2538-5d98-8cc9-3e83f1e46e42",
+            "value": "plywood",
+            "label_uz": "Faner",
+            "label_ru": "Фанера",
+            "label_en": null,
+            "sort_order": 2
+          },
+          {
+            "id": "438bc723-be74-5361-8ac5-bd737f66e196",
+            "value": "chipboard",
+            "label_uz": "LDSP",
+            "label_ru": "ЛДСП",
+            "label_en": null,
+            "sort_order": 3
+          },
+          {
+            "id": "f22873dc-86b0-5b0d-9341-d9bb581a43f1",
+            "value": "metal",
+            "label_uz": "Metall",
+            "label_ru": "Металл",
+            "label_en": null,
+            "sort_order": 4
+          },
+          {
+            "id": "1da36cc5-b9a7-5bad-a4e5-d0e9120bb77f",
+            "value": "combined",
+            "label_uz": "Aralash",
+            "label_ru": "Комбинированный",
+            "label_en": null,
+            "sort_order": 5
+          }
+        ]
+      },
+      {
+        "id": "897b3059-799f-55a6-948f-b0c716af1af4",
+        "key": "has_storage_drawer",
+        "label_uz": "Choyshab uchun yashik bor",
+        "label_ru": "Ящик для белья",
+        "label_en": null,
+        "data_type": "bool",
+        "unit": null,
+        "is_required": false,
+        "sort_order": 10,
+        "options": []
+      },
+      {
+        "id": "d4a254af-4d42-59a2-9ab2-a382f33f3a95",
+        "key": "warranty_months",
+        "label_uz": "Kafolat muddati",
+        "label_ru": "Гарантия",
+        "label_en": null,
+        "data_type": "number",
+        "unit": "oy",
+        "is_required": false,
+        "sort_order": 11,
+        "options": []
+      }
+    ]
+  },
+  {
+    "id": "c0000000-0000-4000-a000-000000000002",
+    "name": "Krovatlar",
+    "name_uz": "Krovatlar",
+    "name_ru": "Кровати",
+    "name_en": null,
+    "subtitle": "Yotoq xonasi uchun krovatlar",
+    "sort_order": 2,
+    "is_active": true,
+    "image_url": "https://pub-2d9766f038544b82b726a75834fbe8a2.r2.dev/f648f0a9-8820-4bdc-8079-c73e3c485b70.jpg",
+    "icon_url": "https://picsum.photos/seed/mebellar-bed-icon/200/200",
+    "subcategories": [
+      {
+        "id": "5b000000-0000-4000-a000-000000000005",
+        "name": "Bir kishilik krovatlar",
+        "category_id": "c0000000-0000-4000-a000-000000000002"
+      },
+      {
+        "id": "5b000000-0000-4000-a000-000000000006",
+        "name": "Bolalar krovatlari",
+        "category_id": "c0000000-0000-4000-a000-000000000002"
+      },
+      {
+        "id": "5b000000-0000-4000-a000-000000000004",
+        "name": "Ikki kishilik krovatlar",
+        "category_id": "c0000000-0000-4000-a000-000000000002"
+      }
+    ],
+    "attributes": [
+      {
+        "id": "83bb61aa-c87a-537c-bb5f-4d45ae52833a",
+        "key": "frame_material",
+        "label_uz": "Karkas materiali",
+        "label_ru": "Материал каркаса",
+        "label_en": null,
+        "data_type": "select",
+        "unit": null,
+        "is_required": false,
+        "sort_order": 6,
+        "options": [
+          {
+            "id": "c87e9d2f-8a52-5fbf-b822-4abe997f9806",
+            "value": "chipboard",
+            "label_uz": "LDSP",
+            "label_ru": "ЛДСП",
+            "label_en": null,
+            "sort_order": 1
+          },
+          {
+            "id": "d906670f-db9f-5400-af06-81f8331fcfab",
+            "value": "mdf",
+            "label_uz": "MDF",
+            "label_ru": "МДФ",
+            "label_en": null,
+            "sort_order": 2
+          },
+          {
+            "id": "6078a47b-9277-5c5d-a4fb-3fa3d0c29608",
+            "value": "solid_wood",
+            "label_uz": "Tabiiy yog'och (massiv)",
+            "label_ru": "Массив дерева",
+            "label_en": null,
+            "sort_order": 3
+          },
+          {
+            "id": "4ce73bb8-7f8f-526e-a770-5721efafeab2",
+            "value": "metal",
+            "label_uz": "Metall",
+            "label_ru": "Металл",
+            "label_en": null,
+            "sort_order": 4
+          },
+          {
+            "id": "ad42185f-1dd9-5579-bc3e-10fd590ee7dd",
+            "value": "mdf_pvx",
+            "label_uz": "MDF / Kromka PVX",
+            "label_ru": "МДФ / Кромка ПВХ",
+            "label_en": null,
+            "sort_order": 5
+          },
+          {
+            "id": "809d2ec5-6b51-5abb-b5f4-556ae4542c58",
+            "value": "plywood",
+            "label_uz": "Faner",
+            "label_ru": "Фанера",
+            "label_en": null,
+            "sort_order": 5
+          }
+        ]
+      },
+      {
+        "id": "a9a2a347-a815-52ec-84b6-c1fbe45db469",
+        "key": "has_storage_drawer",
+        "label_uz": "Saqlash uchun yashik bor",
+        "label_ru": "Ящик для хранения",
+        "label_en": null,
+        "data_type": "bool",
+        "unit": null,
+        "is_required": false,
+        "sort_order": 8,
+        "options": []
+      },
+      {
+        "id": "5af95534-721b-5344-b520-73c6754abe42",
+        "key": "has_lifting_mechanism",
+        "label_uz": "Ko'tarish mexanizmi bor",
+        "label_ru": "Подъёмный механизм",
+        "label_en": null,
+        "data_type": "bool",
+        "unit": null,
+        "is_required": false,
+        "sort_order": 9,
+        "options": []
+      },
+      {
+        "id": "fa4a2e7d-92cb-5eab-a03a-d17957ff8caa",
+        "key": "mattress_included",
+        "label_uz": "Matras komplektda",
+        "label_ru": "Матрас в комплекте",
+        "label_en": null,
+        "data_type": "bool",
+        "unit": null,
+        "is_required": false,
+        "sort_order": 10,
+        "options": []
+      },
+      {
+        "id": "5653f3a5-ab31-5f55-b1b5-73877490b77f",
+        "key": "bed_length_cm",
+        "label_uz": "Krovat — uzunligi",
+        "label_ru": "Кровать — длина",
+        "label_en": null,
+        "data_type": "number",
+        "unit": "sm",
+        "is_required": true,
+        "sort_order": 10,
+        "options": []
+      },
+      {
+        "id": "872d6282-f2da-59a4-9c07-31f3c9d51ca0",
+        "key": "bed_height_cm",
+        "label_uz": "Krovat — balandligi",
+        "label_ru": "Кровать — высота",
+        "label_en": null,
+        "data_type": "number",
+        "unit": "sm",
+        "is_required": false,
+        "sort_order": 11,
+        "options": []
+      },
+      {
+        "id": "4831927c-d720-50c8-8bb6-78c89db03b25",
+        "key": "bed_width_cm",
+        "label_uz": "Krovat — kengligi",
+        "label_ru": "Кровать — ширина",
+        "label_en": null,
+        "data_type": "number",
+        "unit": "sm",
+        "is_required": true,
+        "sort_order": 12,
+        "options": []
+      },
+      {
+        "id": "97c6c311-5144-54ef-831c-cd78d049f4a6",
+        "key": "wardrobe_width_cm",
+        "label_uz": "Shkaf — kengligi",
+        "label_ru": "Шкаф — ширина",
+        "label_en": null,
+        "data_type": "number",
+        "unit": "sm",
+        "is_required": false,
+        "sort_order": 20,
+        "options": []
+      },
+      {
+        "id": "ca407c7f-9947-5177-b7c0-b8adddd911f6",
+        "key": "wardrobe_height_cm",
+        "label_uz": "Shkaf — balandligi",
+        "label_ru": "Шкаф — высота",
+        "label_en": null,
+        "data_type": "number",
+        "unit": "sm",
+        "is_required": false,
+        "sort_order": 21,
+        "options": []
+      },
+      {
+        "id": "8c1f4475-d591-5fec-8922-124c19d32afa",
+        "key": "wardrobe_depth_cm",
+        "label_uz": "Shkaf — chuqurligi",
+        "label_ru": "Шкаф — глубина",
+        "label_en": null,
+        "data_type": "number",
+        "unit": "sm",
+        "is_required": false,
+        "sort_order": 22,
+        "options": []
+      },
+      {
+        "id": "8eb088e0-22e7-56f8-a042-9c845eeb0c31",
+        "key": "dresser_width_cm",
+        "label_uz": "Tryumo — kengligi",
+        "label_ru": "Трюмо — ширина",
+        "label_en": null,
+        "data_type": "number",
+        "unit": "sm",
+        "is_required": false,
+        "sort_order": 30,
+        "options": []
+      },
+      {
+        "id": "4ffbe2cc-3c97-5f32-a772-b18051abeebe",
+        "key": "dresser_height_cm",
+        "label_uz": "Tryumo — balandligi",
+        "label_ru": "Трюмо — высота",
+        "label_en": null,
+        "data_type": "number",
+        "unit": "sm",
+        "is_required": false,
+        "sort_order": 31,
+        "options": []
+      },
+      {
+        "id": "d5e38f8b-2406-5143-87d9-99650c62a963",
+        "key": "dresser_depth_cm",
+        "label_uz": "Tryumo — chuqurligi",
+        "label_ru": "Трюмо — глубина",
+        "label_en": null,
+        "data_type": "number",
+        "unit": "sm",
+        "is_required": false,
+        "sort_order": 32,
+        "options": []
+      },
+      {
+        "id": "fd48470d-838d-5fa0-a101-84ecd18e9e3c",
+        "key": "mattress_size",
+        "label_uz": "Matras o'lchami",
+        "label_ru": "Размер матраса",
+        "label_en": null,
+        "data_type": "text",
+        "unit": null,
+        "is_required": false,
+        "sort_order": 40,
+        "options": []
+      }
+    ]
+  },
+  {
+    "id": "c0000000-0000-4000-a000-000000000003",
+    "name": "Shkaflar",
+    "name_uz": "Shkaflar",
+    "name_ru": "Шкафы",
+    "name_en": null,
+    "subtitle": "Kiyim va buyum shkaflari",
+    "sort_order": 3,
+    "is_active": true,
+    "image_url": "https://pub-2d9766f038544b82b726a75834fbe8a2.r2.dev/de47aee4-7ed5-4e9f-a7bd-154acf47a306.jpg",
+    "icon_url": "https://picsum.photos/seed/mebellar-wardrobe-icon/200/200",
+    "subcategories": [
+      {
+        "id": "5b000000-0000-4000-a000-000000000008",
+        "name": "Kiyim shkaflari",
+        "category_id": "c0000000-0000-4000-a000-000000000003"
+      },
+      {
+        "id": "5b000000-0000-4000-a000-000000000009",
+        "name": "Komodlar",
+        "category_id": "c0000000-0000-4000-a000-000000000003"
+      },
+      {
+        "id": "5b000000-0000-4000-a000-000000000007",
+        "name": "Kupe shkaflar",
+        "category_id": "c0000000-0000-4000-a000-000000000003"
+      }
+    ],
+    "attributes": [
+      {
+        "id": "ebca26b1-a48e-562f-a6bf-216582ce287c",
+        "key": "cabinet_type",
+        "label_uz": "Shkaf turi",
+        "label_ru": "Тип шкафа",
+        "label_en": null,
+        "data_type": "select",
+        "unit": null,
+        "is_required": true,
+        "sort_order": 1,
+        "options": [
+          {
+            "id": "e4a58225-4b2a-54cd-a133-844ead38908d",
+            "value": "kupe",
+            "label_uz": "Kupe",
+            "label_ru": "Шкаф-купе",
+            "label_en": null,
+            "sort_order": 1
+          },
+          {
+            "id": "0ab17949-44d6-520b-a276-f9e607a9a735",
+            "value": "raspashnoy",
+            "label_uz": "Ochiladigan eshikli",
+            "label_ru": "Распашной",
+            "label_en": null,
+            "sort_order": 2
+          },
+          {
+            "id": "1ee2b88f-e6b0-5271-a304-423ab304d659",
+            "value": "komod",
+            "label_uz": "Komod",
+            "label_ru": "Комод",
+            "label_en": null,
+            "sort_order": 3
+          },
+          {
+            "id": "af1dd8f6-477f-56eb-99b9-a0c845a79cb7",
+            "value": "burchak",
+            "label_uz": "Burchak shkaf",
+            "label_ru": "Угловой",
+            "label_en": null,
+            "sort_order": 4
+          },
+          {
+            "id": "6d50f7c2-42c5-5cc6-8816-f38f7f538eef",
+            "value": "kitob_javoni",
+            "label_uz": "Kitob javoni / vitrina",
+            "label_ru": "Книжный / витрина",
+            "label_en": null,
+            "sort_order": 5
+          }
+        ]
+      },
+      {
+        "id": "010031ea-8ca7-524a-be7d-7fe548501f25",
+        "key": "height_cm",
+        "label_uz": "Balandligi",
+        "label_ru": "Высота",
+        "label_en": null,
+        "data_type": "number",
+        "unit": "sm",
+        "is_required": true,
+        "sort_order": 2,
+        "options": []
+      },
+      {
+        "id": "5b21a36b-4df6-5cb8-a43a-48792a412fd6",
+        "key": "width_cm",
+        "label_uz": "Eni",
+        "label_ru": "Ширина",
+        "label_en": null,
+        "data_type": "number",
+        "unit": "sm",
+        "is_required": true,
+        "sort_order": 3,
+        "options": []
+      },
+      {
+        "id": "ed127b07-650d-584e-bad7-8d1ef44e7475",
+        "key": "depth_cm",
+        "label_uz": "Chuqurligi",
+        "label_ru": "Глубина",
+        "label_en": null,
+        "data_type": "number",
+        "unit": "sm",
+        "is_required": false,
+        "sort_order": 4,
+        "options": []
+      },
+      {
+        "id": "c1da4bd0-a92b-5f1d-abc7-149af9ca1433",
+        "key": "door_count",
+        "label_uz": "Eshiklar soni",
+        "label_ru": "Количество дверей",
+        "label_en": null,
+        "data_type": "number",
+        "unit": null,
+        "is_required": false,
+        "sort_order": 5,
+        "options": []
+      },
+      {
+        "id": "f7d67d38-b4c9-572f-a37c-102270fcca03",
+        "key": "frame_material",
+        "label_uz": "Karkas materiali",
+        "label_ru": "Материал каркаса",
+        "label_en": null,
+        "data_type": "select",
+        "unit": null,
+        "is_required": true,
+        "sort_order": 6,
+        "options": [
+          {
+            "id": "ee253284-1d81-501f-adad-5e6f0c6cc693",
+            "value": "chipboard",
+            "label_uz": "LDSP (laminatlangan)",
+            "label_ru": "ЛДСП",
+            "label_en": null,
+            "sort_order": 1
+          },
+          {
+            "id": "ef9d61a3-3de2-5be4-9855-31ae0ff078dd",
+            "value": "mdf",
+            "label_uz": "MDF",
+            "label_ru": "МДФ",
+            "label_en": null,
+            "sort_order": 2
+          },
+          {
+            "id": "fd606c92-2d79-564e-a0c7-4b124623822a",
+            "value": "solid_wood",
+            "label_uz": "Tabiiy yog'och (massiv)",
+            "label_ru": "Массив дерева",
+            "label_en": null,
+            "sort_order": 3
+          },
+          {
+            "id": "cc66f678-cec2-5520-b921-33c771c307fd",
+            "value": "combined",
+            "label_uz": "Aralash (MDF + LDSP)",
+            "label_ru": "Комбинированный",
+            "label_en": null,
+            "sort_order": 4
+          }
+        ]
+      },
+      {
+        "id": "8ae10748-8191-5e4c-9f83-0e577bf12c01",
+        "key": "has_mirror",
+        "label_uz": "Oyna bor",
+        "label_ru": "Наличие зеркала",
+        "label_en": null,
+        "data_type": "bool",
+        "unit": null,
+        "is_required": false,
+        "sort_order": 7,
+        "options": []
+      },
+      {
+        "id": "87f8e81d-ff60-558b-830f-b33c8023e3f2",
+        "key": "interior_fittings",
+        "label_uz": "Ichki jihozlar",
+        "label_ru": "Внутреннее наполнение",
+        "label_en": null,
+        "data_type": "multiselect",
+        "unit": null,
+        "is_required": false,
+        "sort_order": 8,
+        "options": [
+          {
+            "id": "cccc46aa-3418-5da8-a0dc-49632a068b55",
+            "value": "shtanga",
+            "label_uz": "Kiyim ilgichi (shtanga)",
+            "label_ru": "Штанга для одежды",
+            "label_en": null,
+            "sort_order": 1
+          },
+          {
+            "id": "1497b4b2-4151-5340-8619-a118c1d34e00",
+            "value": "polkalar",
+            "label_uz": "Tokchalar",
+            "label_ru": "Полки",
+            "label_en": null,
+            "sort_order": 2
+          },
+          {
+            "id": "b92d0004-972b-57ca-ab5c-5ae59f733315",
+            "value": "yashiklar",
+            "label_uz": "Tortma yashiklar",
+            "label_ru": "Выдвижные ящики",
+            "label_en": null,
+            "sort_order": 3
+          },
+          {
+            "id": "2cb253d0-365c-5de6-92ed-98f295f1c173",
+            "value": "oyna_javon",
+            "label_uz": "Ichki oyna",
+            "label_ru": "Внутреннее зеркало",
+            "label_en": null,
+            "sort_order": 4
+          },
+          {
+            "id": "470d85d5-8ad1-5f31-a7ad-5ea97d97b6ab",
+            "value": "ichki_yoritish",
+            "label_uz": "Ichki yoritish",
+            "label_ru": "Внутренняя подсветка",
+            "label_en": null,
+            "sort_order": 5
+          }
+        ]
+      },
+      {
+        "id": "f66ce566-de6f-507e-876e-94e623be485c",
+        "key": "style",
+        "label_uz": "Uslubi",
+        "label_ru": "Стиль",
+        "label_en": null,
+        "data_type": "select",
+        "unit": null,
+        "is_required": false,
+        "sort_order": 9,
+        "options": [
+          {
+            "id": "056636b3-f460-5f15-9707-ab0071601025",
+            "value": "modern",
+            "label_uz": "Zamonaviy",
+            "label_ru": "Современный",
+            "label_en": null,
+            "sort_order": 1
+          },
+          {
+            "id": "f1b6c929-7abf-51bd-99b6-b591efe99433",
+            "value": "classic",
+            "label_uz": "Klassik",
+            "label_ru": "Классический",
+            "label_en": null,
+            "sort_order": 2
+          },
+          {
+            "id": "5597b0e6-5a84-56b8-a16e-787575a7bad4",
+            "value": "minimalism",
+            "label_uz": "Minimalizm",
+            "label_ru": "Минимализм",
+            "label_en": null,
+            "sort_order": 3
+          },
+          {
+            "id": "0c308e46-7f68-5c1a-a08d-e15a55b4fe28",
+            "value": "loft",
+            "label_uz": "Loft",
+            "label_ru": "Лофт",
+            "label_en": null,
+            "sort_order": 4
+          },
+          {
+            "id": "4376da46-7144-5981-88f8-a02f9fe1880d",
+            "value": "scandinavian",
+            "label_uz": "Skandinav",
+            "label_ru": "Скандинавский",
+            "label_en": null,
+            "sort_order": 5
+          }
+        ]
+      },
+      {
+        "id": "aa044fe6-057d-5a03-9db6-822200a9d789",
+        "key": "warranty_months",
+        "label_uz": "Kafolat muddati",
+        "label_ru": "Гарантия",
+        "label_en": null,
+        "data_type": "number",
+        "unit": "oy",
+        "is_required": false,
+        "sort_order": 10,
+        "options": []
+      }
+    ]
+  },
+  {
+    "id": "c0000000-0000-4000-a000-000000000004",
+    "name": "Stollar",
+    "name_uz": "Stollar",
+    "name_ru": "Столы",
+    "name_en": null,
+    "subtitle": "Oshxona va ish stollari",
+    "sort_order": 4,
+    "is_active": true,
+    "image_url": "https://pub-2d9766f038544b82b726a75834fbe8a2.r2.dev/0a50f728-f06e-48cc-9d44-a16c239356f8.jpg",
+    "icon_url": "https://picsum.photos/seed/mebellar-table-icon/200/200",
+    "subcategories": [
+      {
+        "id": "5b000000-0000-4000-a000-000000000011",
+        "name": "Jurnal stollari",
+        "category_id": "c0000000-0000-4000-a000-000000000004"
+      },
+      {
+        "id": "5b000000-0000-4000-a000-000000000010",
+        "name": "Oshxona stollari",
+        "category_id": "c0000000-0000-4000-a000-000000000004"
+      },
+      {
+        "id": "5b000000-0000-4000-a000-000000000012",
+        "name": "Yozuv stollari",
+        "category_id": "c0000000-0000-4000-a000-000000000004"
+      }
+    ],
+    "attributes": [
+      {
+        "id": "28107b76-8ed3-5483-9db9-965f0d3b94a1",
+        "key": "table_shape",
+        "label_uz": "Shakli",
+        "label_ru": "Форма",
+        "label_en": null,
+        "data_type": "select",
+        "unit": null,
+        "is_required": true,
+        "sort_order": 1,
+        "options": [
+          {
+            "id": "d0edac35-fd71-50f7-b0cb-542759e600ca",
+            "value": "rectangular",
+            "label_uz": "To'g'ri to'rtburchak",
+            "label_ru": "Прямоугольная",
+            "label_en": null,
+            "sort_order": 1
+          },
+          {
+            "id": "1f8fd490-47a4-5fe7-8ef8-b59a9da1a558",
+            "value": "square",
+            "label_uz": "Kvadrat",
+            "label_ru": "Квадратная",
+            "label_en": null,
+            "sort_order": 2
+          },
+          {
+            "id": "e4f2626a-dd1d-5e9a-ab3b-eca63114cc22",
+            "value": "round",
+            "label_uz": "Dumaloq",
+            "label_ru": "Круглая",
+            "label_en": null,
+            "sort_order": 3
+          },
+          {
+            "id": "cb332eb8-17ce-518f-9e4b-6ab669ad29ad",
+            "value": "oval",
+            "label_uz": "Oval",
+            "label_ru": "Овальная",
+            "label_en": null,
+            "sort_order": 4
+          }
+        ]
+      },
+      {
+        "id": "00d206db-5d8b-58ac-a970-452c6da72270",
+        "key": "width_cm",
+        "label_uz": "Eni",
+        "label_ru": "Ширина",
+        "label_en": null,
+        "data_type": "number",
+        "unit": "sm",
+        "is_required": true,
+        "sort_order": 2,
+        "options": []
+      },
+      {
+        "id": "6a670db9-1316-557a-b6c3-b3ce984ad119",
+        "key": "depth_cm",
+        "label_uz": "Chuqurligi",
+        "label_ru": "Глубина",
+        "label_en": null,
+        "data_type": "number",
+        "unit": "sm",
+        "is_required": true,
+        "sort_order": 3,
+        "options": []
+      },
+      {
+        "id": "6ee7c79b-9e68-54bc-a132-d2c38e7ebd94",
+        "key": "height_cm",
+        "label_uz": "Balandligi",
+        "label_ru": "Высота",
+        "label_en": null,
+        "data_type": "number",
+        "unit": "sm",
+        "is_required": true,
+        "sort_order": 4,
+        "options": []
+      },
+      {
+        "id": "852de7a0-c572-5847-b460-d7f5f62234df",
+        "key": "tabletop_material",
+        "label_uz": "Stol usti materiali",
+        "label_ru": "Материал столешницы",
+        "label_en": null,
+        "data_type": "select",
+        "unit": null,
+        "is_required": false,
+        "sort_order": 5,
+        "options": [
+          {
+            "id": "0242131c-f0a2-5074-886f-ecaa78f42fee",
+            "value": "chipboard",
+            "label_uz": "LDSP",
+            "label_ru": "ЛДСП",
+            "label_en": null,
+            "sort_order": 1
+          },
+          {
+            "id": "54ef819f-1dd6-5f2e-aa4a-2bec3d07c5ef",
+            "value": "mdf",
+            "label_uz": "MDF",
+            "label_ru": "МДФ",
+            "label_en": null,
+            "sort_order": 2
+          },
+          {
+            "id": "9303760b-e20a-5e40-9c55-6b17b22b7fd8",
+            "value": "solid_wood",
+            "label_uz": "Yog'och massiv",
+            "label_ru": "Массив дерева",
+            "label_en": null,
+            "sort_order": 3
+          },
+          {
+            "id": "ed91f6a9-9b1b-5f24-b193-f5522d5ee666",
+            "value": "glass",
+            "label_uz": "Shisha",
+            "label_ru": "Стекло",
+            "label_en": null,
+            "sort_order": 4
+          },
+          {
+            "id": "d7ec81e9-22f3-5f59-83dc-c32bab0bbcab",
+            "value": "stone",
+            "label_uz": "Tosh / sun'iy tosh",
+            "label_ru": "Камень / искусственный камень",
+            "label_en": null,
+            "sort_order": 5
+          },
+          {
+            "id": "ffd29e28-9bfb-5eba-a5e2-d4bc6f3ff588",
+            "value": "metal",
+            "label_uz": "Metall",
+            "label_ru": "Металл",
+            "label_en": null,
+            "sort_order": 6
+          }
+        ]
+      },
+      {
+        "id": "bf41fa7f-98b8-5116-a9d9-b7587255b250",
+        "key": "frame_material",
+        "label_uz": "Karkas materiali",
+        "label_ru": "Материал каркаса",
+        "label_en": null,
+        "data_type": "select",
+        "unit": null,
+        "is_required": false,
+        "sort_order": 6,
+        "options": [
+          {
+            "id": "6c452ced-0b8b-5d86-88ad-f915dfeeb9ef",
+            "value": "metal",
+            "label_uz": "Metall",
+            "label_ru": "Металл",
+            "label_en": null,
+            "sort_order": 1
+          },
+          {
+            "id": "c48821c7-594a-5a3e-8a73-02b84d5f38fc",
+            "value": "wood",
+            "label_uz": "Yog'och",
+            "label_ru": "Дерево",
+            "label_en": null,
+            "sort_order": 2
+          },
+          {
+            "id": "95b2aea2-5f7a-5d19-9af0-4d913ac81a02",
+            "value": "chipboard",
+            "label_uz": "LDSP",
+            "label_ru": "ЛДСП",
+            "label_en": null,
+            "sort_order": 3
+          },
+          {
+            "id": "8e54b572-76c3-571a-89d0-eb16f543b95a",
+            "value": "glass",
+            "label_uz": "Shisha",
+            "label_ru": "Стекло",
+            "label_en": null,
+            "sort_order": 4
+          },
+          {
+            "id": "a9e691e1-db4d-597e-b621-a972960cd012",
+            "value": "plastic",
+            "label_uz": "Plastik",
+            "label_ru": "Пластик",
+            "label_en": null,
+            "sort_order": 5
+          }
+        ]
+      },
+      {
+        "id": "17839772-2e2f-59a0-84cf-03b2c7627bbd",
+        "key": "extendable",
+        "label_uz": "Yig'ma (uzaytiriladigan)",
+        "label_ru": "Раздвижной",
+        "label_en": null,
+        "data_type": "bool",
+        "unit": null,
+        "is_required": false,
+        "sort_order": 7,
+        "options": []
+      },
+      {
+        "id": "2acc94c1-7eaa-50f8-aa24-3685c8471251",
+        "key": "seats_count",
+        "label_uz": "O'rinlar soni",
+        "label_ru": "Количество мест",
+        "label_en": null,
+        "data_type": "number",
+        "unit": null,
+        "is_required": false,
+        "sort_order": 8,
+        "options": []
+      },
+      {
+        "id": "fb9c55a0-f5a9-5a57-abbe-79699d23fbbc",
+        "key": "style",
+        "label_uz": "Uslubi",
+        "label_ru": "Стиль",
+        "label_en": null,
+        "data_type": "select",
+        "unit": null,
+        "is_required": false,
+        "sort_order": 9,
+        "options": [
+          {
+            "id": "ee332e7a-5de4-5f6e-b2dd-f06773795091",
+            "value": "modern",
+            "label_uz": "Zamonaviy",
+            "label_ru": "Современный",
+            "label_en": null,
+            "sort_order": 1
+          },
+          {
+            "id": "c3f886af-df03-51ca-a8f0-75a02c567b12",
+            "value": "classic",
+            "label_uz": "Klassik",
+            "label_ru": "Классический",
+            "label_en": null,
+            "sort_order": 2
+          },
+          {
+            "id": "157ab660-f249-566b-a183-b4bd51bfadae",
+            "value": "loft",
+            "label_uz": "Loft",
+            "label_ru": "Лофт",
+            "label_en": null,
+            "sort_order": 3
+          },
+          {
+            "id": "41331fb5-852a-52b0-9fed-5d94d9ff5663",
+            "value": "minimalism",
+            "label_uz": "Minimalizm",
+            "label_ru": "Минимализм",
+            "label_en": null,
+            "sort_order": 4
+          },
+          {
+            "id": "9b92fb7b-b33e-5ca5-8dbc-4f43b43547e5",
+            "value": "scandinavian",
+            "label_uz": "Skandinav",
+            "label_ru": "Скандинавский",
+            "label_en": null,
+            "sort_order": 5
+          },
+          {
+            "id": "9119d806-cf66-5920-bed7-8503babcf3f0",
+            "value": "provence",
+            "label_uz": "Provans",
+            "label_ru": "Прованс",
+            "label_en": null,
+            "sort_order": 6
+          }
+        ]
+      },
+      {
+        "id": "8e71d7bf-b69f-5a9a-b68e-f36afb37696d",
+        "key": "warranty_months",
+        "label_uz": "Kafolat muddati",
+        "label_ru": "Гарантия",
+        "label_en": null,
+        "data_type": "number",
+        "unit": "oy",
+        "is_required": false,
+        "sort_order": 10,
+        "options": []
+      }
+    ]
+  },
+  {
+    "id": "c0000000-0000-4000-a000-000000000005",
+    "name": "Stullar va kreslolar",
+    "name_uz": "Stullar va kreslolar",
+    "name_ru": "Стулья и кресла",
+    "name_en": null,
+    "subtitle": "O'tirish uchun mebel",
+    "sort_order": 5,
+    "is_active": true,
+    "image_url": "https://pub-2d9766f038544b82b726a75834fbe8a2.r2.dev/f5de99c9-5d96-4a5a-934e-fd47aa585d7e.jpg",
+    "icon_url": "https://picsum.photos/seed/mebellar-chair-icon/200/200",
+    "subcategories": [
+      {
+        "id": "5b000000-0000-4000-a000-000000000015",
+        "name": "Bar stullari",
+        "category_id": "c0000000-0000-4000-a000-000000000005"
+      },
+      {
+        "id": "5b000000-0000-4000-a000-000000000014",
+        "name": "Kreslolar",
+        "category_id": "c0000000-0000-4000-a000-000000000005"
+      },
+      {
+        "id": "5b000000-0000-4000-a000-000000000013",
+        "name": "Oshxona stullari",
+        "category_id": "c0000000-0000-4000-a000-000000000005"
+      }
+    ],
+    "attributes": [
+      {
+        "id": "9695c0af-e88d-5cdd-9136-177cb3a2d9ce",
+        "key": "chair_type",
+        "label_uz": "Turi",
+        "label_ru": "Тип",
+        "label_en": null,
+        "data_type": "select",
+        "unit": null,
+        "is_required": true,
+        "sort_order": 1,
+        "options": [
+          {
+            "id": "023b846d-5b7a-5aea-abd2-cbbea8552af4",
+            "value": "office_chair",
+            "label_uz": "Ofis stuli",
+            "label_ru": "Офисное кресло",
+            "label_en": null,
+            "sort_order": 1
+          },
+          {
+            "id": "4ee34536-ff43-5d02-ab1d-1003d62613a7",
+            "value": "dining_chair",
+            "label_uz": "Oshxona stuli",
+            "label_ru": "Обеденный стул",
+            "label_en": null,
+            "sort_order": 2
+          },
+          {
+            "id": "d8aae612-4dd4-5775-86ad-a14fa5458f3f",
+            "value": "armchair",
+            "label_uz": "Kreslo",
+            "label_ru": "Кресло",
+            "label_en": null,
+            "sort_order": 3
+          },
+          {
+            "id": "0ac31c82-9cb9-5125-b57f-4d6d1a7f44c0",
+            "value": "bar_stool",
+            "label_uz": "Bar stuli",
+            "label_ru": "Барный стул",
+            "label_en": null,
+            "sort_order": 4
+          },
+          {
+            "id": "4ce777e6-2b27-5235-97e9-72e31fc0b9ac",
+            "value": "gaming_chair",
+            "label_uz": "Geymer stuli",
+            "label_ru": "Игровое кресло",
+            "label_en": null,
+            "sort_order": 5
+          },
+          {
+            "id": "d2d7424f-9e8b-50ad-9cee-04bea50c9277",
+            "value": "kids_chair",
+            "label_uz": "Bolalar stuli",
+            "label_ru": "Детский стул",
+            "label_en": null,
+            "sort_order": 6
+          },
+          {
+            "id": "954b9657-f99e-5bea-9204-47520cdf003f",
+            "value": "recliner",
+            "label_uz": "Yotvor kreslo",
+            "label_ru": "Кресло-реклайнер",
+            "label_en": null,
+            "sort_order": 7
+          }
+        ]
+      },
+      {
+        "id": "a7576d37-1524-5670-b9ee-666c2dad188d",
+        "key": "height_cm",
+        "label_uz": "Balandligi",
+        "label_ru": "Высота",
+        "label_en": null,
+        "data_type": "number",
+        "unit": "sm",
+        "is_required": true,
+        "sort_order": 2,
+        "options": []
+      },
+      {
+        "id": "d35799b0-1298-5963-8b60-d102670c9840",
+        "key": "width_cm",
+        "label_uz": "Eni",
+        "label_ru": "Ширина",
+        "label_en": null,
+        "data_type": "number",
+        "unit": "sm",
+        "is_required": true,
+        "sort_order": 3,
+        "options": []
+      },
+      {
+        "id": "d6310a1a-f1ca-53b6-a673-baa9e395d002",
+        "key": "depth_cm",
+        "label_uz": "Chuqurligi",
+        "label_ru": "Глубина",
+        "label_en": null,
+        "data_type": "number",
+        "unit": "sm",
+        "is_required": false,
+        "sort_order": 4,
+        "options": []
+      },
+      {
+        "id": "5cef73c3-8431-5c1e-96d6-17cbce6de417",
+        "key": "frame_material",
+        "label_uz": "Karkas materiali",
+        "label_ru": "Материал каркаса",
+        "label_en": null,
+        "data_type": "select",
+        "unit": null,
+        "is_required": true,
+        "sort_order": 5,
+        "options": [
+          {
+            "id": "04bcd1a6-774e-589e-83af-7d0dc0ca532c",
+            "value": "metal",
+            "label_uz": "Metall",
+            "label_ru": "Металл",
+            "label_en": null,
+            "sort_order": 1
+          },
+          {
+            "id": "cf5bf2f1-7acd-563a-bdda-51c36eb14e3b",
+            "value": "wood",
+            "label_uz": "Yog'och",
+            "label_ru": "Дерево",
+            "label_en": null,
+            "sort_order": 2
+          },
+          {
+            "id": "9b7bd8b4-f82e-5117-8fda-00dd6d51ab19",
+            "value": "plastic",
+            "label_uz": "Plastik",
+            "label_ru": "Пластик",
+            "label_en": null,
+            "sort_order": 3
+          },
+          {
+            "id": "67448134-ec80-5a33-a794-6f43a5fdaccd",
+            "value": "chrome",
+            "label_uz": "Xromlangan metall",
+            "label_ru": "Хромированный металл",
+            "label_en": null,
+            "sort_order": 4
+          },
+          {
+            "id": "febb28a2-1d91-5c77-a8ee-76953ae9fb1d",
+            "value": "combined",
+            "label_uz": "Aralash",
+            "label_ru": "Комбинированный",
+            "label_en": null,
+            "sort_order": 5
+          }
+        ]
+      },
+      {
+        "id": "8e3eb42f-c094-5a97-857f-2687e6a8a373",
+        "key": "upholstery_material",
+        "label_uz": "Qoplama materiali",
+        "label_ru": "Материал обивки",
+        "label_en": null,
+        "data_type": "select",
+        "unit": null,
+        "is_required": false,
+        "sort_order": 6,
+        "options": [
+          {
+            "id": "0af98ee0-9222-5dec-bf85-fb2d4cd9fbdd",
+            "value": "fabric",
+            "label_uz": "Mato",
+            "label_ru": "Ткань",
+            "label_en": null,
+            "sort_order": 1
+          },
+          {
+            "id": "e3c61c75-81fe-57e5-872e-dd212b69ed14",
+            "value": "eco_leather",
+            "label_uz": "Sun'iy teri (ekokoja)",
+            "label_ru": "Экокожа",
+            "label_en": null,
+            "sort_order": 2
+          },
+          {
+            "id": "9717f743-9a01-5986-a9c4-d5b7a83962a8",
+            "value": "genuine_leather",
+            "label_uz": "Tabiiy teri",
+            "label_ru": "Натуральная кожа",
+            "label_en": null,
+            "sort_order": 3
+          },
+          {
+            "id": "144ad894-8df0-505f-8eb7-30ee3e193a8f",
+            "value": "velour",
+            "label_uz": "Velyur",
+            "label_ru": "Велюр",
+            "label_en": null,
+            "sort_order": 4
+          },
+          {
+            "id": "7fb0214e-35f1-5e38-9089-7d9549639de2",
+            "value": "mesh",
+            "label_uz": "To'r (setka)",
+            "label_ru": "Сетка",
+            "label_en": null,
+            "sort_order": 5
+          },
+          {
+            "id": "f79f723d-1ee9-5b3c-baee-becadae02f34",
+            "value": "plastic",
+            "label_uz": "Plastik",
+            "label_ru": "Пластик",
+            "label_en": null,
+            "sort_order": 6
+          },
+          {
+            "id": "a9599ac6-7072-5da8-a4dd-a2254c70c81a",
+            "value": "no_upholstery",
+            "label_uz": "Qoplamasiz",
+            "label_ru": "Без обивки",
+            "label_en": null,
+            "sort_order": 7
+          }
+        ]
+      },
+      {
+        "id": "0741800e-8387-5029-a3ae-fa41836c4cf1",
+        "key": "load_capacity_kg",
+        "label_uz": "Maksimal yuk",
+        "label_ru": "Максимальная нагрузка",
+        "label_en": null,
+        "data_type": "number",
+        "unit": "kg",
+        "is_required": false,
+        "sort_order": 7,
+        "options": []
+      },
+      {
+        "id": "d0478164-46b0-56ab-8579-c48858846fea",
+        "key": "height_adjustable",
+        "label_uz": "Balandligi sozlanadi",
+        "label_ru": "Регулировка высоты",
+        "label_en": null,
+        "data_type": "bool",
+        "unit": null,
+        "is_required": false,
+        "sort_order": 8,
+        "options": []
+      },
+      {
+        "id": "d9fce733-6639-5a4e-80e6-f70fe822966a",
+        "key": "has_armrests",
+        "label_uz": "Tirsak suyagichlari bor",
+        "label_ru": "Подлокотники",
+        "label_en": null,
+        "data_type": "bool",
+        "unit": null,
+        "is_required": false,
+        "sort_order": 9,
+        "options": []
+      },
+      {
+        "id": "073125bd-e07e-5011-ac1c-f595de0a3e66",
+        "key": "style",
+        "label_uz": "Uslubi",
+        "label_ru": "Стиль",
+        "label_en": null,
+        "data_type": "select",
+        "unit": null,
+        "is_required": false,
+        "sort_order": 10,
+        "options": [
+          {
+            "id": "1b4a7cfc-f2ff-50dd-9c5d-07f5e93c80c1",
+            "value": "modern",
+            "label_uz": "Zamonaviy",
+            "label_ru": "Современный",
+            "label_en": null,
+            "sort_order": 1
+          },
+          {
+            "id": "5153433e-0cdd-5df1-9a19-90caf339cb15",
+            "value": "classic",
+            "label_uz": "Klassik",
+            "label_ru": "Классический",
+            "label_en": null,
+            "sort_order": 2
+          },
+          {
+            "id": "b580e850-d90e-5d3a-8514-5df898916bbe",
+            "value": "loft",
+            "label_uz": "Loft",
+            "label_ru": "Лофт",
+            "label_en": null,
+            "sort_order": 3
+          },
+          {
+            "id": "5ba145f2-419a-5d7a-bcd8-ab31977a3e94",
+            "value": "scandinavian",
+            "label_uz": "Skandinav",
+            "label_ru": "Скандинавский",
+            "label_en": null,
+            "sort_order": 4
+          },
+          {
+            "id": "e5eb97d7-446e-56ae-ad54-ad51e34b2a6b",
+            "value": "minimalism",
+            "label_uz": "Minimalizm",
+            "label_ru": "Минимализм",
+            "label_en": null,
+            "sort_order": 5
+          }
+        ]
+      },
+      {
+        "id": "c9810d95-65bc-5bd9-820a-0bbdf10432dd",
+        "key": "warranty_months",
+        "label_uz": "Kafolat muddati",
+        "label_ru": "Гарантия",
+        "label_en": null,
+        "data_type": "number",
+        "unit": "oy",
+        "is_required": false,
+        "sort_order": 11,
+        "options": []
+      }
+    ]
+  },
+  {
+    "id": "c0000000-0000-4000-a000-000000000006",
+    "name": "Oshxona mebellari",
+    "name_uz": "Oshxona mebellari",
+    "name_ru": "Кухонная мебель",
+    "name_en": null,
+    "subtitle": "Oshxona garniturlari",
+    "sort_order": 6,
+    "is_active": true,
+    "image_url": "https://pub-2d9766f038544b82b726a75834fbe8a2.r2.dev/4f3909cb-1f9d-4d65-9dac-459e56413742.jpg",
+    "icon_url": "https://picsum.photos/seed/mebellar-kitchen-icon/200/200",
+    "subcategories": [
+      {
+        "id": "5b000000-0000-4000-a000-000000000017",
+        "name": "Oshxona burchaklari",
+        "category_id": "c0000000-0000-4000-a000-000000000006"
+      },
+      {
+        "id": "5b000000-0000-4000-a000-000000000016",
+        "name": "Oshxona garniturlari",
+        "category_id": "c0000000-0000-4000-a000-000000000006"
+      }
+    ],
+    "attributes": [
+      {
+        "id": "e6aa81a1-2f70-5019-9f8e-a8e79c8a44a7",
+        "key": "set_type",
+        "label_uz": "Garnitur turi",
+        "label_ru": "Тип гарнитура",
+        "label_en": null,
+        "data_type": "select",
+        "unit": null,
+        "is_required": true,
+        "sort_order": 1,
+        "options": [
+          {
+            "id": "be321229-80f0-5c23-907f-992d697d3a6e",
+            "value": "straight",
+            "label_uz": "To'g'ri",
+            "label_ru": "Прямой",
+            "label_en": null,
+            "sort_order": 1
+          },
+          {
+            "id": "e96cdaf5-d770-53a9-b4dd-ce88ef609ad3",
+            "value": "corner",
+            "label_uz": "Burchakli",
+            "label_ru": "Угловой",
+            "label_en": null,
+            "sort_order": 2
+          },
+          {
+            "id": "97cbbde5-9676-5521-b5e7-c382f51638c1",
+            "value": "u_shaped",
+            "label_uz": "П-shaklida",
+            "label_ru": "П-образный",
+            "label_en": null,
+            "sort_order": 3
+          },
+          {
+            "id": "cf5abcd2-6bc0-5248-8e42-c62276b10795",
+            "value": "island",
+            "label_uz": "Orolli",
+            "label_ru": "Островной",
+            "label_en": null,
+            "sort_order": 4
+          }
+        ]
+      },
+      {
+        "id": "087b69dd-d40a-5bc4-82f7-1ca1f5d89716",
+        "key": "set_length_cm",
+        "label_uz": "Garnitur uzunligi",
+        "label_ru": "Длина гарнитура",
+        "label_en": null,
+        "data_type": "number",
+        "unit": "sm",
+        "is_required": true,
+        "sort_order": 2,
+        "options": []
+      },
+      {
+        "id": "4f1f88dc-8ecf-5921-9254-ba08fd795fdb",
+        "key": "height_cm",
+        "label_uz": "Balandligi",
+        "label_ru": "Высота",
+        "label_en": null,
+        "data_type": "number",
+        "unit": "sm",
+        "is_required": false,
+        "sort_order": 3,
+        "options": []
+      },
+      {
+        "id": "dbafca4c-7e86-5584-b8a4-ba105e78c1cc",
+        "key": "depth_cm",
+        "label_uz": "Chuqurligi",
+        "label_ru": "Глубина",
+        "label_en": null,
+        "data_type": "number",
+        "unit": "sm",
+        "is_required": false,
+        "sort_order": 4,
+        "options": []
+      },
+      {
+        "id": "b545db25-16fd-50ec-b3ce-cf4a2ab349a4",
+        "key": "facade_material",
+        "label_uz": "Fasad materiali",
+        "label_ru": "Материал фасада",
+        "label_en": null,
+        "data_type": "select",
+        "unit": null,
+        "is_required": true,
+        "sort_order": 5,
+        "options": [
+          {
+            "id": "06389dcf-8bec-5acd-847f-b8d3757aad14",
+            "value": "mdf",
+            "label_uz": "MDF",
+            "label_ru": "МДФ",
+            "label_en": null,
+            "sort_order": 1
+          },
+          {
+            "id": "cd97cd64-a30b-5032-a5bd-642f1523aeb4",
+            "value": "ldsp",
+            "label_uz": "LDSP",
+            "label_ru": "ЛДСП",
+            "label_en": null,
+            "sort_order": 2
+          },
+          {
+            "id": "c0243dad-27fc-50cb-951c-d85d352a563b",
+            "value": "plastic",
+            "label_uz": "Plastik",
+            "label_ru": "Пластик",
+            "label_en": null,
+            "sort_order": 3
+          },
+          {
+            "id": "f53c2a3e-5f6d-5046-8876-91dc85ed8d1d",
+            "value": "solid_wood",
+            "label_uz": "Tabiiy yog'och (massiv)",
+            "label_ru": "Массив дерева",
+            "label_en": null,
+            "sort_order": 4
+          },
+          {
+            "id": "6653e012-cd4e-5f89-b051-d62bde77a348",
+            "value": "acrylic",
+            "label_uz": "Akril",
+            "label_ru": "Акрил",
+            "label_en": null,
+            "sort_order": 5
+          },
+          {
+            "id": "41be32a3-7b1f-561c-8395-c48b15d37b32",
+            "value": "glossy",
+            "label_uz": "Yaltiroq (glyans)",
+            "label_ru": "Глянец",
+            "label_en": null,
+            "sort_order": 6
+          }
+        ]
+      },
+      {
+        "id": "3a1a0893-218e-5dde-8b39-7fb9b164dcb2",
+        "key": "countertop_material",
+        "label_uz": "Stol usti materiali",
+        "label_ru": "Материал столешницы",
+        "label_en": null,
+        "data_type": "select",
+        "unit": null,
+        "is_required": false,
+        "sort_order": 6,
+        "options": [
+          {
+            "id": "26db82fc-6011-5896-8546-aece6d9258e9",
+            "value": "ldsp",
+            "label_uz": "LDSP",
+            "label_ru": "ЛДСП",
+            "label_en": null,
+            "sort_order": 1
+          },
+          {
+            "id": "09e02173-2af4-5ec9-91e5-c58fb19564d8",
+            "value": "artificial_stone",
+            "label_uz": "Sun'iy tosh",
+            "label_ru": "Искусственный камень",
+            "label_en": null,
+            "sort_order": 2
+          },
+          {
+            "id": "c5bc0905-553f-5956-a0ad-c181894fc826",
+            "value": "natural_stone",
+            "label_uz": "Tabiiy tosh",
+            "label_ru": "Натуральный камень",
+            "label_en": null,
+            "sort_order": 3
+          },
+          {
+            "id": "d63cb847-20a1-5310-bec3-d25a63941830",
+            "value": "quartz",
+            "label_uz": "Kvars",
+            "label_ru": "Кварц",
+            "label_en": null,
+            "sort_order": 4
+          },
+          {
+            "id": "c8a3a6b8-4cdb-5708-9361-f08130d74981",
+            "value": "solid_wood",
+            "label_uz": "Tabiiy yog'och",
+            "label_ru": "Массив дерева",
+            "label_en": null,
+            "sort_order": 5
+          },
+          {
+            "id": "997c1ba3-8933-5183-8e59-a1641ef99da2",
+            "value": "postforming",
+            "label_uz": "Postforming",
+            "label_ru": "Постформинг",
+            "label_en": null,
+            "sort_order": 6
+          }
+        ]
+      },
+      {
+        "id": "54428427-b5e3-5da8-8408-4aeaa5be2e60",
+        "key": "module_count",
+        "label_uz": "Modullar soni",
+        "label_ru": "Количество модулей",
+        "label_en": null,
+        "data_type": "number",
+        "unit": null,
+        "is_required": false,
+        "sort_order": 7,
+        "options": []
+      },
+      {
+        "id": "0952e3c2-ac3f-55a2-98a4-637b65c47cf3",
+        "key": "countertop_included",
+        "label_uz": "Stol usti komplektda",
+        "label_ru": "Столешница в комплекте",
+        "label_en": null,
+        "data_type": "bool",
+        "unit": null,
+        "is_required": false,
+        "sort_order": 8,
+        "options": []
+      },
+      {
+        "id": "40347ca4-23f2-504d-991b-9056b8514ca7",
+        "key": "style",
+        "label_uz": "Uslubi",
+        "label_ru": "Стиль",
+        "label_en": null,
+        "data_type": "select",
+        "unit": null,
+        "is_required": false,
+        "sort_order": 9,
+        "options": [
+          {
+            "id": "47933a44-ab6d-51ac-b02b-1a5e23424099",
+            "value": "modern",
+            "label_uz": "Zamonaviy",
+            "label_ru": "Современный",
+            "label_en": null,
+            "sort_order": 1
+          },
+          {
+            "id": "6d2d7753-1869-505f-a7ba-fa3968f46a85",
+            "value": "classic",
+            "label_uz": "Klassik",
+            "label_ru": "Классический",
+            "label_en": null,
+            "sort_order": 2
+          },
+          {
+            "id": "9bb2b139-3651-565d-9b4c-355279c5f5ce",
+            "value": "minimalism",
+            "label_uz": "Minimalizm",
+            "label_ru": "Минимализм",
+            "label_en": null,
+            "sort_order": 3
+          },
+          {
+            "id": "547d49e2-7780-537b-85a2-330a3d444323",
+            "value": "loft",
+            "label_uz": "Loft",
+            "label_ru": "Лофт",
+            "label_en": null,
+            "sort_order": 4
+          },
+          {
+            "id": "4ef632b8-aae3-5a51-bc93-496d54dcb334",
+            "value": "scandinavian",
+            "label_uz": "Skandinav",
+            "label_ru": "Скандинавский",
+            "label_en": null,
+            "sort_order": 5
+          },
+          {
+            "id": "d90e30f2-a0e5-5227-96bf-eda6fd98f72a",
+            "value": "provence",
+            "label_uz": "Provans",
+            "label_ru": "Прованс",
+            "label_en": null,
+            "sort_order": 6
+          }
+        ]
+      },
+      {
+        "id": "e10d438f-7209-5ae2-a3bb-68944248a444",
+        "key": "warranty_months",
+        "label_uz": "Kafolat muddati",
+        "label_ru": "Гарантия",
+        "label_en": null,
+        "data_type": "number",
+        "unit": "oy",
+        "is_required": false,
+        "sort_order": 10,
+        "options": []
+      }
+    ]
+  },
+  {
+    "id": "c0000000-0000-4000-a000-000000000007",
+    "name": "Bolalar mebeli",
+    "name_uz": "Bolalar mebeli",
+    "name_ru": "Детская мебель",
+    "name_en": null,
+    "subtitle": "Bolalar xonasi uchun",
+    "sort_order": 7,
+    "is_active": true,
+    "image_url": "https://pub-2d9766f038544b82b726a75834fbe8a2.r2.dev/ef813218-9361-414a-a507-6caff8bffad0.jpg",
+    "icon_url": "https://picsum.photos/seed/mebellar-kids-icon/200/200",
+    "subcategories": [
+      {
+        "id": "5b000000-0000-4000-a000-000000000018",
+        "name": "Bolalar krovatlari",
+        "category_id": "c0000000-0000-4000-a000-000000000007"
+      },
+      {
+        "id": "5b000000-0000-4000-a000-000000000020",
+        "name": "Bolalar shkaflari",
+        "category_id": "c0000000-0000-4000-a000-000000000007"
+      },
+      {
+        "id": "5b000000-0000-4000-a000-000000000019",
+        "name": "O'quvchi stollari",
+        "category_id": "c0000000-0000-4000-a000-000000000007"
+      }
+    ],
+    "attributes": [
+      {
+        "id": "32792168-2fea-5466-9474-76e94fae2eff",
+        "key": "furniture_type",
+        "label_uz": "Mebel turi",
+        "label_ru": "Тип мебели",
+        "label_en": null,
+        "data_type": "select",
+        "unit": null,
+        "is_required": true,
+        "sort_order": 1,
+        "options": [
+          {
+            "id": "cf9ea1b2-94a3-5b12-a718-d11417d13aff",
+            "value": "bed",
+            "label_uz": "Krovat",
+            "label_ru": "Кровать",
+            "label_en": null,
+            "sort_order": 1
+          },
+          {
+            "id": "836a315d-456c-5adc-b6ba-aa83d91b5b6a",
+            "value": "desk",
+            "label_uz": "Yozuv stoli",
+            "label_ru": "Письменный стол",
+            "label_en": null,
+            "sort_order": 2
+          },
+          {
+            "id": "4e5e1d10-452d-554c-bc1c-e4d8878b6201",
+            "value": "wardrobe",
+            "label_uz": "Shkaf",
+            "label_ru": "Шкаф",
+            "label_en": null,
+            "sort_order": 3
+          },
+          {
+            "id": "6678935a-5447-5690-9f8c-31c5d3379b72",
+            "value": "shelf_rack",
+            "label_uz": "Javon / Stellaj",
+            "label_ru": "Полка / Стеллаж",
+            "label_en": null,
+            "sort_order": 4
+          },
+          {
+            "id": "2919c842-9e99-55e5-8e62-d163f6d65379",
+            "value": "chair",
+            "label_uz": "Stul",
+            "label_ru": "Стул",
+            "label_en": null,
+            "sort_order": 5
+          },
+          {
+            "id": "a29b1c4d-cf23-5df5-ab68-e82c5b660e1d",
+            "value": "set",
+            "label_uz": "To'plam (komplekt)",
+            "label_ru": "Комплект",
+            "label_en": null,
+            "sort_order": 6
+          }
+        ]
+      },
+      {
+        "id": "db63ca4d-bb83-5bbb-8d0b-411519a38248",
+        "key": "width_cm",
+        "label_uz": "Eni",
+        "label_ru": "Ширина",
+        "label_en": null,
+        "data_type": "number",
+        "unit": "sm",
+        "is_required": true,
+        "sort_order": 2,
+        "options": []
+      },
+      {
+        "id": "bda5b1b9-5a34-5a86-9e21-960f36eecfc1",
+        "key": "height_cm",
+        "label_uz": "Balandligi",
+        "label_ru": "Высота",
+        "label_en": null,
+        "data_type": "number",
+        "unit": "sm",
+        "is_required": true,
+        "sort_order": 3,
+        "options": []
+      },
+      {
+        "id": "5eb8fb69-f883-5ad5-bc0d-6e32da97a487",
+        "key": "depth_cm",
+        "label_uz": "Chuqurligi",
+        "label_ru": "Глубина",
+        "label_en": null,
+        "data_type": "number",
+        "unit": "sm",
+        "is_required": false,
+        "sort_order": 4,
+        "options": []
+      },
+      {
+        "id": "b4c37865-4100-5846-962d-bfe0d4dd90ed",
+        "key": "age_group",
+        "label_uz": "Yosh toifasi",
+        "label_ru": "Возрастная группа",
+        "label_en": null,
+        "data_type": "select",
+        "unit": null,
+        "is_required": true,
+        "sort_order": 5,
+        "options": [
+          {
+            "id": "8fdd27f8-85ab-578d-b203-af448be157a0",
+            "value": "0_3",
+            "label_uz": "0-3 yosh",
+            "label_ru": "0-3 года",
+            "label_en": null,
+            "sort_order": 1
+          },
+          {
+            "id": "c50243e5-5a37-566f-bd9d-8fd4f6ff229e",
+            "value": "3_7",
+            "label_uz": "3-7 yosh",
+            "label_ru": "3-7 лет",
+            "label_en": null,
+            "sort_order": 2
+          },
+          {
+            "id": "95a940ba-0843-5048-b071-9d430f87da1a",
+            "value": "7_12",
+            "label_uz": "7-12 yosh",
+            "label_ru": "7-12 лет",
+            "label_en": null,
+            "sort_order": 3
+          },
+          {
+            "id": "f2eb16e2-82c6-5d9f-9bb5-7559ffd4dc0e",
+            "value": "teen",
+            "label_uz": "O'smir",
+            "label_ru": "Подросток",
+            "label_en": null,
+            "sort_order": 4
+          }
+        ]
+      },
+      {
+        "id": "5485dc4f-5ad6-5efe-9cc7-dc291f7bf28b",
+        "key": "frame_material",
+        "label_uz": "Karkas materiali",
+        "label_ru": "Материал каркаса",
+        "label_en": null,
+        "data_type": "select",
+        "unit": null,
+        "is_required": false,
+        "sort_order": 6,
+        "options": [
+          {
+            "id": "d49b1382-2881-5666-9a4a-c1b2afcdefa2",
+            "value": "solid_wood",
+            "label_uz": "Tabiiy yog'och (massiv)",
+            "label_ru": "Массив дерева",
+            "label_en": null,
+            "sort_order": 1
+          },
+          {
+            "id": "cf92fe07-3137-597c-905e-ec20a3c1e216",
+            "value": "mdf",
+            "label_uz": "MDF",
+            "label_ru": "МДФ",
+            "label_en": null,
+            "sort_order": 2
+          },
+          {
+            "id": "ace94555-6177-56fc-844a-bace7ac591da",
+            "value": "chipboard",
+            "label_uz": "LDSP (laminat)",
+            "label_ru": "ЛДСП",
+            "label_en": null,
+            "sort_order": 3
+          },
+          {
+            "id": "71168a0e-0745-5427-bd70-1182574ea7aa",
+            "value": "plywood",
+            "label_uz": "Faner",
+            "label_ru": "Фанера",
+            "label_en": null,
+            "sort_order": 4
+          },
+          {
+            "id": "61ac0604-7bb6-59c7-a88a-8369a66606d5",
+            "value": "metal",
+            "label_uz": "Metall",
+            "label_ru": "Металл",
+            "label_en": null,
+            "sort_order": 5
+          },
+          {
+            "id": "8c65f7a5-b782-5f19-b8f0-bca5b79fadb2",
+            "value": "plastic",
+            "label_uz": "Plastik",
+            "label_ru": "Пластик",
+            "label_en": null,
+            "sort_order": 6
+          }
+        ]
+      },
+      {
+        "id": "f74d867e-1854-50ae-bbeb-caea783312e6",
+        "key": "has_safety_rails",
+        "label_uz": "Xavfsizlik bortiklari bor",
+        "label_ru": "Защитные бортики",
+        "label_en": null,
+        "data_type": "bool",
+        "unit": null,
+        "is_required": false,
+        "sort_order": 7,
+        "options": []
+      },
+      {
+        "id": "69149b9c-8f98-5ceb-b94b-c78987f23235",
+        "key": "mattress_included",
+        "label_uz": "Matras komplektda",
+        "label_ru": "Матрас в комплекте",
+        "label_en": null,
+        "data_type": "bool",
+        "unit": null,
+        "is_required": false,
+        "sort_order": 8,
+        "options": []
+      },
+      {
+        "id": "f06bc78e-c06b-557e-bb84-14fee2af845c",
+        "key": "has_storage_drawer",
+        "label_uz": "Saqlash tortmalari bor",
+        "label_ru": "Ящики для хранения",
+        "label_en": null,
+        "data_type": "bool",
+        "unit": null,
+        "is_required": false,
+        "sort_order": 9,
+        "options": []
+      },
+      {
+        "id": "0bcbe424-e19b-5572-beac-3021788e5e7f",
+        "key": "warranty_months",
+        "label_uz": "Kafolat muddati",
+        "label_ru": "Гарантия",
+        "label_en": null,
+        "data_type": "number",
+        "unit": "oy",
+        "is_required": false,
+        "sort_order": 10,
+        "options": []
+      }
+    ]
+  },
+  {
+    "id": "c0000000-0000-4000-a000-000000000008",
+    "name": "Matraslar",
+    "name_uz": "Matraslar",
+    "name_ru": "Матрасы",
+    "name_en": null,
+    "subtitle": "Ortopedik va prujinali matraslar",
+    "sort_order": 8,
+    "is_active": true,
+    "image_url": "https://pub-2d9766f038544b82b726a75834fbe8a2.r2.dev/4c3b39c2-56b1-444d-997e-09179b20176d.jpg",
+    "icon_url": "https://picsum.photos/seed/mebellar-mattress-icon/200/200",
+    "subcategories": [
+      {
+        "id": "5b000000-0000-4000-a000-000000000022",
+        "name": "Ortopedik matraslar",
+        "category_id": "c0000000-0000-4000-a000-000000000008"
+      },
+      {
+        "id": "5b000000-0000-4000-a000-000000000021",
+        "name": "Prujinali matraslar",
+        "category_id": "c0000000-0000-4000-a000-000000000008"
+      }
+    ],
+    "attributes": [
+      {
+        "id": "19a23023-632d-570b-bc9d-5c03a689a757",
+        "key": "sleeping_area",
+        "label_uz": "O'lcham (uxlash joyi)",
+        "label_ru": "Размер (спальное место)",
+        "label_en": null,
+        "data_type": "select",
+        "unit": null,
+        "is_required": true,
+        "sort_order": 1,
+        "options": [
+          {
+            "id": "999cbfc6-efba-5e11-98f5-548c12ca3b82",
+            "value": "80x200",
+            "label_uz": "80×200 sm",
+            "label_ru": "80×200 см",
+            "label_en": null,
+            "sort_order": 1
+          },
+          {
+            "id": "ed285db8-58d2-506a-a672-ffb361c4701b",
+            "value": "90x200",
+            "label_uz": "90×200 sm",
+            "label_ru": "90×200 см",
+            "label_en": null,
+            "sort_order": 2
+          },
+          {
+            "id": "f5c8796a-9e86-5415-bb82-bc1da956ad57",
+            "value": "120x200",
+            "label_uz": "120×200 sm",
+            "label_ru": "120×200 см",
+            "label_en": null,
+            "sort_order": 3
+          },
+          {
+            "id": "a6b2cb43-3a10-55d8-bb82-9c9693d7c17f",
+            "value": "140x200",
+            "label_uz": "140×200 sm",
+            "label_ru": "140×200 см",
+            "label_en": null,
+            "sort_order": 4
+          },
+          {
+            "id": "44a5ee4d-bb1d-5301-9b4c-79718247d032",
+            "value": "160x200",
+            "label_uz": "160×200 sm",
+            "label_ru": "160×200 см",
+            "label_en": null,
+            "sort_order": 5
+          },
+          {
+            "id": "de087a67-2214-56eb-8a7f-e44d21c7b971",
+            "value": "180x200",
+            "label_uz": "180×200 sm",
+            "label_ru": "180×200 см",
+            "label_en": null,
+            "sort_order": 6
+          },
+          {
+            "id": "ac504215-72ca-51a8-8cba-aeabae0fe49b",
+            "value": "200x200",
+            "label_uz": "200×200 sm",
+            "label_ru": "200×200 см",
+            "label_en": null,
+            "sort_order": 7
+          }
+        ]
+      },
+      {
+        "id": "6fe1704b-0c59-5888-b9ec-a845eeddff2a",
+        "key": "mattress_type",
+        "label_uz": "Turi",
+        "label_ru": "Тип",
+        "label_en": null,
+        "data_type": "select",
+        "unit": null,
+        "is_required": true,
+        "sort_order": 2,
+        "options": [
+          {
+            "id": "61cee5b5-bd6f-5ab2-ac4d-1b744319981c",
+            "value": "spring",
+            "label_uz": "Prujinali",
+            "label_ru": "Пружинный",
+            "label_en": null,
+            "sort_order": 1
+          },
+          {
+            "id": "586c14b4-8708-5da6-b0ca-d055a0620ebf",
+            "value": "springless",
+            "label_uz": "Prujinasiz",
+            "label_ru": "Беспружинный",
+            "label_en": null,
+            "sort_order": 2
+          },
+          {
+            "id": "7452de94-cf16-50c8-a412-3f9802b860e2",
+            "value": "pocket_spring",
+            "label_uz": "Mustaqil prujinali",
+            "label_ru": "Независимые пружины",
+            "label_en": null,
+            "sort_order": 3
+          }
+        ]
+      },
+      {
+        "id": "793ea1ce-efac-51b5-bd43-265e531e7638",
+        "key": "firmness",
+        "label_uz": "Qattiqligi",
+        "label_ru": "Жёсткость",
+        "label_en": null,
+        "data_type": "select",
+        "unit": null,
+        "is_required": true,
+        "sort_order": 3,
+        "options": [
+          {
+            "id": "4e4e6188-749d-51e8-a0e7-1848e56fd05a",
+            "value": "soft",
+            "label_uz": "Yumshoq",
+            "label_ru": "Мягкий",
+            "label_en": null,
+            "sort_order": 1
+          },
+          {
+            "id": "4c0ce551-136a-534c-97f8-f4c4d7ed3347",
+            "value": "medium",
+            "label_uz": "O'rtacha",
+            "label_ru": "Средний",
+            "label_en": null,
+            "sort_order": 2
+          },
+          {
+            "id": "b818d713-b92c-50a6-bcdd-fc24e68c6e0f",
+            "value": "firm",
+            "label_uz": "Qattiq",
+            "label_ru": "Жёсткий",
+            "label_en": null,
+            "sort_order": 3
+          },
+          {
+            "id": "f6c77e07-bfca-5124-8415-f738ac9ec878",
+            "value": "dual_sided",
+            "label_uz": "Ikki tomoni har xil",
+            "label_ru": "Разная сторона",
+            "label_en": null,
+            "sort_order": 4
+          }
+        ]
+      },
+      {
+        "id": "96434367-91cb-552b-89c4-8f5cf70ce860",
+        "key": "height_cm",
+        "label_uz": "Balandligi",
+        "label_ru": "Высота",
+        "label_en": null,
+        "data_type": "number",
+        "unit": "sm",
+        "is_required": false,
+        "sort_order": 4,
+        "options": []
+      },
+      {
+        "id": "aac771d5-8783-52da-876c-6eb91a524af5",
+        "key": "orthopedic",
+        "label_uz": "Ortopedik",
+        "label_ru": "Ортопедический",
+        "label_en": null,
+        "data_type": "bool",
+        "unit": null,
+        "is_required": false,
+        "sort_order": 5,
+        "options": []
+      },
+      {
+        "id": "57b12432-76e4-5a7e-8484-d74fcae01b93",
+        "key": "removable_cover",
+        "label_uz": "Yechiladigan g'ilof",
+        "label_ru": "Съёмный чехол",
+        "label_en": null,
+        "data_type": "bool",
+        "unit": null,
+        "is_required": false,
+        "sort_order": 6,
+        "options": []
+      },
+      {
+        "id": "79094ced-4ebe-5c86-9d88-bcc04a2bc7fa",
+        "key": "load_capacity_kg",
+        "label_uz": "Maksimal yuklama (bir kishiga)",
+        "label_ru": "Максимальная нагрузка (на человека)",
+        "label_en": null,
+        "data_type": "number",
+        "unit": "kg",
+        "is_required": false,
+        "sort_order": 7,
+        "options": []
+      },
+      {
+        "id": "952d016f-7a43-5e89-b19e-1080bbbaf134",
+        "key": "warranty_months",
+        "label_uz": "Kafolat muddati",
+        "label_ru": "Гарантия",
+        "label_en": null,
+        "data_type": "number",
+        "unit": "oy",
+        "is_required": false,
+        "sort_order": 8,
+        "options": []
+      }
+    ]
+  }
+]
