@@ -7,6 +7,7 @@ import '../../shared/models/chat.dart';
 import '../../shared/repositories/chat_repository.dart';
 import '../../shared/repositories/notifications_data_source.dart';
 import '../auth/app_mode_cubit.dart';
+import '../network/token_store.dart';
 import '../realtime/woody_realtime_service.dart';
 import 'app_badge_service.dart';
 
@@ -24,6 +25,10 @@ import 'app_badge_service.dart';
 /// active mode from [AppModeCubit] (root-scoped too) so chat unread is counted
 /// for the correct viewer role. `myChatsStream` is mode-agnostic — it returns
 /// the same chat rows in both modes; only the `unreadFor(viewer)` fold differs.
+///
+/// Guest sessions never hit `/notifications` or `/chats`: [TokenStore] gates
+/// the refreshes, and a sign-in flip nudges both sources so the badge catches
+/// up without waiting for the next resume.
 class BadgeSyncController with WidgetsBindingObserver {
   BadgeSyncController({
     required AppBadgeService badge,
@@ -31,25 +36,30 @@ class BadgeSyncController with WidgetsBindingObserver {
     required ChatRepository chats,
     required AppModeCubit mode,
     WoodyRealtimeService? realtime,
+    TokenStore? tokens,
   }) : _badge = badge,
        _notifications = notifications,
        _chats = chats,
        _mode = mode,
-       _realtime = realtime;
+       _realtime = realtime,
+       _tokens = tokens;
 
   final AppBadgeService _badge;
   final NotificationDataSource _notifications;
   final ChatRepository _chats;
   final AppModeCubit _mode;
   final WoodyRealtimeService? _realtime;
+  final TokenStore? _tokens;
 
   StreamSubscription<List<Chat>>? _chatsSub;
   StreamSubscription<AppMode>? _modeSub;
   StreamSubscription<RealtimeEvent>? _realtimeSub;
+  StreamSubscription<TokenPair?>? _authSub;
 
   List<Chat> _lastChats = const [];
   int _notifUnread = 0;
   bool _started = false;
+  bool? _wasAuthed;
 
   /// Subscribes to chat unread + lifecycle. Idempotent — calling twice is a
   /// no-op. Seeds notification unread from the backend; chat count arrives on
@@ -58,7 +68,9 @@ class BadgeSyncController with WidgetsBindingObserver {
     if (_started) return;
     _started = true;
 
-    unawaited(refreshNotificationUnread());
+    _authSub = _tokens?.changes.listen(_onAuthChanged);
+
+    unawaited(_seedAndRefresh());
 
     _realtimeSub = _realtime?.eventsOfType('notification').listen((_) {
       unawaited(refreshNotificationUnread());
@@ -76,11 +88,49 @@ class BadgeSyncController with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
   }
 
+  /// Resolves the cached/hydrated session before the first unread pull so a
+  /// cold-start guest never races ahead of [TokenStore.read] into a 401.
+  Future<void> _seedAndRefresh() async {
+    final tokens = _tokens;
+    if (tokens != null) {
+      _wasAuthed = (tokens.current ?? await tokens.read()) != null;
+    }
+    await refreshNotificationUnread();
+  }
+
+  void _onAuthChanged(TokenPair? pair) {
+    final authed = pair != null;
+    if (authed == _wasAuthed) return;
+    final wasGuest = _wasAuthed != true;
+    _wasAuthed = authed;
+    if (!authed) {
+      unawaited(clearOnLogout());
+      return;
+    }
+    // Guest → signed-in: re-pull both tallies. The chat stream's first guest
+    // pull was empty and won't re-fire on its own.
+    if (wasGuest) {
+      unawaited(refreshNotificationUnread());
+      _chats.nudgeFromPush();
+    }
+  }
+
+  Future<bool> get _signedIn async {
+    final tokens = _tokens;
+    if (tokens == null) return true;
+    return (tokens.current ?? await tokens.read()) != null;
+  }
+
   /// Re-fetches the server-side unread notification total and updates the OS
   /// badge. Called at boot, on resume, after inbox mutations, and on realtime
-  /// `notification` events. When the session is gone (logout / 401), falls back
-  /// to zero instead of keeping the previous user's tally alive.
+  /// `notification` events. When the session is gone (logout / guest), falls
+  /// back to zero without a doomed 401 round-trip.
   Future<void> refreshNotificationUnread() async {
+    if (!await _signedIn) {
+      _notifUnread = 0;
+      _push();
+      return;
+    }
     try {
       _notifUnread = await _notifications.unreadCount();
     } catch (_) {
@@ -126,6 +176,7 @@ class BadgeSyncController with WidgetsBindingObserver {
     await _realtimeSub?.cancel();
     await _chatsSub?.cancel();
     await _modeSub?.cancel();
+    await _authSub?.cancel();
     _started = false;
   }
 }

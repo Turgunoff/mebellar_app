@@ -7,8 +7,10 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../../config/app_mode.dart';
+import '../../../../auth/auth_bottom_sheet.dart';
 import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/auth/app_mode_cubit.dart';
+import '../../../../core/auth/auth_cubit.dart';
 import '../../../../core/deep_links/deep_link_service.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
@@ -279,11 +281,7 @@ class _NotificationsViewState extends State<_NotificationsView> {
           elevation: 0,
           scrolledUnderElevation: 0,
           leading: IconButton(
-            icon: Icon(
-              Iconsax.arrow_left_2_copy,
-              size: 20,
-              color: pt.dark,
-            ),
+            icon: Icon(Iconsax.arrow_left_2_copy, size: 20, color: pt.dark),
             onPressed: () => context.pop(),
           ),
           title: Text(
@@ -377,8 +375,22 @@ class _NotificationsList extends StatelessWidget {
     // …) are excluded here so the buyer's inbox never shows them. They live in
     // the seller mode inbox + the profile's "Sotuvchi paneliga o'tish" badge.
     final customerItems = state.customerItems;
+    final guest = context.read<AuthCubit>().state is AppAuthUnauthenticated;
 
-    // Inbox totally empty → the inviting first-run empty state.
+    // Personal (order) rows require a session. Guests still browse All /
+    // System (public news + broadcasts); only this tab asks them to sign in.
+    if (guest && category == NotificationCategory.order) {
+      return EmptyState(
+        icon: Iconsax.box_1,
+        title: tr('notifications.orders_login_title'),
+        message: tr('notifications.orders_login_message'),
+        actionLabel: tr('notifications.login_cta'),
+        action: () => showAuthScreen(context),
+      );
+    }
+
+    // Inbox totally empty → first-run empty state (guests included — they may
+    // simply have no public news yet; never block the whole screen on login).
     if (customerItems.isEmpty) {
       return EmptyState(
         icon: Iconsax.notification,
@@ -548,8 +560,7 @@ class _NotificationTileState extends State<_NotificationTile> {
                         // full text is readable without leaving the inbox.
                         showToggle: widget.expandsOnTap,
                         accent: kindAccent,
-                        onToggle: () =>
-                            setState(() => _expanded = !_expanded),
+                        onToggle: () => setState(() => _expanded = !_expanded),
                       ),
                     ],
                     if (_hasViewCta(notification.kind)) ...[
@@ -639,9 +650,7 @@ class _NotificationBody extends StatelessWidget {
             Text(
               text,
               maxLines: expanded ? null : _collapsedLines,
-              overflow: expanded
-                  ? TextOverflow.visible
-                  : TextOverflow.ellipsis,
+              overflow: expanded ? TextOverflow.visible : TextOverflow.ellipsis,
               style: style,
             ),
             if (showToggle && clamps) ...[

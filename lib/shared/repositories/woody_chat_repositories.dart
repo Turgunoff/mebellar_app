@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'dart:typed_data';
 
+import '../../core/network/token_store.dart';
 import '../../core/network/woody_api_client.dart';
 import '../../core/realtime/woody_realtime_service.dart';
 import '../../core/storage/r2_upload_client.dart';
@@ -36,9 +37,11 @@ class WoodyChatRepository implements ChatRepository {
     required WoodyApiClient api,
     WoodyRealtimeService? realtime,
     R2UploadClient? uploads,
+    TokenStore? tokens,
   }) : _api = api,
        _realtime = realtime,
-       _uploads = uploads;
+       _uploads = uploads,
+       _tokens = tokens;
 
   final WoodyApiClient _api;
 
@@ -48,6 +51,16 @@ class WoodyChatRepository implements ChatRepository {
   /// Presigned-PUT uploader for image attachments. Null in tests / no-backend
   /// builds, where `sendImage` reports the feature unavailable.
   final R2UploadClient? _uploads;
+
+  /// When set, guest sessions skip `GET /chats` (which 401s without a JWT)
+  /// and return an empty list — used by badge sync + the chats list at boot.
+  final TokenStore? _tokens;
+
+  Future<bool> get _signedIn async {
+    final tokens = _tokens;
+    if (tokens == null) return true;
+    return (tokens.current ?? await tokens.read()) != null;
+  }
 
   /// Ticks whenever the signed-in user's chat list may have changed: a
   /// realtime `chat_message` frame, or an FCM foreground push that beat the
@@ -70,6 +83,7 @@ class WoodyChatRepository implements ChatRepository {
 
   @override
   Future<List<Chat>> listMyChats({ChatSenderRole? as}) async {
+    if (!await _signedIn) return const [];
     // `mode` scopes the list server-side to one app surface (customer →
     // buyer chats, seller → shop chats). Omitted for a null viewer so the
     // backend keeps returning both sides.
@@ -337,12 +351,23 @@ class WoodyChatRepository implements ChatRepository {
 /// existing UI needs; the simulator hook is a no-op since real pushes hit
 /// the device through FCM and Phase 6 streams them in via WebSocket.
 class WoodyNotificationsRepository implements NotificationsRepository {
-  WoodyNotificationsRepository({required WoodyApiClient api}) : _api = api;
+  WoodyNotificationsRepository({
+    required WoodyApiClient api,
+    TokenStore? tokens,
+  }) : _api = api,
+       _tokens = tokens;
 
   final WoodyApiClient _api;
+  final TokenStore? _tokens;
   List<AppNotification> _current = const [];
   final _controller = StreamController<List<AppNotification>>.broadcast();
   final _unreadController = StreamController<int>.broadcast();
+
+  Future<bool> get _signedIn async {
+    final tokens = _tokens;
+    if (tokens == null) return true;
+    return (tokens.current ?? await tokens.read()) != null;
+  }
 
   @override
   Stream<List<AppNotification>> watch() => _controller.stream;
@@ -352,6 +377,12 @@ class WoodyNotificationsRepository implements NotificationsRepository {
 
   @override
   Future<List<AppNotification>> list() async {
+    if (!await _signedIn) {
+      _current = const [];
+      _controller.add(_current);
+      _unreadController.add(0);
+      return _current;
+    }
     final body = await _api.get<Map<String, dynamic>>('/notifications');
     final rows = body['rows'] as List<dynamic>? ?? const [];
     _current = rows

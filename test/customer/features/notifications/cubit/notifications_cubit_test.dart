@@ -7,22 +7,25 @@ import 'package:woody_app/core/auth/auth_repository.dart';
 import 'package:woody_app/core/network/token_store.dart';
 import 'package:woody_app/customer/features/notifications/cubit/notifications_cubit.dart';
 import 'package:woody_app/shared/models/notification_model.dart';
+import 'package:woody_app/shared/repositories/news_repository.dart';
 import 'package:woody_app/shared/repositories/notifications_data_source.dart';
 
 class _MockNotificationsRepo extends Mock implements NotificationDataSource {}
 
+class _MockNewsRepo extends Mock implements NewsDataSource {}
+
 class _MockAuth extends Mock implements AuthRepository {}
 
 NotificationModel _notif(String id, {bool isRead = false}) => NotificationModel(
-      id: id,
-      userId: 'user-1',
-      title: 'Title $id',
-      body: 'Body $id',
-      kind: NotificationKind.general,
-      referenceId: null,
-      isRead: isRead,
-      createdAt: DateTime.utc(2026, 5, 16),
-    );
+  id: id,
+  userId: 'user-1',
+  title: 'Title $id',
+  body: 'Body $id',
+  kind: NotificationKind.general,
+  referenceId: null,
+  isRead: isRead,
+  createdAt: DateTime.utc(2026, 5, 16),
+);
 
 // Seller-surface row (resolveTargetMode() == AppMode.seller) — must be kept
 // out of the customer inbox/bell and counted on the profile's seller badge.
@@ -46,14 +49,16 @@ void main() {
   blocTest<NotificationsCubit, NotificationsState>(
     'load emits [loading, ready] with the fetched notifications',
     build: () {
-      when(repo.list)
-          .thenAnswer((_) async => [_notif('n1'), _notif('n2')]);
+      when(repo.list).thenAnswer((_) async => [_notif('n1'), _notif('n2')]);
       return NotificationsCubit(repo);
     },
     act: (cubit) => cubit.load(),
     expect: () => [
-      isA<NotificationsState>()
-          .having((s) => s.status, 'status', NotificationsStatus.loading),
+      isA<NotificationsState>().having(
+        (s) => s.status,
+        'status',
+        NotificationsStatus.loading,
+      ),
       isA<NotificationsState>()
           .having((s) => s.status, 'status', NotificationsStatus.ready)
           .having((s) => s.items.length, 'items', 2),
@@ -68,8 +73,11 @@ void main() {
     },
     act: (cubit) => cubit.load(),
     expect: () => [
-      isA<NotificationsState>()
-          .having((s) => s.status, 'status', NotificationsStatus.loading),
+      isA<NotificationsState>().having(
+        (s) => s.status,
+        'status',
+        NotificationsStatus.loading,
+      ),
       isA<NotificationsState>()
           .having((s) => s.status, 'status', NotificationsStatus.failure)
           .having((s) => s.error, 'error', isNotNull),
@@ -127,8 +135,9 @@ void main() {
   blocTest<NotificationsCubit, NotificationsState>(
     'markAllRead() clears only customer rows and scopes the backend call',
     build: () {
-      when(() => repo.markAllRead(mode: any(named: 'mode')))
-          .thenAnswer((_) async {});
+      when(
+        () => repo.markAllRead(mode: any(named: 'mode')),
+      ).thenAnswer((_) async {});
       return NotificationsCubit(repo);
     },
     seed: () => NotificationsState(
@@ -147,8 +156,9 @@ void main() {
   blocTest<NotificationsCubit, NotificationsState>(
     'markAllRead(seller) clears only seller rows and scopes the backend call',
     build: () {
-      when(() => repo.markAllRead(mode: any(named: 'mode')))
-          .thenAnswer((_) async {});
+      when(
+        () => repo.markAllRead(mode: any(named: 'mode')),
+      ).thenAnswer((_) async {});
       return NotificationsCubit(repo);
     },
     seed: () => NotificationsState(
@@ -179,15 +189,47 @@ void main() {
     // Regression for the guest /notifications 401 loop: when signed out the
     // cubit must NOT fire `GET /notifications` (it 401s for guests). The screen
     // rests on public news; the personal call is skipped, not failed.
-    test('guest load() does not hit the personal /notifications endpoint',
-        () async {
+    test(
+      'guest load() does not hit the personal /notifications endpoint',
+      () async {
+        when(() => auth.isAuthenticated).thenReturn(false);
+        final cubit = NotificationsCubit(repo, auth: auth);
+
+        await cubit.load();
+
+        verifyNever(repo.list);
+        expect(cubit.state.status, NotificationsStatus.ready);
+        await cubit.close();
+      },
+    );
+
+    test('guest load() still merges public news into the inbox', () async {
       when(() => auth.isAuthenticated).thenReturn(false);
-      final cubit = NotificationsCubit(repo, auth: auth);
+      final news = _MockNewsRepo();
+      when(news.list).thenAnswer(
+        (_) async => [
+          NotificationModel(
+            id: 'news-1',
+            userId: 'broadcast',
+            title: 'Woody yangilik',
+            body: 'Public broadcast',
+            kind: NotificationKind.news,
+            referenceId: null,
+            isRead: false,
+            createdAt: DateTime.utc(2026, 7, 1),
+          ),
+        ],
+      );
+      final cubit = NotificationsCubit(repo, auth: auth, newsRepo: news);
 
       await cubit.load();
 
       verifyNever(repo.list);
+      verify(news.list).called(1);
       expect(cubit.state.status, NotificationsStatus.ready);
+      expect(cubit.state.items.single.id, 'news-1');
+      expect(cubit.state.items.single.kind, NotificationKind.news);
+      expect(cubit.state.customerItems, isNotEmpty);
       await cubit.close();
     });
 
@@ -207,22 +249,24 @@ void main() {
     // guest, on a no-op clear. Reloading on those re-fired the personal fetch
     // for nothing (and drove the loop). Only a genuine signed-in ↔ signed-out
     // flip should reload.
-    test('reloads on a real auth flip but not on a token-refresh re-emit',
-        () async {
-      var authed = false;
-      when(() => auth.isAuthenticated).thenAnswer((_) => authed);
-      when(repo.list).thenAnswer((_) async => [_notif('n1')]);
-      final cubit = NotificationsCubit(repo, auth: auth);
+    test(
+      'reloads on a real auth flip but not on a token-refresh re-emit',
+      () async {
+        var authed = false;
+        when(() => auth.isAuthenticated).thenAnswer((_) => authed);
+        when(repo.list).thenAnswer((_) async => [_notif('n1')]);
+        final cubit = NotificationsCubit(repo, auth: auth);
 
-      authed = true;
-      authChanges.add(const TokenPair(accessToken: 'a', refreshToken: 'r'));
-      await pumpEventQueue();
-      // A silent refresh rotates the pair (authed → authed): must NOT reload.
-      authChanges.add(const TokenPair(accessToken: 'a2', refreshToken: 'r2'));
-      await pumpEventQueue();
+        authed = true;
+        authChanges.add(const TokenPair(accessToken: 'a', refreshToken: 'r'));
+        await pumpEventQueue();
+        // A silent refresh rotates the pair (authed → authed): must NOT reload.
+        authChanges.add(const TokenPair(accessToken: 'a2', refreshToken: 'r2'));
+        await pumpEventQueue();
 
-      verify(repo.list).called(1);
-      await cubit.close();
-    });
+        verify(repo.list).called(1);
+        await cubit.close();
+      },
+    );
   });
 }

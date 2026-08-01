@@ -1,4 +1,5 @@
 import '../../config/app_mode.dart';
+import '../../core/network/token_store.dart';
 import '../../core/network/woody_api_client.dart';
 import '../models/notification_model.dart';
 
@@ -32,13 +33,29 @@ abstract class NotificationDataSource {
 /// `PATCH /notifications/{id}/read` and `POST /notifications/mark-all-read`. The
 /// backend scopes every query to the JWT's user, so no client-side user filter
 /// is needed; the row carries no `user_id`, so we stamp a synthetic one.
+///
+/// When [tokens] is wired, guest sessions short-circuit to empty / zero without
+/// hitting the network — `GET /notifications` 401s without a JWT, and the
+/// launcher-badge sync used to fire that call at every cold start.
 class WoodyNotificationDataSource implements NotificationDataSource {
-  WoodyNotificationDataSource({required WoodyApiClient api}) : _api = api;
+  WoodyNotificationDataSource({required WoodyApiClient api, TokenStore? tokens})
+    : _api = api,
+      _tokens = tokens;
 
   final WoodyApiClient _api;
+  final TokenStore? _tokens;
+
+  /// `true` when there is a session, or when no [TokenStore] was injected
+  /// (unit tests that drive the fake adapter without auth plumbing).
+  Future<bool> get _signedIn async {
+    final tokens = _tokens;
+    if (tokens == null) return true;
+    return (tokens.current ?? await tokens.read()) != null;
+  }
 
   @override
   Future<List<NotificationModel>> list({String? mode}) async {
+    if (!await _signedIn) return const [];
     final body = await _api.get<Map<String, dynamic>>(
       '/notifications',
       query: mode == null ? null : {'mode': mode},
@@ -55,6 +72,7 @@ class WoodyNotificationDataSource implements NotificationDataSource {
 
   @override
   Future<int> unreadCount({String? mode}) async {
+    if (!await _signedIn) return 0;
     final body = await _api.get<Map<String, dynamic>>(
       '/notifications',
       query: mode == null ? null : {'mode': mode},
@@ -64,11 +82,13 @@ class WoodyNotificationDataSource implements NotificationDataSource {
 
   @override
   Future<void> markRead(String id) async {
+    if (!await _signedIn) return;
     await _api.patch<dynamic>('/notifications/$id/read');
   }
 
   @override
   Future<void> markAllRead({String? mode}) async {
+    if (!await _signedIn) return;
     await _api.post<dynamic>(
       '/notifications/mark-all-read',
       query: mode == null ? null : {'mode': mode},

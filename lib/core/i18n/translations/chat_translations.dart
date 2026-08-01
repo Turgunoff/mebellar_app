@@ -27,6 +27,10 @@ const Map<String, dynamic> chatUz = {
   'pick_from_gallery': 'Galereyadan tanlash',
   'pick_from_camera': 'Kameradan olish',
   'cancel': 'Bekor qilish',
+  'login_required_title': 'Suhbatlar uchun kiring',
+  'login_required_message':
+      'Buyurtma suhbatlarini ko\'rish uchun tizimga kiring',
+  'login_cta': 'Kirish',
   // Status banner (Variant A) — shown above the message list to give
   // post-purchase context without closing the thread.
   'status': {
@@ -73,6 +77,10 @@ const Map<String, dynamic> chatRu = {
   'pick_from_gallery': 'Выбрать из галереи',
   'pick_from_camera': 'Сделать фото',
   'cancel': 'Отмена',
+  'login_required_title': 'Войдите, чтобы видеть чаты',
+  'login_required_message':
+      'Чтобы просматривать чаты по заказам, войдите в аккаунт',
+  'login_cta': 'Войти',
   'status': {
     'delivered_title': 'Заказ доставлен',
     'delivered_subtitle': 'Если есть проблема, напишите продавцу',
@@ -118,6 +126,10 @@ const Map<String, dynamic> chatEn = {
   'pick_from_gallery': 'From gallery',
   'pick_from_camera': 'Take photo',
   'cancel': 'Cancel',
+  'login_required_title': 'Sign in to see chats',
+  'login_required_message':
+      'Log in to view your order conversations with sellers',
+  'login_cta': 'Sign in',
   'status': {
     'delivered_title': 'Order delivered',
     'delivered_subtitle':

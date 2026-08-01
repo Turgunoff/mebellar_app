@@ -42,10 +42,15 @@ void main() {
   setUp(() async {
     final storage = _MockSecureStorage();
     final mem = <String, String>{};
-    when(() => storage.read(key: any(named: 'key')))
-        .thenAnswer((i) async => mem[i.namedArguments[#key] as String]);
-    when(() => storage.write(key: any(named: 'key'), value: any(named: 'value')))
-        .thenAnswer((i) async {
+    when(
+      () => storage.read(key: any(named: 'key')),
+    ).thenAnswer((i) async => mem[i.namedArguments[#key] as String]);
+    when(
+      () => storage.write(
+        key: any(named: 'key'),
+        value: any(named: 'value'),
+      ),
+    ).thenAnswer((i) async {
       mem[i.namedArguments[#key] as String] =
           i.namedArguments[#value] as String;
     });
@@ -101,6 +106,36 @@ void main() {
     expect(await h.ds.unreadCount(), 5);
   });
 
+  test('guest session skips HTTP for list and unreadCount', () async {
+    final storage = _MockSecureStorage();
+    when(
+      () => storage.read(key: any(named: 'key')),
+    ).thenAnswer((_) async => null);
+    when(
+      () => storage.write(
+        key: any(named: 'key'),
+        value: any(named: 'value'),
+      ),
+    ).thenAnswer((_) async {});
+    when(() => storage.delete(key: any(named: 'key'))).thenAnswer((_) async {});
+    final guestStore = TokenStore(storage);
+    await guestStore.read(); // hydrate to null
+
+    final adapter = _FakeAdapter((_) => (200, '{"rows":[],"unread_count":9}'));
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: 'https://test.local',
+        validateStatus: (s) => s != null && s < 500,
+      ),
+    )..httpClientAdapter = adapter;
+    final api = WoodyApiClient(tokens: guestStore, dio: dio);
+    final ds = WoodyNotificationDataSource(api: api, tokens: guestStore);
+
+    expect(await ds.list(), isEmpty);
+    expect(await ds.unreadCount(), 0);
+    expect(adapter.calls, isEmpty);
+  });
+
   test('markRead PATCHes the per-id read endpoint', () async {
     final h = make((_) => (200, '{}'));
 
@@ -123,19 +158,22 @@ void main() {
     expect(call.uri.queryParameters.containsKey('mode'), isFalse);
   });
 
-  test('mode scopes the audience query param on list/unread/mark-all', () async {
-    final list = make((_) => (200, '{"rows":[],"unread_count":0}'));
-    await list.ds.list(mode: 'customer');
-    expect(list.adapter.calls.single.uri.queryParameters['mode'], 'customer');
+  test(
+    'mode scopes the audience query param on list/unread/mark-all',
+    () async {
+      final list = make((_) => (200, '{"rows":[],"unread_count":0}'));
+      await list.ds.list(mode: 'customer');
+      expect(list.adapter.calls.single.uri.queryParameters['mode'], 'customer');
 
-    final unread = make((_) => (200, '{"rows":[],"unread_count":2}'));
-    await unread.ds.unreadCount(mode: 'seller');
-    expect(unread.adapter.calls.single.uri.queryParameters['mode'], 'seller');
+      final unread = make((_) => (200, '{"rows":[],"unread_count":2}'));
+      await unread.ds.unreadCount(mode: 'seller');
+      expect(unread.adapter.calls.single.uri.queryParameters['mode'], 'seller');
 
-    final markAll = make((_) => (200, '{}'));
-    await markAll.ds.markAllRead(mode: 'customer');
-    final call = markAll.adapter.calls.single;
-    expect(call.method, 'POST');
-    expect(call.uri.queryParameters['mode'], 'customer');
-  });
+      final markAll = make((_) => (200, '{}'));
+      await markAll.ds.markAllRead(mode: 'customer');
+      final call = markAll.adapter.calls.single;
+      expect(call.method, 'POST');
+      expect(call.uri.queryParameters['mode'], 'customer');
+    },
+  );
 }

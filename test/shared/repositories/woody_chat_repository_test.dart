@@ -178,6 +178,35 @@ void main() {
     expect(h.adapter.calls.single.uri.queryParameters['mode'], 'seller');
   });
 
+  test('listMyChats returns [] without HTTP for a guest session', () async {
+    final storage = _MockSecureStorage();
+    when(
+      () => storage.read(key: any(named: 'key')),
+    ).thenAnswer((_) async => null);
+    when(
+      () => storage.write(
+        key: any(named: 'key'),
+        value: any(named: 'value'),
+      ),
+    ).thenAnswer((_) async {});
+    when(() => storage.delete(key: any(named: 'key'))).thenAnswer((_) async {});
+    final guestStore = TokenStore(storage);
+    await guestStore.read();
+
+    final adapter = _FakeAdapter((_) => (200, jsonEncode([_chat('ch1')])));
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: 'https://test.local',
+        validateStatus: (s) => s != null && s < 500,
+      ),
+    )..httpClientAdapter = adapter;
+    final api = WoodyApiClient(tokens: guestStore, dio: dio);
+    final repo = WoodyChatRepository(api: api, tokens: guestStore);
+
+    expect(await repo.listMyChats(as: ChatSenderRole.customer), isEmpty);
+    expect(adapter.calls, isEmpty);
+  });
+
   test('listMyChats maps the last-message read-receipt fields', () async {
     final row = {
       ..._chat('ch1'),
@@ -210,19 +239,22 @@ void main() {
     expect(chat.lastMessageRead, isFalse);
   });
 
-  test('listMyChats degrades an unknown sender_role to null (no throw)', () async {
-    // Production only ever writes customer/seller, but a legacy/garbage value
-    // must degrade to null — the tile then shows no receipt — never throw and
-    // tear down the whole list. Locks the documented degrade-not-throw contract.
-    final row = {..._chat('ch1'), 'last_message_sender_role': 'admin'};
-    final h = make((_) => (200, jsonEncode([row])));
+  test(
+    'listMyChats degrades an unknown sender_role to null (no throw)',
+    () async {
+      // Production only ever writes customer/seller, but a legacy/garbage value
+      // must degrade to null — the tile then shows no receipt — never throw and
+      // tear down the whole list. Locks the documented degrade-not-throw contract.
+      final row = {..._chat('ch1'), 'last_message_sender_role': 'admin'};
+      final h = make((_) => (200, jsonEncode([row])));
 
-    final chat = (await h.repo.listMyChats()).single;
+      final chat = (await h.repo.listMyChats()).single;
 
-    expect(chat.lastMessageSenderRole, isNull);
-    expect(chat.lastMessageIsMine(ChatSenderRole.customer), isFalse);
-    expect(chat.lastMessageIsMine(ChatSenderRole.seller), isFalse);
-  });
+      expect(chat.lastMessageSenderRole, isNull);
+      expect(chat.lastMessageIsMine(ChatSenderRole.customer), isFalse);
+      expect(chat.lastMessageIsMine(ChatSenderRole.seller), isFalse);
+    },
+  );
 
   test('openChatForOrder POSTs the order id and maps the chat', () async {
     final h = make((_) => (200, jsonEncode(_chat('ch1'))));
@@ -371,26 +403,29 @@ void main() {
       await sub.cancel();
     });
 
-    test('myChatsStream re-fetches on a chat_read frame (live receipt)', () async {
-      var calls = 0;
-      final h = await makeRealtime((_) {
-        calls++;
-        return (200, jsonEncode([_chat('ch1')]));
-      });
-      addTearDown(() => h.rt.stop());
+    test(
+      'myChatsStream re-fetches on a chat_read frame (live receipt)',
+      () async {
+        var calls = 0;
+        final h = await makeRealtime((_) {
+          calls++;
+          return (200, jsonEncode([_chat('ch1')]));
+        });
+        addTearDown(() => h.rt.stop());
 
-      final sub = h.repo.myChatsStream().listen((_) {});
-      await pumpEventQueue(); // initial snapshot fetch
-      expect(calls, 1);
+        final sub = h.repo.myChatsStream().listen((_) {});
+        await pumpEventQueue(); // initial snapshot fetch
+        expect(calls, 1);
 
-      // The other party opened the thread → our outgoing tick must flip, so
-      // the list refetches and re-reads last_message_read_at.
-      emitRead(h.conn, 'ch1');
-      await pumpEventQueue();
+        // The other party opened the thread → our outgoing tick must flip, so
+        // the list refetches and re-reads last_message_read_at.
+        emitRead(h.conn, 'ch1');
+        await pumpEventQueue();
 
-      expect(calls, 2);
-      await sub.cancel();
-    });
+        expect(calls, 2);
+        await sub.cancel();
+      },
+    );
 
     test('nudgeFromPush forces a chat-list re-fetch (FCM fallback)', () async {
       var calls = 0;

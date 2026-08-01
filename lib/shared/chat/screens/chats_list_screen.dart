@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
+import '../../../auth/auth_bottom_sheet.dart';
+import '../../../core/auth/auth_cubit.dart';
 import '../../../core/di/service_locator.dart';
 import '../../../core/i18n/i18n.dart';
 import '../../../customer/features/home/widgets/premium/premium_tokens.dart';
@@ -59,8 +61,7 @@ class ChatsListScreen extends StatelessWidget {
           elevation: 0,
           scrolledUnderElevation: 0,
           leading: IconButton(
-            icon: Icon(Iconsax.arrow_left_2_copy,
-                size: 20, color: pt.dark),
+            icon: Icon(Iconsax.arrow_left_2_copy, size: 20, color: pt.dark),
             onPressed: () => _handleBack(context),
           ),
           title: Text(
@@ -68,48 +69,62 @@ class ChatsListScreen extends StatelessWidget {
             style: PremiumTokens.display(size: 22, letterSpacing: -0.4),
           ),
         ),
-        body: BlocBuilder<ChatsListCubit, ChatsListState>(
-          builder: (context, state) {
-            if (state.status == ChatsListStatus.failure) {
-              return ErrorState(
-                message: state.error,
-                onRetry: () => context.read<ChatsListCubit>().refresh(),
-              );
-            }
-            if (state.status == ChatsListStatus.loading && state.chats.isEmpty) {
-              return const _Skeleton();
-            }
-            if (state.chats.isEmpty) {
+        body: BlocBuilder<AuthCubit, AppAuthState>(
+          builder: (context, auth) {
+            if (auth is AppAuthUnauthenticated) {
               return EmptyState(
                 icon: Iconsax.message,
-                title: tr('chat.empty_title'),
-                message: tr('chat.empty_message'),
+                title: tr('chat.login_required_title'),
+                message: tr('chat.login_required_message'),
+                actionLabel: tr('chat.login_cta'),
+                action: () => showAuthScreen(context),
               );
             }
-            return RefreshIndicator(
-              color: Theme.of(context).colorScheme.primary,
-              onRefresh: context.read<ChatsListCubit>().refresh,
-              child: ListView.separated(
-                physics: const AlwaysScrollableScrollPhysics(
-                  parent: BouncingScrollPhysics(),
-                ),
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                itemCount: state.chats.length,
-                separatorBuilder: (_, _) => Divider(
-                  height: 1,
-                  thickness: 0.6,
-                  indent: 76,
-                  color: pt.divider,
-                ),
-                itemBuilder: (context, i) {
-                  final chat = state.chats[i];
-                  return ChatListTile(
-                    chat: chat,
-                    viewer: viewer,
-                    onTap: () => context.push(threadRouteBuilder(chat)),
+            return BlocBuilder<ChatsListCubit, ChatsListState>(
+              builder: (context, state) {
+                if (state.status == ChatsListStatus.failure) {
+                  return ErrorState(
+                    message: state.error,
+                    onRetry: () => context.read<ChatsListCubit>().refresh(),
                   );
-                },
-              ),
+                }
+                if (state.status == ChatsListStatus.loading &&
+                    state.chats.isEmpty) {
+                  return const _Skeleton();
+                }
+                if (state.chats.isEmpty) {
+                  return EmptyState(
+                    icon: Iconsax.message,
+                    title: tr('chat.empty_title'),
+                    message: tr('chat.empty_message'),
+                  );
+                }
+                return RefreshIndicator(
+                  color: Theme.of(context).colorScheme.primary,
+                  onRefresh: context.read<ChatsListCubit>().refresh,
+                  child: ListView.separated(
+                    physics: const AlwaysScrollableScrollPhysics(
+                      parent: BouncingScrollPhysics(),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    itemCount: state.chats.length,
+                    separatorBuilder: (_, _) => Divider(
+                      height: 1,
+                      thickness: 0.6,
+                      indent: 76,
+                      color: pt.divider,
+                    ),
+                    itemBuilder: (context, i) {
+                      final chat = state.chats[i];
+                      return ChatListTile(
+                        chat: chat,
+                        viewer: viewer,
+                        onTap: () => context.push(threadRouteBuilder(chat)),
+                      );
+                    },
+                  ),
+                );
+              },
             );
           },
         ),

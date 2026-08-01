@@ -72,11 +72,15 @@ class NotificationsState extends Equatable {
 
 /// Inbox cubit. Surfaces the union of two sources:
 ///   * Personal notifications (`GET /notifications`) — scoped to the JWT user.
-///   * Public news (`GET /catalog/news`) — broadcast, read-state in Hive.
+///     Skipped for guests (that endpoint 401s without a session).
+///   * Public news (`GET /catalog/news`) — unauthenticated broadcast feed;
+///     read-state lives in Hive so guests still get an inbox + badge.
 ///
-/// Live updates: a `notification` event on [WoodyRealtimeService] triggers a
-/// reload (the FCM foreground push does the same); news has no live channel and
-/// refreshes on [load]. Re-loads on sign-in/out via [AuthRepository].
+/// Guests therefore see System / All content from news; order/personal rows
+/// appear only after sign-in. Live updates: a `notification` event on
+/// [WoodyRealtimeService] triggers a reload (the FCM foreground push does the
+/// same); news has no live channel and refreshes on [load]. Re-loads on
+/// sign-in/out via [AuthRepository].
 class NotificationsCubit extends Cubit<NotificationsState> {
   NotificationsCubit(
     this._repo, {

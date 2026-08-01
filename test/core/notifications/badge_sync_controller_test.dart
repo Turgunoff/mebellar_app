@@ -1,9 +1,11 @@
 import 'dart:async';
 
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:woody_app/config/app_mode.dart';
 import 'package:woody_app/core/auth/app_mode_cubit.dart';
+import 'package:woody_app/core/network/token_store.dart';
 import 'package:woody_app/core/notifications/app_badge_service.dart';
 import 'package:woody_app/core/notifications/badge_sync_controller.dart';
 import 'package:woody_app/shared/models/chat.dart';
@@ -17,6 +19,8 @@ class _MockChatRepo extends Mock implements ChatRepository {}
 class _MockNotifSource extends Mock implements NotificationDataSource {}
 
 class _MockModeCubit extends Mock implements AppModeCubit {}
+
+class _MockSecureStorage extends Mock implements FlutterSecureStorage {}
 
 Chat _chat({int customerUnread = 0, int sellerUnread = 0}) => Chat(
   id: 'c$customerUnread$sellerUnread',
@@ -134,6 +138,38 @@ void main() {
       verify(() => badge.setCount(0)).called(1);
     },
   );
+
+  test('refreshNotificationUnread skips the network when signed out', () async {
+    when(() => notifs.unreadCount()).thenAnswer((_) async => 9);
+
+    final storage = _MockSecureStorage();
+    when(
+      () => storage.read(key: any(named: 'key')),
+    ).thenAnswer((_) async => null);
+    when(
+      () => storage.write(
+        key: any(named: 'key'),
+        value: any(named: 'value'),
+      ),
+    ).thenAnswer((_) async {});
+    when(() => storage.delete(key: any(named: 'key'))).thenAnswer((_) async {});
+    final guestTokens = TokenStore(storage);
+    await guestTokens.read();
+
+    final guest = BadgeSyncController(
+      badge: badge,
+      notifications: notifs,
+      chats: chats,
+      mode: mode,
+      tokens: guestTokens,
+    );
+    addTearDown(guest.dispose);
+
+    await guest.refreshNotificationUnread();
+
+    verifyNever(() => notifs.unreadCount());
+    verify(() => badge.setCount(0)).called(1);
+  });
 
   test('clearOnLogout clears the launcher badge and cached tallies', () async {
     when(() => notifs.unreadCount()).thenAnswer((_) async => 5);

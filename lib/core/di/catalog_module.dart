@@ -111,6 +111,7 @@ void registerCatalogModule(GetIt sl) {
         uploads: sl.isRegistered<R2UploadClient>()
             ? sl<R2UploadClient>()
             : null,
+        tokens: sl<TokenStore>(),
       ),
     );
     // Customer support chat — single per-user thread over Woody REST +
@@ -129,8 +130,12 @@ void registerCatalogModule(GetIt sl) {
     );
 
     // Notifications inbox data source — Woody REST (`/notifications`).
+    // TokenStore gates guest sessions so badge sync never 401s at cold start.
     sl.registerLazySingleton<NotificationDataSource>(
-      () => WoodyNotificationDataSource(api: sl<WoodyApiClient>()),
+      () => WoodyNotificationDataSource(
+        api: sl<WoodyApiClient>(),
+        tokens: sl<TokenStore>(),
+      ),
     );
 
     // Customer-side product reviews — Woody REST.
@@ -240,7 +245,10 @@ void registerCatalogModule(GetIt sl) {
     () => WoodyPaymentRepository(api: sl<WoodyApiClient>()),
   );
   sl.registerLazySingleton<NotificationsRepository>(
-    () => WoodyNotificationsRepository(api: sl<WoodyApiClient>()),
+    () => WoodyNotificationsRepository(
+      api: sl<WoodyApiClient>(),
+      tokens: sl<TokenStore>(),
+    ),
   );
 
   // Mirrors the live unread total (notifications + chats) onto the OS launcher
@@ -255,6 +263,7 @@ void registerCatalogModule(GetIt sl) {
       realtime: sl.isRegistered<WoodyRealtimeService>()
           ? sl<WoodyRealtimeService>()
           : null,
+      tokens: sl<TokenStore>(),
     ),
   );
 

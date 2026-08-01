@@ -286,6 +286,13 @@ const Map<String, dynamic> notificationsUz = {
   'empty': 'Hech qanday bildirishnoma yo\'q',
   'empty_hint':
       'Buyurtma, do\'kon va promo haqidagi yangiliklar shu yerda paydo bo\'ladi',
+  'login_required_title': 'Bildirishnomalar uchun kiring',
+  'login_required_message':
+      'Shaxsiy bildirishnomalarni ko\'rish uchun tizimga kiring',
+  'orders_login_title': 'Buyurtma bildirishnomalari',
+  'orders_login_message':
+      'Buyurtmalaringiz haqidagi yangilanishlarni ko\'rish uchun tizimga kiring',
+  'login_cta': 'Kirish',
   'mark_all_read': 'Hammasini o\'qildi',
   'tab_all': 'Barchasi',
   'tab_orders': 'Buyurtmalar',
@@ -336,6 +343,12 @@ const Map<String, dynamic> notificationsRu = {
   'title': 'Уведомления',
   'empty': 'Нет уведомлений',
   'empty_hint': 'Здесь появятся обновления заказов, магазина и акции',
+  'login_required_title': 'Войдите, чтобы видеть уведомления',
+  'login_required_message':
+      'Чтобы получать личные уведомления, войдите в аккаунт',
+  'orders_login_title': 'Уведомления о заказах',
+  'orders_login_message': 'Войдите, чтобы видеть обновления по вашим заказам',
+  'login_cta': 'Войти',
   'mark_all_read': 'Прочитать все',
   'tab_all': 'Все',
   'tab_orders': 'Заказы',
@@ -382,6 +395,12 @@ const Map<String, dynamic> notificationsEn = {
   'title': 'Notifications',
   'empty': 'No notifications',
   'empty_hint': 'Order updates, shop news and promos show up here',
+  'login_required_title': 'Sign in to see notifications',
+  'login_required_message':
+      'Log in to receive personal order and account alerts',
+  'orders_login_title': 'Order notifications',
+  'orders_login_message': 'Sign in to see updates about your orders',
+  'login_cta': 'Sign in',
   'mark_all_read': 'Mark all read',
   'tab_all': 'All',
   'tab_orders': 'Orders',
