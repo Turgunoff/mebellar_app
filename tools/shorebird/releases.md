@@ -40,3 +40,4 @@ Yozuvlar avtomatik qo'shiladi:
 | 2026-07-06 | 1.0.34+34 | 301a5004a898 | android ios | 1.0.34: Crashlytics crash fixes (showcase boot, transient errors, MapKit, iOS AR registrar) |
 | 2026-07-06 | 1.0.35+35 | 51281d85fce6 | android | 1.0.35: personalized home feed (Siz uchun + Ommabop) + splash refresh |
 | 2026-07-07 | 1.0.35+35 | cdd7c55656e6 | ios | — |
+| 2026-08-01 | 1.0.36+36 | 3077347c63a0 | android ios | 1.0.36: guest personal-API 401 guard + hybrid public notifications + wallet withdraw |
