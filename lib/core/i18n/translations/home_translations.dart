@@ -3,7 +3,7 @@
 const Map<String, dynamic> homeUz = {
   'title': 'Asosiy',
   'discover_eyebrow': 'KASHF QILING',
-  'discover_title': 'Premium Mebellar',
+  'discover_title': 'Uyingiz uchun',
   'search_hint': 'Zamonaviy mebellarni qidiring...',
   'categories': 'Kategoriyalar',
   'recommended': 'Siz uchun tavsiya',
@@ -37,7 +37,7 @@ const Map<String, dynamic> homeUz = {
 const Map<String, dynamic> homeRu = {
   'title': 'Главная',
   'discover_eyebrow': 'ОТКРОЙТЕ',
-  'discover_title': 'Премиум мебель',
+  'discover_title': 'Для вашего дома',
   'search_hint': 'Найти современную мебель...',
   'categories': 'Категории',
   'recommended': 'Рекомендуем для вас',
@@ -70,7 +70,7 @@ const Map<String, dynamic> homeRu = {
 const Map<String, dynamic> homeEn = {
   'title': 'Home',
   'discover_eyebrow': 'DISCOVER',
-  'discover_title': 'Premium Furniture',
+  'discover_title': 'For your home',
   'search_hint': 'Search for modern furniture...',
   'categories': 'Categories',
   'recommended': 'Recommended for you',

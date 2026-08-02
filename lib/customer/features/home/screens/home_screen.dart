@@ -289,7 +289,8 @@ class _HomeAppBar extends StatelessWidget {
       ],
       flexibleSpace: FlexibleSpaceBar(
         centerTitle: false,
-        expandedTitleScale: 1.6,
+        // Keep 1.0 so the scaled title never paints over the eyebrow.
+        expandedTitleScale: 1.0,
         titlePadding: const EdgeInsetsDirectional.only(start: 20, bottom: 14),
         title: Text(
           tr('home.discover_title'),

@@ -330,7 +330,7 @@ class _ReadyContentState extends State<_ReadyContent> {
                     crossAxisSpacing: 14,
                     // 0.65 matches the favourites/search grids — the value
                     // PremiumProductCard's fixed layout needs to avoid overflow.
-                    childAspectRatio: 0.65,
+                    childAspectRatio: 0.60,
                   ),
                   itemCount: products.length,
                   itemBuilder: (context, i) =>

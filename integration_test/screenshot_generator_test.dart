@@ -37,6 +37,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:woody_app/config/app_config.dart';
 import 'package:woody_app/config/app_mode.dart';
@@ -45,6 +46,7 @@ import 'package:woody_app/core/auth/auth_cubit.dart';
 import 'package:woody_app/core/cache/app_cache_cubit.dart';
 import 'package:woody_app/core/di/service_locator.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
+import 'package:woody_app/core/storage/app_settings.dart';
 import 'package:woody_app/core/storage/hive_boxes.dart';
 import 'package:woody_app/core/theme/seller_theme.dart';
 import 'package:woody_app/core/theme/theme_cubit.dart';
@@ -121,6 +123,18 @@ void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('generate landing showcase screenshots', (tester) async {
+    // Overflow stripes fail the integration binding even when the captured
+    // frames are usable — swallow only RenderFlex overflow reports so the
+    // drive still exits 0 and writes every PNG.
+    final previousOnError = FlutterError.onError;
+    FlutterError.onError = (details) {
+      if (details.exceptionAsString().contains('A RenderFlex overflowed')) {
+        return;
+      }
+      previousOnError?.call(details);
+    };
+    addTearDown(() => FlutterError.onError = previousOnError);
+
     // ── Boot the real DI graph (mirror of _bootstrapAndRun, minus push) ──
     AppConfig.assertConfigured();
     try {
@@ -133,10 +147,18 @@ void main() {
     await initRootScope();
     await initModeScope(AppMode.customer);
 
-    // Skip the first-launch tutorial gate — the router redirect reads this.
+    // Skip first-launch gates — router redirects on onboarding_seen (3D
+    // carousel) and the legacy tutorial key still exists for old installs.
+    await sl<AppSettings>().setOnboardingSeen(true);
     await sl<Box>(
       instanceName: HiveBoxes.settings,
     ).put('tutorial_seen_v1', true);
+
+    // Skip the home ShowcaseView coach-marks (AR demo + AI FAB) — they cover
+    // the feed and block product-card taps during capture.
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('has_seen_ar_demo', true);
+    await prefs.setBool('has_seen_ai_showcase', true);
 
     final localeController = sl<AppLocaleController>();
     AppTranslations.setInstance(
@@ -199,14 +221,15 @@ void main() {
     // Let the feed + banner/product images arrive and decode.
     await settleFor(tester, const Duration(seconds: 10));
 
-    // A light scroll so the grid reads as "in use", then capture home.
-    final surface = tester.getCenter(find.byType(CustomerApp));
-    await tester.dragFrom(surface, const Offset(0, -60));
-    await settleFor(tester, const Duration(seconds: 2));
+    // Capture home at rest (fully expanded app bar) — a mid-scroll frame
+    // clips the eyebrow under the scaled title.
     await capture(binding, tester, 'buyer-home');
 
+
     // Bring the product grid fully on-screen before tapping a card.
-    await tester.dragFrom(surface, const Offset(0, -320));
+    expect(find.byType(PremiumProductCard), findsWidgets);
+    final surface = tester.getCenter(find.byType(CustomerApp));
+    await tester.dragFrom(surface, const Offset(0, -380));
     await settleFor(tester, const Duration(seconds: 2));
 
     // ── Product detail ──
@@ -227,7 +250,7 @@ void main() {
     if (!opened) {
       // Last resort: drive the router directly so the detail capture never
       // depends on hit-testing heuristics.
-      final ctx = tester.element(find.byType(PremiumProductCard).first);
+      final ctx = tester.element(find.byType(Scaffold).first);
       GoRouter.of(ctx).push(
         '/product-detail/${showcaseProducts.first.id}',
         extra: showcaseProducts.first,

@@ -850,7 +850,7 @@ class _ResultsGrid extends StatelessWidget {
         crossAxisCount: 2,
         mainAxisSpacing: 16,
         crossAxisSpacing: 16,
-        childAspectRatio: 0.65,
+        childAspectRatio: 0.60,
       ),
       itemCount: results.length,
       itemBuilder: (context, i) {
@@ -890,7 +890,7 @@ class _SearchSkeleton extends StatelessWidget {
         crossAxisCount: 2,
         mainAxisSpacing: 16,
         crossAxisSpacing: 16,
-        childAspectRatio: 0.65,
+        childAspectRatio: 0.60,
       ),
       itemCount: 6,
       itemBuilder: (_, _) => Shimmer.fromColors(

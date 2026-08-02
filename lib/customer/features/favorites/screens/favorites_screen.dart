@@ -152,7 +152,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                           crossAxisCount: 2,
                           mainAxisSpacing: 14,
                           crossAxisSpacing: 14,
-                          childAspectRatio: 0.65,
+                          childAspectRatio: 0.60,
                         ),
                     delegate: SliverChildBuilderDelegate((context, i) {
                       final product = state.products[i];

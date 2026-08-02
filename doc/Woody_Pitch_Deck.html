@@ -2,6 +2,7 @@
 <html lang="uz">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Woody — Investorlar uchun taqdimot</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -44,28 +45,67 @@
 
 *{box-sizing:border-box;margin:0;padding:0}
 
-html{background:#D8D2CA}
+html,body{
+  height:100%;
+  overflow:hidden;
+  background:var(--ink);
+}
 
 body{
   font-family:var(--body);
   color:var(--ink);
   -webkit-font-smoothing:antialiased;
   text-rendering:optimizeLegibility;
-  padding:32px 0;
+  touch-action:pan-y pinch-zoom;
 }
 
-/* ── Slayd ramkasi ──────────────────────────────────────────────────── */
+/* ── PPT sahna: bir vaqtda bitta slayd, to'liq viewport ─────────────── */
+.deck{
+  display:flex;
+  width:100%;
+  height:100%;
+  overflow-x:auto;
+  overflow-y:hidden;
+  scroll-snap-type:x mandatory;
+  scroll-behavior:smooth;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-x:contain;
+  scrollbar-width:none;
+}
+.deck::-webkit-scrollbar{display:none}
+
+.slide-frame{
+  flex:0 0 100%;
+  width:100%;
+  height:100%;
+  scroll-snap-align:start;
+  scroll-snap-stop:always;
+  display:grid;
+  place-items:center;
+  background:var(--ink);
+  position:relative;
+}
+
+.slide-stage{
+  width:1280px;
+  height:720px;
+  transform-origin:center center;
+  /* --deck-scale JS orqali viewportga moslanadi */
+  transform:scale(var(--deck-scale, 1));
+}
+
+/* ── Slayd ramkasi (16:9 canvas) ────────────────────────────────────── */
 .slide{
   position:relative;
   width:1280px;
   height:720px;
-  margin:0 auto 32px;
+  margin:0;
   background:var(--bone);
   padding:64px 80px 72px;
   overflow:hidden;
   display:flex;
   flex-direction:column;
-  box-shadow:0 24px 60px -32px rgba(31,41,51,.35);
+  box-shadow:none;
 }
 
 /* Sahifa raqami + wordmark */
@@ -103,7 +143,7 @@ body{
 h1{
   font-family:var(--display);
   font-weight:600;
-  font-size:44px;
+  font-size:46px;
   line-height:1.12;
   letter-spacing:-.02em;
   color:var(--ink);
@@ -111,8 +151,8 @@ h1{
 
 .sub{
   margin-top:14px;
-  font-size:16px;
-  line-height:1.55;
+  font-size:18px;
+  line-height:1.5;
   color:var(--ink-muted);
   max-width:860px;
 }
@@ -135,22 +175,50 @@ h1{
   color:var(--white);
 }
 .cover .tag{
-  margin-top:20px;
-  font-size:20px; font-weight:500;
-  color:rgba(255,255,255,.82);
+  margin-top:18px;
+  font-size:24px; font-weight:500;
+  color:rgba(255,255,255,.88);
   letter-spacing:.01em;
+  max-width:560px;
 }
 .cover .lede{
-  margin-top:28px; max-width:640px;
-  font-size:16px; line-height:1.6;
-  color:rgba(255,255,255,.62);
+  margin-top:22px; max-width:540px;
+  font-size:20px; line-height:1.45; font-weight:500;
+  color:rgba(255,255,255,.72);
+}
+.cover .eyebrow{
+  font-size:13px;
+  margin-bottom:22px;
 }
 .cover-meta{
-  position:absolute; left:80px; bottom:64px;
-  display:flex; gap:44px;
-  font-size:13px; color:rgba(255,255,255,.55);
+  position:absolute; left:80px; bottom:56px;
+  display:flex; gap:36px;
+  font-size:15px; line-height:1.35; color:rgba(255,255,255,.62);
 }
-.cover-meta b{display:block;color:var(--white);font-weight:600;font-size:15px;margin-bottom:3px}
+.cover-meta b{display:block;color:var(--white);font-weight:700;font-size:17px;margin-bottom:5px}
+
+.cover-phone{
+  position:absolute; right:64px; top:48px; bottom:48px;
+  width:300px;
+  display:flex; align-items:center; justify-content:center;
+  pointer-events:none;
+}
+.cover-phone-bezel{
+  height:100%;
+  max-height:624px;
+  aspect-ratio:9/19.5;
+  padding:10px;
+  border-radius:40px;
+  background:linear-gradient(160deg,#2a3440 0%,#151a20 100%);
+  box-shadow:0 40px 80px -28px rgba(0,0,0,.65), inset 0 0 0 1px rgba(255,255,255,.1);
+}
+.cover-phone-bezel img{
+  display:block; width:100%; height:100%;
+  object-fit:cover; object-position:top center;
+  border-radius:32px;
+  background:#FAF8F5;
+}
+
 
 /* ── Stat tiles ─────────────────────────────────────────────────────── */
 .stats{display:grid;gap:14px}
@@ -192,7 +260,419 @@ h1{
 .pt b{display:block;font-size:14.5px;font-weight:700;color:var(--ink);margin-bottom:3px}
 .pt span{font-size:13px;line-height:1.5;color:var(--ink-muted)}
 
-/* ── Feature grid ───────────────────────────────────────────────────── */
+/* ── Slide 02 · Muammo (proyeksiya uchun kattaroq) ──────────────────── */
+.slide[data-n="02"] h1{font-size:40px;max-width:980px}
+.slide[data-n="02"] .sub{font-size:18px;max-width:920px;margin-top:12px}
+.slide[data-n="02"] .body-area{justify-content:flex-start;padding-top:28px}
+.slide[data-n="02"] .pain-cols{
+  display:grid;grid-template-columns:1fr 1fr;gap:28px;
+}
+.slide[data-n="02"] .pain-col-h{
+  font-size:14px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--terracotta);margin-bottom:14px;
+  display:flex;align-items:center;gap:12px;
+}
+.slide[data-n="02"] .pain-col-h::after{
+  content:'';flex:1;height:1px;background:var(--mist);
+}
+.slide[data-n="02"] .pain-card{
+  background:var(--white);
+  border:1px solid var(--mist);
+  border-radius:16px;
+  padding:18px 20px 18px 18px;
+  margin-bottom:12px;
+  display:flex;gap:14px;align-items:flex-start;
+  border-left:4px solid var(--terracotta);
+}
+.slide[data-n="02"] .pain-card .n{
+  flex:none;width:28px;height:28px;border-radius:50%;
+  background:var(--terracotta-tint);color:var(--terracotta-deep);
+  font-size:13px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  margin-top:1px;
+}
+.slide[data-n="02"] .pain-card b{
+  display:block;font-size:18px;font-weight:700;color:var(--ink);
+  letter-spacing:-.01em;margin-bottom:6px;line-height:1.25;
+}
+.slide[data-n="02"] .pain-card span{
+  display:block;font-size:15px;line-height:1.45;color:var(--ink-muted);
+}
+.slide[data-n="02"] .pain-foot{
+  margin-top:8px;padding:14px 18px;
+  background:var(--sand);border-radius:14px;
+  font-size:16px;line-height:1.4;color:var(--ink-soft);font-weight:500;
+}
+.slide[data-n="02"] .pain-foot b{color:var(--terracotta-deep);font-weight:700}
+
+/* ── Slide 03 · Bozor (proyeksiya) ──────────────────────────────────── */
+.slide[data-n="03"]{padding-bottom:56px}
+.slide[data-n="03"] h1{font-size:38px;max-width:980px}
+.slide[data-n="03"] .body-area{justify-content:flex-start;padding-top:22px}
+.slide[data-n="03"] .stats{margin-bottom:20px}
+.slide[data-n="03"] .stat{padding:18px 16px 16px;border-radius:14px}
+.slide[data-n="03"] .stat .v{font-size:34px}
+.slide[data-n="03"] .stat .k{font-size:13.5px;line-height:1.4;margin-top:8px}
+.slide[data-n="03"] .stat .k b{
+  display:inline-block;margin-left:4px;
+  font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--terracotta-deep);
+}
+.slide[data-n="03"] .mkt-row{
+  display:grid;grid-template-columns:1.05fr 1fr;gap:28px;align-items:start;
+}
+.slide[data-n="03"] .chart-title{font-size:13px;margin-bottom:12px}
+.slide[data-n="03"] .why-card{
+  background:var(--white);border:1px solid var(--mist);
+  border-radius:14px;padding:14px 16px;margin-bottom:10px;
+  border-left:4px solid var(--terracotta);
+  display:flex;gap:12px;align-items:flex-start;
+}
+.slide[data-n="03"] .why-card .n{
+  flex:none;width:26px;height:26px;border-radius:50%;
+  background:var(--terracotta-tint);color:var(--terracotta-deep);
+  font-size:12px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+}
+.slide[data-n="03"] .why-card b{
+  display:block;font-size:17px;font-weight:700;color:var(--ink);
+  margin-bottom:4px;line-height:1.25;
+}
+.slide[data-n="03"] .why-card span{
+  display:block;font-size:14.5px;line-height:1.4;color:var(--ink-muted);
+}
+.slide[data-n="03"] .note{font-size:12.5px;padding-top:12px}
+
+/* ── Slide 04 · Yechim (proyeksiya) ─────────────────────────────────── */
+.slide[data-n="04"] h1{font-size:36px;max-width:1000px}
+.slide[data-n="04"] .sub{font-size:18px;max-width:900px;margin-top:10px}
+.slide[data-n="04"] .body-area{justify-content:flex-start;padding-top:22px}
+.slide[data-n="04"] .feat{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:14px;
+}
+.slide[data-n="04"] .f{
+  background:var(--white);border:1px solid var(--mist);
+  border-radius:16px;padding:18px 18px 16px;
+  border-left:4px solid var(--terracotta);
+  min-height:148px;
+}
+.slide[data-n="04"] .f .f-tag{
+  display:inline-block;margin-bottom:10px;
+  font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--terracotta);
+}
+.slide[data-n="04"] .f b{
+  display:block;font-size:18px;font-weight:700;margin-bottom:8px;
+  color:var(--ink);letter-spacing:-.01em;line-height:1.25;
+}
+.slide[data-n="04"] .f span{
+  display:block;font-size:15px;line-height:1.4;color:var(--ink-muted);
+}
+
+/* ── Slide 05 · Holat (proyeksiya) ──────────────────────────────────── */
+.slide[data-n="05"]{padding-bottom:56px}
+.slide[data-n="05"] h1{font-size:36px;max-width:1000px}
+.slide[data-n="05"] .sub{font-size:18px;max-width:920px;margin-top:10px}
+.slide[data-n="05"] .body-area{justify-content:flex-start;padding-top:18px}
+.slide[data-n="05"] .stats{margin-bottom:18px}
+.slide[data-n="05"] .stat{padding:16px 14px 14px;border-radius:14px}
+.slide[data-n="05"] .stat .v{font-size:32px}
+.slide[data-n="05"] .stat .k{font-size:13.5px;line-height:1.35;margin-top:8px}
+.slide[data-n="05"] .now-row{
+  display:grid;grid-template-columns:1.15fr .95fr;gap:28px;align-items:start;
+}
+.slide[data-n="05"] .col-h{font-size:13px;margin-bottom:12px}
+.slide[data-n="05"] .live-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;
+}
+.slide[data-n="05"] .live-item{
+  background:var(--white);border:1px solid var(--mist);
+  border-radius:12px;padding:11px 13px;
+  font-size:15px;font-weight:600;color:var(--ink);line-height:1.3;
+  display:flex;gap:10px;align-items:center;
+}
+.slide[data-n="05"] .live-item i{
+  flex:none;width:8px;height:8px;border-radius:50%;
+  background:var(--terracotta);
+}
+.slide[data-n="05"] .next-card{
+  background:var(--white);border:1px solid var(--mist);
+  border-radius:14px;padding:14px 16px;margin-bottom:10px;
+  border-left:4px solid var(--terracotta);
+  display:flex;gap:12px;align-items:flex-start;
+}
+.slide[data-n="05"] .next-card .n{
+  flex:none;width:26px;height:26px;border-radius:50%;
+  background:var(--terracotta-tint);color:var(--terracotta-deep);
+  font-size:12px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+}
+.slide[data-n="05"] .next-card b{
+  display:block;font-size:17px;font-weight:700;color:var(--ink);
+  margin-bottom:4px;line-height:1.25;
+}
+.slide[data-n="05"] .next-card span{
+  display:block;font-size:14.5px;line-height:1.4;color:var(--ink-muted);
+}
+
+/* ── Slide 06 · Biznes model (proyeksiya) ───────────────────────────── */
+.slide[data-n="06"]{padding-bottom:52px}
+.slide[data-n="06"] h1{font-size:36px;max-width:1000px}
+.slide[data-n="06"] .sub{font-size:18px;max-width:900px;margin-top:10px}
+.slide[data-n="06"] .body-area{justify-content:flex-start;padding-top:18px}
+.slide[data-n="06"] .stream-row{
+  display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;
+}
+.slide[data-n="06"] .stream{
+  background:var(--white);border:1px solid var(--mist);
+  border-radius:14px;padding:14px 18px;
+  border-left:4px solid var(--terracotta);
+}
+.slide[data-n="06"] .stream b{
+  display:block;font-size:17px;font-weight:700;color:var(--ink);
+  margin-bottom:4px;line-height:1.25;
+}
+.slide[data-n="06"] .stream span{
+  display:block;font-size:14.5px;line-height:1.4;color:var(--ink-muted);
+}
+.slide[data-n="06"] .tier-row{
+  display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px;
+}
+.slide[data-n="06"] .tier{
+  background:var(--white);border:1px solid var(--mist);
+  border-radius:14px;padding:14px 12px 12px;text-align:center;
+}
+.slide[data-n="06"] .tier.hl{
+  background:var(--terracotta-tint);border-color:color-mix(in srgb,var(--terracotta) 35%,var(--mist));
+}
+.slide[data-n="06"] .tier .name{
+  font-size:15px;font-weight:700;color:var(--ink);margin-bottom:6px;
+}
+.slide[data-n="06"] .tier .price{
+  font-size:20px;font-weight:700;color:var(--terracotta-deep);
+  letter-spacing:-.02em;line-height:1.15;margin-bottom:8px;
+}
+.slide[data-n="06"] .tier .price small{
+  display:block;font-size:11px;font-weight:600;color:var(--grey);
+  letter-spacing:.04em;margin-top:2px;
+}
+.slide[data-n="06"] .tier .meta{
+  font-size:13px;line-height:1.35;color:var(--ink-muted);
+}
+.slide[data-n="06"] .tier .meta b{color:var(--ink);font-weight:700}
+.slide[data-n="06"] .bm-foot{
+  display:grid;grid-template-columns:1fr 1fr 1.3fr;gap:12px;align-items:stretch;
+}
+.slide[data-n="06"] .bm-foot .stat{padding:14px 16px;border-radius:14px}
+.slide[data-n="06"] .bm-foot .stat .v{font-size:28px}
+.slide[data-n="06"] .bm-foot .stat .k{font-size:13.5px;margin-top:6px;line-height:1.35}
+.slide[data-n="06"] .bm-note{
+  background:var(--sand);border-radius:14px;padding:14px 16px;
+  font-size:14px;line-height:1.4;color:var(--ink-soft);font-weight:500;
+}
+.slide[data-n="06"] .bm-note b{color:var(--terracotta-deep);font-weight:700}
+.slide[data-n="06"] .note{display:none}
+
+/* ── Slide 07 · Moliyaviy prognoz (proyeksiya) ──────────────────────── */
+.slide[data-n="07"]{padding-bottom:52px}
+.slide[data-n="07"] h1{font-size:34px;max-width:1000px}
+.slide[data-n="07"] .sub{font-size:17px;max-width:920px;margin-top:8px}
+.slide[data-n="07"] .body-area{justify-content:flex-start;padding-top:16px}
+.slide[data-n="07"] .year-row{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px;
+}
+.slide[data-n="07"] .year{
+  background:var(--white);border:1px solid var(--mist);
+  border-radius:16px;padding:16px 18px 14px;
+}
+.slide[data-n="07"] .year.hl{
+  border-color:color-mix(in srgb,var(--terracotta) 40%,var(--mist));
+  background:var(--terracotta-tint);
+}
+.slide[data-n="07"] .year .yl{
+  font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--grey);margin-bottom:8px;
+}
+.slide[data-n="07"] .year .gmv{
+  font-size:30px;font-weight:700;color:var(--ink);
+  letter-spacing:-.02em;line-height:1.1;margin-bottom:10px;
+}
+.slide[data-n="07"] .year .gmv small{
+  display:block;font-size:12px;font-weight:600;color:var(--grey);
+  letter-spacing:.04em;margin-top:4px;
+}
+.slide[data-n="07"] .year .row{
+  display:flex;justify-content:space-between;gap:8px;
+  font-size:14px;line-height:1.45;color:var(--ink-muted);margin-top:3px;
+}
+.slide[data-n="07"] .year .row b{color:var(--ink);font-weight:700;font-variant-numeric:tabular-nums}
+.slide[data-n="07"] .year .ebitda{
+  margin-top:10px;padding-top:10px;border-top:1px solid var(--mist);
+  display:flex;justify-content:space-between;align-items:baseline;
+  font-size:14px;font-weight:600;color:var(--ink-soft);
+}
+.slide[data-n="07"] .year .ebitda .neg{color:var(--c2);font-size:18px;font-weight:700}
+.slide[data-n="07"] .year .ebitda .flat{color:var(--ink);font-size:18px;font-weight:700}
+.slide[data-n="07"] .year .ebitda .pos{color:var(--terracotta-deep);font-size:18px;font-weight:700}
+.slide[data-n="07"] .fin-kpis{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px;
+}
+.slide[data-n="07"] .fin-kpis .stat{padding:12px 14px;border-radius:12px}
+.slide[data-n="07"] .fin-kpis .stat .v{font-size:22px}
+.slide[data-n="07"] .fin-kpis .stat .k{font-size:12.5px;margin-top:5px;line-height:1.3}
+.slide[data-n="07"] .fin-note{
+  background:var(--sand);border-radius:14px;padding:12px 16px;
+  font-size:14px;line-height:1.4;color:var(--ink-soft);font-weight:500;
+}
+.slide[data-n="07"] .fin-note b{color:var(--terracotta-deep);font-weight:700}
+.slide[data-n="07"] .note{display:none}
+
+/* ── Slide 08 · Raqobat (proyeksiya) ────────────────────────────────── */
+.slide[data-n="08"]{padding-bottom:52px}
+.slide[data-n="08"] h1{font-size:34px;max-width:1000px}
+.slide[data-n="08"] .sub{font-size:17px;max-width:920px;margin-top:8px}
+.slide[data-n="08"] .body-area{justify-content:flex-start;padding-top:16px}
+.slide[data-n="08"] .cmp-row{
+  display:grid;grid-template-columns:1fr 1fr 1.15fr;gap:12px;margin-bottom:14px;
+}
+.slide[data-n="08"] .cmp{
+  background:var(--white);border:1px solid var(--mist);
+  border-radius:16px;padding:16px 16px 14px;
+}
+.slide[data-n="08"] .cmp.us{
+  background:var(--terracotta-tint);
+  border-color:color-mix(in srgb,var(--terracotta) 40%,var(--mist));
+}
+.slide[data-n="08"] .cmp .tag{
+  font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--grey);margin-bottom:8px;
+}
+.slide[data-n="08"] .cmp.us .tag{color:var(--terracotta-deep)}
+.slide[data-n="08"] .cmp .title{
+  font-size:20px;font-weight:700;color:var(--ink);
+  letter-spacing:-.01em;margin-bottom:12px;line-height:1.2;
+}
+.slide[data-n="08"] .cmp ul{
+  list-style:none;margin:0;padding:0;
+  display:flex;flex-direction:column;gap:8px;
+}
+.slide[data-n="08"] .cmp li{
+  font-size:14.5px;line-height:1.35;color:var(--ink-muted);
+  padding-left:14px;position:relative;
+}
+.slide[data-n="08"] .cmp li::before{
+  content:"";position:absolute;left:0;top:7px;
+  width:6px;height:6px;border-radius:50%;background:var(--mist);
+}
+.slide[data-n="08"] .cmp.us li{color:var(--ink-soft);font-weight:500}
+.slide[data-n="08"] .cmp.us li::before{background:var(--terracotta)}
+.slide[data-n="08"] .cmp.us li b{color:var(--terracotta-deep);font-weight:700}
+.slide[data-n="08"] .cmp-foot{
+  background:var(--sand);border-radius:14px;padding:14px 18px;
+  font-size:15px;line-height:1.4;color:var(--ink-soft);font-weight:500;
+}
+.slide[data-n="08"] .cmp-foot b{color:var(--terracotta-deep);font-weight:700}
+.slide[data-n="08"] .note{display:none}
+
+/* ── Slide 09 · Jamoa (proyeksiya) ──────────────────────────────────── */
+.slide[data-n="09"]{padding-bottom:52px}
+.slide[data-n="09"] h1{font-size:34px;max-width:1000px}
+.slide[data-n="09"] .sub{font-size:17px;max-width:920px;margin-top:8px}
+.slide[data-n="09"] .body-area{justify-content:flex-start;padding-top:18px}
+.slide[data-n="09"] .team{gap:14px;margin-bottom:16px}
+.slide[data-n="09"] .member{
+  border-radius:16px;padding:20px 18px 18px;
+  border-left:4px solid var(--mist);
+}
+.slide[data-n="09"] .member.lead{
+  border-left-color:var(--terracotta);
+  background:var(--terracotta-tint);
+  border-color:color-mix(in srgb,var(--terracotta) 35%,var(--mist));
+}
+.slide[data-n="09"] .member .av{
+  width:48px;height:48px;font-size:20px;margin-bottom:14px;
+}
+.slide[data-n="09"] .member b{
+  font-size:19px;letter-spacing:-.01em;line-height:1.2;margin-bottom:2px;
+}
+.slide[data-n="09"] .member .role{
+  font-size:12.5px;margin:6px 0 10px;letter-spacing:.1em;
+}
+.slide[data-n="09"] .member p{
+  font-size:14.5px;line-height:1.4;color:var(--ink-muted);margin:0;
+}
+.slide[data-n="09"] .stats{margin-top:0}
+.slide[data-n="09"] .stat{padding:14px 16px;border-radius:14px}
+.slide[data-n="09"] .stat .v{font-size:28px}
+.slide[data-n="09"] .stat .k{font-size:13.5px;margin-top:6px;line-height:1.35}
+
+/* ── Slide 10 · Investitsiya (proyeksiya) ───────────────────────────── */
+.slide[data-n="10"]{padding-bottom:48px}
+.slide[data-n="10"] .body-area{justify-content:flex-start;padding-top:8px}
+.slide[data-n="10"] .ask-layout{
+  display:grid;grid-template-columns:1.05fr 1fr;gap:28px;align-items:start;
+  flex:1;
+}
+.slide[data-n="10"] .ask-hero{
+  font-size:72px;letter-spacing:-.03em;line-height:1;
+}
+.slide[data-n="10"] .ask-sub{
+  font-size:16px;margin-top:10px;max-width:460px;line-height:1.4;
+}
+.slide[data-n="10"] .alloc{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px;
+}
+.slide[data-n="10"] .alloc .a{
+  background:var(--white);border:1px solid var(--mist);
+  border-radius:14px;padding:12px 12px 11px;
+  border-top:3px solid var(--terracotta);
+}
+.slide[data-n="10"] .alloc .a:nth-child(2){border-top-color:var(--c2)}
+.slide[data-n="10"] .alloc .a:nth-child(3){border-top-color:var(--c3)}
+.slide[data-n="10"] .alloc .pct{
+  font-size:22px;font-weight:700;color:var(--ink);letter-spacing:-.02em;
+}
+.slide[data-n="10"] .alloc .amt{
+  font-size:13px;font-weight:700;color:var(--terracotta-deep);margin:2px 0 6px;
+}
+.slide[data-n="10"] .alloc .lbl{
+  font-size:13px;line-height:1.3;color:var(--ink-muted);
+}
+.slide[data-n="10"] .qr-cta{margin-top:16px;padding:14px 16px;gap:16px}
+.slide[data-n="10"] .qr-cta img{width:96px;height:96px;border-radius:12px}
+.slide[data-n="10"] .qr-cta .qr-title{font-size:20px}
+.slide[data-n="10"] .qr-cta .qr-hint{font-size:13px;max-width:260px}
+.slide[data-n="10"] .col-h{font-size:12.5px;margin-bottom:12px}
+.slide[data-n="10"] .out-list{
+  display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none;
+}
+.slide[data-n="10"] .out-list li{
+  background:var(--white);border:1px solid var(--mist);
+  border-radius:12px;padding:11px 14px;
+  font-size:15px;line-height:1.35;color:var(--ink-muted);
+  display:flex;gap:12px;align-items:flex-start;
+}
+.slide[data-n="10"] .out-list li i{
+  flex:none;width:22px;height:22px;border-radius:50%;
+  background:var(--terracotta-tint);color:var(--terracotta-deep);
+  font-size:11px;font-weight:700;font-style:normal;
+  display:flex;align-items:center;justify-content:center;margin-top:1px;
+}
+.slide[data-n="10"] .out-list li b{color:var(--ink);font-weight:700}
+.slide[data-n="10"] .why{
+  margin-top:12px;padding:14px 16px;background:var(--sand);border-radius:14px;
+  font-size:14.5px;line-height:1.4;color:var(--ink-soft);font-weight:500;
+}
+.slide[data-n="10"] .why .t{
+  font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--terracotta-deep);margin-bottom:6px;
+}
+.slide[data-n="10"] .why b{color:var(--terracotta-deep);font-weight:700}
+.slide[data-n="10"] .ask-foot{
+  margin-top:14px;padding-top:12px;font-size:13px;line-height:1.45;
+}
+
+/* ── Feature grid (boshqa slaydlar) ─────────────────────────────────── */
 .feat{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
 .f{
   background:var(--white);border:1px solid var(--mist);
@@ -296,6 +776,42 @@ tbody tr.total td{
 }
 .ms li b{font-weight:700;color:var(--ink)}
 
+/* ── QR CTA (ask slide) ─────────────────────────────────────────────── */
+.qr-cta{
+  display:flex;align-items:center;gap:22px;
+  margin-top:auto;padding:16px 18px;
+  background:var(--white);
+  border:1px solid var(--mist);
+  border-radius:18px;
+}
+.qr-cta img{
+  width:118px;height:118px;flex:none;
+  display:block;border-radius:14px;
+}
+.qr-cta .qr-kicker{
+  font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--terracotta);margin-bottom:6px;
+}
+.qr-cta .qr-title{
+  font-family:var(--display);font-size:22px;font-weight:600;
+  letter-spacing:-.02em;color:var(--ink);line-height:1.15;
+}
+.qr-cta .qr-url{
+  margin-top:6px;
+  font-size:14px;font-weight:600;color:var(--terracotta-deep);
+  letter-spacing:.01em;
+}
+.qr-cta .qr-hint{
+  margin-top:8px;font-size:12.5px;line-height:1.45;color:var(--ink-muted);
+  max-width:280px;
+}
+.ask-foot{
+  margin-top:18px;padding-top:14px;
+  display:flex;justify-content:space-between;align-items:flex-end;gap:24px;
+  font-size:11.5px;line-height:1.5;color:var(--grey);
+  border-top:1px solid var(--mist);
+}
+.ask-foot b{color:var(--ink-muted);font-weight:700}
 /* ── Izoh ───────────────────────────────────────────────────────────── */
 .note{
   margin-top:auto;padding-top:16px;
@@ -313,30 +829,80 @@ tbody tr.total td{
 .dense tbody tr.total td{padding-top:9px}
 .dense .note{padding-top:12px}
 
-/* ── Print ──────────────────────────────────────────────────────────── */
+/* ── Deck chrome (streлка + progress) ───────────────────────────────── */
+.deck-nav{
+  position:fixed; z-index:40;
+  top:50%; transform:translateY(-50%);
+  width:44px; height:44px;
+  border:1px solid rgba(255,255,255,.18);
+  background:rgba(31,41,51,.55);
+  color:#fff;
+  border-radius:50%;
+  backdrop-filter:blur(8px);
+  cursor:pointer;
+  display:grid; place-items:center;
+  transition:background .15s, opacity .15s;
+}
+.deck-nav:hover{background:rgba(194,112,61,.92)}
+.deck-nav:disabled{opacity:.25; cursor:default; pointer-events:none}
+.deck-nav svg{width:18px;height:18px;display:block}
+.deck-nav.prev{left:18px}
+.deck-nav.next{right:18px}
+
+.deck-progress{
+  position:fixed; z-index:40;
+  left:50%; bottom:22px; transform:translateX(-50%);
+  display:flex; gap:8px; align-items:center;
+  padding:8px 12px;
+  border-radius:999px;
+  background:rgba(31,41,51,.5);
+  border:1px solid rgba(255,255,255,.12);
+  backdrop-filter:blur(8px);
+}
+.deck-progress button{
+  width:8px; height:8px; border-radius:50%;
+  border:0; padding:0; cursor:pointer;
+  background:rgba(255,255,255,.28);
+}
+.deck-progress button[aria-current="true"]{
+  width:22px; border-radius:999px;
+  background:var(--terracotta);
+}
+.deck-hint{
+  position:fixed; z-index:40;
+  right:24px; bottom:24px;
+  font-size:11px; font-weight:600; letter-spacing:.08em;
+  color:rgba(255,255,255,.35);
+  pointer-events:none;
+}
+
+/* ── Print: yana vertikal stack ─────────────────────────────────────── */
 @page{size:1280px 720px;margin:0}
 @media print{
-  html{background:none}
-  body{padding:0}
+  html,body{height:auto;overflow:visible;background:none}
+  .deck{display:block;overflow:visible;height:auto}
+  .slide-frame{display:block;height:auto;width:auto;background:none}
+  .slide-stage{transform:none !important;width:1280px;height:720px}
   .slide{
     margin:0;box-shadow:none;
     page-break-after:always;break-after:page;
   }
   .slide:last-child{page-break-after:auto;break-after:auto}
+  .deck-nav,.deck-progress,.deck-hint{display:none !important}
 }
 </style>
 </head>
 <body>
-
-<!-- ═══════════════════ 01 · TITUL ═══════════════════ -->
+<div class="deck" id="deck">
+<div class="slide-frame">
+  <div class="slide-stage">
 <section class="slide cover" data-n="01">
   <div class="eyebrow">Investorlar uchun taqdimot · 2026</div>
   <div class="wordmark">Woody</div>
   <div class="tag">Mebel uchun vertikal marketplace · O'zbekiston</div>
   <p class="lede">
-    Faqat mebelga ixtisoslashgan ikki tomonlama platforma. Xaridor mebelni AR orqali
-    o'z xonasida real o'lchamda ko'radi, AI-dizayner bilan maslahatlashadi va
-    tasdiqlangan sotuvchidan buyurtma beradi.
+    Faqat mebel — AR bilan o'z xonasida ko'ring,<br>
+    AI-dizayner va tasdiqlangan sotuvchidan buyurtma bering.
   </p>
   <div class="cover-meta">
     <div><b>Bosqich</b>MVP · production'da</div>
@@ -344,476 +910,469 @@ tbody tr.total td{
     <div><b>Yuridik shaxs</b>Zettacode MCHJ</div>
     <div><b>Asoschi</b>Eldor Turg'unov</div>
   </div>
-</section>
-
-<!-- ═══════════════════ 02 · MUAMMO ═══════════════════ -->
-<section class="slide" data-n="02">
-  <div class="eyebrow">Muammo</div>
-  <h1>Mebel savdosi hali ham oflayn, tarqoq va ishonchsiz</h1>
-  <p class="sub">
-    O'zbekistonda mebel asosan bozor, ko'rgazma zali va Instagram/Telegram orqali
-    sotiladi — yagona, ishonchli raqamli kanal yo'q.
-  </p>
-
-  <div class="body-area">
-    <div class="two">
-      <div>
-        <div class="col-h">Xaridor tomoni</div>
-        <div class="pt"><div class="n">1</div><div>
-          <b>Solishtirib bo'lmaydi</b>
-          <span>Narx, sifat va variantlar o'nlab kanalga tarqoq — yagona joyda taqqoslash imkoni yo'q.</span>
-        </div></div>
-        <div class="pt"><div class="n">2</div><div>
-          <b>Xonaga to'g'ri kelishini bilib bo'lmaydi</b>
-          <span>O'lcham va uslub mos keladimi — mebel yetkazib berilgunga qadar noma'lum. Qaytarish esa qimmat.</span>
-        </div></div>
-        <div class="pt"><div class="n">3</div><div>
-          <b>Ishonch kafolatlanmagan</b>
-          <span>Sotuvchi kimligi, kafolat muddati va montaj shartlari har safar boshqacha.</span>
-        </div></div>
-      </div>
-      <div>
-        <div class="col-h">Sotuvchi tomoni</div>
-        <div class="pt"><div class="n">1</div><div>
-          <b>Barqaror vitrina yo'q</b>
-          <span>Kichik ustaxona va brendlar to'liq Instagram/Telegram algoritmiga bog'liq — o'z do'koni yo'q.</span>
-        </div></div>
-        <div class="pt"><div class="n">2</div><div>
-          <b>Tartibsiz boshqaruv</b>
-          <span>Buyurtma, mahsulot va mijoz daftar yoki chatlarda qo'lda yuritiladi.</span>
-        </div></div>
-        <div class="pt"><div class="n">3</div><div>
-          <b>Mijoz jalb qilish qimmat va tasodifiy</b>
-          <span>Har bir yangi xaridor uchun reklama to'lanadi, takroriy savdo kanali qurilmagan.</span>
-        </div></div>
-      </div>
+  <div class="cover-phone" aria-hidden="true">
+    <div class="cover-phone-bezel">
+      <img src="screenshots/buyer-home.png" alt="Woody ilova — asosiy sahifa">
     </div>
   </div>
 </section>
+  </div>
+</div>
 
-<!-- ═══════════════════ 03 · BOZOR ═══════════════════ -->
-<section class="slide" data-n="03">
-  <div class="eyebrow">Bozor va vaqt</div>
-  <h1>Tez o'sayotgan raqamli bozor, deyarli bo'sh nisha</h1>
+<div class="slide-frame">
+  <div class="slide-stage">
+<section class="slide" data-n="02">
+  <div class="eyebrow">Muammo</div>
+  <h1>Mebel savdosi oflayn, tarqoq va ishonchsiz</h1>
+  <p class="sub">
+    Bozor, ko'rgazma va Instagram/Telegram — yagona ishonchli raqamli kanal yo'q.
+  </p>
 
   <div class="body-area">
-    <div class="stats c4" style="margin-bottom:26px">
+    <div class="pain-cols">
+      <div>
+        <div class="pain-col-h">Xaridor</div>
+        <div class="pain-card">
+          <div class="n">1</div>
+          <div>
+            <b>Solishtirib bo'lmaydi</b>
+            <span>Narx va sifat o'nlab kanalga tarqoq.</span>
+          </div>
+        </div>
+        <div class="pain-card">
+          <div class="n">2</div>
+          <div>
+            <b>Xonaga mosligini bilmaydi</b>
+            <span>O'lcham faqat yetkazib berilgach aniq — qaytarish qimmat.</span>
+          </div>
+        </div>
+        <div class="pain-card">
+          <div class="n">3</div>
+          <div>
+            <b>Ishonch yo'q</b>
+            <span>Sotuvchi, kafolat va montaj har safar boshqacha.</span>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="pain-col-h">Sotuvchi</div>
+        <div class="pain-card">
+          <div class="n">1</div>
+          <div>
+            <b>O'z vitrinasi yo'q</b>
+            <span>To'liq Instagram/Telegram algoritmiga bog'liq.</span>
+          </div>
+        </div>
+        <div class="pain-card">
+          <div class="n">2</div>
+          <div>
+            <b>Qo'lda boshqaruv</b>
+            <span>Buyurtma va mijoz — daftar yoki chatlarda.</span>
+          </div>
+        </div>
+        <div class="pain-card">
+          <div class="n">3</div>
+          <div>
+            <b>Jalb qilish qimmat</b>
+            <span>Har xaridor uchun reklama — takroriy kanal yo'q.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pain-foot">
+      <b>Natija:</b> ikki tomon ham xohlaydi, lekin yagona ishonchli marketplace yo'q.
+    </div>
+  </div>
+</section>
+  </div>
+</div>
+
+<div class="slide-frame">
+  <div class="slide-stage">
+<section class="slide" data-n="03">
+  <div class="eyebrow">Bozor va vaqt</div>
+  <h1>Raqamli bozor o'smoqda — mebel nishasi hali bo'sh</h1>
+
+  <div class="body-area">
+    <div class="stats c4">
       <div class="stat">
         <div class="v acc">$1.2 mlrd</div>
-        <div class="k">O'zbekiston e-commerce hajmi (2024) — chakana savdoning 3.8% i. <b>TAM</b></div>
+        <div class="k">E-commerce hajmi (2024)<br>chakananing 3.8% i <b>TAM</b></div>
       </div>
       <div class="stat">
         <div class="v">~$36 mln</div>
-        <div class="k">Uy-ro'zg'or va mebel onlayn xaridlarning ~3% i. <b>SAM</b> (bugungi holat)</div>
+        <div class="k">Mebel / uy-ro'zg'or onlayn<br>~3% ulush <b>SAM</b></div>
       </div>
       <div class="stat">
         <div class="v">41–47%</div>
-        <div class="k">KPMG prognozi bo'yicha 2022–2027 uchun <b>CAGR</b> — bu prognoz, joriy yillik o'sish emas</div>
+        <div class="k">KPMG prognozi<br>2022–2027 <b>CAGR</b></div>
       </div>
       <div class="stat">
-        <div class="v">33.1 mln</div>
-        <div class="k">Internet foydalanuvchilari — aholining ~89% i (2025 yil oxiri)</div>
+        <div class="v">33 mln</div>
+        <div class="k">Internet foydalanuvchi<br>aholining ~89% i</div>
       </div>
     </div>
 
-    <div class="two" style="gap:44px;align-items:center">
+    <div class="mkt-row">
       <div>
-        <div class="chart-title">E-commerce bozori · prognoz</div>
-        <svg width="480" height="176" viewBox="0 0 480 176" role="img"
-             aria-label="O'zbekiston e-commerce bozori: 2024-yilda 1.2 milliard dollar, 2027-yilga 1.8–2.2 milliard dollar prognoz qilinmoqda.">
-          <line class="axis-line" x1="0" y1="140" x2="480" y2="140"/>
-          <!-- 2024: $1.2B -->
-          <rect x="60" y="80" width="96" height="60" rx="4" fill="var(--c1)"/>
-          <text class="val-txt" x="108" y="70" text-anchor="middle">$1.2 mlrd</text>
-          <text class="axis-txt" x="108" y="160" text-anchor="middle">2024</text>
-          <!-- 2027: $1.8–2.2B (diapazon) -->
-          <rect x="300" y="30" width="96" height="110" rx="4" fill="var(--c1)" opacity=".28"/>
-          <rect x="300" y="50" width="96" height="90" rx="4" fill="var(--c1)"/>
-          <text class="val-txt" x="348" y="20" text-anchor="middle">$1.8–2.2 mlrd</text>
-          <text class="axis-txt" x="348" y="160" text-anchor="middle">2027 (prognoz)</text>
+        <div class="chart-title">E-commerce · 2024 → 2027</div>
+        <svg width="520" height="168" viewBox="0 0 520 168" role="img"
+             aria-label="E-commerce: 2024-da 1.2 milliard, 2027-da 1.8–2.2 milliard dollar prognoz.">
+          <line class="axis-line" x1="0" y1="132" x2="520" y2="132"/>
+          <rect x="70" y="78" width="110" height="54" rx="6" fill="var(--c1)"/>
+          <text class="val-txt" x="125" y="66" text-anchor="middle" style="font-size:16px">$1.2 mlrd</text>
+          <text class="axis-txt" x="125" y="152" text-anchor="middle" style="font-size:14px">2024</text>
+          <rect x="310" y="28" width="110" height="104" rx="6" fill="var(--c1)" opacity=".25"/>
+          <rect x="310" y="48" width="110" height="84" rx="6" fill="var(--c1)"/>
+          <text class="val-txt" x="365" y="36" text-anchor="middle" style="font-size:16px">$1.8–2.2</text>
+          <text class="axis-txt" x="365" y="152" text-anchor="middle" style="font-size:14px">2027 prognoz</text>
         </svg>
       </div>
       <div>
         <div class="chart-title">Nega aynan hozir</div>
-        <div class="pt"><div class="n">1</div><div>
-          <b>Texnologiya arzonlashdi</b>
-          <span>2D rasmdan 3D model yasash va vizual AI API'lari endi startap byudjetiga sig'adi.</span>
-        </div></div>
-        <div class="pt"><div class="n">2</div><div>
-          <b>Qurilmalar tayyor</b>
-          <span>ARCore/ARKit ommaviy smartfonlarda — AR uchun alohida qurilma kerak emas.</span>
-        </div></div>
-        <div class="pt"><div class="n">3</div><div>
-          <b>Kategoriya hali egallanmagan</b>
-          <span>Umumiy platformalarda mebel ikkilamchi kategoriya bo'lib qolmoqda.</span>
-        </div></div>
+        <div class="why-card">
+          <div class="n">1</div>
+          <div>
+            <b>Texnologiya arzonlashdi</b>
+            <span>3D va vizual AI endi startap byudjetiga sig'adi.</span>
+          </div>
+        </div>
+        <div class="why-card">
+          <div class="n">2</div>
+          <div>
+            <b>Smartfonlar tayyor</b>
+            <span>ARCore/ARKit — alohida qurilma kerak emas.</span>
+          </div>
+        </div>
+        <div class="why-card">
+          <div class="n">3</div>
+          <div>
+            <b>Nisha egallanmagan</b>
+            <span>Umumiy marketplace'larda mebel ikkilamchi.</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
   <div class="note">
-    <b>Manbalar:</b> KPMG Central Asia · hukumat statistikasi · DataReportal Digital 2026.
-    SAM — TAM ning ~3% i sifatida hisoblangan baho, mustaqil auditdan o'tmagan.
+    <b>Manbalar:</b> KPMG Central Asia · hukumat statistikasi · DataReportal 2026.
+    SAM — TAM ning ~3% i (baholangan).
   </div>
 </section>
+  </div>
+</div>
 
-<!-- ═══════════════════ 04 · YECHIM ═══════════════════ -->
+<div class="slide-frame">
+  <div class="slide-stage">
 <section class="slide" data-n="04">
   <div class="eyebrow">Yechim</div>
-  <h1>Woody — mebel uchun yagona ishonchli marketplace</h1>
+  <h1>Woody — mebel uchun chuqur marketplace</h1>
   <p class="sub">
-    Umumiy platformalar keng, Woody chuqur: bitta kategoriyada boshqalar bera olmaydigan
-    tajriba va ishonch.
+    Umumiy platformalar keng — Woody bitta kategoriyada to'liq xarid yo'lini beradi.
   </p>
 
   <div class="body-area">
     <div class="feat">
       <div class="f">
-        <b>AR — o'z xonangizda, real o'lchamda</b>
-        <span>Sotuvchi 3 ta rasm yuklaydi, tizim avtomatik 3D model yasaydi. Xaridor mebelni
-        telefon orqali o'z xonasiga qo'yib ko'radi — haqiqiy o'lchov masshtabida.</span>
+        <span class="f-tag">Xaridor</span>
+        <b>AR · real o'lcham</b>
+        <span>3 ta rasm → 3D model. Mebelni o'z xonasiga qo'yib ko'ring.</span>
       </div>
       <div class="f">
-        <b>AI Designer — interyer bo'yicha yordamchi</b>
-        <span>Azure OpenAI asosidagi chat: xaridor xonasini tasvirlaydi, platforma
-        katalogidan mos mebelni tavsiya qiladi.</span>
+        <span class="f-tag">Xaridor</span>
+        <b>AI Designer</b>
+        <span>Xonani tasvirlang — katalogdan mos mebel tavsiya qilinadi.</span>
       </div>
       <div class="f">
-        <b>Tasdiqlangan sotuvchilar</b>
-        <span>Hujjat asosida verifikatsiya va "Verified" belgisi. Har bir mahsulotning
-        kafolat muddati katalogda ko'rsatiladi.</span>
+        <span class="f-tag">Ishonch</span>
+        <b>Verified sotuvchilar</b>
+        <span>Hujjatli verifikatsiya + kafolat muddati katalogda.</span>
       </div>
       <div class="f">
-        <b>Yetkazish va montaj — bitta oqimda</b>
-        <span>Yetkazib berish va o'rnatish narxi checkout bosqichida avtomatik hisoblanadi,
-        xaridor uchun yakuniy summa oldindan aniq.</span>
+        <span class="f-tag">Checkout</span>
+        <b>Yetkazish + montaj</b>
+        <span>Narx checkout'da aniq — yakuniy summa oldindan ma'lum.</span>
       </div>
       <div class="f">
-        <b>Sotuvchi uchun raqamli do'kon</b>
-        <span>O'z vitrinasi, mahsulot va buyurtma boshqaruvi, sotuv analitikasi — bitta
-        panelda. Instagram algoritmiga bog'liqlik tugaydi.</span>
+        <span class="f-tag">Sotuvchi</span>
+        <b>Raqamli do'kon</b>
+        <span>Vitrina, buyurtma, analitika — Instagramga bog'liqlik tugaydi.</span>
       </div>
       <div class="f">
-        <b>AI bilan mahsulot joylash</b>
-        <span>Sotuvchi rasm yuklaydi — nomi, tavsifi va kategoriyasi avtomatik to'ldiriladi.
-        Katalogga chiqish daqiqalar ichida.</span>
+        <span class="f-tag">Sotuvchi</span>
+        <b>AI bilan joylash</b>
+        <span>Rasm yuklang — nom, tavsif, kategoriya avtomatik to'ldiriladi.</span>
       </div>
     </div>
   </div>
 </section>
+  </div>
+</div>
 
-<!-- ═══════════════════ 05 · MAHSULOT HOLATI ═══════════════════ -->
+<div class="slide-frame">
+  <div class="slide-stage">
 <section class="slide" data-n="05">
   <div class="eyebrow">Hozir qayerdamiz</div>
-  <h1>Mahsulot qurib bo'lindi — endi bozorga chiqamiz</h1>
+  <h1>Mahsulot tayyor — endi bozorga chiqamiz</h1>
   <p class="sub">
-    To'rtala tizim ham production'da ishlayapti. Foydalanuvchi jalb qilish hali
-    boshlanmagan — biz aynan shu bosqichdamiz.
+    To'rt tizim production'da. Payme va escrow ishlayapti — jalb qilish hali boshlanmagan.
   </p>
 
   <div class="body-area">
-    <div class="stats c4" style="margin-bottom:24px">
+    <div class="stats c4">
       <div class="stat">
         <div class="v acc">4</div>
-        <div class="k">Production tizim: mobil ilova (iOS/Android), backend API, admin panel, marketing sayti</div>
+        <div class="k">Tizim · iOS/Android, API, admin, sayt</div>
       </div>
       <div class="stat">
-        <div class="v">899</div>
-        <div class="k">Commit — 2026-yil may oyidan buyon, ~10 hafta ichida</div>
+        <div class="v acc">Payme</div>
+        <div class="k">Onlayn to'lov + ichki escrow</div>
       </div>
       <div class="stat">
         <div class="v">3</div>
-        <div class="k">Til to'liq qo'llab-quvvatlanadi: o'zbek, rus, ingliz</div>
+        <div class="k">Til · o'zbek, rus, ingliz</div>
       </div>
       <div class="stat">
         <div class="v" style="color:var(--grey)">0</div>
-        <div class="k">Faol foydalanuvchi — ishga tushirishdan oldingi bosqich. Daromad hali yo'q.</div>
+        <div class="k">Faol foydalanuvchi · pre-launch</div>
       </div>
     </div>
 
-    <div class="two" style="gap:40px">
+    <div class="now-row">
       <div>
-        <div class="col-h">Ishlayotgan funksiyalar</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;font-size:13px;line-height:1.6;color:var(--ink-muted)">
-          <div>· Katalog, qidiruv, filtr</div>
-          <div>· Savat va buyurtma oqimi</div>
-          <div>· AR ko'rish (real o'lcham)</div>
-          <div>· Rasmdan 3D model yasash</div>
-          <div>· AI Designer chat</div>
-          <div>· AI bilan mahsulot to'ldirish</div>
-          <div>· Sotuvchi verifikatsiyasi</div>
-          <div>· Tarif va hamyon tizimi</div>
-          <div>· Buyurtma bo'yicha chat</div>
-          <div>· Push bildirishnomalar</div>
-          <div>· Sharh va reyting</div>
-          <div>· Admin moderatsiya paneli</div>
+        <div class="col-h">Ishlayapti</div>
+        <div class="live-grid">
+          <div class="live-item"><i></i>Katalog · qidiruv · filtr</div>
+          <div class="live-item"><i></i>Savat · buyurtma · chat</div>
+          <div class="live-item"><i></i>AR · 3D model</div>
+          <div class="live-item"><i></i>AI Designer + AI joylash</div>
+          <div class="live-item"><i></i>Verified · tarif · hamyon</div>
+          <div class="live-item"><i></i>iOS + Android store'da</div>
         </div>
       </div>
       <div>
-        <div class="col-h">Keyingi bosqichda</div>
-        <div class="pt"><div class="n">1</div><div>
-          <b>Onlayn to'lov</b>
-          <span>Payme / Click integratsiyasi. Bugun barcha buyurtmalar naqd (COD) asosida.</span>
-        </div></div>
-        <div class="pt"><div class="n">2</div><div>
-          <b>Sotuvchilarni jalb qilish</b>
-          <span>Toshkentda dastlabki 50–100 do'kon — to'g'ridan-to'g'ri sotuvlar orqali.</span>
-        </div></div>
-        <div class="pt"><div class="n">3</div><div>
-          <b>Logistika hamkorligi</b>
-          <span>Yetkazib berish va montaj bo'yicha operatorlar bilan shartnomalar.</span>
-        </div></div>
+        <div class="col-h">Keyingi bosqich</div>
+        <div class="next-card">
+          <div class="n">1</div>
+          <div>
+            <b>Click settlement</b>
+            <span>Ikkinchi to'lov kanali + logistika shartnomalari.</span>
+          </div>
+        </div>
+        <div class="next-card">
+          <div class="n">2</div>
+          <div>
+            <b>Sotuvchi jalb qilish</b>
+            <span>Toshkentda dastlabki 50–100 do'kon.</span>
+          </div>
+        </div>
+        <div class="next-card">
+          <div class="n">3</div>
+          <div>
+            <b>Shaharlarga kengayish</b>
+            <span>Toshkentdan keyin 3 yirik shaharga chiqish.</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </section>
+  </div>
+</div>
 
-<!-- ═══════════════════ 06 · BIZNES MODEL ═══════════════════ -->
+<div class="slide-frame">
+  <div class="slide-stage">
 <section class="slide" data-n="06">
   <div class="eyebrow">Biznes model</div>
-  <h1>Xaridor uchun bepul — daromad sotuvchidan</h1>
+  <h1>Xaridor bepul — daromad sotuvchidan</h1>
   <p class="sub">
-    Ikki oqim: takrorlanuvchi obuna va savdo hajmi bilan o'sadigan komissiya.
-    Free tarif kirish to'sig'ini olib tashlaydi, past komissiya esa yuqoriga ko'tarilishga undaydi.
+    Obuna + komissiya. Yuqori tarif → past stavka — o'sishga undaydi.
   </p>
 
   <div class="body-area">
-    <div class="two" style="gap:44px;align-items:start">
-      <div>
-        <div class="chart-title">Amaldagi tariflar</div>
-        <table>
-          <thead>
-            <tr>
-              <th>Tarif</th>
-              <th class="num">Narx / oy</th>
-              <th class="num">Mahsulot</th>
-              <th class="num">Komissiya</th>
-            </tr>
-          </thead>
-          <tbody class="tnum">
-            <tr><td>Free</td><td class="num">0</td><td class="num">15</td><td class="num">6%</td></tr>
-            <tr class="hl"><td>Bonus <span style="font-weight:400;font-size:11.5px">· 30 kun</span></td><td class="num">0</td><td class="num">30</td><td class="num">2%</td></tr>
-            <tr><td>Basic</td><td class="num">99 000 so'm</td><td class="num">30</td><td class="num">4%</td></tr>
-            <tr><td>Pro</td><td class="num">299 000 so'm</td><td class="num">100</td><td class="num">2%</td></tr>
-            <tr><td>Enterprise</td><td class="num">999 000 so'm</td><td class="num">cheksiz</td><td class="num">1%</td></tr>
-          </tbody>
-        </table>
-        <p style="font-size:12px;color:var(--grey);margin-top:12px;line-height:1.5">
-          Bonus — yangi sotuvchiga birinchi tasdiqlanishda bir marta beriladigan 30 kunlik
-          jalb qilish vositasi. Sotib bo'lmaydi.
-        </p>
+    <div class="stream-row">
+      <div class="stream">
+        <b>Obuna · oylik</b>
+        <span>Basic / Pro / Enterprise — takrorlanuvchi daromad.</span>
       </div>
+      <div class="stream">
+        <b>Komissiya · GMV</b>
+        <span>Yetkazilganda escrow orqali hisoblanadi (6% → 1%).</span>
+      </div>
+    </div>
 
-      <div>
-        <div class="chart-title">Komissiya narvoni — yuqori tarif, past stavka</div>
-        <svg width="470" height="212" viewBox="0 0 470 212" role="img"
-             aria-label="Komissiya stavkasi tarif bo'yicha: Free 6 foiz, Basic 4 foiz, Bonus 2 foiz, Pro 2 foiz, Enterprise 1 foiz.">
-          <!-- 6% = 300px shkala -->
-          <g font-family="var(--body)">
-            <text class="axis-txt" x="0" y="18">Free</text>
-            <rect x="86" y="6" width="300" height="18" rx="4" fill="var(--c1)"/>
-            <text class="val-txt sm" x="396" y="19">6%</text>
+    <div class="tier-row">
+      <div class="tier">
+        <div class="name">Free</div>
+        <div class="price">0<small>so'm / oy</small></div>
+        <div class="meta">15 mahsulot<br><b>6%</b> komissiya</div>
+      </div>
+      <div class="tier hl">
+        <div class="name">Bonus · 30 kun</div>
+        <div class="price">0<small>bir marta · sotib olinmaydi</small></div>
+        <div class="meta">30 mahsulot<br><b>2%</b> komissiya</div>
+      </div>
+      <div class="tier">
+        <div class="name">Basic</div>
+        <div class="price">99K<small>so'm / oy</small></div>
+        <div class="meta">30 mahsulot<br><b>4%</b> komissiya</div>
+      </div>
+      <div class="tier">
+        <div class="name">Pro</div>
+        <div class="price">299K<small>so'm / oy</small></div>
+        <div class="meta">100 mahsulot<br><b>2%</b> komissiya</div>
+      </div>
+      <div class="tier">
+        <div class="name">Enterprise</div>
+        <div class="price">999K<small>so'm / oy</small></div>
+        <div class="meta">cheksiz<br><b>1%</b> komissiya</div>
+      </div>
+    </div>
 
-            <text class="axis-txt" x="0" y="58">Basic</text>
-            <rect x="86" y="46" width="200" height="18" rx="4" fill="var(--c1)"/>
-            <text class="val-txt sm" x="296" y="59">4%</text>
-
-            <text class="axis-txt" x="0" y="98">Bonus</text>
-            <rect x="86" y="86" width="100" height="18" rx="4" fill="var(--c1)" opacity=".55"/>
-            <text class="val-txt sm" x="196" y="99">2%</text>
-
-            <text class="axis-txt" x="0" y="138">Pro</text>
-            <rect x="86" y="126" width="100" height="18" rx="4" fill="var(--c1)"/>
-            <text class="val-txt sm" x="196" y="139">2%</text>
-
-            <text class="axis-txt" x="0" y="178">Enterprise</text>
-            <rect x="86" y="166" width="50" height="18" rx="4" fill="var(--c1)"/>
-            <text class="val-txt sm" x="146" y="179">1%</text>
-          </g>
-          <line class="axis-line" x1="86" y1="196" x2="386" y2="196"/>
-          <text class="axis-txt" x="86" y="210">0%</text>
-          <text class="axis-txt" x="386" y="210" text-anchor="end">6%</text>
-        </svg>
-
-        <div style="display:flex;gap:14px;margin-top:18px">
-          <div class="stat" style="flex:1;padding:16px 18px">
-            <div class="v" style="font-size:26px">~4%</div>
-            <div class="k" style="margin-top:6px">O'rtacha take-rate (komissiya + obuna)</div>
-          </div>
-          <div class="stat" style="flex:1;padding:16px 18px">
-            <div class="v" style="font-size:26px">$40–100</div>
-            <div class="k" style="margin-top:6px">1 to'lovchi sotuvchidan oylik daromad</div>
-          </div>
-        </div>
+    <div class="bm-foot">
+      <div class="stat">
+        <div class="v acc">~4%</div>
+        <div class="k">O'rtacha take-rate</div>
+      </div>
+      <div class="stat">
+        <div class="v">$40–100</div>
+        <div class="k">1 to'lovchi sotuvchidan / oy</div>
+      </div>
+      <div class="bm-note">
+        Tariflar <b>live tizimdan</b>. Komissiya yetkazilganda hisoblanadi —
+        onlayn to'lovda escrow, COD'da hamyondan.
       </div>
     </div>
   </div>
-
-  <div class="note">
-    Tarif va komissiya qiymatlari — <b>amaldagi ishlab turgan tizimdan</b>
-    (<code>subscription_plans</code>). Valyuta: $1 ≈ 12 050 so'm (2026-yil iyul).
-    Komissiya buyurtma <b>yetkazib berilganda</b> sotuvchi hamyonidan yechiladi.
-  </div>
 </section>
+  </div>
+</div>
 
-<!-- ═══════════════════ 07 · MOLIYAVIY PROGNOZ ═══════════════════ -->
-<section class="slide dense" data-n="07">
+<div class="slide-frame">
+  <div class="slide-stage">
+<section class="slide" data-n="07">
   <div class="eyebrow">Moliyaviy prognoz · 3 yil</div>
-  <h1>2-yilda operatsion nolga, 3-yilda foydaga</h1>
+  <h1>2-yilda operatsion nol, 3-yilda foyda</h1>
+  <p class="sub">
+    Illyustrativ model · o'rtacha chek $200 · take-rate ~4% · obuna ~$16/oy
+  </p>
 
   <div class="body-area">
-    <div class="two" style="gap:40px;align-items:start;margin-bottom:18px">
-      <div>
-        <div class="chart-title">GMV — platforma orqali o'tadigan savdo hajmi</div>
-        <svg width="470" height="146" viewBox="0 0 470 146" role="img"
-             aria-label="GMV prognozi: 1-yil 1.2 million dollar, 2-yil 7.2 million dollar, 3-yil 24 million dollar.">
-          <line class="axis-line" x1="0" y1="118" x2="470" y2="118"/>
-          <rect x="44" y="113" width="86" height="5" rx="4" fill="var(--c1)"/>
-          <text class="val-txt" x="87" y="104" text-anchor="middle">$1.2 mln</text>
-          <text class="axis-txt" x="87" y="138" text-anchor="middle">Yil 1</text>
-
-          <rect x="192" y="88" width="86" height="30" rx="4" fill="var(--c1)"/>
-          <text class="val-txt" x="235" y="79" text-anchor="middle">$7.2 mln</text>
-          <text class="axis-txt" x="235" y="138" text-anchor="middle">Yil 2</text>
-
-          <rect x="340" y="18" width="86" height="100" rx="4" fill="var(--c1)"/>
-          <text class="val-txt" x="383" y="11" text-anchor="middle">$24.0 mln</text>
-          <text class="axis-txt" x="383" y="138" text-anchor="middle">Yil 3</text>
-        </svg>
+    <div class="year-row">
+      <div class="year">
+        <div class="yl">Yil 1</div>
+        <div class="gmv">$1.2 mln<small>GMV</small></div>
+        <div class="row"><span>Daromad</span><b>$60K</b></div>
+        <div class="row"><span>Xarajat</span><b>$110K</b></div>
+        <div class="row"><span>To'lovchi sotuvchi</span><b>60</b></div>
+        <div class="ebitda"><span>EBITDA</span><span class="neg">–$50K</span></div>
       </div>
-
-      <div>
-        <div class="chart-title">Daromad va xarajat</div>
-        <div class="legend" style="margin-bottom:10px">
-          <span><i style="background:var(--c1)"></i>Daromad</span>
-          <span><i style="background:var(--c2)"></i>Xarajat</span>
-        </div>
-        <svg width="470" height="124" viewBox="0 0 470 124" role="img"
-             aria-label="Daromad va xarajat: 1-yil daromad 60 ming, xarajat 110 ming; 2-yil daromad 346 ming, xarajat 340 ming; 3-yil daromad 1.13 million, xarajat 1.0 million dollar.">
-          <line class="axis-line" x1="0" y1="98" x2="470" y2="98"/>
-          <!-- shkala: $1.13M = 78px -->
-          <!-- Yil 1 -->
-          <rect x="46" y="94" width="38" height="4" rx="4" fill="var(--c1)"/>
-          <rect x="86" y="90" width="38" height="8" rx="4" fill="var(--c2)"/>
-          <text class="val-txt sm" x="85" y="83" text-anchor="middle">$60K / $110K</text>
-          <text class="axis-txt" x="85" y="116" text-anchor="middle">Yil 1</text>
-          <!-- Yil 2 -->
-          <rect x="192" y="74" width="38" height="24" rx="4" fill="var(--c1)"/>
-          <rect x="232" y="74" width="38" height="24" rx="4" fill="var(--c2)"/>
-          <text class="val-txt sm" x="231" y="67" text-anchor="middle">$346K / $340K</text>
-          <text class="axis-txt" x="231" y="116" text-anchor="middle">Yil 2</text>
-          <!-- Yil 3 -->
-          <rect x="338" y="20" width="38" height="78" rx="4" fill="var(--c1)"/>
-          <rect x="378" y="29" width="38" height="69" rx="4" fill="var(--c2)"/>
-          <text class="val-txt sm" x="377" y="13" text-anchor="middle">$1.13M / $1.0M</text>
-          <text class="axis-txt" x="377" y="116" text-anchor="middle">Yil 3</text>
-        </svg>
+      <div class="year">
+        <div class="yl">Yil 2 · breakeven</div>
+        <div class="gmv">$7.2 mln<small>GMV</small></div>
+        <div class="row"><span>Daromad</span><b>$346K</b></div>
+        <div class="row"><span>Xarajat</span><b>$340K</b></div>
+        <div class="row"><span>To'lovchi sotuvchi</span><b>300</b></div>
+        <div class="ebitda"><span>EBITDA</span><span class="flat">+$6K</span></div>
+      </div>
+      <div class="year hl">
+        <div class="yl">Yil 3 · foyda</div>
+        <div class="gmv">$24 mln<small>GMV</small></div>
+        <div class="row"><span>Daromad</span><b>$1.13M</b></div>
+        <div class="row"><span>Xarajat</span><b>$1.0M</b></div>
+        <div class="row"><span>To'lovchi sotuvchi</span><b>900</b></div>
+        <div class="ebitda"><span>EBITDA</span><span class="pos">+$133K</span></div>
       </div>
     </div>
 
-    <table>
-      <thead>
-        <tr>
-          <th>Ko'rsatkich</th>
-          <th class="num">Yil 1</th>
-          <th class="num">Yil 2</th>
-          <th class="num">Yil 3</th>
-        </tr>
-      </thead>
-      <tbody class="tnum">
-        <tr><td>Ro'yxatdan o'tgan sotuvchilar</td><td class="num">300</td><td class="num">1 200</td><td class="num">3 000</td></tr>
-        <tr><td>To'lovchi sotuvchilar</td><td class="num">60</td><td class="num">300</td><td class="num">900</td></tr>
-        <tr><td>Buyurtmalar (yillik)</td><td class="num">6 000</td><td class="num">36 000</td><td class="num">120 000</td></tr>
-        <tr><td>GMV <span style="font-weight:400;font-size:11.5px;color:var(--grey)">= buyurtma × $200</span></td><td class="num">$1.2 mln</td><td class="num">$7.2 mln</td><td class="num">$24.0 mln</td></tr>
-        <tr><td>Daromad <span style="font-weight:400;font-size:11.5px;color:var(--grey)">komissiya + obuna</span></td><td class="num">$60K</td><td class="num">$346K</td><td class="num">$1.13 mln</td></tr>
-        <tr><td>Xarajat</td><td class="num">$110K</td><td class="num">$340K</td><td class="num">$1.0 mln</td></tr>
-        <tr class="total"><td>Sof natija (EBITDA)</td><td class="num" style="color:var(--c2)">–$50K</td><td class="num">+$6K</td><td class="num" style="color:var(--terracotta-deep)">+$133K</td></tr>
-      </tbody>
-    </table>
-  </div>
+    <div class="fin-kpis">
+      <div class="stat">
+        <div class="v">300 → 3K</div>
+        <div class="k">Ro'yxatdan o'tgan sotuvchi</div>
+      </div>
+      <div class="stat">
+        <div class="v">6K → 120K</div>
+        <div class="k">Yillik buyurtmalar</div>
+      </div>
+      <div class="stat">
+        <div class="v">20%</div>
+        <div class="k">To'lovchi ulushi (Y1→Y3)</div>
+      </div>
+      <div class="stat">
+        <div class="v acc">20×</div>
+        <div class="k">GMV o'sishi · 3 yilda</div>
+      </div>
+    </div>
 
-  <div class="note">
-    <b>Asosiy taxminlar:</b> o'rtacha chek $200 · take-rate ~4% · o'rtacha obuna ~$16/oy.
-    GMV har yili buyurtmalar sonidan hisoblangan — mustaqil belgilanmagan.
-    <b>Bu illyustrativ model</b>, real ishga tushirish ma'lumotlari bilan yangilanadi.
-    Yil 3 GMV bugungi SAM ning katta ulushini talab qiladi — bozorning o'zi ham 41–47% CAGR bilan o'sishiga bog'liq.
+    <div class="fin-note">
+      <b>Illyustrativ</b> — real launch ma'lumotlari bilan yangilanadi.
+      GMV = buyurtmalar × $200; Y3 SAM ning katta ulushini talab qiladi.
+    </div>
   </div>
 </section>
+  </div>
+</div>
 
-<!-- ═══════════════════ 08 · RAQOBAT ═══════════════════ -->
+<div class="slide-frame">
+  <div class="slide-stage">
 <section class="slide" data-n="08">
   <div class="eyebrow">Raqobat va pozitsiya</div>
   <h1>Umumiy platformalar keng — Woody chuqur</h1>
   <p class="sub">
-    Uzum, OLX va BirBir hamma narsani sotadi; mebel ular uchun o'nlab kategoriyadan biri.
-    Woody faqat mebelni, lekin butun xarid yo'lini qamrab oladi.
+    Uzum / OLX / BirBir — mebel ikkilamchi. Woody — faqat mebel, to'liq xarid yo'li.
   </p>
 
   <div class="body-area">
-    <table class="vs">
-      <thead>
-        <tr>
-          <th style="width:22%">Mezon</th>
-          <th style="width:26%">Umumiy marketplace</th>
-          <th style="width:26%">Instagram / Telegram</th>
-          <th style="width:26%">Woody</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>Fokus</td>
-          <td>Hamma kategoriya — mebel ikkilamchi</td>
-          <td>Tasodifiy, algoritmga bog'liq</td>
-          <td class="us">Faqat mebel — vertikal mutaxassis</td>
-        </tr>
-        <tr>
-          <td>Xonaga mosligini ko'rish</td>
-          <td>Yo'q — faqat rasm</td>
-          <td>Yo'q</td>
-          <td class="us">AR, real o'lchamda o'z xonasida</td>
-        </tr>
-        <tr>
-          <td>Tanlashda yordam</td>
-          <td>Filtr va qidiruv</td>
-          <td>Shaxsiy yozishmalar</td>
-          <td class="us">AI Designer — interyer maslahati</td>
-        </tr>
-        <tr>
-          <td>Sotuvchi ishonchi</td>
-          <td>Umumiy reyting</td>
-          <td>Kafolatlanmagan</td>
-          <td class="us">Hujjat asosida verifikatsiya + belgi</td>
-        </tr>
-        <tr>
-          <td>Mebelga xos xizmat</td>
-          <td>Montaj / kafolat tizimda yo'q</td>
-          <td>Har sotuvchida har xil</td>
-          <td class="us">Yetkazish + montaj narxi checkout'da</td>
-        </tr>
-        <tr>
-          <td>Sotuvchi uchun vositalar</td>
-          <td>Standart e'lon paneli</td>
-          <td>Qo'lda — daftar va chat</td>
-          <td class="us">Do'kon, analitika, AI bilan joylash</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+    <div class="cmp-row">
+      <div class="cmp">
+        <div class="tag">Raqib</div>
+        <div class="title">Umumiy marketplace</div>
+        <ul>
+          <li>Mebel — o'nlab kategoriyadan biri</li>
+          <li>Faqat rasm · AR yo'q</li>
+          <li>Umumiy reyting, montaj tizimda yo'q</li>
+          <li>Standart e'lon paneli</li>
+        </ul>
+      </div>
+      <div class="cmp">
+        <div class="tag">Raqib</div>
+        <div class="title">Instagram / Telegram</div>
+        <ul>
+          <li>Algoritmga bog'liq ko'rinish</li>
+          <li>Ishonch va kafolat yo'q</li>
+          <li>Har sotuvchida boshqa jarayon</li>
+          <li>Qo'lda daftar va chat</li>
+        </ul>
+      </div>
+      <div class="cmp us">
+        <div class="tag">Woody</div>
+        <div class="title">Vertikal mebel</div>
+        <ul>
+          <li><b>AR</b> · real o'lchamda xonada</li>
+          <li><b>AI Designer</b> + AI joylash</li>
+          <li><b>Verified</b> + yetkazish/montaj checkout'da</li>
+          <li><b>Do'kon</b> · analitika · escrow</li>
+        </ul>
+      </div>
+    </div>
 
-  <div class="note">
-    <b>Vertikal strategiya:</b> bitta kategoriyada eng chuqur tajriba — keng platformalar
-    uchun mebelga maxsus AR/AI qurish iqtisodiy jihatdan asosli emas, chunki bu ularning
-    savdo hajmining kichik ulushi.
+    <div class="cmp-foot">
+      <b>Nega vertikal:</b> keng platformalar uchun mebel AR/AI iqtisodiy asosli emas —
+      bu ularning GMV ning kichik ulushi. Woody uchun bu asosiy mahsulot.
+    </div>
   </div>
 </section>
+  </div>
+</div>
 
-<!-- ═══════════════════ 09 · JAMOA ═══════════════════ -->
+<div class="slide-frame">
+  <div class="slide-stage">
 <section class="slide" data-n="09">
   <div class="eyebrow">Jamoa</div>
-  <h1>Butun mahsulotni ichkarida qurgan jamoa</h1>
+  <h1>Butun stack ichkarida qurilgan</h1>
   <p class="sub">
-    Tashqi agentlik yoki autsorsingsiz: mobil ilova, backend, admin panel va barcha
-    AI/AR integratsiyalari o'z jamoamiz tomonidan yozilgan.
+    Agentliksiz: ilova, API, admin, sayt va AI/AR — o'z jamoa.
   </p>
 
   <div class="body-area">
@@ -823,9 +1382,8 @@ tbody tr.total td{
         <b>Eldor Turg'unov</b>
         <div class="role">Asoschi · CEO · Fullstack</div>
         <p>
-          Murakkab e-commerce tizimlar va API integratsiyalari tajribasi. Woody'da texnik
-          yetakchi: backend (FastAPI), mobil ilova (Flutter) va AR / AI integratsiyalarini
-          shaxsan qurgan. Kompaniyaning 100% ulush egasi.
+          FastAPI + Flutter + AR/AI. Texnik yetakchi.
+          Kompaniyaning 100% ulush egasi.
         </p>
       </div>
       <div class="member">
@@ -833,8 +1391,8 @@ tbody tr.total td{
         <b>Amina Kadirova</b>
         <div class="role">Frontend Engineer</div>
         <p>
-          Zamonaviy veb-interfeyslar bo'yicha tajribali. Marketing sayti va admin panel
-          (Next.js) interfeyslari ustida ishlaydi.
+          Marketing sayti va admin panel (Next.js)
+          interfeyslari.
         </p>
       </div>
       <div class="member">
@@ -842,98 +1400,206 @@ tbody tr.total td{
         <b>Shahzod Kenjayev</b>
         <div class="role">CTO</div>
         <p>
-          Tizim arxitekturasi, bulutli infratuzilma va AI/AR texnologik yo'nalishi bo'yicha
-          strategik yetakchi.
+          Arxitektura, bulut infratuzilma va
+          AI/AR texnologik yo'nalish.
         </p>
       </div>
     </div>
 
-    <div class="stats c3" style="margin-top:24px">
+    <div class="stats c3">
       <div class="stat">
-        <div class="v acc">~10 hafta</div>
-        <div class="k">To'rtala tizimni noldan production'ga chiqarish uchun ketgan vaqt</div>
+        <div class="v acc">4</div>
+        <div class="k">Tizim · noldan production'gacha</div>
       </div>
       <div class="stat">
-        <div class="v">899</div>
-        <div class="k">Commit — ishlab chiqish tezligining tekshiriladigan o'lchovi</div>
+        <div class="v">100%</div>
+        <div class="k">In-house stack · autsorsing yo'q</div>
       </div>
       <div class="stat">
         <div class="v">$0</div>
-        <div class="k">Tashqi ishlab chiqish xarajati — butun stack ichkarida qurilgan</div>
+        <div class="k">Tashqi ishlab chiqish xarajati</div>
       </div>
     </div>
   </div>
 </section>
+  </div>
+</div>
 
-<!-- ═══════════════════ 10 · SO'ROV ═══════════════════ -->
+<div class="slide-frame">
+  <div class="slide-stage">
 <section class="slide" data-n="10">
   <div class="eyebrow">Investitsiya so'rovi</div>
 
   <div class="body-area">
-    <div class="two" style="gap:56px;align-items:start">
+    <div class="ask-layout">
       <div>
         <div class="ask-hero">$100K</div>
         <div class="ask-sub">
-          Pre-Seed bosqichi · 18–24 oylik runway.<br>
-          Bugungi bootstrap xarajati ~$200–300/oy — mablag' jamoa va bozorga
-          chiqish uchun ishlatiladi.
+          Pre-Seed · 18–24 oy runway. Bootstrap ~$200–300/oy —
+          mablag' jamoa va go-to-market uchun.
         </div>
 
-        <div class="chart-title" style="margin-top:34px">Mablag' taqsimoti</div>
-        <svg width="524" height="150" viewBox="0 0 524 150" role="img"
-             aria-label="Mablag' taqsimoti: mahsulot va jamoa 45 foiz — 45 ming dollar; marketing va sotuvchi jalb qilish 35 foiz — 35 ming dollar; operatsion va infratuzilma 20 foiz — 20 ming dollar.">
-          <g font-family="var(--body)">
-            <text class="axis-txt" x="0" y="18">45%</text>
-            <rect x="44" y="6" width="180" height="20" rx="4" fill="var(--c1)"/>
-            <text class="val-txt sm" x="234" y="20">$45K · Mahsulot va jamoa</text>
+        <div class="alloc">
+          <div class="a">
+            <div class="pct">45%</div>
+            <div class="amt">$45K</div>
+            <div class="lbl">Mahsulot va jamoa</div>
+          </div>
+          <div class="a">
+            <div class="pct">35%</div>
+            <div class="amt">$35K</div>
+            <div class="lbl">Marketing va jalb</div>
+          </div>
+          <div class="a">
+            <div class="pct">20%</div>
+            <div class="amt">$20K</div>
+            <div class="lbl">Ops va infra</div>
+          </div>
+        </div>
 
-            <text class="axis-txt" x="0" y="66">35%</text>
-            <rect x="44" y="54" width="140" height="20" rx="4" fill="var(--c2)"/>
-            <text class="val-txt sm" x="194" y="68">$35K · Marketing va jalb qilish</text>
-
-            <text class="axis-txt" x="0" y="114">20%</text>
-            <rect x="44" y="102" width="80" height="20" rx="4" fill="var(--c3)"/>
-            <text class="val-txt sm" x="134" y="116">$20K · Operatsion va infratuzilma</text>
-          </g>
-        </svg>
+        <div class="qr-cta">
+          <img src="woody-app-qr-deck.png" width="96" height="96"
+               alt="QR kod — https://woody.uz/app">
+          <div>
+            <div class="qr-kicker">Sinab ko'ring</div>
+            <div class="qr-title">Ilovani oching</div>
+            <div class="qr-url">woody.uz/app</div>
+            <p class="qr-hint">QR → Play yoki App Store</p>
+          </div>
+        </div>
       </div>
 
       <div>
-        <div class="col-h">Mablag' ochadigan natijalar · 18–24 oy</div>
-        <ul class="ms">
-          <li><b>500+ ro'yxatdan o'tgan sotuvchi</b>, ulardan 120+ to'lovchi obunachi</li>
-          <li><b>20 000+ faol xaridor</b> — Toshkent va 3 yirik shahar</li>
-          <li><b>~$2.5 mln kumulyativ GMV</b> platforma orqali</li>
-          <li><b>Oylik operatsion nolga chiqish</b> — Seed raundiga tayyor holat</li>
-          <li><b>Payme / Click</b> onlayn to'lov integratsiyasi ishga tushadi</li>
-          <li><b>Logistika hamkorlari</b> bilan yetkazish va montaj shartnomalari</li>
+        <div class="col-h">18–24 oyda ochiladigan natijalar</div>
+        <ul class="out-list">
+          <li><i>1</i><span><b>500+</b> sotuvchi · 120+ to'lovchi</span></li>
+          <li><i>2</i><span><b>20K+</b> faol xaridor · Toshkent + 3 shahar</span></li>
+          <li><i>3</i><span><b>~$2.5 mln</b> kumulyativ GMV</span></li>
+          <li><i>4</i><span><b>Operatsion nol</b> · Seed'ga tayyor</span></li>
+          <li><i>5</i><span><b>Click</b> + logistika · shaharlarga kengayish</span></li>
         </ul>
 
-        <div style="margin-top:26px;padding:20px 22px;background:var(--sand);border-radius:16px">
-          <div style="font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--terracotta-deep);margin-bottom:10px">
-            Nega aynan biz
-          </div>
-          <p style="font-size:13.5px;line-height:1.6;color:var(--ink-soft)">
-            Mahsulot allaqachon qurilgan va ishlayapti — biz g'oyani emas, ijroni
-            moliyalashtirishni so'rayapmiz. Texnik risk ortda qoldi; oldinda faqat
-            bozorga chiqish turibdi.
-          </p>
+        <div class="why">
+          <div class="t">Nega aynan biz</div>
+          Mahsulot, <b>Payme</b> va <b>escrow</b> ishlayapti — g'oya emas,
+          bozorga chiqishni moliyalashtiramiz.
         </div>
       </div>
     </div>
-  </div>
 
-  <div class="note" style="display:flex;justify-content:space-between;align-items:flex-end">
-    <div>
-      <b>Woody</b> · Zettacode MCHJ · Toshkent, O'zbekiston<br>
-      woody.uz
-    </div>
-    <div style="text-align:right">
-      <b>Eldor Turg'unov</b> · Asoschi<br>
-      eldorturgunoff@gmail.com · +998 94 643 37 33
+    <div class="ask-foot">
+      <div>
+        <b>Woody</b> · Zettacode MCHJ · Toshkent<br>
+        woody.uz
+      </div>
+      <div style="text-align:right">
+        <b>Eldor Turg'unov</b> · Asoschi<br>
+        eldorturgunoff@gmail.com · +998 94 643 37 33
+      </div>
     </div>
   </div>
 </section>
+  </div>
+</div>
+</div>
+
+<button type="button" class="deck-nav prev" id="deckPrev" aria-label="Oldingi slayd">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+</button>
+<button type="button" class="deck-nav next" id="deckNext" aria-label="Keyingi slayd">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+</button>
+<div class="deck-progress" id="deckProgress" role="tablist" aria-label="Slaydlar"></div>
+<div class="deck-hint">← → · swipe</div>
+
+
+<script>
+(() => {
+  const deck = document.getElementById('deck');
+  const frames = [...deck.querySelectorAll('.slide-frame')];
+  const stages = [...deck.querySelectorAll('.slide-stage')];
+  const prevBtn = document.getElementById('deckPrev');
+  const nextBtn = document.getElementById('deckNext');
+  const progress = document.getElementById('deckProgress');
+  const SLIDE_W = 1280;
+  const SLIDE_H = 720;
+  let index = 0;
+  let locked = false;
+
+  frames.forEach((_, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.setAttribute('role', 'tab');
+    b.setAttribute('aria-label', `Slayd ${i + 1}`);
+    b.addEventListener('click', () => go(i));
+    progress.appendChild(b);
+  });
+  const dots = [...progress.querySelectorAll('button')];
+
+  function fit() {
+    const sx = window.innerWidth / SLIDE_W;
+    const sy = window.innerHeight / SLIDE_H;
+    const scale = Math.min(sx, sy);
+    document.documentElement.style.setProperty('--deck-scale', String(scale));
+  }
+
+  function syncFromScroll() {
+    const i = Math.round(deck.scrollLeft / Math.max(deck.clientWidth, 1));
+    index = Math.max(0, Math.min(frames.length - 1, i));
+    dots.forEach((d, n) => d.setAttribute('aria-current', n === index ? 'true' : 'false'));
+    prevBtn.disabled = index === 0;
+    nextBtn.disabled = index === frames.length - 1;
+  }
+
+  function go(i) {
+    index = Math.max(0, Math.min(frames.length - 1, i));
+    locked = true;
+    frames[index].scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+    syncFromScroll();
+    setTimeout(() => { locked = false; syncFromScroll(); }, 420);
+  }
+
+  prevBtn.addEventListener('click', () => go(index - 1));
+  nextBtn.addEventListener('click', () => go(index + 1));
+
+  deck.addEventListener('scroll', () => {
+    if (!locked) syncFromScroll();
+  }, { passive: true });
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
+      e.preventDefault();
+      go(index + 1);
+    } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+      e.preventDefault();
+      go(index - 1);
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      go(0);
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      go(frames.length - 1);
+    } else if (e.key === 'f' || e.key === 'F') {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+      else document.exitFullscreen?.();
+    }
+  });
+
+  // Touch / trackpad already handled by native horizontal scroll + snap.
+  // Extra wheel → horizontal for mouse users.
+  deck.addEventListener('wheel', (e) => {
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && Math.abs(e.deltaY) > 8) {
+      e.preventDefault();
+      if (e.deltaY > 0) go(index + 1);
+      else go(index - 1);
+    }
+  }, { passive: false });
+
+  window.addEventListener('resize', fit);
+  fit();
+  syncFromScroll();
+})();
+</script>
 
 </body>
 </html>
