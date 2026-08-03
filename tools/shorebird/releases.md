@@ -41,3 +41,4 @@ Yozuvlar avtomatik qo'shiladi:
 | 2026-07-06 | 1.0.35+35 | 51281d85fce6 | android | 1.0.35: personalized home feed (Siz uchun + Ommabop) + splash refresh |
 | 2026-07-07 | 1.0.35+35 | cdd7c55656e6 | ios | — |
 | 2026-08-01 | 1.0.36+36 | 3077347c63a0 | android ios | 1.0.36: guest personal-API 401 guard + hybrid public notifications + wallet withdraw |
+| 2026-08-03 | 1.0.37+37 | 46cb842c704c | android | 1.0.37: seller oferta/onboarding KYC persist + pick-time compress |

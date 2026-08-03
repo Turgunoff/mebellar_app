@@ -141,11 +141,19 @@ Invariants:
 - **Dynamic legal text:** Oferta bodies are **NOT hardcoded** as the source of
   truth. Fetch `GET /legal/oferta?lang=` via `LegalDocumentsRepository` /
   `WoodyLegalDocumentsRepository`, then interpolate
-  `{{SOTUVCHI_NOMI}}`, `{{KOMISSIYA_FOIZI}}`, `{{SANA}}` with
-  `injectOfertaPlaceholders` (`seller_contract_oferta.dart`). The embedded
+  `{{SOTUVCHI_NOMI}}`, `{{KOMISSIYA_FOIZI}}`, `{{SANA}}`,
+  `{{SHARTNOMA_RAQAMI}}` with `injectOfertaPlaceholders`
+  (`seller_contract_oferta.dart`). Contract number:
+  `generateOfertaContractNumber(userId)` → `W-` + first 6 alphanumerics of
+  JWT `sub`. Body uses `flutter_markdown`. The embedded
   `kSellerOfertaFallbackContent` is offline/404 only. Pass
   `AppLocaleController.value.languageCode` as `lang` (uz/ru/en; backend falls
-  back to uz).
+  back to uz). Live seed version is **`1.1`** (backend migration **0093** GPD
+  preamble).
+- **GPD layout (UI + PDF):** Header (city/date + title/number) → markdown
+  body → two-column requisites (Zettacode left, seller right). **No Imzo /
+  signature lines** — electronic accept is the stamp. Omit empty seller
+  fields (no `—` mocks).
 - **Scroll-to-accept + stamp:** `SellerContractScreen` disables Accept until
   the seller scrolls to the bottom; onboarding submit stamps
   `contract_accepted_at` / `contract_version` via `POST /seller/onboarding`.
@@ -153,8 +161,22 @@ Invariants:
 - **PDF generation:** Uses `pdf` and `printing`. Logic lives in
   `lib/seller/features/onboarding/utils/contract_pdf_generator.dart`. Always
   use **Inter TTF** (`assets/google_fonts/Inter-*.ttf`) for PDF fonts so
-  Cyrillic and Latin render without tofu boxes. Footer is two-column
-  (Zettacode MCHJ left, seller right); labels localize by `languageCode`.
+  Cyrillic and Latin render without tofu boxes. Same GPD composition as the
+  screen; labels localize by `languageCode`.
+
+### Onboarding KYC draft persistence — Aug 2026
+
+- **Pick-time WebP:** `DocumentUploadStep` calls
+  `compressAndPersistOnboardingKycImage` (q88, min 1600) and stores under
+  `{Documents}/onboarding_kyc/{documentId}.webp`. Do **not** re-encode on
+  contract accept — that stalled the spinner ~15–30s.
+- **Hive:** `OnboardingDraft.documentFiles` (`document_files` in the draft
+  JSON box) mirrors Bloc `documentFiles`. Restore on `OnboardingStarted` via
+  `existingOnboardingKycPaths`; prune missing files. Card remove →
+  `deletePersistedOnboardingKycImage`. Submit/reset → `clearDraft()` also
+  `clearPersistedOnboardingKycImages()`.
+- **Upload:** After `POST /seller/onboarding`, passport front+back upload +
+  register run in **parallel** (`Future.wait`) from the persisted WebP paths.
 
 ### Two-mode shell
 
@@ -388,6 +410,8 @@ to a bloc, update the matching test or it will fail.
 - Don't hardcode the seller Oferta body as the live source of truth — fetch
   `/legal/oferta?lang=` and interpolate placeholders; keep Inter TTFs for PDFs
   (Cyrillic). Don't replace Inter with a Latin-only PDF font.
+- Don't compress KYC images only at contract accept — encode at pick into
+  Documents + Hive `document_files` so app kill does not force re-upload.
 - Don't commit `env/prod.json`, `key.properties`, `*.jks`,
   `build/symbols/`, `google-services.json` if it contains secrets
 
@@ -395,11 +419,13 @@ to a bloc, update the matching test or it will fail.
 
 This brain captures the state after a multi-session redesign:
 
-- **Dynamic multi-lingual seller Oferta (2026-08)** — backend `legal_documents`
-  (uz/ru/en) + `GET /legal/oferta?lang=`; scroll-to-accept onboarding step;
-  `contract_accepted_at` / `contract_version` persistence; A4 PDF share with
-  Zettacode requisites + localized footer labels (Inter fonts). See § Seller
-  Oferta above and workspace TZ v1.2.
+- **Dynamic multi-lingual seller Oferta + KYC persist (2026-08)** — backend
+  `legal_documents` (uz/ru/en, **0093** GPD preamble `version=1.1`) +
+  `GET /legal/oferta?lang=`; GPD UI/PDF (no Imzo lines); scroll-to-accept;
+  `contract_accepted_at` / `contract_version`; pick-time WebP → Documents +
+  Hive `document_files`; parallel passport upload on accept. Shorebird store
+  build **1.0.37+37**. See § Seller Oferta / KYC draft persistence and
+  workspace TZ **v1.3**.
 - **Internal escrow + withdrawals, hybrid push prefs, analytics privacy (2026-08)** —
   online settlement credits `order_income` on `delivered` (not Payme Safe/Split);
   Settings toggles for promo/order push and **"Foydalanish statistikasi"** (Analytics +
