@@ -18,6 +18,7 @@ import '../widgets/shop_address_step.dart';
 import '../widgets/shop_info_step.dart';
 import '../widgets/step_indicator.dart';
 import '../widgets/welcome_step.dart';
+import 'seller_contract_screen.dart';
 
 class OnboardingScreen extends StatelessWidget {
   const OnboardingScreen({super.key});
@@ -81,6 +82,7 @@ class _OnboardingViewState extends State<_OnboardingView> {
       case OnboardingStep.businessType:
       case OnboardingStep.welcome:
       case OnboardingStep.review:
+      case OnboardingStep.contract:
       case OnboardingStep.done:
         return true;
     }
@@ -98,14 +100,12 @@ class _OnboardingViewState extends State<_OnboardingView> {
       if (!valid) return;
     }
 
-    // Backend submission now fires at the end of the documentUpload step,
-    // not at review. Review just transitions forward to documentUpload.
-    if (state.step == OnboardingStep.documentUpload) {
-      bloc.add(const OnboardingSubmitted());
+    // Backend submission fires from SellerContractScreen after scroll-to-accept.
+    // documentUpload only advances into the contract step.
+    if (state.step == OnboardingStep.businessType && !state.canAdvance) {
       return;
     }
-
-    if (state.step == OnboardingStep.businessType && !state.canAdvance) {
+    if (state.step == OnboardingStep.documentUpload && !state.canAdvance) {
       return;
     }
 
@@ -148,6 +148,7 @@ class _OnboardingViewState extends State<_OnboardingView> {
       },
       builder: (context, state) {
         final isDone = state.step == OnboardingStep.done;
+        final isContract = state.step == OnboardingStep.contract;
         final isSubmitting = state.status == OnboardingStatus.submitting;
         if (_lastSyncedStep != state.step.index) {
           _lastSyncedStep = state.step.index;
@@ -208,11 +209,12 @@ class _OnboardingViewState extends State<_OnboardingView> {
                             .add(OnboardingGoToStep(step)),
                       ),
                       const DocumentUploadStep(),
+                      const SellerContractScreen(),
                       const DoneStep(),
                     ],
                   ),
                 ),
-                bottomNavigationBar: isDone
+                bottomNavigationBar: (isDone || isContract)
                     ? null
                     : _BottomBar(state: state, onNextPressed: _handleNext),
               ),
@@ -247,6 +249,7 @@ class _BottomBarState extends State<_BottomBar> {
       OnboardingStep.personalInfo => true,
       OnboardingStep.shopInfo => true,
       OnboardingStep.review => true,
+      OnboardingStep.contract => false,
       OnboardingStep.done => false,
     };
     final isBusy = state.status == OnboardingStatus.submitting;
@@ -257,8 +260,8 @@ class _BottomBarState extends State<_BottomBar> {
         Iconsax.arrow_right_3_copy,
       ),
       OnboardingStep.documentUpload => (
-        tr('onboarding.submit'),
-        Icons.send_outlined,
+        tr('onboarding.go_to_contract'),
+        Iconsax.arrow_right_3_copy,
       ),
       _ => (tr('common.next'), Iconsax.arrow_right_3_copy),
     };

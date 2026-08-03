@@ -83,6 +83,12 @@ const Map<String, dynamic> onboardingUz = {
   'landmark_label': 'Mo\'ljal yoki ofis raqami (ixtiyoriy)',
   'address_detecting': 'Manzil aniqlanmoqda...',
   'drag_map_hint': 'Xaritani suring, manzil avtomatik aniqlanadi',
+  'go_to_contract': 'Shartnomaga o\'tish',
+  'step_contract_title': 'Vositachilik shartnomasi',
+  'step_contract_subtitle':
+      'Arizani yuborishdan oldin ommaviy ofertani oxirigacha o\'qing.',
+  'contract_scroll_hint': 'Tasdiqlash uchun shartnomani oxirigacha varaqlang',
+  'contract_accept': "Shartnomani o'qib chiqdim va tasdiqlayman",
 };
 
 const Map<String, dynamic> onboardingRu = {
@@ -160,6 +166,12 @@ const Map<String, dynamic> onboardingRu = {
   'landmark_label': 'Ориентир или номер офиса (необязательно)',
   'address_detecting': 'Определяем адрес...',
   'drag_map_hint': 'Перемещайте карту — адрес определится автоматически',
+  'go_to_contract': 'К договору',
+  'step_contract_title': 'Посреднический договор',
+  'step_contract_subtitle':
+      'Перед отправкой заявки прочитайте публичную оферту до конца.',
+  'contract_scroll_hint': 'Пролистайте договор до конца, чтобы подтвердить',
+  'contract_accept': 'Я прочитал(а) договор и подтверждаю',
 };
 
 const Map<String, dynamic> onboardingEn = {
@@ -239,6 +251,12 @@ const Map<String, dynamic> onboardingEn = {
   'landmark_label': 'Landmark or office number (optional)',
   'address_detecting': 'Detecting address...',
   'drag_map_hint': 'Drag the map and the address will be detected automatically',
+  'go_to_contract': 'Continue to contract',
+  'step_contract_title': 'Agency agreement',
+  'step_contract_subtitle':
+      'Read the public offer to the end before submitting your application.',
+  'contract_scroll_hint': 'Scroll to the end of the contract to enable accept',
+  'contract_accept': 'I have read and accept the agreement',
 };
 
 const Map<String, dynamic> businessTypeUz = {

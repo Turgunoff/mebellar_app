@@ -26,6 +26,7 @@ import '../settings/screens/shop_settings_screen.dart';
 import '../tariff/screens/tariff_screen.dart';
 import '../wallet/screens/ar_tokens_screen.dart';
 import '../wallet/screens/wallet_screen.dart';
+import '../onboarding/screens/seller_contract_screen.dart';
 import 'cubit/seller_profile_cubit.dart';
 
 // All surface / ink / grey / divider / status-intent / gold colours are read
@@ -181,6 +182,18 @@ class _SellerProfileView extends StatelessWidget {
                               subtitle: tr('seller.profile_settings_subtitle'),
                               onTap: () =>
                                   _push(context, const SettingsScreen()),
+                            ),
+                            _SettingsItem(
+                              icon: Iconsax.document_text_copy,
+                              title: tr('seller.profile_contract_title'),
+                              subtitle: tr('seller.profile_contract_subtitle'),
+                              onTap: () => _push(
+                                context,
+                                SellerContractScreen(
+                                  isReadOnly: true,
+                                  sellerName: state.shopName ?? '',
+                                ),
+                              ),
                             ),
                           ],
                         ),

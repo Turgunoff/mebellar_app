@@ -16,9 +16,10 @@ import '../../../../shared/repositories/seller_onboarding_repository.dart';
 /// turns the screen into a long scrollable form and forced multilingual tabs
 /// for the brand name. One concern per step is friendlier to fill out.
 ///
-/// documentUpload sits between review and done so KYC document selection is
-/// part of the wizard's state machine rather than an external route. The
-/// backend submission fires when leaving documentUpload, not review.
+/// documentUpload sits after review so KYC document selection is part of the
+/// wizard's state machine rather than an external route. The public-offer
+/// [OnboardingStep.contract] follows documents; backend submission fires when
+/// the seller accepts the contract, not when leaving documentUpload.
 enum OnboardingStep {
   welcome,
   businessType,
@@ -27,9 +28,10 @@ enum OnboardingStep {
   shopAddress,
   review,
   documentUpload,
+  contract,
   done;
 
-  static const total = 8;
+  static const total = 9;
 }
 
 /// Document ids required to complete onboarding, derived from business type.
@@ -219,6 +221,7 @@ class OnboardingState extends Equatable {
             (draft.shopStreetLine?.trim().isNotEmpty ?? false),
       OnboardingStep.review => true,
       OnboardingStep.documentUpload => _allRequiredDocumentsPicked,
+      OnboardingStep.contract => true,
       OnboardingStep.done => false,
     };
   }
