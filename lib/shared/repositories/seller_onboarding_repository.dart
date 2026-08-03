@@ -43,5 +43,6 @@ abstract class SellerOnboardingRepository {
     OnboardingDraft draft, {
     String? passportFrontPath,
     String? passportBackPath,
+    String? contractVersion,
   });
 }

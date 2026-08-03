@@ -176,7 +176,13 @@ class OnboardingDocumentPicked extends OnboardingEvent {
 }
 
 class OnboardingSubmitted extends OnboardingEvent {
-  const OnboardingSubmitted();
+  const OnboardingSubmitted({this.contractVersion});
+
+  /// Oferta version the seller scrolled and accepted (`GET /legal/oferta`).
+  final String? contractVersion;
+
+  @override
+  List<Object?> get props => [contractVersion];
 }
 
 class OnboardingReset extends OnboardingEvent {
@@ -441,6 +447,7 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
         state.draft,
         passportFrontPath: state.documentFiles['passport_front'],
         passportBackPath: state.documentFiles['passport_back'],
+        contractVersion: event.contractVersion,
       );
       await _repo.clearDraft();
       emit(

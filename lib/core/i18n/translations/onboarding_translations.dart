@@ -89,6 +89,7 @@ const Map<String, dynamic> onboardingUz = {
       'Arizani yuborishdan oldin ommaviy ofertani oxirigacha o\'qing.',
   'contract_scroll_hint': 'Tasdiqlash uchun shartnomani oxirigacha varaqlang',
   'contract_accept': "Shartnomani o'qib chiqdim va tasdiqlayman",
+  'contract_offline_fallback': 'Tarmoq yo\'q — saqlangan oferta matni ko\'rsatildi',
 };
 
 const Map<String, dynamic> onboardingRu = {
@@ -172,6 +173,7 @@ const Map<String, dynamic> onboardingRu = {
       'Перед отправкой заявки прочитайте публичную оферту до конца.',
   'contract_scroll_hint': 'Пролистайте договор до конца, чтобы подтвердить',
   'contract_accept': 'Я прочитал(а) договор и подтверждаю',
+  'contract_offline_fallback': 'Нет сети — показан сохранённый текст оферты',
 };
 
 const Map<String, dynamic> onboardingEn = {
@@ -257,6 +259,7 @@ const Map<String, dynamic> onboardingEn = {
       'Read the public offer to the end before submitting your application.',
   'contract_scroll_hint': 'Scroll to the end of the contract to enable accept',
   'contract_accept': 'I have read and accept the agreement',
+  'contract_offline_fallback': 'Offline — showing the cached offer text',
 };
 
 const Map<String, dynamic> businessTypeUz = {

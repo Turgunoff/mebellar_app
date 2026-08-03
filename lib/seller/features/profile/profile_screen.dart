@@ -187,13 +187,23 @@ class _SellerProfileView extends StatelessWidget {
                               icon: Iconsax.document_text_copy,
                               title: tr('seller.profile_contract_title'),
                               subtitle: tr('seller.profile_contract_subtitle'),
-                              onTap: () => _push(
-                                context,
-                                SellerContractScreen(
-                                  isReadOnly: true,
-                                  sellerName: state.shopName ?? '',
-                                ),
-                              ),
+                              onTap: () {
+                                final rate = state.plan.commissionRate;
+                                final commission = rate == rate.roundToDouble()
+                                    ? rate.toInt().toString()
+                                    : rate.toString();
+                                _push(
+                                  context,
+                                  SellerContractScreen(
+                                    isReadOnly: true,
+                                    sellerName: state.displayShopName,
+                                    sellerPhone: state.contactPhone ?? '',
+                                    commissionPercent: commission,
+                                    acceptedAt: state.contractAcceptedAt,
+                                    acceptedVersion: state.contractVersion,
+                                  ),
+                                );
+                              },
                             ),
                           ],
                         ),

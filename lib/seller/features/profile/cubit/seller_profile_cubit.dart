@@ -130,11 +130,26 @@ class SellerProfileCubit extends Cubit<SellerProfileState> {
       plan: plan,
     );
 
+    DateTime? contractAcceptedAt;
+    String? contractVersion;
+    String? contactPhone;
+    if (meRes.outcome == _Outcome.ok && meRes.data != null) {
+      final rawAt = meRes.data!['contract_accepted_at'] as String?;
+      if (rawAt != null) contractAcceptedAt = DateTime.tryParse(rawAt);
+      contractVersion = meRes.data!['contract_version'] as String?;
+      contactPhone = _trimOrNull(meRes.data!['contact_phone'] as String?);
+    }
+
     emit(
       SellerProfileState.fromSnapshot(
         snapshot,
         isLoading: false,
-      ).copyWith(wallet: wallet),
+      ).copyWith(
+        wallet: wallet,
+        contactPhone: contactPhone,
+        contractAcceptedAt: contractAcceptedAt,
+        contractVersion: contractVersion,
+      ),
     );
     // Persist after emit so a slow disk write never blocks the UI render.
     unawaited(_cache.write(userId, snapshot));
@@ -155,6 +170,9 @@ class SellerProfileCubit extends Cubit<SellerProfileState> {
         verificationStatus: state.verificationStatus,
         plan: state.plan,
         wallet: state.wallet,
+        contactPhone: state.contactPhone,
+        contractAcceptedAt: state.contractAcceptedAt,
+        contractVersion: state.contractVersion,
       ),
     );
     final userId = _auth.currentUserId;
@@ -217,6 +235,9 @@ class SellerProfileState extends Equatable {
     this.verificationStatus = VerificationStatus.none,
     this.plan = TariffPlan.free,
     this.wallet,
+    this.contactPhone,
+    this.contractAcceptedAt,
+    this.contractVersion,
     this.error,
   });
 
@@ -247,6 +268,13 @@ class SellerProfileState extends Equatable {
   /// or when the read failed; the wallet row hides rather than lying.
   final SellerWallet? wallet;
 
+  /// Contact phone from `/seller/me` — used on the oferta PDF footer.
+  final String? contactPhone;
+
+  /// Stamped when the seller accepted the ommaviy oferta (`/seller/me`).
+  final DateTime? contractAcceptedAt;
+  final String? contractVersion;
+
   final String? error;
 
   /// Fallback chain: shop name → seller's legal name → generic.
@@ -275,6 +303,9 @@ class SellerProfileState extends Equatable {
     VerificationStatus? verificationStatus,
     TariffPlan? plan,
     SellerWallet? wallet,
+    String? contactPhone,
+    DateTime? contractAcceptedAt,
+    String? contractVersion,
     String? error,
     bool clearError = false,
   }) {
@@ -287,6 +318,9 @@ class SellerProfileState extends Equatable {
       verificationStatus: verificationStatus ?? this.verificationStatus,
       plan: plan ?? this.plan,
       wallet: wallet ?? this.wallet,
+      contactPhone: contactPhone ?? this.contactPhone,
+      contractAcceptedAt: contractAcceptedAt ?? this.contractAcceptedAt,
+      contractVersion: contractVersion ?? this.contractVersion,
       error: clearError ? null : (error ?? this.error),
     );
   }
@@ -301,6 +335,9 @@ class SellerProfileState extends Equatable {
     verificationStatus,
     plan,
     wallet,
+    contactPhone,
+    contractAcceptedAt,
+    contractVersion,
     error,
   ];
 }

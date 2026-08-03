@@ -54,6 +54,7 @@ class MockSellerOnboardingRepository implements SellerOnboardingRepository {
     OnboardingDraft draft, {
     String? passportFrontPath,
     String? passportBackPath,
+    String? contractVersion,
   }) async {
     await Future<void>.delayed(_delay);
     final initialStatus = draft.verifyNow

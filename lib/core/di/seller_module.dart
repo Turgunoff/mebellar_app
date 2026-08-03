@@ -9,7 +9,9 @@ import '../../seller/features/products/data/exchange_rate_service.dart';
 import '../../seller/features/sets/data/seller_set_repository.dart';
 import '../../shared/repositories/seller_analytics_repository.dart';
 import '../../shared/repositories/seller_dashboard_repository.dart';
+import '../../shared/repositories/legal_documents_repository.dart';
 import '../../shared/repositories/seller_onboarding_repository.dart';
+import '../../shared/repositories/woody_legal_documents_repository.dart';
 import '../../shared/repositories/seller_order_repository.dart';
 import '../../shared/repositories/seller_product_repository.dart';
 import '../../shared/repositories/seller_profile_repository.dart';
@@ -34,6 +36,10 @@ import '../storage/r2_upload_client.dart';
 /// Woody REST implementation (`/seller/*`).
 void registerSellerModule(GetIt sl) {
   final draftBox = sl<Box>(instanceName: HiveBoxes.onboardingDraft);
+
+  sl.registerLazySingleton<LegalDocumentsRepository>(
+    () => WoodyLegalDocumentsRepository(api: sl<WoodyApiClient>()),
+  );
 
   sl.registerLazySingleton<SellerOnboardingRepository>(
     () => WoodySellerOnboardingRepository(

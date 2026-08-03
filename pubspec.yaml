@@ -193,6 +193,8 @@ dependencies:
   # surfaces the prompt and only turns the SDK on when authorised; Android has
   # no ATT and initialises straight away. iOS-only at runtime, inert elsewhere.
   app_tracking_transparency: ^2.0.6
+  pdf: ^3.13.0
+  printing: ^5.15.0
 
 dependency_overrides:
   # `record` 5.2.1 pins `record_linux` to `<1.0.0`, which resolves to the

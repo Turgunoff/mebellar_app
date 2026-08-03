@@ -229,6 +229,7 @@ class WoodySellerOnboardingRepository implements SellerOnboardingRepository {
     OnboardingDraft draft, {
     String? passportFrontPath,
     String? passportBackPath,
+    String? contractVersion,
   }) async {
     final shopName =
         draft.shopNameUz ?? draft.shopNameRu ?? draft.shopNameEn ?? '';
@@ -250,6 +251,7 @@ class WoodySellerOnboardingRepository implements SellerOnboardingRepository {
         if (draft.shopStreetLine != null) 'shop_address': draft.shopStreetLine,
         if (draft.shopLat != null) 'latitude': draft.shopLat,
         if (draft.shopLng != null) 'longitude': draft.shopLng,
+        if (contractVersion != null) 'contract_version': contractVersion,
       },
     );
     final sellerId = body['seller_id'] as String;
