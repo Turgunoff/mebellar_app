@@ -9,6 +9,7 @@ import '../../../../shared/models/onboarding_draft.dart';
 import '../../../../shared/models/region.dart';
 import '../../../../shared/models/verification_status.dart';
 import '../../../../shared/repositories/seller_onboarding_repository.dart';
+import '../../../../shared/utils/image_upload.dart';
 
 /// Linear wizard. Welcome and done are pure UI without inputs but still
 /// participate in advance/back so the progress indicator renders correctly.
@@ -314,14 +315,32 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
 
     // Only individual sellers are accepted at launch; a draft saved before
     // the restriction may carry another legal type — coerce it back.
-    if (draft.businessType != null &&
+    // Also default null → individual: resubmit-after-rejection hydrates from
+    // /seller/me and used to omit business_type, which left DocumentUploadStep
+    // with an empty requirements list (blank KYC UI, Next permanently disabled).
+    if (draft.businessType == null ||
         draft.businessType != BusinessType.individual) {
       draft = draft.copyWith(businessType: BusinessType.individual);
     }
 
     final resumeStep = OnboardingStep
         .values[draft.lastStep.clamp(0, OnboardingStep.values.length - 1)];
-    emit(state.copyWith(draft: draft, step: resumeStep));
+
+    // Restore KYC images that still exist under Documents; drop stale Hive
+    // paths (OS wipe / manual delete) and re-persist the pruned map.
+    final restoredDocs = existingOnboardingKycPaths(draft.documentFiles);
+    if (restoredDocs.length != draft.documentFiles.length) {
+      draft = draft.copyWith(documentFiles: restoredDocs);
+      await _repo.saveDraft(draft);
+    }
+
+    emit(
+      state.copyWith(
+        draft: draft,
+        step: resumeStep,
+        documentFiles: restoredDocs,
+      ),
+    );
     // Funnel start — fire once per OnboardingBloc instance so resuming
     // a draft after an app reopen doesn't double-count the start.
     if (!_trackedStart) {
@@ -428,10 +447,17 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
     final next = Map<String, String>.from(state.documentFiles);
     if (event.filePath == null) {
       next.remove(event.documentId);
+      unawaited(deletePersistedOnboardingKycImage(event.documentId));
     } else {
       next[event.documentId] = event.filePath!;
     }
-    emit(state.copyWith(documentFiles: next));
+    emit(
+      state.copyWith(
+        documentFiles: next,
+        draft: state.draft.copyWith(documentFiles: next),
+      ),
+    );
+    _scheduleSave();
   }
 
   Future<void> _onSubmitted(

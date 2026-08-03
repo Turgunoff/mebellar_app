@@ -1,6 +1,8 @@
 import 'dart:io';
 
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../../core/platform/image_picker_facade.dart';
 
@@ -83,4 +85,69 @@ class ImageUploadHelper {
     if (dot < 0 || dot == path.length - 1) return '';
     return path.substring(dot + 1);
   }
+}
+
+/// Subfolder under app Documents for mid-flow onboarding KYC images.
+const kOnboardingKycDirName = 'onboarding_kyc';
+
+Future<Directory> _onboardingKycDir() async {
+  final docs = await getApplicationDocumentsDirectory();
+  final dir = Directory('${docs.path}/$kOnboardingKycDirName');
+  if (!await dir.exists()) {
+    await dir.create(recursive: true);
+  }
+  return dir;
+}
+
+/// Compress a gallery/camera pick to WebP and store it under app Documents.
+///
+/// Encode runs at pick-time (not contract accept). The file is written to a
+/// stable Documents path (`onboarding_kyc/{documentId}.webp`) so Hive can
+/// persist the path and the wizard can restore after an app kill — unlike
+/// [getTemporaryDirectory], which the OS may clear.
+Future<String> compressAndPersistOnboardingKycImage({
+  required String sourcePath,
+  required String documentId,
+}) async {
+  final compressed = await FlutterImageCompress.compressWithFile(
+    File(sourcePath).absolute.path,
+    format: CompressFormat.webp,
+    quality: 88,
+    keepExif: false,
+    minWidth: 1600,
+    minHeight: 1600,
+  );
+  if (compressed == null) {
+    throw StateError('image_compress_failed');
+  }
+  final dir = await _onboardingKycDir();
+  final out = File('${dir.path}/$documentId.webp');
+  await out.writeAsBytes(compressed, flush: true);
+  return out.path;
+}
+
+/// Drop one persisted KYC image (user removed the card).
+Future<void> deletePersistedOnboardingKycImage(String documentId) async {
+  final docs = await getApplicationDocumentsDirectory();
+  final file = File('${docs.path}/$kOnboardingKycDirName/$documentId.webp');
+  if (await file.exists()) {
+    await file.delete();
+  }
+}
+
+/// Wipe the whole onboarding KYC folder after successful submit / reset.
+Future<void> clearPersistedOnboardingKycImages() async {
+  final docs = await getApplicationDocumentsDirectory();
+  final dir = Directory('${docs.path}/$kOnboardingKycDirName');
+  if (await dir.exists()) {
+    await dir.delete(recursive: true);
+  }
+}
+
+/// Keep only paths whose files still exist on disk.
+Map<String, String> existingOnboardingKycPaths(Map<String, String> paths) {
+  return {
+    for (final e in paths.entries)
+      if (File(e.value).existsSync()) e.key: e.value,
+  };
 }

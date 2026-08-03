@@ -104,17 +104,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     BuildContext context,
     int unreadChats,
     int unreadSupport,
-    ProfileState profile,
   ) => [
-    // Always-available fallback to the resubmit flow. Even after the rejection
-    // banner is dismissed, a rejected seller reaches their application from
-    // here — so closing the banner never locks them out of fixing it.
-    if (profile.isSellerRejected)
-      MenuEntry(
-        icon: Iconsax.refresh,
-        label: tr('profile.menu_application_status'),
-        onTap: _openSellerOnboarding,
-      ),
+    // Resubmit-after-rejection stays on the profile seller cards
+    // (SellerRejectedBanner / BecomeSellerBanner) — no separate menu row.
     MenuEntry(
       icon: Iconsax.message_copy,
       label: tr('chat.title'),
@@ -226,7 +218,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 context,
                 unreadChats,
                 unreadSupport,
-                profileState,
               ),
             ),
             const SizedBox(height: 28),

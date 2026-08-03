@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 
+import '../../../../core/auth/auth_repository.dart';
 import '../../../../core/di/service_locator.dart';
-import '../../../../core/i18n/app_locale_controller.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../customer/features/home/widgets/premium/premium_tokens.dart';
@@ -13,17 +14,17 @@ import '../constants/seller_contract_oferta.dart';
 import '../utils/contract_pdf_generator.dart';
 import '../widgets/onboarding_kit.dart';
 
-/// Seller public-offer (ommaviy oferta) screen.
+/// Seller public-offer (vositachilik shartnomasi) screen — formal GPD layout.
 ///
-/// Fetches live copy from `GET /legal/oferta`, injects seller placeholders,
-/// and either gates accept (onboarding) or shows the stamped acceptance date
-/// (read-only from Profile) with a PDF share action.
+/// A4 paper illusion with three parts: city/date header, markdown body, and a
+/// two-column requisites table. Fetches live copy from `GET /legal/oferta`.
 class SellerContractScreen extends StatelessWidget {
   const SellerContractScreen({
     super.key,
     this.isReadOnly = false,
     this.sellerName = '',
     this.sellerPhone = '',
+    this.sellerAddress = '',
     this.commissionPercent,
     this.acceptedAt,
     this.acceptedVersion,
@@ -32,6 +33,7 @@ class SellerContractScreen extends StatelessWidget {
   final bool isReadOnly;
   final String sellerName;
   final String sellerPhone;
+  final String sellerAddress;
 
   /// Active plan commission (e.g. `"6"`). Defaults to Free (6%) when null.
   final String? commissionPercent;
@@ -51,6 +53,7 @@ class SellerContractScreen extends StatelessWidget {
           isReadOnly: true,
           sellerName: sellerName,
           sellerPhone: sellerPhone,
+          sellerAddress: sellerAddress,
           commissionPercent: commissionPercent,
           acceptedAt: acceptedAt,
           acceptedVersion: acceptedVersion,
@@ -67,6 +70,7 @@ class SellerContractScreen extends StatelessWidget {
             isReadOnly: false,
             sellerName: sellerName,
             sellerPhone: sellerPhone,
+            sellerAddress: sellerAddress,
             commissionPercent: commissionPercent,
             acceptedAt: acceptedAt,
             acceptedVersion: acceptedVersion,
@@ -82,6 +86,7 @@ class _SellerContractBody extends StatefulWidget {
     required this.isReadOnly,
     this.sellerName = '',
     this.sellerPhone = '',
+    this.sellerAddress = '',
     this.commissionPercent,
     this.acceptedAt,
     this.acceptedVersion,
@@ -90,6 +95,7 @@ class _SellerContractBody extends StatefulWidget {
   final bool isReadOnly;
   final String sellerName;
   final String sellerPhone;
+  final String sellerAddress;
   final String? commissionPercent;
   final DateTime? acceptedAt;
   final String? acceptedVersion;
@@ -137,10 +143,6 @@ class _SellerContractBodyState extends State<_SellerContractBody> {
             : kSellerOfertaFallbackContent;
         _version = doc.version;
         _loading = false;
-        // TODO(legal-reaccept): when
-        // ofertaNeedsReaccept(acceptedVersion: widget.acceptedVersion,
-        // remoteVersion: _version) is true, surface a blocking re-sign
-        // prompt from seller boot / login (not here).
       });
     } catch (_) {
       if (!mounted) return;
@@ -172,10 +174,16 @@ class _SellerContractBodyState extends State<_SellerContractBody> {
     }
   }
 
+  String get _languageCode =>
+      sl<AppLocaleController>().value.languageCode;
+
+  String get _contractNumber =>
+      generateOfertaContractNumber(sl<AuthRepository>().currentUserId);
+
   String _resolveSellerName(BuildContext context) {
     if (widget.sellerName.trim().isNotEmpty) return widget.sellerName.trim();
     if (widget.isReadOnly) return '';
-    final draft = context.select((OnboardingBloc b) => b.state.draft);
+    final draft = context.read<OnboardingBloc>().state.draft;
     if (draft.legalName?.trim().isNotEmpty ?? false) {
       return draft.legalName!.trim();
     }
@@ -188,8 +196,17 @@ class _SellerContractBodyState extends State<_SellerContractBody> {
   String _resolvePhone(BuildContext context) {
     if (widget.sellerPhone.trim().isNotEmpty) return widget.sellerPhone.trim();
     if (widget.isReadOnly) return '';
-    final draft = context.select((OnboardingBloc b) => b.state.draft);
+    final draft = context.read<OnboardingBloc>().state.draft;
     return draft.contactPhone?.trim() ?? '';
+  }
+
+  String _resolveAddress(BuildContext context) {
+    if (widget.sellerAddress.trim().isNotEmpty) {
+      return widget.sellerAddress.trim();
+    }
+    if (widget.isReadOnly) return '';
+    final draft = context.read<OnboardingBloc>().state.draft;
+    return draft.shopStreetLine?.trim() ?? '';
   }
 
   String _resolveCommission() {
@@ -218,6 +235,7 @@ class _SellerContractBodyState extends State<_SellerContractBody> {
       sellerName: _resolveSellerName(context),
       commissionPercent: _resolveCommission(),
       dateLabel: _loading ? '…' : _resolveDateLabel(),
+      contractNumber: _contractNumber,
     );
   }
 
@@ -225,14 +243,19 @@ class _SellerContractBodyState extends State<_SellerContractBody> {
     if (_pdfBusy || _loading) return;
     final name = _resolveSellerName(context);
     final phone = _resolvePhone(context);
+    final address = _resolveAddress(context);
     final text = _injectedText(context);
+    final dateLabel = _resolveDateLabel();
     setState(() => _pdfBusy = true);
     try {
       await generateAndShareContractPdf(
         sellerName: name,
         sellerPhone: phone,
+        sellerAddress: address,
         contractText: text,
-        languageCode: sl<AppLocaleController>().value.languageCode,
+        contractNumber: _contractNumber,
+        dateLabel: dateLabel,
+        languageCode: _languageCode,
       );
     } catch (e) {
       if (!mounted) return;
@@ -255,19 +278,26 @@ class _SellerContractBodyState extends State<_SellerContractBody> {
 
     final bodyStyle = TextStyle(
       fontFamily: AppFonts.display,
-      fontSize: 14,
+      fontSize: 13.5,
       height: 1.55,
       color: const Color(0xFF1A1A1A),
       fontWeight: FontWeight.w400,
     );
     final boldStyle = bodyStyle.copyWith(fontWeight: FontWeight.w700);
     final headingStyle = bodyStyle.copyWith(
-      fontSize: 16,
+      fontSize: 15,
       fontWeight: FontWeight.w700,
       height: 1.35,
     );
+    final chromeStyle = bodyStyle.copyWith(fontSize: 12.5);
+    final chromeBold = chromeStyle.copyWith(fontWeight: FontWeight.w700);
 
+    final labels = OfertaGpdLabels.forLang(_languageCode);
     final injected = _injectedText(context);
+    final dateLabel = _loading ? '…' : _resolveDateLabel();
+    final sellerName = _resolveSellerName(context);
+    final sellerPhone = _resolvePhone(context);
+    final sellerAddress = _resolveAddress(context);
 
     return Column(
       children: [
@@ -282,7 +312,7 @@ class _SellerContractBodyState extends State<_SellerContractBody> {
                     children: [
                       if (widget.isReadOnly && widget.acceptedAt != null) ...[
                         _AcceptedBanner(
-                          dateLabel: _resolveDateLabel(),
+                          dateLabel: dateLabel,
                           version: widget.acceptedVersion ?? _version,
                         ),
                         const SizedBox(height: 12),
@@ -325,16 +355,48 @@ class _SellerContractBodyState extends State<_SellerContractBody> {
                           ),
                         ),
                         child: Padding(
-                          padding: const EdgeInsets.fromLTRB(28, 36, 28, 40),
-                          child: Text.rich(
-                            TextSpan(
-                              style: headingStyle,
-                              children: parseOfertaMarkdownSpans(
-                                content: injected,
-                                body: bodyStyle,
-                                bold: boldStyle,
+                          padding: const EdgeInsets.fromLTRB(22, 28, 22, 32),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // ── Part 1: Header ────────────────────────
+                              _GpdHeader(
+                                labels: labels,
+                                contractNumber: _contractNumber,
+                                dateLabel: dateLabel,
+                                cityStyle: chromeBold,
+                                titleStyle: chromeBold,
+                                dateStyle: chromeStyle,
                               ),
-                            ),
+                              const SizedBox(height: 20),
+                              // ── Part 2: Markdown body ─────────────────
+                              MarkdownBody(
+                                data: injected,
+                                selectable: false,
+                                softLineBreak: true,
+                                styleSheet: MarkdownStyleSheet(
+                                  p: bodyStyle,
+                                  pPadding: EdgeInsets.zero,
+                                  strong: boldStyle,
+                                  h1: headingStyle,
+                                  h2: headingStyle,
+                                  h3: headingStyle,
+                                  listBullet: bodyStyle,
+                                  blockSpacing: 10,
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              // ── Part 3: Requisites table ──────────────
+                              _GpdRequisitesTable(
+                                labels: labels,
+                                sellerName: sellerName,
+                                sellerPhone: sellerPhone,
+                                sellerAddress: sellerAddress,
+                                headingStyle: chromeBold,
+                                cellStyle: chromeStyle.copyWith(fontSize: 11),
+                                cellBold: chromeBold.copyWith(fontSize: 11),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -367,9 +429,7 @@ class _SellerContractBodyState extends State<_SellerContractBody> {
                 width: double.infinity,
                 height: 52,
                 child: OutlinedButton.icon(
-                  onPressed: (_loading || _pdfBusy)
-                      ? null
-                      : () => _sharePdf(),
+                  onPressed: (_loading || _pdfBusy) ? null : () => _sharePdf(),
                   icon: _pdfBusy
                       ? const SizedBox(
                           width: 18,
@@ -477,8 +537,13 @@ class _SellerContractBodyState extends State<_SellerContractBody> {
                                   strokeWidth: 2,
                                 ),
                               )
-                            : const Icon(Icons.picture_as_pdf_outlined, size: 18),
-                        label: Text(tr('seller.profile_contract_pdf_download')),
+                            : const Icon(
+                                Icons.picture_as_pdf_outlined,
+                                size: 18,
+                              ),
+                        label: Text(
+                          tr('seller.profile_contract_pdf_download'),
+                        ),
                       ),
                     ),
                   ],
@@ -487,6 +552,142 @@ class _SellerContractBodyState extends State<_SellerContractBody> {
             ),
           ),
       ],
+    );
+  }
+}
+
+class _GpdHeader extends StatelessWidget {
+  const _GpdHeader({
+    required this.labels,
+    required this.contractNumber,
+    required this.dateLabel,
+    required this.cityStyle,
+    required this.titleStyle,
+    required this.dateStyle,
+  });
+
+  final OfertaGpdLabels labels;
+  final String contractNumber;
+  final String dateLabel;
+  final TextStyle cityStyle;
+  final TextStyle titleStyle;
+  final TextStyle dateStyle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Text(labels.city, style: cityStyle),
+        ),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '${labels.contractTitle} $contractNumber',
+                style: titleStyle,
+                textAlign: TextAlign.right,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${labels.datePrefix} $dateLabel',
+                style: dateStyle,
+                textAlign: TextAlign.right,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _GpdRequisitesTable extends StatelessWidget {
+  const _GpdRequisitesTable({
+    required this.labels,
+    required this.sellerName,
+    required this.sellerPhone,
+    required this.sellerAddress,
+    required this.headingStyle,
+    required this.cellStyle,
+    required this.cellBold,
+  });
+
+  final OfertaGpdLabels labels;
+  final String sellerName;
+  final String sellerPhone;
+  final String sellerAddress;
+  final TextStyle headingStyle;
+  final TextStyle cellStyle;
+  final TextStyle cellBold;
+
+  @override
+  Widget build(BuildContext context) {
+    final platformBlock = buildPlatformRequisitesBlock(labels);
+    final sellerBlock = buildSellerRequisitesBlock(
+      labels: labels,
+      sellerName: sellerName,
+      sellerPhone: sellerPhone,
+      sellerAddress: sellerAddress,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          labels.requisitesHeading,
+          style: headingStyle,
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 10),
+        Table(
+          border: TableBorder.all(
+            color: Colors.black.withValues(alpha: 0.75),
+            width: 0.8,
+          ),
+          columnWidths: const {
+            0: FlexColumnWidth(1),
+            1: FlexColumnWidth(1),
+          },
+          children: [
+            TableRow(
+              children: [
+                _Cell(
+                  child: Text(labels.platformColumnTitle, style: cellBold),
+                ),
+                _Cell(
+                  child: Text(labels.sellerColumnTitle, style: cellBold),
+                ),
+              ],
+            ),
+            TableRow(
+              children: [
+                _Cell(
+                  child: Text(platformBlock, style: cellStyle),
+                ),
+                _Cell(
+                  child: Text(sellerBlock, style: cellStyle),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _Cell extends StatelessWidget {
+  const _Cell({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(10),
+      child: child,
     );
   }
 }

@@ -4,10 +4,23 @@ import 'package:flutter/painting.dart';
 const kOfertaSellerName = '{{SOTUVCHI_NOMI}}';
 const kOfertaCommission = '{{KOMISSIYA_FOIZI}}';
 const kOfertaDate = '{{SANA}}';
+const kOfertaContractNumber = '{{SHARTNOMA_RAQAMI}}';
 
-/// Offline / 404 fallback — must stay in lockstep with the seeded
-/// `seller_oferta` row until the Admin edits it remotely.
-const String kSellerOfertaFallbackContent = '''OMMAVIY OFERTA (Platformadan foydalanish va vositachilik xizmatlari ko'rsatish shartnomasi)
+/// Hardcoded Woody / Zettacode MCHJ bank values for the GPD requisites column.
+/// Do not paraphrase — must match the registered entity.
+const String kZettacodeLegalName = 'Zettacode MCHJ';
+const String kZettacodeAddress =
+    "Toshkent viloyati, Zangiota tumani, Boz-su, O'rikzor mahallasi, Nurobod MFY, Sharof Rashidov ko'chasi, 69-uy";
+const String kZettacodeBank = 'Milliy bankning Bektemir filiali';
+const String kZettacodeAccount = '2020 8000 5074 8592 8003';
+const String kZettacodeMfo = '00450';
+const String kZettacodeInn = '313 110 418';
+const String kZettacodeDirector = 'ELDOR TURG‘UNOV';
+
+/// Offline / 404 fallback — body only (header + requisites are Flutter/PDF chrome).
+/// Keep placeholders in lockstep with the seeded `seller_oferta` rows.
+const String kSellerOfertaFallbackContent =
+    '''"Woody" platformasi nomidan ish ko'ruvchi "Zettacode" MCHJ (keyingi o'rinlarda "Platforma" yoki "Buyurtmachi"), bir tomondan, va mustaqil tadbirkor/jismoniy shaxs — **{{SOTUVCHI_NOMI}}** (keyingi o'rinlarda "Sotuvchi" yoki "Ijrochi"), ikkinchi tomondan, quyidagilar haqida mazkur shartnomani tuzdilar:
 
 1. Umumiy qoidalar
 1.1. Ushbu shartnoma "Woody" mebellar platformasi (keyingi o'rinlarda "Platforma") va o'z mahsulotlarini sotuvchi mustaqil tadbirkor/jismoniy shaxs — **{{SOTUVCHI_NOMI}}** (keyingi o'rinlarda "Sotuvchi") o'rtasida tuzildi.
@@ -26,20 +39,144 @@ const String kSellerOfertaFallbackContent = '''OMMAVIY OFERTA (Platformadan foyd
 4.2. Agar mahsulot sifatsiz bo'lsa yoki yetkazish vaqti asossiz ravishda buzilsa, Platforma tranzaksiyani bekor qilishga va mablag'ni xaridorga to'liq qaytarishga (Refund) haqli.
 ''';
 
+/// Builds a stable human-readable contract number from the seller/user id.
+/// Example: `W-A1B2C3` from UUID `a1b2c3d4-…`.
+String generateOfertaContractNumber(String? sellerId) {
+  final raw = (sellerId ?? '').replaceAll(RegExp(r'[^a-zA-Z0-9]'), '');
+  if (raw.isEmpty) return 'W-XXXXXX';
+  final prefix = raw.length >= 6 ? raw.substring(0, 6) : raw.padRight(6, '0');
+  return 'W-${prefix.toUpperCase()}';
+}
+
 /// Injects seller-specific values into the remote (or fallback) oferta body.
 String injectOfertaPlaceholders(
   String content, {
   required String sellerName,
   required String commissionPercent,
   required String dateLabel,
+  String? contractNumber,
 }) {
-  return content
+  var out = content
       .replaceAll(
         kOfertaSellerName,
         sellerName.trim().isEmpty ? '—' : sellerName.trim(),
       )
       .replaceAll(kOfertaCommission, commissionPercent)
       .replaceAll(kOfertaDate, dateLabel);
+  if (contractNumber != null) {
+    out = out.replaceAll(kOfertaContractNumber, contractNumber);
+  }
+  return out;
+}
+
+/// Localized chrome for the formal GPD header + requisites table (UI + PDF).
+class OfertaGpdLabels {
+  const OfertaGpdLabels({
+    required this.city,
+    required this.contractTitle,
+    required this.datePrefix,
+    required this.requisitesHeading,
+    required this.platformColumnTitle,
+    required this.sellerColumnTitle,
+    required this.address,
+    required this.bank,
+    required this.account,
+    required this.director,
+    required this.seller,
+    required this.phone,
+  });
+
+  final String city;
+  final String contractTitle;
+  final String datePrefix;
+  final String requisitesHeading;
+  final String platformColumnTitle;
+  final String sellerColumnTitle;
+  final String address;
+  final String bank;
+  final String account;
+  final String director;
+  final String seller;
+  final String phone;
+
+  static OfertaGpdLabels forLang(String languageCode) {
+    switch (languageCode) {
+      case 'ru':
+        return const OfertaGpdLabels(
+          city: 'г. Ташкент',
+          contractTitle: 'ПОСРЕДНИЧЕСКИЙ ДОГОВОР №',
+          datePrefix: 'Дата:',
+          requisitesHeading: 'РЕКВИЗИТЫ И ПОДПИСИ СТОРОН',
+          platformColumnTitle: 'Платформа (Заказчик)',
+          sellerColumnTitle: 'Продавец (Исполнитель)',
+          address: 'Адрес',
+          bank: 'Банк',
+          account: 'Р/с',
+          director: 'Директор',
+          seller: 'Продавец',
+          phone: 'Телефон',
+        );
+      case 'en':
+        return const OfertaGpdLabels(
+          city: 'Tashkent',
+          contractTitle: 'INTERMEDIARY AGREEMENT No.',
+          datePrefix: 'Date:',
+          requisitesHeading: 'PARTY DETAILS AND SIGNATURES',
+          platformColumnTitle: 'Platform (Client)',
+          sellerColumnTitle: 'Seller (Contractor)',
+          address: 'Address',
+          bank: 'Bank',
+          account: 'Account',
+          director: 'Director',
+          seller: 'Seller',
+          phone: 'Phone',
+        );
+      default:
+        return const OfertaGpdLabels(
+          city: 'Toshkent shahri',
+          contractTitle: 'VOSITACHILIK SHARTNOMASI №',
+          datePrefix: 'Sana:',
+          requisitesHeading: 'TOMONLARNING REKVIZITLARI VA IMZOLARI',
+          platformColumnTitle: 'Platforma (Buyurtmachi)',
+          sellerColumnTitle: 'Sotuvchi (Ijrochi)',
+          address: 'Manzil',
+          bank: 'Bank',
+          account: 'H/r',
+          director: 'Direktor',
+          seller: 'Sotuvchi',
+          phone: 'Telefon',
+        );
+    }
+  }
+}
+
+
+/// Platform (Zettacode) requisites block — no signature line (electronic accept).
+String buildPlatformRequisitesBlock(OfertaGpdLabels labels) {
+  return '$kZettacodeLegalName\n'
+      '${labels.address}: $kZettacodeAddress\n'
+      '${labels.bank}: $kZettacodeBank\n'
+      '${labels.account}: $kZettacodeAccount\n'
+      'MFO: $kZettacodeMfo\n'
+      'INN: $kZettacodeInn\n'
+      '${labels.director}: $kZettacodeDirector';
+}
+
+/// Seller requisites: only real non-empty fields (omit missing address/phone/name).
+String buildSellerRequisitesBlock({
+  required OfertaGpdLabels labels,
+  required String sellerName,
+  required String sellerPhone,
+  required String sellerAddress,
+}) {
+  final lines = <String>[];
+  final name = sellerName.trim();
+  final address = sellerAddress.trim();
+  final phone = sellerPhone.trim();
+  if (name.isNotEmpty) lines.add('${labels.seller}: $name');
+  if (address.isNotEmpty) lines.add('${labels.address}: $address');
+  if (phone.isNotEmpty) lines.add('${labels.phone}: $phone');
+  return lines.join('\n');
 }
 
 /// Renders `**bold**` markers from the legal body as [TextSpan]s.
@@ -53,7 +190,9 @@ List<InlineSpan> parseOfertaMarkdownSpans({
   var cursor = 0;
   for (final match in pattern.allMatches(content)) {
     if (match.start > cursor) {
-      spans.add(TextSpan(text: content.substring(cursor, match.start), style: body));
+      spans.add(
+        TextSpan(text: content.substring(cursor, match.start), style: body),
+      );
     }
     spans.add(TextSpan(text: match.group(1), style: bold));
     cursor = match.end;

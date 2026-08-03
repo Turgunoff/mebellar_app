@@ -7,6 +7,10 @@ import 'region.dart';
 /// The full payload the onboarding wizard collects across its 6 steps.
 /// Persisted to Hive `onboarding_draft` after every input change so the
 /// user can close the app mid-flow and resume.
+///
+/// KYC image paths live in [documentFiles] (document id → absolute path under
+/// the app Documents directory). Stored as a plain map in the same Hive JSON
+/// blob — no typed Hive adapter / build_runner required.
 class OnboardingDraft extends Equatable {
   const OnboardingDraft({
     this.businessType,
@@ -29,6 +33,7 @@ class OnboardingDraft extends Equatable {
     this.shopLng,
     this.verifyNow = true,
     this.lastStep = 0,
+    this.documentFiles = const {},
   });
 
   final BusinessType? businessType;
@@ -54,6 +59,9 @@ class OnboardingDraft extends Equatable {
   final bool verifyNow;
   final int lastStep;
 
+  /// Persisted KYC local paths keyed by document id (`passport_front`, …).
+  final Map<String, String> documentFiles;
+
   bool get hasShopName =>
       (shopNameUz?.isNotEmpty ?? false) ||
       (shopNameRu?.isNotEmpty ?? false) ||
@@ -63,6 +71,8 @@ class OnboardingDraft extends Equatable {
   /// the bloc to decide whether to fall through to a remote hydrate (e.g.
   /// after rejection, where the local Hive draft was cleared at submit time
   /// but the server still has the previous answers).
+  /// Document paths alone do not count — an abandoned KYC pick without form
+  /// fields should still allow remote hydrate on resubmit-after-rejection.
   bool get isEmpty =>
       businessType == null &&
       (legalName?.isEmpty ?? true) &&
@@ -104,6 +114,8 @@ class OnboardingDraft extends Equatable {
     double? shopLng,
     bool? verifyNow,
     int? lastStep,
+    Map<String, String>? documentFiles,
+    bool clearDocumentFiles = false,
   }) {
     return OnboardingDraft(
       businessType: businessType ?? this.businessType,
@@ -126,6 +138,9 @@ class OnboardingDraft extends Equatable {
       shopLng: shopLng ?? this.shopLng,
       verifyNow: verifyNow ?? this.verifyNow,
       lastStep: lastStep ?? this.lastStep,
+      documentFiles: clearDocumentFiles
+          ? const {}
+          : (documentFiles ?? this.documentFiles),
     );
   }
 
@@ -150,6 +165,7 @@ class OnboardingDraft extends Equatable {
     'shop_lng': shopLng,
     'verify_now': verifyNow,
     'last_step': lastStep,
+    'document_files': documentFiles,
   };
 
   /// Hive can store primitive maps but not nested Region objects, so the
@@ -187,7 +203,17 @@ class OnboardingDraft extends Equatable {
       shopLng: (map['shop_lng'] as num?)?.toDouble(),
       verifyNow: map['verify_now'] as bool? ?? true,
       lastStep: (map['last_step'] as num?)?.toInt() ?? 0,
+      documentFiles: _documentFilesFrom(map['document_files']),
     );
+  }
+
+  static Map<String, String> _documentFilesFrom(dynamic raw) {
+    if (raw is! Map) return const {};
+    return {
+      for (final entry in raw.entries)
+        if (entry.key != null && entry.value != null)
+          entry.key.toString(): entry.value.toString(),
+    };
   }
 
   @override
@@ -212,5 +238,6 @@ class OnboardingDraft extends Equatable {
     shopLng,
     verifyNow,
     lastStep,
+    documentFiles,
   ];
 }

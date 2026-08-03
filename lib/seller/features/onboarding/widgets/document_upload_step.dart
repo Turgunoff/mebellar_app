@@ -7,6 +7,7 @@ import 'package:woody_app/core/i18n/i18n.dart';
 
 import '../../../../customer/features/home/widgets/premium/premium_tokens.dart';
 import '../../../../shared/models/business_type.dart';
+import '../../../../shared/utils/image_upload.dart';
 import '../bloc/onboarding_bloc.dart';
 import 'onboarding_kit.dart';
 
@@ -24,10 +25,10 @@ class DocumentUploadStep extends StatelessWidget {
           a.draft.businessType != b.draft.businessType ||
           a.documentFiles != b.documentFiles,
       builder: (context, state) {
-        final type = state.draft.businessType;
-        final requirements = type == null
-            ? const <_DocumentRequirement>[]
-            : _requirementsFor(type);
+        // Launch accepts only individuals; never render an empty KYC list when
+        // businessType is missing (resubmit-after-rejection used to hit this).
+        final type = state.draft.businessType ?? BusinessType.individual;
+        final requirements = _requirementsFor(type);
 
         return StepReveal(
           step: OnboardingStep.documentUpload,
@@ -56,6 +57,7 @@ class DocumentUploadStep extends StatelessWidget {
 
   Future<void> _pick(BuildContext context, String documentId) async {
     final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context, rootNavigator: true);
     final bloc = context.read<OnboardingBloc>();
     try {
       final file = await ImagePicker().pickImage(
@@ -63,8 +65,31 @@ class DocumentUploadStep extends StatelessWidget {
         imageQuality: 90,
       );
       if (file == null) return;
+      if (!context.mounted) return;
+      // WebP encode here (not on contract accept) — large gallery photos
+      // otherwise stall the submit spinner for ~15–30s.
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(
+          child: CircularProgressIndicator(color: PremiumTokens.accent),
+        ),
+      );
+      String compressedPath;
+      try {
+        compressedPath = await compressAndPersistOnboardingKycImage(
+          sourcePath: file.path,
+          documentId: documentId,
+        );
+      } finally {
+        if (navigator.canPop()) navigator.pop();
+      }
+      if (!context.mounted) return;
       bloc.add(
-        OnboardingDocumentPicked(documentId: documentId, filePath: file.path),
+        OnboardingDocumentPicked(
+          documentId: documentId,
+          filePath: compressedPath,
+        ),
       );
     } catch (e) {
       messenger.showSnackBar(

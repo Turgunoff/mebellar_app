@@ -195,6 +195,8 @@ dependencies:
   app_tracking_transparency: ^2.0.6
   pdf: ^3.13.0
   printing: ^5.15.0
+  # Seller oferta body uses **bold** markers from legal_documents.
+  flutter_markdown: ^0.7.7+1
 
 dependency_overrides:
   # `record` 5.2.1 pins `record_linux` to `<1.0.0`, which resolves to the

@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../core/auth/auth_repository.dart';
@@ -10,10 +9,12 @@ import '../../core/logging/app_logger.dart';
 import '../../core/network/woody_api_client.dart';
 import '../../core/result/result.dart';
 import '../../core/storage/r2_upload_client.dart';
+import '../utils/image_upload.dart';
 import '../models/address.dart';
 import '../models/analytics.dart';
 import '../models/dashboard_snapshot.dart';
 import '../models/multilingual_text.dart';
+import '../models/business_type.dart';
 import '../models/onboarding_draft.dart';
 import '../models/order.dart' as order_models;
 import '../models/order_status.dart';
@@ -201,8 +202,21 @@ class WoodySellerOnboardingRepository implements SellerOnboardingRepository {
   Future<OnboardingDraft?> loadRemoteDraft() async {
     try {
       final body = await _api.get<Map<String, dynamic>>('/seller/me');
-      final shopName = body['shop_name'] as String?;
+      // shop_name is a localized string from SellerProfileResponse; tolerate
+      // a MultilingualText-shaped map if an older payload sneaks through.
+      final shopRaw = body['shop_name'];
+      final String? shopName = switch (shopRaw) {
+        final String s => s,
+        final Map m =>
+          (m['uz'] ?? m['ru'] ?? m['en'])?.toString(),
+        _ => null,
+      };
       return const OnboardingDraft().copyWith(
+        // Required for DocumentUploadStep — without it the KYC cards render
+        // an empty list and "Shartnomaga o'tish" stays disabled forever.
+        businessType:
+            BusinessType.fromCode(body['business_type'] as String?) ??
+            BusinessType.individual,
         legalName: body['legal_name'] as String?,
         contactPhone: body['contact_phone'] as String?,
         contactEmail: body['contact_email'] as String?,
@@ -222,6 +236,7 @@ class WoodySellerOnboardingRepository implements SellerOnboardingRepository {
   @override
   Future<void> clearDraft() async {
     await _draftBox.delete(_draftKey);
+    await clearPersistedOnboardingKycImages();
   }
 
   @override
@@ -265,13 +280,21 @@ class WoodySellerOnboardingRepository implements SellerOnboardingRepository {
     // doesn't overwrite the prior attempt's images — the backend keeps a
     // per-attempt history and the admin can review what was sent each time.
     final attempt = DateTime.now().millisecondsSinceEpoch.toRadixString(36);
-    await _uploadPassport(
-      sellerId,
-      attempt,
-      'passport_front',
-      passportFrontPath,
-    );
-    await _uploadPassport(sellerId, attempt, 'passport_back', passportBackPath);
+    // Upload both sides in parallel (already WebP from pick-time compress).
+    await Future.wait([
+      _uploadPassport(
+        sellerId,
+        attempt,
+        'passport_front',
+        passportFrontPath,
+      ),
+      _uploadPassport(
+        sellerId,
+        attempt,
+        'passport_back',
+        passportBackPath,
+      ),
+    ]);
     return OnboardingSubmissionResult(
       sellerProfileId: sellerId,
       shopId: body['shop_id'] as String? ?? '',
@@ -288,17 +311,9 @@ class WoodySellerOnboardingRepository implements SellerOnboardingRepository {
     String? localPath,
   ) async {
     if (localPath == null) return;
-    // Compress to WebP (~88% quality) before upload — keeps passport text
-    // legible while cutting the payload, and the admin renders WebP natively.
-    final compressed = await FlutterImageCompress.compressWithFile(
-      File(localPath).absolute.path,
-      format: CompressFormat.webp,
-      quality: 88,
-      keepExif: false,
-      minWidth: 1600,
-      minHeight: 1600,
-    );
-    final bytes = compressed ?? await File(localPath).readAsBytes();
+    // Bytes are already WebP from pick-time compressKycImageToTempWebp —
+    // encode cost must not sit on the contract-accept spinner.
+    final bytes = await File(localPath).readAsBytes();
     final path = '$sellerId/$attempt/$documentType.webp';
     await _uploads.upload(
       bucket: R2Bucket.verificationDocs,
