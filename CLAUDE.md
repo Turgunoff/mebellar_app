@@ -136,6 +136,26 @@ Invariants:
 - **Hybrid inbox + push prefs:** guests read public news via `/catalog/news`; signed-in personal alerts via `/notifications`. `promo_push_enabled` → Flutter FCM topic `news`; `order_push_enabled` → backend may suppress OS FCM for ORDER types while keeping the in-app inbox.
 - **Analytics privacy:** Settings **"Foydalanish statistikasi"** disables Firebase Analytics + Crashlytics (and Meta gated events) at toggle time and on cold boot via Hive. Never reintroduce always-on collection.
 
+### Seller Oferta (B2B legal) — Aug 2026
+
+- **Dynamic legal text:** Oferta bodies are **NOT hardcoded** as the source of
+  truth. Fetch `GET /legal/oferta?lang=` via `LegalDocumentsRepository` /
+  `WoodyLegalDocumentsRepository`, then interpolate
+  `{{SOTUVCHI_NOMI}}`, `{{KOMISSIYA_FOIZI}}`, `{{SANA}}` with
+  `injectOfertaPlaceholders` (`seller_contract_oferta.dart`). The embedded
+  `kSellerOfertaFallbackContent` is offline/404 only. Pass
+  `AppLocaleController.value.languageCode` as `lang` (uz/ru/en; backend falls
+  back to uz).
+- **Scroll-to-accept + stamp:** `SellerContractScreen` disables Accept until
+  the seller scrolls to the bottom; onboarding submit stamps
+  `contract_accepted_at` / `contract_version` via `POST /seller/onboarding`.
+  Profile opens the same screen read-only.
+- **PDF generation:** Uses `pdf` and `printing`. Logic lives in
+  `lib/seller/features/onboarding/utils/contract_pdf_generator.dart`. Always
+  use **Inter TTF** (`assets/google_fonts/Inter-*.ttf`) for PDF fonts so
+  Cyrillic and Latin render without tofu boxes. Footer is two-column
+  (Zettacode MCHJ left, seller right); labels localize by `languageCode`.
+
 ### Two-mode shell
 
 The app boots into a mode (customer or seller) resolved from Hive at
@@ -365,6 +385,9 @@ to a bloc, update the matching test or it will fail.
   conflict on `FlutterError.onError`
 - Don't reintroduce Supabase — it was fully removed; the only backend is
   woody_backend (REST + R2 + WebSocket). No `supabase_flutter` dependency.
+- Don't hardcode the seller Oferta body as the live source of truth — fetch
+  `/legal/oferta?lang=` and interpolate placeholders; keep Inter TTFs for PDFs
+  (Cyrillic). Don't replace Inter with a Latin-only PDF font.
 - Don't commit `env/prod.json`, `key.properties`, `*.jks`,
   `build/symbols/`, `google-services.json` if it contains secrets
 
@@ -372,6 +395,11 @@ to a bloc, update the matching test or it will fail.
 
 This brain captures the state after a multi-session redesign:
 
+- **Dynamic multi-lingual seller Oferta (2026-08)** — backend `legal_documents`
+  (uz/ru/en) + `GET /legal/oferta?lang=`; scroll-to-accept onboarding step;
+  `contract_accepted_at` / `contract_version` persistence; A4 PDF share with
+  Zettacode requisites + localized footer labels (Inter fonts). See § Seller
+  Oferta above and workspace TZ v1.2.
 - **Internal escrow + withdrawals, hybrid push prefs, analytics privacy (2026-08)** —
   online settlement credits `order_income` on `delivered` (not Payme Safe/Split);
   Settings toggles for promo/order push and **"Foydalanish statistikasi"** (Analytics +
