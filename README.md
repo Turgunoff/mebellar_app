@@ -6,7 +6,7 @@
 [![Dart](https://img.shields.io/badge/Dart-^3.11.5-0175C2?logo=dart)](https://dart.dev)
 [![Backend](https://img.shields.io/badge/Backend-woody__backend%20(FastAPI)-009688)](https://api.woody.uz)
 
-> **Authoritative docs:** the operational brain is [`CLAUDE.md`](./CLAUDE.md); the platform master spec is [`../docs/TZ.md`](../docs/TZ.md) (v1.1+). [`woody_mobile_tz.md`](./woody_mobile_tz.md) is a redirect stub. Deep-dive guides live in [`docs/`](./docs/). This README is a high-level orientation.
+> **Authoritative docs:** the operational brain is [`CLAUDE.md`](./CLAUDE.md); the platform master spec is [`doc/TZ.md`](./doc/TZ.md) (v1.1+). [`woody_mobile_tz.md`](./woody_mobile_tz.md) is a redirect stub. Deep-dive guides live in [`docs/`](./docs/). This README is a high-level orientation.
 
 ### Where this app sits in the Woody / Mebellar ecosystem
 
@@ -333,9 +333,9 @@ See [`docs/release-shorebird.md`](./docs/release-shorebird.md) for the full OTA 
 | [`docs/release-shorebird.md`](./docs/release-shorebird.md) | OTA rules + ledger + iOS SPM / Firebase caveats. |
 | [`CLAUDE.md`](./CLAUDE.md) | **Start here** — operational brain: architecture, conventions, gotchas, do-not-break invariants. |
 | [`.claude/rules/`](./.claude/rules/) | Distilled invariant cards (architecture, theming, i18n, backend-api, testing). |
-| [`woody_mobile_tz.md`](./woody_mobile_tz.md) | Redirect stub → workspace [`../docs/TZ.md`](../docs/TZ.md). |
-| [`../docs/TZ.md`](../docs/TZ.md) | Platform **Master Technical Specification** (single source of truth, v1.1+). |
-| [`../docs/_archive/workspace_audit_2026_06_18.md`](../docs/_archive/workspace_audit_2026_06_18.md) | 2026-06-18 code-health audit (incl. the mobile findings) — archived, all resolved. |
+| [`woody_mobile_tz.md`](./woody_mobile_tz.md) | Redirect stub → workspace [`doc/TZ.md`](./doc/TZ.md). |
+| [`doc/TZ.md`](./doc/TZ.md) | Platform **Master Technical Specification** (single source of truth, v1.1+). |
+| [`doc/_archive/workspace_audit_2026_06_18.md`](./doc/_archive/workspace_audit_2026_06_18.md) | 2026-06-18 code-health audit (incl. the mobile findings) — archived, all resolved. |
 | [`store/`](./store/) | App Store / Play listings + privacy policy. |
 
 ---

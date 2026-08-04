@@ -1,1 +1,1 @@
-> **MOVED:** Mobile product/API truth lives in the workspace master spec [`../docs/TZ.md`](../docs/TZ.md) (v1.1+). Day-to-day Flutter conventions live in [`CLAUDE.md`](./CLAUDE.md) and [`.claude/rules/`](./.claude/rules/). Deep-dives: [`docs/`](./docs/).
+> **MOVED:** Mobile product/API truth lives in the workspace master spec [`doc/TZ.md`](./doc/TZ.md) (v1.1+). Day-to-day Flutter conventions live in [`CLAUDE.md`](./CLAUDE.md) and [`.claude/rules/`](./.claude/rules/). Deep-dives: [`docs/`](./docs/).

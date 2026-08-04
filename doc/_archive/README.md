@@ -15,14 +15,14 @@ Bu repozitoriy **4 ta subproyektni** o'z ichiga oladi va barchasi yagona backend
 
 ## 📚 Hujjatlar (boshlanish nuqtasi)
 
-Butun platforma hujjatlari [`docs/`](docs/) da kanonik va birlashtirilgan:
+Butun platforma hujjatlari [`docs/`](../) da kanonik va birlashtirilgan:
 
 | Hujjat | Nima uchun ochiladi |
 |---|---|
 | 📖 **[TZ.md](TZ.md)** | **Master Technical Specification** — butun platforma uchun yagona haqiqat manbai (system overview, tech stack, core flows, data models, API kontraktlar, texnik qarz reyestri + roadmap). Eski biznes-qoidalar TZ'i shu faylga birlashtirildi. |
-| 🏗️ **[docs/architecture/system_design.md](docs/architecture/system_design.md)** | Tizim dizayni — Bloc/Cubit, kesh strategiyasi, single-owner modal pop, FastAPI qatlamlash, tarjima DB strukturasi |
-| 🗺️ **[docs/planning/roadmap.md](docs/planning/roadmap.md)** | Bajarilgan vs kelajak bosqichlar (Phase 3: Payme/Click · Phase 4: Referral/Cashback) |
-| 🧭 **[docs/README.md](docs/README.md)** | Hujjatlar daraxti indeksi |
+| 🏗️ **[../architecture/system_design.md](../architecture/system_design.md)** | Tizim dizayni — Bloc/Cubit, kesh strategiyasi, single-owner modal pop, FastAPI qatlamlash, tarjima DB strukturasi |
+| 🗺️ **[../planning/roadmap.md](../planning/roadmap.md)** | Bajarilgan vs kelajak bosqichlar (Phase 3: Payme/Click · Phase 4: Referral/Cashback) |
+| 🧭 **[docs/README.md](../README.md)** | Hujjatlar daraxti indeksi |
 
 Komponent-darajadagi deep-dive'lar va operatsion qo'llanmalar har bir subproyektning `*_tz.md` va `CLAUDE.md` fayllarida.
 

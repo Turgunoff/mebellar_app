@@ -5,7 +5,7 @@ distinct modes (customer + seller) inside one binary, backed by a custom
 FastAPI backend (`woody_backend` at `api.woody.uz`). Package name
 `com.mebellar.app`, internal Dart package name `woody_app`.
 
-> **Workspace master spec:** [`../docs/TZ.md`](../docs/TZ.md) (v1.1+) is the single source of truth for the whole platform. This file is the operational brain for the Flutter app. (`AGENTS.md` was merged here and removed.)
+> **Workspace master spec:** [`doc/TZ.md`](doc/TZ.md) (v1.1+) is the single source of truth for the whole platform. This file is the operational brain for the Flutter app. (`AGENTS.md` was merged here and removed.)
 
 ## Tech stack
 
@@ -132,7 +132,7 @@ Invariants:
 
 ### Platform money, push & privacy (Aug 2026)
 
-- **Internal escrow (not Payme Safe/Split):** online Payme/Click payment is held by Woody; on order `delivered`, the backend settles commission and credits seller `order_income`; sellers request card payouts via `wallet_withdrawals` (admin approve/reject). Details: workspace [`../docs/TZ.md`](../docs/TZ.md) monetization / escrow sections.
+- **Internal escrow (not Payme Safe/Split):** online Payme/Click payment is held by Woody; on order `delivered`, the backend settles commission and credits seller `order_income`; sellers request card payouts via `wallet_withdrawals` (admin approve/reject). Details: workspace [`doc/TZ.md`](doc/TZ.md) monetization / escrow sections.
 - **Hybrid inbox + push prefs:** guests read public news via `/catalog/news`; signed-in personal alerts via `/notifications`. `promo_push_enabled` → Flutter FCM topic `news`; `order_push_enabled` → backend may suppress OS FCM for ORDER types while keeping the in-app inbox.
 - **Analytics privacy:** Settings **"Foydalanish statistikasi"** disables Firebase Analytics + Crashlytics (and Meta gated events) at toggle time and on cold boot via Hive. Never reintroduce always-on collection.
 - **Dual analytics (2026-08):** GA4 for sessions/funnels (admin `/app-usage`; optional BigQuery link in Firebase Console). Signed-in **presence** via `PresenceService` → `POST /me/presence` (debounce 5 min, privacy-gated) + FCM token meta. `device_info_plus` ⇒ next store build must be `shorebird release`, not patch-only.
