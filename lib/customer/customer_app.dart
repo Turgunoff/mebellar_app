@@ -20,6 +20,7 @@ import '../core/logging/app_navigation_logger.dart';
 import '../core/logging/app_logger.dart';
 import '../core/notifications/notification_handler.dart';
 import '../core/notifications/push_service.dart';
+import '../core/presence/presence_service.dart';
 import '../core/services/facebook_analytics_service.dart';
 import '../core/connectivity/network_cubit.dart';
 import '../core/storage/hive_boxes.dart';
@@ -99,6 +100,17 @@ class _CustomerAppState extends State<CustomerApp> with WidgetsBindingObserver {
       // instead of leaving the user on stale, already-painted screens.
       revalidateSessionOnResume();
       _consumePendingRoute();
+      if (sl.isRegistered<PresenceService>()) {
+        sl<PresenceService>().onResumed();
+      }
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.inactive) {
+      // Cancel the 5-min presence Timer in every non-foreground state so it
+      // cannot fire (or retain) while backgrounded / OS-suspended.
+      if (sl.isRegistered<PresenceService>()) {
+        sl<PresenceService>().onPaused();
+      }
     }
   }
 

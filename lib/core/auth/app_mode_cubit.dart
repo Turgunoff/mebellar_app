@@ -84,13 +84,15 @@ class AppModeCubit extends Cubit<AppMode> {
     emit(mode);
     // Funnel signal — track only the customer→seller flip; entering
     // customer mode is the implicit default and would be noise.
-    if (mode == AppMode.seller) {
-      try {
-        unawaited(_analyticsLookup?.call().sellerModeEntered());
-      } catch (_) {
-        // Analytics resolution can fail in tests / no-Firebase builds —
-        // silently swallow; mode switch must still go through.
+    try {
+      final analytics = _analyticsLookup?.call();
+      unawaited(analytics?.setUserProperty(name: 'app_mode', value: mode.name));
+      if (mode == AppMode.seller) {
+        unawaited(analytics?.sellerModeEntered());
       }
+    } catch (_) {
+      // Analytics resolution can fail in tests / no-Firebase builds —
+      // silently swallow; mode switch must still go through.
     }
   }
 

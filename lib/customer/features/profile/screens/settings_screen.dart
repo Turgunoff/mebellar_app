@@ -206,6 +206,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _InfoBullet(text: tr('settings.analytics_b2')),
             _InfoBullet(text: tr('settings.analytics_b3')),
             _InfoBullet(text: tr('settings.analytics_b4')),
+            _InfoBullet(text: tr('settings.analytics_b5')),
             const SizedBox(height: 20),
             Container(
               padding: const EdgeInsets.all(14),

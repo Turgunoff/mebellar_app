@@ -12,7 +12,9 @@ import '../../config/app_mode.dart';
 import '../../shared/models/notification_model.dart';
 import '../logging/app_logger.dart';
 import '../network/api_error.dart';
+import '../di/service_locator.dart';
 import '../network/woody_api_client.dart';
+import '../presence/presence_service.dart';
 import '../platform/messaging_facade.dart';
 import 'active_chat_tracker.dart';
 import 'active_support_tracker.dart';
@@ -525,6 +527,9 @@ class PushService {
       }
       debugPrint('[FCM] token (first 24): ${token.substring(0, 24)}...');
       await _upsertToken(token: token, userId: userId);
+      if (sl.isRegistered<PresenceService>()) {
+        unawaited(sl<PresenceService>().ping());
+      }
     } on FirebaseException catch (e, st) {
       if (_isApnsTokenNotReady(e)) {
         _logApnsNotReady('skipping token sync');
@@ -591,10 +596,22 @@ class PushService {
   }) async {
     if (_woodyApi == null) return;
     final platform = _platformLabel();
+    Map<String, String> meta = {};
+    if (sl.isRegistered<PresenceService>()) {
+      final presence = sl<PresenceService>();
+      await presence.warmCache();
+      meta = Map<String, String>.from(presence.cachedMeta ?? const {});
+    }
     try {
       await _woodyApi.post<dynamic>(
         '/push/device-tokens',
-        body: {'token': token, 'platform': platform},
+        body: {
+          'token': token,
+          'platform': platform,
+          if (meta['device_model'] != null) 'device_model': meta['device_model'],
+          if (meta['os_version'] != null) 'os_version': meta['os_version'],
+          if (meta['app_version'] != null) 'app_version': meta['app_version'],
+        },
       );
       appLog.info('FCM token saved via Woody REST (platform=$platform)');
       debugPrint('[FCM] token saved via Woody REST (platform=$platform)');

@@ -23,6 +23,9 @@ abstract class AnalyticsService {
   /// Facebook App Events honour the same preference.
   Future<void> setAnalyticsEnabled(bool enabled);
 
+  /// Stable GA4 user property (e.g. `app_mode` = customer|seller).
+  Future<void> setUserProperty({required String name, String? value});
+
   /// Records the current screen — feeds Firebase's screen_view dashboard
   /// and the Crashlytics breadcrumb stack. Called by the router observer.
   Future<void> setCurrentScreen(String screenName);

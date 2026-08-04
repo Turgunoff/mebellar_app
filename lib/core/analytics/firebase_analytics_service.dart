@@ -61,6 +61,15 @@ class FirebaseAnalyticsService implements AnalyticsService {
   }
 
   @override
+  Future<void> setUserProperty({required String name, String? value}) async {
+    try {
+      await _analytics.setUserProperty(name: name, value: value);
+    } catch (e, st) {
+      appLog.handle(e, st, 'analytics: setUserProperty failed');
+    }
+  }
+
+  @override
   Future<void> setAnalyticsEnabled(bool enabled) async {
     try {
       await _analytics.setAnalyticsCollectionEnabled(enabled);

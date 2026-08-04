@@ -47,7 +47,8 @@ const Map<String, dynamic> settingsUz = {
 
   // Privacy / analytics
   'analytics_usage': 'Foydalanish statistikasi',
-  'analytics_subtitle': "Anonim event'lar ilovani yaxshilashga yordam beradi",
+  'analytics_subtitle':
+      'Qurilma va foydalanish eventlari ilovani yaxshilashga yordam beradi',
   'analytics_intro':
       "Ilova qaysi qismlari faol ishlatilayotganini tushunish va xatolarni "
           "tezroq topish uchun anonim statistik signallar yig'amiz.",
@@ -56,6 +57,8 @@ const Map<String, dynamic> settingsUz = {
   'analytics_b2': "Savatga qo'shish va xarid voronkasi",
   'analytics_b3': "Qidiruv so'rovlari va natijalar soni",
   'analytics_b4': 'Chat va sotuvchi onboardingi bosqichlari',
+  'analytics_b5':
+      'Qurilma modeli, OS, ilova versiyasi va so‘nggi faollik (login)',
   'analytics_privacy_note':
       "Ism, telefon, email yoki to'lov ma'lumotlari yig'ilmaydi. Eventlar "
           "Firebase Analytics'ga shifrlangan kanal orqali yuboriladi.",
@@ -101,7 +104,7 @@ const Map<String, dynamic> settingsRu = {
 
   'analytics_usage': 'Статистика использования',
   'analytics_subtitle':
-      'Анонимные события помогают улучшать приложение',
+      'События устройства и использования помогают улучшать приложение',
   'analytics_intro':
       'Мы собираем анонимные статистические сигналы, чтобы понимать, какие '
           'части приложения используются, и быстрее находить ошибки.',
@@ -110,6 +113,8 @@ const Map<String, dynamic> settingsRu = {
   'analytics_b2': 'Добавление в корзину и воронка покупки',
   'analytics_b3': 'Поисковые запросы и число результатов',
   'analytics_b4': 'Этапы чата и онбординга продавца',
+  'analytics_b5':
+      'Модель устройства, ОС, версия приложения и последняя активность (вход)',
   'analytics_privacy_note':
       'Имя, телефон, email и платёжные данные не собираются. События '
           'отправляются в Firebase Analytics по зашифрованному каналу.',
@@ -154,7 +159,8 @@ const Map<String, dynamic> settingsEn = {
   'about': 'About',
 
   'analytics_usage': 'Usage statistics',
-  'analytics_subtitle': 'Anonymous events help improve the app',
+  'analytics_subtitle':
+      'Device and usage events help improve the app',
   'analytics_intro':
       'We collect anonymous statistical signals to understand which parts of '
           'the app are used and to find errors faster.',
@@ -163,6 +169,8 @@ const Map<String, dynamic> settingsEn = {
   'analytics_b2': 'Add-to-cart and the purchase funnel',
   'analytics_b3': 'Search queries and result counts',
   'analytics_b4': 'Chat and seller onboarding steps',
+  'analytics_b5':
+      'Device model, OS, app version, and last activity (signed-in)',
   'analytics_privacy_note':
       'Name, phone, email and payment details are not collected. Events are '
           'sent to Firebase Analytics over an encrypted channel.',

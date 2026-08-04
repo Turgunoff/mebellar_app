@@ -13,6 +13,9 @@ class NoopAnalyticsService implements AnalyticsService {
   Future<void> setAnalyticsEnabled(bool enabled) async {}
 
   @override
+  Future<void> setUserProperty({required String name, String? value}) async {}
+
+  @override
   Future<void> setCurrentScreen(String screenName) async {}
 
   @override

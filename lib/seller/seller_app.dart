@@ -15,6 +15,7 @@ import '../core/i18n/i18n.dart';
 import '../core/logging/app_navigation_logger.dart';
 import '../core/logging/app_logger.dart';
 import '../core/notifications/notification_handler.dart';
+import '../core/presence/presence_service.dart';
 import '../core/theme/app_theme.dart' show appSystemOverlay;
 import '../core/theme/seller_theme.dart';
 import '../core/theme/theme_cubit.dart';
@@ -83,6 +84,17 @@ class _SellerAppState extends State<SellerApp> with WidgetsBindingObserver {
       // force-logged-out immediately instead of lingering on stale screens.
       revalidateSessionOnResume();
       _consumePendingRoute();
+      if (sl.isRegistered<PresenceService>()) {
+        sl<PresenceService>().onResumed();
+      }
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.inactive) {
+      // Cancel the 5-min presence Timer in every non-foreground state so it
+      // cannot fire (or retain) while backgrounded / OS-suspended.
+      if (sl.isRegistered<PresenceService>()) {
+        sl<PresenceService>().onPaused();
+      }
     }
   }
 

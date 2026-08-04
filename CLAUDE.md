@@ -135,6 +135,7 @@ Invariants:
 - **Internal escrow (not Payme Safe/Split):** online Payme/Click payment is held by Woody; on order `delivered`, the backend settles commission and credits seller `order_income`; sellers request card payouts via `wallet_withdrawals` (admin approve/reject). Details: workspace [`../docs/TZ.md`](../docs/TZ.md) monetization / escrow sections.
 - **Hybrid inbox + push prefs:** guests read public news via `/catalog/news`; signed-in personal alerts via `/notifications`. `promo_push_enabled` → Flutter FCM topic `news`; `order_push_enabled` → backend may suppress OS FCM for ORDER types while keeping the in-app inbox.
 - **Analytics privacy:** Settings **"Foydalanish statistikasi"** disables Firebase Analytics + Crashlytics (and Meta gated events) at toggle time and on cold boot via Hive. Never reintroduce always-on collection.
+- **Dual analytics (2026-08):** GA4 for sessions/funnels (admin `/app-usage`; optional BigQuery link in Firebase Console). Signed-in **presence** via `PresenceService` → `POST /me/presence` (debounce 5 min, privacy-gated) + FCM token meta. `device_info_plus` ⇒ next store build must be `shorebird release`, not patch-only.
 
 ### Seller Oferta (B2B legal) — Aug 2026
 

@@ -83,6 +83,7 @@ dependencies:
   # (per platform). The gate is our own glassmorphism overlay + store redirect —
   # no native in-app-update package, so it works the same on Android and iOS.
   package_info_plus: ^8.1.0
+  device_info_plus: ^11.3.0
 
   # Localization — translations live in pure Dart (lib/core/i18n/) so
   # Shorebird code-push can ship copy edits OTA. intl stays for

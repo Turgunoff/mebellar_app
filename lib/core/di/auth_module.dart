@@ -12,6 +12,7 @@ import '../realtime/woody_realtime_service.dart';
 import '../notifications/app_badge_service.dart';
 import '../notifications/notification_handler.dart';
 import '../notifications/push_service.dart';
+import '../presence/presence_service.dart';
 import '../platform/messaging_facade.dart';
 import '../storage/hive_boxes.dart';
 
@@ -41,6 +42,17 @@ void registerAuthModule(GetIt sl) {
       badge: sl<AppBadgeService>(),
     ),
   );
+
+  if (AppConfig.hasWoodyApi) {
+    sl.registerLazySingleton<PresenceService>(
+      () => PresenceService(
+        api: sl<WoodyApiClient>(),
+        auth: sl<AuthRepository>(),
+        settingsBox: sl<Box>(instanceName: HiveBoxes.settings),
+      ),
+      dispose: (s) => s.stop(),
+    );
+  }
 
   // Single global auth listener — survives customer<->seller mode switches.
   sl.registerSingleton<AuthCubit>(

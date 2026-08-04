@@ -1,6 +1,7 @@
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../di/service_locator.dart';
+import '../presence/presence_service.dart';
 import '../services/facebook_analytics_service.dart';
 import 'analytics_service.dart';
 
@@ -30,5 +31,12 @@ Future<void> applyAnalyticsCollectionEnabled(bool enabled) async {
   }
   if (sl.isRegistered<FacebookAnalyticsService>()) {
     await sl<FacebookAnalyticsService>().setPrivacyCollectionAllowed(enabled);
+  }
+  if (sl.isRegistered<PresenceService>()) {
+    if (enabled) {
+      // Lifecycle / resume starts the loop; do not force-ping here.
+    } else {
+      sl<PresenceService>().stop();
+    }
   }
 }
