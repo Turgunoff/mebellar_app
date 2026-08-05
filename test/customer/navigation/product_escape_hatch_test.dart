@@ -139,13 +139,13 @@ void main() {
     test('in-shell-tab origin (/) gets the neutral browsing affordance, '
         'not a (possibly-wrong) tab-specific one', () {
       final look = lookFrom(['/', pd, pd]);
-      expect(look.icon, Iconsax.element_3);
+      expect(look.icon, Iconsax.home_2_copy);
       expect(look.tooltipKey, 'product.back_to_browsing');
     });
 
     test('unknown origin gets the generic browsing affordance', () {
       final look = lookFrom(['/', '/orders/:id', pd, pd]);
-      expect(look.icon, Iconsax.element_3);
+      expect(look.icon, Iconsax.home_2_copy);
       expect(look.tooltipKey, 'product.back_to_browsing');
     });
   });

@@ -104,9 +104,8 @@ class DeferredDeepLinkService {
     return '/product-detail/$id';
   }
 
-  /// Accept only a short, URL-safe token. Our product ids are numeric, but we
-  /// stay permissive enough for slug ids while rejecting an oversized or
-  /// junk clipboard payload that happened to start with our prefix.
+  /// Accept UUID / slug tokens from the web CTA. Reject oversized or junk
+  /// clipboard payloads that merely start with our prefix.
   String? _sanitizeProductId(String raw) {
     if (raw.isEmpty || raw.length > 64) return null;
     return RegExp(r'^[A-Za-z0-9_-]+$').hasMatch(raw) ? raw : null;

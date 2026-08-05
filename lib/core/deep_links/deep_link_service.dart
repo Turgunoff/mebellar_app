@@ -133,18 +133,33 @@ class MockDeepLinkService implements DeepLinkService {
       );
     }
 
-    // Share / universal links (`/product/:id`, `/shop/:id`) land on the
+    // Share / universal links (`/product/:id`, `/shop/:id`, and locale-
+    // prefixed `/{uz|ru|en}/product/:id` from the web fallback) land on the
     // customer product detail or shop profile.
-    if (first == 'product' && segments.length >= 2) {
+    final productIdx = first == 'product'
+        ? 0
+        : (segments.length >= 3 &&
+                (first == 'uz' || first == 'ru' || first == 'en') &&
+                segments[1] == 'product')
+            ? 1
+            : -1;
+    if (productIdx >= 0 && segments.length > productIdx + 1) {
       return DeepLinkTarget(
         mode: AppMode.customer,
-        route: '/product-detail/${segments[1]}',
+        route: '/product-detail/${segments[productIdx + 1]}',
       );
     }
-    if (first == 'shop' && segments.length >= 2) {
+    final shopIdx = first == 'shop'
+        ? 0
+        : (segments.length >= 3 &&
+                (first == 'uz' || first == 'ru' || first == 'en') &&
+                segments[1] == 'shop')
+            ? 1
+            : -1;
+    if (shopIdx >= 0 && segments.length > shopIdx + 1) {
       return DeepLinkTarget(
         mode: AppMode.customer,
-        route: '/shop/${segments[1]}',
+        route: '/shop/${segments[shopIdx + 1]}',
       );
     }
 

@@ -130,9 +130,9 @@ EscapeHatchLook escapeHatchLook(ProductEscapePlan plan) {
       Iconsax.search_normal,
       'product.back_to_results',
     ),
-    // '/' (any home-shell tab) and any other origin: a neutral, never-wrong
-    // "back to browsing" affordance.
-    _ => const EscapeHatchLook(Iconsax.element_3, 'product.back_to_browsing'),
+    // '/' (any home-shell tab) and any other origin: home icon — users in a
+    // deep product rabbit hole recognize "go home" faster than a grid glyph.
+    _ => const EscapeHatchLook(Iconsax.home_2_copy, 'product.back_to_browsing'),
   };
 }
 

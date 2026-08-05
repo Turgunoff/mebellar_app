@@ -88,11 +88,29 @@ class _OrdersHistoryScreenState extends State<OrdersHistoryScreen> {
                   .where((o) => f.matches(o['status'] as String? ?? 'pending'))
                   .length,
           };
+          // Active first on "Hammasi" so in-flight orders aren't buried under
+          // newer cancellations; within each group keep newest-first.
           final visible = orders
               .where(
                 (o) => _filter.matches(o['status'] as String? ?? 'pending'),
               )
-              .toList();
+              .toList()
+            ..sort((a, b) {
+              final aStatus = a['status'] as String? ?? 'pending';
+              final bStatus = b['status'] as String? ?? 'pending';
+              final aActive = _OrderFilter.active.matches(aStatus);
+              final bActive = _OrderFilter.active.matches(bStatus);
+              if (aActive != bActive) return aActive ? -1 : 1;
+              final aAt = DateTime.tryParse(
+                    a['created_at'] as String? ?? '',
+                  ) ??
+                  DateTime.fromMillisecondsSinceEpoch(0);
+              final bAt = DateTime.tryParse(
+                    b['created_at'] as String? ?? '',
+                  ) ??
+                  DateTime.fromMillisecondsSinceEpoch(0);
+              return bAt.compareTo(aAt);
+            });
 
           return Column(
             children: [
@@ -455,12 +473,23 @@ class _OrderCard extends StatelessWidget {
           : null;
     }).toList();
 
+    // Terminal cancellations read as "archived": muted fill, no lift, dimmed
+    // body. Status pill stays full-opacity so the red badge still scans.
+    final isCancelled = status == 'cancelled';
+    final cardFill = isCancelled
+        ? Color.alphaBlend(pt.dark.withValues(alpha: 0.045), pt.background)
+        : pt.surface;
+
     return Container(
       decoration: BoxDecoration(
-        color: pt.surface,
+        color: cardFill,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: pt.divider),
-        boxShadow: PremiumTokens.softShadow,
+        border: Border.all(
+          color: isCancelled
+              ? pt.divider.withValues(alpha: 0.7)
+              : pt.divider,
+        ),
+        boxShadow: isCancelled ? const [] : PremiumTokens.softShadow,
       ),
       child: Material(
         color: Colors.transparent,
@@ -473,128 +502,148 @@ class _OrderCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Header: status pill + order number + date ───────────
+                // ── Header: status pill + order number ──────────────────
                 Row(
                   children: [
                     _StatusPill(info: st),
                     const Spacer(),
-                    Text(
-                      shortId,
-                      style: PremiumTokens.body(
-                        size: 12,
-                        weight: FontWeight.w600,
-                        color: pt.grey,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Icon(
-                      Iconsax.calendar_1,
-                      size: 13,
-                      color: pt.dark.withValues(alpha: 0.55),
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      date,
-                      style: PremiumTokens.body(
-                        size: 12,
-                        weight: FontWeight.w500,
-                        color: pt.dark.withValues(alpha: 0.68),
-                      ),
-                    ),
-                  ],
-                ),
-                // ── Horizontal progress tracker (non-cancelled) ─────────
-                if (OrderProgressTracker.activeIndexFor(status) >= 0) ...[
-                  const SizedBox(height: 10),
-                  OrderProgressTracker(status: status),
-                ],
-                // ── Product thumbnails + count ──────────────────────────
-                if (thumbs.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      for (var i = 0; i < thumbs.length && i < 3; i++) ...[
-                        if (i > 0) const SizedBox(width: 5),
-                        _Thumb(url: thumbs[i], pt: pt),
-                      ],
-                      const SizedBox(width: 8),
-                      Text(
-                        thumbs.length > 3
-                            ? '+${thumbs.length - 3} ta mahsulot'
-                            : '${thumbs.length} ta mahsulot',
+                    Opacity(
+                      opacity: isCancelled ? 0.6 : 1,
+                      child: Text(
+                        shortId,
                         style: PremiumTokens.body(
                           size: 12,
                           weight: FontWeight.w600,
                           color: pt.grey,
                         ),
                       ),
-                    ],
-                  ),
-                ],
-                // ── Delivery address ────────────────────────────────────
-                if (address.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(
-                        Iconsax.location,
-                        size: 13,
-                        color: pt.dark.withValues(alpha: 0.45),
-                      ),
-                      const SizedBox(width: 5),
-                      Expanded(
-                        child: Text(
-                          address,
-                          style: PremiumTokens.body(
-                            size: 12,
-                            color: pt.grey,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-                const SizedBox(height: 10),
-                Divider(color: pt.divider, height: 1),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Text(
-                      'Jami summa',
-                      style: PremiumTokens.body(size: 12, color: pt.grey),
-                    ),
-                    const Spacer(),
-                    Text(
-                      '${_fmtPrice(total)} UZS',
-                      style: PremiumTokens.body(
-                        size: 14,
-                        weight: FontWeight.w700,
-                        color: PremiumTokens.accent,
-                      ),
                     ),
                   ],
                 ),
-                if (needsReview) ...[
-                  const SizedBox(height: 12),
-                  _RateCta(orderId: id),
-                ],
-                if (feePending) ...[
-                  const SizedBox(height: 12),
-                  const _FeePendingBanner(),
-                ],
-                if (canCancel) ...[
-                  const SizedBox(height: 10),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: _CancelButton(pt: pt, onConfirm: onCancel),
+                Opacity(
+                  opacity: isCancelled ? 0.6 : 1,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Icon(
+                            Iconsax.calendar_1,
+                            size: 13,
+                            color: pt.dark.withValues(alpha: 0.55),
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            date,
+                            style: PremiumTokens.body(
+                              size: 12,
+                              weight: FontWeight.w500,
+                              color: pt.dark.withValues(alpha: 0.68),
+                            ),
+                          ),
+                        ],
+                      ),
+                      // ── Horizontal progress tracker (non-cancelled) ───
+                      if (OrderProgressTracker.activeIndexFor(status) >=
+                          0) ...[
+                        const SizedBox(height: 10),
+                        OrderProgressTracker(status: status),
+                      ],
+                      // ── Product thumbnails + count ────────────────────
+                      if (thumbs.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            for (var i = 0;
+                                i < thumbs.length && i < 3;
+                                i++) ...[
+                              if (i > 0) const SizedBox(width: 5),
+                              _Thumb(url: thumbs[i], pt: pt),
+                            ],
+                            const SizedBox(width: 8),
+                            Text(
+                              thumbs.length > 3
+                                  ? '+${thumbs.length - 3} ta mahsulot'
+                                  : '${thumbs.length} ta mahsulot',
+                              style: PremiumTokens.body(
+                                size: 12,
+                                weight: FontWeight.w600,
+                                color: pt.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                      // ── Delivery address ──────────────────────────────
+                      if (address.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(
+                              Iconsax.location,
+                              size: 13,
+                              color: pt.dark.withValues(alpha: 0.45),
+                            ),
+                            const SizedBox(width: 5),
+                            Expanded(
+                              child: Text(
+                                address,
+                                style: PremiumTokens.body(
+                                  size: 12,
+                                  color: pt.grey,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                      const SizedBox(height: 10),
+                      Divider(color: pt.divider, height: 1),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Text(
+                            'Jami summa',
+                            style: PremiumTokens.body(
+                              size: 12,
+                              color: pt.grey,
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            '${_fmtPrice(total)} UZS',
+                            style: PremiumTokens.body(
+                              size: 14,
+                              weight: FontWeight.w700,
+                              color: PremiumTokens.accent,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (needsReview) ...[
+                        const SizedBox(height: 12),
+                        _RateCta(orderId: id),
+                      ],
+                      if (feePending) ...[
+                        const SizedBox(height: 12),
+                        const _FeePendingBanner(),
+                      ],
+                      if (canCancel) ...[
+                        const SizedBox(height: 10),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: _CancelButton(
+                            pt: pt,
+                            onConfirm: onCancel,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                ],
+                ),
               ],
             ),
           ),

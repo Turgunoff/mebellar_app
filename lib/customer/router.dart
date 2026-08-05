@@ -97,6 +97,22 @@ GoRouter buildCustomerRouter() {
     // intended destination. A declarative redirect (not an imperative push)
     // avoids racing the Navigator's mount order under `_ModeRouter`'s crossfade.
     redirect: (context, state) {
+      // Locale-prefixed Universal Links (AASA allows /*/product/*) → canonical
+      // in-app routes. Bare /product/:id is handled by its own GoRoute.
+      final path = state.uri.path;
+      final productLocale = RegExp(
+        r'^/(uz|ru|en)/product/([^/]+)/?$',
+      ).firstMatch(path);
+      if (productLocale != null) {
+        return '/product-detail/${productLocale.group(2)}';
+      }
+      final shopLocale = RegExp(
+        r'^/(uz|ru|en)/shop/([^/]+)/?$',
+      ).firstMatch(path);
+      if (shopLocale != null) {
+        return '/shop/${shopLocale.group(2)}';
+      }
+
       // First-launch gate → the 3D onboarding (replaces the legacy /tutorial
       // gate). Shows exactly once; `onboarding_seen` flips on Skip / Get Started.
       final atOnboarding = state.matchedLocation == '/onboarding';

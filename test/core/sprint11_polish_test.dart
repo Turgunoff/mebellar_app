@@ -71,6 +71,17 @@ void main() {
       );
     });
 
+    test('locale-prefixed product URL maps to product detail', () {
+      final target = MockDeepLinkService.parse(
+        'https://woody.uz/uz/product/64cb13d9-39a3-4254-b69b-cc2ab42950ba',
+      );
+      expect(target?.mode, AppMode.customer);
+      expect(
+        target?.route,
+        '/product-detail/64cb13d9-39a3-4254-b69b-cc2ab42950ba',
+      );
+    });
+
     test('unknown hosts return null (drop)', () {
       expect(MockDeepLinkService.parse('https://example.com/foo'), isNull);
       expect(
