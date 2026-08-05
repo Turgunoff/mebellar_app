@@ -235,6 +235,38 @@ class LeaderboardStanding extends Equatable {
   List<Object?> get props => [rank, shopName, revenue, isMe];
 }
 
+/// Structured weekly leaderboard from `GET /seller/leaderboard`.
+class LeaderboardBoard extends Equatable {
+  const LeaderboardBoard({
+    required this.metric,
+    required this.metricDescription,
+    this.topSellers = const [],
+    this.myRank,
+  });
+
+  final String metric;
+  final String metricDescription;
+  final List<LeaderboardStanding> topSellers;
+  final LeaderboardStanding? myRank;
+
+  factory LeaderboardBoard.fromJson(Map<String, dynamic> json) {
+    return LeaderboardBoard(
+      metric: json['metric'] as String? ?? 'weekly_revenue',
+      metricDescription: json['metric_description'] as String? ?? '',
+      topSellers: ((json['top_sellers'] as List<dynamic>?) ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(LeaderboardStanding.fromJson)
+          .toList(growable: false),
+      myRank: json['my_rank'] is Map<String, dynamic>
+          ? LeaderboardStanding.fromJson(json['my_rank'] as Map<String, dynamic>)
+          : null,
+    );
+  }
+
+  @override
+  List<Object?> get props => [metric, metricDescription, topSellers, myRank];
+}
+
 /// Best-selling product over the last 30 days. `image` is a renderable URL
 /// (normalised server-side) or `null`.
 class TopProductStat extends Equatable {

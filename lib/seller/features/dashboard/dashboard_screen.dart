@@ -16,6 +16,7 @@ import '../notifications/screens/notifications_screen.dart';
 import '../tariff/screens/tariff_screen.dart';
 import 'bloc/seller_dashboard_cubit.dart';
 import 'screens/achievements_screen.dart';
+import 'screens/leaderboard_screen.dart';
 import 'widgets/achievements_strip.dart';
 import 'widgets/bonus_urgency_banner.dart';
 import 'widgets/dashboard_kit.dart';
@@ -197,10 +198,18 @@ class _DashboardContent extends StatelessWidget {
           DashSectionHeader(
             title: tr('dashboard.leaderboard_title'),
             subtitle: tr('dashboard.leaderboard_subtitle'),
+            trailing: _SeeAllButton(
+              label: tr('dashboard.leaderboard_view_all'),
+              onTap: () => Navigator.of(context, rootNavigator: true).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const LeaderboardScreen(),
+                ),
+              ),
+            ),
           ),
         ),
         const SizedBox(height: 12),
-        _h(SellerLeaderboard(entries: data.leaderboard)),
+        _h(SellerLeaderboard(entries: data.leaderboard, maxRank: 5)),
         const SizedBox(height: 26),
 
         // ---- Top products (last 30 days) — hidden until there are sales ---
@@ -233,9 +242,10 @@ class _DashboardContent extends StatelessWidget {
 
 /// "Hammasi →" text button used in section headers to open a fuller screen.
 class _SeeAllButton extends StatelessWidget {
-  const _SeeAllButton({required this.onTap});
+  const _SeeAllButton({required this.onTap, this.label});
 
   final VoidCallback onTap;
+  final String? label;
 
   @override
   Widget build(BuildContext context) {
@@ -251,7 +261,7 @@ class _SeeAllButton extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                tr('dashboard.see_all'),
+                label ?? tr('dashboard.see_all'),
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,

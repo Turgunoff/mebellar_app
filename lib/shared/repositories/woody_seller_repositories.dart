@@ -110,6 +110,16 @@ class WoodySellerDashboardRepository implements SellerDashboardRepository {
       raw is String ? DateTime.tryParse(raw) : null;
 
   @override
+  Future<LeaderboardBoard> fetchLeaderboard({int limit = 20}) async {
+    final body = await _api.get<Map<String, dynamic>>(
+      '/seller/leaderboard',
+      query: {'limit': '$limit'},
+      retries: 2,
+    );
+    return LeaderboardBoard.fromJson(body);
+  }
+
+  @override
   Future<({String? sellerName, String? shopName})> identity() async {
     final body = await _api.get<Map<String, dynamic>>('/seller/me');
     String? clean(Object? v) {

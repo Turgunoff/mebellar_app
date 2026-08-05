@@ -62,6 +62,25 @@ class MockSellerDashboardRepository implements SellerDashboardRepository {
   }
 
   @override
+  Future<LeaderboardBoard> fetchLeaderboard({int limit = 20}) async {
+    return LeaderboardBoard(
+      metric: 'weekly_revenue',
+      metricDescription: "Bu hafta · muvaffaqiyatli savdolar bo'yicha",
+      topSellers: const [
+        LeaderboardStanding(rank: 1, shopName: 'B****', revenue: 84300000),
+        LeaderboardStanding(rank: 2, shopName: 'S****', revenue: 71900000),
+        LeaderboardStanding(rank: 3, shopName: 'A****', revenue: 51200000),
+      ],
+      myRank: const LeaderboardStanding(
+        rank: 4,
+        shopName: 'Mebel Hub',
+        revenue: 42300000,
+        isMe: true,
+      ),
+    );
+  }
+
+  @override
   Future<({String? sellerName, String? shopName})> identity() async =>
       (sellerName: 'Sotuvchi', shopName: 'Mebel Hub');
 

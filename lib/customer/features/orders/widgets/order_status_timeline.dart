@@ -69,7 +69,8 @@ class OrderStatusTimeline extends StatelessWidget {
                         Text(
                           dateFmt.format(events[i].timestamp.toLocal()),
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: scheme.outline,
+                                color: scheme.onSurface.withValues(alpha: 0.68),
+                                fontWeight: FontWeight.w500,
                               ),
                         ),
                         if (events[i].note != null) ...[

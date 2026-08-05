@@ -149,6 +149,12 @@ class _NotificationsViewState extends State<_NotificationsView> {
   /// the seller shell (currently a no-op for unmapped names, which is OK
   /// — the mode swap alone delivers the user to the right surface).
   static String? determineRouteFor(NotificationModel n) {
+    // Explicit deep-link from the payload wins (FCM + inbox share this key).
+    final payloadRoute = n.payload?['route'];
+    if (payloadRoute is String && payloadRoute.isNotEmpty) {
+      return payloadRoute;
+    }
+
     final ref = n.referenceId;
     final orderId = ref ?? (n.payload?['order_id'] as String?);
     final productId = ref ?? (n.payload?['product_id'] as String?);
@@ -158,7 +164,10 @@ class _NotificationsViewState extends State<_NotificationsView> {
       NotificationKind.order ||
       NotificationKind.orderCreated ||
       NotificationKind.orderShipped ||
-      NotificationKind.orderDelivered =>
+      NotificationKind.orderDelivered ||
+      NotificationKind.orderAwaitingPayment ||
+      NotificationKind.orderPaymentExpiring ||
+      NotificationKind.deliveryFeeSet =>
         orderId != null && orderId.isNotEmpty ? '/orders/$orderId' : '/orders',
       NotificationKind.priceDrop =>
         productId != null && productId.isNotEmpty
@@ -457,7 +466,14 @@ class _NotificationTileState extends State<_NotificationTile> {
     return kind == NotificationKind.sellerApproved ||
         kind == NotificationKind.sellerRejected ||
         kind == NotificationKind.feeAdjustmentProposed ||
-        kind == NotificationKind.feeAdjustmentResponse;
+        kind == NotificationKind.feeAdjustmentResponse ||
+        kind == NotificationKind.order ||
+        kind == NotificationKind.orderCreated ||
+        kind == NotificationKind.orderShipped ||
+        kind == NotificationKind.orderDelivered ||
+        kind == NotificationKind.orderAwaitingPayment ||
+        kind == NotificationKind.orderPaymentExpiring ||
+        kind == NotificationKind.deliveryFeeSet;
   }
 
   @override
@@ -476,30 +492,32 @@ class _NotificationTileState extends State<_NotificationTile> {
     // is the kind's accent at very low alpha so order/promo/news are also
     // visually distinguishable at a glance.
     final unreadTint = kindAccent.withValues(alpha: 0.05);
-    return GestureDetector(
-      onTap: () {
-        if (widget.expandsOnTap) setState(() => _expanded = !_expanded);
-        widget.onTap();
-      },
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedSize(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOut,
-        alignment: Alignment.topCenter,
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-          decoration: BoxDecoration(
-            color: isRead ? pt.surface : unreadTint,
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: PremiumTokens.softShadow,
-            border: isRead
-                ? null
-                : Border.all(
-                    color: kindAccent.withValues(alpha: 0.22),
-                    width: 1,
-                  ),
-          ),
-          child: Row(
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          if (widget.expandsOnTap) setState(() => _expanded = !_expanded);
+          widget.onTap();
+        },
+        borderRadius: BorderRadius.circular(18),
+        child: AnimatedSize(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          alignment: Alignment.topCenter,
+          child: Ink(
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+            decoration: BoxDecoration(
+              color: isRead ? pt.surface : unreadTint,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: PremiumTokens.softShadow,
+              border: isRead
+                  ? null
+                  : Border.all(
+                      color: kindAccent.withValues(alpha: 0.22),
+                      width: 1,
+                    ),
+            ),
+            child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
@@ -591,7 +609,7 @@ class _NotificationTileState extends State<_NotificationTile> {
                       style: PremiumTokens.body(
                         size: 11,
                         weight: FontWeight.w500,
-                        color: pt.greyLight,
+                        color: pt.dark.withValues(alpha: 0.62),
                       ),
                     ),
                   ],
@@ -600,6 +618,7 @@ class _NotificationTileState extends State<_NotificationTile> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

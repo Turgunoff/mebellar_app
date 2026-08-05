@@ -11,20 +11,42 @@ import 'dashboard_kit.dart';
 /// lifted onto a soft-Indigo highlight so the seller spots their position at
 /// a glance.
 class SellerLeaderboard extends StatelessWidget {
-  const SellerLeaderboard({super.key, required this.entries});
+  const SellerLeaderboard({
+    super.key,
+    required this.entries,
+    this.maxRank,
+  });
 
   final List<LeaderboardEntry> entries;
+
+  /// When set (e.g. `5` on the dashboard card), only rows with
+  /// `rank <= maxRank` are shown — the sticky "outside top N" row is
+  /// reserved for the full [LeaderboardScreen].
+  final int? maxRank;
 
   @override
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
+    final visible = maxRank == null
+        ? entries
+        : entries.where((e) => e.rank <= maxRank!).toList(growable: false);
+    if (visible.isEmpty) {
+      return DashCard(
+        padding: const EdgeInsets.all(20),
+        child: Text(
+          tr('dashboard.leaderboard_empty'),
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 13, color: c.grey, height: 1.3),
+        ),
+      );
+    }
     return DashCard(
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
       child: Column(
         children: [
-          for (var i = 0; i < entries.length; i++) ...[
+          for (var i = 0; i < visible.length; i++) ...[
             if (i > 0) Divider(height: 1, thickness: 1, color: c.divider),
-            _LeaderRow(entry: entries[i]),
+            _LeaderRow(entry: visible[i]),
           ],
         ],
       ),

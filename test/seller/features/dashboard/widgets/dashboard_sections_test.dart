@@ -34,8 +34,8 @@ const _series = <double>[
 const _labels = ['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh', 'Ya'];
 
 const _leaderboard = <LeaderboardEntry>[
-  LeaderboardEntry(rank: 1, shopName: 'B•••• M••••', revenue: 84300000),
-  LeaderboardEntry(rank: 2, shopName: 'S•••• H•••', revenue: 71900000),
+  LeaderboardEntry(rank: 1, shopName: 'B****', revenue: 84300000),
+  LeaderboardEntry(rank: 2, shopName: 'S****', revenue: 71900000),
   LeaderboardEntry(
     rank: 4,
     shopName: 'Zumar Mebel',
@@ -198,7 +198,7 @@ void main() {
     expect(find.text('Zumar Mebel'), findsOneWidget);
     expect(find.text('Siz'), findsOneWidget);
     // Competitor rows render the server-masked name verbatim.
-    expect(find.text('B•••• M••••'), findsOneWidget);
+    expect(find.text('B****'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -250,11 +250,11 @@ void main() {
     );
     const other = LeaderboardEntry(
       rank: 1,
-      shopName: 'B•••• M••••',
+      shopName: 'B****',
       revenue: 1,
     );
     expect(me.displayName, 'Zumar Mebel');
-    expect(other.displayName, 'B•••• M••••');
+    expect(other.displayName, 'B****');
   });
 
   test('Achievement.progress is current / target, clamped to 1', () {

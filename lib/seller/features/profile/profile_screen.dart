@@ -226,7 +226,7 @@ class _SellerProfileView extends StatelessWidget {
                               title: tr('seller.profile_logout'),
                               titleColor: _logoutRed,
                               showTrailing: false,
-                              onTap: () => performLogout(context),
+                              onTap: () => _confirmAndLogout(context),
                             ),
                           ],
                         ),
@@ -279,6 +279,119 @@ class _SellerProfileView extends StatelessWidget {
 }
 
 final Color _logoutRed = Colors.red.shade600;
+
+/// Asks for confirmation (same copy as the customer profile dialog), then
+/// runs the full [performLogout] teardown. Seller previously skipped the
+/// confirm step and signed out on the first tap.
+Future<void> _confirmAndLogout(BuildContext context) async {
+  final c = SellerColors.of(context);
+  final confirmed = await showDialog<bool>(
+    context: context,
+    barrierDismissible: true,
+    builder: (ctx) {
+      final error = Theme.of(ctx).colorScheme.error;
+      return Dialog(
+        backgroundColor: c.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: error.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Icon(Iconsax.logout_copy, size: 24, color: error),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                tr('profile.sign_out_title'),
+                style: TextStyle(
+                  fontFamily: AppFonts.seller,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: c.ink,
+                  letterSpacing: -0.2,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                tr('profile.sign_out_confirm'),
+                style: TextStyle(
+                  fontFamily: AppFonts.seller,
+                  fontSize: 14,
+                  color: c.grey,
+                  height: 1.4,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 28),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: c.ink,
+                        side: BorderSide(color: c.divider),
+                        minimumSize: const Size.fromHeight(48),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: Text(
+                        tr('profile.cancel'),
+                        style: TextStyle(
+                          fontFamily: AppFonts.seller,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: c.ink,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: error,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size.fromHeight(48),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: Text(
+                        tr('profile.sign_out_action'),
+                        style: TextStyle(
+                          fontFamily: AppFonts.seller,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+  if (confirmed == true && context.mounted) {
+    await performLogout(context);
+  }
+}
 
 /// Opens shop settings and, when the seller saves, applies the returned
 /// settings straight onto the profile identity card — logo/cover removals and

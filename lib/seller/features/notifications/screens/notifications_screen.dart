@@ -84,6 +84,11 @@ class _NotificationsViewState extends State<_NotificationsView> {
   /// when adding a kind, update both). Returns `null` for purely
   /// informational kinds so the caller only flips the read flag.
   static String? determineRouteFor(NotificationModel n) {
+    final payloadRoute = n.payload?['route'];
+    if (payloadRoute is String && payloadRoute.isNotEmpty) {
+      return payloadRoute;
+    }
+
     final ref = n.referenceId;
     final orderId = ref ?? (n.payload?['order_id'] as String?);
     final productId = ref ?? (n.payload?['product_id'] as String?);
@@ -93,7 +98,10 @@ class _NotificationsViewState extends State<_NotificationsView> {
       NotificationKind.order ||
       NotificationKind.orderCreated ||
       NotificationKind.orderShipped ||
-      NotificationKind.orderDelivered =>
+      NotificationKind.orderDelivered ||
+      NotificationKind.orderAwaitingPayment ||
+      NotificationKind.orderPaymentExpiring ||
+      NotificationKind.deliveryFeeSet =>
         orderId != null && orderId.isNotEmpty ? '/orders/$orderId' : '/orders',
       NotificationKind.priceDrop =>
         productId != null && productId.isNotEmpty

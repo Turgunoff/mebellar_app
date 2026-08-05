@@ -19,6 +19,9 @@ enum NotificationKind {
   orderCreated('order_created'),
   orderShipped('order_shipped'),
   orderDelivered('order_delivered'),
+  orderAwaitingPayment('order_awaiting_payment'),
+  orderPaymentExpiring('order_payment_expiring'),
+  deliveryFeeSet('delivery_fee_set'),
   priceDrop('price_drop'),
   supportReply('support_reply'),
   news('news'),
@@ -83,6 +86,9 @@ enum NotificationKind {
       NotificationKind.order || NotificationKind.orderCreated => Iconsax.box_1,
       NotificationKind.orderShipped => Iconsax.truck_fast,
       NotificationKind.orderDelivered => Iconsax.tick_circle,
+      NotificationKind.orderAwaitingPayment => Iconsax.card,
+      NotificationKind.orderPaymentExpiring => Iconsax.timer_1,
+      NotificationKind.deliveryFeeSet => Iconsax.truck_fast,
       NotificationKind.priceDrop => Iconsax.discount_circle,
       NotificationKind.supportReply => Iconsax.message_text,
       NotificationKind.news => Iconsax.global,
@@ -116,6 +122,9 @@ enum NotificationKind {
       NotificationKind.orderCreated => const Color(0xFFC27A5F), // terracotta
       NotificationKind.orderShipped => const Color(0xFF4A6CF7), // cool blue
       NotificationKind.orderDelivered => const Color(0xFF2F9E6E), // emerald
+      NotificationKind.orderAwaitingPayment => const Color(0xFFD97706), // amber
+      NotificationKind.orderPaymentExpiring => const Color(0xFFE05A4A), // urgent red
+      NotificationKind.deliveryFeeSet => const Color(0xFFE5A23B), // honey
       NotificationKind.priceDrop => const Color(0xFFE5A23B), // honey
       NotificationKind.supportReply => const Color(0xFF6B7280), // slate
       NotificationKind.news => const Color(0xFF4A6CF7), // cool blue
@@ -155,6 +164,9 @@ enum NotificationKind {
       NotificationKind.orderCreated ||
       NotificationKind.orderShipped ||
       NotificationKind.orderDelivered ||
+      NotificationKind.orderAwaitingPayment ||
+      NotificationKind.orderPaymentExpiring ||
+      NotificationKind.deliveryFeeSet ||
       NotificationKind.sellerNewOrder ||
       NotificationKind.sellerOrderCancelled ||
       NotificationKind.feeAdjustmentProposed ||

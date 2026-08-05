@@ -55,6 +55,11 @@ const Map<String, dynamic> ordersUz = {
   'payment_countdown_subtitle': 'Vaqt tugagach buyurtma avtomatik bekor qilinadi',
   'payment_timeout_cancelled': 'To\'lov muddati tugadi — buyurtma bekor qilindi',
   'home_unpaid_banner_pay': 'To\'lash',
+  'tracker_payment': 'To\'lov',
+  'tracker_confirmed': 'Tasdiq',
+  'tracker_preparing': 'Tayyorlash',
+  'tracker_shipped': 'Yo\'lda',
+  'tracker_delivered': 'Yetkazildi',
 };
 
 const Map<String, dynamic> ordersRu = {
@@ -110,6 +115,11 @@ const Map<String, dynamic> ordersRu = {
   'payment_countdown_subtitle': 'После истечения времени заказ будет отменён',
   'payment_timeout_cancelled': 'Время оплаты истекло — заказ отменён',
   'home_unpaid_banner_pay': 'Оплатить',
+  'tracker_payment': 'Оплата',
+  'tracker_confirmed': 'Подтв.',
+  'tracker_preparing': 'Сборка',
+  'tracker_shipped': 'В пути',
+  'tracker_delivered': 'Доставлен',
 };
 
 const Map<String, dynamic> ordersEn = {
@@ -165,6 +175,11 @@ const Map<String, dynamic> ordersEn = {
   'payment_countdown_subtitle': 'The order will be cancelled when time runs out',
   'payment_timeout_cancelled': 'Payment time expired — order cancelled',
   'home_unpaid_banner_pay': 'Pay',
+  'tracker_payment': 'Payment',
+  'tracker_confirmed': 'Confirmed',
+  'tracker_preparing': 'Prep',
+  'tracker_shipped': 'Transit',
+  'tracker_delivered': 'Delivered',
 };
 
 const Map<String, dynamic> orderStatusUz = {

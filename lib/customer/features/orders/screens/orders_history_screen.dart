@@ -11,6 +11,7 @@ import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/cancel_reason_sheet.dart';
 import '../../home/widgets/premium/premium_tokens.dart';
 import '../cubit/profile_orders_cubit.dart';
+import '../widgets/order_progress_tracker.dart';
 
 part 'orders_history_sheets.dart';
 
@@ -130,13 +131,13 @@ class _OrdersHistoryScreenState extends State<OrdersHistoryScreen> {
                                 ),
                                 padding: const EdgeInsets.fromLTRB(
                                   16,
+                                  10,
                                   16,
-                                  16,
-                                  32,
+                                  28,
                                 ),
                                 itemCount: visible.length,
                                 separatorBuilder: (_, _) =>
-                                    const SizedBox(height: 12),
+                                    const SizedBox(height: 8),
                                 itemBuilder: (_, i) {
                                   final order = visible[i];
                                   return _OrderCard(
@@ -426,8 +427,8 @@ class _OrderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final id = order['id'] as String? ?? '';
     final shortId = id.length >= 8
-        ? 'M-${id.substring(0, 8).toUpperCase()}'
-        : 'M-$id';
+        ? 'WD-${id.substring(0, 8).toUpperCase()}'
+        : 'WD-$id';
     final date = _fmtDate(order['created_at'] as String?);
     final total = (order['total_amount'] as num?)?.toDouble() ?? 0.0;
     final status = order['status'] as String? ?? 'pending';
@@ -468,11 +469,11 @@ class _OrderCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(18),
           onTap: () => context.push('/orders/$id'),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Header: status pill + order number ──────────────────
+                // ── Header: status pill + order number + date ───────────
                 Row(
                   children: [
                     _StatusPill(info: st),
@@ -480,40 +481,53 @@ class _OrderCard extends StatelessWidget {
                     Text(
                       shortId,
                       style: PremiumTokens.body(
-                        size: 13,
+                        size: 12,
                         weight: FontWeight.w600,
                         color: pt.grey,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 6),
                 Row(
                   children: [
-                    Icon(Iconsax.calendar_1, size: 13, color: pt.greyLight),
+                    Icon(
+                      Iconsax.calendar_1,
+                      size: 13,
+                      color: pt.dark.withValues(alpha: 0.55),
+                    ),
                     const SizedBox(width: 5),
                     Text(
                       date,
-                      style: PremiumTokens.body(size: 12, color: pt.grey),
+                      style: PremiumTokens.body(
+                        size: 12,
+                        weight: FontWeight.w500,
+                        color: pt.dark.withValues(alpha: 0.68),
+                      ),
                     ),
                   ],
                 ),
+                // ── Horizontal progress tracker (non-cancelled) ─────────
+                if (OrderProgressTracker.activeIndexFor(status) >= 0) ...[
+                  const SizedBox(height: 10),
+                  OrderProgressTracker(status: status),
+                ],
                 // ── Product thumbnails + count ──────────────────────────
                 if (thumbs.isNotEmpty) ...[
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 10),
                   Row(
                     children: [
                       for (var i = 0; i < thumbs.length && i < 3; i++) ...[
-                        if (i > 0) const SizedBox(width: 6),
+                        if (i > 0) const SizedBox(width: 5),
                         _Thumb(url: thumbs[i], pt: pt),
                       ],
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 8),
                       Text(
                         thumbs.length > 3
                             ? '+${thumbs.length - 3} ta mahsulot'
                             : '${thumbs.length} ta mahsulot',
                         style: PremiumTokens.body(
-                          size: 12.5,
+                          size: 12,
                           weight: FontWeight.w600,
                           color: pt.grey,
                         ),
@@ -523,16 +537,22 @@ class _OrderCard extends StatelessWidget {
                 ],
                 // ── Delivery address ────────────────────────────────────
                 if (address.isNotEmpty) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Iconsax.location, size: 14, color: pt.greyLight),
+                      Icon(
+                        Iconsax.location,
+                        size: 13,
+                        color: pt.dark.withValues(alpha: 0.45),
+                      ),
                       const SizedBox(width: 5),
                       Expanded(
                         child: Text(
                           address,
-                          style: PremiumTokens.body(size: 12.5, color: pt.grey),
+                          style: PremiumTokens.body(
+                            size: 12,
+                            color: pt.grey,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -540,20 +560,20 @@ class _OrderCard extends StatelessWidget {
                     ],
                   ),
                 ],
-                const SizedBox(height: 14),
+                const SizedBox(height: 10),
                 Divider(color: pt.divider, height: 1),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 Row(
                   children: [
                     Text(
                       'Jami summa',
-                      style: PremiumTokens.body(size: 13, color: pt.grey),
+                      style: PremiumTokens.body(size: 12, color: pt.grey),
                     ),
                     const Spacer(),
                     Text(
                       '${_fmtPrice(total)} UZS',
                       style: PremiumTokens.body(
-                        size: 16,
+                        size: 14,
                         weight: FontWeight.w700,
                         color: PremiumTokens.accent,
                       ),
@@ -596,7 +616,7 @@ class _StatusPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: info.color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(30),
@@ -604,12 +624,12 @@ class _StatusPill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(info.icon, size: 14, color: info.color),
-          const SizedBox(width: 5),
+          Icon(info.icon, size: 12, color: info.color),
+          const SizedBox(width: 4),
           Text(
             info.label,
             style: PremiumTokens.body(
-              size: 12,
+              size: 11,
               weight: FontWeight.w700,
               color: info.color,
             ),
@@ -682,10 +702,10 @@ class _Thumb extends StatelessWidget {
       child: Icon(Iconsax.box, size: 18, color: pt.greyLight),
     );
     return Container(
-      width: 46,
-      height: 46,
+      width: 44,
+      height: 44,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(11),
+        borderRadius: BorderRadius.circular(9),
         border: Border.all(color: pt.divider),
       ),
       clipBehavior: Clip.antiAlias,
@@ -694,7 +714,7 @@ class _Thumb extends StatelessWidget {
           : CachedNetworkImage(
               imageUrl: url!,
               fit: BoxFit.cover,
-              memCacheWidth: 138,
+              memCacheWidth: 132,
               placeholder: (_, _) => placeholder,
               errorWidget: (_, _, _) => placeholder,
             ),

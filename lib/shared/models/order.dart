@@ -381,7 +381,7 @@ const _placeholderAddress = Address(
 /// `order_number` column is absent (mirrors the dashboard repo's convention).
 String _deriveOrderNumber(String id) {
   final stub = id.length >= 8 ? id.substring(0, 8) : id;
-  return 'M-${stub.toUpperCase()}';
+  return 'WD-${stub.toUpperCase()}';
 }
 
 DateTime? _parseDateOrNull(Object? value) =>
