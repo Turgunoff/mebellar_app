@@ -3,6 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../config/app_config.dart';
 import '../../customer/features/notifications/cubit/notifications_cubit.dart';
+import '../../customer/features/orders/cubit/unpaid_order_cubit.dart';
 import '../../customer/widgets/view_mode_toggle.dart';
 import '../analytics/analytics_service.dart';
 import '../analytics/firebase_analytics_service.dart';
@@ -233,6 +234,7 @@ void registerCatalogModule(GetIt sl) {
   sl.registerLazySingleton<OrderRepository>(
     () => WoodyOrderRepository(sl<WoodyApiClient>()),
   );
+  sl.registerLazySingleton<UnpaidOrderCubit>(createUnpaidOrderCubit);
   sl.registerLazySingleton<ProfileOrdersRepository>(
     () => WoodyProfileOrdersRepository(sl<WoodyApiClient>()),
   );

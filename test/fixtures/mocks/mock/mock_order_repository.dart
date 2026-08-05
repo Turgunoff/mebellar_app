@@ -28,6 +28,15 @@ class MockOrderRepository implements OrderRepository {
   }
 
   @override
+  Future<Order?> fetchAwaitingPaymentOrder() async {
+    await Future<void>.delayed(_delay);
+    for (final order in _orders) {
+      if (order.awaitsOnlinePayment) return order;
+    }
+    return null;
+  }
+
+  @override
   Future<Order> getById(String id) async {
     await Future<void>.delayed(_delay);
     final order = _orders.where((o) => o.id == id).firstOrNull;

@@ -35,6 +35,7 @@ import '../shared/chat/bloc/total_unread_chats_cubit.dart';
 import '../shared/models/chat.dart';
 import '../shared/models/notification_model.dart';
 import '../shared/payments/payment_recovery_gate.dart';
+import '../shared/payments/pending_payment.dart';
 import '../shared/repositories/chat_repository.dart';
 import '../shared/repositories/notifications_repository.dart';
 import '../shared/widgets/network_overlay_wrapper.dart';
@@ -46,6 +47,7 @@ import 'features/categories/screens/categories_screen.dart';
 import 'features/favorites/bloc/favorites_bloc.dart';
 import 'features/favorites/screens/favorites_screen.dart';
 import 'features/home/bloc/home_bloc.dart';
+import 'features/orders/cubit/unpaid_order_cubit.dart';
 import 'features/home/screens/home_screen.dart';
 import 'features/home/widgets/premium/premium_tokens.dart';
 import 'features/notifications/cubit/notifications_cubit.dart';
@@ -212,6 +214,9 @@ class _CustomerAppState extends State<CustomerApp> with WidgetsBindingObserver {
           BlocProvider<FavoritesBloc>.value(value: sl<FavoritesBloc>()),
           BlocProvider<CategoriesBloc>.value(value: sl<CategoriesBloc>()),
           BlocProvider<HomeBloc>.value(value: sl<HomeBloc>()),
+          BlocProvider<UnpaidOrderCubit>.value(
+            value: sl<UnpaidOrderCubit>(),
+          ),
           BlocProvider<NetworkCubit>.value(value: sl<NetworkCubit>()),
           BlocProvider<ProfileOrdersCubit>.value(
             value: sl<ProfileOrdersCubit>(),
@@ -266,6 +271,13 @@ class _CustomerAppState extends State<CustomerApp> with WidgetsBindingObserver {
                   onViewDetails: (_) {
                     final ctx = customerNavigatorKey.currentContext;
                     if (ctx != null) ctx.go('/orders');
+                  },
+                  onReconciled: (payment, outcome) {
+                    if (outcome == PaymentOutcome.paid &&
+                        payment.kind == PendingPaymentKind.order &&
+                        sl.isRegistered<UnpaidOrderCubit>()) {
+                      sl<UnpaidOrderCubit>().clearIfOrder(payment.reference);
+                    }
                   },
                   child: child ?? const SizedBox.shrink(),
                 ),

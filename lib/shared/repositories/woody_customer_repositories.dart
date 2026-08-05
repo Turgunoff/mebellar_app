@@ -315,6 +315,19 @@ class WoodyOrderRepository implements OrderRepository {
   }
 
   @override
+  Future<Order?> fetchAwaitingPaymentOrder() async {
+    final body = await _api.get<Map<String, dynamic>>(
+      '/orders',
+      query: const {'status': 'awaiting_payment', 'limit': '1'},
+      retries: 2,
+    );
+    final rows = body['rows'];
+    if (rows is! List || rows.isEmpty) return null;
+    final order = _rowToOrder(rows.first as Map<String, dynamic>);
+    return order.awaitsOnlinePayment ? order : null;
+  }
+
+  @override
   Future<Order> getById(String id) async {
     final row = await _api.get<Map<String, dynamic>>('/orders/$id');
     return _rowToOrder(row);
@@ -437,6 +450,14 @@ class WoodyOrderRepository implements OrderRepository {
 
   // ─── Mapping helpers ───────────────────────────────────────────────────────
 
+  static DateTime? _parsePaymentExpiresAt(dynamic raw) {
+    if (raw == null) return null;
+    if (raw is String && raw.isNotEmpty) {
+      return DateTime.parse(raw);
+    }
+    return null;
+  }
+
   Order _rowToOrder(Map<String, dynamic> row) {
     final id = row['id'] as String;
     final status = OrderStatus.fromCode(row['status'] as String?);
@@ -480,6 +501,7 @@ class WoodyOrderRepository implements OrderRepository {
       feeAdjustmentStatus: FeeAdjustmentStatus.fromCode(
         row['fee_adjustment_status'] as String?,
       ),
+      paymentExpiresAt: _parsePaymentExpiresAt(row['payment_expires_at']),
     );
   }
 

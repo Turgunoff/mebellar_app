@@ -35,6 +35,7 @@ enum _OrderFilter {
       _OrderFilter.all => true,
       _OrderFilter.active =>
         status == 'pending' ||
+            status == 'awaiting_payment' ||
             status == 'confirmed' ||
             status == 'preparing' ||
             status == 'shipped',
@@ -619,40 +620,48 @@ class _StatusPill extends StatelessWidget {
   }
 }
 
-/// Status icon / accent colour / Uzbek label for a raw `orders.status` code.
+/// Status icon / accent colour / localized label for `orders.status`.
 ({IconData icon, Color color, String label}) _statusInfo(String status) {
+  final labelKey = 'order_status.$status';
+  final label = tr(labelKey);
+  final resolvedLabel = label == labelKey ? status : label;
   return switch (status) {
     'pending' => (
       icon: Iconsax.clock,
       color: const Color(0xFFD97706),
-      label: 'Kutilmoqda',
+      label: resolvedLabel,
+    ),
+    'awaiting_payment' => (
+      icon: Iconsax.card,
+      color: const Color(0xFFD97706),
+      label: resolvedLabel,
     ),
     'confirmed' => (
       icon: Iconsax.box_tick,
       color: const Color(0xFF4F46E5),
-      label: 'Qabul qilindi',
+      label: resolvedLabel,
     ),
     'preparing' => (
       icon: Iconsax.box_1,
       color: const Color(0xFF2563EB),
-      label: 'Tayyorlanmoqda',
+      label: resolvedLabel,
     ),
     'shipped' => (
       icon: Iconsax.truck_fast,
       color: const Color(0xFF0891B2),
-      label: "Yo'lda",
+      label: resolvedLabel,
     ),
     'delivered' => (
       icon: Iconsax.tick_circle,
       color: const Color(0xFF16A34A),
-      label: 'Yetkazilgan',
+      label: resolvedLabel,
     ),
     'cancelled' => (
       icon: Iconsax.close_circle,
       color: const Color(0xFFDC2626),
-      label: 'Bekor qilingan',
+      label: resolvedLabel,
     ),
-    _ => (icon: Iconsax.clock, color: const Color(0xFF757575), label: status),
+    _ => (icon: Iconsax.clock, color: const Color(0xFF757575), label: resolvedLabel),
   };
 }
 

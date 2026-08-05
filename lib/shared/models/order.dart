@@ -179,6 +179,7 @@ class Order extends Equatable {
     this.proposedDeliveryFee,
     this.feeAdjustmentNote,
     this.feeAdjustmentStatus,
+    this.paymentExpiresAt,
   });
 
   final String id;
@@ -211,6 +212,13 @@ class Order extends Equatable {
   final num? proposedDeliveryFee;
   final String? feeAdjustmentNote;
   final FeeAdjustmentStatus? feeAdjustmentStatus;
+  final DateTime? paymentExpiresAt;
+
+  bool get isOnlinePayment =>
+      paymentProvider == 'payme' || paymentProvider == 'click';
+
+  bool get awaitsOnlinePayment =>
+      status.awaitsPayment && isOnlinePayment && paymentStatus == 'unpaid';
 
   /// Maps a `public.orders` row. Sub-aggregates that live in other tables
   /// ([items], [timeline]) or are not part of the seller order schema
@@ -260,6 +268,7 @@ class Order extends Equatable {
       feeAdjustmentStatus: FeeAdjustmentStatus.fromCode(
         json['fee_adjustment_status'] as String?,
       ),
+      paymentExpiresAt: _parseDateOrNull(json['payment_expires_at']),
     );
   }
 
@@ -293,7 +302,10 @@ class Order extends Equatable {
     num? proposedDeliveryFee,
     String? feeAdjustmentNote,
     FeeAdjustmentStatus? feeAdjustmentStatus,
+    String? paymentStatus,
+    DateTime? paymentExpiresAt,
     bool clearFeeAdjustment = false,
+    bool clearPaymentExpiresAt = false,
   }) {
     return Order(
       id: id,
@@ -304,6 +316,7 @@ class Order extends Equatable {
       deliveryMethod: deliveryMethod,
       paymentMethod: paymentMethod,
       paymentProvider: paymentProvider,
+      paymentStatus: paymentStatus ?? this.paymentStatus,
       status: status ?? this.status,
       itemsTotal: itemsTotal,
       deliveryFee: deliveryFee,
@@ -324,6 +337,9 @@ class Order extends Equatable {
       feeAdjustmentStatus: clearFeeAdjustment
           ? null
           : (feeAdjustmentStatus ?? this.feeAdjustmentStatus),
+      paymentExpiresAt: clearPaymentExpiresAt
+          ? null
+          : (paymentExpiresAt ?? this.paymentExpiresAt),
     );
   }
 
@@ -335,6 +351,8 @@ class Order extends Equatable {
     proposedDeliveryFee,
     feeAdjustmentStatus,
     cancelReasonCode,
+    paymentExpiresAt,
+    paymentStatus,
   ];
 }
 

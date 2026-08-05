@@ -24,6 +24,9 @@ class CreateOrderInput {
 
 abstract class OrderRepository {
   Future<List<Order>> list();
+
+  /// First online order still awaiting payment, if any.
+  Future<Order?> fetchAwaitingPaymentOrder();
   Future<Order> getById(String id);
 
   /// Single-shop order — one per shop group, so a multi-shop cart yields

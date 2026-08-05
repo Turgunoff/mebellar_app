@@ -32,6 +32,8 @@ import '../widgets/premium/glass_banner.dart';
 import '../widgets/premium/premium_product_card.dart';
 import '../widgets/premium/premium_product_list_card.dart';
 import '../widgets/premium/premium_tokens.dart';
+import '../widgets/unpaid_order_banner.dart';
+import '../../orders/cubit/unpaid_order_cubit.dart';
 
 /// First-launch spotlight flags — set once each tour step is shown so it never
 /// reappears on this install.
@@ -64,7 +66,7 @@ class _HomeView extends StatefulWidget {
   State<_HomeView> createState() => _HomeViewState();
 }
 
-class _HomeViewState extends State<_HomeView> {
+class _HomeViewState extends State<_HomeView> with WidgetsBindingObserver {
   // Shared, app-wide grid/list preference (see ProductViewModeController) so a
   // toggle here or on any category list applies everywhere — including this tab
   // when it's kept alive in the shell. Not disposed: it's a DI singleton.
@@ -79,11 +81,31 @@ class _HomeViewState extends State<_HomeView> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // First frame paints the AppBar + FAB (and registers Showcase targets)
     // before we ask the controller to spotlight them.
     WidgetsBinding.instance.addPostFrameCallback(
-      (_) => unawaited(_maybeStartHomeShowcases()),
+      (_) {
+        unawaited(_maybeStartHomeShowcases());
+        if (sl.isRegistered<UnpaidOrderCubit>()) {
+          unawaited(sl<UnpaidOrderCubit>().refresh());
+        }
+      },
     );
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed &&
+        sl.isRegistered<UnpaidOrderCubit>()) {
+      unawaited(sl<UnpaidOrderCubit>().refresh());
+    }
   }
 
   /// Shows unseen home spotlights in order: AR demo, then AI assistant. Each
@@ -111,6 +133,9 @@ class _HomeViewState extends State<_HomeView> {
   /// unchanged-payload refetch — which Bloc de-dupes and never re-emits —
   /// can't pin the spinner open forever.
   Future<void> _handleRefresh(BuildContext context) async {
+    if (sl.isRegistered<UnpaidOrderCubit>()) {
+      unawaited(sl<UnpaidOrderCubit>().refresh());
+    }
     final bloc = context.read<HomeBloc>();
     bloc.add(const HomeRequested(refresh: true));
     await bloc.stream
@@ -150,6 +175,7 @@ class _HomeViewState extends State<_HomeView> {
                   physics: const BouncingScrollPhysics(),
                   slivers: [
                     _HomeAppBar(arDemoKey: _arDemoKey),
+                    const SliverToBoxAdapter(child: UnpaidOrderBanner()),
                     CupertinoSliverRefreshControl(
                       onRefresh: () => _handleRefresh(context),
                     ),
@@ -181,6 +207,7 @@ class _HomeViewState extends State<_HomeView> {
                     physics: const BouncingScrollPhysics(),
                     slivers: [
                       _HomeAppBar(arDemoKey: _arDemoKey),
+                      const SliverToBoxAdapter(child: UnpaidOrderBanner()),
                       CupertinoSliverRefreshControl(
                         onRefresh: () => _handleRefresh(context),
                       ),

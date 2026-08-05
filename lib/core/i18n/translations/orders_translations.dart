@@ -50,6 +50,11 @@ const Map<String, dynamic> ordersUz = {
   'payment_unpaid': 'To\'lanmagan',
   'payment_paid': 'To\'langan',
   'payment_refunded': 'Qaytarilgan',
+  'payment_countdown_label': 'To\'lov uchun vaqt: {}',
+  'payment_countdown_title': 'To\'lov muddati tugayapti',
+  'payment_countdown_subtitle': 'Vaqt tugagach buyurtma avtomatik bekor qilinadi',
+  'payment_timeout_cancelled': 'To\'lov muddati tugadi — buyurtma bekor qilindi',
+  'home_unpaid_banner_pay': 'To\'lash',
 };
 
 const Map<String, dynamic> ordersRu = {
@@ -100,6 +105,11 @@ const Map<String, dynamic> ordersRu = {
   'payment_unpaid': 'Не оплачен',
   'payment_paid': 'Оплачен',
   'payment_refunded': 'Возвращён',
+  'payment_countdown_label': 'Время на оплату: {}',
+  'payment_countdown_title': 'Срок оплаты истекает',
+  'payment_countdown_subtitle': 'После истечения времени заказ будет отменён',
+  'payment_timeout_cancelled': 'Время оплаты истекло — заказ отменён',
+  'home_unpaid_banner_pay': 'Оплатить',
 };
 
 const Map<String, dynamic> ordersEn = {
@@ -150,6 +160,11 @@ const Map<String, dynamic> ordersEn = {
   'payment_unpaid': 'Unpaid',
   'payment_paid': 'Paid',
   'payment_refunded': 'Refunded',
+  'payment_countdown_label': 'Time to pay: {}',
+  'payment_countdown_title': 'Payment deadline',
+  'payment_countdown_subtitle': 'The order will be cancelled when time runs out',
+  'payment_timeout_cancelled': 'Payment time expired — order cancelled',
+  'home_unpaid_banner_pay': 'Pay',
 };
 
 const Map<String, dynamic> orderStatusUz = {

@@ -2,11 +2,11 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/di/service_locator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../config/remote_config.dart';
-import '../../../../core/di/service_locator.dart';
 import '../../../../core/network/api_error_messages.dart';
 import '../../../../shared/models/order.dart'
     show FeeAdjustmentStatus, Order, OrderItem;
@@ -27,6 +27,8 @@ import '../../reviews/widgets/review_composer_sheet.dart';
 import '../bloc/order_detail_bloc.dart';
 import '../widgets/order_status_badge.dart';
 import '../widgets/order_status_timeline.dart';
+import '../widgets/payment_countdown.dart';
+import '../cubit/unpaid_order_cubit.dart';
 
 class OrderDetailScreen extends StatelessWidget {
   const OrderDetailScreen({super.key, required this.id});
@@ -49,11 +51,27 @@ class _OrderDetailView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<OrderDetailBloc, OrderDetailState>(
-      listenWhen: (a, b) => a.error != b.error && b.error != null,
+      listenWhen: (a, b) {
+        if (a.error != b.error && b.error != null) return true;
+        final ao = a.order;
+        final bo = b.order;
+        if (ao == null || bo == null) return false;
+        return ao.paymentStatus != bo.paymentStatus || ao.status != bo.status;
+      },
       listener: (context, state) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(state.error ?? tr('error.unknown'))),
-        );
+        if (state.error != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.error ?? tr('error.unknown'))),
+          );
+        }
+        final order = state.order;
+        if (order != null &&
+            (order.paymentStatus == 'paid' ||
+                order.status == OrderStatus.confirmed)) {
+          if (sl.isRegistered<UnpaidOrderCubit>()) {
+            sl<UnpaidOrderCubit>().clearIfOrder(order.id);
+          }
+        }
       },
       builder: (context, state) {
         if (state.status == OrderDetailStatus.initial ||
@@ -75,13 +93,50 @@ class _OrderDetailView extends StatelessWidget {
   }
 }
 
-class _Body extends StatelessWidget {
+class _Body extends StatefulWidget {
   const _Body({required this.state});
   final OrderDetailState state;
 
   @override
+  State<_Body> createState() => _BodyState();
+}
+
+class _BodyState extends State<_Body> {
+  DateTime? _receivedAt;
+  bool _locallyExpired = false;
+
+  Order get _baseOrder => widget.state.order!;
+
+  Order get _order {
+    if (_locallyExpired) {
+      return _baseOrder.copyWith(
+        status: OrderStatus.cancelled,
+        cancelReasonCode: 'payment_timeout',
+        paymentStatus: 'unpaid',
+        clearPaymentExpiresAt: true,
+      );
+    }
+    return _baseOrder;
+  }
+
+  bool get _showPaymentDeadline =>
+      _baseOrder.awaitsOnlinePayment &&
+      !_locallyExpired &&
+      _baseOrder.paymentExpiresAt != null;
+
+  void _onPaymentExpired() {
+    if (!mounted || _locallyExpired) return;
+    setState(() => _locallyExpired = true);
+    context.read<OrderDetailBloc>().add(
+      OrderDetailRequested(_baseOrder.id),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final order = state.order!;
+    _receivedAt ??= DateTime.now();
+    final order = _order;
+    final state = widget.state;
     final lang = context.locale.languageCode;
     final priceFormat = NumberFormat('#,###', lang);
     final scheme = Theme.of(context).colorScheme;
@@ -118,7 +173,7 @@ class _Body extends StatelessWidget {
             ),
         ],
       ),
-      bottomNavigationBar: order.status.awaitsPayment
+      bottomNavigationBar: order.awaitsOnlinePayment && !_locallyExpired
           ? _PayNowBar(order: order)
           : order.status.customerCancellable
           ? _CancelOrderBar(state: state)
@@ -130,7 +185,7 @@ class _Body extends StatelessWidget {
             children: [
               OrderStatusBadge(status: order.status),
               const Spacer(),
-              if (order.expectedDeliveryAt != null)
+              if (!_showPaymentDeadline && order.expectedDeliveryAt != null)
                 Text(
                   tr(
                     'orders.expected',
@@ -145,17 +200,36 @@ class _Body extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 16),
-          Text(
-            tr('orders.timeline'),
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 12),
-          OrderStatusTimeline(
-            events: order.timeline,
-            currentStatus: order.status,
-          ),
-          const SizedBox(height: 24),
+          if (order.status == OrderStatus.cancelled &&
+              order.cancelReasonCode == 'payment_timeout') ...[
+            Text(
+              tr('orders.payment_timeout_cancelled'),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: pt.onWarningBg,
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+            const SizedBox(height: 16),
+          ],
+          if (_showPaymentDeadline) ...[
+            PaymentCountdownCard(
+              expiresAt: _baseOrder.paymentExpiresAt!,
+              receivedAt: _receivedAt!,
+              onExpired: _onPaymentExpired,
+            ),
+            const SizedBox(height: 24),
+          ] else ...[
+            Text(
+              tr('orders.timeline'),
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 12),
+            OrderStatusTimeline(
+              events: order.timeline,
+              currentStatus: order.status,
+            ),
+            const SizedBox(height: 24),
+          ],
           // Items
           Text(
             tr('orders.items'),
@@ -997,28 +1071,33 @@ class _PayNowBarState extends State<_PayNowBar> {
           ),
           const SizedBox(width: 12),
           if (_providerEnabled)
-            SizedBox(
-              height: 50,
-              child: FilledButton.icon(
-                onPressed: _busy ? null : _pay,
-                style: FilledButton.styleFrom(
-                  backgroundColor: scheme.primary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+            // Theme FilledButton uses Size.fromHeight(56) → minWidth Infinity;
+            // Flexible bounds it so the Row can lay out.
+            Flexible(
+              child: SizedBox(
+                height: 50,
+                child: FilledButton.icon(
+                  onPressed: _busy ? null : _pay,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: scheme.primary,
+                    minimumSize: const Size(0, 50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  icon: _busy
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.4,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Iconsax.card, size: 18),
+                  label: Text(tr('orders.pay_now')),
                 ),
-                icon: _busy
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.4,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Iconsax.card, size: 18),
-                label: Text(tr('orders.pay_now')),
               ),
             )
           else
