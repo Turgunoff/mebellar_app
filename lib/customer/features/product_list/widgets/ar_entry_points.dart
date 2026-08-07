@@ -4,7 +4,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
-import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../core/logging/app_logger.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -280,6 +279,7 @@ class ArPromoCard extends StatelessWidget {
 Future<void> openSetArExperience(
   BuildContext context, {
   required String setId,
+  required WoodySetRepository setRepository,
   String? setName,
 }) async {
   final messenger = ScaffoldMessenger.of(context);
@@ -291,7 +291,7 @@ Future<void> openSetArExperience(
   );
   SetDetail? set;
   try {
-    set = await sl<WoodySetRepository>().fetchSet(setId);
+    set = await setRepository.fetchSet(setId);
   } catch (e, st) {
     appLog.handle(e, st, '[set-ar] set fetch failed');
   }
@@ -363,9 +363,14 @@ void _pushSetSticker(
 /// launches the whole-set AR / 2D experience. Render only when
 /// `product.hasSet`.
 class SetArPromoCard extends StatelessWidget {
-  const SetArPromoCard({super.key, required this.product});
+  const SetArPromoCard({
+    super.key,
+    required this.product,
+    required this.setRepository,
+  });
 
   final ProductModel product;
+  final WoodySetRepository setRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -377,7 +382,11 @@ class SetArPromoCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         onTap: product.setId == null
             ? null
-            : () => openSetArExperience(context, setId: product.setId!),
+            : () => openSetArExperience(
+                context,
+                setId: product.setId!,
+                setRepository: setRepository,
+              ),
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(

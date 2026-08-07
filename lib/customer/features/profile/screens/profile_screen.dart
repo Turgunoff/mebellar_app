@@ -5,8 +5,12 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../../config/app_mode.dart';
 import '../../../../core/auth/app_mode_cubit.dart';
+import '../../../../core/auth/auth_repository.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
+import '../../../../core/network/woody_api_client.dart';
+import '../../../../core/notifications/push_service.dart';
+import '../../../../core/storage/r2_upload_client.dart';
 import '../../../../shared/chat/bloc/total_unread_chats_cubit.dart';
 import '../../support/bloc/support_unread_cubit.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
@@ -68,7 +72,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         settings: const RouteSettings(name: '/edit-profile'),
         builder: (_) => BlocProvider.value(
           value: cubit,
-          child: EditProfileScreen(profile: profile),
+          child: EditProfileScreen(
+            profile: profile,
+            uploadClient: sl<R2UploadClient>(),
+          ),
         ),
       ),
     );
@@ -116,7 +123,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     MenuEntry(
       icon: Iconsax.setting_2_copy,
       label: tr('profile.menu_settings'),
-      onTap: () => _push(context, const SettingsScreen()),
+      onTap: () => _push(
+        context,
+        SettingsScreen(
+          authRepository: sl<AuthRepository>(),
+          pushService: sl.isRegistered<PushService>()
+              ? sl<PushService>()
+              : null,
+        ),
+      ),
     ),
     MenuEntry(
       icon: Iconsax.message_question_copy,
@@ -214,16 +229,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
               BecomeSellerBanner(onTap: _openSellerOnboarding),
             const SizedBox(height: 24),
             MenuListCard(
-              items: _buildMenuItems(
-                context,
-                unreadChats,
-                unreadSupport,
-              ),
+              items: _buildMenuItems(context, unreadChats, unreadSupport),
             ),
             const SizedBox(height: 28),
             DangerZone(
-              onSignOut: () => showSignOutDialog(context),
-              onDeleteAccount: () => confirmAccountDeletion(context),
+              onSignOut: () => showSignOutDialog(
+                context,
+                authRepository: sl.isRegistered<AuthRepository>()
+                    ? sl<AuthRepository>()
+                    : null,
+              ),
+              onDeleteAccount: () => confirmAccountDeletion(
+                context,
+                authRepository: sl.isRegistered<AuthRepository>()
+                    ? sl<AuthRepository>()
+                    : null,
+                api: sl<WoodyApiClient>(),
+              ),
             ),
           ],
         ),

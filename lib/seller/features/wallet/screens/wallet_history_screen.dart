@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
-import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../core/logging/app_logger.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -12,7 +11,9 @@ import '../../../../shared/repositories/seller_wallet_repository.dart';
 
 /// Full wallet ledger — manual top-up moderation rows plus balance movements.
 class WalletHistoryScreen extends StatefulWidget {
-  const WalletHistoryScreen({super.key});
+  const WalletHistoryScreen({super.key, required this.repo});
+
+  final SellerWalletRepository repo;
 
   @override
   State<WalletHistoryScreen> createState() => _WalletHistoryScreenState();
@@ -37,7 +38,7 @@ class _WalletHistoryScreenState extends State<WalletHistoryScreen> {
       _failed = false;
     });
     try {
-      final repo = sl<SellerWalletRepository>();
+      final repo = widget.repo;
       final results = await Future.wait([
         repo.fetchTopUps(),
         repo.fetchWithdrawals(),

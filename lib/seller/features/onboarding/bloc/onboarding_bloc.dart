@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/analytics/analytics_service.dart';
+import '../../../../core/result/result.dart';
 import '../../../../shared/models/business_type.dart';
 import '../../../../shared/models/onboarding_draft.dart';
 import '../../../../shared/models/region.dart';
@@ -298,13 +299,13 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
     OnboardingStarted event,
     Emitter<OnboardingState> emit,
   ) async {
-    var draft = _repo.loadDraft();
+    var draft = _repo.loadDraft().valueOrNull ?? const OnboardingDraft();
 
     // Local Hive draft is wiped at successful submit time, so for a
     // resubmit-after-rejection flow the wizard would otherwise open blank.
     // Fall through to the server's last-known answers when local is empty.
     if (draft.isEmpty) {
-      final remote = await _repo.loadRemoteDraft();
+      final remote = (await _repo.loadRemoteDraft()).valueOrNull;
       if (remote != null) {
         draft = remote;
         // Pre-fill arrives only via the rejected path. Start the user at the
@@ -465,30 +466,34 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
     Emitter<OnboardingState> emit,
   ) async {
     emit(state.copyWith(status: OnboardingStatus.submitting, clearError: true));
-    try {
-      // Forward the picked passport image paths so the repository can upload
-      // them to storage and persist their paths on the sellers row. Keys
-      // match the document ids emitted by the documentUpload step.
-      final result = await _repo.submit(
-        state.draft,
-        passportFrontPath: state.documentFiles['passport_front'],
-        passportBackPath: state.documentFiles['passport_back'],
-        contractVersion: event.contractVersion,
-      );
-      await _repo.clearDraft();
-      emit(
-        state.copyWith(
-          status: OnboardingStatus.submitted,
-          resultStatus: result.verificationStatus,
-          shopId: result.shopId,
-          step: OnboardingStep.done,
-        ),
-      );
-      unawaited(_analytics?.sellerOnboardingCompleted());
-    } catch (e) {
-      emit(
-        state.copyWith(status: OnboardingStatus.failure, error: e.toString()),
-      );
+    // Forward the picked passport image paths so the repository can upload
+    // them to storage and persist their paths on the sellers row. Keys
+    // match the document ids emitted by the documentUpload step.
+    final result = await _repo.submit(
+      state.draft,
+      passportFrontPath: state.documentFiles['passport_front'],
+      passportBackPath: state.documentFiles['passport_back'],
+      contractVersion: event.contractVersion,
+    );
+    switch (result) {
+      case Ok(:final value):
+        await _repo.clearDraft();
+        emit(
+          state.copyWith(
+            status: OnboardingStatus.submitted,
+            resultStatus: value.verificationStatus,
+            shopId: value.shopId,
+            step: OnboardingStep.done,
+          ),
+        );
+        unawaited(_analytics?.sellerOnboardingCompleted());
+      case Err(:final failure):
+        emit(
+          state.copyWith(
+            status: OnboardingStatus.failure,
+            error: failure.message,
+          ),
+        );
     }
   }
 

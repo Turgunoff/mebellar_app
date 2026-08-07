@@ -1,0 +1,50 @@
+name: CI
+
+# Static analysis + test gate for the Flutter app. Runs on every push/PR so
+# the documented invariants (strict-casts, i18n parity, the Result<T>
+# boundary, ...) and the test suite are enforced by the pipeline, not human
+# discipline alone. Restored 2026-08-07 after commit 918eec6 dropped it —
+# analysis_options.yaml's header comment references this file by path, so
+# keep them in sync if this workflow moves.
+#
+# No Java/Android toolchain and no env/prod.json are needed: `flutter
+# analyze` is static, and the test suite runs against in-memory
+# fakes/mocks — it never boots the app (main.dart), so
+# AppConfig.assertConfigured() never fires. Confirmed empirically: the full
+# 851-test suite passes locally with no --dart-define-from-file at all. If a
+# future test needs a real config value, add
+# --dart-define-from-file=env/example.json to the Test step then (the
+# example file has placeholder, non-secret values — never point CI at
+# env/prod.json).
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-app-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze-test:
+    name: Analyze · Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # Blocking: analysis_options.yaml enables strict-casts, so an implicit
+      # dynamic downcast fails here.
+      - name: Analyze
+        run: flutter analyze lib/ test/
+
+      - name: Test
+        run: flutter test

@@ -5,9 +5,10 @@ part of 'catalog_product_detail_screen.dart';
 // ═══════════════════════════════════════════════════════════════════════════
 
 class _SimilarSection extends StatefulWidget {
-  const _SimilarSection({required this.productId});
+  const _SimilarSection({required this.productId, required this.source});
 
   final String productId;
+  final ProductDataSource source;
 
   @override
   State<_SimilarSection> createState() => _SimilarSectionState();
@@ -22,7 +23,7 @@ class _SimilarSectionState extends State<_SimilarSection> {
   @override
   void initState() {
     super.initState();
-    final source = sl<ProductDataSource>();
+    final source = widget.source;
     _cached = source.peekSimilar(widget.productId);
     // Server-ranked recommendations — see `get_similar_products`.
     _future = source.listSimilar(widget.productId);

@@ -2,7 +2,9 @@ import 'dart:io';
 
 import '../../core/error/failure.dart';
 import '../../core/network/api_error.dart';
+import '../../core/network/api_error_messages.dart';
 import '../../core/network/woody_api_client.dart';
+import '../../core/result/result.dart';
 import '../../core/storage/r2_upload_client.dart';
 import '../models/multilingual_text.dart';
 import '../models/seller_product.dart';
@@ -46,11 +48,11 @@ class WoodySellerProductRepository implements SellerProductRepository {
   Stream<List<SellerProduct>> watch() => const Stream.empty();
 
   @override
-  Future<SellerProductPage> list({
+  Future<Result<SellerProductPage>> list({
     SellerProductFilter filter = const SellerProductFilter(),
     int page = 1,
     int perPage = 20,
-  }) async {
+  }) => runCatching(() async {
     final offset = (page - 1) * perPage;
     final query = <String, dynamic>{'limit': perPage, 'offset': offset};
     // Backend takes a single status filter; the interface allows a set. Pass
@@ -87,7 +89,7 @@ class WoodySellerProductRepository implements SellerProductRepository {
       hasNext: offset + rows.length < total,
       statusCounts: _statusCounts(body['status_counts']),
     );
-  }
+  }, onError: (error, _) => _toFailure(error));
 
   /// Whole-catalogue per-status totals from the list response. Unknown codes
   /// fold into [SellerProductStatus.pendingReview] (same rule as `fromCode`),
@@ -104,68 +106,72 @@ class WoodySellerProductRepository implements SellerProductRepository {
   }
 
   @override
-  Future<SellerProduct> getById(String id) async {
+  Future<Result<SellerProduct>> getById(String id) => runCatching(() async {
     final body = await _api.get<Map<String, dynamic>>('/seller/products/$id');
     return _fromRow(body);
-  }
+  }, onError: (error, _) => _toFailure(error));
 
   @override
-  Future<SellerProduct> create(SellerProductInput input) async {
-    try {
-      final body = await _api.post<Map<String, dynamic>>(
-        '/seller/products',
-        body: _toBody(input, includeStatus: false),
-      );
-      return _fromRow(body);
-    } on ApiError catch (e) {
-      throw _mapTariff(e);
-    }
-  }
+  Future<Result<SellerProduct>> create(SellerProductInput input) => runCatching(
+    () async {
+      try {
+        final body = await _api.post<Map<String, dynamic>>(
+          '/seller/products',
+          body: _toBody(input, includeStatus: false),
+        );
+        return _fromRow(body);
+      } on ApiError catch (e) {
+        throw _mapTariff(e);
+      }
+    },
+    onError: (error, _) => _toFailure(error),
+  );
 
   @override
-  Future<SellerProduct> update(String id, SellerProductInput input) async {
-    try {
-      final body = await _api.patch<Map<String, dynamic>>(
-        '/seller/products/$id',
-        body: _toBody(input, includeStatus: false),
-      );
-      return _fromRow(body);
-    } on ApiError catch (e) {
-      throw _mapTariff(e);
-    }
-  }
+  Future<Result<SellerProduct>> update(String id, SellerProductInput input) =>
+      runCatching(() async {
+        try {
+          final body = await _api.patch<Map<String, dynamic>>(
+            '/seller/products/$id',
+            body: _toBody(input, includeStatus: false),
+          );
+          return _fromRow(body);
+        } on ApiError catch (e) {
+          throw _mapTariff(e);
+        }
+      }, onError: (error, _) => _toFailure(error));
 
   @override
-  Future<SellerProduct> archive(String id) async {
+  Future<Result<SellerProduct>> archive(String id) => runCatching(() async {
     final body = await _api.post<Map<String, dynamic>>(
       '/seller/products/$id/archive',
     );
     return _fromRow(body);
-  }
+  }, onError: (error, _) => _toFailure(error));
 
   @override
-  Future<SellerProduct> restore(String id) async {
+  Future<Result<SellerProduct>> restore(String id) => runCatching(() async {
     final body = await _api.post<Map<String, dynamic>>(
       '/seller/products/$id/restore',
     );
     return _fromRow(body);
-  }
+  }, onError: (error, _) => _toFailure(error));
 
   @override
-  Future<void> delete(String id) async {
+  Future<Result<void>> delete(String id) => runCatching(() async {
     await _api.delete<dynamic>('/seller/products/$id');
-  }
+  }, onError: (error, _) => _toFailure(error));
 
   @override
-  Future<SellerProduct> submitForReview(String id) =>
+  Future<Result<SellerProduct>> submitForReview(String id) =>
       _patchStatus(id, SellerProductStatus.pendingReview);
 
   @override
-  Future<SellerProductImage> uploadImage({
+  Future<Result<SellerProductImage>> uploadImage({
     required String productId,
     required File file,
     required String fileExtension,
-  }) async {
+  }) => runCatching(() async {
     final ext = fileExtension.toLowerCase();
     final path = '$productId/${DateTime.now().millisecondsSinceEpoch}.$ext';
     // R2 client isn't a repo dependency here — the bytes go through the same
@@ -181,7 +187,10 @@ class WoodySellerProductRepository implements SellerProductRepository {
       throw const ServerFailure(message: 'Rasm manzili olinmadi');
     }
 
-    final current = await getById(productId);
+    final current = (await getById(productId)).valueOrNull;
+    if (current == null) {
+      throw const ServerFailure(message: 'Mahsulot topilmadi');
+    }
     final urls = [
       for (final img in current.images)
         if (img.remoteUrl != null) img.remoteUrl!,
@@ -189,27 +198,33 @@ class WoodySellerProductRepository implements SellerProductRepository {
     ];
     await _patchImages(productId, urls);
     return SellerProductImage(id: url, remoteUrl: url, localPath: file.path);
-  }
+  }, onError: (error, _) => _toFailure(error));
 
   @override
-  Future<void> deleteImage({
+  Future<Result<void>> deleteImage({
     required String productId,
     required String imageId,
-  }) async {
-    final current = await getById(productId);
+  }) => runCatching(() async {
+    final current = (await getById(productId)).valueOrNull;
+    if (current == null) {
+      throw const ServerFailure(message: 'Mahsulot topilmadi');
+    }
     final urls = [
       for (final img in current.images)
         if (img.remoteUrl != null && img.id != imageId) img.remoteUrl!,
     ];
     await _patchImages(productId, urls);
-  }
+  }, onError: (error, _) => _toFailure(error));
 
   @override
-  Future<SellerProduct> reorderImages({
+  Future<Result<SellerProduct>> reorderImages({
     required String productId,
     required List<String> imageIdsInOrder,
-  }) async {
-    final current = await getById(productId);
+  }) => runCatching(() async {
+    final current = (await getById(productId)).valueOrNull;
+    if (current == null) {
+      throw const ServerFailure(message: 'Mahsulot topilmadi');
+    }
     final byId = {
       for (final img in current.images)
         if (img.remoteUrl != null) img.id: img.remoteUrl!,
@@ -227,14 +242,17 @@ class WoodySellerProductRepository implements SellerProductRepository {
     }
     final body = await _patchImages(productId, reordered);
     return _fromRow(body);
-  }
+  }, onError: (error, _) => _toFailure(error));
 
   @override
-  Future<SellerProduct> setPrimaryImage({
+  Future<Result<SellerProduct>> setPrimaryImage({
     required String productId,
     required String imageId,
-  }) async {
-    final current = await getById(productId);
+  }) => runCatching(() async {
+    final current = (await getById(productId)).valueOrNull;
+    if (current == null) {
+      throw const ServerFailure(message: 'Mahsulot topilmadi');
+    }
     final urls = [
       for (final img in current.images)
         if (img.remoteUrl != null && img.id == imageId) img.remoteUrl!,
@@ -243,7 +261,7 @@ class WoodySellerProductRepository implements SellerProductRepository {
     ];
     final body = await _patchImages(productId, urls);
     return _fromRow(body);
-  }
+  }, onError: (error, _) => _toFailure(error));
 
   Future<Map<String, dynamic>> _patchImages(
     String productId,
@@ -261,15 +279,31 @@ class WoodySellerProductRepository implements SellerProductRepository {
   /// The intended status is reflected optimistically via copyWith so the UI
   /// updates; the next list/detail read is authoritative once the backend
   /// honours the field.
-  Future<SellerProduct> _patchStatus(
+  Future<Result<SellerProduct>> _patchStatus(
     String id,
     SellerProductStatus status,
-  ) async {
+  ) => runCatching(() async {
     final body = await _api.patch<Map<String, dynamic>>(
       '/seller/products/$id',
       body: {'status': status.code},
     );
     return _fromRow(body).copyWith(status: status);
+  }, onError: (error, _) => _toFailure(error));
+
+  /// Preserves the backend's own error copy (`ApiError.message`/`.code`,
+  /// e.g. "Bu mahsulot buyurtmalarda qatnashgan…" on a blocked delete)
+  /// rather than collapsing everything to [apiErrorToFailure]'s generic
+  /// status-bucket text — matches what `_displayError` in
+  /// `seller_products_bloc.dart` showed before this repo moved to `Result<T>`.
+  Failure _toFailure(Object error) {
+    if (error is ApiError) {
+      return ServerFailure(
+        message: error.message ?? error.code,
+        code: error.code,
+        statusCode: error.status,
+      );
+    }
+    return apiErrorToFailure(error);
   }
 
   Map<String, dynamic> _toBody(

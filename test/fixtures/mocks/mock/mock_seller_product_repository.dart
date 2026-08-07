@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:woody_app/core/error/failure.dart';
+import 'package:woody_app/core/result/result.dart';
 import 'package:woody_app/shared/models/multilingual_text.dart';
 import 'package:woody_app/shared/models/seller_product.dart';
 import 'package:woody_app/shared/models/tariff.dart';
@@ -33,7 +35,7 @@ class MockSellerProductRepository implements SellerProductRepository {
   Stream<List<SellerProduct>> watch() => _controller.stream;
 
   @override
-  Future<SellerProductPage> list({
+  Future<Result<SellerProductPage>> list({
     SellerProductFilter filter = const SellerProductFilter(),
     int page = 1,
     int perPage = 20,
@@ -53,26 +55,30 @@ class MockSellerProductRepository implements SellerProductRepository {
     for (final p in _products) {
       counts[p.status] = (counts[p.status] ?? 0) + 1;
     }
-    return SellerProductPage(
-      items: pageItems,
-      page: page,
-      perPage: perPage,
-      total: total,
-      hasNext: end < total,
-      statusCounts: counts,
+    return Ok(
+      SellerProductPage(
+        items: pageItems,
+        page: page,
+        perPage: perPage,
+        total: total,
+        hasNext: end < total,
+        statusCounts: counts,
+      ),
     );
   }
 
   @override
-  Future<SellerProduct> getById(String id) async {
+  Future<Result<SellerProduct>> getById(String id) async {
     await Future<void>.delayed(_delay);
     final p = _products.where((x) => x.id == id).firstOrNull;
-    if (p == null) throw StateError('Mahsulot topilmadi: $id');
-    return p;
+    if (p == null) {
+      return Err(UnknownFailure(message: 'Mahsulot topilmadi: $id'));
+    }
+    return Ok(p);
   }
 
   @override
-  Future<SellerProduct> create(SellerProductInput input) async {
+  Future<Result<SellerProduct>> create(SellerProductInput input) async {
     await Future<void>.delayed(_delay);
     final tariff = TariffSnapshot(
       plan: TariffPlan.free,
@@ -82,7 +88,7 @@ class MockSellerProductRepository implements SellerProductRepository {
         _activeStatuses.contains(input.status) ||
         input.status == SellerProductStatus.draft;
     if (wouldBeActive && tariff.reachedLimit) {
-      throw TariffLimitException(tariff);
+      return Err(UnknownFailure(message: TariffLimitException(tariff).toString()));
     }
     _idCounter += 1;
     final now = DateTime.now();
@@ -107,14 +113,16 @@ class MockSellerProductRepository implements SellerProductRepository {
     );
     _products.insert(0, product);
     _emit();
-    return product;
+    return Ok(product);
   }
 
   @override
-  Future<SellerProduct> update(String id, SellerProductInput input) async {
+  Future<Result<SellerProduct>> update(String id, SellerProductInput input) async {
     await Future<void>.delayed(_delay);
     final idx = _products.indexWhere((p) => p.id == id);
-    if (idx < 0) throw StateError('Mahsulot topilmadi: $id');
+    if (idx < 0) {
+      return Err(UnknownFailure(message: 'Mahsulot topilmadi: $id'));
+    }
     final updated = _products[idx].copyWith(
       name: input.name as MultilingualText,
       description: input.description as MultilingualText,
@@ -133,36 +141,43 @@ class MockSellerProductRepository implements SellerProductRepository {
     );
     _products[idx] = updated;
     _emit();
-    return updated;
+    return Ok(updated);
   }
 
   @override
-  Future<SellerProduct> archive(String id) async {
+  Future<Result<SellerProduct>> archive(String id) async {
     await Future<void>.delayed(_delay);
     final idx = _products.indexWhere((p) => p.id == id);
-    if (idx < 0) throw StateError('Mahsulot topilmadi: $id');
+    if (idx < 0) {
+      return Err(UnknownFailure(message: 'Mahsulot topilmadi: $id'));
+    }
     _products[idx] = _products[idx].copyWith(
       status: SellerProductStatus.archived,
       updatedAt: DateTime.now(),
     );
     _emit();
-    return _products[idx];
+    return Ok(_products[idx]);
   }
 
   @override
-  Future<void> delete(String id) async {
+  Future<Result<void>> delete(String id) async {
     await Future<void>.delayed(_delay);
     final idx = _products.indexWhere((p) => p.id == id);
-    if (idx < 0) throw StateError('Mahsulot topilmadi: $id');
+    if (idx < 0) {
+      return Err(UnknownFailure(message: 'Mahsulot topilmadi: $id'));
+    }
     _products.removeAt(idx);
     _emit();
+    return const Ok(null);
   }
 
   @override
-  Future<SellerProduct> restore(String id) async {
+  Future<Result<SellerProduct>> restore(String id) async {
     await Future<void>.delayed(_delay);
     final idx = _products.indexWhere((p) => p.id == id);
-    if (idx < 0) throw StateError('Mahsulot topilmadi: $id');
+    if (idx < 0) {
+      return Err(UnknownFailure(message: 'Mahsulot topilmadi: $id'));
+    }
     // Mirrors the backend: an archived product re-enters moderation rather
     // than going straight back to approved.
     if (_products[idx].status == SellerProductStatus.archived) {
@@ -172,17 +187,21 @@ class MockSellerProductRepository implements SellerProductRepository {
       );
       _emit();
     }
-    return _products[idx];
+    return Ok(_products[idx]);
   }
 
   @override
-  Future<SellerProduct> submitForReview(String id) async {
+  Future<Result<SellerProduct>> submitForReview(String id) async {
     await Future<void>.delayed(_delay);
     final idx = _products.indexWhere((p) => p.id == id);
-    if (idx < 0) throw StateError('Mahsulot topilmadi: $id');
+    if (idx < 0) {
+      return Err(UnknownFailure(message: 'Mahsulot topilmadi: $id'));
+    }
     final product = _products[idx];
     if (!product.status.isMutable) {
-      throw StateError('Bu holatda submit qilib bo\'lmaydi');
+      return Err(
+        UnknownFailure(message: "Bu holatda submit qilib bo'lmaydi"),
+      );
     }
     _products[idx] = product.copyWith(
       status: SellerProductStatus.pendingReview,
@@ -203,17 +222,19 @@ class MockSellerProductRepository implements SellerProductRepository {
       _emit();
     });
     _emit();
-    return _products[idx];
+    return Ok(_products[idx]);
   }
 
   @override
-  Future<SellerProductImage> uploadImage({
+  Future<Result<SellerProductImage>> uploadImage({
     required String productId,
     required File file,
     required String fileExtension,
   }) async {
     final idx = _products.indexWhere((p) => p.id == productId);
-    if (idx < 0) throw StateError('Mahsulot topilmadi: $productId');
+    if (idx < 0) {
+      return Err(UnknownFailure(message: 'Mahsulot topilmadi: $productId'));
+    }
     final imgId =
         'img-${productId.split('-').last}-${DateTime.now().millisecondsSinceEpoch}';
     final placeholder = SellerProductImage(
@@ -247,7 +268,9 @@ class MockSellerProductRepository implements SellerProductRepository {
 
     await Future<void>.delayed(_uploadDelay ~/ 4);
     final fIdx = _products.indexWhere((p) => p.id == productId);
-    if (fIdx < 0) throw StateError('Mahsulot endi topilmadi');
+    if (fIdx < 0) {
+      return Err(UnknownFailure(message: 'Mahsulot endi topilmadi'));
+    }
     final imgs = List<SellerProductImage>.from(_products[fIdx].images);
     final imgIdx = imgs.indexWhere((i) => i.id == imgId);
     if (imgIdx >= 0) {
@@ -259,17 +282,17 @@ class MockSellerProductRepository implements SellerProductRepository {
       _products[fIdx] = _products[fIdx].copyWith(images: imgs);
       _emit();
     }
-    return imgs[imgIdx];
+    return Ok(imgs[imgIdx]);
   }
 
   @override
-  Future<void> deleteImage({
+  Future<Result<void>> deleteImage({
     required String productId,
     required String imageId,
   }) async {
     await Future<void>.delayed(_delay);
     final idx = _products.indexWhere((p) => p.id == productId);
-    if (idx < 0) return;
+    if (idx < 0) return const Ok(null);
     final remaining = _products[idx].images
         .where((i) => i.id != imageId)
         .toList();
@@ -282,16 +305,19 @@ class MockSellerProductRepository implements SellerProductRepository {
       updatedAt: DateTime.now(),
     );
     _emit();
+    return const Ok(null);
   }
 
   @override
-  Future<SellerProduct> reorderImages({
+  Future<Result<SellerProduct>> reorderImages({
     required String productId,
     required List<String> imageIdsInOrder,
   }) async {
     await Future<void>.delayed(_delay);
     final idx = _products.indexWhere((p) => p.id == productId);
-    if (idx < 0) throw StateError('Mahsulot topilmadi: $productId');
+    if (idx < 0) {
+      return Err(UnknownFailure(message: 'Mahsulot topilmadi: $productId'));
+    }
     final imgsById = {for (final i in _products[idx].images) i.id: i};
     final reordered = [
       for (final id in imageIdsInOrder)
@@ -302,23 +328,25 @@ class MockSellerProductRepository implements SellerProductRepository {
       updatedAt: DateTime.now(),
     );
     _emit();
-    return _products[idx];
+    return Ok(_products[idx]);
   }
 
   @override
-  Future<SellerProduct> setPrimaryImage({
+  Future<Result<SellerProduct>> setPrimaryImage({
     required String productId,
     required String imageId,
   }) async {
     await Future<void>.delayed(_delay);
     final idx = _products.indexWhere((p) => p.id == productId);
-    if (idx < 0) throw StateError('Mahsulot topilmadi: $productId');
+    if (idx < 0) {
+      return Err(UnknownFailure(message: 'Mahsulot topilmadi: $productId'));
+    }
     _products[idx] = _products[idx].copyWith(
       primaryImageId: imageId,
       updatedAt: DateTime.now(),
     );
     _emit();
-    return _products[idx];
+    return Ok(_products[idx]);
   }
 
   /// Helpers used by `SellerDashboardRepository` to stay in sync without

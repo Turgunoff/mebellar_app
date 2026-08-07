@@ -6,12 +6,15 @@ import 'package:woody_app/core/i18n/i18n.dart';
 
 import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/di/service_locator.dart';
+import '../data/attributes_repository.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/models/seller_product.dart';
 import '../../../../shared/repositories/seller_product_repository.dart';
+import '../../../../shared/repositories/tariff_repository.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/error_state.dart';
 import '../../../../shared/widgets/product_ar_badge.dart';
+import '../../sets/data/seller_set_repository.dart';
 import '../../sets/screens/seller_sets_screen.dart';
 import '../../tariff/screens/tariff_screen.dart';
 import '../bloc/seller_products_bloc.dart';
@@ -103,13 +106,14 @@ class _SellerProductsViewState extends State<_SellerProductsView> {
   // Furniture sets (garnitur) live off the products surface — reached via the
   // app-bar action here, not a bottom tab.
   void _openSets(BuildContext context) {
-    Navigator.of(
-      context,
-      rootNavigator: true,
-    ).push(
+    Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute(
         settings: const RouteSettings(name: '/seller-sets'),
-        builder: (_) => const SellerSetsScreen(),
+        builder: (_) => SellerSetsScreen(
+          repo: sl<WoodySellerSetRepository>(),
+          productRepo: sl<SellerProductRepository>(),
+          tariffRepo: sl<TariffRepository>(),
+        ),
       ),
     );
   }
@@ -125,6 +129,7 @@ class _SellerProductsViewState extends State<_SellerProductsView> {
           value: bloc,
           child: SellerProductDetailScreen(
             product: product,
+            attributesRepository: sl<AttributesRepository>(),
             onEdit: () {
               Navigator.of(previewContext).pop();
               _openEdit(context, product);
@@ -989,10 +994,7 @@ class _TariffArchiveBanner extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () => Navigator.of(
-          context,
-          rootNavigator: true,
-        ).push(
+        onTap: () => Navigator.of(context, rootNavigator: true).push(
           MaterialPageRoute(
             settings: const RouteSettings(name: '/seller-tariff'),
             builder: (_) => const TariffScreen(),

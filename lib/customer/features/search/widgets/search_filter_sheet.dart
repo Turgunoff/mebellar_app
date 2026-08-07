@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
-import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../shared/constants/product_colors.dart';
 import '../../../../shared/models/category_model.dart';
@@ -28,6 +27,7 @@ Future<ProductSearchFilter?> showSearchFilterSheet(
   BuildContext context, {
   required ProductSearchFilter initial,
   required int currentResultCount,
+  required CategoryDataSource categorySource,
   bool showCategories = true,
   FilterAvailability? availability,
 }) {
@@ -42,6 +42,7 @@ Future<ProductSearchFilter?> showSearchFilterSheet(
       currentResultCount: currentResultCount,
       showCategories: showCategories,
       availability: availability ?? const FilterAvailability.unrestricted(),
+      categorySource: categorySource,
     ),
   );
 }
@@ -88,12 +89,14 @@ class _SearchFilterSheet extends StatefulWidget {
     required this.currentResultCount,
     required this.showCategories,
     required this.availability,
+    required this.categorySource,
   });
 
   final ProductSearchFilter initial;
   final int currentResultCount;
   final bool showCategories;
   final FilterAvailability availability;
+  final CategoryDataSource categorySource;
 
   @override
   State<_SearchFilterSheet> createState() => _SearchFilterSheetState();
@@ -118,7 +121,7 @@ class _SearchFilterSheetState extends State<_SearchFilterSheet> {
     // Only fetch categories when the section will actually render — saves a
     // round-trip on the in-category product list where the picker is hidden.
     if (widget.showCategories) {
-      _categoriesFuture = sl<CategoryDataSource>().list();
+      _categoriesFuture = widget.categorySource.list();
     }
   }
 

@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/network/api_error_messages.dart';
+import '../../../../shared/models/cancel_reason.dart';
 import '../../../../shared/models/order.dart';
 import '../../../../shared/repositories/order_repository.dart';
 
@@ -90,6 +91,11 @@ class OrderDetailBloc extends Bloc<OrderDetailEvent, OrderDetailState> {
 
   final OrderRepository _repo;
   StreamSubscription<Order>? _sub;
+
+  /// Reference data (cancellation reason list) for the cancel-reason sheet —
+  /// not bloc state, just a pass-through so the widget uses the bloc's
+  /// already-injected repo instead of resolving one itself.
+  Future<List<CancelReason>> fetchCancelReasons() => _repo.fetchCancelReasons();
 
   Future<void> _onRequested(
     OrderDetailRequested event,

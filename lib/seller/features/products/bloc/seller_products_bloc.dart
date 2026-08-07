@@ -4,7 +4,6 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/analytics/analytics_service.dart';
-import '../../../../core/network/api_error.dart';
 import '../../../../shared/models/seller_product.dart';
 import '../../../../shared/repositories/seller_product_repository.dart';
 
@@ -180,23 +179,24 @@ class SellerProductsBloc
     emit(
       state.copyWith(status: SellerProductsStatus.loading, clearError: true),
     );
-    try {
-      // Pull a generous first page; further pagination lands in Sprint 8.
-      final res = await _repo.list(perPage: 50);
-      emit(
-        state.copyWith(
-          status: SellerProductsStatus.ready,
-          products: res.items,
-          statusCounts: res.statusCounts,
-        ),
-      );
-    } catch (e) {
-      emit(
-        state.copyWith(
-          status: SellerProductsStatus.failure,
-          error: e.toString(),
-        ),
-      );
+    // Pull a generous first page; further pagination lands in Sprint 8.
+    final result = await _repo.list(perPage: 50);
+    switch (result) {
+      case Ok(:final value):
+        emit(
+          state.copyWith(
+            status: SellerProductsStatus.ready,
+            products: value.items,
+            statusCounts: value.statusCounts,
+          ),
+        );
+      case Err(:final failure):
+        emit(
+          state.copyWith(
+            status: SellerProductsStatus.failure,
+            error: failure.message,
+          ),
+        );
     }
   }
 
@@ -205,29 +205,30 @@ class SellerProductsBloc
     Emitter<SellerProductsState> emit,
   ) async {
     emit(state.copyWith(status: SellerProductsStatus.mutating));
-    try {
-      final previous = _statusOf(event.id);
-      final updated = await _repo.archive(event.id);
-      // The Woody repo's watch() is empty, so patch the returned row into the
-      // list directly rather than relying on a stream refresh (the mock's
-      // _emit() converges to the same result).
-      emit(
-        state.copyWith(
-          status: SellerProductsStatus.ready,
-          products: _replaced(updated),
-          statusCounts: _shiftedCounts(from: previous, to: updated.status),
-        ),
-      );
-      // Archive is our soft-delete — track it as productDeleted so the
-      // analytics funnel sees a single "removed from catalog" signal.
-      unawaited(_analytics?.productDeleted(productId: event.id));
-    } catch (e) {
-      emit(
-        state.copyWith(
-          status: SellerProductsStatus.ready,
-          error: _displayError(e),
-        ),
-      );
+    final previous = _statusOf(event.id);
+    final result = await _repo.archive(event.id);
+    switch (result) {
+      case Ok(:final value):
+        // The Woody repo's watch() is empty, so patch the returned row into
+        // the list directly rather than relying on a stream refresh (the
+        // mock's _emit() converges to the same result).
+        emit(
+          state.copyWith(
+            status: SellerProductsStatus.ready,
+            products: _replaced(value),
+            statusCounts: _shiftedCounts(from: previous, to: value.status),
+          ),
+        );
+        // Archive is our soft-delete — track it as productDeleted so the
+        // analytics funnel sees a single "removed from catalog" signal.
+        unawaited(_analytics?.productDeleted(productId: event.id));
+      case Err(:final failure):
+        emit(
+          state.copyWith(
+            status: SellerProductsStatus.ready,
+            error: failure.message,
+          ),
+        );
     }
   }
 
@@ -236,26 +237,27 @@ class SellerProductsBloc
     Emitter<SellerProductsState> emit,
   ) async {
     emit(state.copyWith(status: SellerProductsStatus.mutating));
-    try {
-      final previous = _statusOf(event.id);
-      final updated = await _repo.restore(event.id);
-      emit(
-        state.copyWith(
-          status: SellerProductsStatus.ready,
-          products: _replaced(updated),
-          statusCounts: _shiftedCounts(from: previous, to: updated.status),
-        ),
-      );
-      // Restore puts the product back into the review queue — the closest
-      // signal we have on this surface is a product update.
-      unawaited(_analytics?.productUpdated(productId: event.id));
-    } catch (e) {
-      emit(
-        state.copyWith(
-          status: SellerProductsStatus.ready,
-          error: _displayError(e),
-        ),
-      );
+    final previous = _statusOf(event.id);
+    final result = await _repo.restore(event.id);
+    switch (result) {
+      case Ok(:final value):
+        emit(
+          state.copyWith(
+            status: SellerProductsStatus.ready,
+            products: _replaced(value),
+            statusCounts: _shiftedCounts(from: previous, to: value.status),
+          ),
+        );
+        // Restore puts the product back into the review queue — the closest
+        // signal we have on this surface is a product update.
+        unawaited(_analytics?.productUpdated(productId: event.id));
+      case Err(:final failure):
+        emit(
+          state.copyWith(
+            status: SellerProductsStatus.ready,
+            error: failure.message,
+          ),
+        );
     }
   }
 

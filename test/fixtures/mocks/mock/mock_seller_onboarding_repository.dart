@@ -1,5 +1,6 @@
 import 'package:hive_flutter/hive_flutter.dart';
 
+import 'package:woody_app/core/result/result.dart';
 import 'package:woody_app/shared/models/onboarding_draft.dart';
 import 'package:woody_app/shared/models/region.dart';
 import 'package:woody_app/shared/models/verification_status.dart';
@@ -19,38 +20,42 @@ class MockSellerOnboardingRepository implements SellerOnboardingRepository {
   static const _delay = Duration(milliseconds: 350);
 
   @override
-  OnboardingDraft loadDraft() {
+  Result<OnboardingDraft> loadDraft() {
     final raw = _draftBox.get(_draftKey);
     if (raw is Map) {
-      return OnboardingDraft.fromMap(
-        raw,
-        findRegion: (id) => id == null ? null : findRegionById(id),
+      return Ok(
+        OnboardingDraft.fromMap(
+          raw,
+          findRegion: (id) => id == null ? null : findRegionById(id),
+        ),
       );
     }
-    return const OnboardingDraft();
+    return const Ok(OnboardingDraft());
   }
 
   @override
-  Future<void> saveDraft(OnboardingDraft draft) async {
+  Future<Result<void>> saveDraft(OnboardingDraft draft) async {
     await _draftBox.put(_draftKey, draft.toJson());
+    return const Ok(null);
   }
 
   @override
-  Future<void> clearDraft() async {
+  Future<Result<void>> clearDraft() async {
     await _draftBox.delete(_draftKey);
+    return const Ok(null);
   }
 
   /// Mock can't replay rejected submissions — [MockSellerState] only keeps
   /// the most recent draft, which `loadDraft` already returns. Callers
   /// should fall through to that path.
   @override
-  Future<OnboardingDraft?> loadRemoteDraft() async => null;
+  Future<Result<OnboardingDraft?>> loadRemoteDraft() async => const Ok(null);
 
   /// Mock submit: persists the form into [MockSellerState] so subsequent
   /// `fetchMe()` calls (and the seller dashboard) can see the new pending
   /// profile. Returns synthetic ids that look believable.
   @override
-  Future<OnboardingSubmissionResult> submit(
+  Future<Result<OnboardingSubmissionResult>> submit(
     OnboardingDraft draft, {
     String? passportFrontPath,
     String? passportBackPath,
@@ -64,10 +69,12 @@ class MockSellerOnboardingRepository implements SellerOnboardingRepository {
       draft: draft,
       initialStatus: initialStatus,
     );
-    return OnboardingSubmissionResult(
-      sellerProfileId: 'sp-mock-${DateTime.now().millisecondsSinceEpoch}',
-      shopId: MockSellerState.instance.shopId!,
-      verificationStatus: initialStatus,
+    return Ok(
+      OnboardingSubmissionResult(
+        sellerProfileId: 'sp-mock-${DateTime.now().millisecondsSinceEpoch}',
+        shopId: MockSellerState.instance.shopId!,
+        verificationStatus: initialStatus,
+      ),
     );
   }
 }

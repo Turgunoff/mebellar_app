@@ -15,8 +15,13 @@ import '../../../../core/storage/secure_storage.dart';
 import '../../../../core/theme/premium_tokens.dart';
 import '../../orders/cubit/profile_orders_cubit.dart';
 
-/// Confirms sign-out, then runs the push-cleanup sign-out flow.
-Future<void> showSignOutDialog(BuildContext context) async {
+/// Confirms sign-out, then runs the push-cleanup sign-out flow. [authRepository]
+/// is nullable — not every scope registers one — mirroring the old
+/// `sl.isRegistered<AuthRepository>()` guard.
+Future<void> showSignOutDialog(
+  BuildContext context, {
+  required AuthRepository? authRepository,
+}) async {
   final pt = PremiumTokens.of(context);
   final confirmed = await showDialog<bool>(
     context: context,
@@ -87,17 +92,20 @@ Future<void> showSignOutDialog(BuildContext context) async {
     ),
   );
   if (confirmed == true && context.mounted) {
-    if (sl.isRegistered<AuthRepository>()) {
-      await signOutWithPushCleanup(sl<AuthRepository>());
+    if (authRepository != null) {
+      await signOutWithPushCleanup(authRepository);
     }
   }
 }
 
 /// Account-deletion flow: blocks when active orders exist, otherwise shows a
 /// type-to-confirm dialog and soft-deletes the account via `DELETE /me`.
-Future<void> confirmAccountDeletion(BuildContext context) async {
-  if (!sl.isRegistered<AuthRepository>() ||
-      !sl<AuthRepository>().isAuthenticated) {
+Future<void> confirmAccountDeletion(
+  BuildContext context, {
+  required AuthRepository? authRepository,
+  required WoodyApiClient api,
+}) async {
+  if (authRepository == null || !authRepository.isAuthenticated) {
     return;
   }
 
@@ -223,14 +231,10 @@ Future<void> confirmAccountDeletion(BuildContext context) async {
                             ? () async {
                                 setStateDialog(() => isLoading = true);
                                 try {
-                                  await sl<WoodyApiClient>().delete<void>(
-                                    '/me',
-                                  );
+                                  await api.delete<void>('/me');
                                   await _clearLocalAfterDelete();
                                   rootNav.pop();
-                                  await signOutWithPushCleanup(
-                                    sl<AuthRepository>(),
-                                  );
+                                  await signOutWithPushCleanup(authRepository);
                                   appLog.info(
                                     'Account soft-deleted successfully',
                                   );
@@ -316,8 +320,7 @@ Future<void> confirmAccountDeletion(BuildContext context) async {
 /// code isn't a deletion-block reason (caller falls back to the generic error
 /// snackbar). Hardcoded Uzbek to match the rest of this account flow.
 String? _deletionBlockedMessage(String code) => switch (code) {
-  'has_active_orders' =>
-    tr('profile.delete_blocked_active_orders'),
+  'has_active_orders' => tr('profile.delete_blocked_active_orders'),
   'has_debt' => tr('profile.delete_blocked_has_debt'),
   'has_unwithdrawn_funds' => tr('profile.delete_blocked_unwithdrawn_funds'),
   _ => null,

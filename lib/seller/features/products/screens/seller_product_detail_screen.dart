@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
 
-import '../../../../core/di/service_locator.dart';
 import '../../../../core/logging/app_logger.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
@@ -34,10 +33,12 @@ class SellerProductDetailScreen extends StatefulWidget {
   const SellerProductDetailScreen({
     super.key,
     required this.product,
+    required this.attributesRepository,
     this.onEdit,
   });
 
   final SellerProduct product;
+  final AttributesRepository attributesRepository;
   final VoidCallback? onEdit;
 
   @override
@@ -100,7 +101,7 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
     final categoryId = widget.product.categorySlug;
     if (categoryId.isEmpty) return;
     try {
-      final schema = await sl<AttributesRepository>().loadForCategory(
+      final schema = await widget.attributesRepository.loadForCategory(
         categoryId: categoryId,
         subcategoryId: widget.product.subcategoryId,
       );
@@ -201,7 +202,8 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(dialogContext, rootNavigator: true).pop(false),
+            onPressed: () =>
+                Navigator.of(dialogContext, rootNavigator: true).pop(false),
             child: Text(
               tr('common.cancel'),
               style: TextStyle(
@@ -212,7 +214,8 @@ class _SellerProductDetailScreenState extends State<SellerProductDetailScreen> {
             ),
           ),
           FilledButton(
-            onPressed: () => Navigator.of(dialogContext, rootNavigator: true).pop(true),
+            onPressed: () =>
+                Navigator.of(dialogContext, rootNavigator: true).pop(true),
             style: FilledButton.styleFrom(
               backgroundColor: destructive
                   ? AppColors.sellerNegative

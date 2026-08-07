@@ -73,14 +73,17 @@ class BuyerArViewerScreen extends StatefulWidget {
     required this.product,
     @visibleForTesting this.glbCache,
     @visibleForTesting this.setRepository,
+    @visibleForTesting this.productDataSource,
   });
 
   final ProductModel product;
 
-  /// Test seams: a fake file cache / set repository. In production both default
-  /// to the real [GlbCacheService] and the DI-registered [WoodySetRepository].
+  /// Test seams: a fake file cache / set repository / data source. In
+  /// production all three default to the real [GlbCacheService] and the
+  /// DI-registered [WoodySetRepository] / [ProductDataSource].
   final GlbCacheService? glbCache;
   final WoodySetRepository? setRepository;
+  final ProductDataSource? productDataSource;
 
   @override
   State<BuyerArViewerScreen> createState() => _BuyerArViewerScreenState();
@@ -95,9 +98,9 @@ class _BuyerArViewerScreenState extends State<BuyerArViewerScreen> {
         (sl.isRegistered<WoodySetRepository>()
             ? sl<WoodySetRepository>()
             : null),
-    productDataSource: sl.isRegistered<ProductDataSource>()
-        ? sl<ProductDataSource>()
-        : null,
+    productDataSource:
+        widget.productDataSource ??
+        (sl.isRegistered<ProductDataSource>() ? sl<ProductDataSource>() : null),
   );
 
   /// Set once the WebView controller exists — needed to run JS, but NOT a

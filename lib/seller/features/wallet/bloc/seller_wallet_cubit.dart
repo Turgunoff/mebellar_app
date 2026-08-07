@@ -1,11 +1,20 @@
+import 'dart:io';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hive/hive.dart';
 
+import '../../../../config/remote_config.dart';
 import '../../../../core/logging/app_logger.dart';
 import '../../../../core/network/api_error_messages.dart';
+import '../../../../core/network/woody_api_client.dart';
+import '../../../../core/result/result.dart';
 import '../../../../shared/models/seller_wallet.dart';
+import '../../../../shared/payments/pending_payment.dart';
+import '../../../../shared/payments/pending_payment_service.dart';
 import '../../../../shared/repositories/payment_repository.dart';
 import '../../../../shared/repositories/seller_wallet_repository.dart';
+import '../../../../shared/repositories/tariff_repository.dart';
 
 enum WalletStatus { loading, ready, failure }
 
@@ -21,9 +30,54 @@ enum WithdrawStatus { idle, submitting, success, failure }
 /// — [reconcileDeposit] polls the deposit status and refreshes the balance the
 /// instant it settles.
 class SellerWalletCubit extends Cubit<SellerWalletState> {
-  SellerWalletCubit(this._wallet) : super(const SellerWalletState());
+  SellerWalletCubit(
+    this._wallet, {
+    required WoodyApiClient api,
+    required Box settingsBox,
+    required TariffRepository tariff,
+    PendingPaymentService? pendingPayments,
+  }) : _api = api,
+       _settingsBox = settingsBox,
+       _tariff = tariff,
+       _pendingPayments = pendingPayments,
+       super(const SellerWalletState());
 
   final SellerWalletRepository _wallet;
+  final WoodyApiClient _api;
+  final Box _settingsBox;
+
+  /// Manual bank-transfer top-up reuses the tariff payment-instructions /
+  /// screenshot-upload endpoints (the same "here's our card, upload a
+  /// receipt" flow tariff purchases use) rather than duplicating them on the
+  /// wallet repository.
+  final TariffRepository _tariff;
+
+  /// Optional — not every scope registers it; callers treat a null the same
+  /// as the old `sl.isRegistered<PendingPaymentService>()` guard.
+  final PendingPaymentService? _pendingPayments;
+
+  /// Payme/Click enabled state can flip server-side without an app restart —
+  /// call on open/pull-to-refresh so a toggle applies immediately (T-07:
+  /// moved out of `_WalletView`'s onRefresh and `_TopUpSection.initState()`,
+  /// which each resolved WoodyApiClient/Box themselves).
+  Future<void> refreshPaymentMethods() =>
+      RemoteConfig.instance.refreshPaymentMethods(_api, _settingsBox);
+
+  Future<Result<TariffPaymentInstructions>> paymentInstructions() =>
+      _tariff.paymentInstructions();
+
+  Future<Result<String>> uploadPaymentScreenshot({
+    required File file,
+    required String fileExtension,
+  }) =>
+      _tariff.uploadPaymentScreenshot(file: file, fileExtension: fileExtension);
+
+  Future<void> markPendingDeposit(String reference) async {
+    await _pendingPayments?.mark(
+      kind: PendingPaymentKind.walletDeposit,
+      reference: reference,
+    );
+  }
 
   /// The in-flight top-up id, kept in memory so [reconcileDeposit] can refresh
   /// the balance on return. Cold-start recovery is the global

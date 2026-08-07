@@ -19,7 +19,4 @@ class AppFonts {
   /// "SaaS / FinTech" tone while keeping both customer and seller within
   /// a unified Woody brand language.
   static const String seller = 'PlusJakartaSans';
-
-  /// Accent — rarely used, single-purpose helper.
-  static const String accent = 'Manrope';
 }

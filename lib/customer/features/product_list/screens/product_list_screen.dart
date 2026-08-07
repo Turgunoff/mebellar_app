@@ -10,6 +10,7 @@ import 'package:shimmer/shimmer.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../shared/models/category_model.dart';
+import '../../../../shared/repositories/category_data_source.dart';
 import '../../../../shared/models/product.dart';
 import '../../../../shared/models/product_model.dart';
 import '../../../../shared/widgets/product_ar_badge.dart';
@@ -54,6 +55,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
       context,
       initial: state.filter,
       currentResultCount: state.products.length,
+      categorySource: sl<CategoryDataSource>(),
       // Already scoped to one category — the multi-category picker would
       // either be a no-op (when the chosen category matches) or contradict
       // the current scope. Hiding it keeps the sheet focused.

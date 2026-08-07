@@ -12,6 +12,7 @@ import '../../../../shared/models/order.dart'
     show FeeAdjustmentStatus, Order, OrderItem;
 import '../../../../shared/models/order_status.dart';
 import '../../../../shared/models/review.dart';
+import '../../../../shared/repositories/customer_reviews_repository.dart';
 import '../../../../shared/payments/pending_payment.dart';
 import '../../../../shared/payments/pending_payment_service.dart';
 import '../../../../shared/repositories/order_repository.dart';
@@ -740,6 +741,7 @@ class _DeliveredReviewsCardState extends State<_DeliveredReviewsCard> {
       productId: item.productId,
       productName: item.productName.get(context.locale.languageCode),
       thumbnail: item.thumbnail,
+      repository: sl<CustomerReviewsRepository>(),
     );
     final itemId = review?.orderItemId;
     if (itemId != null && mounted) {

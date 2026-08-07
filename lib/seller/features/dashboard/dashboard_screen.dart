@@ -33,10 +33,9 @@ import 'widgets/wallet_debt_banner.dart';
 //   `seller_theme.dart`. Every `TextStyle` below intentionally omits
 //   `fontFamily` so the family is inherited from that theme.
 //
-//   The single intentional exception is the "Barchasi" CTA in
-//   `_RecentOrdersHeader`, where the design uses Manrope to give the
-//   trailing action a quieter, more utilitarian feel against the bold
-//   Jakarta section header.
+//   The Manrope exception this note used to describe (a quieter "Barchasi"
+//   CTA in `_RecentOrdersHeader`) was removed along with that CTA — Manrope
+//   is no longer bundled (see doc/planning/tech_debt_roadmap.md T-05).
 
 // =============================================================================
 // Screen

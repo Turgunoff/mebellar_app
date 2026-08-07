@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
 
+import 'package:hive/hive.dart';
+
 import '../../../core/di/service_locator.dart';
 import '../../../core/logging/app_logger.dart';
 import '../../../core/network/api_error.dart';
+import '../../../core/network/woody_api_client.dart';
+import '../../../core/storage/hive_boxes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_fonts.dart';
 import '../../../shared/models/ar_part.dart';
 import '../../../shared/models/attribute_definition.dart';
 import '../../../shared/models/seller_product.dart';
+import '../../../shared/payments/pending_payment_service.dart';
 import '../wallet/screens/ar_tokens_screen.dart';
 import 'data/ar_scan_components.dart';
 import 'data/ar_scan_repository.dart';
@@ -271,7 +276,14 @@ class _SellerArSectionState extends State<SellerArSection> {
     await Navigator.of(context).push(
       MaterialPageRoute(
         settings: const RouteSettings(name: '/ar-tokens'),
-        builder: (_) => const ArTokensScreen(),
+        builder: (_) => ArTokensScreen(
+          repo: sl<ArTokenRepository>(),
+          api: sl<WoodyApiClient>(),
+          settingsBox: sl<Box>(instanceName: HiveBoxes.settings),
+          pendingPayments: sl.isRegistered<PendingPaymentService>()
+              ? sl<PendingPaymentService>()
+              : null,
+        ),
       ),
     );
     if (mounted) await _loadBalance();

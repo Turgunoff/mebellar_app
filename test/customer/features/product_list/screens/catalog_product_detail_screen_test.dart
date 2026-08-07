@@ -11,6 +11,7 @@ import 'package:woody_app/core/analytics/noop_analytics_service.dart';
 import 'package:woody_app/core/auth/auth_cubit.dart';
 import 'package:woody_app/core/di/service_locator.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
+import 'package:woody_app/core/network/woody_api_client.dart';
 import 'package:woody_app/core/result/result.dart';
 import 'package:woody_app/customer/features/cart/bloc/cart_bloc.dart';
 import 'package:woody_app/customer/features/favorites/bloc/favorites_bloc.dart';
@@ -21,13 +22,16 @@ import 'package:woody_app/shared/models/attribute_option.dart';
 import 'package:woody_app/shared/models/product_model.dart';
 import 'package:woody_app/shared/repositories/customer_reviews_repository.dart';
 import 'package:woody_app/shared/repositories/product_data_source.dart';
+import 'package:woody_app/shared/repositories/shop_repository.dart';
+import 'package:woody_app/shared/repositories/woody_set_repository.dart';
 
 /// Pins the customer product-detail render: with the (now public) attribute
 /// schema loaded, a furniture-set product must show the grouped "O'lchamlar
 /// (sm)" card with Uzbek piece/measure labels and resolve attribute keys to
 /// their Uzbek labels — NOT the humanised English raw keys the screen falls
 /// back to when the schema is missing (the bug this whole change fixes).
-class _MockCartBloc extends MockBloc<CartEvent, CartState> implements CartBloc {}
+class _MockCartBloc extends MockBloc<CartEvent, CartState>
+    implements CartBloc {}
 
 class _MockFavoritesBloc extends MockBloc<FavoritesEvent, FavoritesState>
     implements FavoritesBloc {}
@@ -37,6 +41,12 @@ class _MockAuthCubit extends MockCubit<AppAuthState> implements AuthCubit {}
 /// `reviewsForProduct` stays pending forever so the reviews FutureBuilder
 /// renders nothing — keeps the test focused on the attribute/dimension cards.
 class _MockReviewsRepo extends Mock implements CustomerReviewsRepository {}
+
+class _MockApi extends Mock implements WoodyApiClient {}
+
+class _MockShopRepo extends Mock implements ShopRepository {}
+
+class _MockSetRepo extends Mock implements WoodySetRepository {}
 
 class _FakeAttributesRepository implements AttributesRepository {
   _FakeAttributesRepository(this.defs, {this.shouldThrow = false});
@@ -132,6 +142,18 @@ void main() {
     sl.registerSingleton<AnalyticsService>(const NoopAnalyticsService());
     sl.registerSingleton<ProductDataSource>(MockProductDataSource());
     sl.registerSingleton<CustomerReviewsRepository>(reviews);
+
+    final api = _MockApi();
+    when(
+      () => api.post<dynamic>(any()),
+    ).thenThrow(Exception('no network in test'));
+    sl.registerSingleton<WoodyApiClient>(api);
+    // `product` in this suite has no shopId, so PremiumProductSellerCard
+    // never calls this — registered only to satisfy the constructor.
+    sl.registerSingleton<ShopRepository>(_MockShopRepo());
+    // `product` has no setId, so SetArPromoCard never mounts and this is
+    // never called — registered only to satisfy the constructor.
+    sl.registerSingleton<WoodySetRepository>(_MockSetRepo());
   }
 
   setUp(() {
@@ -178,7 +200,15 @@ void main() {
               BlocProvider<FavoritesBloc>.value(value: favorites),
               BlocProvider<AuthCubit>.value(value: auth),
             ],
-            child: CatalogProductDetailScreen(product: product),
+            child: CatalogProductDetailScreen(
+              product: product,
+              api: sl<WoodyApiClient>(),
+              attributesRepository: sl<AttributesRepository>(),
+              shopRepository: sl<ShopRepository>(),
+              reviewsRepository: sl<CustomerReviewsRepository>(),
+              productDataSource: sl<ProductDataSource>(),
+              setRepository: sl<WoodySetRepository>(),
+            ),
           ),
         ),
       ],

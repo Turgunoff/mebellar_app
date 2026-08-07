@@ -6,6 +6,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../../core/auth/auth_repository.dart';
 import '../../core/error/failure.dart';
 import '../../core/logging/app_logger.dart';
+import '../../core/network/api_error_messages.dart';
 import '../../core/network/woody_api_client.dart';
 import '../../core/result/result.dart';
 import '../../core/storage/r2_upload_client.dart';
@@ -196,20 +197,20 @@ class WoodySellerOnboardingRepository implements SellerOnboardingRepository {
   final R2UploadClient _uploads;
 
   @override
-  OnboardingDraft loadDraft() {
+  Result<OnboardingDraft> loadDraft() {
     final raw = _draftBox.get(_draftKey);
     if (raw is Map) {
       try {
-        return OnboardingDraft.fromMap(raw);
+        return Ok(OnboardingDraft.fromMap(raw));
       } catch (_) {
         // Corrupt draft — start fresh rather than crashing the wizard.
       }
     }
-    return const OnboardingDraft();
+    return const Ok(OnboardingDraft());
   }
 
   @override
-  Future<OnboardingDraft?> loadRemoteDraft() async {
+  Future<Result<OnboardingDraft?>> loadRemoteDraft() async {
     try {
       final body = await _api.get<Map<String, dynamic>>('/seller/me');
       // shop_name is a localized string from SellerProfileResponse; tolerate
@@ -221,41 +222,45 @@ class WoodySellerOnboardingRepository implements SellerOnboardingRepository {
           (m['uz'] ?? m['ru'] ?? m['en'])?.toString(),
         _ => null,
       };
-      return const OnboardingDraft().copyWith(
-        // Required for DocumentUploadStep — without it the KYC cards render
-        // an empty list and "Shartnomaga o'tish" stays disabled forever.
-        businessType:
-            BusinessType.fromCode(body['business_type'] as String?) ??
-            BusinessType.individual,
-        legalName: body['legal_name'] as String?,
-        contactPhone: body['contact_phone'] as String?,
-        contactEmail: body['contact_email'] as String?,
-        telegramUsername: body['telegram_username'] as String?,
-        shopNameUz: shopName,
+      return Ok(
+        const OnboardingDraft().copyWith(
+          // Required for DocumentUploadStep — without it the KYC cards render
+          // an empty list and "Shartnomaga o'tish" stays disabled forever.
+          businessType:
+              BusinessType.fromCode(body['business_type'] as String?) ??
+              BusinessType.individual,
+          legalName: body['legal_name'] as String?,
+          contactPhone: body['contact_phone'] as String?,
+          contactEmail: body['contact_email'] as String?,
+          telegramUsername: body['telegram_username'] as String?,
+          shopNameUz: shopName,
+        ),
       );
     } catch (_) {
-      return null;
+      // Covers "no remote record yet" AND "request failed" alike — the
+      // caller falls back to loadDraft() either way (see the interface doc).
+      return const Ok(null);
     }
   }
 
   @override
-  Future<void> saveDraft(OnboardingDraft draft) async {
+  Future<Result<void>> saveDraft(OnboardingDraft draft) => runCatching(() async {
     await _draftBox.put(_draftKey, draft.toJson());
-  }
+  });
 
   @override
-  Future<void> clearDraft() async {
+  Future<Result<void>> clearDraft() => runCatching(() async {
     await _draftBox.delete(_draftKey);
     await clearPersistedOnboardingKycImages();
-  }
+  });
 
   @override
-  Future<OnboardingSubmissionResult> submit(
+  Future<Result<OnboardingSubmissionResult>> submit(
     OnboardingDraft draft, {
     String? passportFrontPath,
     String? passportBackPath,
     String? contractVersion,
-  }) async {
+  }) => runCatching(() async {
     final shopName =
         draft.shopNameUz ?? draft.shopNameRu ?? draft.shopNameEn ?? '';
     final shopDescription =
@@ -312,7 +317,7 @@ class WoodySellerOnboardingRepository implements SellerOnboardingRepository {
         body['verification_status'] as String?,
       ),
     );
-  }
+  }, onError: (error, _) => apiErrorToFailure(error));
 
   Future<void> _uploadPassport(
     String sellerId,

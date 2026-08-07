@@ -4,7 +4,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:in_app_review/in_app_review.dart';
 
-import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../shared/models/review.dart';
 import '../../../../shared/repositories/customer_reviews_repository.dart';
@@ -21,6 +20,7 @@ Future<Review?> showReviewComposer(
   required String productId,
   required String productName,
   required String thumbnail,
+  required CustomerReviewsRepository repository,
   Review? existing,
 }) {
   return showModalBottomSheet<Review>(
@@ -34,6 +34,7 @@ Future<Review?> showReviewComposer(
       productName: productName,
       thumbnail: thumbnail,
       existing: existing,
+      repository: repository,
     ),
   );
 }
@@ -46,6 +47,7 @@ class ReviewComposerSheet extends StatefulWidget {
     required this.productId,
     required this.productName,
     required this.thumbnail,
+    required this.repository,
     this.existing,
   });
 
@@ -54,6 +56,7 @@ class ReviewComposerSheet extends StatefulWidget {
   final String productId;
   final String productName;
   final String thumbnail;
+  final CustomerReviewsRepository repository;
 
   /// Non-null when editing an already-submitted review.
   final Review? existing;
@@ -64,8 +67,9 @@ class ReviewComposerSheet extends StatefulWidget {
 
 class _ReviewComposerSheetState extends State<ReviewComposerSheet> {
   late int _rating = widget.existing?.rating ?? 0;
-  late final TextEditingController _comment =
-      TextEditingController(text: widget.existing?.comment ?? '');
+  late final TextEditingController _comment = TextEditingController(
+    text: widget.existing?.comment ?? '',
+  );
   bool _busy = false;
 
   final _labels = {
@@ -86,7 +90,7 @@ class _ReviewComposerSheetState extends State<ReviewComposerSheet> {
   Future<void> _submit() async {
     if (_rating == 0 || _busy) return;
     setState(() => _busy = true);
-    final repo = sl<CustomerReviewsRepository>();
+    final repo = widget.repository;
     final existing = widget.existing;
     final result = existing != null
         ? await repo.updateReview(
@@ -275,8 +279,7 @@ class _ReviewComposerSheetState extends State<ReviewComposerSheet> {
                 ),
               ),
               child: _busy
-                  ? const BrandLoadingIndicator(
-                      color: Colors.white, radius: 10)
+                  ? const BrandLoadingIndicator(color: Colors.white, radius: 10)
                   : Text(
                       widget.existing != null
                           ? tr('product.update_button')

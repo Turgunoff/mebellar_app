@@ -2,12 +2,25 @@ import 'dart:io';
 
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hive/hive.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:woody_app/core/error/failure.dart';
+import 'package:woody_app/core/network/woody_api_client.dart';
 import 'package:woody_app/core/result/result.dart';
 import 'package:woody_app/seller/features/tariff/bloc/tariff_bloc.dart';
 import 'package:woody_app/seller/features/tariff/bloc/tariff_upgrade_bloc.dart';
 import '../../../../fixtures/mocks/mock/mock_tariff_repository.dart';
 import 'package:woody_app/shared/models/tariff.dart';
+
+class _MockApi extends Mock implements WoodyApiClient {}
+
+class _MockSettingsBox extends Mock implements Box {}
+
+TariffUpgradeBloc _buildUpgradeBloc() => TariffUpgradeBloc(
+  MockTariffRepository(),
+  api: _MockApi(),
+  settingsBox: _MockSettingsBox(),
+);
 
 /// Pending/history 500 while snapshot + plans succeed — the catalogue must
 /// still render (these reads only power the banner and the history sheet).
@@ -87,7 +100,7 @@ void main() {
   group('TariffUpgradeBloc (mock repository)', () {
     blocTest<TariffUpgradeBloc, TariffUpgradeState>(
       'started -> plan + period saved, status idle',
-      build: () => TariffUpgradeBloc(MockTariffRepository()),
+      build: _buildUpgradeBloc,
       act: (bloc) => bloc.add(
         const TariffUpgradeStarted(
           plan: TariffPlan.pro,
@@ -104,7 +117,7 @@ void main() {
 
     blocTest<TariffUpgradeBloc, TariffUpgradeState>(
       'screenshot upload -> ready, then submit -> submitted with subscription',
-      build: () => TariffUpgradeBloc(MockTariffRepository()),
+      build: _buildUpgradeBloc,
       act: (bloc) async {
         bloc.add(
           const TariffUpgradeStarted(

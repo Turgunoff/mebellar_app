@@ -4,11 +4,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:hive/hive.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
 
 import '../../../config/app_mode.dart';
 import '../../../config/remote_config.dart';
 import '../../../core/di/service_locator.dart';
+import '../../../core/network/woody_api_client.dart';
+import '../../../core/storage/hive_boxes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_fonts.dart';
 import '../../../shared/chat/bloc/total_unread_chats_cubit.dart';
@@ -16,8 +19,10 @@ import '../../../shared/chat/widgets/unread_count_badge.dart';
 import '../../../shared/models/shop_settings.dart';
 import '../../../shared/models/tariff.dart';
 import '../../../shared/models/verification_status.dart';
+import '../../../shared/payments/pending_payment_service.dart';
 import '../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../shared/widgets/fullscreen_image_viewer.dart';
+import '../products/data/ar_token_repository.dart';
 import '../reviews/screens/reviews_screen.dart';
 import '../../../shared/models/seller_wallet.dart';
 import '../settings/screens/services_screen.dart';
@@ -81,7 +86,9 @@ class _SellerProfileView extends StatelessWidget {
                         // Group 1 — Finance & subscriptions (money, plan,
                         // usage limits). Surfaced first as the highest-stakes
                         // surface for a seller.
-                        _SectionLabel(text: tr('seller.profile_section_finance')),
+                        _SectionLabel(
+                          text: tr('seller.profile_section_finance'),
+                        ),
                         const SizedBox(height: 8),
                         _SettingsCard(
                           items: [
@@ -110,8 +117,20 @@ class _SellerProfileView extends StatelessWidget {
                               iconColor: SellerColors.of(context).gold,
                               title: tr('seller.profile_ar_tokens_title'),
                               subtitle: tr('seller.profile_ar_tokens_subtitle'),
-                              onTap: () =>
-                                  _push(context, const ArTokensScreen()),
+                              onTap: () => _push(
+                                context,
+                                ArTokensScreen(
+                                  repo: sl<ArTokenRepository>(),
+                                  api: sl<WoodyApiClient>(),
+                                  settingsBox: sl<Box>(
+                                    instanceName: HiveBoxes.settings,
+                                  ),
+                                  pendingPayments:
+                                      sl.isRegistered<PendingPaymentService>()
+                                      ? sl<PendingPaymentService>()
+                                      : null,
+                                ),
+                              ),
                             ),
                           ],
                         ),
@@ -161,14 +180,18 @@ class _SellerProfileView extends StatelessWidget {
                             _SettingsItem(
                               icon: Iconsax.truck_fast_copy,
                               title: tr('seller.profile_shop_services_title'),
-                              subtitle: tr('seller.profile_shop_services_subtitle'),
+                              subtitle: tr(
+                                'seller.profile_shop_services_subtitle',
+                              ),
                               onTap: () =>
                                   _push(context, const SellerServicesScreen()),
                             ),
                           ],
                         ),
                         const SizedBox(height: 20),
-                        _SectionLabel(text: tr('seller.profile_section_app_settings')),
+                        _SectionLabel(
+                          text: tr('seller.profile_section_app_settings'),
+                        ),
                         const SizedBox(height: 8),
                         _SettingsCard(
                           items: [
@@ -208,7 +231,9 @@ class _SellerProfileView extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 20),
-                        _SectionLabel(text: tr('seller.profile_section_actions')),
+                        _SectionLabel(
+                          text: tr('seller.profile_section_actions'),
+                        ),
                         const SizedBox(height: 8),
                         _SettingsCard(
                           items: [
@@ -253,7 +278,10 @@ class _SellerProfileView extends StatelessWidget {
 
   static String _planSubtitle(SellerProfileState state) {
     if (state.isInitialLoading) return tr('seller.profile_loading');
-    return tr('seller.profile_current_plan', namedArgs: {'plan': state.plan.label});
+    return tr(
+      'seller.profile_current_plan',
+      namedArgs: {'plan': state.plan.label},
+    );
   }
 
   static String _walletSubtitle(SellerProfileState state) {
@@ -398,15 +426,13 @@ Future<void> _confirmAndLogout(BuildContext context) async {
 /// renames show up the moment the settings screen pops, no manual refresh.
 Future<void> _openShopSettings(BuildContext context) async {
   final cubit = context.read<SellerProfileCubit>();
-  final saved = await Navigator.of(
-    context,
-    rootNavigator: true,
-  ).push<ShopSettings>(
-    MaterialPageRoute(
-      settings: const RouteSettings(name: '/shop-settings'),
-      builder: (_) => const ShopSettingsScreen(),
-    ),
-  );
+  final saved = await Navigator.of(context, rootNavigator: true)
+      .push<ShopSettings>(
+        MaterialPageRoute(
+          settings: const RouteSettings(name: '/shop-settings'),
+          builder: (_) => const ShopSettingsScreen(),
+        ),
+      );
   if (saved != null) cubit.applyShopSettings(saved);
 }
 

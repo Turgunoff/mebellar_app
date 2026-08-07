@@ -2,9 +2,12 @@ import 'dart:async';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hive/hive.dart';
 
+import '../../../../config/remote_config.dart';
 import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/network/api_error_messages.dart';
+import '../../../../core/network/woody_api_client.dart';
 import '../../../../core/result/result.dart';
 import '../../../../core/services/facebook_analytics_service.dart';
 import '../../../../shared/models/cart_item_model.dart';
@@ -229,11 +232,15 @@ class CheckoutCubit extends Cubit<CheckoutState> {
     required List<CartItemModel> items,
     required CheckoutRepository checkout,
     required CartRepository cartRepo,
+    required WoodyApiClient api,
+    required Box settingsBox,
     PaymentRepository? payments,
     AnalyticsService? analytics,
     FacebookAnalyticsService? facebookAnalytics,
   }) : _checkout = checkout,
        _cartRepo = cartRepo,
+       _api = api,
+       _settingsBox = settingsBox,
        _analytics = analytics,
        _facebookAnalytics = facebookAnalytics,
        super(CheckoutState(groups: _groupByShop(items))) {
@@ -258,10 +265,18 @@ class CheckoutCubit extends Cubit<CheckoutState> {
     // The card already shows a local estimate from the cart snapshots, so this
     // only refines the numbers when it returns.
     unawaited(_refreshQuote());
+    // Payme/Click enabled state can flip server-side without an app restart —
+    // refresh on open so a toggle applies immediately (T-07: moved out of
+    // `_PaymentCard.initState()`, which resolved WoodyApiClient/Box itself and
+    // broke widget tests that didn't happen to register them; the cubit takes
+    // both as constructor deps instead).
+    unawaited(RemoteConfig.instance.refreshPaymentMethods(_api, _settingsBox));
   }
 
   final CheckoutRepository _checkout;
   final CartRepository _cartRepo;
+  final WoodyApiClient _api;
+  final Box _settingsBox;
   final AnalyticsService? _analytics;
   final FacebookAnalyticsService? _facebookAnalytics;
 

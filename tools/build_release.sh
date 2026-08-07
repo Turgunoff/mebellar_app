@@ -93,6 +93,19 @@ for key in WOODY_API_URL YANDEX_GEOCODER_API_KEY; do
 done
 
 VERSION="$(grep -E '^version:' pubspec.yaml | head -1 | awk '{print $2}')"
+
+# Both stores reject a duplicate build number, and you only find out AFTER the
+# upload — minutes of build time wasted. The Shorebird ledger is the one place
+# that knows what already shipped, so check it here too. A warning, not a hard
+# stop: this script also builds QA/sideload APKs where reusing a version is fine.
+LEDGER="tools/shorebird/releases.md"
+if [ -f "$LEDGER" ] && grep -qF "| ${VERSION} |" "$LEDGER"; then
+  echo "⚠️  $VERSION allaqachon $LEDGER da qayd etilgan:" >&2
+  grep -F "| ${VERSION} |" "$LEDGER" | sed 's/^/      /' >&2
+  echo "    Do'kon yuklamasi uchun pubspec.yaml'da 'version:' ni oshiring." >&2
+  echo >&2
+fi
+
 echo "→ Building woody_app  version $VERSION  (targets: $WHAT)"
 echo "  env:     $ENV_FILE"
 if [ "$WANTS_ANDROID" -eq 1 ]; then

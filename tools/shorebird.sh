@@ -14,17 +14,18 @@
 #     so `check`/`patch` here classify your working tree the same way and
 #     stop you before you ship a broken patch.
 #
-# The release ledger (tools/shorebird/releases.log) records version → git
-# SHA for every release, so `check`/`patch` can diff today's tree against
-# the exact source that shipped — your "which files did I touch since
-# 1.0.x?" memory, the thing that's easy to forget.
+# The release ledger (tools/shorebird/releases.md) records version → git
+# SHA → platform for every release, so `check`/`patch` can diff today's tree
+# against the exact source that shipped — your "which files did I touch since
+# 1.0.x?" memory, the thing that's easy to forget. It is also what `release`
+# reads to refuse a duplicate version (see assert_releasable_version).
 #
 # Usage:
-#   ./tools/shorebird.sh check  [<base-ref>]                      # classify changes, no build
-#   ./tools/shorebird.sh release [android|ios|all] [--note "…"]   # build + copy to dist/ + log
+#   ./tools/shorebird.sh check  [<base-ref>]                       # classify changes, no build
+#   ./tools/shorebird.sh release [android|ios|all] [--note "…"]    # build + copy to dist/ + log
 #   ./tools/shorebird.sh patch   [android|ios|all] [--release-version X] [--note "…"] [--force]
-#   ./tools/shorebird.sh record  <version> [--note "…"]           # log a release built elsewhere
-#   ./tools/shorebird.sh log                                      # print the ledger
+#   ./tools/shorebird.sh record  <version> [android|ios|all] [--note "…"]  # log a release built elsewhere
+#   ./tools/shorebird.sh log                                       # print the ledger
 #
 # `all` / no target = BOTH Android (aab) and iOS (ipa) in one Shorebird release
 # (Shorebird builds for every `-p` passed). iOS needs a Mac + Xcode signing, so
@@ -99,6 +100,101 @@ ledger_sha() {
   ' "$LEDGER"
 }
 
+# Every platform token recorded for an exact version string, one per line.
+# The platform cell holds a space-separated list ("android ios"), so callers
+# split it further.
+ledger_platforms_for() {
+  local want="$1"
+  [ -f "$LEDGER" ] || return 0
+  awk -F'|' -v want="$want" '
+    /^[[:space:]]*\|/ {
+      ver = $3; plat = $5
+      gsub(/^[ \t]+|[ \t]+$/, "", ver)
+      gsub(/^[ \t]+|[ \t]+$/, "", plat)
+      if (ver == "Versiya" || ver ~ /^-+$/ || ver == "") next
+      if (ver == want) print plat
+    }
+  ' "$LEDGER"
+}
+
+# Highest build number (the `+N` suffix) ever recorded.
+ledger_max_build() {
+  [ -f "$LEDGER" ] || return 0
+  awk -F'|' '
+    /^[[:space:]]*\|/ {
+      ver = $3
+      gsub(/^[ \t]+|[ \t]+$/, "", ver)
+      if (ver == "Versiya" || ver ~ /^-+$/ || ver == "") next
+      if (ver !~ /\+/) next
+      n = ver; sub(/^.*\+/, "", n)
+      if (n ~ /^[0-9]+$/ && n+0 > max) max = n+0
+    }
+    END { if (max > 0) print max }
+  ' "$LEDGER"
+}
+
+# "1.0.37+37" → "1.0.38+38" (the usual Woody cadence: bump both).
+next_version_hint() {
+  local v="$1" base n rest major minor patch
+  base="${v%%+*}"; n="${v##*+}"
+  case "$v" in *+*) ;; *) printf '%s' "$v"; return ;; esac
+  case "$n" in ''|*[!0-9]*) printf '%s' "$v"; return ;; esac
+  major="${base%%.*}"; rest="${base#*.}"; minor="${rest%%.*}"; patch="${rest#*.}"
+  case "$patch" in
+    ''|*[!0-9]*) printf '%s+%s' "$base" "$((n + 1))" ;;
+    *)           printf '%s.%s.%s+%s' "$major" "$minor" "$((patch + 1))" "$((n + 1))" ;;
+  esac
+}
+
+# Refuses the #1 release mistake: shipping a version that already went out.
+# Play and the App Store reject a duplicate build number outright, and
+# Shorebird keys patches off the release version — a second release at the
+# same version leaves you unable to say which build a later patch lands on.
+#
+# The check is PER-PLATFORM on purpose: 1.0.37 shipped android-only, so a
+# later `release ios` at 1.0.37 is legitimate catch-up, not a duplicate.
+assert_releasable_version() {
+  local version="$1" targets="$2"
+  [ -f "$LEDGER" ] || return 0
+
+  # A build number that goes DOWN is always wrong, whatever the platform.
+  local cur_n max_n
+  cur_n="${version##*+}"
+  max_n="$(ledger_max_build)"
+  case "$cur_n" in ''|*[!0-9]*) cur_n="" ;; esac
+  if [ -n "$cur_n" ] && [ -n "$max_n" ] && [ "$cur_n" -lt "$max_n" ]; then
+    echo "✗ pubspec build raqami ($cur_n) ledger'dagi eng kattadan ($max_n) kichik." >&2
+    echo "  Do'konlar pasaygan build raqamini rad etadi — pubspec.yaml'ni tuzating." >&2
+    exit 1
+  fi
+
+  local recorded
+  recorded="$(ledger_platforms_for "$version" | tr ' ' '\n' | sed '/^$/d' | sort -u)"
+  [ -z "$recorded" ] && return 0
+
+  local already="" missing="" p
+  for p in $targets; do
+    if printf '%s\n' "$recorded" | grep -qx "$p"; then
+      already="${already}${p} "
+    else
+      missing="${missing}${p} "
+    fi
+  done
+
+  if [ -z "$missing" ]; then
+    echo "✗ $version allaqachon chiqarilgan (${already% }) — $LEDGER" >&2
+    echo >&2
+    echo "  Variantlar:" >&2
+    echo "    • pubspec.yaml → version: $(next_version_hint "$version")  (yangi release)" >&2
+    echo "    • mavjud release'ga Dart tuzatish: ./tools/shorebird.sh patch" >&2
+    exit 1
+  fi
+
+  echo "ℹ️  $version allaqachon ${already% } uchun chiqarilgan."
+  echo "    ${missing% } uchun davom etilmoqda (catch-up release)."
+  echo
+}
+
 require_env() {
   if [ ! -f "$ENV_FILE" ]; then
     echo "✗ $ENV_FILE topilmadi — env/example.json'dan nusxa oling." >&2
@@ -145,10 +241,14 @@ classify_changes() {
         flutter="${flutter}${f}"$'\n'; n_flutter=$((n_flutter+1)) ;;
       lib/*|*.dart)
         dart="${dart}${f}"$'\n'; n_dart=$((n_dart+1)) ;;
-      dist/*|\
-      tools/*|docs/*|.github/*|.claude/*|.vscode/*|.history/*|screenshots/*|\
-      env/*|*.md|*.png|*.jpg|*.jpeg|analysis_options.yaml|dart_test.yaml|\
-      .gitignore|firebase.json|flutter_native_splash.yaml|shorebird.yaml|\
+      dist/*|test_driver/*|\
+      tools/*|doc/*|docs/*|design/*|store/*|screenshots/*|\
+      .github/*|.claude/*|.claude-flow/*|.agents/*|.vscode/*|.history/*|\
+      env/*|*.md|*.png|*.jpg|*.jpeg|*.webp|*.svg|\
+      *.pdf|*.pptx|*.xlsx|*.mp4|*.pen|\
+      analysis_options.yaml|dart_test.yaml|devtools_options.yaml|\
+      .gitignore|.mcp.json|skills-lock.json|\
+      firebase.json|flutter_native_splash.yaml|shorebird.yaml|\
       .metadata.bak)
         ignored="${ignored}${f}"$'\n' ;;
       *)
@@ -292,8 +392,14 @@ REC_VERSION=""
 while [ $# -gt 0 ]; do
   case "$1" in
     android|ios|all)     TARGET="$1" ;;
-    --note)              NOTE="${2:-}"; shift ;;
-    --release-version)   RELEASE_VERSION="${2:-}"; shift ;;
+    # A missing value would leave the flag consuming the outer `shift` and,
+    # under `set -e`, kill the script with no message. Fail loudly instead.
+    --note)
+      [ $# -ge 2 ] || { echo "✗ --note qiymat talab qiladi" >&2; exit 2; }
+      NOTE="$2"; shift ;;
+    --release-version)
+      [ $# -ge 2 ] || { echo "✗ --release-version qiymat talab qiladi" >&2; exit 2; }
+      RELEASE_VERSION="$2"; shift ;;
     --force)             FORCE=1 ;;
     *)
       # First positional after `check`/`record` is the base-ref / version.
@@ -348,8 +454,10 @@ case "$CMD" in
     done
     require_env
     load_shorebird_token
-    warn_if_dirty
     local_version="$(pubspec_version)"
+    # Before we burn minutes on a build: is this version actually shippable?
+    assert_releasable_version "$local_version" "${PLATFORMS[*]}"
+    warn_if_dirty
     echo "→ Shorebird release  $local_version  (${PLATFORMS[*]})"
     echo "  env: $ENV_FILE"
     echo
@@ -395,7 +503,7 @@ case "$CMD" in
     ;;
 
   record)
-    [ -z "$REC_VERSION" ] && { echo "✗ versiya bering: tools/shorebird.sh record 1.0.18+18" >&2; exit 2; }
+    [ -z "$REC_VERSION" ] && { echo "✗ versiya bering: tools/shorebird.sh record 1.0.18+18 [android|ios|all]" >&2; exit 2; }
     warn_if_dirty
     record_release "$REC_VERSION" "${PLATFORMS[*]}" "$NOTE"
     ;;

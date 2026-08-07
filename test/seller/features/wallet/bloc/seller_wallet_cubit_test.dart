@@ -1,12 +1,21 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hive/hive.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:woody_app/core/network/woody_api_client.dart';
 import 'package:woody_app/seller/features/wallet/bloc/seller_wallet_cubit.dart';
 import 'package:woody_app/shared/models/seller_wallet.dart';
 import 'package:woody_app/shared/repositories/payment_repository.dart';
 import 'package:woody_app/shared/repositories/seller_wallet_repository.dart';
+import 'package:woody_app/shared/repositories/tariff_repository.dart';
 
 class _MockWalletRepo extends Mock implements SellerWalletRepository {}
+
+class _MockApi extends Mock implements WoodyApiClient {}
+
+class _MockSettingsBox extends Mock implements Box {}
+
+class _MockTariffRepo extends Mock implements TariffRepository {}
 
 const _link = CheckoutLink(
   provider: 'payme',
@@ -19,9 +28,22 @@ void main() {
   setUpAll(() => registerFallbackValue(PaymentProvider.payme));
 
   late _MockWalletRepo repo;
+  late _MockApi api;
+  late _MockSettingsBox settingsBox;
+  late _MockTariffRepo tariff;
+
+  SellerWalletCubit build() => SellerWalletCubit(
+    repo,
+    api: api,
+    settingsBox: settingsBox,
+    tariff: tariff,
+  );
 
   setUp(() {
     repo = _MockWalletRepo();
+    api = _MockApi();
+    settingsBox = _MockSettingsBox();
+    tariff = _MockTariffRepo();
     when(
       () => repo.fetch(recent: any(named: 'recent')),
     ).thenAnswer((_) async => const SellerWallet(balance: 5000));
@@ -36,7 +58,7 @@ void main() {
           provider: any(named: 'provider'),
         ),
       ).thenAnswer((_) async => _link);
-      return SellerWalletCubit(repo);
+      return build();
     },
     act: (cubit) async {
       final result = await cubit.startDeposit(
@@ -59,10 +81,8 @@ void main() {
     ],
     verify: (_) {
       verify(
-        () => repo.createDeposit(
-          amount: 250000,
-          provider: PaymentProvider.payme,
-        ),
+        () =>
+            repo.createDeposit(amount: 250000, provider: PaymentProvider.payme),
       ).called(1);
     },
   );
@@ -76,7 +96,7 @@ void main() {
           provider: any(named: 'provider'),
         ),
       ).thenThrow(Exception('boom'));
-      return SellerWalletCubit(repo);
+      return build();
     },
     act: (cubit) =>
         cubit.startDeposit(amount: 1000, provider: PaymentProvider.click),
@@ -104,7 +124,7 @@ void main() {
         ),
       ).thenAnswer((_) async => _link);
       when(() => repo.depositStatus('dep-1')).thenAnswer((_) async => 'paid');
-      return SellerWalletCubit(repo);
+      return build();
     },
     act: (cubit) async {
       await cubit.startDeposit(amount: 250000, provider: PaymentProvider.payme);
@@ -119,7 +139,7 @@ void main() {
 
   blocTest<SellerWalletCubit, SellerWalletState>(
     'reconcileDeposit is a no-op with nothing in flight',
-    build: () => SellerWalletCubit(repo),
+    build: build,
     act: (cubit) => cubit.reconcileDeposit(),
     expect: () => const <SellerWalletState>[],
     verify: (_) {

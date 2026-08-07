@@ -66,6 +66,7 @@ class _SearchViewState extends State<_SearchView> {
       context,
       initial: state.filter,
       currentResultCount: state.results.length,
+      categorySource: sl<CategoryDataSource>(),
       availability: FilterAvailability(
         colorSlugs: state.results.expand((p) => p.colors).toSet(),
         hasDiscounted: state.results.any((p) => p.hasDiscount),
@@ -452,7 +453,7 @@ class _IdleView extends StatelessWidget {
             onClear: onClearRecent,
           ),
         const SizedBox(height: 24),
-        const _PopularCategoriesSection(),
+        _PopularCategoriesSection(source: sl<CategoryDataSource>()),
       ],
     );
   }
@@ -623,7 +624,9 @@ class _RecentChip extends StatelessWidget {
 // ── Popular categories tile grid ──────────────────────────────────────────
 
 class _PopularCategoriesSection extends StatefulWidget {
-  const _PopularCategoriesSection();
+  const _PopularCategoriesSection({required this.source});
+
+  final CategoryDataSource source;
 
   @override
   State<_PopularCategoriesSection> createState() =>
@@ -636,7 +639,7 @@ class _PopularCategoriesSectionState extends State<_PopularCategoriesSection> {
   @override
   void initState() {
     super.initState();
-    _future = sl<CategoryDataSource>().list();
+    _future = widget.source.list();
   }
 
   @override

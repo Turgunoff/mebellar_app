@@ -6,7 +6,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:showcaseview/showcaseview.dart';
 
 import '../../../../auth/auth_bottom_sheet.dart';
+import '../../../../core/auth/auth_repository.dart';
+import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
+import '../../../../core/notifications/push_service.dart';
 import '../../../../core/widgets/safe_showcase.dart';
 import '../../../../seller/features/onboarding/screens/onboarding_screen.dart';
 import '../../../customer_app.dart';
@@ -395,7 +398,12 @@ List<_MenuEntry> _guestMenuItems(BuildContext context) => [
     onTap: () => Navigator.of(context).push(
       MaterialPageRoute(
         settings: const RouteSettings(name: '/settings'),
-        builder: (_) => const SettingsScreen(),
+        builder: (_) => SettingsScreen(
+          authRepository: sl<AuthRepository>(),
+          pushService: sl.isRegistered<PushService>()
+              ? sl<PushService>()
+              : null,
+        ),
       ),
     ),
   ),

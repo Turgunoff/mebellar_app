@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../core/logging/app_logger.dart';
 import '../../../../core/storage/r2_upload_client.dart';
@@ -21,9 +20,14 @@ import '../widgets/user_card.dart';
 /// returned permanent URL is persisted via PATCH `/me` together with the
 /// name/email — a single round-trip on save.
 class EditProfileScreen extends StatefulWidget {
-  const EditProfileScreen({super.key, required this.profile});
+  const EditProfileScreen({
+    super.key,
+    required this.profile,
+    required this.uploadClient,
+  });
 
   final ProfileState profile;
+  final R2UploadClient uploadClient;
 
   @override
   State<EditProfileScreen> createState() => _EditProfileScreenState();
@@ -92,7 +96,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final userId = widget.profile.id;
     final bytes = await picked.file.readAsBytes();
     final ts = DateTime.now().millisecondsSinceEpoch;
-    final result = await sl<R2UploadClient>().upload(
+    final result = await widget.uploadClient.upload(
       bucket: R2Bucket.userAvatars,
       path: '$userId/$ts.${picked.extension}',
       bytes: bytes,
@@ -190,8 +194,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               textInputAction: TextInputAction.next,
               textCapitalization: TextCapitalization.words,
               style: PremiumTokens.body(size: 14, weight: FontWeight.w500),
-              validator: (v) =>
-                  (v == null || v.trim().length < 2)
+              validator: (v) => (v == null || v.trim().length < 2)
                   ? tr('profile.validation_name_required')
                   : null,
               decoration: _fieldDecoration(

@@ -7,12 +7,17 @@ import '../config/app_mode.dart';
 import '../core/deeplink/deferred_deep_link_service.dart';
 import '../core/di/service_locator.dart';
 import '../core/i18n/i18n.dart';
+import '../core/network/woody_api_client.dart';
+import '../seller/features/products/data/attributes_repository.dart';
 import '../shared/models/product_model.dart';
 import '../shared/chat/screens/chat_thread_screen.dart';
 import '../shared/chat/screens/chats_list_screen.dart';
 import '../shared/models/chat.dart';
 import '../shared/repositories/category_data_source.dart';
+import '../shared/repositories/customer_reviews_repository.dart';
 import '../shared/repositories/product_data_source.dart';
+import '../shared/repositories/shop_repository.dart';
+import '../shared/repositories/woody_set_repository.dart';
 import '../core/logging/app_navigation_logger.dart';
 import '../core/logging/app_logger.dart';
 import '../shared/models/cart_item_model.dart';
@@ -191,7 +196,15 @@ GoRouter buildCustomerRouter() {
         builder: (context, state) {
           final product = state.extra as ProductModel?;
           if (product != null) {
-            return CatalogProductDetailScreen(product: product);
+            return CatalogProductDetailScreen(
+              product: product,
+              api: sl<WoodyApiClient>(),
+              attributesRepository: sl<AttributesRepository>(),
+              shopRepository: sl<ShopRepository>(),
+              reviewsRepository: sl<CustomerReviewsRepository>(),
+              productDataSource: sl<ProductDataSource>(),
+              setRepository: sl<WoodySetRepository>(),
+            );
           }
           return _ProductDetailLoader(id: state.pathParameters['id']!);
         },
@@ -369,7 +382,15 @@ class _ProductDetailLoader extends StatelessWidget {
       initialData: cached,
       builder: (context, snap) {
         if (snap.hasData) {
-          return CatalogProductDetailScreen(product: snap.data!);
+          return CatalogProductDetailScreen(
+            product: snap.data!,
+            api: sl<WoodyApiClient>(),
+            attributesRepository: sl<AttributesRepository>(),
+            shopRepository: sl<ShopRepository>(),
+            reviewsRepository: sl<CustomerReviewsRepository>(),
+            productDataSource: source,
+            setRepository: sl<WoodySetRepository>(),
+          );
         }
         if (snap.hasError) {
           // Reachable via deep links (a shared link to a deleted/invalid

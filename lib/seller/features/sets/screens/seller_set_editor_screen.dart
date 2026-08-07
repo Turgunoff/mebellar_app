@@ -2,7 +2,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
-import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../core/network/api_error.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -19,7 +18,14 @@ import '../data/seller_set_repository.dart';
 /// Seller mode is Uzbek-only with seller tokens (`SellerColors.of(context)`,
 /// `AppFonts.seller`) — no `tr()` / customer tokens here.
 class SellerSetEditorScreen extends StatefulWidget {
-  const SellerSetEditorScreen({super.key});
+  const SellerSetEditorScreen({
+    super.key,
+    required this.setRepo,
+    required this.productRepo,
+  });
+
+  final WoodySellerSetRepository setRepo;
+  final SellerProductRepository productRepo;
 
   @override
   State<SellerSetEditorScreen> createState() => _SellerSetEditorScreenState();
@@ -27,8 +33,8 @@ class SellerSetEditorScreen extends StatefulWidget {
 
 class _SellerSetEditorScreenState extends State<SellerSetEditorScreen> {
   final _nameCtrl = TextEditingController();
-  final _setRepo = sl<WoodySellerSetRepository>();
-  final _productRepo = sl<SellerProductRepository>();
+  late final _setRepo = widget.setRepo;
+  late final _productRepo = widget.productRepo;
 
   /// Member order matters server-side, so selection is an ordered list keyed
   /// by product id — first ticked is the first member.

@@ -21,7 +21,17 @@ import '../../../../core/theme/premium_tokens.dart';
 import '../../../../shared/about/about_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  const SettingsScreen({
+    super.key,
+    required this.authRepository,
+    this.pushService,
+  });
+
+  final AuthRepository authRepository;
+
+  /// Optional — not every scope registers it; callers treat a null the same
+  /// as the old `sl.isRegistered<PushService>()` guard.
+  final PushService? pushService;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -67,7 +77,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (!mounted) return;
     if (context.read<AuthCubit>().state is! AppAuthAuthenticated) return;
     try {
-      final me = await sl<AuthRepository>().fetchMe();
+      final me = await widget.authRepository.fetchMe();
       if (!mounted) return;
       setState(() {
         _pushNotifications = me.promoPushEnabled;
@@ -75,9 +85,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       });
       await box.put(kPromoPushEnabledKey, me.promoPushEnabled);
       await box.put(kOrderPushEnabledKey, me.orderPushEnabled);
-      if (sl.isRegistered<PushService>()) {
-        await sl<PushService>().setPromoTopicEnabled(me.promoPushEnabled);
-      }
+      await widget.pushService?.setPromoTopicEnabled(me.promoPushEnabled);
     } catch (e, st) {
       appLog.handle(e, st, 'SettingsScreen hydrate push prefs failed');
     }
@@ -92,13 +100,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _setPromoPushEnabled(bool value) async {
     setState(() => _pushNotifications = value);
     await _settingsBox.put(kPromoPushEnabledKey, value);
-    if (sl.isRegistered<PushService>()) {
-      await sl<PushService>().setPromoTopicEnabled(value);
-    }
+    await widget.pushService?.setPromoTopicEnabled(value);
     if (!mounted) return;
     if (context.read<AuthCubit>().state is! AppAuthAuthenticated) return;
     try {
-      await sl<AuthRepository>().updateProfile(promoPushEnabled: value);
+      await widget.authRepository.updateProfile(promoPushEnabled: value);
     } catch (e, st) {
       appLog.handle(e, st, 'SettingsScreen sync promo_push_enabled failed');
     }
@@ -119,7 +125,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       return;
     }
     try {
-      await sl<AuthRepository>().updateProfile(orderPushEnabled: value);
+      await widget.authRepository.updateProfile(orderPushEnabled: value);
       if (mounted) setState(() => _orderUpdatesBusy = false);
     } catch (e, st) {
       appLog.handle(e, st, 'SettingsScreen sync order_push_enabled failed');

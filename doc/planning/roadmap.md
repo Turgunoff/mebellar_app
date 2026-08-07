@@ -2,6 +2,7 @@
 
 > **Status:** Living · **Versiya:** 1.0 · **Sana:** 2026-06-12
 > Mahsulot spetsifikatsiyasi: [TZ.md (master)](../TZ.md) · Arxitektura: [architecture/system_design.md](../architecture/system_design.md)
+> Texnik qarz (kod bazasidan o'lchangan): [tech_debt_roadmap.md](./tech_debt_roadmap.md)
 
 Bu hujjat avval tarqalgan `mebellar_app/ROADMAP.md` (Supabase davri) o'rnini bosadi. Ushbu yo'l xaritasi nima **rasman bajarilgani** va nima **kelajakda** ekanini aniq ajratadi.
 

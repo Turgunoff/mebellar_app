@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../core/logging/app_logger.dart';
 import '../../../../core/network/api_error.dart';
@@ -13,7 +12,14 @@ import '../../products/data/ar_token_repository.dart';
 /// Full AR-token purchase ledger — every checkout intent the seller started,
 /// with settlement status once Payme/Click confirms.
 class ArTokenPurchaseHistoryScreen extends StatefulWidget {
-  const ArTokenPurchaseHistoryScreen({super.key});
+  const ArTokenPurchaseHistoryScreen({
+    super.key,
+    required this.repo,
+    this.pendingPayments,
+  });
+
+  final ArTokenRepository repo;
+  final PendingPaymentService? pendingPayments;
 
   @override
   State<ArTokenPurchaseHistoryScreen> createState() =>
@@ -39,7 +45,7 @@ class _ArTokenPurchaseHistoryScreenState
       _failed = false;
     });
     try {
-      final items = await sl<ArTokenRepository>().purchaseHistory(limit: 50);
+      final items = await widget.repo.purchaseHistory(limit: 50);
       if (mounted) {
         setState(() {
           _items = items;
@@ -82,12 +88,12 @@ class _ArTokenPurchaseHistoryScreenState
 
     setState(() => _cancellingId = purchase.id);
     try {
-      await sl<ArTokenRepository>().cancelPurchase(purchase.id);
-      final pending = await sl<PendingPaymentService>().peek();
+      await widget.repo.cancelPurchase(purchase.id);
+      final pending = await widget.pendingPayments?.peek();
       if (pending != null &&
           pending.kind == PendingPaymentKind.arTokens &&
           pending.reference == purchase.id) {
-        await sl<PendingPaymentService>().clear();
+        await widget.pendingPayments?.clear();
       }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../../config/remote_config.dart';
-import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../core/network/api_error.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/models/product_set.dart';
+import '../../../../shared/repositories/seller_product_repository.dart';
 import '../../../../shared/repositories/tariff_repository.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/error_state.dart';
@@ -21,14 +21,23 @@ import 'seller_set_editor_screen.dart';
 ///
 /// Uzbek-only with seller tokens (`SellerColors.of(context)`, `AppFonts.seller`).
 class SellerSetsScreen extends StatefulWidget {
-  const SellerSetsScreen({super.key});
+  const SellerSetsScreen({
+    super.key,
+    required this.repo,
+    required this.productRepo,
+    required this.tariffRepo,
+  });
+
+  final WoodySellerSetRepository repo;
+  final SellerProductRepository productRepo;
+  final TariffRepository tariffRepo;
 
   @override
   State<SellerSetsScreen> createState() => _SellerSetsScreenState();
 }
 
 class _SellerSetsScreenState extends State<SellerSetsScreen> {
-  final _repo = sl<WoodySellerSetRepository>();
+  late final _repo = widget.repo;
 
   List<ProductSet> _sets = const [];
   bool _loading = true;
@@ -49,7 +58,7 @@ class _SellerSetsScreenState extends State<SellerSetsScreen> {
   /// transient failure).
   Future<bool> _resolveAllowsSets() async {
     if (!RemoteConfig.instance.tariffEnabled) return true;
-    final snap = await sl<TariffRepository>().currentSnapshot();
+    final snap = await widget.tariffRepo.currentSnapshot();
     return snap.valueOrNull?.plan.allowsSets ?? true;
   }
 
@@ -86,7 +95,10 @@ class _SellerSetsScreenState extends State<SellerSetsScreen> {
     final created = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         settings: const RouteSettings(name: '/seller-set-editor'),
-        builder: (_) => const SellerSetEditorScreen(),
+        builder: (_) => SellerSetEditorScreen(
+          setRepo: widget.repo,
+          productRepo: widget.productRepo,
+        ),
       ),
     );
     if (!mounted) return;
@@ -317,7 +329,10 @@ class _SetTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      tr('seller.sets_item_count', namedArgs: {'count': set.itemCount.toString()}),
+                      tr(
+                        'seller.sets_item_count',
+                        namedArgs: {'count': set.itemCount.toString()},
+                      ),
                       style: TextStyle(
                         fontFamily: AppFonts.seller,
                         fontSize: 12,
@@ -404,9 +419,21 @@ class _StatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
     final (label, fg, bg) = switch (status) {
-      'approved' => (tr('seller.sets_status_approved'), c.positive, c.positiveBg),
-      'pending_review' => (tr('seller.sets_status_pending'), c.warning, c.warningBg),
-      'rejected' => (tr('seller.sets_status_rejected'), c.negative, c.negativeBg),
+      'approved' => (
+        tr('seller.sets_status_approved'),
+        c.positive,
+        c.positiveBg,
+      ),
+      'pending_review' => (
+        tr('seller.sets_status_pending'),
+        c.warning,
+        c.warningBg,
+      ),
+      'rejected' => (
+        tr('seller.sets_status_rejected'),
+        c.negative,
+        c.negativeBg,
+      ),
       'archived' => (tr('seller.sets_status_archived'), c.grey, c.fillSoft),
       'draft' => (tr('seller.sets_status_draft'), c.grey, c.fillSoft),
       _ => (tr('seller.sets_status_pending'), c.warning, c.warningBg),

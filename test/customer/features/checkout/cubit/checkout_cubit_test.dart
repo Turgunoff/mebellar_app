@@ -1,7 +1,9 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hive/hive.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:woody_app/core/error/failure.dart';
+import 'package:woody_app/core/network/woody_api_client.dart';
 import 'package:woody_app/core/result/result.dart';
 import 'package:woody_app/customer/features/checkout/cubit/checkout_cubit.dart';
 import 'package:woody_app/shared/models/cart.dart';
@@ -16,6 +18,10 @@ class _MockCartRepo extends Mock implements CartRepository {}
 
 class _MockPaymentRepo extends Mock implements PaymentRepository {}
 
+class _MockApi extends Mock implements WoodyApiClient {}
+
+class _MockSettingsBox extends Mock implements Box {}
+
 void main() {
   setUpAll(() {
     registerFallbackValue(const <CheckoutOrderLine>[]);
@@ -25,11 +31,15 @@ void main() {
   late _MockCheckoutRepo checkout;
   late _MockCartRepo cartRepo;
   late _MockPaymentRepo payments;
+  late _MockApi api;
+  late _MockSettingsBox settingsBox;
 
   setUp(() {
     checkout = _MockCheckoutRepo();
     cartRepo = _MockCartRepo();
     payments = _MockPaymentRepo();
+    api = _MockApi();
+    settingsBox = _MockSettingsBox();
     // Default: the construction-time quote refresh returns an Err (the repo is
     // on the Result side now), so `_quoteGroup` maps it to null and tests that
     // don't care about quoting stay deterministic.
@@ -43,10 +53,27 @@ void main() {
       (_) async =>
           const Err<CheckoutQuote>(ServerFailure(message: 'quote disabled')),
     );
+    // The cubit also fires an unawaited payment-methods refresh on
+    // construction (RemoteConfig.refreshPaymentMethods) — a plain rejection
+    // exercises its own internal catch without needing settingsBox stubs.
+    when(
+      () => api.get<Map<String, dynamic>>(
+        any(),
+        query: any(named: 'query'),
+        anonymous: any(named: 'anonymous'),
+        retries: any(named: 'retries'),
+      ),
+    ).thenThrow(Exception('no network in test'));
   });
 
   CheckoutCubit build({List<CartItemModel> items = const <CartItemModel>[]}) =>
-      CheckoutCubit(items: items, checkout: checkout, cartRepo: cartRepo);
+      CheckoutCubit(
+        items: items,
+        checkout: checkout,
+        cartRepo: cartRepo,
+        api: api,
+        settingsBox: settingsBox,
+      );
 
   CheckoutCubit buildWithPayments({
     List<CartItemModel> items = const <CartItemModel>[],
@@ -54,6 +81,8 @@ void main() {
     items: items,
     checkout: checkout,
     cartRepo: cartRepo,
+    api: api,
+    settingsBox: settingsBox,
     payments: payments,
   );
 
@@ -189,17 +218,15 @@ void main() {
           .having((s) => s.wantsInstallationFor('shopB'), 'B untouched', false)
           // shopA: 2_000_000 products + 300_000 installation.
           .having(
-            (s) => s.groupTotal(
-              s.groups.firstWhere((g) => g.shopId == 'shopA'),
-            ),
+            (s) =>
+                s.groupTotal(s.groups.firstWhere((g) => g.shopId == 'shopA')),
             'shopA total',
             2300000,
           )
           // shopB: 3_000_000 products, installation NOT applied.
           .having(
-            (s) => s.groupTotal(
-              s.groups.firstWhere((g) => g.shopId == 'shopB'),
-            ),
+            (s) =>
+                s.groupTotal(s.groups.firstWhere((g) => g.shopId == 'shopB')),
             'shopB total',
             3000000,
           )

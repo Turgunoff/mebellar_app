@@ -26,6 +26,7 @@ import '../../../../shared/models/shop_profile.dart';
 import '../../../../shared/repositories/customer_reviews_repository.dart';
 import '../../../../shared/repositories/product_data_source.dart';
 import '../../../../shared/repositories/shop_repository.dart';
+import '../../../../shared/repositories/woody_set_repository.dart';
 import '../../../../shared/sharing/product_share.dart';
 import '../../../../shared/widgets/star_rating.dart';
 // `AttributesRepository` is registered at root scope, so it resolves fine
@@ -120,9 +121,24 @@ class _SectionTitle extends StatelessWidget {
 }
 
 class CatalogProductDetailScreen extends StatefulWidget {
-  const CatalogProductDetailScreen({super.key, required this.product});
+  const CatalogProductDetailScreen({
+    super.key,
+    required this.product,
+    required this.api,
+    required this.attributesRepository,
+    required this.shopRepository,
+    required this.reviewsRepository,
+    required this.productDataSource,
+    required this.setRepository,
+  });
 
   final ProductModel product;
+  final WoodyApiClient api;
+  final AttributesRepository attributesRepository;
+  final ShopRepository shopRepository;
+  final CustomerReviewsRepository reviewsRepository;
+  final ProductDataSource productDataSource;
+  final WoodySetRepository setRepository;
 
   @override
   State<CatalogProductDetailScreen> createState() =>
@@ -193,9 +209,7 @@ class _CatalogProductDetailScreenState
 
   Future<void> _logBackendProductView(String productId) async {
     try {
-      await sl<WoodyApiClient>().post<dynamic>(
-        '/catalog/products/$productId/view',
-      );
+      await widget.api.post<dynamic>('/catalog/products/$productId/view');
     } catch (_) {
       // Best-effort catalog analytics — must not affect the detail UX.
     }
@@ -235,7 +249,7 @@ class _CatalogProductDetailScreenState
     final p = widget.product;
     if (p.attributes == null || p.attributes!.isEmpty) return;
     try {
-      final schema = await sl<AttributesRepository>().loadForCategory(
+      final schema = await widget.attributesRepository.loadForCategory(
         categoryId: p.categoryId,
         subcategoryId: p.subcategoryId,
       );
@@ -385,7 +399,10 @@ class _CatalogProductDetailScreenState
                         if (product.hasSet)
                           Padding(
                             padding: const EdgeInsets.only(top: 14),
-                            child: SetArPromoCard(product: product),
+                            child: SetArPromoCard(
+                              product: product,
+                              setRepository: widget.setRepository,
+                            ),
                           ),
                         for (final card in [
                           // Colours sit right under the price — they are the
@@ -406,6 +423,7 @@ class _CatalogProductDetailScreenState
                             PremiumProductSellerCard(
                               fallbackName: shopName,
                               shopId: product.shopId,
+                              shopRepository: widget.shopRepository,
                             ),
                           if (hasMeta)
                             MetaCard(
@@ -438,8 +456,14 @@ class _CatalogProductDetailScreenState
                               warrantyMonths: product.warrantyMonths,
                             ),
                         ]) ...[const SizedBox(height: 14), card],
-                        _ReviewsSection(productId: product.id),
-                        _SimilarSection(productId: product.id),
+                        _ReviewsSection(
+                          productId: product.id,
+                          repository: widget.reviewsRepository,
+                        ),
+                        _SimilarSection(
+                          productId: product.id,
+                          source: widget.productDataSource,
+                        ),
                       ],
                     ),
                   ),
@@ -734,12 +758,15 @@ class PremiumProductSellerCard extends StatefulWidget {
   const PremiumProductSellerCard({
     super.key,
     required this.fallbackName,
+    required this.shopRepository,
     this.shopId,
   });
 
   /// Shop name embedded in the product payload — shown immediately so the card
   /// never flashes empty while the profile loads.
   final String fallbackName;
+
+  final ShopRepository shopRepository;
 
   /// Seller's shop id. When present the card is tappable (opens `/shop/:id`)
   /// and fetches the public profile; a null/blank id (a dangling shop
@@ -766,7 +793,7 @@ class _PremiumProductSellerCardState extends State<PremiumProductSellerCard> {
   }
 
   Future<void> _loadProfile() async {
-    final result = await sl<ShopRepository>().shopById(widget.shopId!.trim());
+    final result = await widget.shopRepository.shopById(widget.shopId!.trim());
     if (!mounted) return;
     // Best-effort: an Err leaves _profile null and the card stays compact.
     final profile = result.valueOrNull;
@@ -1143,9 +1170,10 @@ class _ColorChip extends StatelessWidget {
 // ═══════════════════════════════════════════════════════════════════════════
 
 class _ReviewsSection extends StatefulWidget {
-  const _ReviewsSection({required this.productId});
+  const _ReviewsSection({required this.productId, required this.repository});
 
   final String productId;
+  final CustomerReviewsRepository repository;
 
   @override
   State<_ReviewsSection> createState() => _ReviewsSectionState();
@@ -1157,9 +1185,7 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
   @override
   void initState() {
     super.initState();
-    _future = sl<CustomerReviewsRepository>().reviewsForProduct(
-      widget.productId,
-    );
+    _future = widget.repository.reviewsForProduct(widget.productId);
   }
 
   @override

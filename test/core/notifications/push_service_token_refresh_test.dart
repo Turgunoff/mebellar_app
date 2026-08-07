@@ -76,16 +76,14 @@ class _FakeMessaging implements MessagingFacade {
     bool alert = true,
     bool badge = true,
     bool sound = true,
-  }) =>
-      throw UnimplementedError();
+  }) => throw UnimplementedError();
 
   @override
   Future<void> setForegroundNotificationPresentationOptions({
     bool alert = false,
     bool badge = false,
     bool sound = false,
-  }) =>
-      throw UnimplementedError();
+  }) => throw UnimplementedError();
 
   @override
   Future<void> subscribeToTopic(String topic) => throw UnimplementedError();
@@ -116,10 +114,15 @@ void main() {
   setUp(() async {
     storage = _MockSecureStorage();
     final mem = <String, String>{};
-    when(() => storage.read(key: any(named: 'key')))
-        .thenAnswer((i) async => mem[i.namedArguments[#key] as String]);
-    when(() => storage.write(key: any(named: 'key'), value: any(named: 'value')))
-        .thenAnswer((i) async {
+    when(
+      () => storage.read(key: any(named: 'key')),
+    ).thenAnswer((i) async => mem[i.namedArguments[#key] as String]);
+    when(
+      () => storage.write(
+        key: any(named: 'key'),
+        value: any(named: 'value'),
+      ),
+    ).thenAnswer((i) async {
       mem[i.namedArguments[#key] as String] =
           i.namedArguments[#value] as String;
     });
@@ -132,13 +135,20 @@ void main() {
     );
 
     localNotifications = _MockLocalNotifications();
-    when(() => localNotifications.initialize(
-          any(),
-          onDidReceiveNotificationResponse:
-              any(named: 'onDidReceiveNotificationResponse'),
-        )).thenAnswer((_) async => true);
-    when(() => localNotifications.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>()).thenReturn(null);
+    when(
+      () => localNotifications.initialize(
+        any(),
+        onDidReceiveNotificationResponse: any(
+          named: 'onDidReceiveNotificationResponse',
+        ),
+      ),
+    ).thenAnswer((_) async => true);
+    when(
+      () => localNotifications
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >(),
+    ).thenReturn(null);
   });
 
   test(
@@ -163,8 +173,14 @@ void main() {
       // non-fatal.
       messaging.rotate('rotated-token');
 
-      // Let the async upsert run and the 500 come back.
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+      // Let the async upsert run and the 500 come back. Poll instead of a
+      // single fixed sleep — a single 50ms wait was flaky under a full-suite
+      // run (dozens of isolates contending for CPU can starve this Future
+      // chain past a fixed deadline); polling only waits as long as it
+      // actually needs to, up to a generous ceiling.
+      for (var i = 0; i < 100 && adapter.deviceTokenHits == 0; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
 
       // The upsert was genuinely attempted (not short-circuited), and no error
       // escaped — reaching this line at all is the regression guard.

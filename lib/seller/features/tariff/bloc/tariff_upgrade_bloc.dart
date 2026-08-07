@@ -2,8 +2,15 @@ import 'dart:io';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hive/hive.dart';
 
+import '../../../../config/remote_config.dart';
+import '../../../../core/network/woody_api_client.dart';
+import '../../../../core/result/result.dart';
 import '../../../../shared/models/tariff.dart';
+import '../../../../shared/payments/pending_payment.dart';
+import '../../../../shared/payments/pending_payment_service.dart';
+import '../../../../shared/repositories/payment_repository.dart';
 import '../../../../shared/repositories/tariff_repository.dart';
 
 sealed class TariffUpgradeEvent extends Equatable {
@@ -103,25 +110,34 @@ class TariffUpgradeState extends Equatable {
 
   @override
   List<Object?> get props => [
-        status,
-        plan,
-        period,
-        localScreenshotPath,
-        uploadedScreenshotUrl,
-        subscription,
-        error,
-      ];
+    status,
+    plan,
+    period,
+    localScreenshotPath,
+    uploadedScreenshotUrl,
+    subscription,
+    error,
+  ];
 }
 
-class TariffUpgradeBloc
-    extends Bloc<TariffUpgradeEvent, TariffUpgradeState> {
-  TariffUpgradeBloc(this._repo) : super(const TariffUpgradeState()) {
+class TariffUpgradeBloc extends Bloc<TariffUpgradeEvent, TariffUpgradeState> {
+  TariffUpgradeBloc(
+    this._repo, {
+    required WoodyApiClient api,
+    required Box settingsBox,
+    PendingPaymentService? pendingPayments,
+  }) : _api = api,
+       _settingsBox = settingsBox,
+       _pendingPayments = pendingPayments,
+       super(const TariffUpgradeState()) {
     on<TariffUpgradeStarted>((event, emit) {
-      emit(TariffUpgradeState(
-        status: TariffUpgradeFlowStatus.idle,
-        plan: event.plan,
-        period: event.period,
-      ));
+      emit(
+        TariffUpgradeState(
+          status: TariffUpgradeFlowStatus.idle,
+          plan: event.plan,
+          period: event.period,
+        ),
+      );
     });
     on<TariffUpgradeScreenshotPicked>(_onScreenshotPicked);
     on<TariffUpgradeSubmitted>(_onSubmitted);
@@ -129,30 +145,65 @@ class TariffUpgradeBloc
   }
 
   final TariffRepository _repo;
+  final WoodyApiClient _api;
+  final Box _settingsBox;
+
+  /// Optional — not every scope registers it; callers treat a null the same
+  /// as the old `sl.isRegistered<PendingPaymentService>()` guard.
+  final PendingPaymentService? _pendingPayments;
+
+  /// Payme/Click enabled state can flip server-side without an app restart —
+  /// call on open so a toggle applies immediately (T-07: moved out of
+  /// `_TariffPaymentViewState.initState()`, which resolved
+  /// WoodyApiClient/Box itself).
+  Future<void> refreshPaymentMethods() =>
+      RemoteConfig.instance.refreshPaymentMethods(_api, _settingsBox);
+
+  Future<Result<TariffPaymentInstructions>> paymentInstructions() =>
+      _repo.paymentInstructions();
+
+  Future<Result<TariffCheckout>> buyPlan({
+    required TariffPlan plan,
+    required BillingPeriod period,
+    required PaymentProvider provider,
+  }) => _repo.buyPlan(plan: plan, period: period, provider: provider);
+
+  Future<void> markPendingDeposit(String reference) async {
+    await _pendingPayments?.mark(
+      kind: PendingPaymentKind.subscription,
+      reference: reference,
+    );
+  }
 
   Future<void> _onScreenshotPicked(
     TariffUpgradeScreenshotPicked event,
     Emitter<TariffUpgradeState> emit,
   ) async {
-    emit(state.copyWith(
-      status: TariffUpgradeFlowStatus.uploading,
-      localScreenshotPath: event.file.path,
-      clearError: true,
-      clearUploadedScreenshot: true,
-    ));
+    emit(
+      state.copyWith(
+        status: TariffUpgradeFlowStatus.uploading,
+        localScreenshotPath: event.file.path,
+        clearError: true,
+        clearUploadedScreenshot: true,
+      ),
+    );
     final result = await _repo.uploadPaymentScreenshot(
       file: event.file,
       fileExtension: event.fileExtension,
     );
     result.fold(
-      ok: (url) => emit(state.copyWith(
-        status: TariffUpgradeFlowStatus.ready,
-        uploadedScreenshotUrl: url,
-      )),
-      err: (failure) => emit(state.copyWith(
-        status: TariffUpgradeFlowStatus.failure,
-        error: failure.message,
-      )),
+      ok: (url) => emit(
+        state.copyWith(
+          status: TariffUpgradeFlowStatus.ready,
+          uploadedScreenshotUrl: url,
+        ),
+      ),
+      err: (failure) => emit(
+        state.copyWith(
+          status: TariffUpgradeFlowStatus.failure,
+          error: failure.message,
+        ),
+      ),
     );
   }
 
@@ -163,23 +214,33 @@ class TariffUpgradeBloc
     final plan = state.plan;
     final url = state.uploadedScreenshotUrl;
     if (plan == null || url == null) return;
-    emit(state.copyWith(
-        status: TariffUpgradeFlowStatus.submitting, clearError: true));
-    final result = await _repo.upgrade(TariffUpgradeInput(
-      plan: plan,
-      period: state.period,
-      amount: state.amount,
-      paymentScreenshotUrl: url,
-    ));
+    emit(
+      state.copyWith(
+        status: TariffUpgradeFlowStatus.submitting,
+        clearError: true,
+      ),
+    );
+    final result = await _repo.upgrade(
+      TariffUpgradeInput(
+        plan: plan,
+        period: state.period,
+        amount: state.amount,
+        paymentScreenshotUrl: url,
+      ),
+    );
     result.fold(
-      ok: (subscription) => emit(state.copyWith(
-        status: TariffUpgradeFlowStatus.submitted,
-        subscription: subscription,
-      )),
-      err: (failure) => emit(state.copyWith(
-        status: TariffUpgradeFlowStatus.failure,
-        error: failure.message,
-      )),
+      ok: (subscription) => emit(
+        state.copyWith(
+          status: TariffUpgradeFlowStatus.submitted,
+          subscription: subscription,
+        ),
+      ),
+      err: (failure) => emit(
+        state.copyWith(
+          status: TariffUpgradeFlowStatus.failure,
+          error: failure.message,
+        ),
+      ),
     );
   }
 }

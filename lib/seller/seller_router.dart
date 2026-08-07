@@ -22,6 +22,7 @@ import 'features/notifications/screens/notifications_screen.dart';
 import 'features/orders/bloc/seller_orders_bloc.dart';
 import 'features/orders/screens/order_details_screen.dart';
 import 'features/orders/screens/seller_orders_screen.dart';
+import 'features/products/data/attributes_repository.dart';
 import 'features/products/screens/product_form_screen.dart';
 import '../shared/chat/bloc/total_unread_chats_cubit.dart';
 import '../shared/chat/screens/chat_thread_screen.dart';
@@ -120,6 +121,7 @@ GoRouter buildSellerRouter() {
                       }
                       return SellerProductDetailScreen(
                         product: product,
+                        attributesRepository: sl<AttributesRepository>(),
                         onEdit: () => context.push('/seller/products/$id/edit'),
                       );
                     },
