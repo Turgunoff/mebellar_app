@@ -113,7 +113,7 @@ void main() {
       ),
     );
 
-    final orders = await h.repo.list();
+    final orders = (await h.repo.list()).valueOrNull!;
 
     expect(orders, hasLength(1));
     final o = orders.single;
@@ -130,16 +130,16 @@ void main() {
 
   test('list returns empty when the payload carries no rows', () async {
     final h = makeRepo((_) => (200, '{}'));
-    expect(await h.repo.list(), isEmpty);
+    expect((await h.repo.list()).valueOrNull, isEmpty);
 
     final h2 = makeRepo((_) => (200, '{"rows":[]}'));
-    expect(await h2.repo.list(), isEmpty);
+    expect((await h2.repo.list()).valueOrNull, isEmpty);
   });
 
   test('getById maps a single order', () async {
     final h = makeRepo((_) => (200, jsonEncode(_orderRow(status: 'shipped'))));
 
-    final o = await h.repo.getById('abcd1234-aaaa-bbbb-cccc');
+    final o = (await h.repo.getById('abcd1234-aaaa-bbbb-cccc')).valueOrNull!;
 
     expect(o.status, OrderStatus.shipped);
     expect(o.orderNumber, 'WD-ABCD1234');
@@ -162,11 +162,11 @@ void main() {
       return (200, '{}');
     });
 
-    final o = await h.repo.cancel(
+    final o = (await h.repo.cancel(
       'abcd1234-aaaa-bbbb-cccc',
       reasonCode: 'other',
       reasonText: 'no longer needed',
-    );
+    )).valueOrNull!;
 
     expect(o.status, OrderStatus.cancelled);
     expect(o.cancelReason, 'no longer needed');

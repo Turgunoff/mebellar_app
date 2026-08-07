@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:woody_app/core/error/failure.dart';
+import 'package:woody_app/core/result/result.dart';
 import 'package:woody_app/shared/models/cancel_reason.dart';
 import 'package:woody_app/shared/models/order.dart';
 import 'package:woody_app/shared/models/order_status.dart';
@@ -20,38 +22,40 @@ class MockOrderRepository implements OrderRepository {
   int _orderNumberCounter = 3;
 
   @override
-  Future<List<Order>> list() async {
+  Future<Result<List<Order>>> list() async {
     await Future<void>.delayed(_delay);
     final sorted = List<Order>.from(_orders)
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    return sorted;
+    return Ok(sorted);
   }
 
   @override
-  Future<Order?> fetchAwaitingPaymentOrder() async {
+  Future<Result<Order?>> fetchAwaitingPaymentOrder() async {
     await Future<void>.delayed(_delay);
     for (final order in _orders) {
-      if (order.awaitsOnlinePayment) return order;
+      if (order.awaitsOnlinePayment) return Ok(order);
     }
-    return null;
+    return const Ok(null);
   }
 
   @override
-  Future<Order> getById(String id) async {
+  Future<Result<Order>> getById(String id) async {
     await Future<void>.delayed(_delay);
     final order = _orders.where((o) => o.id == id).firstOrNull;
-    if (order == null) throw StateError('Buyurtma topilmadi: $id');
-    return order;
+    if (order == null) {
+      return Err(UnknownFailure(message: 'Buyurtma topilmadi: $id'));
+    }
+    return Ok(order);
   }
 
   @override
-  Future<Order> create(CreateOrderInput input) async {
+  Future<Result<Order>> create(CreateOrderInput input) async {
     await Future<void>.delayed(_delay);
 
     // 5% chance of insufficient_stock to exercise checkout error UX.
     final rand = math.Random();
     if (rand.nextDouble() < 0.05) {
-      throw StateError('insufficient_stock');
+      return const Err(UnknownFailure(message: 'insufficient_stock'));
     }
 
     final items = input.items
@@ -96,26 +100,28 @@ class MockOrderRepository implements OrderRepository {
     );
     _orders.insert(0, order);
     _scheduleProgression(order.id);
-    return order;
+    return Ok(order);
   }
 
   @override
-  Future<Order> approveFeeAdjustment(String id) async =>
+  Future<Result<Order>> approveFeeAdjustment(String id) async =>
       throw UnimplementedError();
 
   @override
-  Future<Order> rejectFeeAdjustment(String id) async =>
+  Future<Result<Order>> rejectFeeAdjustment(String id) async =>
       throw UnimplementedError();
 
   @override
-  Future<Order> cancel(
+  Future<Result<Order>> cancel(
     String id, {
     required String reasonCode,
     String? reasonText,
   }) async {
     await Future<void>.delayed(_delay);
     final idx = _orders.indexWhere((o) => o.id == id);
-    if (idx < 0) throw StateError('Buyurtma topilmadi: $id');
+    if (idx < 0) {
+      return Err(UnknownFailure(message: 'Buyurtma topilmadi: $id'));
+    }
     final order = _orders[idx];
     final updated = order.copyWith(
       status: OrderStatus.cancelled,
@@ -133,16 +139,16 @@ class MockOrderRepository implements OrderRepository {
     );
     _orders[idx] = updated;
     _watchers[id]?.add(updated);
-    return updated;
+    return Ok(updated);
   }
 
   @override
-  Future<List<CancelReason>> fetchCancelReasons() async {
+  Future<Result<List<CancelReason>>> fetchCancelReasons() async {
     await Future<void>.delayed(_delay);
-    return const [
+    return const Ok([
       CancelReason(code: 'changed_mind', title: 'Fikrimdan qaytdim'),
       CancelReason(code: 'other', title: 'Boshqa sabab'),
-    ];
+    ]);
   }
 
   @override

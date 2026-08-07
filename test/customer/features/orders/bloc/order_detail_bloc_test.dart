@@ -1,6 +1,8 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:woody_app/core/error/failure.dart';
+import 'package:woody_app/core/result/result.dart';
 import 'package:woody_app/customer/features/orders/bloc/order_detail_bloc.dart';
 import '../../../../fixtures/mocks/mock/mock_orders_data.dart';
 import 'package:woody_app/shared/models/order.dart';
@@ -17,7 +19,7 @@ void main() {
   blocTest<OrderDetailBloc, OrderDetailState>(
     'OrderDetailRequested emits [loading, ready, realtime-connected]',
     build: () {
-      when(() => repo.getById(order.id)).thenAnswer((_) async => order);
+      when(() => repo.getById(order.id)).thenAnswer((_) async => Ok(order));
       when(() => repo.watch(order.id)).thenAnswer((_) => Stream<Order>.empty());
       return OrderDetailBloc(repo);
     },
@@ -42,7 +44,9 @@ void main() {
   blocTest<OrderDetailBloc, OrderDetailState>(
     'OrderDetailRequested emits [loading, failure] when the fetch throws',
     build: () {
-      when(() => repo.getById(any())).thenThrow(Exception('order missing'));
+      when(() => repo.getById(any())).thenAnswer(
+        (_) async => const Err(UnknownFailure(message: 'order missing')),
+      );
       return OrderDetailBloc(repo);
     },
     act: (bloc) => bloc.add(const OrderDetailRequested('nope')),
@@ -67,7 +71,7 @@ void main() {
           reasonCode: any(named: 'reasonCode'),
           reasonText: any(named: 'reasonText'),
         ),
-      ).thenAnswer((_) async => MockOrdersData.orders[2]);
+      ).thenAnswer((_) async => Ok(MockOrdersData.orders[2]));
       return OrderDetailBloc(repo);
     },
     seed: () => OrderDetailState(status: OrderDetailStatus.ready, order: order),
@@ -94,7 +98,9 @@ void main() {
           reasonCode: any(named: 'reasonCode'),
           reasonText: any(named: 'reasonText'),
         ),
-      ).thenThrow(Exception('cancel rejected'));
+      ).thenAnswer(
+        (_) async => const Err(UnknownFailure(message: 'cancel rejected')),
+      );
       return OrderDetailBloc(repo);
     },
     seed: () => OrderDetailState(status: OrderDetailStatus.ready, order: order),

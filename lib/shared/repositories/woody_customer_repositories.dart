@@ -3,6 +3,7 @@ import 'dart:async';
 import '../../core/error/failure.dart';
 import '../../core/logging/app_logger.dart';
 import '../../core/network/api_error.dart';
+import '../../core/network/api_error_messages.dart';
 import '../../core/network/woody_api_client.dart';
 import '../../core/result/result.dart';
 import '../models/address.dart';
@@ -304,7 +305,7 @@ class WoodyOrderRepository implements OrderRepository {
   final WoodyApiClient _api;
 
   @override
-  Future<List<Order>> list() async {
+  Future<Result<List<Order>>> list() => runCatching(() async {
     final body = await _api.get<Map<String, dynamic>>('/orders', retries: 2);
     final rows = body['rows'];
     if (rows is! List) return const [];
@@ -312,10 +313,10 @@ class WoodyOrderRepository implements OrderRepository {
         .whereType<Map<String, dynamic>>()
         .map(_rowToOrder)
         .toList(growable: false);
-  }
+  }, onError: (error, _) => apiErrorToFailure(error));
 
   @override
-  Future<Order?> fetchAwaitingPaymentOrder() async {
+  Future<Result<Order?>> fetchAwaitingPaymentOrder() => runCatching(() async {
     final body = await _api.get<Map<String, dynamic>>(
       '/orders',
       query: const {'status': 'awaiting_payment', 'limit': '1'},
@@ -325,16 +326,16 @@ class WoodyOrderRepository implements OrderRepository {
     if (rows is! List || rows.isEmpty) return null;
     final order = _rowToOrder(rows.first as Map<String, dynamic>);
     return order.awaitsOnlinePayment ? order : null;
-  }
+  }, onError: (error, _) => apiErrorToFailure(error));
 
   @override
-  Future<Order> getById(String id) async {
+  Future<Result<Order>> getById(String id) => runCatching(() async {
     final row = await _api.get<Map<String, dynamic>>('/orders/$id');
     return _rowToOrder(row);
-  }
+  }, onError: (error, _) => apiErrorToFailure(error));
 
   @override
-  Future<Order> create(CreateOrderInput input) async {
+  Future<Result<Order>> create(CreateOrderInput input) => runCatching(() async {
     final itemsTotal = input.items.fold<num>(
       0,
       (s, it) => s + it.product.price * it.quantity,
@@ -392,14 +393,14 @@ class WoodyOrderRepository implements OrderRepository {
         ),
       ],
     );
-  }
+  }, onError: (error, _) => apiErrorToFailure(error));
 
   @override
-  Future<Order> cancel(
+  Future<Result<Order>> cancel(
     String id, {
     required String reasonCode,
     String? reasonText,
-  }) async {
+  }) => runCatching(() async {
     final body = await _api.post<Map<String, dynamic>>(
       '/orders/$id/cancel',
       body: {
@@ -409,10 +410,10 @@ class WoodyOrderRepository implements OrderRepository {
       },
     );
     return _rowToOrder(body);
-  }
+  }, onError: (error, _) => apiErrorToFailure(error));
 
   @override
-  Future<List<CancelReason>> fetchCancelReasons() async {
+  Future<Result<List<CancelReason>>> fetchCancelReasons() => runCatching(() async {
     final rows = await _api.get<List<dynamic>>(
       '/orders/cancel-reasons',
       query: const {'role': 'customer'},
@@ -422,30 +423,33 @@ class WoodyOrderRepository implements OrderRepository {
         .whereType<Map<String, dynamic>>()
         .map(CancelReason.fromJson)
         .toList(growable: false);
-  }
+  }, onError: (error, _) => apiErrorToFailure(error));
 
   @override
-  Future<Order> approveFeeAdjustment(String id) async {
+  Future<Result<Order>> approveFeeAdjustment(String id) => runCatching(() async {
     final row = await _api.post<Map<String, dynamic>>(
       '/orders/$id/fee-adjustment/approve',
     );
     return _rowToOrder(row);
-  }
+  }, onError: (error, _) => apiErrorToFailure(error));
 
   @override
-  Future<Order> rejectFeeAdjustment(String id) async {
+  Future<Result<Order>> rejectFeeAdjustment(String id) => runCatching(() async {
     final row = await _api.post<Map<String, dynamic>>(
       '/orders/$id/fee-adjustment/reject',
     );
     return _rowToOrder(row);
-  }
+  }, onError: (error, _) => apiErrorToFailure(error));
 
   @override
-  Stream<Order> watch(String orderId) {
+  Stream<Order> watch(String orderId) async* {
     // Realtime arrives in Phase 6. Until then poll once when subscribed
     // and emit that snapshot — the cubit treats a single event as still
-    // "connected" and renders the order normally.
-    return Stream<Order>.fromFuture(getById(orderId));
+    // "connected" and renders the order normally. A failed poll simply
+    // doesn't emit (no existing caller has an onError handler on this
+    // stream) rather than erroring it.
+    final result = await getById(orderId);
+    if (result case Ok(:final value)) yield value;
   }
 
   // ─── Mapping helpers ───────────────────────────────────────────────────────

@@ -438,12 +438,11 @@ flutter test test/customer/features/checkout/ test/customer/features/orders/ \
 # → barchasi yashil (checkout +10, wallet +8, orders +66 birgalikda, va h.k.)
 ```
 
-**Diqqat:** shu sessiyada parallel ravishda T-10 (`seller_product`/
-`seller_onboarding` repolarini `Result<T>`ga ko'chirish) ham davom etmoqda —
-`flutter analyze lib/`da vaqti-vaqti bilan ko'rinadigan xatolar
-(`woody_seller_product_repository_test.dart`, `seller_onboarding_repository.dart`)
-**shu ishning tugallanmagan holatidan**, T-07'ga aloqasi yo'q. To'liq
-`flutter test` yugurishidan oldin T-10 tugaganini tekshiring.
+**Yangilanma:** T-10 (`order`/`seller_product`/`seller_onboarding`
+repolarini `Result<T>`ga ko'chirish) shu orada tugallandi — pastdagi T-10
+bo'limiga qarang. `seller_wallet_repository` ataylab T-10'da kutib
+turibdi — bu bo'lim (T-07) shu faylni tahrirlashni tugatib commit
+qilgach, xuddi shu naqsh bilan bajariladi.
 
 **Yangi qoida (davom ettirilsin):** widget ichida `sl<>` — faqat
 `AnalyticsService`/`AppLocaleController`/`LocationFacade` kabi global,
@@ -532,36 +531,109 @@ flutter test test/seller/features/wallet/screens/wallet_screen_test.dart
 
 ---
 
-### ⬜ T-10 · `Result<T>` migratsiyasini yakunlash
+### 🔄 T-10 · `Result<T>` migratsiyasini yakunlash — QISMAN BAJARILDI (2026-08-07)
 
-**Muammo.** [CLAUDE.md](../../CLAUDE.md) va
+**Muammo edi.** [CLAUDE.md](../../CLAUDE.md) va
 [error-handling.md](../../.claude/rules/error-handling.md)
 `order → seller_wallet → seller_product → seller_onboarding` migratsiyasini
-va'da qilgan. Tekshirdim — **to'rttasida ham `Result<` = 0**. Ya'ni pul va
-buyurtma yo'lidagi eng xavfli repo'lar hali `throw`da.
+va'da qilgan. Tekshirilganda **to'rttasida ham `Result<` = 0** chiqdi —
+pul va buyurtma yo'lidagi eng xavfli repo'lar hali `throw`da edi.
 
-Va'da qilingan `test/architecture/result_boundary_test.dart` guard testi ham
-yo'q — hech narsa **yangi** buzilishni to'xtatmaydi.
+**3/4 bajarildi: `order`, `seller_product`, `seller_onboarding`.
+`seller_wallet` ataylab qoldirildi** — sababi quyida.
 
-**Bajarish (har biri alohida commit + testlar bilan):**
+**Nega hammasi bir vaqtda bajarilmadi.** Ish boshlanganda
+`seller_wallet_cubit.dart` (va uning 2 ta test fayli) boshqa (T-07)
+sessiya tomonidan **hozir tahrirlanayotgan, hali commit qilinmagan**
+holatda edi — constructor signature o'zgaryapti. Bitta faylni ikki
+tomondan bir vaqtda tahrirlash to'qnashuv xavfini keltirib chiqarardi,
+shuning uchun foydalanuvchi bilan kelishilgan holda `seller_wallet` T-07
+tugab commit qilingunga qadar qoldirildi. Qolgan 3 tasining chaqiruvchilarida
+to'qnashuv yo'q edi (`git status` bilan tasdiqlangan, har bir repoga
+tegishdan oldin qayta tekshirildi).
 
-- [ ] `order_repository` → `Result<T>` (eng yuqori xavf)
-- [ ] `seller_wallet_repository` → `Result<T>`
-- [ ] `seller_product_repository` → `Result<T>`
-- [ ] `seller_onboarding_repository` → `Result<T>`
-- [ ] `test/architecture/result_boundary_test.dart` — guard test yozish:
-      har bir repo fayli **to'liq-`Result` yoki to'liq-`throw`**, aralash emas.
-      Yuqoridagi 4 tasi migratsiya davomida allowlist'da tursin.
+**⚠️ Sessiya davomida kutilmagan holat:** ishlash jarayonida boshqa sessiya
+(foydalanuvchi tomonidan) `f0b39a3` commit'ini push qildi — bu commit
+o'zining asset-tozalash ishi bilan birga **mening tugallanmagan
+`seller_onboarding`/`seller_product` ishimni ham** (hali to'liq
+tekshirilmagan holatda) "chore: remove unused assets and update font
+references" degan mos kelmaydigan xabar bilan qamrab oldi. Bu allaqachon
+push qilingani uchun orqaga qaytarilmadi — buning o'rniga qolgan barcha
+bo'shliqlar (pastda) topilib yopildi, to'liq qayta tekshirildi, va **T-10
+uchun to'g'ri, alohida commit** qilib push qilindi.
+
+**Qilingan ish.**
+
+- [x] `order_repository` → `Result<T>` — 9 metod (`watch` Stream sifatida
+      qoldi, Result o'lchoviga kirmaydi). Woody impl
+      `woody_customer_repositories.dart` ichida (`WoodyOrderRepository`),
+      `runCatching` + `apiErrorToFailure`. Chaqiruvchilar: `orders_bloc.dart`
+      (`.timeout()` alohida `TimeoutException` sifatida ushlanadi, Result
+      chegarasidan tashqarida), `order_detail_bloc.dart` (4 metod +
+      `fetchCancelReasons()` — bu ikkinchisi `showCancelReasonSheet` umumiy
+      widget'i throw-asosli qolgani uchun ataylab throw'ga qaytarib
+      ko'priklanadi), `unpaid_order_cubit.dart` (`fetchAwaitingPaymentOrder` —
+      **muhim nuance**: `Ok(null)` = "buyurtma yo'q" (banner tozalanadi),
+      `Err` = "so'rov muvaffaqiyatsiz" (**oxirgi ma'lum banner saqlanadi** —
+      original `catch(_){}` xulq-atvori aynan takrorlandi, network xatosi
+      "to'landi" deb noto'g'ri o'qilmasin).
+- [x] `seller_product_repository` → `Result<T>` — 11 metod (`watch` Stream
+      qoldi — Woody impl'da haqiqatda `Stream.empty()`, hech qachon
+      emit qilmaydi). **Muhim topilma:** `create`/`update`/`getById`/
+      `uploadImage`/`deleteImage`/`reorderImages`/`setPrimaryImage`
+      production'da **hech qayerda chaqirilmaydi** — add/edit-product oqimi
+      alohida `AddProductRepository` orqali ishlaydi. Faqat `list`/`archive`/
+      `restore`/`delete`/`submitForReview` haqiqiy chaqiruvchiga ega
+      (`seller_products_bloc.dart`, `seller_set_editor_screen.dart`).
+      Repo-lokal `_toFailure()` yozildi — `apiErrorToFailure`ning umumiy
+      status-bucket matni o'rniga backend'ning **xom xabarini** saqlaydi
+      (`ApiError.message ?? .code`), aynan `seller_products_bloc.dart`dagi
+      eski `_displayError` nima qilgan bo'lsa — masalan "Bu mahsulot
+      buyurtmalarda qatnashgan…" kabi 409-xabarlar generic matnga
+      almashtirilib yubormasin.
+- [x] `seller_onboarding_repository` → `Result<T>` — 5 metod, jumladan
+      **sinxron** `loadDraft()` (`Result<OnboardingDraft>`, hali ham hech
+      qachon muvaffaqiyatsiz bo'lmaydi — fayl bir xillik qoidasi uchun
+      wrap qilindi) va `loadRemoteDraft()` (`Ok(null)` = "masofaviy qoralama
+      yo'q" HAM "so'rov muvaffaqiyatsiz" — ikkalasi ham chaqiruvchida bir xil
+      ishlanadi, xulq-atvor o'zgarmadi).
+- [x] Har uch repo uchun mock/fake yangilandi
+      (`test/fixtures/mocks/mock/mock_{order,seller_product,seller_onboarding}_repository.dart`)
+      + 2 ta **oldindan mavjud, lekin dastlabki tekshiruvda o'tkazib
+      yuborilgan** integration test (`woody_order_repository_test.dart`,
+      `woody_seller_product_repository_test.dart`) va bloc testlar
+      (`order_detail_bloc_test.dart`) `Result<T>`ga moslashtirildi.
+- [x] `test/architecture/result_boundary_test.dart` yozildi — har bir
+      `lib/shared/repositories/*.dart` interfeysi to'liq-Result yoki
+      to'liq-throw ekanini statik tekshiradi. Ishga tushirilganda **2 ta
+      qo'shimcha, T-10'ga aloqasi yo'q, oldindan mavjud aralash fayl**
+      topildi: `seller_order_repository.dart` va `shop_repository.dart` —
+      ikkalasi ham **ataylab** shunday (ma'lumot-o'qish metodlari
+      xatoda bo'sh ro'yxatga qaytadi, `Err` emas — fayl izohlarida
+      hujjatlashtirilgan, oldingi "B.1" bosqichidan). Allowlist shu ikkitasi
+      + `seller_wallet_repository.dart`ni (T-10 davom etmoqda) sabab bilan
+      birga saqlaydi.
+- [x] `flutter analyze lib/ test/` — toza (1 oldindan bor baseline issue).
+      `flutter test` — **859/859 yashil** (guard test ikkalasi ham kiritilgan
+      holda).
+
+**Qoldi:** `seller_wallet_repository` → `Result<T>` — T-07 tugab commit
+qilingach, xuddi shu naqsh bilan (`seller_wallet_cubit.dart` + 2 ta test
+fayli endi tinch bo'lgach).
 
 **Naqsh:** `runCatching(...)` + `apiErrorToFailure`
 ([api_error_messages.dart](../../lib/core/network/api_error_messages.dart)) —
-`payment` va `checkout` da allaqachon qilingan, o'shani takrorlang.
+`payment` va `checkout` da allaqachon qilingan, o'shani takrorlang
+(`seller_product` uchun repo-lokal variant — yuqorida sababi bilan).
 
-**Tekshirish:**
+**Tekshirish natijasi:**
 ```bash
 for f in order seller_wallet seller_product seller_onboarding; do
   echo -n "$f: "; grep -c "Result<" lib/shared/repositories/${f}_repository.dart
 done
+# order: 9, seller_wallet: 0 (qasddan qolgan), seller_product: 14, seller_onboarding: 6
+
+flutter test test/architecture/result_boundary_test.dart   # 2/2 yashil
 ```
 
 ---

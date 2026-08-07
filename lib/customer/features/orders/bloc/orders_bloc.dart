@@ -5,6 +5,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/network/api_error_messages.dart';
+import '../../../../core/result/result.dart';
 import '../../../../shared/models/order.dart';
 import '../../../../shared/models/order_status.dart';
 import '../../../../shared/repositories/order_repository.dart';
@@ -104,26 +105,34 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
       emit(state.copyWith(status: OrdersStatus.loading, clearError: true));
     }
     try {
-      final list = await _repo.list().timeout(_loadTimeout);
-      emit(
-        state.copyWith(
-          status: OrdersStatus.ready,
-          orders: list,
-          clearError: true,
-        ),
-      );
-    } catch (e) {
-      if (state.orders.isNotEmpty) {
-        // Graceful: keep the list visible, surface the error as a top-toast.
-        emit(state.copyWith(error: apiErrorMessage(e)));
-      } else {
-        emit(
-          state.copyWith(
-            status: OrdersStatus.failure,
-            error: apiErrorMessage(e),
-          ),
-        );
+      final result = await _repo.list().timeout(_loadTimeout);
+      switch (result) {
+        case Ok(:final value):
+          emit(
+            state.copyWith(
+              status: OrdersStatus.ready,
+              orders: value,
+              clearError: true,
+            ),
+          );
+        case Err(:final failure):
+          _emitFailure(emit, failure.message);
       }
+    } on TimeoutException {
+      // .timeout() throws outside the Result boundary — same graceful
+      // degrade as an Err, using the same network-timeout copy apiErrorMessage
+      // would produce for a caught TimeoutException.
+      _emitFailure(emit, apiErrorMessage(TimeoutException('orders list')));
+    }
+  }
+
+  /// Keeps an existing list visible (error surfaces as a top-toast) or, on a
+  /// first load with nothing on screen, shows the blocking failure state.
+  void _emitFailure(Emitter<OrdersState> emit, String message) {
+    if (state.orders.isNotEmpty) {
+      emit(state.copyWith(error: message));
+    } else {
+      emit(state.copyWith(status: OrdersStatus.failure, error: message));
     }
   }
 }

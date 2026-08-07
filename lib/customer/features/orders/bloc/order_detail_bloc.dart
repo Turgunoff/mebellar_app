@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../core/network/api_error_messages.dart';
+import '../../../../core/result/result.dart';
 import '../../../../shared/models/cancel_reason.dart';
 import '../../../../shared/models/order.dart';
 import '../../../../shared/repositories/order_repository.dart';
@@ -94,31 +94,36 @@ class OrderDetailBloc extends Bloc<OrderDetailEvent, OrderDetailState> {
 
   /// Reference data (cancellation reason list) for the cancel-reason sheet —
   /// not bloc state, just a pass-through so the widget uses the bloc's
-  /// already-injected repo instead of resolving one itself.
-  Future<List<CancelReason>> fetchCancelReasons() => _repo.fetchCancelReasons();
+  /// already-injected repo instead of resolving one itself. `showCancelReasonSheet`
+  /// is a shared widget also fed by still-throw repos (seller), so this bridges
+  /// back to a throw on `Err` rather than changing that shared contract.
+  Future<List<CancelReason>> fetchCancelReasons() => _repo
+      .fetchCancelReasons()
+      .then((r) => r.fold(ok: (v) => v, err: (f) => throw f));
 
   Future<void> _onRequested(
     OrderDetailRequested event,
     Emitter<OrderDetailState> emit,
   ) async {
     emit(state.copyWith(status: OrderDetailStatus.loading, clearError: true));
-    try {
-      final order = await _repo.getById(event.id);
-      emit(state.copyWith(status: OrderDetailStatus.ready, order: order));
-      // Subscribe to realtime updates so status changes from another device
-      // (or the seller) appear in 1-2 seconds without a manual refresh.
-      await _sub?.cancel();
-      _sub = _repo.watch(event.id).listen((updated) {
-        add(_OrderRealtimeUpdated(updated));
-      });
-      emit(state.copyWith(realtimeConnected: true));
-    } catch (e) {
-      emit(
-        state.copyWith(
-          status: OrderDetailStatus.failure,
-          error: apiErrorMessage(e),
-        ),
-      );
+    final result = await _repo.getById(event.id);
+    switch (result) {
+      case Ok(:final value):
+        emit(state.copyWith(status: OrderDetailStatus.ready, order: value));
+        // Subscribe to realtime updates so status changes from another device
+        // (or the seller) appear in 1-2 seconds without a manual refresh.
+        await _sub?.cancel();
+        _sub = _repo.watch(event.id).listen((updated) {
+          add(_OrderRealtimeUpdated(updated));
+        });
+        emit(state.copyWith(realtimeConnected: true));
+      case Err(:final failure):
+        emit(
+          state.copyWith(
+            status: OrderDetailStatus.failure,
+            error: failure.message,
+          ),
+        );
     }
   }
 
@@ -129,20 +134,21 @@ class OrderDetailBloc extends Bloc<OrderDetailEvent, OrderDetailState> {
     final order = state.order;
     if (order == null) return;
     emit(state.copyWith(status: OrderDetailStatus.mutating));
-    try {
-      final updated = await _repo.cancel(
-        order.id,
-        reasonCode: event.reasonCode,
-        reasonText: event.reasonText,
-      );
-      emit(state.copyWith(status: OrderDetailStatus.ready, order: updated));
-    } catch (e) {
-      emit(
-        state.copyWith(
-          status: OrderDetailStatus.ready,
-          error: apiErrorMessage(e),
-        ),
-      );
+    final result = await _repo.cancel(
+      order.id,
+      reasonCode: event.reasonCode,
+      reasonText: event.reasonText,
+    );
+    switch (result) {
+      case Ok(:final value):
+        emit(state.copyWith(status: OrderDetailStatus.ready, order: value));
+      case Err(:final failure):
+        emit(
+          state.copyWith(
+            status: OrderDetailStatus.ready,
+            error: failure.message,
+          ),
+        );
     }
   }
 
@@ -153,16 +159,17 @@ class OrderDetailBloc extends Bloc<OrderDetailEvent, OrderDetailState> {
     final order = state.order;
     if (order == null) return;
     emit(state.copyWith(status: OrderDetailStatus.mutating));
-    try {
-      final updated = await _repo.approveFeeAdjustment(order.id);
-      emit(state.copyWith(status: OrderDetailStatus.ready, order: updated));
-    } catch (e) {
-      emit(
-        state.copyWith(
-          status: OrderDetailStatus.ready,
-          error: apiErrorMessage(e),
-        ),
-      );
+    final result = await _repo.approveFeeAdjustment(order.id);
+    switch (result) {
+      case Ok(:final value):
+        emit(state.copyWith(status: OrderDetailStatus.ready, order: value));
+      case Err(:final failure):
+        emit(
+          state.copyWith(
+            status: OrderDetailStatus.ready,
+            error: failure.message,
+          ),
+        );
     }
   }
 
@@ -173,16 +180,17 @@ class OrderDetailBloc extends Bloc<OrderDetailEvent, OrderDetailState> {
     final order = state.order;
     if (order == null) return;
     emit(state.copyWith(status: OrderDetailStatus.mutating));
-    try {
-      final updated = await _repo.rejectFeeAdjustment(order.id);
-      emit(state.copyWith(status: OrderDetailStatus.ready, order: updated));
-    } catch (e) {
-      emit(
-        state.copyWith(
-          status: OrderDetailStatus.ready,
-          error: apiErrorMessage(e),
-        ),
-      );
+    final result = await _repo.rejectFeeAdjustment(order.id);
+    switch (result) {
+      case Ok(:final value):
+        emit(state.copyWith(status: OrderDetailStatus.ready, order: value));
+      case Err(:final failure):
+        emit(
+          state.copyWith(
+            status: OrderDetailStatus.ready,
+            error: failure.message,
+          ),
+        );
     }
   }
 
