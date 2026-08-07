@@ -257,7 +257,9 @@ flutter:
     - assets/logo/
     - assets/google_fonts/
     - assets/lottie/
-    # 3D onboarding: rotating chair model (page 1) + placeholder hero images.
+    # 3D onboarding: rotating chair model (page 1, Draco-compressed 5.7MB→808KB).
+    # The home-screen AR demo model is R2-hosted (RemoteConfig.demoGlbUrl) —
+    # see doc/planning/tech_debt_roadmap.md T-04.
     - assets/models/
     - assets/images/
     # Folder declarations aren't recursive — the page-3 marquee grid needs its
@@ -281,18 +283,6 @@ flutter:
         - asset: assets/google_fonts/Inter-Bold.ttf
           weight: 700
         - asset: assets/google_fonts/Inter-ExtraBold.ttf
-          weight: 800
-    - family: Manrope
-      fonts:
-        - asset: assets/google_fonts/Manrope-Regular.ttf
-          weight: 400
-        - asset: assets/google_fonts/Manrope-Medium.ttf
-          weight: 500
-        - asset: assets/google_fonts/Manrope-SemiBold.ttf
-          weight: 600
-        - asset: assets/google_fonts/Manrope-Bold.ttf
-          weight: 700
-        - asset: assets/google_fonts/Manrope-ExtraBold.ttf
           weight: 800
     - family: PlayfairDisplay
       fonts:

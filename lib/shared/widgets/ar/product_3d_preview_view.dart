@@ -85,7 +85,6 @@ class Product3DPreviewScreen extends StatefulWidget {
     this.initialIndex = 0,
     this.posterUrl,
     this.enable2dCamera = true,
-    this.isLocalAsset = false,
     @visibleForTesting this.glbCache,
   }) : assert(parts.length > 0, 'at least one part is required');
 
@@ -105,13 +104,6 @@ class Product3DPreviewScreen extends StatefulWidget {
 
   /// Whether the choice sheet offers the universal "2D camera" path.
   final bool enable2dCamera;
-
-  /// When true the [Product3DPart.glbUrl] is a locally-bundled source — either a
-  /// raw `assets/...` path (served by model_viewer_plus's proxy via `rootBundle`)
-  /// or a `file://` path copied out of the bundle. The network [GlbCacheService]
-  /// (which only understands remote URLs) is then skipped and the source is fed
-  /// to the viewer as-is. Used by the home-screen AR demo.
-  final bool isLocalAsset;
 
   /// Test seam: a fake file cache. Production uses the real [GlbCacheService].
   final GlbCacheService? glbCache;
@@ -175,18 +167,6 @@ class _Product3DPreviewScreenState extends State<Product3DPreviewScreen> {
     final url = widget.parts[index].glbUrl;
     if (url.isEmpty) {
       if (mounted) setState(() => _loadFailed = true);
-      return;
-    }
-    // A bundled asset / pre-copied file is already a viewer-ready source —
-    // running it through the remote-URL cache would only fail and waste a fetch.
-    if (widget.isLocalAsset) {
-      if (token != _loadToken || !mounted) return;
-      setState(() {
-        _src = url;
-        _modelReady = false;
-        _loadFailed = false;
-        _reloadToken++;
-      });
       return;
     }
     String? path;

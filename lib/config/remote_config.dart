@@ -107,6 +107,14 @@ class RemoteConfig extends ChangeNotifier {
 
   int minWalletTopUp = defaultMinWalletTopUp;
 
+  // Demo 3D models (home-screen AR showcase). Mirror `app_settings.demo_models`
+  // (`{demo_glb_url, demo_usdz_url}`) — tech-debt roadmap T-04. Blank means "not
+  // uploaded to R2 yet"; the caller (`ar_demo_launcher.dart`) then falls back to
+  // the bundled `assets/models/3d_model_demo.*` so the AR demo never breaks
+  // while the operator is still setting these up.
+  String demoGlbUrl = '';
+  String demoUsdzUrl = '';
+
   static const _tariffHiveKey = 'remote_config.tariff_enabled';
   static const _androidMinVersionHiveKey = 'remote_config.android_min_version';
   static const _iosMinVersionHiveKey = 'remote_config.ios_min_version';
@@ -118,6 +126,8 @@ class RemoteConfig extends ChangeNotifier {
   static const _clickModeHiveKey = 'remote_config.click_mode';
   static const _paymeModeHiveKey = 'remote_config.payme_mode';
   static const _minWalletTopUpHiveKey = 'remote_config.min_wallet_topup_uzs';
+  static const _demoGlbUrlHiveKey = 'remote_config.demo_glb_url';
+  static const _demoUsdzUrlHiveKey = 'remote_config.demo_usdz_url';
   // Legacy bool keys — read once when migrating cached values.
   static const _clickEnabledHiveKey = 'remote_config.click_enabled';
   static const _paymeEnabledHiveKey = 'remote_config.payme_enabled';
@@ -194,6 +204,10 @@ class RemoteConfig extends ChangeNotifier {
     if (minTopUp is int && minTopUp >= 1000) {
       minWalletTopUp = minTopUp;
     }
+    final demoGlb = box.get(_demoGlbUrlHiveKey);
+    if (demoGlb is String) demoGlbUrl = demoGlb;
+    final demoUsdz = box.get(_demoUsdzUrlHiveKey);
+    if (demoUsdz is String) demoUsdzUrl = demoUsdz;
   }
 
   Future<void>? _inflightRefresh;
@@ -214,6 +228,7 @@ class RemoteConfig extends ChangeNotifier {
       _refreshMaintenance(api, box),
       _refreshSupportContacts(api, box),
       _refreshPaymentMethods(api, box),
+      _refreshDemoModels(api, box),
     ]).then((_) {}).catchError((Object _, StackTrace _) {});
     _inflightRefresh = work;
     return work;
@@ -489,5 +504,48 @@ class RemoteConfig extends ChangeNotifier {
   static int _parseMinTopUpUzs(dynamic raw) {
     if (raw is num && raw >= 1000) return raw.toInt();
     return defaultMinWalletTopUp;
+  }
+
+  Future<void> _refreshDemoModels(WoodyApiClient api, Box box) async {
+    try {
+      final body = await api
+          .get<Map<String, dynamic>>('/catalog/settings/demo_models')
+          .timeout(const Duration(seconds: 6));
+      final (:glb, :usdz) = parseDemoModels(body['value']);
+      demoGlbUrl = glb;
+      demoUsdzUrl = usdz;
+      await box.put(_demoGlbUrlHiveKey, glb);
+      await box.put(_demoUsdzUrlHiveKey, usdz);
+      appLog.info('[remote-config] demo_models glb=${glb.isNotEmpty} usdz=${usdz.isNotEmpty}');
+    } on ApiError catch (e, st) {
+      if (e.isNotFound) {
+        // Not configured server-side yet — blank means "use the bundled asset".
+        demoGlbUrl = '';
+        demoUsdzUrl = '';
+        await box.put(_demoGlbUrlHiveKey, '');
+        await box.put(_demoUsdzUrlHiveKey, '');
+        return;
+      }
+      appLog.handle(
+        e,
+        st,
+        '[remote-config] demo_models refresh failed — kept cached value',
+      );
+    } catch (e, st) {
+      appLog.handle(
+        e,
+        st,
+        '[remote-config] demo_models refresh failed — kept cached value',
+      );
+    }
+  }
+
+  /// Extracts `(glb, usdz)` from the `demo_models` jsonb value:
+  /// `{"demo_glb_url": ..., "demo_usdz_url": ...}`. Defensive — anything
+  /// unexpected reads as blank rather than throwing at boot.
+  static ({String glb, String usdz}) parseDemoModels(dynamic value) {
+    if (value is! Map) return (glb: '', usdz: '');
+    String pick(dynamic v) => v is String ? v.trim() : '';
+    return (glb: pick(value['demo_glb_url']), usdz: pick(value['demo_usdz_url']));
   }
 }

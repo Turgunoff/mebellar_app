@@ -172,6 +172,36 @@ void main() {
     });
   });
 
+  group('RemoteConfig.parseDemoModels', () {
+    test('reads both R2 URLs and trims them', () {
+      final parsed = RemoteConfig.parseDemoModels({
+        'demo_glb_url': '  https://cdn.woody.uz/demo/3d_model_demo.glb ',
+        'demo_usdz_url': 'https://cdn.woody.uz/demo/3d_model_demo.usdz',
+      });
+      expect(parsed.glb, 'https://cdn.woody.uz/demo/3d_model_demo.glb');
+      expect(parsed.usdz, 'https://cdn.woody.uz/demo/3d_model_demo.usdz');
+    });
+
+    test('missing / non-map payloads read as blank (bundled fallback)', () {
+      expect(RemoteConfig.parseDemoModels(null).glb, '');
+      expect(RemoteConfig.parseDemoModels(null).usdz, '');
+      expect(RemoteConfig.parseDemoModels('x').glb, '');
+      expect(
+        RemoteConfig.parseDemoModels(<String, dynamic>{}).glb,
+        '',
+      );
+    });
+
+    test('blank stored URL reads as blank', () {
+      final parsed = RemoteConfig.parseDemoModels({
+        'demo_glb_url': '',
+        'demo_usdz_url': '   ',
+      });
+      expect(parsed.glb, '');
+      expect(parsed.usdz, '');
+    });
+  });
+
   group('RemoteConfig contact URI helpers', () {
     test('telegramUrl normalises a @handle, bare handle and full URL', () {
       final config = RemoteConfig.instance;
