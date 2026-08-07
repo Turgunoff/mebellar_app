@@ -4,6 +4,7 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../../core/i18n/i18n.dart';
 import '../../../../core/network/api_error.dart';
+import '../../../../core/result/result.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/models/seller_product.dart';
@@ -63,32 +64,26 @@ class _SellerSetEditorScreenState extends State<SellerSetEditorScreen> {
       _loading = true;
       _loadError = null;
     });
-    try {
-      // A garnitur groups sellable items, so only approved products are
-      // offered as candidates — pulling a big page keeps it single-shot.
-      final page = await _productRepo.list(
-        filter: const SellerProductFilter(
-          statuses: {SellerProductStatus.approved},
-        ),
-        perPage: 100,
-      );
-      if (!mounted) return;
-      setState(() {
-        _products = page.items;
-        _loading = false;
-      });
-    } on ApiError catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _loadError = e.message ?? tr('seller.set_editor_products_load_failed');
-        _loading = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _loadError = tr('seller.set_editor_products_load_failed');
-        _loading = false;
-      });
+    // A garnitur groups sellable items, so only approved products are
+    // offered as candidates — pulling a big page keeps it single-shot.
+    final result = await _productRepo.list(
+      filter: const SellerProductFilter(
+        statuses: {SellerProductStatus.approved},
+      ),
+      perPage: 100,
+    );
+    if (!mounted) return;
+    switch (result) {
+      case Ok(:final value):
+        setState(() {
+          _products = value.items;
+          _loading = false;
+        });
+      case Err(:final failure):
+        setState(() {
+          _loadError = failure.message;
+          _loading = false;
+        });
     }
   }
 

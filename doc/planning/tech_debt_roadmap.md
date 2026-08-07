@@ -358,35 +358,98 @@ bo'lmasa, ochilmaydi.
 
 ## Sprint 2 — Arxitektura qarzi
 
-### ⬜ T-07 · Service locator'ni UI'dan chiqarish
+### 🔄 T-07 · Service locator'ni UI'dan chiqarish — 7/9 QISM BAJARILDI (2026-08-07)
 
-**Muammo.** `screens/` va `widgets/` ichida **129 ta `sl<...>`** chaqiruv.
-Cubit'larda constructor injection to'g'ri qilingan — widget'larda emas.
-Natija: widget testlar yozilmaydi. `checkout_screen_widget_test` aynan
-shundan qulagan:
+**Dastlabki muammo qisman noto'g'ri edi.** Roadmap "129 ta `sl<...>` — hammasi
+buzuq" deb yozgan, lekin har birini o'qib chiqilgach aniqlandi: aksariyati
+**loyihaning o'z to'g'ri naqshi** ekan:
 
-```
-Bad state: GetIt: Object/factory with type WoodyApiClient is not registered
-  #5  refreshPaymentRemoteConfig (lib/shared/payments/refresh_payment_remote_config.dart:13)
-  #6  _PaymentCardState.initState (lib/customer/features/checkout/screens/checkout_screen.dart:506)
-```
+| Tur | Misol | Holat |
+|---|---|---|
+| **A — `BlocProvider(create: (_) => Cubit(sl<Repo>()))`** | `checkout_screen.dart`, `tariff_screen.dart` | To'g'ri, `architecture.md`ga mos — tegilmadi |
+| **B — umumiy singleton Cubit'ga murojaat** | `sl<NotificationsCubit>()`, `sl<UnpaidOrderCubit>().refresh()` | To'g'ri GetIt naqshi — tegilmadi |
+| **C — widget bevosita repository/servis chaqiradi** | `catalog_product_detail_screen.dart`da xom `sl<WoodyApiClient>().post()` | **Haqiqiy anti-pattern** — bu tuzatildi |
+| **D — infratuzilma** (`AnalyticsService`, `LocationFacade`, xom Hive `Box`) | | `AnalyticsService`ga o'xshash — tegilmadi |
 
-**Bajarish (bosqichma-bosqich, hammasini bir vaqtda emas):**
+Haqiqiy nishon ~129 emas, **~65 ta C-toifa joy**, foydalanuvchi bilan
+tasdiqlangach shu qamrovda davom etildi.
 
-- [ ] **Birinchi:** [checkout_screen.dart:506](../../lib/customer/features/checkout/screens/checkout_screen.dart#L506)
-      — `refreshPaymentRemoteConfig`ni `CheckoutCubit`ga ko'chirish
-      (T-02 dagi testni yashil qiladi)
-- [ ] Qolganini ro'yxatga olish va **feature bo'yicha** hal qilish, tartib:
-      `checkout` → `orders` → `wallet` → `products`
-- [ ] Yangi qoida: widget ichida `sl<>` — faqat `AnalyticsService` va
-      `AppLocaleController` kabi global, holatsiz servislar uchun.
-      Repository — hech qachon.
+**Tuzatish naqshi (barcha 7 tugagan toifada bir xil):** har bir widget'ning
+repository/servis chaqiruvi **yo mavjud Cubit/Bloc'ga metod sifatida
+ko'chirildi** (agar ekranning o'z cubit'i bo'lsa — `CheckoutCubit`,
+`SellerWalletCubit`, `TariffUpgradeBloc`, `OrderDetailBloc`), **yo widget
+konstruktor orqali bog'liqlikni qabul qiladigan** qilib o'zgartirildi (agar
+cubit yo'q bo'lsa — masalan `ArTokensScreen`, `SellerSetsScreen`,
+`CatalogProductDetailScreen`), sl<> chaqiruvi esa **faqat qurilish nuqtasida**
+(router yoki ota-widget) qoldirildi — bu Turi-A bilan bir xil, to'g'ri joy.
 
-**Tekshirish:**
+**Tugagan toifalar (7/9):**
+
+- [x] **checkout** — `refreshPaymentRemoteConfig()` `CheckoutCubit`ga
+      ko'chirildi (`WoodyApiClient`/`Box` konstruktor orqali)
+- [x] **orders** — `order_detail_screen.dart`: cancel reasons `OrderDetailBloc`
+      metodi, `_PayNowBar` konstruktor orqali `PaymentRepository`/
+      `PendingPaymentService?`
+- [x] **wallet** — `SellerWalletCubit` kengaytirildi (`refreshPaymentMethods`,
+      `paymentInstructions`, `uploadPaymentScreenshot`, `markPendingDeposit`);
+      `ArTokenBuySection`/`ArTokensScreen`/`ArTokenPurchaseHistoryScreen`/
+      `WalletHistoryScreen` — barchasi konstruktor orqali, butun chaqiruv
+      zanjiri (`manual_payment_pending_screen`, `ar_section`, `profile_screen`)
+      yangilandi
+- [x] **products** — `SellerProductDetailScreen`/`SellerSetEditorScreen`/
+      `SellerSetsScreen` konstruktor orqali (`seller_router.dart` +
+      `seller_products_screen.dart` qurilish nuqtalari yangilandi)
+- [x] **tariff** — `TariffUpgradeBloc` kengaytirildi (`refreshPaymentMethods`,
+      `paymentInstructions`, `buyPlan`, `markPendingDeposit`)
+- [x] **customer profile/settings** — `SettingsScreen`/`EditProfileScreen`
+      konstruktor orqali; `account_dialogs.dart`dagi 2 ta top-level funksiya
+      (`showSignOutDialog`, `confirmAccountDeletion`) parametr qabul qiladi
+- [x] **catalog/search** — `CatalogProductDetailScreen` (5 ta bog'liqlik: api,
+      attributesRepository, shopRepository, reviewsRepository,
+      productDataSource, setRepository) + ichki `PremiumProductSellerCard`/
+      `_ReviewsSection`/`_SimilarSection`; `search_screen.dart`/
+      `search_filter_sheet.dart`/`review_composer_sheet.dart`/
+      `ar_entry_points.dart` — barchasi; `customer/router.dart`ning 2 ta
+      qurilish nuqtasi yangilandi
+
+**Qoldi (2/9, keyingi sessiyada xuddi shu naqsh bilan):**
+
+- [ ] **chat/support/notifications** — `chat_thread_screen.dart` (4),
+      `support_chat_screen.dart` (2), `notification_simulator_screen.dart` (4),
+      `notifications_screen.dart` (shared, 2), `notifications_screen.dart`
+      (customer, 4), `notifications_screen.dart` (seller, 3)
+- [ ] **seller misc** — `leaderboard_screen.dart` (2), `seller_contract_screen.dart`
+      (4), `shop_settings/settings_form.dart` (1), `services_screen.dart` (1),
+      `seller/onboarding/onboarding_screen.dart` (3)
+
+**Tekshirish (7 tugagan toifa uchun) — har biri alohida tasdiqlangan:**
 ```bash
-grep -rn "sl<" lib/ --include="*.dart" | grep -E "screens/|widgets/" | wc -l
-# baseline: 129 — har sprint'da kamayishi kerak
+flutter analyze lib/customer/features/checkout/ lib/customer/features/orders/ \
+  lib/seller/features/wallet/ lib/seller/features/products/ lib/seller/features/sets/ \
+  lib/seller/features/tariff/ lib/customer/features/profile/ \
+  lib/customer/features/product_list/ lib/customer/features/search/ \
+  lib/customer/features/reviews/ lib/customer/router.dart lib/seller/seller_router.dart
+# → No issues found
+
+flutter test test/customer/features/checkout/ test/customer/features/orders/ \
+  test/seller/features/wallet/ test/seller/features/products/ test/seller/features/tariff/ \
+  test/customer/features/profile/ test/customer/features/product_list/ \
+  test/customer/features/search/
+# → barchasi yashil (checkout +10, wallet +8, orders +66 birgalikda, va h.k.)
 ```
+
+**Diqqat:** shu sessiyada parallel ravishda T-10 (`seller_product`/
+`seller_onboarding` repolarini `Result<T>`ga ko'chirish) ham davom etmoqda —
+`flutter analyze lib/`da vaqti-vaqti bilan ko'rinadigan xatolar
+(`woody_seller_product_repository_test.dart`, `seller_onboarding_repository.dart`)
+**shu ishning tugallanmagan holatidan**, T-07'ga aloqasi yo'q. To'liq
+`flutter test` yugurishidan oldin T-10 tugaganini tekshiring.
+
+**Yangi qoida (davom ettirilsin):** widget ichida `sl<>` — faqat
+`AnalyticsService`/`AppLocaleController`/`LocationFacade` kabi global,
+holatsiz servislar va **qurilish nuqtalarida** (router builder, ota-widget
+`Cubit(sl<Repo>())` konstruksiyasi). Repository/servis metodini **widget
+ichidan** to'g'ridan-to'g'ri chaqirish — hech qachon.
 
 ---
 

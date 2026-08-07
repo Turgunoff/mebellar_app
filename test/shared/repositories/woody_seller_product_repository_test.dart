@@ -116,7 +116,7 @@ void main() {
       ),
     );
 
-    final page = await h.repo.list();
+    final page = (await h.repo.list()).valueOrNull!;
 
     expect(page.items[0].arModelUrl, 'https://cdn/m.glb');
     expect(page.items[0].usdzUrl, 'https://cdn/m.usdz');
@@ -139,7 +139,7 @@ void main() {
       ),
     );
 
-    final page = await h.repo.list();
+    final page = (await h.repo.list()).valueOrNull!;
 
     expect(page.items[0].arGenerationCount, 2);
     expect(page.items[1].arGenerationCount, 0);
@@ -151,7 +151,7 @@ void main() {
       (_) => (200, jsonEncode({'rows': [_row('sp1')], 'total': 1})),
     );
 
-    final page = await h.repo.list();
+    final page = (await h.repo.list()).valueOrNull!;
 
     expect(page.items.single.id, 'sp1');
     expect(page.items.single.name.uz, 'Divan');
@@ -172,7 +172,7 @@ void main() {
       return (200, '{}');
     });
 
-    final p = await h.repo.archive('sp1');
+    final p = (await h.repo.archive('sp1')).valueOrNull!;
 
     expect(p.id, 'sp1');
     final call = h.adapter.calls.single;
@@ -197,7 +197,7 @@ void main() {
       ),
     );
 
-    final product = (await h.repo.list()).items.single;
+    final product = (await h.repo.list()).valueOrNull!.items.single;
 
     expect(product.arStatus, 'failed');
     expect(product.arErrorReason, 'Meshy task failed');
@@ -217,7 +217,7 @@ void main() {
       ),
     );
 
-    final product = (await h.repo.list()).items.single;
+    final product = (await h.repo.list()).valueOrNull!.items.single;
 
     expect(product.arStatus, 'failed');
     expect(product.arErrorReason, isNull);
@@ -231,7 +231,7 @@ void main() {
       return (200, '{}');
     });
 
-    final p = await h.repo.restore('sp1');
+    final p = (await h.repo.restore('sp1')).valueOrNull!;
 
     expect(p.id, 'sp1');
     final call = h.adapter.calls.single;

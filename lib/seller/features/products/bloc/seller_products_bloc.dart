@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/analytics/analytics_service.dart';
+import '../../../../core/result/result.dart';
 import '../../../../shared/models/seller_product.dart';
 import '../../../../shared/repositories/seller_product_repository.dart';
 
@@ -266,35 +267,30 @@ class SellerProductsBloc
     Emitter<SellerProductsState> emit,
   ) async {
     emit(state.copyWith(status: SellerProductsStatus.mutating));
-    try {
-      final previous = _statusOf(event.id);
-      await _repo.delete(event.id);
-      emit(
-        state.copyWith(
-          status: SellerProductsStatus.ready,
-          products: [
-            for (final p in state.products)
-              if (p.id != event.id) p,
-          ],
-          statusCounts: _shiftedCounts(from: previous),
-        ),
-      );
-      unawaited(_analytics?.productDeleted(productId: event.id));
-    } catch (e) {
-      emit(
-        state.copyWith(
-          status: SellerProductsStatus.ready,
-          error: _displayError(e),
-        ),
-      );
+    final previous = _statusOf(event.id);
+    final result = await _repo.delete(event.id);
+    switch (result) {
+      case Ok():
+        emit(
+          state.copyWith(
+            status: SellerProductsStatus.ready,
+            products: [
+              for (final p in state.products)
+                if (p.id != event.id) p,
+            ],
+            statusCounts: _shiftedCounts(from: previous),
+          ),
+        );
+        unawaited(_analytics?.productDeleted(productId: event.id));
+      case Err(:final failure):
+        emit(
+          state.copyWith(
+            status: SellerProductsStatus.ready,
+            error: failure.message,
+          ),
+        );
     }
   }
-
-  /// The backend sends seller-actionable Uzbek copy in `detail` (e.g.
-  /// "Tarif limit: …", "Bu mahsulot buyurtmalarda qatnashgan…") — surface
-  /// that, not the ApiError envelope.
-  String _displayError(Object e) =>
-      e is ApiError ? (e.message ?? e.code) : e.toString();
 
   /// Returns a copy of the current product list with [updated] swapped in by
   /// id. If the id isn't present (e.g. archived from a detail screen opened
@@ -345,16 +341,20 @@ class SellerProductsBloc
     Emitter<SellerProductsState> emit,
   ) async {
     emit(state.copyWith(status: SellerProductsStatus.mutating));
-    try {
-      await _repo.submitForReview(event.id);
-      emit(state.copyWith(status: SellerProductsStatus.ready));
-      // "Submit for review" is the closest signal we have to a product
-      // update on this surface — fire it so the dashboard sees the edit.
-      unawaited(_analytics?.productUpdated(productId: event.id));
-    } catch (e) {
-      emit(
-        state.copyWith(status: SellerProductsStatus.ready, error: e.toString()),
-      );
+    final result = await _repo.submitForReview(event.id);
+    switch (result) {
+      case Ok():
+        emit(state.copyWith(status: SellerProductsStatus.ready));
+        // "Submit for review" is the closest signal we have to a product
+        // update on this surface — fire it so the dashboard sees the edit.
+        unawaited(_analytics?.productUpdated(productId: event.id));
+      case Err(:final failure):
+        emit(
+          state.copyWith(
+            status: SellerProductsStatus.ready,
+            error: failure.message,
+          ),
+        );
     }
   }
 
