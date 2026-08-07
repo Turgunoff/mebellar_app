@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hive/hive.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -11,14 +12,14 @@ import '../../../../config/remote_config.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../core/network/api_error_messages.dart';
+import '../../../../core/network/woody_api_client.dart';
 import '../../../../core/result/result.dart';
+import '../../../../core/storage/hive_boxes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/models/tariff.dart';
-import '../../../../shared/payments/manual_payment_pending_screen.dart';
-import '../../../../shared/payments/pending_payment.dart';
+import '../../payments/manual_payment_pending_screen.dart';
 import '../../../../shared/payments/pending_payment_service.dart';
-import '../../../../shared/payments/refresh_payment_remote_config.dart';
 import '../../../../shared/repositories/payment_repository.dart';
 import '../../../../shared/repositories/tariff_repository.dart';
 import '../../../../shared/utils/image_upload.dart';
@@ -46,9 +47,14 @@ class TariffPaymentScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) =>
-          TariffUpgradeBloc(sl<TariffRepository>())
-            ..add(TariffUpgradeStarted(plan: plan.asEnum, period: period)),
+      create: (_) => TariffUpgradeBloc(
+        sl<TariffRepository>(),
+        api: sl<WoodyApiClient>(),
+        settingsBox: sl<Box>(instanceName: HiveBoxes.settings),
+        pendingPayments: sl.isRegistered<PendingPaymentService>()
+            ? sl<PendingPaymentService>()
+            : null,
+      )..add(TariffUpgradeStarted(plan: plan.asEnum, period: period)),
       child: _TariffPaymentView(plan: plan, period: period),
     );
   }
@@ -88,7 +94,7 @@ class _TariffPaymentViewState extends State<_TariffPaymentView> {
     super.initState();
     RemoteConfig.instance.addListener(_onPaymentRemoteConfig);
     _syncFromRemoteConfig();
-    unawaited(refreshPaymentRemoteConfig());
+    unawaited(context.read<TariffUpgradeBloc>().refreshPaymentMethods());
   }
 
   @override
@@ -115,7 +121,9 @@ class _TariffPaymentViewState extends State<_TariffPaymentView> {
   }
 
   void _ensureInstructions() {
-    _instructionsFuture ??= sl<TariffRepository>().paymentInstructions();
+    _instructionsFuture ??= context
+        .read<TariffUpgradeBloc>()
+        .paymentInstructions();
   }
 
   void _selectPayMode(_PayMode mode) {
@@ -143,8 +151,9 @@ class _TariffPaymentViewState extends State<_TariffPaymentView> {
       _buyingOnline = true;
       _onlineError = null;
     });
+    final bloc = context.read<TariffUpgradeBloc>();
     try {
-      final result = await sl<TariffRepository>().buyPlan(
+      final result = await bloc.buyPlan(
         plan: widget.plan.asEnum,
         period: widget.period,
         provider: provider,
@@ -160,13 +169,8 @@ class _TariffPaymentViewState extends State<_TariffPaymentView> {
         return;
       }
       final reference = checkout.reference;
-      if (reference != null &&
-          reference.isNotEmpty &&
-          sl.isRegistered<PendingPaymentService>()) {
-        await sl<PendingPaymentService>().mark(
-          kind: PendingPaymentKind.subscription,
-          reference: reference,
-        );
+      if (reference != null && reference.isNotEmpty) {
+        await bloc.markPendingDeposit(reference);
       }
       final uri = Uri.tryParse(checkout.url);
       if (uri != null) {

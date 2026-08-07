@@ -9,7 +9,7 @@ import 'package:woody_app/core/i18n/i18n.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/models/tariff.dart';
-import '../../../../shared/payments/manual_payment_pending_screen.dart';
+import '../../payments/manual_payment_pending_screen.dart';
 import '../../../../shared/payments/pending_payment.dart';
 import '../../../../shared/payments/seller_payment_refresh.dart';
 import '../../../../shared/repositories/tariff_repository.dart';

@@ -1,16 +1,18 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
-import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../core/logging/app_logger.dart';
+import '../../../../core/network/woody_api_client.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
-import '../../../../shared/payments/manual_payment_pending_screen.dart';
+import '../../payments/manual_payment_pending_screen.dart';
 import '../../../../shared/payments/payment_pending_copy.dart';
 import '../../../../shared/payments/pending_payment.dart';
+import '../../../../shared/payments/pending_payment_service.dart';
 import '../../../../shared/payments/seller_payment_refresh.dart';
 import '../../products/data/ar_token_repository.dart';
 import '../../products/widgets/ar_token_buy_section.dart';
@@ -18,7 +20,18 @@ import 'ar_token_purchase_history_screen.dart';
 
 /// Dedicated AR-token wallet — balance, inline purchase, and history.
 class ArTokensScreen extends StatefulWidget {
-  const ArTokensScreen({super.key});
+  const ArTokensScreen({
+    super.key,
+    required this.repo,
+    required this.api,
+    required this.settingsBox,
+    this.pendingPayments,
+  });
+
+  final ArTokenRepository repo;
+  final WoodyApiClient api;
+  final Box settingsBox;
+  final PendingPaymentService? pendingPayments;
 
   @override
   State<ArTokensScreen> createState() => _ArTokensScreenState();
@@ -63,7 +76,7 @@ class _ArTokensScreenState extends State<ArTokensScreen>
       _failed = false;
     });
     try {
-      final balance = await sl<ArTokenRepository>().balance();
+      final balance = await widget.repo.balance();
       if (mounted) {
         setState(() {
           _balance = balance;
@@ -96,7 +109,10 @@ class _ArTokensScreenState extends State<ArTokensScreen>
         .push(
           MaterialPageRoute(
             settings: const RouteSettings(name: '/ar-token-purchase-history'),
-            builder: (_) => const ArTokenPurchaseHistoryScreen(),
+            builder: (_) => ArTokenPurchaseHistoryScreen(
+              repo: widget.repo,
+              pendingPayments: widget.pendingPayments,
+            ),
           ),
         )
         .then((_) {
@@ -169,6 +185,10 @@ class _ArTokensScreenState extends State<ArTokensScreen>
               packages: balance.packages,
               onOnlineLaunched: _onOnlineLaunched,
               onFlowCompleted: _load,
+              repo: widget.repo,
+              api: widget.api,
+              settingsBox: widget.settingsBox,
+              pendingPayments: widget.pendingPayments,
             ),
           ],
           if (balance.pendingPurchase != null) ...[

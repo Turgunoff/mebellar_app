@@ -8,19 +8,19 @@ import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../config/remote_config.dart';
-import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../core/network/api_error_messages.dart';
+import '../../../../core/network/woody_api_client.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/payments/pending_payment.dart';
 import '../../../../shared/payments/pending_payment_service.dart';
-import '../../../../shared/payments/manual_payment_pending_screen.dart';
-import '../../../../shared/payments/refresh_payment_remote_config.dart';
+import '../../payments/manual_payment_pending_screen.dart';
 import '../../../../shared/repositories/payment_repository.dart';
 import '../../../../shared/repositories/tariff_repository.dart';
 import '../../../../shared/utils/image_upload.dart';
 import '../../../../shared/widgets/payment_provider_tile.dart';
+import 'package:hive/hive.dart';
 import '../data/ar_token_repository.dart';
 
 enum _PayMode { online, card }
@@ -32,12 +32,20 @@ class ArTokenBuySection extends StatefulWidget {
     super.key,
     required this.packages,
     required this.onOnlineLaunched,
+    required this.repo,
+    required this.api,
+    required this.settingsBox,
+    this.pendingPayments,
     this.onFlowCompleted,
   });
 
   final List<ArTokenPackage> packages;
   final VoidCallback onOnlineLaunched;
   final VoidCallback? onFlowCompleted;
+  final ArTokenRepository repo;
+  final WoodyApiClient api;
+  final Box settingsBox;
+  final PendingPaymentService? pendingPayments;
 
   @override
   State<ArTokenBuySection> createState() => _ArTokenBuySectionState();
@@ -77,7 +85,12 @@ class _ArTokenBuySectionState extends State<ArTokenBuySection> {
     super.initState();
     RemoteConfig.instance.addListener(_onPaymentRemoteConfig);
     _syncFromRemoteConfig();
-    unawaited(refreshPaymentRemoteConfig());
+    unawaited(
+      RemoteConfig.instance.refreshPaymentMethods(
+        widget.api,
+        widget.settingsBox,
+      ),
+    );
   }
 
   @override
@@ -104,7 +117,7 @@ class _ArTokenBuySectionState extends State<ArTokenBuySection> {
   }
 
   void _ensureInstructions() {
-    _instructionsFuture ??= sl<ArTokenRepository>().paymentInstructions();
+    _instructionsFuture ??= widget.repo.paymentInstructions();
   }
 
   void _selectPayMode(_PayMode mode) {
@@ -144,15 +157,13 @@ class _ArTokenBuySectionState extends State<ArTokenBuySection> {
       _error = null;
     });
     try {
-      final checkout = await sl<ArTokenRepository>().buy(
+      final checkout = await widget.repo.buy(
         packageCode: pkg,
         provider: provider,
       );
       final reference = checkout.reference;
-      if (reference != null &&
-          reference.isNotEmpty &&
-          sl.isRegistered<PendingPaymentService>()) {
-        await sl<PendingPaymentService>().mark(
+      if (reference != null && reference.isNotEmpty) {
+        await widget.pendingPayments?.mark(
           kind: PendingPaymentKind.arTokens,
           reference: reference,
         );
@@ -210,7 +221,7 @@ class _ArTokenBuySectionState extends State<ArTokenBuySection> {
       _error = null;
     });
     try {
-      final repo = sl<ArTokenRepository>();
+      final repo = widget.repo;
       final ext = file.path.split('.').last;
       final path = await repo.uploadPaymentScreenshot(
         file: file,

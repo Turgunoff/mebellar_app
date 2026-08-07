@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hive/hive.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -12,7 +13,9 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../config/remote_config.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
+import '../../../../core/network/woody_api_client.dart';
 import '../../../../core/result/result.dart';
+import '../../../../core/storage/hive_boxes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/models/seller_wallet.dart';
@@ -20,9 +23,8 @@ import '../../../../shared/payments/pending_payment.dart';
 import '../../../../shared/payments/pending_payment_service.dart';
 import '../../../../shared/repositories/payment_repository.dart';
 import '../../../../shared/repositories/seller_wallet_repository.dart';
-import '../../../../shared/payments/manual_payment_pending_screen.dart';
+import '../../payments/manual_payment_pending_screen.dart';
 import '../../../../shared/payments/payment_pending_copy.dart';
-import '../../../../shared/payments/refresh_payment_remote_config.dart';
 import '../../../../shared/payments/seller_payment_refresh.dart';
 import '../../../../shared/repositories/tariff_repository.dart';
 import '../../../../shared/utils/image_upload.dart';
@@ -57,7 +59,15 @@ class _WalletScreenState extends State<WalletScreen>
   @override
   void initState() {
     super.initState();
-    _cubit = SellerWalletCubit(sl<SellerWalletRepository>())..load();
+    _cubit = SellerWalletCubit(
+      sl<SellerWalletRepository>(),
+      api: sl<WoodyApiClient>(),
+      settingsBox: sl<Box>(instanceName: HiveBoxes.settings),
+      tariff: sl<TariffRepository>(),
+      pendingPayments: sl.isRegistered<PendingPaymentService>()
+          ? sl<PendingPaymentService>()
+          : null,
+    )..load();
     WidgetsBinding.instance.addObserver(this);
     _refreshSub = SellerPaymentRefreshHub.instance.stream.listen((kind) {
       if (kind == PendingPaymentKind.walletDeposit && mounted) {
@@ -134,7 +144,9 @@ class _WalletView extends StatelessWidget {
                   .push(
                     MaterialPageRoute(
                       settings: const RouteSettings(name: '/wallet-history'),
-                      builder: (_) => const WalletHistoryScreen(),
+                      builder: (_) => WalletHistoryScreen(
+                        repo: sl<SellerWalletRepository>(),
+                      ),
                     ),
                   )
                   .then((_) {
@@ -194,7 +206,7 @@ class _WalletView extends StatelessWidget {
             onRefresh: () async {
               await Future.wait([
                 context.read<SellerWalletCubit>().refresh(),
-                refreshPaymentRemoteConfig(),
+                context.read<SellerWalletCubit>().refreshPaymentMethods(),
               ]);
             },
             child: ListView(
@@ -792,7 +804,7 @@ class _TopUpSectionState extends State<_TopUpSection> {
     _cardCtrl.addListener(() => setState(() {}));
     RemoteConfig.instance.addListener(_onPaymentRemoteConfig);
     _syncFromRemoteConfig();
-    unawaited(refreshPaymentRemoteConfig());
+    unawaited(context.read<SellerWalletCubit>().refreshPaymentMethods());
   }
 
   void _onPaymentRemoteConfig() {
@@ -810,7 +822,9 @@ class _TopUpSectionState extends State<_TopUpSection> {
   }
 
   void _ensureInstructions() {
-    _instructionsFuture ??= sl<TariffRepository>().paymentInstructions();
+    _instructionsFuture ??= context
+        .read<SellerWalletCubit>()
+        .paymentInstructions();
   }
 
   void _selectPayMode(_WalletPayMode mode) {
@@ -872,13 +886,8 @@ class _TopUpSectionState extends State<_TopUpSection> {
     final link = await cubit.startDeposit(amount: amount, provider: provider);
     if (link == null || !mounted) return;
     final reference = link.reference;
-    if (reference != null &&
-        reference.isNotEmpty &&
-        sl.isRegistered<PendingPaymentService>()) {
-      await sl<PendingPaymentService>().mark(
-        kind: PendingPaymentKind.walletDeposit,
-        reference: reference,
-      );
+    if (reference != null && reference.isNotEmpty) {
+      await cubit.markPendingDeposit(reference);
     }
     final uri = Uri.tryParse(link.checkoutUrl);
     if (uri != null && link.checkoutUrl.isNotEmpty) {
@@ -921,7 +930,7 @@ class _TopUpSectionState extends State<_TopUpSection> {
     if (amount == null || amount < _minTopUpUzs || file == null) return;
     FocusScope.of(context).unfocus();
     final cubit = context.read<SellerWalletCubit>();
-    final upload = await sl<TariffRepository>().uploadPaymentScreenshot(
+    final upload = await cubit.uploadPaymentScreenshot(
       file: file,
       fileExtension: file.path.split('.').last,
     );

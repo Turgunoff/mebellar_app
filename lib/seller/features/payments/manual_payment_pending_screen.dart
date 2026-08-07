@@ -3,19 +3,20 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
-import '../../core/di/service_locator.dart';
-import '../../core/i18n/i18n.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_fonts.dart';
-import '../../seller/features/products/data/ar_token_repository.dart';
-import '../../seller/features/tariff/screens/tariff_history_screen.dart';
-import '../../seller/features/wallet/screens/ar_token_purchase_history_screen.dart';
-import '../../seller/features/wallet/screens/wallet_history_screen.dart';
-import '../models/seller_wallet.dart';
-import '../models/tariff.dart';
-import '../repositories/seller_wallet_repository.dart';
-import '../repositories/tariff_repository.dart';
-import 'payment_pending_copy.dart';
+import '../../../core/di/service_locator.dart';
+import '../../../core/i18n/i18n.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_fonts.dart';
+import '../products/data/ar_token_repository.dart';
+import '../tariff/screens/tariff_history_screen.dart';
+import '../wallet/screens/ar_token_purchase_history_screen.dart';
+import '../wallet/screens/wallet_history_screen.dart';
+import '../../../shared/models/seller_wallet.dart';
+import '../../../shared/models/tariff.dart';
+import '../../../shared/payments/pending_payment_service.dart';
+import '../../../shared/repositories/seller_wallet_repository.dart';
+import '../../../shared/repositories/tariff_repository.dart';
+import '../../../shared/payments/payment_pending_copy.dart';
 
 /// Shared pending screen for seller payments — P2P (admin review) and online
 /// (Payme/Click webhook settlement).
@@ -550,11 +551,16 @@ class _ManualPaymentPendingScreenState
       WalletTopUpPendingArgs() ||
       WalletDepositPendingArgs() => MaterialPageRoute<void>(
         settings: const RouteSettings(name: '/seller-wallet-history'),
-        builder: (_) => const WalletHistoryScreen(),
+        builder: (_) => WalletHistoryScreen(repo: sl<SellerWalletRepository>()),
       ),
       ArTokenPurchasePendingArgs() => MaterialPageRoute<void>(
         settings: const RouteSettings(name: '/ar-token-purchase-history'),
-        builder: (_) => const ArTokenPurchaseHistoryScreen(),
+        builder: (_) => ArTokenPurchaseHistoryScreen(
+          repo: sl<ArTokenRepository>(),
+          pendingPayments: sl.isRegistered<PendingPaymentService>()
+              ? sl<PendingPaymentService>()
+              : null,
+        ),
       ),
       TariffSubscriptionPendingArgs() => MaterialPageRoute<void>(
         settings: const RouteSettings(name: '/seller-tariff-history'),
