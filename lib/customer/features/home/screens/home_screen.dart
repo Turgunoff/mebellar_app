@@ -31,7 +31,7 @@ import '../bloc/home_bloc.dart';
 import '../widgets/premium/glass_banner.dart';
 import '../widgets/premium/premium_product_card.dart';
 import '../widgets/premium/premium_product_list_card.dart';
-import '../widgets/premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 import '../widgets/unpaid_order_banner.dart';
 import '../../orders/cubit/unpaid_order_cubit.dart';
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../features/home/widgets/premium/premium_tokens.dart';
+import '../../core/theme/premium_tokens.dart';
 
 /// One slot in [GlassBottomNav]. The [iconBuilder] receives the active state so
 /// callers can swap outlined/filled glyphs, recolor, or wrap in a badge

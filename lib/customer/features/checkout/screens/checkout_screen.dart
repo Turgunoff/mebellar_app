@@ -6,22 +6,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hive/hive.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import '../../../../config/remote_config.dart';
 import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/auth/auth_cubit.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
+import '../../../../core/network/woody_api_client.dart';
 import '../../../../core/services/facebook_analytics_service.dart';
+import '../../../../core/storage/hive_boxes.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 import '../../orders/cubit/profile_orders_cubit.dart';
 import '../../../../shared/models/cart_item_model.dart';
-import '../../../../shared/payments/refresh_payment_remote_config.dart';
 import '../../../../shared/repositories/cart_repository.dart';
 import '../../../../shared/repositories/checkout_repository.dart';
 import '../../../../shared/repositories/payment_repository.dart';
 import '../../../../shared/widgets/product_color_chip.dart';
-import '../../home/widgets/premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 import '../cubit/checkout_cubit.dart';
 import '../../../../shared/widgets/payment_provider_tile.dart';
 import 'map_address_picker_screen.dart';
@@ -38,6 +40,8 @@ class CheckoutScreen extends StatelessWidget {
         items: items,
         checkout: sl<CheckoutRepository>(),
         cartRepo: sl<CartRepository>(),
+        api: sl<WoodyApiClient>(),
+        settingsBox: sl<Box>(instanceName: HiveBoxes.settings),
         payments: sl<PaymentRepository>(),
         analytics: sl<AnalyticsService>(),
         facebookAnalytics: sl.isRegistered<FacebookAnalyticsService>()
@@ -502,8 +506,9 @@ class _PaymentCardState extends State<_PaymentCard> {
   @override
   void initState() {
     super.initState();
+    // The refresh trigger lives on CheckoutCubit (constructor-injected
+    // WoodyApiClient/Box) — this widget only listens for the result.
     RemoteConfig.instance.addListener(_onPaymentRemoteConfig);
-    unawaited(refreshPaymentRemoteConfig());
   }
 
   @override

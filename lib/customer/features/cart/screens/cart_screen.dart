@@ -15,7 +15,7 @@ import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/premium_empty_state.dart';
 import '../../../../shared/widgets/product_color_chip.dart';
 import '../../../widgets/top_toast.dart';
-import '../../home/widgets/premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 import '../bloc/cart_bloc.dart';
 
 /// Customer-facing cart (Savatcha).

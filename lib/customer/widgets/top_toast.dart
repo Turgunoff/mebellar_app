@@ -4,7 +4,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
-import '../features/home/widgets/premium/premium_tokens.dart';
+import '../../core/theme/premium_tokens.dart';
 
 /// Frosted toast that slides down from under the status bar.
 ///

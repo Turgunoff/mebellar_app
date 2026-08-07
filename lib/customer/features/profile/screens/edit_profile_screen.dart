@@ -10,7 +10,7 @@ import '../../../../core/storage/r2_upload_client.dart';
 import '../../../../shared/utils/image_upload.dart';
 import '../../../../shared/utils/phone_format.dart';
 import '../../../../shared/widgets/image_crop_screen.dart';
-import '../../home/widgets/premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 import '../cubit/profile_cubit.dart';
 import '../widgets/user_card.dart';
 

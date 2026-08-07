@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../../customer/features/home/widgets/premium/premium_tokens.dart';
+import '../theme/premium_tokens.dart';
 import '../i18n/i18n.dart';
 
 /// Full-screen, non-dismissible maintenance surface — shown when the operator

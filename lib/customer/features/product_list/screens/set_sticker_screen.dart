@@ -15,7 +15,7 @@ import '../../../../core/i18n/i18n.dart';
 import '../../../../core/logging/app_logger.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/ar/ar_set_piece.dart';
-import '../../home/widgets/premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 
 /// One placed sticker on the room: the source piece plus a mutable transform the
 /// buyer drives with one combined pan/scale/rotate gesture. Mutable on purpose —

@@ -6,7 +6,7 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../../shared/utils/phone_format.dart';
-import '../../home/widgets/premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 import '../cubit/profile_cubit.dart';
 
 /// Hero tag shared between the profile-card avatar and the fullscreen viewer,

@@ -5,7 +5,7 @@ import 'package:woody_app/core/i18n/i18n.dart';
 
 import '../../orders/cubit/unpaid_order_cubit.dart';
 import '../../orders/widgets/payment_countdown.dart';
-import 'premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 
 class UnpaidOrderBanner extends StatelessWidget {
   const UnpaidOrderBanner({super.key});

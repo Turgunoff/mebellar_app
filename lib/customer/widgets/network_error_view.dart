@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/i18n/i18n.dart';
-import '../features/home/widgets/premium/premium_tokens.dart';
+import '../../core/theme/premium_tokens.dart';
 
 /// Full-screen "we couldn't load this" placeholder — the single Scenario-A
 /// surface for the customer flow.

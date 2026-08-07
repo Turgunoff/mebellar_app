@@ -22,7 +22,7 @@ import '../../../../shared/widgets/cancel_reason_sheet.dart';
 import '../../../../shared/widgets/error_state.dart';
 import '../../../../shared/widgets/product_color_chip.dart';
 import '../../../../shared/widgets/star_rating.dart';
-import '../../home/widgets/premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 import '../../reviews/widgets/review_composer_sheet.dart';
 import '../bloc/order_detail_bloc.dart';
 import '../widgets/order_status_badge.dart';
@@ -127,9 +127,7 @@ class _BodyState extends State<_Body> {
   void _onPaymentExpired() {
     if (!mounted || _locallyExpired) return;
     setState(() => _locallyExpired = true);
-    context.read<OrderDetailBloc>().add(
-      OrderDetailRequested(_baseOrder.id),
-    );
+    context.read<OrderDetailBloc>().add(OrderDetailRequested(_baseOrder.id));
   }
 
   @override
@@ -174,7 +172,13 @@ class _BodyState extends State<_Body> {
         ],
       ),
       bottomNavigationBar: order.awaitsOnlinePayment && !_locallyExpired
-          ? _PayNowBar(order: order)
+          ? _PayNowBar(
+              order: order,
+              payments: sl<PaymentRepository>(),
+              pendingPayments: sl.isRegistered<PendingPaymentService>()
+                  ? sl<PendingPaymentService>()
+                  : null,
+            )
           : order.status.customerCancellable
           ? _CancelOrderBar(state: state)
           : null,
@@ -205,9 +209,9 @@ class _BodyState extends State<_Body> {
             Text(
               tr('orders.payment_timeout_cancelled'),
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: pt.onWarningBg,
-                    fontWeight: FontWeight.w600,
-                  ),
+                color: pt.onWarningBg,
+                fontWeight: FontWeight.w600,
+              ),
             ),
             const SizedBox(height: 16),
           ],
@@ -915,7 +919,7 @@ class _CancelOrderBar extends StatelessWidget {
     final bloc = context.read<OrderDetailBloc>();
     final selection = await showCancelReasonSheet(
       context: context,
-      loadReasons: sl<OrderRepository>().fetchCancelReasons,
+      loadReasons: bloc.fetchCancelReasons,
       style: CancelReasonStyle(
         surface: scheme.surface,
         ink: scheme.onSurface,
@@ -982,9 +986,18 @@ class _CancelOrderBar extends StatelessWidget {
 /// the provider checkout deep-link (`POST /orders/{id}/pay/{provider}`), marks
 /// the pending payment for resume, and hands off to the Payme/Click app.
 class _PayNowBar extends StatefulWidget {
-  const _PayNowBar({required this.order});
+  const _PayNowBar({
+    required this.order,
+    required this.payments,
+    this.pendingPayments,
+  });
 
   final Order order;
+  final PaymentRepository payments;
+
+  /// Optional — not every scope registers it; `_pay()` treats a null the same
+  /// as the old `sl.isRegistered<PendingPaymentService>()` guard.
+  final PendingPaymentService? pendingPayments;
 
   @override
   State<_PayNowBar> createState() => _PayNowBarState();
@@ -1014,22 +1027,18 @@ class _PayNowBarState extends State<_PayNowBar> {
     setState(() => _busy = true);
     final messenger = ScaffoldMessenger.of(context);
     try {
-      final result = await sl<PaymentRepository>().checkoutUrl(
+      final result = await widget.payments.checkoutUrl(
         orderId: widget.order.id,
         provider: provider,
       );
       switch (result) {
         case Err(:final failure):
-          messenger.showSnackBar(
-            SnackBar(content: Text(failure.message)),
-          );
+          messenger.showSnackBar(SnackBar(content: Text(failure.message)));
         case Ok(:final value):
-          if (sl.isRegistered<PendingPaymentService>()) {
-            await sl<PendingPaymentService>().mark(
-              kind: PendingPaymentKind.order,
-              reference: widget.order.id,
-            );
-          }
+          await widget.pendingPayments?.mark(
+            kind: PendingPaymentKind.order,
+            reference: widget.order.id,
+          );
           final uri = Uri.tryParse(value.checkoutUrl);
           if (uri != null) {
             await launchUrl(uri, mode: LaunchMode.externalApplication);

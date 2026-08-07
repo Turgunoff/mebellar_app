@@ -5,7 +5,7 @@ import 'package:shimmer/shimmer.dart';
 import '../../../../../shared/widgets/image_error_placeholder.dart';
 import '../../../../../shared/widgets/product_ar_badge.dart';
 import 'premium_card_parts.dart';
-import 'premium_tokens.dart';
+import '../../../../../core/theme/premium_tokens.dart';
 
 /// Premium, conversion-optimised product card used across the customer browse
 /// surfaces (home masonry feed, search / shop / catalog grids, similar-products

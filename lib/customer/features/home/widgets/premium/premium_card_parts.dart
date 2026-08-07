@@ -2,7 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
-import 'premium_tokens.dart';
+import '../../../../../core/theme/premium_tokens.dart';
 
 /// Shared building blocks for the premium product cards (grid + list variants).
 /// Centralised so the discount pill, frosted heart, and price block render and

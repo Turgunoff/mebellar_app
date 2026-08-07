@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../../core/i18n/i18n.dart';
-import '../../home/widgets/premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 import '../../orders/cubit/profile_orders_cubit.dart';
 
 /// Orders entry point on the profile screen — a single tappable card that

@@ -9,7 +9,7 @@ import '../../../../shared/constants/product_colors.dart';
 import '../../../../shared/models/category_model.dart';
 import '../../../../shared/repositories/category_data_source.dart';
 import '../../../../shared/repositories/product_data_source.dart';
-import '../../home/widgets/premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 
 /// Shows the search filter sheet. Resolves to the new [ProductSearchFilter]
 /// when the user taps "Apply", `null` when they dismiss or back-out — the

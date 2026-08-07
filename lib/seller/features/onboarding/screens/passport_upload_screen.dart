@@ -5,7 +5,7 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/i18n/i18n.dart';
-import '../../../../customer/features/home/widgets/premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 
 enum _PassportSide { front, back }
 

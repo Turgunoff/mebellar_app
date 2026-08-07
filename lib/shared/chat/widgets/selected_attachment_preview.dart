@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
 import '../../../core/i18n/i18n.dart';
-import '../../../customer/features/home/widgets/premium/premium_tokens.dart';
+import '../../../core/theme/premium_tokens.dart';
 
 /// Telegram-style attachment chip pinned above the composer once an image is
 /// picked: a thumbnail, a one-line label, and an "X" to drop it. The caption

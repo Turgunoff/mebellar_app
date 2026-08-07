@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
 
-import '../../home/widgets/premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 
 /// Premium horizontal lifecycle tracker for the orders list card.
 ///

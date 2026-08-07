@@ -19,7 +19,7 @@ import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/error_state.dart';
 import '../../../router.dart';
-import '../../home/widgets/premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 import '../../profile/cubit/profile_cubit.dart';
 import '../cubit/notifications_cubit.dart';
 

@@ -5,7 +5,7 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:just_audio/just_audio.dart';
 
 import '../../../../core/i18n/i18n.dart';
-import '../../home/widgets/premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 
 /// Telegram-style voice-note player: a play/pause button, a seekable progress
 /// slider, and an mm:ss elapsed / duration label. Loads [url] lazily on the

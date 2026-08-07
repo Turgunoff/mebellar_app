@@ -13,7 +13,7 @@ import '../../../../../shared/models/banner.dart';
 import '../../../../../shared/models/multilingual_text.dart';
 import '../../../../../shared/widgets/image_error_placeholder.dart';
 import '../../../../customer_app.dart' show CustomerShellScope;
-import 'premium_tokens.dart';
+import '../../../../../core/theme/premium_tokens.dart';
 
 class GlassBanner extends StatefulWidget {
   const GlassBanner({

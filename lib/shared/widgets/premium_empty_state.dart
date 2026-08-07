@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../customer/features/home/widgets/premium/premium_tokens.dart';
+import '../../core/theme/premium_tokens.dart';
 
 class PremiumEmptyState extends StatelessWidget {
   const PremiumEmptyState({

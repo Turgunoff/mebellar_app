@@ -21,7 +21,7 @@ import '../../../widgets/network_error_view.dart';
 import '../../../widgets/price_format.dart';
 import '../../../widgets/view_mode_toggle.dart';
 import '../../home/widgets/premium/premium_product_list_card.dart';
-import '../../home/widgets/premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 import '../../search/widgets/search_filter_sheet.dart';
 import '../cubit/product_list_cubit.dart';
 

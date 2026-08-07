@@ -8,7 +8,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../../core/di/service_locator.dart';
 import '../../../core/storage/hive_boxes.dart';
-import '../home/widgets/premium/premium_tokens.dart';
+import '../../../core/theme/premium_tokens.dart';
 
 const String _tutorialSeenKey = 'tutorial_seen_v1';
 

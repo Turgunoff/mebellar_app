@@ -24,7 +24,7 @@ import '../../../../shared/ar/glb_cache_manager.dart';
 import '../../../../shared/models/product_model.dart';
 import '../../../../shared/repositories/product_data_source.dart';
 import '../../../../shared/repositories/woody_set_repository.dart';
-import '../../home/widgets/premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 import '../cubit/ar_viewer_cubit.dart';
 import '../../../../shared/widgets/ar/fallback_2d_camera_screen.dart';
 import '../../../../shared/widgets/ar/product_3d_preview_view.dart';

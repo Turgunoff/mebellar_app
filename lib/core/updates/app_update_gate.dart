@@ -3,7 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import '../../config/remote_config.dart';
-import '../../customer/features/home/widgets/premium/premium_tokens.dart';
+import '../theme/premium_tokens.dart';
 import '../i18n/i18n.dart';
 import 'app_update_service.dart';
 import 'maintenance_overlay.dart';

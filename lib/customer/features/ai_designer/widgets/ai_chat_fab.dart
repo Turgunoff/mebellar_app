@@ -6,7 +6,7 @@ import 'package:lottie/lottie.dart';
 import 'package:showcaseview/showcaseview.dart';
 
 import '../../../../core/i18n/i18n.dart';
-import '../../home/widgets/premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 
 /// Standalone AI assistant FAB for the home screen: a Lottie robot that floats
 /// directly over the feed with no card or puck behind it. A blurred silhouette

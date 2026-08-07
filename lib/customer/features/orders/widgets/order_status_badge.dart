@@ -2,7 +2,7 @@ import 'package:woody_app/core/i18n/i18n.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../shared/models/order_status.dart';
-import '../../home/widgets/premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 
 class OrderStatusBadge extends StatelessWidget {
   const OrderStatusBadge({

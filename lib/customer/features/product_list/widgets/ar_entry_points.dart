@@ -14,7 +14,7 @@ import '../../../../shared/ar/ar_set_piece.dart';
 import '../../../../shared/models/product_model.dart';
 import '../../../../shared/models/product_set.dart';
 import '../../../../shared/repositories/woody_set_repository.dart';
-import '../../home/widgets/premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 import '../screens/buyer_ar_viewer_screen.dart';
 import '../screens/set_ar_viewer_screen.dart';
 import '../screens/set_sticker_screen.dart';

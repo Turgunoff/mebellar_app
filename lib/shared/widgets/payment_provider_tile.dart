@@ -5,7 +5,7 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import '../../core/i18n/i18n.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_fonts.dart';
-import '../../customer/features/home/widgets/premium/premium_tokens.dart';
+import '../../core/theme/premium_tokens.dart';
 import '../../r.dart';
 import '../repositories/payment_repository.dart';
 

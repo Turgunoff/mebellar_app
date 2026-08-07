@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
 
-import '../../home/widgets/premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 
 /// Countdown that ticks down from a snapshot taken when the API response
 /// arrived — not by re-diffing [DateTime.now()] against [expiresAt] each second.

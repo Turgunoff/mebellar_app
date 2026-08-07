@@ -13,7 +13,7 @@ import '../../../../shared/widgets/image_error_placeholder.dart';
 import '../../../customer_app.dart';
 import '../../../widgets/network_error_gate.dart';
 import '../../../widgets/network_error_view.dart';
-import '../../home/widgets/premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 import '../bloc/categories_bloc.dart';
 
 class CategoriesScreen extends StatelessWidget {

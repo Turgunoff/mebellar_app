@@ -13,7 +13,7 @@ import 'package:woody_app/core/maps/yandex_mapkit_initializer.dart';
 import 'package:woody_app/core/platform/location_facade.dart';
 import 'package:yandex_mapkit/yandex_mapkit.dart';
 
-import '../../../../customer/features/home/widgets/premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 import '../bloc/onboarding_bloc.dart';
 import 'onboarding_kit.dart';
 

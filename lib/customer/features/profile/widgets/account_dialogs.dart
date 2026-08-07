@@ -12,7 +12,7 @@ import '../../../../core/network/api_error.dart';
 import '../../../../core/network/woody_api_client.dart';
 import '../../../../core/storage/hive_boxes.dart';
 import '../../../../core/storage/secure_storage.dart';
-import '../../home/widgets/premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 import '../../orders/cubit/profile_orders_cubit.dart';
 
 /// Confirms sign-out, then runs the push-cleanup sign-out flow.

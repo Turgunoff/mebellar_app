@@ -8,7 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../config/remote_config.dart';
 import '../../../../core/auth/auth_cubit.dart';
 import '../../../../core/i18n/i18n.dart';
-import '../../home/widgets/premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 
 // Support channels come from the backend (`app_settings.support_contacts`, via
 // RemoteConfig) so the owner can change the email / phone / Telegram from the

@@ -18,7 +18,7 @@ import '../../../widgets/price_format.dart';
 import '../../../widgets/top_toast.dart';
 import '../../cart/bloc/cart_bloc.dart';
 import '../../favorites/bloc/favorites_bloc.dart';
-import '../../home/widgets/premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 import '../../product_list/widgets/ar_entry_points.dart';
 import '../cubit/ai_designer_cubit.dart';
 import '../data/ai_designer_repository.dart';

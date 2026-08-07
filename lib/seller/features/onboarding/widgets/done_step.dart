@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/i18n/i18n.dart';
-import '../../../../customer/features/home/widgets/premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 import '../bloc/onboarding_bloc.dart';
 import 'onboarding_kit.dart';
 

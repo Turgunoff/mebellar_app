@@ -17,7 +17,7 @@ import '../../../../core/notifications/push_service.dart';
 import '../../../../core/storage/hive_boxes.dart';
 import '../../../../core/theme/theme_cubit.dart';
 import '../../../../core/theme/theme_mode_picker.dart';
-import '../../home/widgets/premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 import '../../../../shared/about/about_screen.dart';
 
 class SettingsScreen extends StatefulWidget {

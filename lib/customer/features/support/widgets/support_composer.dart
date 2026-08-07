@@ -11,7 +11,7 @@ import 'package:record/record.dart';
 
 import '../../../../core/i18n/i18n.dart';
 import '../../../../core/logging/app_logger.dart';
-import '../../home/widgets/premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 
 typedef SendTextCallback = Future<void> Function(String text);
 typedef SendImageCallback =

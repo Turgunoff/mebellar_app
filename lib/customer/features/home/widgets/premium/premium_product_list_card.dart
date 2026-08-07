@@ -5,7 +5,7 @@ import 'package:shimmer/shimmer.dart';
 import '../../../../../shared/widgets/image_error_placeholder.dart';
 import '../../../../../shared/widgets/product_ar_badge.dart';
 import 'premium_card_parts.dart';
-import 'premium_tokens.dart';
+import '../../../../../core/theme/premium_tokens.dart';
 
 /// Full-width list variant of the premium product card — a strict square
 /// thumbnail on the left, details (name, subtitle, price) on the right. Used by

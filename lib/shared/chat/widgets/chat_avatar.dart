@@ -1,7 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
-import '../../../customer/features/home/widgets/premium/premium_tokens.dart';
+import '../../../core/theme/premium_tokens.dart';
 
 /// Circular avatar with image-or-initials fallback. Used by both the
 /// chats list tiles and the thread app bar — same visual language for

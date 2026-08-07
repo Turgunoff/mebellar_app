@@ -6,7 +6,7 @@ import '../../../../auth/auth_bottom_sheet.dart';
 import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/auth/auth_repository.dart';
 import '../../../../core/di/service_locator.dart';
-import '../../../../customer/features/home/widgets/premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 import '../../../../shared/repositories/seller_onboarding_repository.dart';
 import '../bloc/onboarding_bloc.dart';
 import '../widgets/business_type_step.dart';

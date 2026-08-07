@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
-import '../../features/home/widgets/premium/premium_tokens.dart';
+import '../../../core/theme/premium_tokens.dart';
 
 /// Square 40×40 button with an "active filters" badge in the corner.
 /// Used in both the search and category-product list app bars to launch

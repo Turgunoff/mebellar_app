@@ -7,7 +7,7 @@ import '../../../auth/auth_bottom_sheet.dart';
 import '../../../core/auth/auth_cubit.dart';
 import '../../../core/di/service_locator.dart';
 import '../../../core/i18n/i18n.dart';
-import '../../../customer/features/home/widgets/premium/premium_tokens.dart';
+import '../../../core/theme/premium_tokens.dart';
 import '../../models/chat.dart';
 import '../../repositories/chat_repository.dart';
 import '../../widgets/empty_state.dart';

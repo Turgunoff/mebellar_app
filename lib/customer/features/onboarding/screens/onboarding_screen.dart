@@ -12,7 +12,8 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../core/storage/app_settings.dart';
 import '../../../../core/theme/app_fonts.dart';
-import '../../home/widgets/premium/premium_tokens.dart';
+import '../../../../r.dart';
+import '../../../../core/theme/premium_tokens.dart';
 
 /// Fixed dark ink for chrome that floats over page 1's always-light showroom
 /// stage (the brand wordmark, the arc track) — it must stay legible there and
@@ -286,18 +287,18 @@ class _PanoramaPage extends StatelessWidget {
 /// `assets/images/onboarding/` folder. Each column wraps over this list with
 /// `index % length`, so the streams loop forever.
 const List<String> _marqueeImages = [
-  'assets/images/onboarding/grid_1.jpeg',
-  'assets/images/onboarding/grid_2.jpeg',
-  'assets/images/onboarding/grid_3.jpeg',
-  'assets/images/onboarding/grid_4.jpeg',
-  'assets/images/onboarding/grid_5.jpeg',
-  'assets/images/onboarding/grid_6.jpeg',
-  'assets/images/onboarding/grid_7.jpeg',
-  'assets/images/onboarding/grid_8.jpeg',
-  'assets/images/onboarding/grid_9.jpeg',
-  'assets/images/onboarding/grid_10.jpeg',
-  'assets/images/onboarding/grid_11.jpeg',
-  'assets/images/onboarding/grid_12.jpeg',
+  'assets/images/onboarding/grid_1.webp',
+  'assets/images/onboarding/grid_2.webp',
+  'assets/images/onboarding/grid_3.webp',
+  'assets/images/onboarding/grid_4.webp',
+  'assets/images/onboarding/grid_5.webp',
+  'assets/images/onboarding/grid_6.webp',
+  'assets/images/onboarding/grid_7.webp',
+  'assets/images/onboarding/grid_8.webp',
+  'assets/images/onboarding/grid_9.webp',
+  'assets/images/onboarding/grid_10.webp',
+  'assets/images/onboarding/grid_11.webp',
+  'assets/images/onboarding/grid_12.webp',
 ];
 
 /// Page 3 — a fully separate layout from the page-2 panorama: an infinite,
@@ -774,7 +775,7 @@ class _ModelOnboardingPageState extends State<_ModelOnboardingPage>
               right: 0,
               height: height * 0.6,
               child: ModelViewer(
-                src: 'assets/models/onboarding_chair.glb',
+                src: AssetModels.onboardingChair,
                 alt: 'Woody 3D furniture',
                 ar: false,
                 autoRotate: false,
@@ -1091,7 +1092,11 @@ class _NextCircle extends StatelessWidget {
         child: const SizedBox(
           width: 56,
           height: 56,
-          child: Icon(Iconsax.arrow_right_3_copy, color: Colors.white, size: 24),
+          child: Icon(
+            Iconsax.arrow_right_3_copy,
+            color: Colors.white,
+            size: 24,
+          ),
         ),
       ),
     );

@@ -5,7 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
 
-import '../../../../customer/features/home/widgets/premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 import '../../../../shared/models/business_type.dart';
 import '../../../../shared/utils/image_upload.dart';
 import '../bloc/onboarding_bloc.dart';

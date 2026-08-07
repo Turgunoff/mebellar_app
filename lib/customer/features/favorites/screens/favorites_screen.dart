@@ -11,7 +11,7 @@ import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/premium_empty_state.dart';
 import '../../../widgets/top_toast.dart';
 import '../../home/widgets/premium/premium_product_card.dart';
-import '../../home/widgets/premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 import '../bloc/favorites_bloc.dart';
 
 /// Premium "Sevimlilar" (Favorites) screen wired to [FavoritesBloc].

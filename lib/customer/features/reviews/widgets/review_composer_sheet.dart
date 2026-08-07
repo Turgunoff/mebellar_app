@@ -10,7 +10,7 @@ import '../../../../shared/models/review.dart';
 import '../../../../shared/repositories/customer_reviews_repository.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/star_rating.dart';
-import '../../home/widgets/premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 
 /// Opens the review composer bottom sheet. Resolves to the saved [Review]
 /// when the customer submits, or `null` if the sheet is dismissed.

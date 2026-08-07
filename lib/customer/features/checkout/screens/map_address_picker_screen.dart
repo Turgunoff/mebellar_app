@@ -14,7 +14,7 @@ import '../../../../core/i18n/i18n.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/maps/yandex_mapkit_initializer.dart';
 import '../../../../core/platform/location_facade.dart';
-import '../../home/widgets/premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 
 const _kDefaultCenter = Point(latitude: 41.2995, longitude: 69.2401);
 const _kDefaultZoom = 13.0;

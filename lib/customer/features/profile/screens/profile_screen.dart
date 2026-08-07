@@ -11,7 +11,7 @@ import '../../../../shared/chat/bloc/total_unread_chats_cubit.dart';
 import '../../support/bloc/support_unread_cubit.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/fullscreen_image_viewer.dart';
-import '../../home/widgets/premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 import '../../notifications/cubit/notifications_cubit.dart';
 import '../../orders/cubit/profile_orders_cubit.dart';
 import '../cubit/profile_cubit.dart';

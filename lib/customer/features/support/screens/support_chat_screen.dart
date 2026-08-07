@@ -11,7 +11,7 @@ import '../../../../core/i18n/i18n.dart';
 import '../../../../core/notifications/active_support_tracker.dart';
 import '../../../../core/notifications/push_service.dart';
 import '../../../../shared/widgets/error_state.dart';
-import '../../home/widgets/premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 import '../bloc/support_chat_cubit.dart';
 import '../models/support_message.dart';
 import '../repository/support_chat_repository.dart';

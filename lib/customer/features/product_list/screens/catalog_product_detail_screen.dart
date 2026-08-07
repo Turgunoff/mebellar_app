@@ -46,7 +46,7 @@ import '../../../features/cart/bloc/cart_bloc.dart';
 import '../../../features/favorites/bloc/favorites_bloc.dart';
 import '../../../widgets/top_toast.dart';
 import '../../home/widgets/premium/premium_product_card.dart';
-import '../../home/widgets/premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 
 part 'catalog_product_detail_sections.dart';
 

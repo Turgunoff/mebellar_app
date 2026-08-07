@@ -6,7 +6,7 @@ import '../../../../core/auth/auth_repository.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../core/theme/app_fonts.dart';
-import '../../../../customer/features/home/widgets/premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 import '../../../../shared/models/tariff.dart';
 import '../../../../shared/repositories/legal_documents_repository.dart';
 import '../bloc/onboarding_bloc.dart';

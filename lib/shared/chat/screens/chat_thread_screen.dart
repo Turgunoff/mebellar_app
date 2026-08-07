@@ -11,7 +11,7 @@ import '../../../core/di/service_locator.dart';
 import '../../../core/i18n/i18n.dart';
 import '../../../core/notifications/active_chat_tracker.dart';
 import '../../../core/notifications/push_service.dart';
-import '../../../customer/features/home/widgets/premium/premium_tokens.dart';
+import '../../../core/theme/premium_tokens.dart';
 import '../../models/chat.dart';
 import '../../models/chat_message.dart';
 import '../../repositories/chat_repository.dart';

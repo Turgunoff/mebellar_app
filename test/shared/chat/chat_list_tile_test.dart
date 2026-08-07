@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
 import 'package:woody_app/core/theme/app_colors.dart';
 import 'package:woody_app/core/theme/app_theme.dart';
-import 'package:woody_app/customer/features/home/widgets/premium/premium_tokens.dart';
+import 'package:woody_app/core/theme/premium_tokens.dart';
 import 'package:woody_app/shared/chat/widgets/chat_list_tile.dart';
 import 'package:woody_app/shared/models/chat.dart';
 

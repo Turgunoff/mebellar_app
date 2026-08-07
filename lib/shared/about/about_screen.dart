@@ -4,7 +4,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../config/remote_config.dart';
 import '../../core/i18n/i18n.dart';
-import '../../customer/features/home/widgets/premium/premium_tokens.dart';
+import '../../core/theme/premium_tokens.dart';
 
 Future<PackageInfo>? _packageInfo;
 

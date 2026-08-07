@@ -4,7 +4,7 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import '../../../core/i18n/i18n.dart';
 import '../../../shared/constants/product_colors.dart';
 import '../../../shared/repositories/product_data_source.dart';
-import '../../features/home/widgets/premium/premium_tokens.dart';
+import '../../../core/theme/premium_tokens.dart';
 
 /// Horizontal strip of removable chips showing every active facet of
 /// [filter]. Rendered above the results grid on both Search and the

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'premium_tokens.dart';
+import '../../../../../core/theme/premium_tokens.dart';
 
 class CategoryItem extends StatelessWidget {
   const CategoryItem({

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/i18n/i18n.dart';
 import '../../core/storage/app_settings.dart';
-import '../features/home/widgets/premium/premium_tokens.dart';
+import '../../core/theme/premium_tokens.dart';
 
 /// Feed layout the user picks via the header toggle. Shared by the home feed and
 /// the per-category product list so both surfaces switch between a grid and a

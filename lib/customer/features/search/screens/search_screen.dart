@@ -20,7 +20,7 @@ import '../../../widgets/filter/active_filters_bar.dart';
 import '../../../widgets/filter/filter_button.dart';
 import '../../favorites/bloc/favorites_bloc.dart';
 import '../../home/widgets/premium/premium_product_card.dart';
-import '../../home/widgets/premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 import '../bloc/search_bloc.dart';
 import '../widgets/search_filter_sheet.dart';
 

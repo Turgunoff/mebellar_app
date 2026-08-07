@@ -10,7 +10,7 @@ import '../../../../core/i18n/i18n.dart';
 import '../../../../core/widgets/safe_showcase.dart';
 import '../../../../seller/features/onboarding/screens/onboarding_screen.dart';
 import '../../../customer_app.dart';
-import '../../home/widgets/premium/premium_tokens.dart';
+import '../../../../core/theme/premium_tokens.dart';
 import '../../../../shared/about/about_screen.dart';
 import 'help_screen.dart';
 import 'settings_screen.dart';
