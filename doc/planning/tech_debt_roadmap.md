@@ -716,9 +716,9 @@ Jami 275 ta tracked `.md` fayl ham bor.
 
 ## Sprint 4 — Bog'liqliklar
 
-### ⬜ T-15 · Major yangilanishlar (bosqichma-bosqich)
+### 🔄 T-15 · Major yangilanishlar (bosqichma-bosqich) — 2/4 TO'LQIN BAJARILDI (2026-08-07)
 
-**Muammo.** Sezilarli orqada qolish — har bir kechikish keyingi migratsiyani
+**Muammo edi.** Sezilarli orqada qolish — har bir kechikish keyingi migratsiyani
 qimmatlashtiradi va xavfsizlik patch'lari ham o'tkazib yuborilmoqda.
 
 | Paket | Hozir | Oxirgi | Sakrash |
@@ -741,20 +741,57 @@ qimmatlashtiradi va xavfsizlik patch'lari ham o'tkazib yuborilmoqda.
 
 **Tartib (xavf bo'yicha, eng oson birinchi):**
 
-- [ ] **1-to'lqin — patch/minor, xavfsiz:** `dio`, `equatable`, `lottie`,
-      `gal`, `app_badge_plus`, `flutter_cache_manager`, `flutter_image_compress`,
-      `facebook_app_events`, `yandex_mapkit`, `webview_flutter`
-      → `flutter pub upgrade` + `flutter test`
-- [ ] **2-to'lqin — Firebase to'plami** (birga yangilanadi: core + messaging +
-      crashlytics + analytics). iOS `Podfile.lock` Firebase pinini ham
-      moslashtirish (README'da 11.15.0 deb qayd etilgan)
+- [x] **1-to'lqin — patch/minor, xavfsiz:** `dio` (5.10→5.11), `equatable`
+      (2.0.8→2.1.0), `lottie` (3.4→3.5.1), `gal` (2.3.2→2.3.3), `app_badge_plus`
+      (1.3.1→1.3.3), `flutter_cache_manager` (3.4.1→3.4.2), `flutter_image_compress`
+      (2.4.0→2.5.1), `facebook_app_events` (0.30.2→0.30.5), `yandex_mapkit`
+      (4.2.1→4.3.0), `webview_flutter` (4.14.0→4.14.1) — hammasi mavjud caret
+      constraint doirasida edi, `pubspec.yaml`ga tegilmadi, faqat
+      `flutter pub upgrade <paketlar>` bilan lock yangilandi.
+- [x] **2-to'lqin — Firebase to'plami** — `firebase_core` `^3.6.0→^4.13.0`,
+      `firebase_messaging` `^15.1.3→^16.5.0`, `firebase_crashlytics`
+      `^4.1.5→^5.2.7`, `firebase_analytics` `^11.3.5→^12.4.6` (`pubspec.yaml`
+      to'g'ridan-to'g'ri tahrirlandi, hammasi birga). Changelog tekshiruvi
+      (pub.dev): asosiy breaking change'lar Dart API emas, native SDK minimum
+      talablari — iOS SDK 12.0.0 / iOS deployment target 13+, Android SDK 34 /
+      `minSdk` 21-23. Loyiha allaqachon iOS `platform :ios, '15.0'` va
+      Android `minSdk 26` bilan ikkalasidan ham yuqorida — moslashtirish shart
+      bo'lmadi. iOS `Podfile.lock` Firebase pinini moslashtirish uchun
+      `pod update` ishlatildi (`Firebase/Messaging` versiya to'qnashuvi
+      static `pod install`da chiqdi — kutilgan, chunki lock hali eski
+      11.15.0'da qulflangan edi); natijada Firebase **11.15.0 → 12.17.0**
+      (`YandexMapsMobile` ham shu jarayonda **4.22.0-lite → 4.39.1-lite**ga
+      ko'tarildi — 1-to'lqindagi `yandex_mapkit` dart-tomon bumpi buni talab
+      qilgan edi). README (4 joy) va `docs/release-shorebird.md`dagi eski
+      "Firebase 11.15.0" pin-eslatmalari yangi versiyaga yangilandi.
+      **Tasdiqlash:** `flutter analyze lib/ test/` toza (1 oldindan bor
+      baseline issue, o'zgarishsiz); `flutter test` — **859/859 yashil**;
+      **haqiqiy native build'lar** ham ishga tushirildi (Dart test/analyze
+      native pod/gradle darajasini tekshirmaydi) —
+      `flutter build ios --no-codesign --dart-define-from-file=env/prod.json`
+      va `flutter build apk --release --dart-define-from-file=env/prod.json`
+      ikkalasi ham **muvaffaqiyatli** (`Runner.app` 115.8 MB,
+      `app-release.apk` 185.4 MB).
 - [ ] **3-to'lqin — `go_router` 14 → 17.** Eng katta xavf: ikkita router
       (`customer/router.dart` + `seller_router.dart` `StatefulShellRoute` bilan).
       `test/customer/navigation/` testlari bu yerda qalqon bo'ladi
 - [ ] **4-to'lqin — qolganlari** birma-bir
 
+**Qoldi:** 3- va 4-to'lqin — foydalanuvchi bilan kelishilgan holda shu
+sessiyada ochilmadi (yuqori xavf, alohida sessiyada qilinsin).
+
 **Har to'lqindan keyin:** `flutter test` + qurilmada qo'lda smoke test.
-**Har to'lqin = alohida commit** (rollback oson bo'lsin).
+**Har to'lqin = alohida commit** (rollback oson bo'lsin) — bu sessiyada hali
+commit qilinmadi, foydalanuvchi tasdiqlagach qilinadi.
+
+**Tekshirish natijasi:**
+```bash
+flutter analyze lib/ test/          # 1 issue (baseline, o'zgarishsiz)
+flutter test --reporter=compact | tail -1   # All tests passed! (859)
+flutter build ios --no-codesign --dart-define-from-file=env/prod.json   # ✓
+flutter build apk --release --dart-define-from-file=env/prod.json       # ✓
+grep "Firebase/Core (" ios/Podfile.lock   # 12.17.0
+```
 
 ---
 

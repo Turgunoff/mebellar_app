@@ -55,7 +55,7 @@ A single user identity can be both a buyer and a seller. The app switches betwee
 | --- | --- |
 | Flutter / Dart | Dart SDK `^3.11.5` (Flutter 3.x) |
 | Android | **`minSdk` 26** (`android/app/build.gradle.kts`). The `flutter_launcher_icons` `min_sdk_android: 21` in `pubspec.yaml` is icon-tooling only — the real gate is 26. `applicationId` / `namespace` `com.mebellar.app`. |
-| iOS | Xcode 15+. **Flutter Swift Package Manager (SPM) must be DISABLED** (else Firebase module redefinition). CocoaPods `Podfile.lock` pinned to **Firebase 11.15.0** — keep aligned. |
+| iOS | Xcode 15+. **Flutter Swift Package Manager (SPM) must be DISABLED** (else Firebase module redefinition). CocoaPods `Podfile.lock` pinned to **Firebase 12.17.0** — keep aligned. |
 | OTA tooling | Shorebird CLI (`shorebird login` on the build machine). App id `c1639a0d-e4a4-4606-bf14-4b4195fa061e`. |
 
 ### Core libraries (from `pubspec.yaml`)
@@ -67,7 +67,7 @@ A single user identity can be both a buyer and a seller. The app switches betwee
 | Dependency injection | `get_it` `^8.0.0` — scoped (root + per-mode) |
 | Routing | `go_router` `^14.6.0` (customer: GoRouter; seller: StatefulShellRoute) |
 | Networking | `dio` `^5.7.0`, `http` `^1.2.2`, `web_socket_channel` `^3.0.1` |
-| Firebase | `firebase_core` `^3.6.0`, `firebase_messaging` `^15.1.3`, `firebase_crashlytics` `^4.1.5`, `firebase_analytics` `^11.3.5`, `flutter_local_notifications` `^18.0.1` |
+| Firebase | `firebase_core` `^4.13.0`, `firebase_messaging` `^16.5.0`, `firebase_crashlytics` `^5.2.7`, `firebase_analytics` `^12.4.6`, `flutter_local_notifications` `^18.0.1` |
 | Local storage | `hive` `^2.2.3` / `hive_flutter` `^1.1.0`, `flutter_secure_storage` `^9.2.0`, `shared_preferences` `^2.3.0` |
 | Runtime restart | `flutter_phoenix` `^1.1.1` (powers the mode switch) |
 | Maps & location | `yandex_mapkit` `^4.2.1`, `geolocator` `^14.0.2`, `permission_handler` `^12.0.1` |
@@ -219,7 +219,7 @@ mebellar_app/
 ### Prerequisites
 
 - Flutter `3.11+` / Dart `3.11+` (`flutter --version`)
-- Android SDK with **`minSdk` 26** and/or Xcode 15+ (iOS: keep Flutter SPM disabled + `Podfile.lock` on Firebase 11.15.0)
+- Android SDK with **`minSdk` 26** and/or Xcode 15+ (iOS: keep Flutter SPM disabled + `Podfile.lock` on Firebase 12.17.0)
 - A `env/prod.json` (copy from `env/example.json` and fill the keys below) and the Firebase config for FCM
 - Shorebird CLI (`shorebird login`) if you intend to cut OTA releases/patches
 
@@ -294,7 +294,7 @@ flutter build appbundle --release \
 # Quick APK for sideloading
 flutter build apk --release --dart-define-from-file=env/prod.json
 
-# iOS IPA — requires Flutter SPM DISABLED + Podfile.lock pinned to Firebase 11.15.0
+# iOS IPA — requires Flutter SPM DISABLED + Podfile.lock pinned to Firebase 12.17.0
 flutter build ipa --release \
   --obfuscate --split-debug-info=build/symbols/ \
   --dart-define-from-file=env/prod.json

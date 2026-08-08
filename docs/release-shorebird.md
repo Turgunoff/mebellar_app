@@ -31,7 +31,7 @@ flutter build ipa --release \
 ## iOS caveats
 
 - **Flutter Swift Package Manager (SPM) MUST be DISABLED** — otherwise Firebase module redefinition breaks the build.
-- **`Podfile.lock` pinned to Firebase `11.15.0`** — keep it aligned.
+- **`Podfile.lock` pinned to Firebase `12.17.0`** — keep it aligned.
 
 ## Shorebird OTA (code push)
 
