@@ -23,71 +23,98 @@ Future<void> showSignOutDialog(
   required AuthRepository? authRepository,
 }) async {
   final pt = PremiumTokens.of(context);
-  final confirmed = await showDialog<bool>(
+  final dangerColor = Theme.of(context).colorScheme.error;
+  // Bottom sheet (not a centered Dialog) to match the app's other confirm
+  // sheets — `_showDeletionBlockedSheet` below and Settings' analytics info
+  // sheet — instead of a one-off dialog shape.
+  final confirmed = await showModalBottomSheet<bool>(
     context: context,
-    barrierDismissible: true,
-    builder: (ctx) => Dialog(
-      backgroundColor: pt.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      insetPadding: const EdgeInsets.symmetric(horizontal: 32),
-      child: Padding(
-        padding: const EdgeInsets.all(28),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.error.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              alignment: Alignment.center,
-              child: Icon(
-                Iconsax.logout_copy,
-                size: 24,
-                color: Theme.of(context).colorScheme.error,
-              ),
+    backgroundColor: Colors.transparent,
+    barrierColor: Colors.black.withValues(alpha: 0.45),
+    builder: (ctx) => Container(
+      decoration: BoxDecoration(
+        color: pt.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      padding: EdgeInsets.fromLTRB(
+        28,
+        8,
+        28,
+        MediaQuery.paddingOf(ctx).bottom + 28,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        // Theme already draws the drag handle (`showDragHandle: true` in
+        // app_theme.dart) — don't add a second bar here or the sheet shows
+        // two stacked dashes.
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: dangerColor.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
             ),
-            const SizedBox(height: 20),
-            Text(
-              tr('profile.sign_out_title'),
-              style: PremiumTokens.display(size: 20, letterSpacing: -0.2),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 10),
-            Text(
-              tr('profile.sign_out_confirm'),
-              style: PremiumTokens.body(size: 14, color: pt.grey, height: 1.4),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 28),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.of(ctx).pop(false),
-                    style: _cancelButtonStyle(pt),
-                    child: _buttonLabel(tr('profile.cancel'), color: pt.dark),
-                  ),
+            alignment: Alignment.center,
+            child: Icon(Iconsax.logout_copy, size: 30, color: dangerColor),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            tr('profile.sign_out_title'),
+            style: PremiumTokens.display(size: 22, letterSpacing: -0.3),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 10),
+          Text(
+            tr('profile.sign_out_confirm'),
+            textAlign: TextAlign.center,
+            style: PremiumTokens.body(size: 14, color: pt.grey, height: 1.55),
+          ),
+          const SizedBox(height: 28),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              style: FilledButton.styleFrom(
+                backgroundColor: dangerColor,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: FilledButton(
-                    onPressed: () => Navigator.of(ctx).pop(true),
-                    style: _dangerButtonStyle(Theme.of(ctx).colorScheme.error),
-                    child: _buttonLabel(
-                      tr('profile.sign_out_action'),
-                      color: Colors.white,
-                    ),
-                  ),
+              ),
+              child: Text(
+                tr('profile.sign_out_action'),
+                style: PremiumTokens.body(
+                  size: 15,
+                  weight: FontWeight.w700,
+                  color: Colors.white,
                 ),
-              ],
+              ),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: OutlinedButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: pt.divider),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: Text(
+                tr('profile.cancel'),
+                style: PremiumTokens.body(
+                  size: 15,
+                  weight: FontWeight.w600,
+                  color: pt.dark,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     ),
   );
@@ -123,58 +150,75 @@ Future<void> confirmAccountDeletion(
   final ctrl = TextEditingController();
   bool isLoading = false;
 
-  final rootNav = Navigator.of(context, rootNavigator: true);
+  // Captured on the context ambient to `showModalBottomSheet` (NOT
+  // rootNavigator — the sheet route lives on the nearest Navigator by
+  // default) so it stays valid to pop from inside the async onPressed below,
+  // after `ctx` may no longer be safe to use across the `await` gaps.
+  final sheetNav = Navigator.of(context);
   final messenger = ScaffoldMessenger.of(context);
   final dangerColor = Theme.of(context).colorScheme.error;
 
-  await showDialog<bool>(
+  await showModalBottomSheet<void>(
     context: context,
-    barrierDismissible: false,
+    backgroundColor: Colors.transparent,
+    barrierColor: Colors.black.withValues(alpha: 0.45),
+    isScrollControlled: true,
+    isDismissible: false,
+    enableDrag: false,
     builder: (ctx) => StatefulBuilder(
-      builder: (ctx, setStateDialog) => Dialog(
-        backgroundColor: pt.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+      builder: (ctx, setStateSheet) => Container(
+        decoration: BoxDecoration(
+          color: pt.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        padding: EdgeInsets.fromLTRB(
+          28,
+          8,
+          28,
+          MediaQuery.viewInsetsOf(ctx).bottom +
+              MediaQuery.paddingOf(ctx).bottom +
+              28,
+        ),
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(28),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+            // Theme already draws the drag handle (`showDragHandle: true` in
+            // app_theme.dart) — don't add a second bar here or the sheet
+            // shows two stacked dashes.
             children: [
               Container(
-                width: 52,
-                height: 52,
+                width: 64,
+                height: 64,
                 decoration: BoxDecoration(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.error.withValues(alpha: 0.1),
+                  color: dangerColor.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 alignment: Alignment.center,
-                child: Icon(
-                  Iconsax.trash,
-                  size: 22,
-                  color: Theme.of(context).colorScheme.error,
-                ),
+                child: Icon(Iconsax.trash, size: 30, color: dangerColor),
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 20),
               Text(
                 tr('profile.delete_account_title'),
-                style: PremiumTokens.display(size: 20, letterSpacing: -0.2),
+                style: PremiumTokens.display(size: 22, letterSpacing: -0.3),
+                textAlign: TextAlign.center,
               ),
               const SizedBox(height: 10),
               Text(
                 tr('profile.delete_account_body'),
+                textAlign: TextAlign.center,
                 style: PremiumTokens.body(
-                  size: 13,
+                  size: 13.5,
                   color: pt.grey,
-                  height: 1.45,
+                  height: 1.5,
                 ),
               ),
-              const SizedBox(height: 20),
-              Text(
-                tr('profile.delete_account_type_confirm'),
-                style: PremiumTokens.body(size: 13, color: pt.dark),
+              const SizedBox(height: 22),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  tr('profile.delete_account_type_confirm'),
+                  style: PremiumTokens.body(size: 13, color: pt.dark),
+                ),
               ),
               const SizedBox(height: 10),
               TextField(
@@ -184,7 +228,7 @@ Future<void> confirmAccountDeletion(
                 style: PremiumTokens.body(
                   size: 14,
                   weight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.error,
+                  color: dangerColor,
                 ),
                 decoration: InputDecoration(
                   hintText: 'DELETE',
@@ -200,113 +244,125 @@ Future<void> confirmAccountDeletion(
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color: Theme.of(context).colorScheme.error,
-                      width: 1.5,
-                    ),
+                    borderSide: BorderSide(color: dangerColor, width: 1.5),
                   ),
                   disabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: pt.divider, width: 1),
                   ),
                 ),
-                onChanged: (_) => setStateDialog(() {}),
+                onChanged: (_) => setStateSheet(() {}),
               ),
               const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: isLoading ? null : rootNav.pop,
-                      style: _cancelButtonStyle(pt),
-                      child: _buttonLabel(tr('profile.cancel'), color: pt.dark),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ValueListenableBuilder<TextEditingValue>(
-                      valueListenable: ctrl,
-                      builder: (_, val, _) => FilledButton(
-                        onPressed: val.text == 'DELETE' && !isLoading
-                            ? () async {
-                                setStateDialog(() => isLoading = true);
-                                try {
-                                  await api.delete<void>('/me');
-                                  await _clearLocalAfterDelete();
-                                  rootNav.pop();
-                                  await signOutWithPushCleanup(authRepository);
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ValueListenableBuilder<TextEditingValue>(
+                  valueListenable: ctrl,
+                  builder: (_, val, _) => FilledButton(
+                    onPressed: val.text == 'DELETE' && !isLoading
+                        ? () async {
+                            setStateSheet(() => isLoading = true);
+                            try {
+                              await api.delete<void>('/me');
+                              await _clearLocalAfterDelete();
+                              sheetNav.pop();
+                              await signOutWithPushCleanup(authRepository);
+                              appLog.info('Account soft-deleted successfully');
+                            } catch (e, st) {
+                              // The server has the final say — an order went
+                              // active, or a seller's wallet isn't settled,
+                              // between the local checks and this call. Map
+                              // the known 409 block codes to a sheet and
+                              // crucially DO NOT sign out.
+                              if (e is ApiError) {
+                                final blockedMessage = _deletionBlockedMessage(
+                                  e.code,
+                                );
+                                if (blockedMessage != null) {
                                   appLog.info(
-                                    'Account soft-deleted successfully',
+                                    'Account deletion blocked: ${e.code}',
                                   );
-                                } catch (e, st) {
-                                  // The server has the final say — an order
-                                  // went active, or a seller's wallet isn't
-                                  // settled, between the local checks and this
-                                  // call. Map the known 409 block codes to a
-                                  // sheet and crucially DO NOT sign out.
-                                  if (e is ApiError) {
-                                    final blockedMessage =
-                                        _deletionBlockedMessage(e.code);
-                                    if (blockedMessage != null) {
-                                      appLog.info(
-                                        'Account deletion blocked: ${e.code}',
-                                      );
-                                      rootNav.pop();
-                                      if (context.mounted) {
-                                        _showDeletionBlockedSheet(
-                                          context,
-                                          message: blockedMessage,
-                                        );
-                                      }
-                                      return;
-                                    }
+                                  sheetNav.pop();
+                                  if (context.mounted) {
+                                    _showDeletionBlockedSheet(
+                                      context,
+                                      message: blockedMessage,
+                                    );
                                   }
-                                  appLog.error(
-                                    'Account deletion failed',
-                                    e,
-                                    st,
-                                  );
-                                  setStateDialog(() => isLoading = false);
-                                  messenger.showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        tr(
-                                          'profile.delete_account_error',
-                                          namedArgs: {'error': '$e'},
-                                        ),
-                                        style: PremiumTokens.body(
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      backgroundColor: dangerColor,
-                                      duration: const Duration(seconds: 4),
-                                    ),
-                                  );
+                                  return;
                                 }
                               }
-                            : null,
-                        style: _dangerButtonStyle(
-                          Theme.of(context).colorScheme.error,
-                        ),
-                        child: isLoading
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation(
-                                    Colors.white,
+                              appLog.error('Account deletion failed', e, st);
+                              setStateSheet(() => isLoading = false);
+                              messenger.showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    tr(
+                                      'profile.delete_account_error',
+                                      namedArgs: {'error': '$e'},
+                                    ),
+                                    style: PremiumTokens.body(
+                                      color: Colors.white,
+                                    ),
                                   ),
+                                  backgroundColor: dangerColor,
+                                  duration: const Duration(seconds: 4),
                                 ),
-                              )
-                            : _buttonLabel(
-                                tr('profile.confirm'),
-                                color: Colors.white,
-                              ),
+                              );
+                            }
+                          }
+                        : null,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: dangerColor,
+                      disabledBackgroundColor: dangerColor.withValues(
+                        alpha: 0.3,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
                       ),
                     ),
+                    child: isLoading
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation(Colors.white),
+                            ),
+                          )
+                        : Text(
+                            tr('profile.confirm'),
+                            style: PremiumTokens.body(
+                              size: 15,
+                              weight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
                   ),
-                ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: OutlinedButton(
+                  onPressed: isLoading ? null : sheetNav.pop,
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: pt.divider),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: Text(
+                    tr('profile.cancel'),
+                    style: PremiumTokens.body(
+                      size: 15,
+                      weight: FontWeight.w600,
+                      color: pt.dark,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -345,24 +401,16 @@ void _showDeletionBlockedSheet(
       ),
       padding: EdgeInsets.fromLTRB(
         28,
-        0,
+        8,
         28,
         MediaQuery.paddingOf(ctx).bottom + 28,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        // Theme already draws the drag handle (`showDragHandle: true` in
+        // app_theme.dart) — don't add a second bar here or the sheet shows
+        // two stacked dashes.
         children: [
-          Center(
-            child: Container(
-              margin: const EdgeInsets.only(top: 12, bottom: 28),
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: pt.divider,
-                borderRadius: BorderRadius.circular(99),
-              ),
-            ),
-          ),
           Container(
             width: 64,
             height: 64,
@@ -416,34 +464,6 @@ void _showDeletionBlockedSheet(
     ),
   );
 }
-
-// Default M3 button padding (24px) wraps "Tasdiqlash" onto two lines inside
-// the narrow dialog — compact padding + a scale-down label keep one line.
-ButtonStyle _cancelButtonStyle(PremiumTokens pt) => OutlinedButton.styleFrom(
-  minimumSize: const Size(0, 44),
-  padding: const EdgeInsets.symmetric(horizontal: 10),
-  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-  side: BorderSide(color: pt.divider),
-);
-
-ButtonStyle _dangerButtonStyle(Color danger) => FilledButton.styleFrom(
-  minimumSize: const Size(0, 44),
-  padding: const EdgeInsets.symmetric(horizontal: 10),
-  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-  backgroundColor: danger,
-  disabledBackgroundColor: danger.withValues(alpha: 0.3),
-  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-);
-
-Widget _buttonLabel(String text, {required Color color}) => FittedBox(
-  fit: BoxFit.scaleDown,
-  child: Text(
-    text,
-    maxLines: 1,
-    style: PremiumTokens.body(size: 14, weight: FontWeight.w600, color: color),
-  ),
-);
 
 /// Best-effort local cleanup after a successful server-side account delete.
 Future<void> _clearLocalAfterDelete() async {

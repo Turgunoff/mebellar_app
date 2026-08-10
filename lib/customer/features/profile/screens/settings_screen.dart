@@ -155,25 +155,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         padding: EdgeInsets.fromLTRB(
           24,
-          0,
+          8,
           24,
           MediaQuery.paddingOf(ctx).bottom + 24,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
+          // Theme already draws the drag handle (`showDragHandle: true` in
+          // app_theme.dart) — don't add a second bar here or the sheet shows
+          // two stacked dashes.
           children: [
-            Center(
-              child: Container(
-                margin: const EdgeInsets.only(top: 12, bottom: 24),
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: pt.divider,
-                  borderRadius: BorderRadius.circular(99),
-                ),
-              ),
-            ),
             Row(
               children: [
                 Container(
