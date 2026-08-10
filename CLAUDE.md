@@ -237,6 +237,44 @@ field-fill colours come from token classes**, not const literals:
 Brand accents (`PremiumTokens.accent`, `kTerracotta`, both
 `#C27A5F`) are constants — they don't flip in dark mode.
 
+### Error / loading / retry UI — always the shared widgets
+
+"No internet" / failed-load screens, shimmer skeletons, and retry
+buttons are unified across **both modes** onto three widgets in
+`lib/shared/widgets/`:
+
+- `ErrorState` (`error_state.dart`) — the single full-screen error/
+  no-connection widget (icon + title + message + `RetryButton` when
+  `onRetry` is passed). ~19 call sites split across customer and
+  seller.
+- `RetryButton` (`retry_button.dart`) — the single retry action
+  (`common.retry`); `ErrorState` renders it internally — don't
+  construct it directly unless you have a genuinely standalone retry
+  affordance.
+- `ShimmerBox` (`shimmer_placeholder.dart`) — the single shimmer
+  primitive (`width`, `height`, `borderRadius`); `AvatarLineShimmer`
+  (`avatar_line_shimmer.dart`) composes it for the common
+  "avatar + 2 text lines" skeleton shape.
+
+**These three are used in both modes — never read `PremiumTokens`
+(or any customer-only static) from them.** Use
+`Theme.of(context).colorScheme.error` (not `.primary`) for the error
+tint, and `context.customColors` (`AppCustomColorsX`) for
+`.error`/`.success`/`.imageBackground` — `AppCustomColors` is
+registered on both `app_theme.dart` and `seller_theme.dart`
+specifically so shared widgets can reach it from either mode.
+`ShimmerBox`'s highlight (`colorScheme.surface`) resolves to the same
+hex as `SellerColors.surface` in seller mode, so it renders
+pixel-identical to a hand-rolled `SellerColors` shimmer without
+importing it. A widget living in `lib/shared/widgets/` is not
+automatically cross-mode-safe just because of its folder — check what
+tokens it actually reads.
+
+All retry buttons say the same thing via `common.retry`
+(`common_translations.dart`) — don't add a new per-screen retry i18n
+key; if the default label doesn't fit, that's a design question, not
+a new key.
+
 ### Localisation
 
 Translations live as Dart `Map<String, dynamic>` bundles under
@@ -415,11 +453,27 @@ to a bloc, update the matching test or it will fail.
   Documents + Hive `document_files` so app kill does not force re-upload.
 - Don't commit `env/prod.json`, `key.properties`, `*.jks`,
   `build/symbols/`, `google-services.json` if it contains secrets
+- Don't hand-roll a new error/retry/shimmer widget for a screen — use the
+  shared `ErrorState`/`RetryButton`/`ShimmerBox` (§Error / loading / retry
+  UI); check whether a `lib/shared/widgets/` widget is genuinely
+  cross-mode before reaching for `PremiumTokens` in it.
 
 ## Recent feature work (Spring 2026)
 
 This brain captures the state after a multi-session redesign:
 
+- **Internet/error/shimmer/retry UI consolidation (2026-08)** — audited
+  and unified ~30 divergent "no internet" / error, shimmer skeleton, and
+  retry-button implementations across customer AND seller onto
+  `ErrorState`/`RetryButton`/`ShimmerBox` (see §Error / loading / retry UI
+  above). Fixed real bugs found along the way: two non-animating shimmer
+  skeletons, several hardcoded-hex shimmer colors that bypassed the theme,
+  3 silent seller bloc/cubit failures (verification, dashboard) now
+  surfaced as toasts, a misleading "No internet connection" title on a
+  non-network empty state (seller tariff), and missing
+  `apiErrorToFailure` mappers on ~19 seller repository call sites (real
+  network failures were surfacing raw exception text instead of a
+  localized message). Deleted the dead `NetworkErrorView` widget.
 - **Dynamic multi-lingual seller Oferta + KYC persist (2026-08)** — backend
   `legal_documents` (uz/ru/en, **0093** GPD preamble `version=1.1`) +
   `GET /legal/oferta?lang=`; GPD UI/PDF (no Imzo lines); scroll-to-accept;
