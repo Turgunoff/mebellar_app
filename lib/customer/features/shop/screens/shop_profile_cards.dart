@@ -69,102 +69,31 @@ class _LoadingState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pt = PremiumTokens.of(context);
     final topPad = MediaQuery.paddingOf(context).top;
     return ListView(
       physics: const NeverScrollableScrollPhysics(),
       padding: EdgeInsets.zero,
       children: [
-        Shimmer.fromColors(
-          baseColor: pt.imageBg,
-          highlightColor: pt.surface,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(height: 168 + topPad, color: pt.imageBg),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(18, 18, 18, 0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 180,
-                      height: 22,
-                      decoration: BoxDecoration(
-                        color: pt.imageBg,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      width: 120,
-                      height: 13,
-                      decoration: BoxDecoration(
-                        color: pt.imageBg,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                    ),
-                    const SizedBox(height: 22),
-                    Container(
-                      height: 84,
-                      decoration: BoxDecoration(
-                        color: pt.imageBg,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ErrorState extends StatelessWidget {
-  const _ErrorState({required this.onRetry});
-
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final pt = PremiumTokens.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Iconsax.shop, size: 46, color: pt.greyLight),
-            const SizedBox(height: 16),
-            Text(
-              tr('shop.load_failed'),
-              textAlign: TextAlign.center,
-              style: _ts(size: 15, weight: FontWeight.w700, color: pt.dark),
-            ),
-            const SizedBox(height: 18),
-            FilledButton(
-              onPressed: onRetry,
-              style: FilledButton.styleFrom(
-                backgroundColor: PremiumTokens.accent,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(13),
-                ),
-              ),
-              child: Text(
-                tr('shop.retry'),
-                style: _ts(
-                  size: 14,
-                  weight: FontWeight.w700,
-                  color: Colors.white,
-                ),
+            ShimmerBox(height: 168 + topPad, borderRadius: 0),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const ShimmerBox(width: 180, height: 22, borderRadius: 6),
+                  const SizedBox(height: 12),
+                  const ShimmerBox(width: 120, height: 13, borderRadius: 6),
+                  const SizedBox(height: 22),
+                  const ShimmerBox(height: 84, borderRadius: 16),
+                ],
               ),
             ),
           ],
         ),
-      ),
+      ],
     );
   }
 }

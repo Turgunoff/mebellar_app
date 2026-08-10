@@ -7,7 +7,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
-import 'package:shimmer/shimmer.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../auth/auth_bottom_sheet.dart';
@@ -22,6 +21,8 @@ import '../../../../shared/models/shop_profile.dart';
 import '../../../../shared/models/working_hours.dart';
 import '../../../../shared/repositories/shop_repository.dart';
 import '../../../../shared/sharing/shop_share.dart';
+import '../../../../shared/widgets/error_state.dart';
+import '../../../../shared/widgets/shimmer_placeholder.dart';
 import '../../home/widgets/premium/premium_product_card.dart';
 import '../../../../core/theme/premium_tokens.dart';
 import '../../favorites/bloc/favorites_bloc.dart';
@@ -161,7 +162,8 @@ class _ShopProfileView extends StatelessWidget {
             ShopProfileStatus.error => Stack(
               children: [
                 Positioned.fill(
-                  child: _ErrorState(
+                  child: ErrorState(
+                    title: tr('shop.load_failed'),
                     onRetry: () =>
                         context.read<ShopProfileCubit>().load(shopId),
                   ),

@@ -175,6 +175,6 @@ const Map<String, dynamic> shopEn = {
   'price_uzs': '{price} UZS',
   'no_products_yet': 'No products yet',
   'load_failed': 'Couldn\'t load shop information',
-  'retry': 'Try again',
+  'retry': 'Retry',
   'share_text': '{name} — a shop on Woody\n{url}',
 };

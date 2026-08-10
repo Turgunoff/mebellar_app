@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
-import 'package:shimmer/shimmer.dart';
 
 import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/di/service_locator.dart';
@@ -16,6 +15,7 @@ import '../../../../shared/repositories/category_data_source.dart';
 import '../../../../shared/repositories/product_data_source.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/error_state.dart';
+import '../../../../shared/widgets/shimmer_placeholder.dart';
 import '../../../widgets/filter/active_filters_bar.dart';
 import '../../../widgets/filter/filter_button.dart';
 import '../../favorites/bloc/favorites_bloc.dart';
@@ -669,7 +669,7 @@ class _PopularCategoriesSectionState extends State<_PopularCategoriesSection> {
           future: _future,
           builder: (context, snap) {
             if (snap.connectionState != ConnectionState.done) {
-              return _PopularSkeleton(color: pt.imageBg);
+              return const _PopularSkeleton();
             }
             final cats = (snap.data ?? const []).take(6).toList();
             if (cats.isEmpty) return const SizedBox.shrink();
@@ -759,8 +759,7 @@ class _PopularCategoryChip extends StatelessWidget {
 }
 
 class _PopularSkeleton extends StatelessWidget {
-  const _PopularSkeleton({required this.color});
-  final Color color;
+  const _PopularSkeleton();
 
   @override
   Widget build(BuildContext context) {
@@ -769,13 +768,10 @@ class _PopularSkeleton extends StatelessWidget {
       runSpacing: 10,
       children: List.generate(
         6,
-        (i) => Container(
+        (i) => ShimmerBox(
           width: 120 + (i % 3) * 24.0,
           height: 48,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(14),
-          ),
+          borderRadius: 14,
         ),
       ),
     );
@@ -885,7 +881,6 @@ class _SearchSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pt = PremiumTokens.of(context);
     return GridView.builder(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       physics: const NeverScrollableScrollPhysics(),
@@ -896,16 +891,8 @@ class _SearchSkeleton extends StatelessWidget {
         childAspectRatio: 0.60,
       ),
       itemCount: 6,
-      itemBuilder: (_, _) => Shimmer.fromColors(
-        baseColor: pt.imageBg,
-        highlightColor: pt.surface,
-        child: Container(
-          decoration: BoxDecoration(
-            color: pt.imageBg,
-            borderRadius: BorderRadius.circular(20),
-          ),
-        ),
-      ),
+      itemBuilder: (_, _) =>
+          const ShimmerBox(height: double.infinity, borderRadius: 20),
     );
   }
 }

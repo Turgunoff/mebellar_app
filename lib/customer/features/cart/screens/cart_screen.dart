@@ -12,6 +12,7 @@ import '../../../../core/auth/auth_cubit.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../shared/models/cart_item_model.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
+import '../../../../shared/widgets/error_state.dart';
 import '../../../../shared/widgets/premium_empty_state.dart';
 import '../../../../shared/widgets/product_color_chip.dart';
 import '../../../widgets/top_toast.dart';
@@ -58,14 +59,9 @@ class CartScreen extends StatelessWidget {
           if (state.status == CartStatus.failure && state.items.isEmpty) {
             return SafeArea(
               bottom: false,
-              child: PremiumEmptyState(
-                icon: Iconsax.warning_2,
-                title: tr('error.unknown'),
-                subtitle: state.error ?? tr('error.server'),
-                buttonText: tr('common.retry'),
-                onButtonPressed: () =>
-                    context.read<CartBloc>().add(const LoadCart()),
-                bottomPadding: 24,
+              child: ErrorState(
+                message: state.error,
+                onRetry: () => context.read<CartBloc>().add(const LoadCart()),
               ),
             );
           }

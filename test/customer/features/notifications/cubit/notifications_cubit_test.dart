@@ -4,6 +4,7 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:woody_app/core/auth/auth_repository.dart';
+import 'package:woody_app/core/i18n/i18n.dart';
 import 'package:woody_app/core/network/token_store.dart';
 import 'package:woody_app/customer/features/notifications/cubit/notifications_cubit.dart';
 import 'package:woody_app/shared/models/notification_model.dart';
@@ -81,6 +82,34 @@ void main() {
       isA<NotificationsState>()
           .having((s) => s.status, 'status', NotificationsStatus.failure)
           .having((s) => s.error, 'error', isNotNull),
+    ],
+  );
+
+  blocTest<NotificationsCubit, NotificationsState>(
+    'load emits the translated load-failed copy, not the raw i18n key',
+    build: () {
+      when(repo.list).thenThrow(Exception('inbox unreachable'));
+      return NotificationsCubit(repo);
+    },
+    act: (cubit) => cubit.load(),
+    expect: () => [
+      isA<NotificationsState>().having(
+        (s) => s.status,
+        'status',
+        NotificationsStatus.loading,
+      ),
+      isA<NotificationsState>()
+          .having((s) => s.status, 'status', NotificationsStatus.failure)
+          .having(
+            (s) => s.error,
+            'error',
+            tr('notifications.load_failed'),
+          )
+          .having(
+            (s) => s.error,
+            'error',
+            isNot('notifications_load_failed'),
+          ),
     ],
   );
 
@@ -172,6 +201,41 @@ void main() {
           .having((s) => s.sellerUnreadCount, 'sellerUnread', 0),
     ],
     verify: (_) => verify(() => repo.markAllRead(mode: 'seller')).called(1),
+  );
+
+  blocTest<NotificationsCubit, NotificationsState>(
+    'markAllRead emits the translated mark-all-read-failed copy, not the raw '
+    'i18n key, when every write fails',
+    build: () {
+      when(
+        () => repo.markAllRead(mode: any(named: 'mode')),
+      ).thenThrow(Exception('network down'));
+      final news = _MockNewsRepo();
+      when(
+        () => news.markAllRead(any()),
+      ).thenThrow(Exception('network down'));
+      return NotificationsCubit(repo, newsRepo: news);
+    },
+    seed: () => NotificationsState(
+      status: NotificationsStatus.ready,
+      items: [_notif('c1')],
+    ),
+    act: (cubit) => cubit.markAllRead(),
+    expect: () => [
+      isA<NotificationsState>() // optimistic flip
+          .having((s) => s.customerUnreadCount, 'customerUnread', 0),
+      isA<NotificationsState>()
+          .having(
+            (s) => s.error,
+            'error',
+            tr('notifications.mark_all_read_failed'),
+          )
+          .having(
+            (s) => s.error,
+            'error',
+            isNot('mark_all_read_failed'),
+          ),
+    ],
   );
 
   group('auth gating', () {

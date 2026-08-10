@@ -18,8 +18,9 @@ import '../../../../shared/models/product.dart';
 import '../../../../shared/models/product_model.dart';
 import '../../../../shared/repositories/product_data_source.dart';
 import '../../../customer_app.dart';
+import '../../../../shared/widgets/error_state.dart';
+import '../../../../shared/widgets/shimmer_placeholder.dart';
 import '../../../widgets/network_error_gate.dart';
-import '../../../widgets/network_error_view.dart';
 import '../../../widgets/price_format.dart';
 import '../../../widgets/view_mode_toggle.dart';
 import '../../categories/bloc/categories_bloc.dart';
@@ -186,7 +187,7 @@ class _HomeViewState extends State<_HomeView> with WidgetsBindingObserver {
                       ),
                     ),
                     SliverFillRemaining(
-                      child: NetworkErrorView(
+                      child: ErrorState(
                         onRetry: () => context.read<HomeBloc>().add(
                           const HomeRequested(refresh: true),
                         ),
@@ -711,7 +712,6 @@ class _CategoriesRowSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pt = PremiumTokens.of(context);
     return SizedBox(
       height: 48,
       child: ListView.separated(
@@ -720,17 +720,10 @@ class _CategoriesRowSkeleton extends StatelessWidget {
         itemCount: _pillWidths.length,
         separatorBuilder: (_, _) => const SizedBox(width: 10),
         itemBuilder: (_, i) => Center(
-          child: Shimmer.fromColors(
-            baseColor: pt.imageBg,
-            highlightColor: pt.surface,
-            child: Container(
-              width: _pillWidths[i],
-              height: 40,
-              decoration: BoxDecoration(
-                color: pt.imageBg,
-                borderRadius: BorderRadius.circular(999),
-              ),
-            ),
+          child: ShimmerBox(
+            width: _pillWidths[i],
+            height: 40,
+            borderRadius: 999,
           ),
         ),
       ),
@@ -872,7 +865,6 @@ class _ForYouShelfSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pt = PremiumTokens.of(context);
     return SizedBox(
       height: 268,
       child: ListView.separated(
@@ -880,16 +872,10 @@ class _ForYouShelfSkeleton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20),
         itemCount: 4,
         separatorBuilder: (_, _) => const SizedBox(width: 14),
-        itemBuilder: (_, _) => Shimmer.fromColors(
-          baseColor: pt.imageBg,
-          highlightColor: pt.surface,
-          child: Container(
-            width: 168,
-            decoration: BoxDecoration(
-              color: pt.imageBg,
-              borderRadius: BorderRadius.circular(20),
-            ),
-          ),
+        itemBuilder: (_, _) => const ShimmerBox(
+          width: 168,
+          height: 268,
+          borderRadius: 20,
         ),
       ),
     );

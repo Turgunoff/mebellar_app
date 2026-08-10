@@ -64,15 +64,15 @@ const Map<String, dynamic> offlineEn = {
   'toggle_offline': 'Offline — the banner shows, cache fallback is used',
 };
 
-// Inline full-screen "no connection" placeholder (NetworkErrorView) — shown as
-// a screen's body when a critical fetch fails AND there is no cached data to
-// fall back on. Non-blocking; a reconnect repopulates it silently.
+// Default title/message for the inline full-screen "no connection"
+// placeholder (`ErrorState`) — shown as a screen's body when a critical fetch
+// fails AND there is no cached data to fall back on. Non-blocking; a
+// reconnect repopulates it silently. The retry label is shared (`common.retry`).
 const Map<String, dynamic> networkErrorUz = {
   'title': 'Internetga ulanib bo\'lmadi',
   'message':
       'Ma\'lumotlarni yuklab bo\'lmadi. Internet aloqangizni tekshirib, '
       'qayta urinib ko\'ring.',
-  'retry': 'Qayta urinish',
 };
 
 const Map<String, dynamic> networkErrorRu = {
@@ -80,7 +80,6 @@ const Map<String, dynamic> networkErrorRu = {
   'message':
       'Не удалось загрузить данные. Проверьте подключение к интернету и '
       'попробуйте снова.',
-  'retry': 'Повторить',
 };
 
 const Map<String, dynamic> networkErrorEn = {
@@ -88,7 +87,6 @@ const Map<String, dynamic> networkErrorEn = {
   'message':
       'We couldn\'t load the latest data. Check your internet connection and '
       'try again.',
-  'retry': 'Retry',
 };
 
 const Map<String, dynamic> deepLinksUz = {

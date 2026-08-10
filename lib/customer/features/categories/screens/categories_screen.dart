@@ -5,14 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
-import 'package:shimmer/shimmer.dart';
 
 import '../../../../core/i18n/i18n.dart';
 import '../../../../shared/models/category_model.dart';
+import '../../../../shared/widgets/error_state.dart';
 import '../../../../shared/widgets/image_error_placeholder.dart';
+import '../../../../shared/widgets/shimmer_placeholder.dart';
 import '../../../customer_app.dart';
 import '../../../widgets/network_error_gate.dart';
-import '../../../widgets/network_error_view.dart';
 import '../../../../core/theme/premium_tokens.dart';
 import '../bloc/categories_bloc.dart';
 
@@ -51,7 +51,7 @@ class CategoriesScreen extends StatelessWidget {
                     final isFailure = state.status == CategoriesStatus.failure;
                     final hasItems = state.categories.isNotEmpty;
                     if (isFailure && !hasItems) {
-                      return NetworkErrorView(
+                      return ErrorState(
                         title: tr('home.categories_error_title'),
                         onRetry: () => context.read<CategoriesBloc>().add(
                           const CategoriesRequested(),
@@ -220,10 +220,9 @@ class _EditorialCategoryCardState extends State<_EditorialCategoryCard> {
                       // ROADMAP B.7 — full-width category card image.
                       memCacheWidth: 600,
                       fit: BoxFit.cover,
-                      placeholder: (_, _) => Shimmer.fromColors(
-                        baseColor: pt.imageBg,
-                        highlightColor: pt.background,
-                        child: Container(color: pt.imageBg),
+                      placeholder: (_, _) => const ShimmerBox(
+                        height: double.infinity,
+                        borderRadius: 0,
                       ),
                       errorWidget: (_, _, _) =>
                           const ImageErrorPlaceholder(iconSize: 36),
@@ -310,18 +309,7 @@ class _SkeletonCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pt = PremiumTokens.of(context);
-    return Shimmer.fromColors(
-      baseColor: pt.imageBg,
-      highlightColor: pt.surface,
-      child: Container(
-        height: 140,
-        decoration: BoxDecoration(
-          color: pt.imageBg,
-          borderRadius: BorderRadius.circular(20),
-        ),
-      ),
-    );
+    return const ShimmerBox(height: 140, borderRadius: 20);
   }
 }
 

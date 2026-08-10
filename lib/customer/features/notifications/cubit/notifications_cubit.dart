@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../config/app_mode.dart';
 import '../../../../core/auth/auth_repository.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/i18n/i18n.dart';
 import '../../../../core/network/api_error_messages.dart';
 import '../../../../core/network/token_store.dart';
 import '../../../../core/notifications/badge_sync_controller.dart';
@@ -185,7 +186,7 @@ class NotificationsCubit extends Cubit<NotificationsState> {
       emit(
         state.copyWith(
           status: NotificationsStatus.failure,
-          error: 'notifications_load_failed',
+          error: tr('notifications.load_failed'),
         ),
       );
       return;
@@ -266,7 +267,12 @@ class NotificationsCubit extends Cubit<NotificationsState> {
         Future.value(true),
     ]);
     if (results.every((ok) => !ok)) {
-      emit(state.copyWith(items: previous, error: 'mark_all_read_failed'));
+      emit(
+        state.copyWith(
+          items: previous,
+          error: tr('notifications.mark_all_read_failed'),
+        ),
+      );
     }
   }
 

@@ -72,8 +72,16 @@ class _SupportChatScreenState extends State<SupportChatScreen>
     return BlocProvider.value(
       value: _cubit,
       child: BlocListener<SupportChatCubit, SupportChatState>(
+        // `status == failure` already gets its own full-screen `ErrorState`
+        // below (see the BlocBuilder) — an initial-load failure sets BOTH
+        // `status: failure` and `error` in the same emit, so without this
+        // guard the toast would fire too and duplicate the message. In-place
+        // send failures (sendText/sendImage/sendAudio) leave `status` at
+        // `ready`, so they still pass through here.
         listenWhen: (prev, curr) =>
-            curr.error != null && curr.error != prev.error,
+            curr.error != null &&
+            curr.error != prev.error &&
+            curr.status != SupportChatStatus.failure,
         listener: (context, state) {
           ScaffoldMessenger.of(context)
             ..hideCurrentSnackBar()

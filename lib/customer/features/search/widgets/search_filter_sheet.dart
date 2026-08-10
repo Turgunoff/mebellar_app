@@ -9,6 +9,7 @@ import '../../../../shared/models/category_model.dart';
 import '../../../../shared/repositories/category_data_source.dart';
 import '../../../../shared/repositories/product_data_source.dart';
 import '../../../../core/theme/premium_tokens.dart';
+import '../../../../shared/widgets/shimmer_placeholder.dart';
 
 /// Shows the search filter sheet. Resolves to the new [ProductSearchFilter]
 /// when the user taps "Apply", `null` when they dismiss or back-out — the
@@ -493,19 +494,15 @@ class _CategoriesSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pt = PremiumTokens.of(context);
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       children: List.generate(
         5,
-        (i) => Container(
+        (i) => ShimmerBox(
           width: 80 + (i % 3) * 24.0,
           height: 36,
-          decoration: BoxDecoration(
-            color: pt.imageBg,
-            borderRadius: BorderRadius.circular(12),
-          ),
+          borderRadius: 12,
         ),
       ),
     );

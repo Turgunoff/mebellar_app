@@ -99,20 +99,27 @@ class _SupportAudioPlayerState extends State<SupportAudioPlayer> {
         : pt.grey;
 
     if (_failed) {
-      return Padding(
-        padding: const EdgeInsets.fromLTRB(12, 10, 14, 10),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Iconsax.refresh, size: 18, color: controlColor),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                tr('support.audio_failed'),
-                style: PremiumTokens.body(size: 12.5, color: labelColor),
-              ),
+      return Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: _toggle,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 14, 10),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Iconsax.refresh, size: 18, color: controlColor),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    tr('support.audio_failed'),
+                    style: PremiumTokens.body(size: 12.5, color: labelColor),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       );
     }

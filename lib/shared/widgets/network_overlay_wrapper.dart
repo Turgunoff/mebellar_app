@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../core/connectivity/network_cubit.dart';
 import '../../core/i18n/i18n.dart';
+import '../../core/theme/app_theme_extension.dart';
 
 /// Wraps the entire `MaterialApp` content with a top-anchored connectivity
 /// banner.
@@ -148,14 +149,13 @@ class _BannerPill extends StatelessWidget {
 
   final bool isOffline;
 
-  // Premium modern reds/greens — read as "alert" and "success" without
-  // clashing with the Woody terracotta brand.
-  static const _offlineRed = Color(0xFFE63946);
-  static const _onlineGreen = Color(0xFF2A9D8F);
-
   @override
   Widget build(BuildContext context) {
-    final color = isOffline ? _offlineRed : _onlineGreen;
+    // AppCustomColors is registered on both the customer and seller themes
+    // (this wrapper is mounted in both apps), so `error`/`success` stay
+    // theme-correct without pulling in the customer-only PremiumTokens.
+    final custom = context.customColors;
+    final color = isOffline ? custom.error : custom.success;
     final icon = isOffline ? Icons.wifi_off_rounded : Icons.wifi_rounded;
     final label = isOffline ? tr('offline.banner') : tr('offline.restored');
 

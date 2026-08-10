@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/i18n/app_locale_controller.dart';
 import '../../../../core/i18n/locale_refetch.dart';
+import '../../../../core/network/api_error_messages.dart';
 import '../../../../shared/models/product.dart';
 import '../../../../shared/repositories/favorites_repository.dart';
 
@@ -139,7 +140,10 @@ class FavoritesBloc extends Bloc<FavoritesEvent, FavoritesState>
       // A failed silent refetch keeps the old-language list on screen.
       if (silent) return;
       emit(
-        state.copyWith(status: FavoritesStatus.failure, error: e.toString()),
+        state.copyWith(
+          status: FavoritesStatus.failure,
+          error: apiErrorMessage(e),
+        ),
       );
     } finally {
       final completer = event.completer;
@@ -179,7 +183,7 @@ class FavoritesBloc extends Bloc<FavoritesEvent, FavoritesState>
       } else {
         rolledBack.remove(event.product.id);
       }
-      emit(state.copyWith(ids: rolledBack, error: e.toString()));
+      emit(state.copyWith(ids: rolledBack, error: apiErrorMessage(e)));
     }
   }
 
@@ -204,7 +208,7 @@ class FavoritesBloc extends Bloc<FavoritesEvent, FavoritesState>
         state.copyWith(
           products: previousProducts,
           ids: previousIds,
-          error: e.toString(),
+          error: apiErrorMessage(e),
         ),
       );
     }

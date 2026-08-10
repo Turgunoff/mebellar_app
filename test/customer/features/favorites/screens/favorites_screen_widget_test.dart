@@ -2,9 +2,12 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:woody_app/customer/features/favorites/bloc/favorites_bloc.dart';
 import 'package:woody_app/customer/features/favorites/screens/favorites_screen.dart';
 import 'package:woody_app/shared/widgets/brand_refresh_indicator.dart';
+import 'package:woody_app/shared/widgets/error_state.dart';
+import 'package:woody_app/shared/widgets/premium_empty_state.dart';
 
 /// FavoritesBloc is replaced by a MockBloc so each render state (loading /
 /// empty) is pinned without a repository or network. The loaded grid is not
@@ -59,5 +62,35 @@ void main() {
     // navigates away via the bottom bar.
     expect(find.text("Mahsulotlarni ko'rish"), findsNothing);
     expect(find.byType(FilledButton), findsNothing);
+    // Genuine-empty-favourites branch must stay on PremiumEmptyState, not
+    // migrate to ErrorState — different semantic state than a load failure.
+    expect(find.byType(PremiumEmptyState), findsOneWidget);
+    expect(find.byType(ErrorState), findsNothing);
   });
+
+  testWidgets(
+    'shows ErrorState (not PremiumEmptyState) when the first load fails',
+    (tester) async {
+      whenListen(
+        bloc,
+        const Stream<FavoritesState>.empty(),
+        initialState: const FavoritesState(
+          status: FavoritesStatus.failure,
+          error: 'Serverga ulanib bo\'lmadi',
+        ),
+      );
+
+      await tester.pumpWidget(harness());
+      await tester.pump();
+
+      expect(find.byType(ErrorState), findsOneWidget);
+      expect(find.byType(PremiumEmptyState), findsNothing);
+      expect(find.text('Serverga ulanib bo\'lmadi'), findsOneWidget);
+
+      await tester.tap(find.byType(FilledButton));
+      await tester.pump();
+
+      verify(() => bloc.add(const FavoritesRequested())).called(1);
+    },
+  );
 }

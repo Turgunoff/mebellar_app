@@ -1,9 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:shimmer/shimmer.dart';
 
 import '../../../../../shared/widgets/image_error_placeholder.dart';
 import '../../../../../shared/widgets/product_ar_badge.dart';
+import '../../../../../shared/widgets/shimmer_placeholder.dart';
 import 'premium_card_parts.dart';
 import '../../../../../core/theme/premium_tokens.dart';
 
@@ -80,12 +80,10 @@ class PremiumProductCard extends StatelessWidget {
           // ROADMAP B.7 — bound the in-memory decode for the home feed cards.
           memCacheWidth: 600,
           fit: BoxFit.cover,
-          placeholder: (_, _) => Shimmer.fromColors(
-            baseColor: pt.imageBg,
-            // Token, not a hardcoded near-white — otherwise the shimmer sweeps
-            // a bright band across the dark card in dark mode.
-            highlightColor: pt.surface,
-            child: Container(color: pt.surface),
+          placeholder: (_, _) => const ShimmerBox(
+            width: double.infinity,
+            height: double.infinity,
+            borderRadius: 0,
           ),
           errorWidget: (_, _, _) => const ImageErrorPlaceholder(iconSize: 32),
         ),

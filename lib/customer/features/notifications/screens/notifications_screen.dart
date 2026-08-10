@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
-import 'package:shimmer/shimmer.dart';
 
 import '../../../../config/app_mode.dart';
 import '../../../../auth/auth_bottom_sheet.dart';
@@ -18,6 +17,7 @@ import '../../../../shared/models/notification_model.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/error_state.dart';
+import '../../../../shared/widgets/shimmer_placeholder.dart';
 import '../../../router.dart';
 import '../../../../core/theme/premium_tokens.dart';
 import '../../profile/cubit/profile_cubit.dart';
@@ -718,22 +718,14 @@ class _NotificationsSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pt = PremiumTokens.of(context);
     return ListView.separated(
       physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       itemCount: 6,
       separatorBuilder: (_, _) => const SizedBox(height: 12),
-      itemBuilder: (_, _) => Shimmer.fromColors(
-        baseColor: pt.imageBg,
-        highlightColor: pt.surface,
-        child: Container(
-          height: 92,
-          decoration: BoxDecoration(
-            color: pt.imageBg,
-            borderRadius: BorderRadius.circular(18),
-          ),
-        ),
+      itemBuilder: (_, _) => const ShimmerBox(
+        height: 92,
+        borderRadius: 18,
       ),
     );
   }

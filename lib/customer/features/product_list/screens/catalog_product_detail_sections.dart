@@ -129,7 +129,6 @@ class _SimilarSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pt = PremiumTokens.of(context);
     return SizedBox(
       height: _kSimilarCardHeight,
       child: ListView.separated(
@@ -137,16 +136,9 @@ class _SimilarSkeleton extends StatelessWidget {
         physics: const NeverScrollableScrollPhysics(),
         itemCount: 4,
         separatorBuilder: (_, _) => const SizedBox(width: 14),
-        itemBuilder: (_, _) => Shimmer.fromColors(
-          baseColor: pt.imageBg,
-          highlightColor: pt.surface,
-          child: Container(
-            width: _kSimilarCardWidth,
-            decoration: BoxDecoration(
-              color: pt.imageBg,
-              borderRadius: BorderRadius.circular(20),
-            ),
-          ),
+        itemBuilder: (_, _) => const ShimmerBox(
+          width: _kSimilarCardWidth,
+          borderRadius: 20,
         ),
       ),
     );

@@ -12,6 +12,7 @@ import '../../../../../core/i18n/i18n.dart';
 import '../../../../../shared/models/banner.dart';
 import '../../../../../shared/models/multilingual_text.dart';
 import '../../../../../shared/widgets/image_error_placeholder.dart';
+import '../../../../../shared/widgets/shimmer_placeholder.dart';
 import '../../../../customer_app.dart' show CustomerShellScope;
 import '../../../../../core/theme/premium_tokens.dart';
 
@@ -495,17 +496,12 @@ class GlassBannerShimmer extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Shimmer.fromColors(
-            baseColor: pt.imageBg,
-            highlightColor: pt.surface,
-            child: AspectRatio(
-              aspectRatio: aspectRatio,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: pt.surface,
-                  borderRadius: BorderRadius.circular(24),
-                ),
-              ),
+          child: AspectRatio(
+            aspectRatio: aspectRatio,
+            child: const ShimmerBox(
+              width: double.infinity,
+              height: double.infinity,
+              borderRadius: 24,
             ),
           ),
         ),

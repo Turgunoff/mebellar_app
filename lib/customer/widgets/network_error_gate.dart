@@ -9,12 +9,12 @@ import 'top_toast.dart';
 ///
 /// There is deliberately **no modal** here — the old blocking
 /// `FlashscoreNetworkModal` gate is gone. Scenario A (deep offline / no cache)
-/// is now an inline `NetworkErrorView` the screen renders as its body; this
-/// gate only owns the two non-blocking behaviours:
+/// is now an inline `ErrorState` the screen renders as its body; this gate
+/// only owns the two non-blocking behaviours:
 ///
 ///  • **Auto-recovery.** When the global [NetworkCubit] flips offline → online
 ///    while this screen is visible, [onRetry] fires once to silently refresh
-///    the screen's data. A screen showing the inline `NetworkErrorView`
+///    the screen's data. A screen showing the inline `ErrorState`
 ///    repopulates itself; a screen with stale data refreshes quietly. The only
 ///    visible cue is the global green "Tarmoq tiklandi" banner.
 ///  • **Background-failure toast (Tier 1).** When a background refresh fails

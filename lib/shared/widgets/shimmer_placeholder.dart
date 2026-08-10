@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart';
 
-/// Lightweight shimmer-style placeholder. Doesn't pull in `shimmer` package —
-/// uses an animated gradient over the surface tint so we keep dependency
-/// surface small until Sprint 11 polish.
-class ShimmerBox extends StatefulWidget {
+import '../../core/theme/app_theme_extension.dart';
+
+/// Shared shimmer-style loading placeholder — built on `package:shimmer`, the
+/// same engine every per-screen skeleton already reaches for, with
+/// cross-mode-safe colors (`AppCustomColors` is registered on both the
+/// customer and seller theme) so it can be dropped into either mode without
+/// importing the customer-only `PremiumTokens`.
+class ShimmerBox extends StatelessWidget {
   const ShimmerBox({
     super.key,
     this.width,
@@ -16,52 +21,19 @@ class ShimmerBox extends StatefulWidget {
   final double borderRadius;
 
   @override
-  State<ShimmerBox> createState() => _ShimmerBoxState();
-}
-
-class _ShimmerBoxState extends State<ShimmerBox>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final base = scheme.surfaceContainerHighest;
-    final highlight = scheme.surfaceContainerHigh;
-
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, _) {
-        final t = _controller.value;
-        return Container(
-          width: widget.width,
-          height: widget.height,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(widget.borderRadius),
-            gradient: LinearGradient(
-              begin: Alignment(-1 + 2 * t, -1),
-              end: Alignment(1 + 2 * t, 1),
-              colors: [base, highlight, base],
-              stops: const [0.0, 0.5, 1.0],
-            ),
-          ),
-        );
-      },
+    final base = context.customColors.imageBackground;
+    return Shimmer.fromColors(
+      baseColor: base,
+      highlightColor: Theme.of(context).colorScheme.surface,
+      child: Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color: base,
+          borderRadius: BorderRadius.circular(borderRadius),
+        ),
+      ),
     );
   }
 }

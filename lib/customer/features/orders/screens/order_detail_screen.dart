@@ -41,13 +41,15 @@ class OrderDetailScreen extends StatelessWidget {
     return BlocProvider(
       create: (_) =>
           OrderDetailBloc(sl<OrderRepository>())..add(OrderDetailRequested(id)),
-      child: const _OrderDetailView(),
+      child: _OrderDetailView(id: id),
     );
   }
 }
 
 class _OrderDetailView extends StatelessWidget {
-  const _OrderDetailView();
+  const _OrderDetailView({required this.id});
+
+  final String id;
 
   @override
   Widget build(BuildContext context) {
@@ -85,7 +87,12 @@ class _OrderDetailView extends StatelessWidget {
         if (state.status == OrderDetailStatus.failure || state.order == null) {
           return Scaffold(
             appBar: AppBar(),
-            body: ErrorState(message: state.error),
+            body: ErrorState(
+              message: state.error,
+              onRetry: () => context.read<OrderDetailBloc>().add(
+                OrderDetailRequested(id),
+              ),
+            ),
           );
         }
         return _Body(state: state);

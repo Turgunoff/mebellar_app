@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
-import 'package:shimmer/shimmer.dart';
 
 import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/services/facebook_analytics_service.dart';
@@ -28,6 +27,7 @@ import '../../../../shared/repositories/product_data_source.dart';
 import '../../../../shared/repositories/shop_repository.dart';
 import '../../../../shared/repositories/woody_set_repository.dart';
 import '../../../../shared/sharing/product_share.dart';
+import '../../../../shared/widgets/shimmer_placeholder.dart';
 import '../../../../shared/widgets/star_rating.dart';
 // `AttributesRepository` is registered at root scope, so it resolves fine
 // from the customer surface too.

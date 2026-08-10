@@ -8,6 +8,7 @@ import 'package:iconsax_flutter/iconsax_flutter.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../shared/models/product.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
+import '../../../../shared/widgets/error_state.dart';
 import '../../../../shared/widgets/premium_empty_state.dart';
 import '../../../widgets/top_toast.dart';
 import '../../home/widgets/premium/premium_product_card.dart';
@@ -72,15 +73,11 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               state.products.isEmpty) {
             return SafeArea(
               bottom: false,
-              child: PremiumEmptyState(
-                icon: Iconsax.warning_2,
-                title: tr('error.unknown'),
-                subtitle: state.error ?? tr('error.server'),
-                buttonText: tr('common.retry'),
-                onButtonPressed: () => context.read<FavoritesBloc>().add(
+              child: ErrorState(
+                message: state.error,
+                onRetry: () => context.read<FavoritesBloc>().add(
                   const FavoritesRequested(),
                 ),
-                bottomPadding: bottomPad,
               ),
             );
           }

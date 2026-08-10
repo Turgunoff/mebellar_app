@@ -13,6 +13,7 @@ import '../../../../core/notifications/push_service.dart';
 import '../../../../core/storage/r2_upload_client.dart';
 import '../../../../shared/chat/bloc/total_unread_chats_cubit.dart';
 import '../../support/bloc/support_unread_cubit.dart';
+import '../../../../shared/widgets/avatar_line_shimmer.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/fullscreen_image_viewer.dart';
 import '../../../../core/theme/premium_tokens.dart';
@@ -181,7 +182,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
           children: [
             if (profileState.isLoading)
-              const UserCardShimmer()
+              const AvatarLineShimmer(
+                avatarSize: 58,
+                cardBorderRadius: 22,
+                padding: EdgeInsets.all(16),
+                line1Height: 18,
+                line1Width: 160,
+                line2Height: 13,
+                line2Width: 120,
+              )
             else if (profileState.isSignedIn)
               UserCard(
                 profile: profileState,
@@ -214,7 +223,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 },
               )
             else if (profileState.isLoading)
-              const SellerBannerShimmer()
+              const AvatarLineShimmer(
+                avatarSize: 48,
+                cardBorderRadius: 18,
+                padding: EdgeInsets.fromLTRB(20, 18, 20, 18),
+              )
             else if (profileState.isSellerRejected &&
                 !profileState.rejectedBannerDismissed)
               SellerRejectedBanner(

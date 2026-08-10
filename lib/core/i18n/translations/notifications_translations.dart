@@ -283,6 +283,7 @@ const Map<String, dynamic> notificationsUz = {
   'empty': 'Hech qanday bildirishnoma yo\'q',
   'empty_hint':
       'Buyurtma, do\'kon va promo haqidagi yangiliklar shu yerda paydo bo\'ladi',
+  'load_failed': 'Bildirishnomalarni yuklab bo\'lmadi',
   'login_required_title': 'Bildirishnomalar uchun kiring',
   'login_required_message':
       'Shaxsiy bildirishnomalarni ko\'rish uchun tizimga kiring',
@@ -291,6 +292,7 @@ const Map<String, dynamic> notificationsUz = {
       'Buyurtmalaringiz haqidagi yangilanishlarni ko\'rish uchun tizimga kiring',
   'login_cta': 'Kirish',
   'mark_all_read': 'Hammasini o\'qildi',
+  'mark_all_read_failed': 'Hammasini o\'qilgan deb belgilab bo\'lmadi',
   'tab_all': 'Barchasi',
   'tab_orders': 'Buyurtmalar',
   'tab_system': 'Tizim',
@@ -340,6 +342,7 @@ const Map<String, dynamic> notificationsRu = {
   'title': 'Уведомления',
   'empty': 'Нет уведомлений',
   'empty_hint': 'Здесь появятся обновления заказов, магазина и акции',
+  'load_failed': 'Не удалось загрузить уведомления',
   'login_required_title': 'Войдите, чтобы видеть уведомления',
   'login_required_message':
       'Чтобы получать личные уведомления, войдите в аккаунт',
@@ -347,6 +350,7 @@ const Map<String, dynamic> notificationsRu = {
   'orders_login_message': 'Войдите, чтобы видеть обновления по вашим заказам',
   'login_cta': 'Войти',
   'mark_all_read': 'Прочитать все',
+  'mark_all_read_failed': 'Не удалось отметить все как прочитанные',
   'tab_all': 'Все',
   'tab_orders': 'Заказы',
   'tab_system': 'Система',
@@ -392,6 +396,7 @@ const Map<String, dynamic> notificationsEn = {
   'title': 'Notifications',
   'empty': 'No notifications',
   'empty_hint': 'Order updates, shop news and promos show up here',
+  'load_failed': 'Couldn\'t load notifications',
   'login_required_title': 'Sign in to see notifications',
   'login_required_message':
       'Log in to receive personal order and account alerts',
@@ -399,6 +404,7 @@ const Map<String, dynamic> notificationsEn = {
   'orders_login_message': 'Sign in to see updates about your orders',
   'login_cta': 'Sign in',
   'mark_all_read': 'Mark all read',
+  'mark_all_read_failed': 'Couldn\'t mark everything as read',
   'tab_all': 'All',
   'tab_orders': 'Orders',
   'tab_system': 'System',

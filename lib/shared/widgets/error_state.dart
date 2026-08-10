@@ -1,6 +1,8 @@
 ﻿import 'package:woody_app/core/i18n/i18n.dart';
 import 'package:flutter/material.dart';
 
+import 'retry_button.dart';
+
 class ErrorState extends StatelessWidget {
   const ErrorState({
     super.key,
@@ -17,34 +19,41 @@ class ErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // `error`, not `primary` — this widget renders in both the customer and
+    // seller theme, and a brand accent (terracotta / indigo) reads as
+    // on-brand rather than "something went wrong". `colorScheme.error` is
+    // defined identically (AppColors.danger) on both themes.
+    final errorColor = Theme.of(context).colorScheme.error;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 72, color: Theme.of(context).colorScheme.error),
+            Container(
+              width: 88,
+              height: 88,
+              decoration: BoxDecoration(
+                color: errorColor.withValues(alpha: 0.10),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 40, color: errorColor),
+            ),
             const SizedBox(height: 16),
             Text(
-              title ?? tr('error.network'),
+              title ?? tr('network_error.title'),
               style: Theme.of(context).textTheme.titleMedium,
               textAlign: TextAlign.center,
             ),
-            if (message != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                message!,
-                style: Theme.of(context).textTheme.bodySmall,
-                textAlign: TextAlign.center,
-              ),
-            ],
+            const SizedBox(height: 8),
+            Text(
+              message ?? tr('network_error.message'),
+              style: Theme.of(context).textTheme.bodySmall,
+              textAlign: TextAlign.center,
+            ),
             if (onRetry != null) ...[
               const SizedBox(height: 16),
-              FilledButton.icon(
-                onPressed: onRetry,
-                icon: const Icon(Icons.refresh),
-                label: Text(tr('common.retry')),
-              ),
+              RetryButton(onPressed: onRetry!),
             ],
           ],
         ),

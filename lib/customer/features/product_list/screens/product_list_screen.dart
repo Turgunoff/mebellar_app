@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
-import 'package:shimmer/shimmer.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
@@ -13,12 +12,13 @@ import '../../../../shared/models/category_model.dart';
 import '../../../../shared/repositories/category_data_source.dart';
 import '../../../../shared/models/product.dart';
 import '../../../../shared/models/product_model.dart';
+import '../../../../shared/widgets/error_state.dart';
 import '../../../../shared/widgets/product_ar_badge.dart';
+import '../../../../shared/widgets/shimmer_placeholder.dart';
 import '../../../features/favorites/bloc/favorites_bloc.dart';
 import '../../../widgets/filter/active_filters_bar.dart';
 import '../../../widgets/filter/filter_button.dart';
 import '../../../widgets/network_error_gate.dart';
-import '../../../widgets/network_error_view.dart';
 import '../../../widgets/price_format.dart';
 import '../../../widgets/view_mode_toggle.dart';
 import '../../home/widgets/premium/premium_product_list_card.dart';
@@ -91,7 +91,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
         child: BlocBuilder<ProductListCubit, ProductListState>(
           builder: (context, state) {
             if (state.status == ProductListStatus.failure) {
-              return NetworkErrorView(
+              return ErrorState(
                 title: tr('product.list_error_title'),
                 message: state.error,
                 onRetry: () => context.read<ProductListCubit>().load(
@@ -502,10 +502,8 @@ class _ProductCard extends StatelessWidget {
                         // ROADMAP B.7 — 2-column grid product card.
                         memCacheWidth: 600,
                         fit: BoxFit.cover,
-                        placeholder: (_, _) => Shimmer.fromColors(
-                          baseColor: pt.imageBg,
-                          highlightColor: pt.surface,
-                          child: Container(color: pt.imageBg),
+                        placeholder: (_, _) => const ShimmerBox(
+                          borderRadius: 0,
                         ),
                         errorWidget: (_, _, _) => Container(
                           color: pt.imageBg,
@@ -694,7 +692,6 @@ class _SkeletonGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pt = PremiumTokens.of(context);
     return SliverGrid.builder(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
@@ -703,16 +700,7 @@ class _SkeletonGrid extends StatelessWidget {
         childAspectRatio: 0.72,
       ),
       itemCount: 6,
-      itemBuilder: (context, _) => Shimmer.fromColors(
-        baseColor: pt.imageBg,
-        highlightColor: pt.surface,
-        child: Container(
-          decoration: BoxDecoration(
-            color: pt.imageBg,
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-      ),
+      itemBuilder: (context, _) => const ShimmerBox(borderRadius: 16),
     );
   }
 }
@@ -722,23 +710,15 @@ class _SkeletonList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pt = PremiumTokens.of(context);
     return SliverList.separated(
       itemCount: 6,
       separatorBuilder: (_, _) => const SizedBox(height: 14),
-      itemBuilder: (context, _) => Shimmer.fromColors(
-        baseColor: pt.imageBg,
-        highlightColor: pt.surface,
-        child: Container(
-          // The strict-square card rests at its 120px thumbnail height for the
-          // common row, so the shimmer matches it — real rows replace the
-          // placeholders without the list jumping.
-          height: 120,
-          decoration: BoxDecoration(
-            color: pt.imageBg,
-            borderRadius: BorderRadius.circular(20),
-          ),
-        ),
+      itemBuilder: (context, _) => const ShimmerBox(
+        // The strict-square card rests at its 120px thumbnail height for the
+        // common row, so the shimmer matches it — real rows replace the
+        // placeholders without the list jumping.
+        height: 120,
+        borderRadius: 20,
       ),
     );
   }

@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
-import 'package:shimmer/shimmer.dart';
 
 import '../../../../shared/utils/phone_format.dart';
 import '../../../../core/theme/premium_tokens.dart';
@@ -209,63 +208,4 @@ String _initialsOf(String name) {
   if (parts.isEmpty) return '';
   if (parts.length == 1) return parts.first.characters.first.toUpperCase();
   return (parts[0].characters.first + parts[1].characters.first).toUpperCase();
-}
-
-/// Shimmer placeholder shown while the profile row is loading.
-class UserCardShimmer extends StatelessWidget {
-  const UserCardShimmer({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final pt = PremiumTokens.of(context);
-    return Shimmer.fromColors(
-      baseColor: pt.imageBg,
-      highlightColor: pt.surface,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: pt.surface,
-          borderRadius: BorderRadius.circular(22),
-          boxShadow: PremiumTokens.softShadow,
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 58,
-              height: 58,
-              decoration: BoxDecoration(
-                color: pt.surface,
-                shape: BoxShape.circle,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    height: 18,
-                    width: 160,
-                    decoration: BoxDecoration(
-                      color: pt.surface,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    height: 13,
-                    width: 120,
-                    decoration: BoxDecoration(
-                      color: pt.surface,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
