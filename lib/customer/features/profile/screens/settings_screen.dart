@@ -13,12 +13,14 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../core/i18n/language_picker.dart';
 import '../../../../core/logging/app_logger.dart';
+import '../../../../core/network/woody_api_client.dart';
 import '../../../../core/notifications/push_service.dart';
 import '../../../../core/storage/hive_boxes.dart';
 import '../../../../core/theme/theme_cubit.dart';
 import '../../../../core/theme/theme_mode_picker.dart';
 import '../../../../core/theme/premium_tokens.dart';
 import '../../../../shared/about/about_screen.dart';
+import '../widgets/account_dialogs.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({
@@ -423,6 +425,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ],
           ),
+          const SizedBox(height: 24),
+          _SectionLabel(tr('settings.section_account')),
+          const SizedBox(height: 8),
+          _Card(
+            children: [
+              _DangerNavRow(
+                icon: Iconsax.trash,
+                title: tr('profile.delete_account_title'),
+                onTap: () => confirmAccountDeletion(
+                  context,
+                  authRepository: widget.authRepository,
+                  api: sl<WoodyApiClient>(),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -544,6 +562,59 @@ class _NavRow extends StatelessWidget {
                 Icon(Iconsax.arrow_right_3_copy, size: 18, color: pt.greyLight),
               ] else
                 Icon(Iconsax.arrow_right_3_copy, size: 18, color: pt.greyLight),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DangerNavRow extends StatelessWidget {
+  const _DangerNavRow({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final danger = Theme.of(context).colorScheme.error;
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 15, 14, 15),
+          child: Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: danger.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Icon(icon, size: 17, color: danger),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  title,
+                  style: PremiumTokens.body(
+                    size: 14,
+                    weight: FontWeight.w500,
+                    color: danger,
+                  ),
+                ),
+              ),
             ],
           ),
         ),

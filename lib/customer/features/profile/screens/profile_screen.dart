@@ -8,7 +8,6 @@ import '../../../../core/auth/app_mode_cubit.dart';
 import '../../../../core/auth/auth_repository.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
-import '../../../../core/network/woody_api_client.dart';
 import '../../../../core/notifications/push_service.dart';
 import '../../../../core/storage/r2_upload_client.dart';
 import '../../../../shared/chat/bloc/total_unread_chats_cubit.dart';
@@ -21,10 +20,10 @@ import '../../notifications/cubit/notifications_cubit.dart';
 import '../../orders/cubit/profile_orders_cubit.dart';
 import '../cubit/profile_cubit.dart';
 import '../widgets/account_dialogs.dart';
-import '../widgets/danger_zone.dart';
 import '../widgets/orders_block.dart';
 import '../widgets/profile_menu_card.dart';
 import '../widgets/seller_banners.dart';
+import '../widgets/sign_out_button.dart';
 import '../widgets/user_card.dart';
 import '../../../../shared/about/about_screen.dart';
 import 'edit_profile_screen.dart';
@@ -245,19 +244,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               items: _buildMenuItems(context, unreadChats, unreadSupport),
             ),
             const SizedBox(height: 28),
-            DangerZone(
+            SignOutButton(
               onSignOut: () => showSignOutDialog(
                 context,
                 authRepository: sl.isRegistered<AuthRepository>()
                     ? sl<AuthRepository>()
                     : null,
-              ),
-              onDeleteAccount: () => confirmAccountDeletion(
-                context,
-                authRepository: sl.isRegistered<AuthRepository>()
-                    ? sl<AuthRepository>()
-                    : null,
-                api: sl<WoodyApiClient>(),
               ),
             ),
           ],

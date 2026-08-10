@@ -12,6 +12,7 @@ const Map<String, dynamic> settingsUz = {
   'section_appearance': "Ko'rinish",
   'section_privacy': 'Maxfiylik',
   'section_storage': 'Xotira',
+  'section_account': 'Akkaunt',
   'section_other': 'Boshqa',
 
   // Language
@@ -41,7 +42,7 @@ const Map<String, dynamic> settingsUz = {
   'calculating': 'Hisoblanmoqda...',
   'clear_cache_message':
       'Haqiqatan ham barcha vaqtinchalik fayllar va rasmlar keshini '
-          'tozalamoqchimisiz?',
+      'tozalamoqchimisiz?',
   'clear_cache_confirm': 'Tozalash',
   'about': 'Ilova haqida',
 
@@ -51,7 +52,7 @@ const Map<String, dynamic> settingsUz = {
       'Qurilma va foydalanish eventlari ilovani yaxshilashga yordam beradi',
   'analytics_intro':
       "Ilova qaysi qismlari faol ishlatilayotganini tushunish va xatolarni "
-          "tezroq topish uchun anonim statistik signallar yig'amiz.",
+      "tezroq topish uchun anonim statistik signallar yig'amiz.",
   'analytics_collected_label': "Nimalar yig'iladi",
   'analytics_b1': "Qaysi mahsulot va kategoriyalar ko'rilgani",
   'analytics_b2': "Savatga qo'shish va xarid voronkasi",
@@ -61,7 +62,7 @@ const Map<String, dynamic> settingsUz = {
       'Qurilma modeli, OS, ilova versiyasi va so‘nggi faollik (login)',
   'analytics_privacy_note':
       "Ism, telefon, email yoki to'lov ma'lumotlari yig'ilmaydi. Eventlar "
-          "Firebase Analytics'ga shifrlangan kanal orqali yuboriladi.",
+      "Firebase Analytics'ga shifrlangan kanal orqali yuboriladi.",
   'privacy_policy': 'Maxfiylik siyosati',
   'understood': 'Tushunarli',
 };
@@ -75,6 +76,7 @@ const Map<String, dynamic> settingsRu = {
   'section_appearance': 'Оформление',
   'section_privacy': 'Конфиденциальность',
   'section_storage': 'Память',
+  'section_account': 'Аккаунт',
   'section_other': 'Прочее',
 
   'language_row': 'Язык приложения',
@@ -107,7 +109,7 @@ const Map<String, dynamic> settingsRu = {
       'События устройства и использования помогают улучшать приложение',
   'analytics_intro':
       'Мы собираем анонимные статистические сигналы, чтобы понимать, какие '
-          'части приложения используются, и быстрее находить ошибки.',
+      'части приложения используются, и быстрее находить ошибки.',
   'analytics_collected_label': 'Что собирается',
   'analytics_b1': 'Какие товары и категории просматривались',
   'analytics_b2': 'Добавление в корзину и воронка покупки',
@@ -117,7 +119,7 @@ const Map<String, dynamic> settingsRu = {
       'Модель устройства, ОС, версия приложения и последняя активность (вход)',
   'analytics_privacy_note':
       'Имя, телефон, email и платёжные данные не собираются. События '
-          'отправляются в Firebase Analytics по зашифрованному каналу.',
+      'отправляются в Firebase Analytics по зашифрованному каналу.',
   'privacy_policy': 'Политика конфиденциальности',
   'understood': 'Понятно',
 };
@@ -131,6 +133,7 @@ const Map<String, dynamic> settingsEn = {
   'section_appearance': 'Appearance',
   'section_privacy': 'Privacy',
   'section_storage': 'Storage',
+  'section_account': 'Account',
   'section_other': 'Other',
 
   'language_row': 'App language',
@@ -159,11 +162,10 @@ const Map<String, dynamic> settingsEn = {
   'about': 'About',
 
   'analytics_usage': 'Usage statistics',
-  'analytics_subtitle':
-      'Device and usage events help improve the app',
+  'analytics_subtitle': 'Device and usage events help improve the app',
   'analytics_intro':
       'We collect anonymous statistical signals to understand which parts of '
-          'the app are used and to find errors faster.',
+      'the app are used and to find errors faster.',
   'analytics_collected_label': "What's collected",
   'analytics_b1': 'Which products and categories were viewed',
   'analytics_b2': 'Add-to-cart and the purchase funnel',
@@ -173,7 +175,7 @@ const Map<String, dynamic> settingsEn = {
       'Device model, OS, app version, and last activity (signed-in)',
   'analytics_privacy_note':
       'Name, phone, email and payment details are not collected. Events are '
-          'sent to Firebase Analytics over an encrypted channel.',
+      'sent to Firebase Analytics over an encrypted channel.',
   'privacy_policy': 'Privacy policy',
   'understood': 'Got it',
 };
