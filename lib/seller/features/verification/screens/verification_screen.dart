@@ -40,9 +40,16 @@ class _VerificationView extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocConsumer<VerificationBloc, VerificationState>(
       listenWhen: (a, b) =>
-          a.flowStatus != b.flowStatus &&
-          b.flowStatus == VerificationFlowStatus.submitted,
+          (a.flowStatus != b.flowStatus &&
+              b.flowStatus == VerificationFlowStatus.submitted) ||
+          (a.error != b.error && b.error != null),
       listener: (context, state) {
+        if (state.error != null) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(state.error!)));
+          return;
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(tr('verification.submitted_toast'))),
         );

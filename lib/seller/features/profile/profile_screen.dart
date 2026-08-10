@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
-import 'package:shimmer/shimmer.dart';
 import 'package:hive/hive.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
 
@@ -22,6 +21,7 @@ import '../../../shared/models/verification_status.dart';
 import '../../../shared/payments/pending_payment_service.dart';
 import '../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../shared/widgets/fullscreen_image_viewer.dart';
+import '../../../shared/widgets/shimmer_placeholder.dart';
 import '../products/data/ar_token_repository.dart';
 import '../reviews/screens/reviews_screen.dart';
 import '../../../shared/models/seller_wallet.dart';
@@ -812,61 +812,32 @@ class _IdentitySkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = SellerColors.of(context);
-    final block = c.neutralBg;
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    return Shimmer.fromColors(
-      baseColor: dark ? const Color(0xFF2A2A2A) : const Color(0xFFE6E6E6),
-      highlightColor: dark ? const Color(0xFF383838) : const Color(0xFFF5F5F5),
-      child: Column(
-        children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Container(
-                height: _kCoverHeight,
-                decoration: BoxDecoration(
-                  color: block,
-                  borderRadius: BorderRadius.circular(20),
+    return Column(
+      children: [
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            const ShimmerBox(height: _kCoverHeight, borderRadius: 20),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: -_kAvatarOverlap,
+              child: Center(
+                // 84dia circle: borderRadius half the box size = fully round.
+                child: const ShimmerBox(
+                  width: _kAvatarSize,
+                  height: _kAvatarSize,
+                  borderRadius: 42,
                 ),
               ),
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: -_kAvatarOverlap,
-                child: Center(
-                  child: Container(
-                    width: _kAvatarSize,
-                    height: _kAvatarSize,
-                    decoration: BoxDecoration(
-                      color: block,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: _kAvatarOverlap + 12),
-          Container(
-            width: 160,
-            height: 20,
-            decoration: BoxDecoration(
-              color: block,
-              borderRadius: BorderRadius.circular(6),
             ),
-          ),
-          const SizedBox(height: 10),
-          Container(
-            width: 140,
-            height: 22,
-            decoration: BoxDecoration(
-              color: block,
-              borderRadius: BorderRadius.circular(999),
-            ),
-          ),
-        ],
-      ),
+          ],
+        ),
+        const SizedBox(height: _kAvatarOverlap + 12),
+        const ShimmerBox(width: 160, height: 20, borderRadius: 6),
+        const SizedBox(height: 10),
+        const ShimmerBox(width: 140, height: 22, borderRadius: 999),
+      ],
     );
   }
 }

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import '../../core/auth/auth_repository.dart';
 import '../../core/error/failure.dart';
+import '../../core/network/api_error_messages.dart';
 import '../../core/network/woody_api_client.dart';
 import '../../core/result/result.dart';
 import '../../core/storage/r2_upload_client.dart';
@@ -34,7 +35,7 @@ class WoodyTariffRepository implements TariffRepository {
         .whereType<Map<String, dynamic>>()
         .map(SubscriptionPlan.fromJson)
         .toList(growable: false);
-  });
+  }, onError: (error, _) => apiErrorToFailure(error));
 
   @override
   Future<Result<TariffSnapshot>> currentSnapshot() => runCatching(() async {
@@ -51,14 +52,14 @@ class WoodyTariffRepository implements TariffRepository {
       ai3dUsed: (body['ai_3d_used'] as num?)?.toInt() ?? 0,
       ai3dLimit: (body['ai_3d_limit'] as num?)?.toInt(),
     );
-  });
+  }, onError: (error, _) => apiErrorToFailure(error));
 
   @override
   Future<Result<TariffSubscription?>> currentPending() => runCatching(() async {
     final body = await _api.get<dynamic>('/seller/tariff/pending');
     if (body is! Map<String, dynamic>) return null;
     return TariffSubscription.fromJson(body);
-  });
+  }, onError: (error, _) => apiErrorToFailure(error));
 
   @override
   Future<Result<List<TariffSubscription>>> history() => runCatching(() async {
@@ -67,7 +68,7 @@ class WoodyTariffRepository implements TariffRepository {
         .whereType<Map<String, dynamic>>()
         .map(TariffSubscription.fromJson)
         .toList(growable: false);
-  });
+  }, onError: (error, _) => apiErrorToFailure(error));
 
   @override
   Future<Result<TariffPaymentInstructions>> paymentInstructions() =>
@@ -82,7 +83,7 @@ class WoodyTariffRepository implements TariffRepository {
           note: body['note'] as String? ?? '',
           telegramSupportUrl: body['telegram_support_url'] as String? ?? '',
         );
-      });
+      }, onError: (error, _) => apiErrorToFailure(error));
 
   @override
   Future<Result<String>> uploadPaymentScreenshot({
@@ -103,7 +104,7 @@ class WoodyTariffRepository implements TariffRepository {
       contentType: _contentType(ext),
     );
     return result.path;
-  });
+  }, onError: (error, _) => apiErrorToFailure(error));
 
   @override
   Future<Result<TariffSubscription>> upgrade(TariffUpgradeInput input) =>
@@ -117,7 +118,7 @@ class WoodyTariffRepository implements TariffRepository {
           },
         );
         return TariffSubscription.fromJson(body);
-      });
+      }, onError: (error, _) => apiErrorToFailure(error));
 
   @override
   Future<Result<void>> cancelPending(String subscriptionId) =>
@@ -125,7 +126,7 @@ class WoodyTariffRepository implements TariffRepository {
         await _api.patch<dynamic>(
           '/seller/tariff/receipts/$subscriptionId/cancel',
         );
-      });
+      }, onError: (error, _) => apiErrorToFailure(error));
 
   @override
   Future<Result<TariffCheckout>> buyPlan({
@@ -145,7 +146,7 @@ class WoodyTariffRepository implements TariffRepository {
       url: body['checkout_url'] as String? ?? '',
       reference: body['reference'] as String?,
     );
-  });
+  }, onError: (error, _) => apiErrorToFailure(error));
 
   @override
   Stream<TariffSubscription?> watchPending() async* {

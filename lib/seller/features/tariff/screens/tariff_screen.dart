@@ -99,9 +99,14 @@ class _TariffViewState extends State<_TariffView> {
                   context.read<TariffBloc>().add(const TariffRequested()),
             ),
             // Backend reachable but zero plan rows configured — say so
-            // instead of rendering a bare period toggle.
+            // instead of rendering a bare period toggle. Not a network
+            // failure, so override ErrorState's default cloud-off icon and
+            // "no internet" title with copy/glyph that reads as "nothing
+            // configured here yet".
             TariffStatus.ready when state.plans.isEmpty => ErrorState(
+              title: tr('tariff.plans_empty_title'),
               message: tr('tariff.plans_empty'),
+              icon: Icons.inventory_2_outlined,
               onRetry: () =>
                   context.read<TariffBloc>().add(const TariffRequested()),
             ),

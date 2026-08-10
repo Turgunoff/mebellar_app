@@ -358,7 +358,7 @@ class WoodySellerReviewsRepository implements SellerReviewsRepository {
         .whereType<Map<String, dynamic>>()
         .map(_toReview)
         .toList(growable: false);
-  });
+  }, onError: (error, _) => apiErrorToFailure(error));
 
   @override
   Future<Result<Review>> postReply({
@@ -386,7 +386,7 @@ class WoodySellerReviewsRepository implements SellerReviewsRepository {
       throw const ServerFailure(message: 'Sharh topilmadi');
     }
     return _toReview(updated);
-  });
+  }, onError: (error, _) => apiErrorToFailure(error));
 
   Review _toReview(Map<String, dynamic> r) {
     final repliedAt = r['seller_replied_at'] as String?;
@@ -474,7 +474,7 @@ class WoodySellerVerificationRepository
     );
     _upsertCacheDoc(doc);
     return doc;
-  });
+  }, onError: (error, _) => apiErrorToFailure(error));
 
   @override
   Future<Result<void>> removeDocument(VerificationDocumentType type) =>
@@ -486,7 +486,7 @@ class WoodySellerVerificationRepository
             if (d.type != type) d,
         ];
         _emitDocs();
-      });
+      }, onError: (error, _) => apiErrorToFailure(error));
 
   @override
   Future<Result<VerificationStatus>> submit() => runCatching(() async {
@@ -496,7 +496,7 @@ class WoodySellerVerificationRepository
       _statusController.add(VerificationStatus.pending);
     }
     return VerificationStatus.pending;
-  });
+  }, onError: (error, _) => apiErrorToFailure(error));
 
   Future<void> _loadStatus() async {
     try {
@@ -561,7 +561,7 @@ class WoodyShopSettingsRepository implements ShopSettingsRepository {
     // seller row for `fromRow` — no separate `GET /seller/me` round-trip.
     final shop = await _api.get<Map<String, dynamic>>('/seller/shop');
     return ShopSettings.fromRow(shopRow: shop, sellerRow: shop);
-  });
+  }, onError: (error, _) => apiErrorToFailure(error));
 
   @override
   Future<Result<ShopSettings>> save(ShopSettings settings) =>
@@ -577,7 +577,7 @@ class WoodyShopSettingsRepository implements ShopSettingsRepository {
         );
         appLog.info('[shop-settings] PATCH /seller/shop ← response: $shop');
         return ShopSettings.fromRow(shopRow: shop, sellerRow: shop);
-      });
+      }, onError: (error, _) => apiErrorToFailure(error));
 
   @override
   Future<Result<String>> uploadAsset({
@@ -603,7 +603,7 @@ class WoodyShopSettingsRepository implements ShopSettingsRepository {
       throw const ServerFailure(message: 'Rasm manzili olinmadi');
     }
     return url;
-  });
+  }, onError: (error, _) => apiErrorToFailure(error));
 
   String _shopAssetContentType(String ext) => switch (ext) {
     'png' => 'image/png',
@@ -623,7 +623,7 @@ class WoodyShopSettingsRepository implements ShopSettingsRepository {
     if (resp['available'] != true) return null;
     final desc = (resp['description'] as String?)?.trim();
     return (desc != null && desc.isNotEmpty) ? desc : null;
-  });
+  }, onError: (error, _) => apiErrorToFailure(error));
 }
 
 /// REST-backed seller analytics — `GET /seller/analytics`.
@@ -657,7 +657,7 @@ class WoodySellerAnalyticsRepository implements SellerAnalyticsRepository {
       query: query,
     );
     return _mapSnapshot(body, filter, now: clock);
-  });
+  }, onError: (error, _) => apiErrorToFailure(error));
 
   AnalyticsSnapshot _mapSnapshot(
     Map<String, dynamic> body,

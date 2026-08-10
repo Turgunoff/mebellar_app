@@ -8,6 +8,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/models/order.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
+import '../../../../shared/widgets/error_state.dart';
 import '../bloc/seller_orders_bloc.dart';
 import '../widgets/order_format.dart';
 import 'order_details_screen.dart';
@@ -96,7 +97,7 @@ class _SellerOrdersViewState extends State<_SellerOrdersView>
                     case SellerOrdersStatus.loading:
                       return const Center(child: BrandLoadingIndicator());
                     case SellerOrdersStatus.failure:
-                      return _OrdersError(
+                      return ErrorState(
                         message:
                             state.error ?? tr('seller_orders.list_load_error'),
                         onRetry: () => context.read<SellerOrdersBloc>().add(
@@ -571,54 +572,3 @@ class _EmptyTab extends StatelessWidget {
   }
 }
 
-class _OrdersError extends StatelessWidget {
-  const _OrdersError({required this.message, required this.onRetry});
-
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = SellerColors.of(context);
-    return ColoredBox(
-      color: c.background,
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Iconsax.warning_2, size: 40, color: c.greyMid),
-              const SizedBox(height: 14),
-              Text(
-                message,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: AppFonts.seller,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: c.grey,
-                ),
-              ),
-              const SizedBox(height: 18),
-              FilledButton(
-                onPressed: onRetry,
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.sellerPrimary,
-                  foregroundColor: Colors.white,
-                ),
-                child: Text(
-                  tr('seller_orders.retry_action'),
-                  style: TextStyle(
-                    fontFamily: AppFonts.seller,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}

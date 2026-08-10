@@ -10,6 +10,7 @@ import '../../../../shared/models/analytics.dart';
 import '../../../../shared/repositories/seller_analytics_repository.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/error_state.dart';
+import '../../../../shared/widgets/shimmer_placeholder.dart';
 import '../bloc/seller_analytics_cubit.dart';
 import '../widgets/analytics_common.dart';
 import '../widgets/customers_tab.dart';
@@ -488,20 +489,6 @@ class _SkeletonCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      height: height,
-      decoration: BoxDecoration(
-        color: SellerColors.of(context).surface,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: dark ? 0.26 : 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-    );
+    return ShimmerBox(height: height, borderRadius: 14);
   }
 }

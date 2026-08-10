@@ -8,6 +8,7 @@ import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/payments/payment_pending_copy.dart';
 import '../../../../shared/models/seller_wallet.dart';
 import '../../../../shared/repositories/seller_wallet_repository.dart';
+import '../../../../shared/widgets/error_state.dart';
 
 /// Full wallet ledger — manual top-up moderation rows plus balance movements.
 class WalletHistoryScreen extends StatefulWidget {
@@ -92,19 +93,7 @@ class _WalletHistoryScreenState extends State<WalletHistoryScreen> {
       return const Center(child: CircularProgressIndicator());
     }
     if (_failed) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.wifi_off_rounded, color: c.greyMid, size: 36),
-            const SizedBox(height: 10),
-            TextButton(
-              onPressed: _load,
-              child: Text(tr('seller.reviews_retry')),
-            ),
-          ],
-        ),
-      );
+      return ErrorState(onRetry: _load);
     }
 
     final topUps = _topUps ?? const [];

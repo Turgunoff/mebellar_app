@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
-import 'package:shimmer/shimmer.dart';
 import 'package:woody_app/core/i18n/i18n.dart';
 
 import '../../../config/remote_config.dart';
@@ -12,6 +11,7 @@ import '../../../customer/features/notifications/cubit/notifications_cubit.dart'
 import '../../../shared/models/order.dart';
 import '../../../shared/models/order_status.dart';
 import '../../../shared/widgets/brand_refresh_indicator.dart';
+import '../../../shared/widgets/shimmer_placeholder.dart';
 import '../notifications/screens/notifications_screen.dart';
 import '../tariff/screens/tariff_screen.dart';
 import 'bloc/seller_dashboard_cubit.dart';
@@ -63,7 +63,16 @@ class _DashboardView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = SellerColors.of(context);
-    return BlocBuilder<SellerDashboardCubit, SellerDashboardState>(
+    return BlocConsumer<SellerDashboardCubit, SellerDashboardState>(
+      // The cubit is best-effort: `data` always holds a usable (possibly
+      // stale/zero-filled) snapshot, so a failure never blanks the screen —
+      // it just surfaces as a toast alongside whatever is already showing.
+      listenWhen: (a, b) => a.error != b.error && b.error != null,
+      listener: (context, state) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(state.error!)));
+      },
       builder: (context, state) {
         // Debt freeze paints the whole dashboard with a red wash so the
         // critical state is unmissable even before the banner scrolls in.
@@ -344,36 +353,17 @@ class _GreetingHeaderShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = SellerColors.of(context);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Expanded(
-          child: Shimmer.fromColors(
-            baseColor: c.fillSoft,
-            highlightColor: c.surface,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  height: 22,
-                  width: 210,
-                  decoration: BoxDecoration(
-                    color: c.surface,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                ),
-                const SizedBox(height: 9),
-                Container(
-                  height: 13,
-                  width: 160,
-                  decoration: BoxDecoration(
-                    color: c.surface,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-              ],
-            ),
+        const Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ShimmerBox(height: 22, width: 210, borderRadius: 6),
+              SizedBox(height: 9),
+              ShimmerBox(height: 13, width: 160, borderRadius: 4),
+            ],
           ),
         ),
         const SizedBox(width: 8),
@@ -863,71 +853,45 @@ class _DashboardSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = SellerColors.of(context);
-    return Shimmer.fromColors(
-      baseColor: c.fillSoft,
-      highlightColor: c.surface,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-        physics: const NeverScrollableScrollPhysics(),
-        children: [
-          // Hero card
-          const _ShimmerBox(height: 132, radius: 20),
-          const SizedBox(height: 14),
-          // KPI grid
-          GridView.count(
-            crossAxisCount: 2,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            childAspectRatio: 1.32,
-            children: List.generate(
-              4,
-              (_) => const _ShimmerBox(height: double.infinity, radius: 16),
-            ),
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+      physics: const NeverScrollableScrollPhysics(),
+      children: [
+        // Hero card
+        const ShimmerBox(height: 132, borderRadius: 20),
+        const SizedBox(height: 14),
+        // KPI grid
+        GridView.count(
+          crossAxisCount: 2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          childAspectRatio: 1.32,
+          children: List.generate(
+            4,
+            (_) => const ShimmerBox(height: double.infinity, borderRadius: 16),
           ),
-          const SizedBox(height: 26),
-          // Achievements strip
-          const _ShimmerBox(width: 160, height: 20, radius: 6),
-          const SizedBox(height: 12),
-          Row(
-            children: const [
-              _ShimmerBox(width: 116, height: 122, radius: 18),
-              SizedBox(width: 12),
-              _ShimmerBox(width: 116, height: 122, radius: 18),
-              SizedBox(width: 12),
-              Expanded(child: _ShimmerBox(height: 122, radius: 18)),
-            ],
-          ),
-          const SizedBox(height: 26),
-          // Leaderboard
-          const _ShimmerBox(width: 190, height: 20, radius: 6),
-          const SizedBox(height: 12),
-          const _ShimmerBox(height: 260, radius: 20),
-        ],
-      ),
-    );
-  }
-}
-
-class _ShimmerBox extends StatelessWidget {
-  const _ShimmerBox({this.width, required this.height, this.radius = 8});
-
-  final double? width;
-  final double height;
-  final double radius;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = SellerColors.of(context);
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        color: c.surface,
-        borderRadius: BorderRadius.circular(radius),
-      ),
+        ),
+        const SizedBox(height: 26),
+        // Achievements strip
+        const ShimmerBox(width: 160, height: 20, borderRadius: 6),
+        const SizedBox(height: 12),
+        Row(
+          children: const [
+            ShimmerBox(width: 116, height: 122, borderRadius: 18),
+            SizedBox(width: 12),
+            ShimmerBox(width: 116, height: 122, borderRadius: 18),
+            SizedBox(width: 12),
+            Expanded(child: ShimmerBox(height: 122, borderRadius: 18)),
+          ],
+        ),
+        const SizedBox(height: 26),
+        // Leaderboard
+        const ShimmerBox(width: 190, height: 20, borderRadius: 6),
+        const SizedBox(height: 12),
+        const ShimmerBox(height: 260, borderRadius: 20),
+      ],
     );
   }
 }

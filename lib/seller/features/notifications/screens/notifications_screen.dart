@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
-import 'package:shimmer/shimmer.dart';
 
 import '../../../../config/app_mode.dart';
 import '../../../../core/analytics/analytics_service.dart';
@@ -18,6 +17,7 @@ import '../../../../shared/models/notification_model.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/error_state.dart';
+import '../../../../shared/widgets/shimmer_placeholder.dart';
 
 /// Seller-mode inbox. Mirrors the customer screen's layout but renders with
 /// the seller theme (Indigo accents, Plus Jakarta Sans inherited from the
@@ -452,24 +452,14 @@ class _SellerNotificationsSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final base = dark ? const Color(0xFF2A2A2A) : const Color(0xFFE6E6E6);
-    final highlight = dark ? const Color(0xFF383838) : const Color(0xFFF5F5F5);
     return ListView.separated(
       physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       itemCount: 6,
       separatorBuilder: (_, _) => const SizedBox(height: 10),
-      itemBuilder: (_, _) => Shimmer.fromColors(
-        baseColor: base,
-        highlightColor: highlight,
-        child: Container(
-          height: 88,
-          decoration: BoxDecoration(
-            color: base,
-            borderRadius: BorderRadius.circular(14),
-          ),
-        ),
+      itemBuilder: (_, _) => const ShimmerBox(
+        height: 88,
+        borderRadius: 14,
       ),
     );
   }

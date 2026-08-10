@@ -7,6 +7,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/models/dashboard_snapshot.dart';
 import '../../../../shared/repositories/seller_dashboard_repository.dart';
+import '../../../../shared/widgets/error_state.dart';
 import '../data/dashboard_models.dart';
 import '../widgets/dashboard_kit.dart';
 import '../widgets/seller_leaderboard.dart';
@@ -66,22 +67,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snap.hasError || !snap.hasData) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      tr('dashboard.leaderboard_load_error'),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: c.grey, fontFamily: AppFonts.seller),
-                    ),
-                    const SizedBox(height: 12),
-                    TextButton(onPressed: _reload, child: Text(tr('common.retry'))),
-                  ],
-                ),
-              ),
+            return ErrorState(
+              message: tr('dashboard.leaderboard_load_error'),
+              onRetry: _reload,
             );
           }
           final board = snap.data!;

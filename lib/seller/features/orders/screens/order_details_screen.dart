@@ -15,6 +15,7 @@ import '../../../../shared/models/order_status.dart';
 import '../../../../shared/repositories/seller_order_repository.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
 import '../../../../shared/widgets/cancel_reason_sheet.dart';
+import '../../../../shared/widgets/error_state.dart';
 import '../bloc/seller_order_detail_bloc.dart';
 import '../bloc/seller_orders_bloc.dart';
 import '../widgets/order_details/delivery_address_card.dart';
@@ -231,7 +232,7 @@ class _OrderDetailView extends StatelessWidget {
   ) {
     if (order == null) {
       if (state.status == SellerOrderDetailStatus.failure) {
-        return _DetailError(
+        return ErrorState(
           message: state.error ?? tr('seller_orders.detail_not_found'),
           onRetry: () => context.read<SellerOrderDetailBloc>().add(
             SellerOrderDetailRequested(orderId),
@@ -851,51 +852,3 @@ class _AcceptOrderDialogState extends State<_AcceptOrderDialog> {
   }
 }
 
-class _DetailError extends StatelessWidget {
-  const _DetailError({required this.message, required this.onRetry});
-
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = SellerColors.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.error_outline_rounded, size: 44, color: c.greyMid),
-            const SizedBox(height: 14),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: AppFonts.seller,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: c.grey,
-              ),
-            ),
-            const SizedBox(height: 18),
-            FilledButton(
-              onPressed: onRetry,
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.sellerPrimary,
-                foregroundColor: Colors.white,
-              ),
-              child: Text(
-                tr('seller_orders.retry_action'),
-                style: const TextStyle(
-                  fontFamily: AppFonts.seller,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

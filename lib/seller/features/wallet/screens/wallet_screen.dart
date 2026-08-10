@@ -29,6 +29,7 @@ import '../../../../shared/payments/seller_payment_refresh.dart';
 import '../../../../shared/repositories/tariff_repository.dart';
 import '../../../../shared/utils/image_upload.dart';
 import '../../../../shared/widgets/brand_refresh_indicator.dart';
+import '../../../../shared/widgets/error_state.dart';
 import '../../../../shared/widgets/payment_provider_tile.dart';
 import '../../products/widgets/product_form/thousands_formatter.dart';
 import '../bloc/seller_wallet_cubit.dart';
@@ -196,7 +197,8 @@ class _WalletView extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
           if (state.status == WalletStatus.failure) {
-            return _ErrorView(
+            return ErrorState(
+              message: tr('seller.wallet_load_failed'),
               onRetry: () => context.read<SellerWalletCubit>().load(),
             );
           }
@@ -1876,40 +1878,6 @@ class _TransactionTile extends StatelessWidget {
               color: accent,
               letterSpacing: -0.3,
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ErrorView extends StatelessWidget {
-  const _ErrorView({required this.onRetry});
-
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = SellerColors.of(context);
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Iconsax.wifi_square, color: c.greyMid, size: 36),
-          const SizedBox(height: 10),
-          Text(
-            tr('seller.wallet_load_failed'),
-            style: TextStyle(
-              fontFamily: AppFonts.seller,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: c.grey,
-            ),
-          ),
-          const SizedBox(height: 10),
-          TextButton(
-            onPressed: onRetry,
-            child: Text(tr('seller.reviews_retry')),
           ),
         ],
       ),

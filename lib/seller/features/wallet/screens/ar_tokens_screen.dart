@@ -14,6 +14,7 @@ import '../../../../shared/payments/payment_pending_copy.dart';
 import '../../../../shared/payments/pending_payment.dart';
 import '../../../../shared/payments/pending_payment_service.dart';
 import '../../../../shared/payments/seller_payment_refresh.dart';
+import '../../../../shared/widgets/error_state.dart';
 import '../../products/data/ar_token_repository.dart';
 import '../../products/widgets/ar_token_buy_section.dart';
 import 'ar_token_purchase_history_screen.dart';
@@ -156,7 +157,10 @@ class _ArTokensScreenState extends State<ArTokensScreen>
       return const Center(child: CircularProgressIndicator());
     }
     if (_failed || _balance == null) {
-      return _ErrorView(onRetry: _load);
+      return ErrorState(
+        message: tr('seller.ar_tokens_load_failed'),
+        onRetry: _load,
+      );
     }
     final balance = _balance!;
     return RefreshIndicator(
@@ -575,40 +579,6 @@ class _PendingPurchaseLockedCard extends StatelessWidget {
                 fontSize: 15,
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ErrorView extends StatelessWidget {
-  const _ErrorView({required this.onRetry});
-
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = SellerColors.of(context);
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.wifi_off_rounded, color: c.greyMid, size: 36),
-          const SizedBox(height: 10),
-          Text(
-            tr('seller.ar_tokens_load_failed'),
-            style: TextStyle(
-              fontFamily: AppFonts.seller,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: c.grey,
-            ),
-          ),
-          const SizedBox(height: 10),
-          TextButton(
-            onPressed: onRetry,
-            child: Text(tr('seller.reviews_retry')),
           ),
         ],
       ),

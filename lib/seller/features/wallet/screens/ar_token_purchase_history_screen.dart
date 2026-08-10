@@ -7,6 +7,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/payments/pending_payment.dart';
 import '../../../../shared/payments/pending_payment_service.dart';
+import '../../../../shared/widgets/error_state.dart';
 import '../../products/data/ar_token_repository.dart';
 
 /// Full AR-token purchase ledger — every checkout intent the seller started,
@@ -149,19 +150,7 @@ class _ArTokenPurchaseHistoryScreenState
       return const Center(child: CircularProgressIndicator());
     }
     if (_failed) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.wifi_off_rounded, color: c.greyMid, size: 36),
-            const SizedBox(height: 10),
-            TextButton(
-              onPressed: _load,
-              child: Text(tr('seller.reviews_retry')),
-            ),
-          ],
-        ),
-      );
+      return ErrorState(onRetry: _load);
     }
     final items = _items ?? const [];
     if (items.isEmpty) {

@@ -262,7 +262,6 @@ const Map<String, dynamic> sellerUz = {
       'Boshqa filtr tanlang yoki keyinroq qayting.',
   'reviews_empty_none_subtitle':
       'Buyurtma yetkazib berilgandan keyin mijozlar sharh qoldira oladi.',
-  'reviews_retry': 'Qayta urinish',
   'reviews_unavailable_title': 'Sharhlar mavjud emas',
   'reviews_unavailable_subtitle': 'Bu qurilmada server aloqasi yo\'q.',
   'reviews_time_now': 'Hozir',
@@ -691,7 +690,6 @@ const Map<String, dynamic> sellerRu = {
       'Выберите другой фильтр или зайдите позже.',
   'reviews_empty_none_subtitle':
       'Клиенты смогут оставить отзыв после доставки заказа.',
-  'reviews_retry': 'Повторить',
   'reviews_unavailable_title': 'Отзывы недоступны',
   'reviews_unavailable_subtitle': 'На этом устройстве нет связи с сервером.',
   'reviews_time_now': 'Сейчас',
@@ -1116,7 +1114,6 @@ const Map<String, dynamic> sellerEn = {
       'Choose another filter or check back later.',
   'reviews_empty_none_subtitle':
       'Customers can leave a review after the order is delivered.',
-  'reviews_retry': 'Try again',
   'reviews_unavailable_title': 'Reviews unavailable',
   'reviews_unavailable_subtitle': 'No server connection on this device.',
   'reviews_time_now': 'Just now',

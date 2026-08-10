@@ -2,13 +2,14 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
-import 'package:shimmer/shimmer.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/models/review.dart';
+import '../../../../shared/widgets/error_state.dart';
+import '../../../../shared/widgets/shimmer_placeholder.dart';
 import '../cubit/reviews_cubit.dart';
 
 // =============================================================================
@@ -76,7 +77,7 @@ class _Body extends StatelessWidget {
       return const _ReviewsSkeleton();
     }
     if (state.error != null && state.reviews.isEmpty) {
-      return _ErrorState(
+      return ErrorState(
         message: state.error!,
         onRetry: () => context.read<ReviewsCubit>().load(),
       );
@@ -787,67 +788,6 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-class _ErrorState extends StatelessWidget {
-  const _ErrorState({required this.message, required this.onRetry});
-
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Iconsax.warning_2,
-              size: 40,
-              color: AppColors.sellerPrimary,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: AppFonts.seller,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: SellerColors.of(context).ink,
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: onRetry,
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.sellerPrimary,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              child: Text(
-                tr('seller.reviews_retry'),
-                style: TextStyle(
-                  fontFamily: AppFonts.seller,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _NoBackendState extends StatelessWidget {
   const _NoBackendState();
 
@@ -895,24 +835,12 @@ class _ReviewsSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = SellerColors.of(context);
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    return Shimmer.fromColors(
-      baseColor: dark ? const Color(0xFF2A2A2A) : const Color(0xFFE6E6E6),
-      highlightColor: dark ? const Color(0xFF383838) : const Color(0xFFF5F5F5),
-      child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: 4,
-        separatorBuilder: (_, _) => const SizedBox(height: 12),
-        itemBuilder: (_, _) => Container(
-          height: 140,
-          decoration: BoxDecoration(
-            color: c.surface,
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-      ),
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: 4,
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
+      itemBuilder: (_, _) => const ShimmerBox(height: 140, borderRadius: 16),
     );
   }
 }

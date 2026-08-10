@@ -1,3 +1,4 @@
+import '../../core/network/api_error_messages.dart';
 import '../../core/network/woody_api_client.dart';
 import '../../core/result/result.dart';
 import '../models/shop_service.dart';
@@ -21,7 +22,7 @@ class WoodySellerServicesRepository implements SellerServicesRepository {
         .map(_fromRow)
         .whereType<ShopServiceConfig>()
         .toList(growable: false);
-  });
+  }, onError: (error, _) => apiErrorToFailure(error));
 
   @override
   Future<Result<List<ShopServiceConfig>>> save(
@@ -36,7 +37,7 @@ class WoodySellerServicesRepository implements SellerServicesRepository {
         .map(_fromRow)
         .whereType<ShopServiceConfig>()
         .toList(growable: false);
-  });
+  }, onError: (error, _) => apiErrorToFailure(error));
 
   ShopServiceConfig? _fromRow(Map<String, dynamic> row) {
     final service = ShopService.fromCode(row['service_type'] as String? ?? '');
