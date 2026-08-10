@@ -19,7 +19,6 @@
 // exact manual session you're using to run it. The one destructive test is
 // opt-in — see its own doc comment below.
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:woody_app/core/i18n/i18n.dart';

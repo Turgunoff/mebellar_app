@@ -401,6 +401,58 @@ class ShowcaseSellerDashboardRepository implements SellerDashboardRepository {
   Stream<Order> newOrders() => const Stream.empty();
 
   @override
+  Future<LeaderboardBoard> fetchLeaderboard({int limit = 20}) async {
+    final standings = _leaderboardStandings.take(limit).toList(growable: false);
+    LeaderboardStanding? myRank;
+    for (final standing in standings) {
+      if (standing.isMe) {
+        myRank = standing;
+        break;
+      }
+    }
+    return LeaderboardBoard(
+      metric: 'weekly_revenue',
+      metricDescription: 'Haftalik aylanma bo\'yicha reyting',
+      topSellers: standings,
+      myRank: myRank,
+    );
+  }
+
+  static const _leaderboardStandings = [
+    LeaderboardStanding(
+      rank: 1,
+      shopName: 'A*** Mebel',
+      revenue: 18400000,
+      deltaPercent: 6.0,
+    ),
+    LeaderboardStanding(
+      rank: 2,
+      shopName: 'Wood Line',
+      revenue: 13050000,
+      deltaPercent: 18.4,
+      isMe: true,
+    ),
+    LeaderboardStanding(
+      rank: 3,
+      shopName: 'M*** House',
+      revenue: 11200000,
+      deltaPercent: -3.2,
+    ),
+    LeaderboardStanding(
+      rank: 4,
+      shopName: 'D*** Design',
+      revenue: 9800000,
+      deltaPercent: 4.1,
+    ),
+    LeaderboardStanding(
+      rank: 5,
+      shopName: 'S*** Stil',
+      revenue: 7400000,
+      deltaPercent: 1.5,
+    ),
+  ];
+
+  @override
   Future<DashboardSnapshot> snapshot() async {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -525,39 +577,7 @@ class ShowcaseSellerDashboardRepository implements SellerDashboardRepository {
           progress: 23,
         ),
       ],
-      leaderboard: const [
-        LeaderboardStanding(
-          rank: 1,
-          shopName: 'A*** Mebel',
-          revenue: 18400000,
-          deltaPercent: 6.0,
-        ),
-        LeaderboardStanding(
-          rank: 2,
-          shopName: 'Wood Line',
-          revenue: 13050000,
-          deltaPercent: 18.4,
-          isMe: true,
-        ),
-        LeaderboardStanding(
-          rank: 3,
-          shopName: 'M*** House',
-          revenue: 11200000,
-          deltaPercent: -3.2,
-        ),
-        LeaderboardStanding(
-          rank: 4,
-          shopName: 'D*** Design',
-          revenue: 9800000,
-          deltaPercent: 4.1,
-        ),
-        LeaderboardStanding(
-          rank: 5,
-          shopName: 'S*** Stil',
-          revenue: 7400000,
-          deltaPercent: 1.5,
-        ),
-      ],
+      leaderboard: _leaderboardStandings,
       topProducts: [
         TopProductStat(
           productId: 'show-1',
