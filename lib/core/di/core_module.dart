@@ -32,6 +32,13 @@ import '../theme/theme_cubit.dart';
 /// registered here.
 Future<void> registerCoreModule(GetIt sl) async {
   final boxes = await openCoreBoxes();
+
+  // Must run before anything below reads TokenStore/SecureStorage — the iOS
+  // Keychain (and Android EncryptedSharedPreferences) survive app deletion,
+  // so without this a delete+reinstall would silently resume the previous
+  // user's session. See doc comment on `resetSecureStorageOnFreshInstall`.
+  await resetSecureStorageOnFreshInstall(boxes.settings);
+
   sl.registerSingleton<Box>(boxes.settings, instanceName: HiveBoxes.settings);
   sl.registerSingleton<Box>(boxes.cache, instanceName: HiveBoxes.cache);
   sl.registerSingleton<Box>(
