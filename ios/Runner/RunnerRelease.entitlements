@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+		RELEASE entitlements (App Store / TestFlight archives).
+
+		Identical to Runner.entitlements except `aps-environment`, which must
+		be "production" here: an archive signed with a development APNs
+		environment registers device tokens against Apple's sandbox gateway,
+		so every FCM push silently fails for store users. Order-status pushes
+		are Woody's main retention channel, so that failure is invisible and
+		expensive.
+
+		Debug and Profile keep "development" (Runner.entitlements) — those run
+		under a development provisioning profile. The split is wired in
+		project.pbxproj via CODE_SIGN_ENTITLEMENTS per build configuration.
+
+		Anything added to one file must be added to the other. Today that
+		means the Associated Domains list below.
+	-->
+	<key>aps-environment</key>
+	<string>production</string>
+	<!--
+		Universal Links. iOS fetches https://woody.uz/.well-known/apple-app-site-association
+		and, if the appID matches, opens https://woody.uz/product/* and /shop/*
+		directly in the app instead of Safari. The path matching lives in the AASA
+		file, not here.
+	-->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:woody.uz</string>
+		<string>applinks:www.woody.uz</string>
+	</array>
+</dict>
+</plist>

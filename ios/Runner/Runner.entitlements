@@ -10,11 +10,17 @@
 		Capability → Associated Domains) so CODE_SIGN_ENTITLEMENTS points at this file.
 	-->
 	<!--
+		DEBUG / PROFILE entitlements. The Release configuration points at
+		Runner/RunnerRelease.entitlements instead (see CODE_SIGN_ENTITLEMENTS
+		in project.pbxproj) — keep the two files in sync except for
+		`aps-environment`.
+
 		Push Notifications (FCM → APNs). Required for firebase_messaging to
-		register for remote notifications. Xcode rewrites this to "production"
-		in the archived App Store build via the distribution provisioning
-		profile; "development" is what Xcode-launched debug / TestFlight runs
-		use. Needs the Push Notifications capability enabled on the App ID.
+		register for remote notifications; needs the Push Notifications
+		capability enabled on the App ID. "development" targets Apple's
+		sandbox gateway, which is what locally-launched debug/profile runs
+		need. Do NOT ship an archive with this value — App Store and
+		TestFlight builds must be "production" or every push silently drops.
 	-->
 	<key>aps-environment</key>
 	<string>development</string>
