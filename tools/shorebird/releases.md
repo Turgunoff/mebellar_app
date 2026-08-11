@@ -43,3 +43,5 @@ Yozuvlar avtomatik qo'shiladi:
 | 2026-08-01 | 1.0.36+36 | 3077347c63a0 | android ios | 1.0.36: guest personal-API 401 guard + hybrid public notifications + wallet withdraw |
 | 2026-08-03 | 1.0.37+37 | 46cb842c704c | android | 1.0.37: seller oferta/onboarding KYC persist + pick-time compress |
 | 2026-08-07 | 1.0.38+38 | a61f0ec3386a | android | 1.0.38: T-15 1+2-to'lqin — dep upgrades (dio/lottie/yandex_mapkit/… + Firebase suite 3→4/15→16/4→5/11→12, iOS pod 11.15.0→12.17.0) |
+| 2026-08-11 | 1.0.39+39 | e333566d43e8 | android | 1.0.39: Meta reklama infratuzilmasi — iOS privacy manifest (tracking=true), Release APNs production entitlement, Advanced Matching (flag OFF), maxfiylik siyosati Meta SDK oshkorligi |
+| 2026-08-11 | 1.0.39+39 | e333566d43e8 | ios | 1.0.39: Meta reklama infratuzilmasi — iOS privacy manifest (tracking=true), Release APNs production entitlement, Advanced Matching (flag OFF), maxfiylik siyosati Meta SDK oshkorligi |
