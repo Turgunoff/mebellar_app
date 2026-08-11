@@ -61,3 +61,41 @@ to match.
 `NSPrivacyTrackingDomains` is intentionally empty — FBSDKCoreKit declares
 `ep1.facebook.com` in its own bundled manifest and Meta's docs advise
 against restating it. See the comment in the manifest for the citation.
+
+---
+
+## Android — Play Console
+
+### Advertising ID declaration
+
+**Why it matters:** the app requests
+`com.google.android.gms.permission.AD_ID` (merged in from
+`play-services-measurement-api` and `facebook-core` — it is not declared in
+`android/app/src/main/AndroidManifest.xml`; see the comment there). Play
+policy requires that any app requesting it declares Advertising ID use in
+**App content → Advertising ID**. A mismatch between the permission and the
+declaration blocks the release, and the console reports it as a policy
+issue rather than a build error.
+
+**Verify per release:**
+
+- Play Console → App content → **Advertising ID**: declared as used, with
+  the purposes that match reality — *Advertising or marketing* and
+  *Analytics*. Woody does not use it for fraud prevention or personalisation
+  beyond ad attribution.
+- **Data safety** section agrees with the same set the iOS privacy manifest
+  declares (device/advertising ID, purchase history, app interactions, crash
+  logs, diagnostics), and states that collection is optional — the in-app
+  "Foydalanish statistikasi" toggle and the ATT-equivalent choice let users
+  opt out.
+- If `kMetaAdvancedMatchingEnabled` ever ships enabled, Data safety must add
+  personal identifiers (phone, name, email) shared with a third party for
+  advertising, and the privacy policy must say so first.
+
+**Re-verify the permission after any dependency bump** — it comes from
+transitive libraries, so a Firebase or Facebook SDK upgrade can change it:
+
+```bash
+flutter build apk --debug --dart-define-from-file=env/prod.json
+grep -n "AD_ID" build/app/outputs/logs/manifest-merger-debug-report.txt
+```

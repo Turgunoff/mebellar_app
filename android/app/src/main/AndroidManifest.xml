@@ -32,6 +32,28 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!--
+        Advertising ID (GAID) is NOT declared here on purpose — it arrives
+        through manifest merge and re-declaring it would just create a second
+        source of truth to keep in sync.
+
+        Verified in build/app/outputs/logs/manifest-merger-debug-report.txt:
+          uses-permission#com.google.android.gms.permission.AD_ID
+            ADDED  from com.google.android.gms:play-services-measurement-api
+            MERGED from com.facebook.android:facebook-core
+        …and it lands in the final merged manifest at
+        build/app/intermediates/merged_manifest/debug/
+        processDebugMainManifest/AndroidManifest.xml (alongside
+        android.permission.ACCESS_ADSERVICES_AD_ID).
+
+        Android 13+ requires the permission to read the GAID at all; without
+        it the Meta SDK gets a zeroed id and attribution quietly degrades
+        rather than failing loudly. If Firebase Analytics AND the Facebook
+        SDK are ever both removed, the permission disappears with them —
+        which is correct, but it also means Play Console's Advertising ID
+        declaration must be revisited (see doc/release_checklist.md).
+    -->
+
+    <!--
         Declare hardware features as NOT required so the app is visible on
         devices that lack GPS or a rear camera (tablets, ChromeOS, etc.).
     -->
