@@ -89,7 +89,7 @@ Siz quyidagi huquqlarga egasiz:
 
 #### 7. Bog'lanish
 
-Savollar uchun: **eshniyazov.jasur.89@gmail.com**
+Savollar uchun: **info@woody.uz**
 
 ---
 
@@ -178,4 +178,4 @@ Woody работает на собственном бэкенде **Python / Fas
 
 #### 7. Контакты
 
-По вопросам: **eshniyazov.jasur.89@gmail.com**
+По вопросам: **info@woody.uz**
