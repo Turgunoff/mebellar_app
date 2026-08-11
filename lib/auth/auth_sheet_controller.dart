@@ -222,7 +222,17 @@ class AuthSheetController extends ChangeNotifier {
         );
       }
       if (sl.isRegistered<FacebookAnalyticsService>()) {
-        unawaited(sl<FacebookAnalyticsService>().logRegistration());
+        final fb = sl<FacebookAnalyticsService>();
+        unawaited(fb.logRegistration());
+        // Advanced Matching, on the one path where the profile is freshest.
+        // Consent-gated inside, and a no-op while the build-time flag is off.
+        unawaited(
+          fb.setUserProfile(
+            phone: me.phone ?? currentPhone,
+            fullName: me.fullName ?? name,
+            email: me.email,
+          ),
+        );
       }
       onCompleted?.call();
     } on ApiError catch (e, st) {

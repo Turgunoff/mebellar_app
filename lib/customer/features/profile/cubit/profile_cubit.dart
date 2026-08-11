@@ -9,6 +9,7 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
 import '../../../../core/logging/app_logger.dart';
 import '../../../../core/network/api_error.dart';
+import '../../../../core/services/facebook_analytics_service.dart';
 import '../../../../shared/models/me.dart';
 import '../../../../shared/models/verification_status.dart';
 
@@ -143,15 +144,24 @@ class ProfileCubit extends Cubit<ProfileState> {
   /// already knows whether this device's last session was an approved seller.
   /// That's what stops the "become a seller" CTA flashing on the customer
   /// home/profile right after a seller→customer mode switch.
-  ProfileCubit(this._auth, {bool cachedApprovedSeller = false})
-    : super(
-        ProfileState(
-          isLoading: true,
-          cachedIsApprovedSeller: cachedApprovedSeller,
-        ),
-      );
+  ProfileCubit(
+    this._auth, {
+    bool cachedApprovedSeller = false,
+    FacebookAnalyticsService? facebookAnalytics,
+  }) : _facebookAnalytics = facebookAnalytics,
+       super(
+         ProfileState(
+           isLoading: true,
+           cachedIsApprovedSeller: cachedApprovedSeller,
+         ),
+       );
 
   final AuthRepository _auth;
+
+  /// Meta conversion sink. `/me` is the one place a restored session sees the
+  /// full profile, so this is where Advanced Matching gets refreshed. Optional
+  /// so unit tests don't have to wire a platform-channel-backed service.
+  final FacebookAnalyticsService? _facebookAnalytics;
 
   /// Hides the rejected banner for this user until a fresh rejection re-arms
   /// it server-side. Optimistic: flips the local flag for an instant response,
@@ -167,7 +177,11 @@ class ProfileCubit extends Cubit<ProfileState> {
         Object e,
         StackTrace st,
       ) {
-        appLog.handle(e, st, 'ProfileCubit.dismissRejectedBanner persist failed');
+        appLog.handle(
+          e,
+          st,
+          'ProfileCubit.dismissRejectedBanner persist failed',
+        );
       }),
     );
   }
@@ -199,6 +213,7 @@ class ProfileCubit extends Cubit<ProfileState> {
       final me = await _auth.fetchMe();
       if (isClosed) return;
       emit(_fromMe(me));
+      _syncAdvancedMatching(me);
       if (sl.isRegistered<AppModeCubit>()) {
         unawaited(
           sl<AppModeCubit>().recordSellerApproval(state.isSellerApproved),
@@ -243,6 +258,23 @@ class ProfileCubit extends Cubit<ProfileState> {
     );
     if (isClosed) return;
     emit(_fromMe(me));
+    _syncAdvancedMatching(me);
+  }
+
+  /// Refreshes Meta's Advanced Matching payload from a freshly-resolved `/me`.
+  /// Everything that decides whether anything is actually sent — the build-time
+  /// flag, ATT, the in-app analytics preference — lives inside the service, so
+  /// this stays an unconditional fire-and-forget on the happy path.
+  void _syncAdvancedMatching(Me me) {
+    final fb = _facebookAnalytics;
+    if (fb == null) return;
+    unawaited(
+      fb.setUserProfile(
+        phone: me.phone ?? _auth.currentUserPhone,
+        fullName: me.fullName,
+        email: me.email,
+      ),
+    );
   }
 
   ProfileState _fromMe(Me me) {
@@ -252,7 +284,8 @@ class ProfileCubit extends Cubit<ProfileState> {
     // re-arms `rejection_alert_dismissed` (sets it false) on every fresh
     // rejection, so a new decision always surfaces the banner again even if an
     // earlier one was dismissed.
-    final dismissed = status.isRejected && (seller?.rejectionAlertDismissed ?? false);
+    final dismissed =
+        status.isRejected && (seller?.rejectionAlertDismissed ?? false);
     return ProfileState(
       id: me.id,
       name: me.fullName,

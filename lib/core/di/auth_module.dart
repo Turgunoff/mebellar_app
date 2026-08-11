@@ -9,6 +9,7 @@ import '../auth/auth_repository.dart';
 import '../network/token_store.dart';
 import '../network/woody_api_client.dart';
 import '../realtime/woody_realtime_service.dart';
+import '../services/facebook_analytics_service.dart';
 import '../notifications/app_badge_service.dart';
 import '../notifications/notification_handler.dart';
 import '../notifications/push_service.dart';
@@ -64,6 +65,9 @@ void registerAuthModule(GetIt sl) {
       realtime: sl.isRegistered<WoodyRealtimeService>()
           ? sl<WoodyRealtimeService>()
           : null,
+      // Lookup closure, not an instance: this is an EAGER singleton and
+      // FacebookAnalyticsService is registered later, by catalog_module.
+      facebookAnalyticsLookup: () => sl<FacebookAnalyticsService>(),
     ),
     dispose: (c) => c.close(),
   );

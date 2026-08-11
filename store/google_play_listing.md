@@ -144,9 +144,9 @@ v1.0.0 — Первый выпуск
 
 | Maydon | Qiymat |
 |--------|--------|
-| **Email** | eshniyazov.jasur.89@gmail.com |
-| **Vebsayt** | — (ixtiyoriy) |
-| **Telefon** | — (ixtiyoriy) |
+| **Email** | info@woody.uz|
+| **Vebsayt** | — https://woody.uz |
+| **Telefon** | — +998946433733 |
 | **Maxfiylik siyosati URL** | Majburiy (Google Docs yoki Notion orqali link yasab qo'ying) |
 
 ---

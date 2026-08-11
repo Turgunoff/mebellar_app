@@ -33,6 +33,24 @@ class AppConfig {
     defaultValue: true,
   );
 
+  /// Sends normalised profile fields (phone, name, email) to Meta for
+  /// Advanced Matching — it raises the rate at which Meta can match an app
+  /// event to a real account, which is what makes App Promotion campaigns
+  /// optimise well.
+  ///
+  /// **Default OFF, and it must stay OFF until three things ship together:**
+  /// the privacy policy names the fields being shared, `PrivacyInfo.xcprivacy`
+  /// declares PhoneNumber / Name / EmailAddress, and the App Store Connect
+  /// questionnaire matches. Sharing a phone number with an ad network without
+  /// that paperwork is a legal problem, not a tuning knob — see
+  /// `doc/release_checklist.md`.
+  ///
+  /// Runtime consent (ATT + the in-app analytics toggle) still gates this on
+  /// top: the flag can only ever narrow what is sent, never widen it.
+  static const bool metaAdvancedMatchingEnabled = bool.fromEnvironment(
+    'META_ADVANCED_MATCHING_ENABLED',
+  );
+
   static bool get isProd => environment == 'prod';
 
   static bool get hasWoodyApi => woodyApiUrl.isNotEmpty;

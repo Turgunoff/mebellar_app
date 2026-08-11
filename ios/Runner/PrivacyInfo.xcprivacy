@@ -4,22 +4,116 @@
 <dict>
 	<!--
 		App-level Apple Privacy Manifest (required since 2024-05-01).
-		Third-party SDKs (Firebase, shared_preferences, path_provider, …) ship
-		their own manifests inside their frameworks; this file covers the app
-		target itself. Keep it in sync with the App Store Connect privacy
+		Third-party SDKs (Firebase, FBSDKCoreKit, shared_preferences, …) ship
+		their own manifests inside their frameworks; Apple merges all of them
+		into the App Store privacy report. This file covers the app target
+		itself. Keep it in sync with the App Store Connect privacy
 		questionnaire — the two must agree.
 
-		The app does NOT track users across other companies' apps/websites and
-		uses no ad/attribution SDK, so tracking is false and there are no
-		tracking domains.
+		Tracking is TRUE: the app bundles the Meta (Facebook) App Events SDK,
+		prompts for App Tracking Transparency (see MetaConsentGate) and, when
+		the user authorises, lets the SDK read the IDFA for ad attribution.
+		Collection is consent-gated at runtime (ATT ∧ the in-app
+		"Foydalanish statistikasi" toggle), but a manifest declares what the
+		app MAY collect, not what a given user happened to allow.
 	-->
 	<key>NSPrivacyTracking</key>
-	<false/>
+	<true/>
+
+	<!--
+		Deliberately EMPTY.
+
+		The Facebook SDK declares its own tracking domain (ep1.facebook.com)
+		inside FBSDKCoreKit.framework/PrivacyInfo.xcprivacy, and Meta's iOS
+		docs explicitly tell integrators not to restate them here:
+
+		  "We have pre-populated the tracking domain field for the FBSDK in
+		   the Privacy Manifest to help ensure that our services continue to
+		   function properly. We do not advise manually adding domains."
+		  "Listing 'www.facebook.com' or subdomains of 'facebook.com' in the
+		   tracking domain field of a Privacy Manifest may break
+		   functionality."
+		  — https://developers.facebook.com/docs/ios (App Privacy)
+
+		The app's own code contacts no tracking domain of its own
+		(api.woody.uz is first-party), so there is nothing to declare at this
+		level. Verified against FBSDKCoreKit 18.1.0 as vendored in
+		ios/Pods/FBSDKCoreKit/XCFrameworks/FBSDKCoreKit.xcframework/.
+	-->
 	<key>NSPrivacyTrackingDomains</key>
 	<array/>
 
 	<key>NSPrivacyCollectedDataTypes</key>
 	<array>
+		<!--
+			Device advertising identifier (IDFA). Read by the Meta SDK for
+			ad attribution once ATT is authorised, and by Firebase Analytics
+			for its own measurement. This is the one entry that is genuinely
+			"tracking" under Apple's definition.
+		-->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeDeviceID</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeThirdPartyAdvertising</string>
+				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
+			</array>
+		</dict>
+		<!--
+			Woody account id set on Firebase Analytics (AuthCubit →
+			AnalyticsService.setUserId). NOT sent to Meta — the Facebook
+			wrapper's setUserId has no call site today.
+		-->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeUserID</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<!--
+			Purchase / cart events (AddToCart, InitiateCheckout, Purchase) go
+			to both Firebase and Meta with amount, currency and product ids.
+		-->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypePurchaseHistory</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
+			</array>
+		</dict>
+		<!--
+			Screen views and in-app events (ViewContent, search, AR / AI
+			usage). Linked — they ride alongside the signed-in user id.
+		-->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeProductInteraction</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
+			</array>
+		</dict>
 		<!-- Firebase Crashlytics -->
 		<dict>
 			<key>NSPrivacyCollectedDataType</key>
@@ -46,19 +140,22 @@
 				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
 			</array>
 		</dict>
-		<!-- Firebase Analytics -->
-		<dict>
-			<key>NSPrivacyCollectedDataType</key>
-			<string>NSPrivacyCollectedDataTypeProductInteraction</string>
-			<key>NSPrivacyCollectedDataTypeLinked</key>
-			<false/>
-			<key>NSPrivacyCollectedDataTypeTracking</key>
-			<false/>
-			<key>NSPrivacyCollectedDataTypePurposes</key>
-			<array>
-				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
-			</array>
-		</dict>
+		<!--
+			NOT DECLARED — Meta Advanced Matching is written but disabled.
+			`FacebookAnalyticsService.setUserProfile` is behind
+			`kMetaAdvancedMatchingEnabled` (default false, see AppConfig). The
+			DAY that flag ships enabled, add these three entries — the fields
+			actually passed to FBSDK's setUserData — and update the App Store
+			Connect questionnaire + the privacy policy in the same release:
+
+			  NSPrivacyCollectedDataTypePhoneNumber
+			  NSPrivacyCollectedDataTypeName
+			  NSPrivacyCollectedDataTypeEmailAddress
+
+			each with Linked=true, Tracking=true and purposes
+			ThirdPartyAdvertising + Analytics. Over-declaring them now would
+			be just as wrong as under-declaring them later.
+		-->
 	</array>
 
 	<!--

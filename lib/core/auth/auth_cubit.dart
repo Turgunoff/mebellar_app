@@ -7,6 +7,7 @@ import '../analytics/analytics_service.dart';
 import '../network/jwt_utils.dart';
 import '../network/token_store.dart';
 import '../realtime/woody_realtime_service.dart';
+import '../services/facebook_analytics_service.dart';
 
 sealed class AppAuthState extends Equatable {
   const AppAuthState();
@@ -35,13 +36,28 @@ class AppAuthAuthenticated extends AppAuthState {
 /// sign-out fires `logout`. Fresh sign-ups are emitted by the controller
 /// itself so the `sign_up` event carries the chosen method.
 class AuthCubit extends Cubit<AppAuthState> {
-  AuthCubit({required this.tokens, this.analytics, this.realtime})
-    : super(const AppAuthUnauthenticated()) {
+  AuthCubit({
+    required this.tokens,
+    this.analytics,
+    this.realtime,
+    FacebookAnalyticsService Function()? facebookAnalyticsLookup,
+  }) : _facebookAnalyticsLookup = facebookAnalyticsLookup,
+       super(const AppAuthUnauthenticated()) {
     _init();
   }
 
   final TokenStore tokens;
   final AnalyticsService? analytics;
+
+  /// Only used to wipe Meta's Advanced Matching payload on sign-out. The
+  /// signed-IN direction is driven by ProfileCubit, which is the one place
+  /// that holds a resolved profile — a JWT only carries the user id.
+  ///
+  /// A lookup closure, not an instance: this cubit is an EAGER singleton in
+  /// auth_module, which runs before catalog_module registers
+  /// [FacebookAnalyticsService] — resolving at construction would capture
+  /// null forever (same trap AppModeCubit documents for AnalyticsService).
+  final FacebookAnalyticsService Function()? _facebookAnalyticsLookup;
 
   /// When provided, the cubit drives the WS lifecycle: opens on sign-in,
   /// closes on sign-out. Optional so unit tests don't need to wire a
@@ -64,6 +80,13 @@ class AuthCubit extends Cubit<AppAuthState> {
     if (pair == null) {
       emit(const AppAuthUnauthenticated());
       analytics?.setUserId(null);
+      // Unconditional, even when Meta tracking is currently suppressed:
+      // clearing is always the safe direction, and identity data must not
+      // outlive the session that produced it.
+      unawaited(
+        _facebookAnalyticsLookup?.call().clearUserProfile() ??
+            Future<void>.value(),
+      );
       if (emitLogin) analytics?.loggedOut();
       unawaited(realtime?.stop());
       return;
