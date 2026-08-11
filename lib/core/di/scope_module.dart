@@ -93,22 +93,22 @@ void registerCustomerScope(GetIt sl) {
         ProfileOrdersCubit(sl<ProfileOrdersRepository>(), sl<AuthRepository>()),
     dispose: (c) => c.close(),
   );
-  sl.registerLazySingleton<ProfileCubit>(
-    () {
-      // Seed the cubit with the last-known seller-approval flag so the very
-      // first frame after a seller→customer mode switch already knows to hide
-      // the "become a seller" CTA (no flash until `/me` returns). Shares the
-      // same Hive key the boot guard reads; logout deletes it (_wipeLocalUserData).
-      final settings = sl<Box>(instanceName: HiveBoxes.settings);
-      final cachedApproved =
-          (settings.get(AppModeCubit.sellerApprovedCacheKey) as bool?) ?? false;
-      return ProfileCubit(
-        sl<AuthRepository>(),
-        cachedApprovedSeller: cachedApproved,
-      );
-    },
-    dispose: (c) => c.close(),
-  );
+  sl.registerLazySingleton<ProfileCubit>(() {
+    // Seed the cubit with the last-known seller-approval flag so the very
+    // first frame after a seller→customer mode switch already knows to hide
+    // the "become a seller" CTA (no flash until `/me` returns). Shares the
+    // same Hive key the boot guard reads; logout deletes it (_wipeLocalUserData).
+    final settings = sl<Box>(instanceName: HiveBoxes.settings);
+    final cachedApproved =
+        (settings.get(AppModeCubit.sellerApprovedCacheKey) as bool?) ?? false;
+    return ProfileCubit(
+      sl<AuthRepository>(),
+      cachedApprovedSeller: cachedApproved,
+      facebookAnalytics: sl.isRegistered<FacebookAnalyticsService>()
+          ? sl<FacebookAnalyticsService>()
+          : null,
+    );
+  }, dispose: (c) => c.close());
   // NotificationsCubit is root-scoped (see registerCatalogModule) so seller
   // mode shares the same instance — no notification wiring belongs here.
 }

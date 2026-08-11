@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:facebook_app_events/facebook_app_events.dart';
 import 'package:flutter/foundation.dart';
 
+import '../../config/app_config.dart';
 import '../logging/app_logger.dart';
 import 'meta_consent_gate.dart';
 
@@ -48,11 +49,19 @@ class FacebookAnalyticsService {
   FacebookAnalyticsService({
     FacebookAppEvents? events,
     MetaConsentGate? consent,
+    bool? advancedMatchingEnabled,
   }) : _fb = events ?? FacebookAppEvents(),
-       _consent = consent ?? const MetaConsentGate();
+       _consent = consent ?? const MetaConsentGate(),
+       _advancedMatchingEnabled =
+           advancedMatchingEnabled ?? AppConfig.metaAdvancedMatchingEnabled;
 
   final FacebookAppEvents _fb;
   final MetaConsentGate _consent;
+
+  /// Build-time kill switch for [setUserProfile] — see
+  /// [AppConfig.metaAdvancedMatchingEnabled]. Injectable so tests can exercise
+  /// both sides without a `--dart-define`.
+  final bool _advancedMatchingEnabled;
 
   /// Currency for the marketplace — every monetary event rides UZS.
   static const _currency = 'UZS';
@@ -256,6 +265,61 @@ class FacebookAnalyticsService {
     );
   }
 
+  // ── advanced matching ───────────────────────────────────────────────────
+
+  /// Sends normalised profile fields to Meta so it can match this install to a
+  /// real account (Advanced Matching). Call it after sign-up and whenever a
+  /// signed-in session resolves `/me`.
+  ///
+  /// Three independent gates, all fail-closed:
+  ///
+  /// 1. [AppConfig.metaAdvancedMatchingEnabled] — off until the privacy policy
+  ///    and the App Store privacy declarations name these fields.
+  /// 2. [isEnabled] — ATT ∧ the in-app analytics preference, same gate every
+  ///    event rides. Consent is never bypassed for identity data.
+  /// 3. A payload that normalises to nothing is not sent at all — a blank
+  ///    field would overwrite nothing but still costs a channel round-trip,
+  ///    and FBSDK merges on set (passing null leaves the previous value).
+  Future<void> setUserProfile({
+    String? phone,
+    String? fullName,
+    String? email,
+  }) async {
+    if (!_advancedMatchingEnabled) return;
+    if (!_enabled) return;
+
+    final data = MetaUserData.fromProfile(
+      phone: phone,
+      fullName: fullName,
+      email: email,
+    );
+    if (data.isEmpty) return;
+
+    _console('👤 Advanced Matching: $data');
+    await _safe(
+      () => _fb.setUserData(
+        phone: data.phone,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        country: data.country,
+      ),
+    );
+  }
+
+  /// Drops everything Meta holds for this device on sign-out.
+  ///
+  /// Deliberately NOT gated on [isEnabled]: clearing is the safe direction, and
+  /// a user who revokes consent mid-session must not leave identity data behind
+  /// just because the gate closed before they signed out.
+  Future<void> clearUserProfile() async {
+    _console('👤 Advanced Matching: cleared');
+    await _safe(() async {
+      await _fb.clearUserData();
+      await _fb.clearUserID();
+    });
+  }
+
   // ── internals ───────────────────────────────────────────────────────────
 
   /// Logs the event to the debug console (always, so a suppressed event is
@@ -305,5 +369,111 @@ class FacebookAnalyticsService {
       buf.write(digits[i]);
     }
     return buf.toString();
+  }
+}
+
+/// Profile fields normalised into the shape Meta expects for Advanced
+/// Matching, built by [MetaUserData.fromProfile] from a raw `/me` payload.
+///
+/// ## Everything here stays PLAINTEXT
+///
+/// FBSDK hashes each field with SHA-256 itself, inside the native layer,
+/// immediately before it leaves the device. Hashing here would double-hash
+/// and the match rate would silently drop to zero — the failure is invisible
+/// (events still send, Meta just never matches them), which is exactly why
+/// it's worth a comment.
+///
+/// ## Absent beats blank
+///
+/// Any field that doesn't normalise cleanly comes out `null` and is simply not
+/// sent. FBSDK merges on set — a `null` leaves whatever was stored before
+/// untouched — so an empty string would be strictly worse than omitting it:
+/// it would overwrite a good value with junk and pollute Meta's dataset.
+@immutable
+class MetaUserData {
+  const MetaUserData({this.phone, this.firstName, this.lastName, this.email});
+
+  /// Normalises a raw Woody profile. [fullName] is split on whitespace: the
+  /// first token is the given name, everything after it the family name (a
+  /// single-token name yields no [lastName] rather than a duplicate).
+  factory MetaUserData.fromProfile({
+    String? phone,
+    String? fullName,
+    String? email,
+  }) {
+    final parts = normalizeName(fullName)?.split(' ') ?? const <String>[];
+    return MetaUserData(
+      phone: normalizePhone(phone),
+      firstName: parts.isEmpty ? null : parts.first,
+      lastName: parts.length < 2 ? null : parts.sublist(1).join(' '),
+      email: normalizeEmail(email),
+    );
+  }
+
+  /// E.164, e.g. `+998901234567`.
+  final String? phone;
+  final String? firstName;
+  final String? lastName;
+  final String? email;
+
+  /// ISO-3166-1 alpha-2, lowercase. Woody is an Uzbekistan-only marketplace,
+  /// so this is a fact about every account rather than a stored field — but
+  /// it's only worth sending alongside something matchable.
+  String? get country => isEmpty ? null : 'uz';
+
+  bool get isEmpty =>
+      phone == null && firstName == null && lastName == null && email == null;
+
+  /// Digits-only E.164 for Uzbekistan (`+998` + 9 national digits).
+  ///
+  /// Accepts every shape a profile realistically carries — `+998 90 123 45 67`,
+  /// `998901234567`, `901234567`, `0901234567` — and returns `null` for
+  /// anything that doesn't land on a plausible UZ number. FBSDK strips the
+  /// symbols again on its side before hashing; we normalise here so a
+  /// malformed number is dropped rather than hashed into a permanent miss.
+  static String? normalizePhone(String? raw) {
+    if (raw == null) return null;
+    var digits = raw.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.isEmpty) return null;
+    // Domestic trunk prefix — "0" then the 9-digit national number.
+    if (digits.length == 10 && digits.startsWith('0')) {
+      digits = digits.substring(1);
+    }
+    if (digits.length == 9) digits = '998$digits';
+    if (digits.length != 12 || !digits.startsWith('998')) return null;
+    return '+$digits';
+  }
+
+  /// Trimmed, lowercased, inner whitespace collapsed. Meta matches on
+  /// lowercase names, so casing differences are a pure loss.
+  static String? normalizeName(String? raw) {
+    if (raw == null) return null;
+    final cleaned = raw.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+    return cleaned.isEmpty ? null : cleaned;
+  }
+
+  /// Trimmed, lowercased, all whitespace removed. Anything that isn't
+  /// recognisably `local@domain.tld` is dropped.
+  static String? normalizeEmail(String? raw) {
+    if (raw == null) return null;
+    final cleaned = raw.toLowerCase().replaceAll(RegExp(r'\s'), '');
+    final at = cleaned.indexOf('@');
+    if (at <= 0 || at == cleaned.length - 1) return null;
+    final domain = cleaned.substring(at + 1);
+    if (!domain.contains('.') ||
+        domain.startsWith('.') ||
+        domain.endsWith('.')) {
+      return null;
+    }
+    return cleaned;
+  }
+
+  /// Presence-only, never values — this feeds the debug console, and identity
+  /// data has no business in a log line even in debug.
+  @override
+  String toString() {
+    String f(String label, String? v) => '$label:${v == null ? '✗' : '✓'}';
+    return 'MetaUserData(${f('phone', phone)} ${f('first', firstName)} '
+        '${f('last', lastName)} ${f('email', email)} ${f('country', country)})';
   }
 }
