@@ -3,45 +3,47 @@
 <plist version="1.0">
 <dict>
 	<!--
-		App-level Apple Privacy Manifest (required since 2024-05-01).
-		Third-party SDKs (Firebase, FBSDKCoreKit, shared_preferences, …) ship
-		their own manifests inside their frameworks; Apple merges all of them
-		into the App Store privacy report. This file covers the app target
-		itself. Keep it in sync with the App Store Connect privacy
-		questionnaire — the two must agree.
+		Tracking is TRUE and one tracking domain is declared.
 
-		Tracking is TRUE: the app bundles the Meta (Facebook) App Events SDK,
-		prompts for App Tracking Transparency (see MetaConsentGate) and, when
-		the user authorises, lets the SDK read the IDFA for ad attribution.
-		Collection is consent-gated at runtime (ATT ∧ the in-app
-		"Foydalanish statistikasi" toggle), but a manifest declares what the
-		app MAY collect, not what a given user happened to allow.
+		Build 1.0.39 (39) was rejected with ITMS-91064 because this file shipped
+		NSPrivacyTracking=true together with an EMPTY NSPrivacyTrackingDomains
+		array. Apple TN3181 names that exact combination as invalid:
+
+		  "The value of the NSPrivacyTracking key is true and the value of the
+		   NSPrivacyTrackingDomains key is an empty array of strings."
+		  Solution: "Fill the array with one or more tracking domains your app or
+		   third-party SDK connects to."
+		  https://developer.apple.com/documentation/technotes/tn3181-debugging-invalid-privacy-manifest
+
+		Why true (and not the other permitted fix, false + no domains): the
+		DeviceID entry below is declared with Tracking=true, because the Meta SDK
+		reads the IDFA for ad attribution once ATT is authorised. Declaring the
+		app as non-tracking while declaring a data type as tracking would be
+		self-contradictory.
+
+		Why only ep1.facebook.com: that is the App Events endpoint FBSDKCoreKit
+		declares in its own FBSDKCoreKit.framework/PrivacyInfo.xcprivacy. It is
+		events-only. Do NOT add graph.facebook.com, m.facebook.com or bare
+		facebook.com here - iOS blocks listed domains when ATT is denied, and
+		blocking those would break Facebook login and sharing. Meta warns about
+		exactly that: "Listing 'www.facebook.com' or subdomains of 'facebook.com'
+		in the tracking domain field of a Privacy Manifest may break
+		functionality." - https://developers.facebook.com/docs/ios
+
+		Blocking ep1.facebook.com under a denied ATT prompt costs us nothing:
+		MetaConsentGate already refuses to emit events in that state.
+
+		App Store Connect > App Privacy must answer YES to "Used to Track You"
+		for Device ID, to match this file.
 	-->
 	<key>NSPrivacyTracking</key>
 	<true/>
 
-	<!--
-		Deliberately EMPTY.
-
-		The Facebook SDK declares its own tracking domain (ep1.facebook.com)
-		inside FBSDKCoreKit.framework/PrivacyInfo.xcprivacy, and Meta's iOS
-		docs explicitly tell integrators not to restate them here:
-
-		  "We have pre-populated the tracking domain field for the FBSDK in
-		   the Privacy Manifest to help ensure that our services continue to
-		   function properly. We do not advise manually adding domains."
-		  "Listing 'www.facebook.com' or subdomains of 'facebook.com' in the
-		   tracking domain field of a Privacy Manifest may break
-		   functionality."
-		  — https://developers.facebook.com/docs/ios (App Privacy)
-
-		The app's own code contacts no tracking domain of its own
-		(api.woody.uz is first-party), so there is nothing to declare at this
-		level. Verified against FBSDKCoreKit 18.1.0 as vendored in
-		ios/Pods/FBSDKCoreKit/XCFrameworks/FBSDKCoreKit.xcframework/.
-	-->
 	<key>NSPrivacyTrackingDomains</key>
-	<array/>
+	<array>
+		<string>ep1.facebook.com</string>
+	</array>
+
 
 	<key>NSPrivacyCollectedDataTypes</key>
 	<array>
@@ -92,9 +94,10 @@
 			<key>NSPrivacyCollectedDataTypeLinked</key>
 			<true/>
 			<key>NSPrivacyCollectedDataTypeTracking</key>
-			<false/>
+			<true/>
 			<key>NSPrivacyCollectedDataTypePurposes</key>
 			<array>
+				<string>NSPrivacyCollectedDataTypePurposeThirdPartyAdvertising</string>
 				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
 			</array>
 		</dict>
@@ -108,9 +111,10 @@
 			<key>NSPrivacyCollectedDataTypeLinked</key>
 			<true/>
 			<key>NSPrivacyCollectedDataTypeTracking</key>
-			<false/>
+			<true/>
 			<key>NSPrivacyCollectedDataTypePurposes</key>
 			<array>
+				<string>NSPrivacyCollectedDataTypePurposeThirdPartyAdvertising</string>
 				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
 			</array>
 		</dict>
