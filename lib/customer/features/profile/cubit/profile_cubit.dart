@@ -25,6 +25,7 @@ class ProfileState extends Equatable {
     this.sellerRejectionReason,
     this.rejectedBannerDismissed = false,
     this.cachedIsApprovedSeller = false,
+    this.sellerPromoDismissed = false,
     this.isLoading = false,
   });
 
@@ -61,6 +62,13 @@ class ProfileState extends Equatable {
   /// the live [sellerVerificationStatus] is the source of truth once resolved.
   final bool cachedIsApprovedSeller;
 
+  /// True once the user closed the home screen's "Sotuvchi bo'ling" promo
+  /// banner with its X. Sourced from the server
+  /// (`/me.seller_promo_dismissed`) so it stays dismissed across reinstall /
+  /// device change; "become a seller" is still reachable from the Profile
+  /// tab's CTA regardless of this flag.
+  final bool sellerPromoDismissed;
+
   final bool isLoading;
 
   bool get isSignedIn => id.isNotEmpty;
@@ -95,6 +103,7 @@ class ProfileState extends Equatable {
     String? sellerRejectionReason,
     bool? rejectedBannerDismissed,
     bool? cachedIsApprovedSeller,
+    bool? sellerPromoDismissed,
     bool? isLoading,
   }) {
     return ProfileState(
@@ -112,6 +121,7 @@ class ProfileState extends Equatable {
           rejectedBannerDismissed ?? this.rejectedBannerDismissed,
       cachedIsApprovedSeller:
           cachedIsApprovedSeller ?? this.cachedIsApprovedSeller,
+      sellerPromoDismissed: sellerPromoDismissed ?? this.sellerPromoDismissed,
       isLoading: isLoading ?? this.isLoading,
     );
   }
@@ -128,6 +138,7 @@ class ProfileState extends Equatable {
     sellerRejectionReason,
     rejectedBannerDismissed,
     cachedIsApprovedSeller,
+    sellerPromoDismissed,
     isLoading,
   ];
 }
@@ -186,6 +197,25 @@ class ProfileCubit extends Cubit<ProfileState> {
     );
   }
 
+  /// Hides the home screen's "Sotuvchi bo'ling" promo banner permanently.
+  /// Optimistic: flips the local flag for an instant response, then persists
+  /// `seller_promo_dismissed=true` via `PATCH /me` so the dismissal follows
+  /// the account across reinstall / device change. A failed write is
+  /// swallowed — worst case the banner reappears on the next `/me` refresh.
+  /// "Become a seller" stays reachable from the Profile tab's CTA regardless.
+  void dismissSellerPromo() {
+    emit(state.copyWith(sellerPromoDismissed: true));
+    unawaited(_persistSellerPromoDismissed());
+  }
+
+  Future<void> _persistSellerPromoDismissed() async {
+    try {
+      await _auth.updateProfile(sellerPromoDismissed: true);
+    } catch (e, st) {
+      appLog.handle(e, st, 'ProfileCubit.dismissSellerPromo persist failed');
+    }
+  }
+
   Future<void> fetch() async {
     final id = _auth.currentUserId;
     if (id == null) {
@@ -216,7 +246,10 @@ class ProfileCubit extends Cubit<ProfileState> {
       _syncAdvancedMatching(me);
       if (sl.isRegistered<AppModeCubit>()) {
         unawaited(
-          sl<AppModeCubit>().recordSellerApproval(state.isSellerApproved),
+          sl<AppModeCubit>().recordSellerApproval(
+            state.isSellerApproved,
+            userId: id,
+          ),
         );
       }
     } on ApiError catch (e, st) {
@@ -299,6 +332,7 @@ class ProfileCubit extends Cubit<ProfileState> {
       // Keep the cached hint mirroring live truth so a later same-user refresh
       // (which re-enters the loading window) doesn't regress to a stale value.
       cachedIsApprovedSeller: status.isApproved,
+      sellerPromoDismissed: me.sellerPromoDismissed,
     );
   }
 }

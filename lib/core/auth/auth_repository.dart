@@ -120,6 +120,7 @@ class AuthRepository {
     String? avatarUrl,
     bool? promoPushEnabled,
     bool? orderPushEnabled,
+    bool? sellerPromoDismissed,
   }) async {
     final payload = <String, dynamic>{};
     if (fullName != null) payload['full_name'] = fullName;
@@ -133,6 +134,9 @@ class AuthRepository {
     }
     if (orderPushEnabled != null) {
       payload['order_push_enabled'] = orderPushEnabled;
+    }
+    if (sellerPromoDismissed != null) {
+      payload['seller_promo_dismissed'] = sellerPromoDismissed;
     }
     final body = await _api.patch<Map<String, dynamic>>('/me', body: payload);
     return Me.fromJson(body);

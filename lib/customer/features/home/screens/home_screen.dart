@@ -232,9 +232,13 @@ class _HomeViewState extends State<_HomeView> with WidgetsBindingObserver {
                                 // static fallback. The injected seller-promo
                                 // slide rides ahead of them, EXCEPT for an
                                 // approved seller — they already run a shop,
-                                // so the "Sotuvchi bo'ling" CTA is noise.
-                                // GlassBanner collapses to nothing if the
-                                // list ends up empty. Use the cache-aware
+                                // so the "Sotuvchi bo'ling" CTA is noise —
+                                // or a customer who already closed it with
+                                // its X (persisted server-side, so it stays
+                                // hidden across devices; "become a seller"
+                                // is still one tap away from the Profile
+                                // tab). GlassBanner collapses to nothing if
+                                // the list ends up empty. Use the cache-aware
                                 // flag so an approved seller never sees the
                                 // promo flash during the `/me` round-trip
                                 // right after a seller→customer mode switch.
@@ -242,12 +246,19 @@ class _HomeViewState extends State<_HomeView> with WidgetsBindingObserver {
                                     .select<ProfileCubit, bool>(
                                       (c) => c.state.isApprovedSellerKnown,
                                     );
+                                final promoDismissed = context
+                                    .select<ProfileCubit, bool>(
+                                      (c) => c.state.sellerPromoDismissed,
+                                    );
                                 return GlassBanner(
                                   banners: [
-                                    if (!isApprovedSeller)
+                                    if (!isApprovedSeller && !promoDismissed)
                                       GlassBanner.sellerPromoBanner,
                                     ...s.banners,
                                   ],
+                                  onDismissSellerPromo: () => context
+                                      .read<ProfileCubit>()
+                                      .dismissSellerPromo(),
                                 );
                               },
                             ),

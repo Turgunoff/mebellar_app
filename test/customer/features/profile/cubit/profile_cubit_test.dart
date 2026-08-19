@@ -21,6 +21,12 @@ void main() {
         rejectionAlertDismissed: any(named: 'rejectionAlertDismissed'),
       ),
     ).thenAnswer((_) async {});
+    // dismissSellerPromo's fire-and-forget persist — same reasoning as above.
+    when(
+      () => auth.updateProfile(
+        sellerPromoDismissed: any(named: 'sellerPromoDismissed'),
+      ),
+    ).thenAnswer((_) async => const Me(id: 'u1'));
   });
 
   blocTest<ProfileCubit, ProfileState>(
@@ -142,6 +148,50 @@ void main() {
         () => auth.setSellerAlertFlags(rejectionAlertDismissed: true),
       ).called(1);
     },
+  );
+
+  blocTest<ProfileCubit, ProfileState>(
+    'dismissSellerPromo flips the flag and persists it server-side',
+    build: () {
+      when(() => auth.currentUserId).thenReturn('u1');
+      return ProfileCubit(auth);
+    },
+    act: (cubit) => cubit.dismissSellerPromo(),
+    expect: () => [
+      isA<ProfileState>().having(
+        (s) => s.sellerPromoDismissed,
+        'sellerPromoDismissed',
+        true,
+      ),
+    ],
+    verify: (_) {
+      verify(() => auth.updateProfile(sellerPromoDismissed: true)).called(1);
+    },
+  );
+
+  blocTest<ProfileCubit, ProfileState>(
+    'fetch maps the seller-promo dismissal from /me',
+    build: () {
+      when(() => auth.currentUserId).thenReturn('u1');
+      when(() => auth.currentUserPhone).thenReturn('+998901112233');
+      when(() => auth.fetchMe()).thenAnswer(
+        (_) async => const Me(
+          id: 'u1',
+          phone: '+998901112233',
+          sellerPromoDismissed: true,
+        ),
+      );
+      return ProfileCubit(auth);
+    },
+    act: (cubit) => cubit.fetch(),
+    skip: 1,
+    expect: () => [
+      isA<ProfileState>().having(
+        (s) => s.sellerPromoDismissed,
+        'sellerPromoDismissed',
+        true,
+      ),
+    ],
   );
 
   blocTest<ProfileCubit, ProfileState>(

@@ -13,6 +13,7 @@ class Me {
     this.role,
     this.promoPushEnabled = true,
     this.orderPushEnabled = true,
+    this.sellerPromoDismissed = false,
     this.sellerProfile,
   });
 
@@ -36,6 +37,12 @@ class Me {
   /// OS-level push.
   final bool orderPushEnabled;
 
+  /// Home-screen "Sotuvchi bo'ling" promo dismissal (`profiles
+  /// .seller_promo_dismissed`). False until the user closes the banner's X;
+  /// stays true across reinstall / device change once set. "Become a
+  /// seller" remains reachable from the Profile tab regardless.
+  final bool sellerPromoDismissed;
+
   /// Seller surface — populated by a separate endpoint once approved. Until
   /// Phase 4 wires `/seller/me`, this stays null on every `/me` response.
   final SellerProfile? sellerProfile;
@@ -51,6 +58,7 @@ class Me {
     bool? isSellerPending,
     bool? promoPushEnabled,
     bool? orderPushEnabled,
+    bool? sellerPromoDismissed,
     SellerProfile? sellerProfile,
   }) {
     return Me(
@@ -64,6 +72,7 @@ class Me {
       role: role,
       promoPushEnabled: promoPushEnabled ?? this.promoPushEnabled,
       orderPushEnabled: orderPushEnabled ?? this.orderPushEnabled,
+      sellerPromoDismissed: sellerPromoDismissed ?? this.sellerPromoDismissed,
       sellerProfile: sellerProfile ?? this.sellerProfile,
     );
   }
@@ -80,6 +89,7 @@ class Me {
       role: json['role'] as String?,
       promoPushEnabled: json['promo_push_enabled'] as bool? ?? true,
       orderPushEnabled: json['order_push_enabled'] as bool? ?? true,
+      sellerPromoDismissed: json['seller_promo_dismissed'] as bool? ?? false,
       sellerProfile: json['seller_profile'] is Map<String, dynamic>
           ? SellerProfile.fromJson(
               json['seller_profile'] as Map<String, dynamic>,

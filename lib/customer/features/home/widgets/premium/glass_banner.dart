@@ -21,6 +21,7 @@ class GlassBanner extends StatefulWidget {
     super.key,
     required this.banners,
     this.aspectRatio = 21 / 9,
+    this.onDismissSellerPromo,
   });
 
   final List<HomeBanner> banners;
@@ -28,6 +29,12 @@ class GlassBanner extends StatefulWidget {
   /// Wide, short promo band (21:9 by default) so more of the feed shows above
   /// the fold. The pager fills this ratio instead of a fixed pixel height.
   final double aspectRatio;
+
+  /// Called when the seller-promo slide's X is tapped. The caller owns
+  /// persisting the dismissal (see `ProfileCubit.dismissSellerPromo`) —
+  /// this widget only surfaces the tap. Unused when the promo slide isn't
+  /// present in [banners].
+  final VoidCallback? onDismissSellerPromo;
 
   /// Sentinel id for the locally-injected "Sotuvchi bo'ling" promo slide. It is
   /// rendered as a branded gradient (not a network image) and routes to the
@@ -110,7 +117,10 @@ class _GlassBannerState extends State<GlassBanner> {
             controller: _controller,
             itemCount: widget.banners.length,
             onPageChanged: (i) => setState(() => _index = i),
-            itemBuilder: (context, i) => _BannerCard(data: widget.banners[i]),
+            itemBuilder: (context, i) => _BannerCard(
+              data: widget.banners[i],
+              onDismissSellerPromo: widget.onDismissSellerPromo,
+            ),
           ),
         ),
         if (widget.banners.length > 1) ...[
@@ -170,9 +180,10 @@ Future<void> _handleBannerTap(BuildContext context, HomeBanner banner) async {
 }
 
 class _BannerCard extends StatelessWidget {
-  const _BannerCard({required this.data});
+  const _BannerCard({required this.data, this.onDismissSellerPromo});
 
   final HomeBanner data;
+  final VoidCallback? onDismissSellerPromo;
 
   @override
   Widget build(BuildContext context) {
@@ -190,7 +201,11 @@ class _BannerCard extends StatelessWidget {
         // The promo card carries its own clip + shadow so the drop shadow
         // reads; image banners stay flat under the shared rounded clip.
         child: isSellerPromo
-            ? _SellerPromoBody(data: data, lang: lang)
+            ? _SellerPromoBody(
+                data: data,
+                lang: lang,
+                onDismiss: onDismissSellerPromo,
+              )
             : ClipRRect(
                 borderRadius: BorderRadius.circular(24),
                 child: _ImageBannerBody(data: data, lang: lang),
@@ -205,10 +220,19 @@ class _BannerCard extends StatelessWidget {
 /// carries its own rounded clip, drop shadow, warm glow and an oversized
 /// glassmorphic shop glyph, plus a white CTA pill that signals tappability.
 class _SellerPromoBody extends StatelessWidget {
-  const _SellerPromoBody({required this.data, required this.lang});
+  const _SellerPromoBody({
+    required this.data,
+    required this.lang,
+    this.onDismiss,
+  });
 
   final HomeBanner data;
   final String lang;
+
+  /// "I'm not planning to sell" — hides the promo permanently (persisted
+  /// server-side by the caller). Null hides the X, e.g. if a future caller
+  /// renders this card without wiring dismissal.
+  final VoidCallback? onDismiss;
 
   // Fixed marketing palette — intentionally identical in light and dark mode,
   // like the image banners' white-on-photo overlays. Not a themed surface.
@@ -273,9 +297,15 @@ class _SellerPromoBody extends StatelessWidget {
               ),
             ),
           ),
-          // Foreground content.
+          // Foreground content. Extra right inset when the dismiss X is
+          // present so a long title/subtitle's ellipsis never sits under it.
           Padding(
-            padding: const EdgeInsets.fromLTRB(22, 14, 22, 14),
+            padding: EdgeInsets.fromLTRB(
+              22,
+              14,
+              onDismiss != null ? 46 : 22,
+              14,
+            ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -324,6 +354,33 @@ class _SellerPromoBody extends StatelessWidget {
               ],
             ),
           ),
+          // "I'm not planning to sell" — last child so it paints on top and
+          // wins the tap over the card's own navigate-to-Profile handler
+          // (same nested-tappable pattern as a trailing IconButton on a
+          // tappable ListTile).
+          if (onDismiss != null)
+            Positioned(
+              top: 10,
+              right: 10,
+              child: Material(
+                color: Colors.white.withValues(alpha: 0.18),
+                shape: const CircleBorder(),
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  onTap: onDismiss,
+                  child: SizedBox(
+                    width: 28,
+                    height: 28,
+                    child: Icon(
+                      Icons.close_rounded,
+                      size: 16,
+                      color: Colors.white,
+                      semanticLabel: tr('common.close'),
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
