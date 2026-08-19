@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -156,6 +158,61 @@ void main() {
           .having((s) => s.orders, 'orders', isEmpty),
     ],
   );
+
+  test(
+    'fetch does not throw when the cubit closes mid-await (success path) — '
+    'a mode-switch / logout can close the cubit while a fetch is in flight',
+    () async {
+      when(() => auth.isAuthenticated).thenReturn(true);
+      final completer = Completer<List<Map<String, dynamic>>>();
+      when(() => repo.fetchOrders()).thenAnswer((_) => completer.future);
+      final cubit = build();
+
+      final fetchFuture = cubit.fetch();
+      await cubit.close();
+      completer.complete([_row('o1', 'pending')]);
+
+      await expectLater(fetchFuture, completes);
+    },
+  );
+
+  test(
+    'fetch does not throw when the cubit closes mid-await (failure path)',
+    () async {
+      when(() => auth.isAuthenticated).thenReturn(true);
+      final completer = Completer<List<Map<String, dynamic>>>();
+      when(() => repo.fetchOrders()).thenAnswer((_) => completer.future);
+      final cubit = build();
+
+      final fetchFuture = cubit.fetch();
+      await cubit.close();
+      completer.completeError(Exception('boom'));
+
+      await expectLater(fetchFuture, completes);
+    },
+  );
+
+  test('cancelOrder does not throw when the cubit closes mid-await', () async {
+    final completer = Completer<void>();
+    when(
+      () => repo.cancel(
+        any(),
+        reasonCode: any(named: 'reasonCode'),
+        reasonText: any(named: 'reasonText'),
+      ),
+    ).thenAnswer((_) => completer.future);
+    final cubit = build();
+
+    final cancelFuture = cubit.cancelOrder(
+      'o1',
+      reasonCode: 'other',
+      reasonText: 'changed mind',
+    );
+    await cubit.close();
+    completer.complete();
+
+    await expectLater(cancelFuture, completes);
+  });
 
   blocTest<ProfileOrdersCubit, ProfileOrdersState>(
     'cancelOrder calls the repo and patches the row to cancelled in place',

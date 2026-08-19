@@ -164,6 +164,11 @@ Future<void> _wipeLocalUserData() async {
     final settings = sl<Box>(instanceName: HiveBoxes.settings);
     await settings.delete(AppModeCubit.modeKey);
     await settings.delete(AppModeCubit.sellerApprovedCacheKey);
+    // The approval cache is pinned to whichever account last recorded it
+    // (see [AppModeCubit.markSessionActive]) — drop the pin too so it doesn't
+    // linger as a stale, unpinned cache that a future account-less path could
+    // misread as "already validated".
+    await settings.delete(AppModeCubit.sellerApprovalUserIdKey);
     // Drop the synchronous session mirror too so the next cold start's boot
     // guard resolves to customer even before AuthCubit re-reads the (now empty)
     // token store. Deleting reads back as false in [AppModeCubit._resolveBoot].

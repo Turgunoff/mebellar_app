@@ -214,7 +214,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   // flipping. The banner only renders when approved, but the
                   // boot-time guard depends on this cache being true to honor
                   // a persisted `seller` mode on the next cold start.
-                  sl<AppModeCubit>().recordSellerApproval(true);
+                  sl<AppModeCubit>().recordSellerApproval(
+                    true,
+                    userId: profileState.id.isEmpty ? null : profileState.id,
+                  );
                   context.read<AppModeCubit>().switchMode(AppMode.seller);
                   // Phoenix.rebirth (triggered by the root-level mode-swap
                   // listener in main.dart) tears this widget tree down and

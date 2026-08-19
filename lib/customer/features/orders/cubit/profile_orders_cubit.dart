@@ -56,12 +56,17 @@ class ProfileOrdersCubit extends Cubit<ProfileOrdersState> {
 
     try {
       final rows = await _repo.fetchOrders();
+      // A mode switch / logout can close this cubit while the request is
+      // in flight (e.g. login racing a stale-cache seller promotion tears
+      // down the customer scope mid-fetch) — emitting after close throws.
+      if (isClosed) return;
       emit(ProfileOrdersState(orders: rows.map(_toCardMap).toList()));
     } catch (e, st) {
       // Order-list fetch failed — clear the spinner so the UI isn't stuck,
       // and log the cause so an auth/transport failure isn't mistaken for an
       // empty list.
       appLog.handle(e, st, 'ProfileOrdersCubit.load failed');
+      if (isClosed) return;
       emit(state.copyWith(isLoading: false));
     }
   }
@@ -75,6 +80,7 @@ class ProfileOrdersCubit extends Cubit<ProfileOrdersState> {
     String? reasonText,
   }) async {
     await _repo.cancel(orderId, reasonCode: reasonCode, reasonText: reasonText);
+    if (isClosed) return;
 
     final updated = state.orders.map((o) {
       if (o['id'] == orderId) {

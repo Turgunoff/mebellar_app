@@ -311,7 +311,7 @@ void _wireAuthToPushTokens() {
   void handleState(AppAuthState state, {required bool fromStream}) {
     if (state is AppAuthAuthenticated) {
       pushService.syncTokenForUser(state.userId);
-      unawaited(modeCubit.markSessionActive());
+      unawaited(modeCubit.markSessionActive(state.userId));
       // Keep FCM language aligned with the UI locale (preferred_language).
       unawaited(sl<AppLocaleController>().syncPreferredLanguageToServer());
     } else if (state is AppAuthUnauthenticated && fromStream) {

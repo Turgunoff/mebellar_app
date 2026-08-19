@@ -47,6 +47,14 @@ class AppModeCubit extends Cubit<AppMode> {
   /// at the cubit's synchronous construction.
   static const String sessionActiveKey = 'session_active';
 
+  /// Which account the cached approval flag belongs to. The approval cache
+  /// is a device-local snapshot of the *last* seller who used this device —
+  /// without pinning it to an account id, a fresh login from a different
+  /// user (app killed mid-session, shared/QA device, token expiry) inherits
+  /// the previous seller's promotion before their own `/me` has even
+  /// resolved. See [markSessionActive].
+  static const String sellerApprovalUserIdKey = 'seller_approval_user_id';
+
   /// Resolves the mode the app should boot into.
   ///
   /// Security guards, in order:
@@ -76,6 +84,9 @@ class AppModeCubit extends Cubit<AppMode> {
 
   static bool _readSessionActive(Box settings) =>
       (settings.get(sessionActiveKey) as bool?) ?? false;
+
+  static String? _readApprovalUserId(Box settings) =>
+      settings.get(sellerApprovalUserIdKey) as String?;
 
   Future<void> switchMode(AppMode mode) async {
     if (state == mode) return;
@@ -108,14 +119,22 @@ class AppModeCubit extends Cubit<AppMode> {
     emit(_resolveBoot(_settings));
   }
 
-  /// Invoked when the live profile resolves. Two effects:
+  /// Invoked when the live profile resolves. Three effects:
   ///   1. Caches the approval boolean so the next cold start can honor a
   ///      persisted `seller` mode without a network call.
-  ///   2. If the user is currently in seller mode but no longer approved,
+  ///   2. Pins the cache to [userId] (when known) so a later login from a
+  ///      *different* account on this device can't inherit it — see
+  ///      [markSessionActive].
+  ///   3. If the user is currently in seller mode but no longer approved,
   ///      demotes them back to customer — the seller surface must not be
   ///      reachable once approval is revoked.
-  Future<void> recordSellerApproval(bool isApproved) async {
+  Future<void> recordSellerApproval(bool isApproved, {String? userId}) async {
     await _settings.put(sellerApprovedCacheKey, isApproved);
+    if (userId != null) {
+      await _settings.put(sellerApprovalUserIdKey, userId);
+    } else {
+      await _settings.delete(sellerApprovalUserIdKey);
+    }
     if (state == AppMode.seller && !isApproved) {
       await _settings.put(modeKey, AppMode.customer.name);
       if (isClosed) return;
@@ -124,7 +143,8 @@ class AppModeCubit extends Cubit<AppMode> {
   }
 
   /// Records that a live session exists so the next cold start's boot guard
-  /// can honor a persisted `seller` mode. Called by [AuthCubit] on sign-in.
+  /// can honor a persisted `seller` mode. Called by [AuthCubit] on sign-in
+  /// with the freshly-authenticated account's id.
   ///
   /// Also re-promotes to seller when the boot guard had demoted the *live*
   /// state purely because the session flag was missing/false at construction
@@ -133,9 +153,30 @@ class AppModeCubit extends Cubit<AppMode> {
   /// persisted preference is still `seller` and approval is cached, so once the
   /// session is confirmed we restore the user's chosen surface rather than
   /// silently leaving an approved seller on customer.
-  Future<void> markSessionActive() async {
+  ///
+  /// The cached approval flag is a device-local snapshot, not an
+  /// account-scoped one — it's only cleared on a manual/forced logout. If the
+  /// app was killed mid-session, a token expired, or a different account logs
+  /// in on a shared/QA device, a stale `seller` cache from the *previous*
+  /// account would otherwise auto-promote the *new* login before its own
+  /// `/me` has resolved. [userId] guards against that: promotion only runs
+  /// when the cache is unpinned (nothing recorded yet — the pre-account-
+  /// scoping legacy case) or already pinned to this same account. A cache
+  /// pinned to a different account is treated as stale and wiped instead —
+  /// [ProfileCubit.fetch] repins it via [recordSellerApproval] once the new
+  /// account's own approval status is known.
+  Future<void> markSessionActive(String? userId) async {
     await _settings.put(sessionActiveKey, true);
     if (isClosed) return;
+    final cachedUserId = _readApprovalUserId(_settings);
+    if (cachedUserId != null && cachedUserId != userId) {
+      await _settings.delete(modeKey);
+      await _settings.delete(sellerApprovedCacheKey);
+      await _settings.delete(sellerApprovalUserIdKey);
+      if (isClosed) return;
+      if (state == AppMode.seller) emit(AppMode.customer);
+      return;
+    }
     final persisted = AppMode.fromName(_settings.get(modeKey) as String?);
     if (state == AppMode.customer &&
         persisted == AppMode.seller &&
