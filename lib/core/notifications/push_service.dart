@@ -464,6 +464,28 @@ class PushService {
     debugPrint('[FCM] APNs token not set — $action');
   }
 
+  /// True when [e] is the well-known transient Android registration failure
+  /// — `getToken()`/`deleteToken()` surfacing `[firebase_messaging/unknown]
+  /// java.io.IOException: FCM Registration failed!` when Google Play
+  /// Services' own registration endpoint is briefly unreachable (mid Play
+  /// Services update, flaky connectivity, some custom ROMs). It self-heals —
+  /// the next `syncTokenForUser` (next login) or `onTokenRefresh` retries —
+  /// so it isn't an app defect, just noise; matches [_isApnsTokenNotReady]'s
+  /// role for the iOS side. Matched on code (`unknown`, the plugin's catch-
+  /// all) *and* message, since `unknown` alone is too broad to swallow blind.
+  static bool _isTransientFcmRegistrationFailure(FirebaseException e) {
+    if (kIsWeb || !Platform.isAndroid) return false;
+    return e.code.toLowerCase() == 'unknown' &&
+        (e.message ?? '').contains('FCM Registration failed');
+  }
+
+  /// Benign-swallow log for the transient FCM registration failure. Warning
+  /// level — debug console only (not forwarded to Crashlytics).
+  void _logFcmRegistrationTransient(String action) {
+    appLog.warning('FCM registration transiently unavailable — $action');
+    debugPrint('[FCM] registration transiently unavailable — $action');
+  }
+
   /// Subscribe to the marketing / news topic. Called from Settings when the
   /// user re-enables "Push bildirishnomalar", and from the initial permission
   /// flow when the preference is on.
@@ -535,6 +557,10 @@ class PushService {
         _logApnsNotReady('skipping token sync');
         return;
       }
+      if (_isTransientFcmRegistrationFailure(e)) {
+        _logFcmRegistrationTransient('skipping token sync');
+        return;
+      }
       appLog.handle(e, st, 'PushService.syncTokenForUser failed');
       debugPrint('[FCM] syncTokenForUser failed: $e');
     } catch (e, st) {
@@ -584,6 +610,10 @@ class PushService {
         _logApnsNotReady('skipping token removal');
         return;
       }
+      if (_isTransientFcmRegistrationFailure(e)) {
+        _logFcmRegistrationTransient('skipping token removal');
+        return;
+      }
       appLog.handle(e, st, 'PushService.removeCurrentToken failed');
     } catch (e, st) {
       appLog.handle(e, st, 'PushService.removeCurrentToken failed');
@@ -608,7 +638,8 @@ class PushService {
         body: {
           'token': token,
           'platform': platform,
-          if (meta['device_model'] != null) 'device_model': meta['device_model'],
+          if (meta['device_model'] != null)
+            'device_model': meta['device_model'],
           if (meta['os_version'] != null) 'os_version': meta['os_version'],
           if (meta['app_version'] != null) 'app_version': meta['app_version'],
         },
