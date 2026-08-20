@@ -53,14 +53,14 @@ class RemoteConfig extends ChangeNotifier {
   // flags above these carry non-empty platform defaults so the help screen
   // always has a valid channel to launch, even before the first fetch. The
   // cached/fetched values override; a 404 resets to these defaults.
-  static const defaultSupportEmail = 'support@woody.uz';
-  static const defaultSupportPhone = '+998 71 200 70 07';
-  static const defaultTelegramChannel = '@woody_support';
+  static const defaultSupportEmail = 'info@woody.uz';
+  static const defaultSupportPhone = '+998 94 643 37 33';
+  static const defaultTelegramChannel = '@woody_yordam';
 
-  /// Support e-mail address, e.g. `support@woody.uz`.
+  /// Support e-mail address, e.g. `info@woody.uz`.
   String supportEmail = defaultSupportEmail;
 
-  /// Support phone in display form, e.g. `+998 71 200 70 07`.
+  /// Support phone in display form, e.g. `+998 94 643 37 33`.
   String supportPhone = defaultSupportPhone;
 
   /// Public support Telegram channel, e.g. `@woody_support` (a `@handle` or a
@@ -139,23 +139,21 @@ class RemoteConfig extends ChangeNotifier {
   String get supportPhoneUri =>
       'tel:${supportPhone.replaceAll(RegExp(r'[^+\d]'), '')}';
 
-  /// `https://wa.me/<digits>` link for [supportPhone] (WhatsApp wants no `+`).
-  String get whatsappUri =>
-      'https://wa.me/${supportPhone.replaceAll(RegExp(r'[^\d]'), '')}';
-
   /// `https://t.me/<handle>` deep link — accepts `@handle`, a bare handle, or a
   /// full `t.me`/`telegram.me` URL and always emits a canonical link.
-  String get telegramUrl {
-    final handle = telegramChannel
-        .trim()
-        .replaceAll(
-          RegExp(r'^https?://(t\.me|telegram\.me)/', caseSensitive: false),
-          '',
-        )
-        .replaceAll('@', '')
-        .replaceAll(RegExp(r'/+$'), '');
-    return 'https://t.me/$handle';
-  }
+  String get telegramUrl => 'https://t.me/$_telegramHandle';
+
+  /// Display form of the Telegram channel, always `@handle`.
+  String get telegramHandleLabel => '@$_telegramHandle';
+
+  String get _telegramHandle => telegramChannel
+      .trim()
+      .replaceAll(
+        RegExp(r'^https?://(t\.me|telegram\.me)/', caseSensitive: false),
+        '',
+      )
+      .replaceAll('@', '')
+      .replaceAll(RegExp(r'/+$'), '');
 
   /// Seeds the flags from the last cached values. Synchronous, so it can run
   /// at boot before the first frame.
@@ -364,6 +362,10 @@ class RemoteConfig extends ChangeNotifier {
           .get<Map<String, dynamic>>('/catalog/settings/support_contacts')
           .timeout(const Duration(seconds: 6));
       final (:email, :phone, :telegram) = parseSupportContacts(body['value']);
+      final changed =
+          supportEmail != email ||
+          supportPhone != phone ||
+          telegramChannel != telegram;
       supportEmail = email;
       supportPhone = phone;
       telegramChannel = telegram;
@@ -371,16 +373,22 @@ class RemoteConfig extends ChangeNotifier {
       await box.put(_supportPhoneHiveKey, phone);
       await box.put(_telegramChannelHiveKey, telegram);
       appLog.info('[remote-config] support_contacts updated');
+      if (changed) notifyListeners();
     } on ApiError catch (e, st) {
       if (e.isNotFound) {
         // Key not configured server-side — fall back to the platform defaults
         // (not empty), so the help screen still has a channel to launch.
+        final changed =
+            supportEmail != defaultSupportEmail ||
+            supportPhone != defaultSupportPhone ||
+            telegramChannel != defaultTelegramChannel;
         supportEmail = defaultSupportEmail;
         supportPhone = defaultSupportPhone;
         telegramChannel = defaultTelegramChannel;
         await box.put(_supportEmailHiveKey, defaultSupportEmail);
         await box.put(_supportPhoneHiveKey, defaultSupportPhone);
         await box.put(_telegramChannelHiveKey, defaultTelegramChannel);
+        if (changed) notifyListeners();
         return;
       }
       appLog.handle(
@@ -424,6 +432,11 @@ class RemoteConfig extends ChangeNotifier {
   /// Re-fetch only `payment_methods` (provider modes + min wallet top-up).
   /// Payment screens call this on open so an admin toggle takes effect without
   /// forcing an app restart. Failures keep the cached value.
+  /// Re-fetch the admin-edited support contacts. Call when opening the help
+  /// screen so an admin edit lands without an app restart.
+  Future<void> refreshSupportContacts(WoodyApiClient api, Box box) =>
+      _refreshSupportContacts(api, box);
+
   Future<void> refreshPaymentMethods(WoodyApiClient api, Box box) =>
       _refreshPaymentMethods(api, box);
 
@@ -516,7 +529,9 @@ class RemoteConfig extends ChangeNotifier {
       demoUsdzUrl = usdz;
       await box.put(_demoGlbUrlHiveKey, glb);
       await box.put(_demoUsdzUrlHiveKey, usdz);
-      appLog.info('[remote-config] demo_models glb=${glb.isNotEmpty} usdz=${usdz.isNotEmpty}');
+      appLog.info(
+        '[remote-config] demo_models glb=${glb.isNotEmpty} usdz=${usdz.isNotEmpty}',
+      );
     } on ApiError catch (e, st) {
       if (e.isNotFound) {
         // Not configured server-side yet — blank means "use the bundled asset".
@@ -546,6 +561,9 @@ class RemoteConfig extends ChangeNotifier {
   static ({String glb, String usdz}) parseDemoModels(dynamic value) {
     if (value is! Map) return (glb: '', usdz: '');
     String pick(dynamic v) => v is String ? v.trim() : '';
-    return (glb: pick(value['demo_glb_url']), usdz: pick(value['demo_usdz_url']));
+    return (
+      glb: pick(value['demo_glb_url']),
+      usdz: pick(value['demo_usdz_url']),
+    );
   }
 }

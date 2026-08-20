@@ -186,10 +186,7 @@ void main() {
       expect(RemoteConfig.parseDemoModels(null).glb, '');
       expect(RemoteConfig.parseDemoModels(null).usdz, '');
       expect(RemoteConfig.parseDemoModels('x').glb, '');
-      expect(
-        RemoteConfig.parseDemoModels(<String, dynamic>{}).glb,
-        '',
-      );
+      expect(RemoteConfig.parseDemoModels(<String, dynamic>{}).glb, '');
     });
 
     test('blank stored URL reads as blank', () {
@@ -205,19 +202,26 @@ void main() {
   group('RemoteConfig contact URI helpers', () {
     test('telegramUrl normalises a @handle, bare handle and full URL', () {
       final config = RemoteConfig.instance;
-      config.telegramChannel = '@woody_support';
-      expect(config.telegramUrl, 'https://t.me/woody_support');
-      config.telegramChannel = 'woody_support';
-      expect(config.telegramUrl, 'https://t.me/woody_support');
-      config.telegramChannel = 'https://t.me/woody_support';
-      expect(config.telegramUrl, 'https://t.me/woody_support');
+      config.telegramChannel = '@woody_yordam';
+      expect(config.telegramUrl, 'https://t.me/woody_yordam');
+      config.telegramChannel = 'woody_yordam';
+      expect(config.telegramUrl, 'https://t.me/woody_yordam');
+      config.telegramChannel = 'https://t.me/woody_yordam';
+      expect(config.telegramUrl, 'https://t.me/woody_yordam');
     });
 
-    test('phone helpers strip display spacing', () {
+    test('telegramHandleLabel always renders as @handle', () {
       final config = RemoteConfig.instance;
-      config.supportPhone = '+998 71 200 70 07';
-      expect(config.supportPhoneUri, 'tel:+998712007007');
-      expect(config.whatsappUri, 'https://wa.me/998712007007');
+      config.telegramChannel = 'https://t.me/woody_yordam';
+      expect(config.telegramHandleLabel, '@woody_yordam');
+      config.telegramChannel = 'woody_yordam';
+      expect(config.telegramHandleLabel, '@woody_yordam');
+    });
+
+    test('phone helper strips display spacing', () {
+      final config = RemoteConfig.instance;
+      config.supportPhone = '+998 94 643 37 33';
+      expect(config.supportPhoneUri, 'tel:+998946433733');
     });
   });
 }

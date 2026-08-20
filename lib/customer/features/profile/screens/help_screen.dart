@@ -1,13 +1,19 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../config/remote_config.dart';
 import '../../../../core/auth/auth_cubit.dart';
+import '../../../../core/di/service_locator.dart';
 import '../../../../core/i18n/i18n.dart';
+import '../../../../core/network/woody_api_client.dart';
+import '../../../../core/storage/hive_boxes.dart';
 import '../../../../core/theme/premium_tokens.dart';
 
 // Support channels come from the backend (`app_settings.support_contacts`, via
@@ -16,15 +22,35 @@ import '../../../../core/theme/premium_tokens.dart';
 // so the launch URLs are always valid even before the first fetch.
 
 const _telegramBlue = Color(0xFF2AABEE);
-const _whatsappGreen = Color(0xFF25D366);
 
 Future<void> _launch(String url) async {
   final uri = Uri.parse(url);
   if (await canLaunchUrl(uri)) await launchUrl(uri);
 }
 
-class HelpScreen extends StatelessWidget {
+class HelpScreen extends StatefulWidget {
   const HelpScreen({super.key});
+
+  @override
+  State<HelpScreen> createState() => _HelpScreenState();
+}
+
+class _HelpScreenState extends State<HelpScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Boot already fetched these, but an admin edit since then would only land
+    // on the next launch — re-fetch on open. Guarded because widget tests pump
+    // this screen without the DI scope.
+    if (sl.isRegistered<WoodyApiClient>()) {
+      unawaited(
+        RemoteConfig.instance.refreshSupportContacts(
+          sl<WoodyApiClient>(),
+          sl<Box>(instanceName: HiveBoxes.settings),
+        ),
+      );
+    }
+  }
 
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     final pt = PremiumTokens.of(context);
@@ -128,9 +154,10 @@ class HelpScreen extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Quick contact grid — a card per channel with a visible label (not just a
-// tooltip), wrapping to a new row once it runs out of width. The in-app chat
-// card appears only when signed in.
+// Quick contact list — one full-width tile per channel showing the channel
+// name AND the live contact value (phone number / email / @handle) from
+// RemoteConfig, so the user knows exactly where the tap will take them.
+// The in-app chat tile appears only when signed in.
 // ---------------------------------------------------------------------------
 
 class _ContactRow extends StatelessWidget {
@@ -140,120 +167,144 @@ class _ContactRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // RemoteConfig notifies when the boot-time fetch lands new server values,
+    // so the tiles swap from cached/default contacts without a screen reopen.
+    return ListenableBuilder(
+      listenable: RemoteConfig.instance,
+      builder: (context, _) => _buildTiles(context),
+    );
+  }
+
+  Widget _buildTiles(BuildContext context) {
     final pt = PremiumTokens.of(context);
     final config = RemoteConfig.instance;
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
+    return Column(
       children: [
-        _QuickContact(
-          icon: Icon(Iconsax.call, size: 20, color: pt.dark),
-          tint: pt.dark,
-          label: tr('profile.help_contact_call'),
-          onTap: () => _launch(config.supportPhoneUri),
-        ),
-        _QuickContact(
-          icon: Icon(Icons.email_outlined, size: 20, color: pt.dark),
-          tint: pt.dark,
-          label: tr('profile.help_contact_email'),
-          onTap: () => _launch(config.supportEmailUri),
-        ),
-        _QuickContact(
-          icon: const FaIcon(
-            FontAwesomeIcons.telegram,
-            size: 18,
-            color: _telegramBlue,
-          ),
-          tint: _telegramBlue,
-          label: tr('profile.help_contact_telegram'),
-          onTap: () => _launch(config.telegramUrl),
-        ),
-        _QuickContact(
-          icon: const FaIcon(
-            FontAwesomeIcons.whatsapp,
-            size: 18,
-            color: _whatsappGreen,
-          ),
-          tint: _whatsappGreen,
-          label: tr('profile.help_contact_whatsapp'),
-          onTap: () => _launch(config.whatsappUri),
-        ),
-        if (loggedIn)
-          _QuickContact(
+        if (loggedIn) ...[
+          _ContactTile(
             icon: const Icon(
               Icons.support_agent,
-              size: 20,
-              color: PremiumTokens.accent,
+              size: 22,
+              color: Colors.white,
             ),
-            tint: PremiumTokens.accent,
-            label: tr('profile.help_contact_online_chat'),
+            iconBackground: PremiumTokens.accent,
+            title: tr('profile.help_contact_online_chat'),
+            subtitle: tr('profile.help_contact_online_chat_sub'),
+            highlighted: true,
             onTap: () => context.push('/support'),
           ),
+          const SizedBox(height: 10),
+        ],
+        _ContactTile(
+          icon: Icon(Iconsax.call, size: 20, color: pt.dark),
+          iconBackground: pt.dark.withValues(alpha: 0.08),
+          title: tr('profile.help_contact_call'),
+          subtitle: config.supportPhone,
+          onTap: () => _launch(config.supportPhoneUri),
+        ),
+        const SizedBox(height: 10),
+        _ContactTile(
+          icon: const FaIcon(
+            FontAwesomeIcons.telegram,
+            size: 20,
+            color: _telegramBlue,
+          ),
+          iconBackground: _telegramBlue.withValues(alpha: 0.12),
+          title: tr('profile.help_contact_telegram'),
+          subtitle: config.telegramHandleLabel,
+          onTap: () => _launch(config.telegramUrl),
+        ),
+        const SizedBox(height: 10),
+        _ContactTile(
+          icon: Icon(Icons.email_outlined, size: 20, color: pt.dark),
+          iconBackground: pt.dark.withValues(alpha: 0.08),
+          title: tr('profile.help_contact_email'),
+          subtitle: config.supportEmail,
+          onTap: () => _launch(config.supportEmailUri),
+        ),
       ],
     );
   }
 }
 
-class _QuickContact extends StatelessWidget {
-  const _QuickContact({
+class _ContactTile extends StatelessWidget {
+  const _ContactTile({
     required this.icon,
-    required this.tint,
-    required this.label,
+    required this.iconBackground,
+    required this.title,
+    required this.subtitle,
     required this.onTap,
+    this.highlighted = false,
   });
 
   /// Pre-built glyph — a [FaIcon] for brand logos, a plain [Icon] otherwise.
   final Widget icon;
-
-  /// Circle fill colour behind the glyph (the glyph colour at low opacity).
-  final Color tint;
-  final String label;
+  final Color iconBackground;
+  final String title;
+  final String subtitle;
   final VoidCallback onTap;
+
+  /// The primary channel (in-app chat) gets an accent border to stand out.
+  final bool highlighted;
 
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
     return Semantics(
       button: true,
-      label: label,
+      label: '$title, $subtitle',
       child: Material(
         color: pt.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
           child: Container(
-            width: 78,
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: pt.divider),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: highlighted
+                    ? PremiumTokens.accent.withValues(alpha: 0.45)
+                    : pt.divider,
+              ),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+            child: Row(
               children: [
                 Container(
-                  width: 42,
-                  height: 42,
+                  width: 44,
+                  height: 44,
                   decoration: BoxDecoration(
-                    color: tint.withValues(alpha: 0.12),
+                    color: iconBackground,
                     shape: BoxShape.circle,
                   ),
                   alignment: Alignment.center,
                   child: icon,
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  label,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: PremiumTokens.body(
-                    size: 11.5,
-                    weight: FontWeight.w600,
-                    color: pt.dark,
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: PremiumTokens.body(
+                          size: 14,
+                          weight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: PremiumTokens.body(size: 12.5, color: pt.grey),
+                      ),
+                    ],
                   ),
                 ),
+                const SizedBox(width: 8),
+                Icon(Iconsax.arrow_right_3_copy, size: 18, color: pt.greyLight),
               ],
             ),
           ),

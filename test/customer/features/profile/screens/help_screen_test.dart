@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
+import 'package:woody_app/config/remote_config.dart';
 import 'package:woody_app/core/auth/auth_cubit.dart';
 import 'package:woody_app/customer/features/profile/screens/help_screen.dart';
 
@@ -24,22 +25,29 @@ void main() {
   void pinState(AppAuthState state) =>
       whenListen(auth, const Stream<AppAuthState>.empty(), initialState: state);
 
-  testWidgets('guest sees only the four public contact cards', (tester) async {
+  testWidgets('guest sees the three public contact tiles with values', (
+    tester,
+  ) async {
     pinState(const AppAuthUnauthenticated());
 
     await tester.pumpWidget(harness());
     await tester.pump();
 
-    // Call + Email + Telegram + WhatsApp, no in-app chat.
+    // Call + Telegram + Email, no in-app chat.
     expect(find.byIcon(Iconsax.call), findsOneWidget);
     expect(find.byIcon(Icons.email_outlined), findsOneWidget);
-    expect(find.byType(FaIcon), findsNWidgets(2)); // telegram + whatsapp
+    expect(find.byType(FaIcon), findsOneWidget); // telegram
     expect(find.byIcon(Icons.support_agent), findsNothing);
-    expect(find.text('Qo\'ng\'iroq qilish'), findsOneWidget);
-    expect(find.text('Email'), findsOneWidget);
+    // Live contact values are shown as tile subtitles.
+    expect(find.text(RemoteConfig.instance.supportPhone), findsOneWidget);
+    expect(find.text(RemoteConfig.instance.supportEmail), findsOneWidget);
+    expect(
+      find.text(RemoteConfig.instance.telegramHandleLabel),
+      findsOneWidget,
+    );
   });
 
-  testWidgets('signed-in user also sees the in-app chat card', (tester) async {
+  testWidgets('signed-in user also sees the in-app chat tile', (tester) async {
     pinState(const AppAuthAuthenticated('user-1'));
 
     await tester.pumpWidget(harness());
@@ -47,7 +55,7 @@ void main() {
 
     expect(find.byIcon(Iconsax.call), findsOneWidget);
     expect(find.byIcon(Icons.email_outlined), findsOneWidget);
-    expect(find.byType(FaIcon), findsNWidgets(2));
+    expect(find.byType(FaIcon), findsOneWidget);
     expect(find.byIcon(Icons.support_agent), findsOneWidget);
     expect(find.text('Onlayn chat'), findsOneWidget);
   });
@@ -59,9 +67,11 @@ void main() {
     await tester.pump();
 
     expect(find.text('Umumiy savollar'), findsOneWidget);
+
+    // The buyers/sellers sections sit below the fold in the test viewport.
+    await tester.scrollUntilVisible(find.text('Xaridorlar uchun'), 200);
     expect(find.text('Xaridorlar uchun'), findsOneWidget);
 
-    // The sellers section sits below the fold in the test viewport.
     await tester.scrollUntilVisible(find.text('Sotuvchilar uchun'), 200);
     expect(find.text('Sotuvchilar uchun'), findsOneWidget);
     // A seller-specific question is present.

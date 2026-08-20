@@ -48,8 +48,8 @@ const Map<String, dynamic> profileUz = {
   'help_contact_call': 'Qo\'ng\'iroq qilish',
   'help_contact_email': 'Email',
   'help_contact_telegram': 'Telegram',
-  'help_contact_whatsapp': 'WhatsApp',
   'help_contact_online_chat': 'Onlayn chat',
+  'help_contact_online_chat_sub': 'Operator bilan ilova ichida yozishing',
   'guest_welcome_title': 'Xush kelibsiz!',
   'guest_welcome_body':
       'Buyurtmalarni boshqarish va do\'koningiz savdosini kuzatish uchun tizimga kiring yoki ro\'yxatdan o\'ting.',
@@ -145,8 +145,8 @@ const Map<String, dynamic> profileRu = {
   'help_contact_call': 'Позвонить',
   'help_contact_email': 'Email',
   'help_contact_telegram': 'Telegram',
-  'help_contact_whatsapp': 'WhatsApp',
   'help_contact_online_chat': 'Онлайн-чат',
+  'help_contact_online_chat_sub': 'Напишите оператору прямо в приложении',
   'guest_welcome_title': 'Добро пожаловать!',
   'guest_welcome_body':
       'Войдите или зарегистрируйтесь, чтобы управлять заказами и отслеживать продажи вашего магазина.',
@@ -242,8 +242,8 @@ const Map<String, dynamic> profileEn = {
   'help_contact_call': 'Call',
   'help_contact_email': 'Email',
   'help_contact_telegram': 'Telegram',
-  'help_contact_whatsapp': 'WhatsApp',
   'help_contact_online_chat': 'Online chat',
+  'help_contact_online_chat_sub': 'Message support right in the app',
   'guest_welcome_title': 'Welcome!',
   'guest_welcome_body':
       'Sign in or register to manage your orders and track your store\'s sales.',
