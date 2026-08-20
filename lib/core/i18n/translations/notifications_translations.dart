@@ -45,6 +45,10 @@ const Map<String, dynamic> profileUz = {
   'help_faq_seller_reqs_q': 'Sotuvchilardan nimalar talab qilinadi?',
   'help_faq_seller_reqs_a':
       'Faqat sifatli mebel suratlari, to\'g\'ri o\'lchamlar va o\'z vaqtida yetkazib berish.',
+  'help_contact_call': 'Qo\'ng\'iroq qilish',
+  'help_contact_email': 'Email',
+  'help_contact_telegram': 'Telegram',
+  'help_contact_whatsapp': 'WhatsApp',
   'help_contact_online_chat': 'Onlayn chat',
   'guest_welcome_title': 'Xush kelibsiz!',
   'guest_welcome_body':
@@ -138,6 +142,10 @@ const Map<String, dynamic> profileRu = {
   'help_faq_seller_reqs_q': 'Что требуется от продавцов?',
   'help_faq_seller_reqs_a':
       'Только качественные фото мебели, точные размеры и своевременная доставка.',
+  'help_contact_call': 'Позвонить',
+  'help_contact_email': 'Email',
+  'help_contact_telegram': 'Telegram',
+  'help_contact_whatsapp': 'WhatsApp',
   'help_contact_online_chat': 'Онлайн-чат',
   'guest_welcome_title': 'Добро пожаловать!',
   'guest_welcome_body':
@@ -231,6 +239,10 @@ const Map<String, dynamic> profileEn = {
   'help_faq_seller_reqs_q': 'What\'s required of sellers?',
   'help_faq_seller_reqs_a':
       'Just quality furniture photos, accurate dimensions and on-time delivery.',
+  'help_contact_call': 'Call',
+  'help_contact_email': 'Email',
+  'help_contact_telegram': 'Telegram',
+  'help_contact_whatsapp': 'WhatsApp',
   'help_contact_online_chat': 'Online chat',
   'guest_welcome_title': 'Welcome!',
   'guest_welcome_body':

@@ -331,6 +331,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     // label on the appearance row; `watch` rebuilds it when the choice changes.
     final themeMode = context.watch<ThemeCubit>().state.themeMode;
     final languageLabel = tr('lang.${context.locale.languageCode}');
+    final isAuthenticated =
+        context.watch<AuthCubit>().state is AppAuthAuthenticated;
     return Scaffold(
       backgroundColor: pt.background,
       appBar: _buildAppBar(),
@@ -417,22 +419,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 24),
-          _SectionLabel(tr('settings.section_account')),
-          const SizedBox(height: 8),
-          _Card(
-            children: [
-              _DangerNavRow(
-                icon: Iconsax.trash,
-                title: tr('profile.delete_account_title'),
-                onTap: () => confirmAccountDeletion(
-                  context,
-                  authRepository: widget.authRepository,
-                  api: sl<WoodyApiClient>(),
+          if (isAuthenticated) ...[
+            const SizedBox(height: 24),
+            _SectionLabel(tr('settings.section_account')),
+            const SizedBox(height: 8),
+            _Card(
+              children: [
+                _DangerNavRow(
+                  icon: Iconsax.trash,
+                  title: tr('profile.delete_account_title'),
+                  onTap: () => confirmAccountDeletion(
+                    context,
+                    authRepository: widget.authRepository,
+                    api: sl<WoodyApiClient>(),
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
+          ],
         ],
       ),
     );

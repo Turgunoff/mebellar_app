@@ -27,6 +27,7 @@ import '../widgets/sign_out_button.dart';
 import '../widgets/user_card.dart';
 import '../../../../shared/about/about_screen.dart';
 import 'edit_profile_screen.dart';
+import 'help_screen.dart';
 import 'settings_screen.dart';
 
 /// Customer profile screen.
@@ -137,7 +138,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       icon: Iconsax.message_question_copy,
       label: tr('profile.help_title'),
       badgeCount: unreadSupport,
-      onTap: () => context.push('/support'),
+      onTap: () => _push(context, const HelpScreen()),
     ),
     MenuEntry(
       icon: Iconsax.info_circle_copy,

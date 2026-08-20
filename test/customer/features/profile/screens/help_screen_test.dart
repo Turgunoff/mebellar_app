@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:woody_app/core/auth/auth_cubit.dart';
 import 'package:woody_app/customer/features/profile/screens/help_screen.dart';
 
@@ -23,27 +24,32 @@ void main() {
   void pinState(AppAuthState state) =>
       whenListen(auth, const Stream<AppAuthState>.empty(), initialState: state);
 
-  testWidgets('guest sees only the three public contact icons', (tester) async {
+  testWidgets('guest sees only the four public contact cards', (tester) async {
     pinState(const AppAuthUnauthenticated());
 
     await tester.pumpWidget(harness());
     await tester.pump();
 
-    // Email + Telegram + WhatsApp, no in-app chat.
+    // Call + Email + Telegram + WhatsApp, no in-app chat.
+    expect(find.byIcon(Iconsax.call), findsOneWidget);
     expect(find.byIcon(Icons.email_outlined), findsOneWidget);
     expect(find.byType(FaIcon), findsNWidgets(2)); // telegram + whatsapp
     expect(find.byIcon(Icons.support_agent), findsNothing);
+    expect(find.text('Qo\'ng\'iroq qilish'), findsOneWidget);
+    expect(find.text('Email'), findsOneWidget);
   });
 
-  testWidgets('signed-in user also sees the in-app chat icon', (tester) async {
+  testWidgets('signed-in user also sees the in-app chat card', (tester) async {
     pinState(const AppAuthAuthenticated('user-1'));
 
     await tester.pumpWidget(harness());
     await tester.pump();
 
+    expect(find.byIcon(Iconsax.call), findsOneWidget);
     expect(find.byIcon(Icons.email_outlined), findsOneWidget);
     expect(find.byType(FaIcon), findsNWidgets(2));
     expect(find.byIcon(Icons.support_agent), findsOneWidget);
+    expect(find.text('Onlayn chat'), findsOneWidget);
   });
 
   testWidgets('renders the three FAQ category sections', (tester) async {

@@ -128,8 +128,9 @@ class HelpScreen extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Quick contact row — circular brand icon buttons, labels dropped (the glyphs
-// are universally recognised). The in-app chat icon appears only when signed in.
+// Quick contact grid — a card per channel with a visible label (not just a
+// tooltip), wrapping to a new row once it runs out of width. The in-app chat
+// card appears only when signed in.
 // ---------------------------------------------------------------------------
 
 class _ContactRow extends StatelessWidget {
@@ -141,40 +142,47 @@ class _ContactRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
     final config = RemoteConfig.instance;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
       children: [
         _QuickContact(
-          icon: Icon(Icons.email_outlined, size: 24, color: pt.dark),
+          icon: Icon(Iconsax.call, size: 20, color: pt.dark),
           tint: pt.dark,
-          label: 'Email',
+          label: tr('profile.help_contact_call'),
+          onTap: () => _launch(config.supportPhoneUri),
+        ),
+        _QuickContact(
+          icon: Icon(Icons.email_outlined, size: 20, color: pt.dark),
+          tint: pt.dark,
+          label: tr('profile.help_contact_email'),
           onTap: () => _launch(config.supportEmailUri),
         ),
         _QuickContact(
           icon: const FaIcon(
             FontAwesomeIcons.telegram,
-            size: 22,
+            size: 18,
             color: _telegramBlue,
           ),
           tint: _telegramBlue,
-          label: 'Telegram',
+          label: tr('profile.help_contact_telegram'),
           onTap: () => _launch(config.telegramUrl),
         ),
         _QuickContact(
           icon: const FaIcon(
             FontAwesomeIcons.whatsapp,
-            size: 22,
+            size: 18,
             color: _whatsappGreen,
           ),
           tint: _whatsappGreen,
-          label: 'WhatsApp',
+          label: tr('profile.help_contact_whatsapp'),
           onTap: () => _launch(config.whatsappUri),
         ),
         if (loggedIn)
           _QuickContact(
             icon: const Icon(
               Icons.support_agent,
-              size: 24,
+              size: 20,
               color: PremiumTokens.accent,
             ),
             tint: PremiumTokens.accent,
@@ -197,25 +205,57 @@ class _QuickContact extends StatelessWidget {
   /// Pre-built glyph — a [FaIcon] for brand logos, a plain [Icon] otherwise.
   final Widget icon;
 
-  /// Circle fill colour (the glyph colour at low opacity).
+  /// Circle fill colour behind the glyph (the glyph colour at low opacity).
   final Color tint;
   final String label;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Tooltip(
-      message: label,
-      child: Semantics(
-        button: true,
-        label: label,
-        child: Material(
-          color: tint.withValues(alpha: 0.12),
-          shape: const CircleBorder(),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: onTap,
-            child: SizedBox(width: 58, height: 58, child: Center(child: icon)),
+    final pt = PremiumTokens.of(context);
+    return Semantics(
+      button: true,
+      label: label,
+      child: Material(
+        color: pt.surface,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            width: 78,
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: pt.divider),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: tint.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: icon,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: PremiumTokens.body(
+                    size: 11.5,
+                    weight: FontWeight.w600,
+                    color: pt.dark,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
