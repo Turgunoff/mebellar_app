@@ -340,7 +340,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
         physics: const BouncingScrollPhysics(),
         children: [
-          _SectionLabel(tr('settings.section_language')),
+          _SectionLabel(tr('settings.section_appearance')),
           const SizedBox(height: 8),
           _Card(
             children: [
@@ -349,6 +349,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: tr('settings.language_row'),
                 trailingLabel: languageLabel,
                 onTap: () => showLanguagePicker(context),
+              ),
+              const _RowDivider(),
+              _NavRow(
+                icon: Iconsax.moon,
+                title: tr('settings.theme'),
+                trailingLabel: themeModeLabel(themeMode),
+                onTap: () => showThemeModePicker(context),
               ),
             ],
           ),
@@ -369,19 +376,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: tr('settings.order_updates'),
                 value: _orderUpdates,
                 onChanged: _orderUpdatesBusy ? null : _setOrderUpdatesEnabled,
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          _SectionLabel(tr('settings.section_appearance')),
-          const SizedBox(height: 8),
-          _Card(
-            children: [
-              _NavRow(
-                icon: Iconsax.moon,
-                title: tr('settings.theme'),
-                trailingLabel: themeModeLabel(themeMode),
-                onTap: () => showThemeModePicker(context),
               ),
             ],
           ),

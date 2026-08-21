@@ -6,8 +6,6 @@ const Map<String, dynamic> settingsUz = {
   'title': 'Sozlamalar',
 
   // Section labels
-  'section_language': 'Til',
-  'section_system': 'Tizim',
   'section_notifications': 'Bildirishnomalar',
   'section_appearance': "Ko'rinish",
   'section_privacy': 'Maxfiylik',
@@ -70,8 +68,6 @@ const Map<String, dynamic> settingsUz = {
 const Map<String, dynamic> settingsRu = {
   'title': 'Настройки',
 
-  'section_language': 'Язык',
-  'section_system': 'Система',
   'section_notifications': 'Уведомления',
   'section_appearance': 'Оформление',
   'section_privacy': 'Конфиденциальность',
@@ -127,8 +123,6 @@ const Map<String, dynamic> settingsRu = {
 const Map<String, dynamic> settingsEn = {
   'title': 'Settings',
 
-  'section_language': 'Language',
-  'section_system': 'System',
   'section_notifications': 'Notifications',
   'section_appearance': 'Appearance',
   'section_privacy': 'Privacy',
