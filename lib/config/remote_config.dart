@@ -67,6 +67,20 @@ class RemoteConfig extends ChangeNotifier {
   /// full `t.me` URL — both normalise to [telegramUrl]).
   String telegramChannel = defaultTelegramChannel;
 
+  // Staffed hours for the human channels, as whole hours in the *device's* local
+  // time. Ships as a default pair so the help screen can state when someone will
+  // answer even though the backend does not send these keys yet; once
+  // `support_contacts` carries `support_hours_from` / `support_hours_to` the
+  // admin panel owns them like the contacts above.
+  static const defaultSupportHoursFrom = 9;
+  static const defaultSupportHoursTo = 21;
+
+  /// First staffed hour, inclusive (0–23).
+  int supportHoursFrom = defaultSupportHoursFrom;
+
+  /// Last staffed hour, exclusive (1–24).
+  int supportHoursTo = defaultSupportHoursTo;
+
   // Payment-provider modes. Mirror `app_settings.payment_methods`
   // (`{click, payme}`), toggled from the admin panel. Three states per provider:
   // enabled (selectable), comingSoon (visible but greyed out), hidden (not shown).
@@ -123,6 +137,8 @@ class RemoteConfig extends ChangeNotifier {
   static const _supportEmailHiveKey = 'remote_config.support_email';
   static const _supportPhoneHiveKey = 'remote_config.support_phone';
   static const _telegramChannelHiveKey = 'remote_config.telegram_channel';
+  static const _supportHoursFromHiveKey = 'remote_config.support_hours_from';
+  static const _supportHoursToHiveKey = 'remote_config.support_hours_to';
   static const _clickModeHiveKey = 'remote_config.click_mode';
   static const _paymeModeHiveKey = 'remote_config.payme_mode';
   static const _minWalletTopUpHiveKey = 'remote_config.min_wallet_topup_uzs';
@@ -145,6 +161,18 @@ class RemoteConfig extends ChangeNotifier {
 
   /// Display form of the Telegram channel, always `@handle`.
   String get telegramHandleLabel => '@$_telegramHandle';
+
+  /// Staffed hours rendered as `09:00 – 21:00`.
+  String get supportHoursLabel =>
+      '${_hh(supportHoursFrom)} – ${_hh(supportHoursTo)}';
+
+  /// Whether the support desk is staffed right now, by the device clock.
+  bool get isSupportOpen {
+    final hour = DateTime.now().hour;
+    return hour >= supportHoursFrom && hour < supportHoursTo;
+  }
+
+  static String _hh(int hour) => '${hour.toString().padLeft(2, '0')}:00';
 
   String get _telegramHandle => telegramChannel
       .trim()
@@ -176,6 +204,10 @@ class RemoteConfig extends ChangeNotifier {
     if (phone is String && phone.isNotEmpty) supportPhone = phone;
     final tg = box.get(_telegramChannelHiveKey);
     if (tg is String && tg.isNotEmpty) telegramChannel = tg;
+    final hoursFrom = box.get(_supportHoursFromHiveKey);
+    if (hoursFrom is int) supportHoursFrom = hoursFrom;
+    final hoursTo = box.get(_supportHoursToHiveKey);
+    if (hoursTo is int) supportHoursTo = hoursTo;
     final clickModeRaw = box.get(_clickModeHiveKey);
     if (clickModeRaw is String) {
       clickMode = parsePaymentProviderMode(clickModeRaw);
@@ -361,17 +393,24 @@ class RemoteConfig extends ChangeNotifier {
       final body = await api
           .get<Map<String, dynamic>>('/catalog/settings/support_contacts')
           .timeout(const Duration(seconds: 6));
-      final (:email, :phone, :telegram) = parseSupportContacts(body['value']);
+      final (:email, :phone, :telegram, :hoursFrom, :hoursTo) =
+          parseSupportContacts(body['value']);
       final changed =
           supportEmail != email ||
           supportPhone != phone ||
-          telegramChannel != telegram;
+          telegramChannel != telegram ||
+          supportHoursFrom != hoursFrom ||
+          supportHoursTo != hoursTo;
       supportEmail = email;
       supportPhone = phone;
       telegramChannel = telegram;
+      supportHoursFrom = hoursFrom;
+      supportHoursTo = hoursTo;
       await box.put(_supportEmailHiveKey, email);
       await box.put(_supportPhoneHiveKey, phone);
       await box.put(_telegramChannelHiveKey, telegram);
+      await box.put(_supportHoursFromHiveKey, hoursFrom);
+      await box.put(_supportHoursToHiveKey, hoursTo);
       appLog.info('[remote-config] support_contacts updated');
       if (changed) notifyListeners();
     } on ApiError catch (e, st) {
@@ -381,13 +420,19 @@ class RemoteConfig extends ChangeNotifier {
         final changed =
             supportEmail != defaultSupportEmail ||
             supportPhone != defaultSupportPhone ||
-            telegramChannel != defaultTelegramChannel;
+            telegramChannel != defaultTelegramChannel ||
+            supportHoursFrom != defaultSupportHoursFrom ||
+            supportHoursTo != defaultSupportHoursTo;
         supportEmail = defaultSupportEmail;
         supportPhone = defaultSupportPhone;
         telegramChannel = defaultTelegramChannel;
+        supportHoursFrom = defaultSupportHoursFrom;
+        supportHoursTo = defaultSupportHoursTo;
         await box.put(_supportEmailHiveKey, defaultSupportEmail);
         await box.put(_supportPhoneHiveKey, defaultSupportPhone);
         await box.put(_telegramChannelHiveKey, defaultTelegramChannel);
+        await box.put(_supportHoursFromHiveKey, defaultSupportHoursFrom);
+        await box.put(_supportHoursToHiveKey, defaultSupportHoursTo);
         if (changed) notifyListeners();
         return;
       }
@@ -409,9 +454,19 @@ class RemoteConfig extends ChangeNotifier {
   /// value: `{"support_email": ..., "support_phone": ..., "telegram_channel":
   /// ...}`. Defensive — a missing or blank field reads as the platform default
   /// rather than an empty string, so a launch URL is never malformed.
-  static ({String email, String phone, String telegram}) parseSupportContacts(
-    dynamic value,
-  ) {
+  static int _pickHour(dynamic v, int fallback) {
+    final n = v is int ? v : (v is num ? v.toInt() : int.tryParse('$v'));
+    return (n != null && n >= 0 && n <= 24) ? n : fallback;
+  }
+
+  static ({
+    String email,
+    String phone,
+    String telegram,
+    int hoursFrom,
+    int hoursTo,
+  })
+  parseSupportContacts(dynamic value) {
     String pick(dynamic v, String fallback) =>
         v is String && v.trim().isNotEmpty ? v.trim() : fallback;
 
@@ -420,12 +475,24 @@ class RemoteConfig extends ChangeNotifier {
         email: defaultSupportEmail,
         phone: defaultSupportPhone,
         telegram: defaultTelegramChannel,
+        hoursFrom: defaultSupportHoursFrom,
+        hoursTo: defaultSupportHoursTo,
       );
+    }
+    // An inverted or out-of-range pair would render "21:00 – 09:00" and mark the
+    // desk permanently closed, so a bad payload falls back to the defaults.
+    var from = _pickHour(value['support_hours_from'], defaultSupportHoursFrom);
+    var to = _pickHour(value['support_hours_to'], defaultSupportHoursTo);
+    if (from >= to) {
+      from = defaultSupportHoursFrom;
+      to = defaultSupportHoursTo;
     }
     return (
       email: pick(value['support_email'], defaultSupportEmail),
       phone: pick(value['support_phone'], defaultSupportPhone),
       telegram: pick(value['telegram_channel'], defaultTelegramChannel),
+      hoursFrom: from,
+      hoursTo: to,
     );
   }
 

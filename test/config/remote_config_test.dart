@@ -104,6 +104,36 @@ void main() {
       expect(parsed.email, RemoteConfig.defaultSupportEmail);
       expect(parsed.phone, RemoteConfig.defaultSupportPhone);
       expect(parsed.telegram, RemoteConfig.defaultTelegramChannel);
+      expect(parsed.hoursFrom, RemoteConfig.defaultSupportHoursFrom);
+      expect(parsed.hoursTo, RemoteConfig.defaultSupportHoursTo);
+    });
+
+    test('staffed hours are read when the backend sends them', () {
+      final parsed = RemoteConfig.parseSupportContacts({
+        'support_hours_from': 10,
+        'support_hours_to': 19,
+      });
+      expect(parsed.hoursFrom, 10);
+      expect(parsed.hoursTo, 19);
+    });
+
+    test('an inverted or out-of-range hour pair falls back to the defaults', () {
+      for (final payload in [
+        {'support_hours_from': 21, 'support_hours_to': 9},
+        {'support_hours_from': 9, 'support_hours_to': 9},
+        {'support_hours_from': -1, 'support_hours_to': 99},
+      ]) {
+        final parsed = RemoteConfig.parseSupportContacts(payload);
+        expect(parsed.hoursFrom, RemoteConfig.defaultSupportHoursFrom);
+        expect(parsed.hoursTo, RemoteConfig.defaultSupportHoursTo);
+      }
+    });
+
+    test('supportHoursLabel renders zero-padded whole hours', () {
+      final config = RemoteConfig.instance
+        ..supportHoursFrom = 9
+        ..supportHoursTo = 21;
+      expect(config.supportHoursLabel, '09:00 – 21:00');
     });
   });
 

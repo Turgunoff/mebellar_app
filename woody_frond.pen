@@ -1,5 +1,5 @@
 {
-  "version": "2.14",
+  "version": "2.17",
   "children": [
     {
       "type": "frame",
@@ -239,7 +239,8 @@
                               "fill": "$secondary",
                               "content": "+998 94 643 37 33",
                               "fontFamily": "Inter",
-                              "fontSize": 13
+                              "fontSize": 13,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -320,7 +321,8 @@
                               "fill": "$secondary",
                               "content": "@woody_yordam",
                               "fontFamily": "Inter",
-                              "fontSize": 13
+                              "fontSize": 13,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -401,7 +403,8 @@
                               "fill": "$secondary",
                               "content": "info@woody.uz",
                               "fontFamily": "Inter",
-                              "fontSize": 13
+                              "fontSize": 13,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -491,7 +494,8 @@
                               "fill": "$faint",
                               "content": "⌄",
                               "fontFamily": "Inter",
-                              "fontSize": 18
+                              "fontSize": 18,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
@@ -556,7 +560,8 @@
                                   "content": "Buyurtmangiz holatiga qarab, uni «Buyurtmalarim» bo'limida bekor qilishingiz mumkin. Agar buyurtma allaqachon yo'lga chiqgan bo'lsa, qo'llab-quvvatlash xizmatiga murojaat qiling.",
                                   "lineHeight": 1.5,
                                   "fontFamily": "Inter",
-                                  "fontSize": 13
+                                  "fontSize": 13,
+                                  "fontWeight": "normal"
                                 }
                               ]
                             },
@@ -707,7 +712,8 @@
                           "fill": "$faint",
                           "content": "›",
                           "fontFamily": "Inter",
-                          "fontSize": 16
+                          "fontSize": 16,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -746,7 +752,8 @@
                           "fill": "$faint",
                           "content": "›",
                           "fontFamily": "Inter",
-                          "fontSize": 16
+                          "fontSize": 16,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -1105,7 +1112,8 @@
                       "fill": "#FFFFFFCC",
                       "content": "O'rtacha javob vaqti — 2 daqiqa",
                       "fontFamily": "Inter",
-                      "fontSize": 12
+                      "fontSize": 12,
+                      "fontWeight": "normal"
                     },
                     {
                       "type": "frame",
@@ -1226,7 +1234,8 @@
                           "fill": "$secondary",
                           "content": "+998 94 643 37 33",
                           "fontFamily": "Inter",
-                          "fontSize": 10
+                          "fontSize": 10,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -1299,7 +1308,8 @@
                           "fill": "$secondary",
                           "content": "@woody_yordam",
                           "fontFamily": "Inter",
-                          "fontSize": 10
+                          "fontSize": 10,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -1372,7 +1382,8 @@
                           "fill": "$secondary",
                           "content": "info@woody.uz",
                           "fontFamily": "Inter",
-                          "fontSize": 10
+                          "fontSize": 10,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -1516,7 +1527,8 @@
                                   "content": "Buyurtmangiz holatiga qarab, uni «Buyurtmalarim» bo'limida bekor qilishingiz mumkin. Agar buyurtma allaqachon yo'lga chiqgan bo'lsa, qo'llab-quvvatlash xizmatiga murojaat qiling.",
                                   "lineHeight": 1.5,
                                   "fontFamily": "Inter",
-                                  "fontSize": 13
+                                  "fontSize": 13,
+                                  "fontWeight": "normal"
                                 }
                               ]
                             },
@@ -1667,7 +1679,8 @@
                           "fill": "$faint",
                           "content": "›",
                           "fontFamily": "Inter",
-                          "fontSize": 16
+                          "fontSize": 16,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -1706,7 +1719,8 @@
                           "fill": "$faint",
                           "content": "›",
                           "fontFamily": "Inter",
-                          "fontSize": 16
+                          "fontSize": 16,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -1856,704 +1870,6 @@
               "icon": "chevron-left",
               "library": "lucide",
               "fill": "$bg"
-            }
-          ]
-        },
-        {
-          "type": "frame",
-          "id": "qtjrC",
-          "name": "Content",
-          "width": "fill_container",
-          "layout": "vertical",
-          "gap": 28,
-          "padding": [
-            0,
-            16
-          ],
-          "children": [
-            {
-              "type": "frame",
-              "id": "Blczj",
-              "name": "Contact Section",
-              "width": "fill_container",
-              "layout": "vertical",
-              "gap": 14,
-              "children": [
-                {
-                  "type": "text",
-                  "id": "pcvWS",
-                  "name": "Contact Label",
-                  "fill": "$secondary",
-                  "content": "MUROJAAT QILING",
-                  "fontFamily": "Inter",
-                  "fontSize": 12,
-                  "fontWeight": "600",
-                  "letterSpacing": 0.6
-                },
-                {
-                  "type": "frame",
-                  "id": "MjUoJ",
-                  "name": "Grid",
-                  "width": "fill_container",
-                  "layout": "vertical",
-                  "gap": 10,
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "IDzvp",
-                      "name": "Grid Row 1",
-                      "width": "fill_container",
-                      "gap": 10,
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "dwQYi",
-                          "name": "Onlayn Chat Card",
-                          "clip": true,
-                          "width": "fill_container",
-                          "height": 132,
-                          "fill": "$accent",
-                          "cornerRadius": 20,
-                          "layout": "none",
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "RNMjY",
-                              "x": 16,
-                              "y": 16,
-                              "name": "Chat Circle",
-                              "width": 44,
-                              "height": 44,
-                              "fill": "#FFFFFF33",
-                              "cornerRadius": 22,
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "icon",
-                                  "id": "E5hsNF",
-                                  "name": "Chat Headset",
-                                  "width": 22,
-                                  "height": 22,
-                                  "icon": "headphones",
-                                  "library": "lucide",
-                                  "fill": "#FFFFFF"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "text",
-                              "id": "wahFK",
-                              "x": 16,
-                              "y": 72,
-                              "name": "Chat Title",
-                              "fill": "#FFFFFF",
-                              "content": "Onlayn chat",
-                              "fontFamily": "Inter",
-                              "fontSize": 15,
-                              "fontWeight": "700"
-                            },
-                            {
-                              "type": "text",
-                              "id": "Kit9m",
-                              "x": 16,
-                              "y": 90,
-                              "name": "Chat Subtitle",
-                              "fill": "#FFFFFFD9",
-                              "content": "Hozir javob beramiz",
-                              "fontFamily": "Inter",
-                              "fontSize": 11
-                            },
-                            {
-                              "type": "text",
-                              "id": "qz5kO",
-                              "x": 149,
-                              "y": 106,
-                              "name": "Chat Arrow",
-                              "fill": "#FFFFFF",
-                              "content": "↗",
-                              "fontFamily": "Inter",
-                              "fontSize": 14
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "FbUwB",
-                          "name": "Phone Card",
-                          "clip": true,
-                          "width": "fill_container",
-                          "height": 132,
-                          "fill": "$surface",
-                          "cornerRadius": 20,
-                          "stroke": "$divider",
-                          "strokeWidth": 1,
-                          "layout": "none",
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "wSM4O",
-                              "x": 16,
-                              "y": 16,
-                              "name": "Phone Circle",
-                              "width": 44,
-                              "height": 44,
-                              "fill": "#EDEDED",
-                              "cornerRadius": 22,
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "icon",
-                                  "id": "FOIrm",
-                                  "name": "Phone Icon",
-                                  "width": 20,
-                                  "height": 20,
-                                  "icon": "phone",
-                                  "library": "lucide",
-                                  "fill": "$ink"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "text",
-                              "id": "l2ZJF",
-                              "x": 16,
-                              "y": 72,
-                              "name": "Phone Title",
-                              "fill": "$ink",
-                              "content": "Qo'ng'iroq",
-                              "fontFamily": "Inter",
-                              "fontSize": 15,
-                              "fontWeight": "700"
-                            },
-                            {
-                              "type": "text",
-                              "id": "upIPR",
-                              "x": 16,
-                              "y": 90,
-                              "name": "Phone Value",
-                              "fill": "$secondary",
-                              "content": "+998 94 643 37 33",
-                              "fontFamily": "Inter",
-                              "fontSize": 11
-                            },
-                            {
-                              "type": "text",
-                              "id": "e1wHS",
-                              "x": 149,
-                              "y": 106,
-                              "name": "Phone Arrow",
-                              "fill": "$faint",
-                              "content": "↗",
-                              "fontFamily": "Inter",
-                              "fontSize": 14
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "rQnrH",
-                      "name": "Grid Row 2",
-                      "width": "fill_container",
-                      "gap": 10,
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "p4HWY",
-                          "name": "Telegram Card",
-                          "clip": true,
-                          "width": "fill_container",
-                          "height": 132,
-                          "fill": "$surface",
-                          "cornerRadius": 20,
-                          "stroke": "$divider",
-                          "strokeWidth": 1,
-                          "layout": "none",
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "Ti62N",
-                              "x": 16,
-                              "y": 16,
-                              "name": "TG Circle",
-                              "width": 44,
-                              "height": 44,
-                              "fill": "#E4F4FD",
-                              "cornerRadius": 22,
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "icon",
-                                  "id": "JVBJL",
-                                  "name": "TG Icon",
-                                  "width": 20,
-                                  "height": 20,
-                                  "icon": "send",
-                                  "library": "lucide",
-                                  "fill": "$telegram"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "text",
-                              "id": "OGPu3",
-                              "x": 16,
-                              "y": 72,
-                              "name": "TG Title",
-                              "fill": "$ink",
-                              "content": "Telegram",
-                              "fontFamily": "Inter",
-                              "fontSize": 15,
-                              "fontWeight": "700"
-                            },
-                            {
-                              "type": "text",
-                              "id": "reJNE",
-                              "x": 16,
-                              "y": 90,
-                              "name": "TG Value",
-                              "fill": "$secondary",
-                              "content": "@woody_yordam",
-                              "fontFamily": "Inter",
-                              "fontSize": 11
-                            },
-                            {
-                              "type": "text",
-                              "id": "Qj7Gf",
-                              "x": 149,
-                              "y": 106,
-                              "name": "TG Arrow",
-                              "fill": "$faint",
-                              "content": "↗",
-                              "fontFamily": "Inter",
-                              "fontSize": 14
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "uWVGD",
-                          "name": "Email Card",
-                          "clip": true,
-                          "width": "fill_container",
-                          "height": 132,
-                          "fill": "$surface",
-                          "cornerRadius": 20,
-                          "stroke": "$divider",
-                          "strokeWidth": 1,
-                          "layout": "none",
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "e1LGYG",
-                              "x": 16,
-                              "y": 16,
-                              "name": "Email Circle",
-                              "width": 44,
-                              "height": 44,
-                              "fill": "#EDEDED",
-                              "cornerRadius": 22,
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "icon",
-                                  "id": "pbHId",
-                                  "name": "Email Icon",
-                                  "width": 20,
-                                  "height": 20,
-                                  "icon": "mail",
-                                  "library": "lucide",
-                                  "fill": "$ink"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "text",
-                              "id": "hbgqC",
-                              "x": 16,
-                              "y": 72,
-                              "name": "Email Title",
-                              "fill": "$ink",
-                              "content": "Email",
-                              "fontFamily": "Inter",
-                              "fontSize": 15,
-                              "fontWeight": "700"
-                            },
-                            {
-                              "type": "text",
-                              "id": "jEKhU",
-                              "x": 16,
-                              "y": 90,
-                              "name": "Email Value",
-                              "fill": "$secondary",
-                              "content": "info@woody.uz",
-                              "fontFamily": "Inter",
-                              "fontSize": 11
-                            },
-                            {
-                              "type": "text",
-                              "id": "qqrKS",
-                              "x": 149,
-                              "y": 106,
-                              "name": "Email Arrow",
-                              "fill": "$faint",
-                              "content": "↗",
-                              "fontFamily": "Inter",
-                              "fontSize": 14
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "H9e4u",
-              "name": "FAQ Section",
-              "width": "fill_container",
-              "layout": "vertical",
-              "gap": 14,
-              "children": [
-                {
-                  "type": "text",
-                  "id": "PHg8G",
-                  "name": "FAQ Label",
-                  "fill": "$secondary",
-                  "content": "TEZ-TEZ SO'RALADIGAN SAVOLLAR",
-                  "fontFamily": "Inter",
-                  "fontSize": 12,
-                  "fontWeight": "600",
-                  "letterSpacing": 0.6
-                },
-                {
-                  "type": "frame",
-                  "id": "eFQ4m",
-                  "name": "FAQ Cards",
-                  "width": "fill_container",
-                  "layout": "vertical",
-                  "gap": 10,
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "QHWzC",
-                      "name": "FAQ Umumiy",
-                      "clip": true,
-                      "width": "fill_container",
-                      "fill": "$surface",
-                      "cornerRadius": 16,
-                      "stroke": "$divider",
-                      "strokeWidth": 1,
-                      "layout": "vertical",
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "AQmsn",
-                          "name": "FAQ Umumiy Header",
-                          "width": "fill_container",
-                          "height": 52,
-                          "padding": [
-                            0,
-                            16
-                          ],
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "XN5Du",
-                              "name": "FAQ Umumiy Title",
-                              "fill": "$ink",
-                              "textGrowth": "fixed-width",
-                              "width": "fill_container",
-                              "content": "Umumiy savollar",
-                              "fontFamily": "Inter",
-                              "fontSize": 15,
-                              "fontWeight": "600"
-                            },
-                            {
-                              "type": "icon",
-                              "id": "QUyAD",
-                              "name": "FAQ Umumiy Chevron",
-                              "width": 16,
-                              "height": 16,
-                              "icon": "chevron-down",
-                              "library": "lucide",
-                              "fill": "$faint"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "Cc08x",
-                          "name": "FAQ Umumiy Body",
-                          "width": "fill_container",
-                          "layout": "vertical",
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "XgGnH",
-                              "name": "FAQ Q1",
-                              "width": "fill_container",
-                              "layout": "vertical",
-                              "gap": 8,
-                              "padding": [
-                                14,
-                                16
-                              ],
-                              "children": [
-                                {
-                                  "type": "frame",
-                                  "id": "xdB6I",
-                                  "name": "FAQ Q1 Row",
-                                  "width": "fill_container",
-                                  "gap": 8,
-                                  "alignItems": "center",
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "id": "j5cwK",
-                                      "name": "FAQ Q1 Text",
-                                      "fill": "$ink",
-                                      "textGrowth": "fixed-width",
-                                      "width": "fill_container",
-                                      "content": "Buyurtmani qanday bekor qilaman?",
-                                      "fontFamily": "Inter",
-                                      "fontSize": 14,
-                                      "fontWeight": "500"
-                                    },
-                                    {
-                                      "type": "icon",
-                                      "id": "LRTWH",
-                                      "name": "FAQ Q1 Icon",
-                                      "width": 16,
-                                      "height": 16,
-                                      "icon": "chevron-down",
-                                      "library": "lucide",
-                                      "fill": "$faint"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "text",
-                                  "id": "xgJTU",
-                                  "name": "FAQ A1 Text",
-                                  "fill": "$secondary",
-                                  "textGrowth": "fixed-width",
-                                  "width": "fill_container",
-                                  "content": "Buyurtmangiz holatiga qarab, uni «Buyurtmalarim» bo'limida bekor qilishingiz mumkin. Agar buyurtma allaqachon yo'lga chiqgan bo'lsa, qo'llab-quvvatlash xizmatiga murojaat qiling.",
-                                  "lineHeight": 1.5,
-                                  "fontFamily": "Inter",
-                                  "fontSize": 13
-                                }
-                              ]
-                            },
-                            {
-                              "type": "rectangle",
-                              "id": "aPjK6",
-                              "name": "FAQ Divider 1",
-                              "fill": "$divider",
-                              "width": "fill_container",
-                              "height": 1
-                            },
-                            {
-                              "type": "frame",
-                              "id": "CZ9Tp",
-                              "name": "FAQ Q2",
-                              "width": "fill_container",
-                              "layout": "vertical",
-                              "gap": 8,
-                              "padding": [
-                                14,
-                                16
-                              ],
-                              "children": [
-                                {
-                                  "type": "frame",
-                                  "id": "YgdHm",
-                                  "name": "FAQ Q2 Row",
-                                  "width": "fill_container",
-                                  "gap": 8,
-                                  "alignItems": "center",
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "id": "BR8ad",
-                                      "name": "FAQ Q2 Text",
-                                      "fill": "$ink",
-                                      "textGrowth": "fixed-width",
-                                      "width": "fill_container",
-                                      "content": "Yetkazib berish qancha vaqt oladi?",
-                                      "fontFamily": "Inter",
-                                      "fontSize": 14,
-                                      "fontWeight": "500"
-                                    },
-                                    {
-                                      "type": "icon",
-                                      "id": "fVcSD",
-                                      "name": "FAQ Q2 Icon",
-                                      "width": 16,
-                                      "height": 16,
-                                      "icon": "chevron-right",
-                                      "library": "lucide",
-                                      "fill": "$faint"
-                                    }
-                                  ]
-                                }
-                              ]
-                            },
-                            {
-                              "type": "rectangle",
-                              "id": "O6oT3",
-                              "name": "FAQ Divider 2",
-                              "fill": "$divider",
-                              "width": "fill_container",
-                              "height": 1
-                            },
-                            {
-                              "type": "frame",
-                              "id": "f4h1E",
-                              "name": "FAQ Q3",
-                              "width": "fill_container",
-                              "layout": "vertical",
-                              "gap": 8,
-                              "padding": [
-                                14,
-                                16
-                              ],
-                              "children": [
-                                {
-                                  "type": "frame",
-                                  "id": "v8qypQ",
-                                  "name": "FAQ Q3 Row",
-                                  "width": "fill_container",
-                                  "gap": 8,
-                                  "alignItems": "center",
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "id": "werOZ",
-                                      "name": "FAQ Q3 Text",
-                                      "fill": "$ink",
-                                      "textGrowth": "fixed-width",
-                                      "width": "fill_container",
-                                      "content": "To'lov qanday amalga oshiriladi?",
-                                      "fontFamily": "Inter",
-                                      "fontSize": 14,
-                                      "fontWeight": "500"
-                                    },
-                                    {
-                                      "type": "icon",
-                                      "id": "B6X2a",
-                                      "name": "FAQ Q3 Icon",
-                                      "width": 16,
-                                      "height": 16,
-                                      "icon": "chevron-right",
-                                      "library": "lucide",
-                                      "fill": "$faint"
-                                    }
-                                  ]
-                                }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "xvYLN",
-                      "name": "FAQ Xaridorlar",
-                      "width": "fill_container",
-                      "height": 52,
-                      "fill": "$surface",
-                      "cornerRadius": 16,
-                      "stroke": "$divider",
-                      "strokeWidth": 1,
-                      "padding": [
-                        0,
-                        16
-                      ],
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "B5vKTa",
-                          "name": "FAQ Xaridorlar Title",
-                          "fill": "$ink",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "Xaridorlar uchun",
-                          "fontFamily": "Inter",
-                          "fontSize": 15,
-                          "fontWeight": "600"
-                        },
-                        {
-                          "type": "text",
-                          "id": "ThLMV",
-                          "name": "FAQ Xaridorlar Chevron",
-                          "fill": "$faint",
-                          "content": "›",
-                          "fontFamily": "Inter",
-                          "fontSize": 16
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "JOKUz",
-                      "name": "FAQ Sotuvchilar",
-                      "width": "fill_container",
-                      "height": 52,
-                      "fill": "$surface",
-                      "cornerRadius": 16,
-                      "stroke": "$divider",
-                      "strokeWidth": 1,
-                      "padding": [
-                        0,
-                        16
-                      ],
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "p9DWaK",
-                          "name": "FAQ Sotuvchilar Title",
-                          "fill": "$ink",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "Sotuvchilar uchun",
-                          "fontFamily": "Inter",
-                          "fontSize": 15,
-                          "fontWeight": "600"
-                        },
-                        {
-                          "type": "text",
-                          "id": "SnBA0",
-                          "name": "FAQ Sotuvchilar Chevron",
-                          "fill": "$faint",
-                          "content": "›",
-                          "fontFamily": "Inter",
-                          "fontSize": 16
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "HCFQy",
-              "name": "Bottom Padding",
-              "width": "fill_container",
-              "height": 20
             }
           ]
         }
@@ -2755,7 +2071,8 @@
                       "fill": "$secondary",
                       "content": "09:00 – 21:00",
                       "fontFamily": "Inter",
-                      "fontSize": 12
+                      "fontSize": 12,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -2822,7 +2139,8 @@
                           "fill": "#FFFFFFB3",
                           "content": "Operator bilan yozishing",
                           "fontFamily": "Inter",
-                          "fontSize": 11
+                          "fontSize": 11,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -2833,7 +2151,8 @@
                       "fill": "#FFFFFF99",
                       "content": "›",
                       "fontFamily": "Inter",
-                      "fontSize": 18
+                      "fontSize": 18,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -2899,7 +2218,8 @@
                           "fill": "$secondary",
                           "content": "+998 94 643 37 33",
                           "fontFamily": "Inter",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         },
                         {
                           "type": "frame",
@@ -2915,7 +2235,8 @@
                           "fill": "$faint",
                           "content": "›",
                           "fontFamily": "Inter",
-                          "fontSize": 16
+                          "fontSize": 16,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -2992,7 +2313,8 @@
                           "fill": "$secondary",
                           "content": "@woody_yordam",
                           "fontFamily": "Inter",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         },
                         {
                           "type": "frame",
@@ -3008,7 +2330,8 @@
                           "fill": "$faint",
                           "content": "›",
                           "fontFamily": "Inter",
-                          "fontSize": 16
+                          "fontSize": 16,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -3085,7 +2408,8 @@
                           "fill": "$secondary",
                           "content": "info@woody.uz",
                           "fontFamily": "Inter",
-                          "fontSize": 13
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         },
                         {
                           "type": "frame",
@@ -3101,7 +2425,8 @@
                           "fill": "$faint",
                           "content": "›",
                           "fontFamily": "Inter",
-                          "fontSize": 16
+                          "fontSize": 16,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -3245,7 +2570,8 @@
                                   "content": "Buyurtmangiz holatiga qarab, uni «Buyurtmalarim» bo'limida bekor qilishingiz mumkin. Agar buyurtma allaqachon yo'lga chiqgan bo'lsa, qo'llab-quvvatlash xizmatiga murojaat qiling.",
                                   "lineHeight": 1.5,
                                   "fontFamily": "Inter",
-                                  "fontSize": 13
+                                  "fontSize": 13,
+                                  "fontWeight": "normal"
                                 }
                               ]
                             },
@@ -3396,7 +2722,8 @@
                           "fill": "$faint",
                           "content": "›",
                           "fontFamily": "Inter",
-                          "fontSize": 16
+                          "fontSize": 16,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -3435,7 +2762,8 @@
                           "fill": "$faint",
                           "content": "›",
                           "fontFamily": "Inter",
-                          "fontSize": 16
+                          "fontSize": 16,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -3451,6 +2779,717 @@
               "height": 20
             }
           ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "qtjrC",
+      "x": 890,
+      "y": 99,
+      "name": "Content",
+      "width": "fill_container(390)",
+      "layout": "vertical",
+      "gap": 28,
+      "padding": [
+        0,
+        16
+      ],
+      "children": [
+        {
+          "type": "frame",
+          "id": "Blczj",
+          "name": "Contact Section",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 14,
+          "children": [
+            {
+              "type": "text",
+              "id": "pcvWS",
+              "name": "Contact Label",
+              "fill": "$secondary",
+              "content": "MUROJAAT QILING",
+              "fontFamily": "Inter",
+              "fontSize": 12,
+              "fontWeight": "600",
+              "letterSpacing": 0.6
+            },
+            {
+              "type": "frame",
+              "id": "MjUoJ",
+              "name": "Grid",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 10,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "IDzvp",
+                  "name": "Grid Row 1",
+                  "width": "fill_container",
+                  "gap": 10,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "dwQYi",
+                      "name": "Onlayn Chat Card",
+                      "clip": true,
+                      "width": "fill_container",
+                      "height": 132,
+                      "fill": "$accent",
+                      "cornerRadius": 20,
+                      "layout": "none",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "RNMjY",
+                          "x": 16,
+                          "y": 16,
+                          "name": "Chat Circle",
+                          "width": 44,
+                          "height": 44,
+                          "fill": "#FFFFFF33",
+                          "cornerRadius": 22,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "E5hsNF",
+                              "name": "Chat Headset",
+                              "width": 22,
+                              "height": 22,
+                              "icon": "headphones",
+                              "library": "lucide",
+                              "fill": "#FFFFFF"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "wahFK",
+                          "x": 16,
+                          "y": 72,
+                          "name": "Chat Title",
+                          "fill": "#FFFFFF",
+                          "content": "Onlayn chat",
+                          "fontFamily": "Inter",
+                          "fontSize": 15,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "Kit9m",
+                          "x": 16,
+                          "y": 90,
+                          "name": "Chat Subtitle",
+                          "fill": "#FFFFFFD9",
+                          "content": "Hozir javob beramiz",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "qz5kO",
+                          "x": 149,
+                          "y": 106,
+                          "name": "Chat Arrow",
+                          "fill": "#FFFFFF",
+                          "content": "↗",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "FbUwB",
+                      "name": "Phone Card",
+                      "clip": true,
+                      "width": "fill_container",
+                      "height": 132,
+                      "fill": "$surface",
+                      "cornerRadius": 20,
+                      "stroke": "$divider",
+                      "strokeWidth": 1,
+                      "layout": "none",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "wSM4O",
+                          "x": 16,
+                          "y": 16,
+                          "name": "Phone Circle",
+                          "width": 44,
+                          "height": 44,
+                          "fill": "#EDEDED",
+                          "cornerRadius": 22,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "FOIrm",
+                              "name": "Phone Icon",
+                              "width": 20,
+                              "height": 20,
+                              "icon": "phone",
+                              "library": "lucide",
+                              "fill": "$ink"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "l2ZJF",
+                          "x": 16,
+                          "y": 72,
+                          "name": "Phone Title",
+                          "fill": "$ink",
+                          "content": "Qo'ng'iroq",
+                          "fontFamily": "Inter",
+                          "fontSize": 15,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "upIPR",
+                          "x": 16,
+                          "y": 90,
+                          "name": "Phone Value",
+                          "fill": "$secondary",
+                          "content": "+998 94 643 37 33",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "e1wHS",
+                          "x": 149,
+                          "y": 106,
+                          "name": "Phone Arrow",
+                          "fill": "$faint",
+                          "content": "↗",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "rQnrH",
+                  "name": "Grid Row 2",
+                  "width": "fill_container",
+                  "gap": 10,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "p4HWY",
+                      "name": "Telegram Card",
+                      "clip": true,
+                      "width": "fill_container",
+                      "height": 132,
+                      "fill": "$surface",
+                      "cornerRadius": 20,
+                      "stroke": "$divider",
+                      "strokeWidth": 1,
+                      "layout": "none",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "Ti62N",
+                          "x": 16,
+                          "y": 16,
+                          "name": "TG Circle",
+                          "width": 44,
+                          "height": 44,
+                          "fill": "#E4F4FD",
+                          "cornerRadius": 22,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "JVBJL",
+                              "name": "TG Icon",
+                              "width": 20,
+                              "height": 20,
+                              "icon": "send",
+                              "library": "lucide",
+                              "fill": "$telegram"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "OGPu3",
+                          "x": 16,
+                          "y": 72,
+                          "name": "TG Title",
+                          "fill": "$ink",
+                          "content": "Telegram",
+                          "fontFamily": "Inter",
+                          "fontSize": 15,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "reJNE",
+                          "x": 16,
+                          "y": 90,
+                          "name": "TG Value",
+                          "fill": "$secondary",
+                          "content": "@woody_yordam",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "Qj7Gf",
+                          "x": 149,
+                          "y": 106,
+                          "name": "TG Arrow",
+                          "fill": "$faint",
+                          "content": "↗",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "uWVGD",
+                      "name": "Email Card",
+                      "clip": true,
+                      "width": "fill_container",
+                      "height": 132,
+                      "fill": "$surface",
+                      "cornerRadius": 20,
+                      "stroke": "$divider",
+                      "strokeWidth": 1,
+                      "layout": "none",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "e1LGYG",
+                          "x": 16,
+                          "y": 16,
+                          "name": "Email Circle",
+                          "width": 44,
+                          "height": 44,
+                          "fill": "#EDEDED",
+                          "cornerRadius": 22,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "pbHId",
+                              "name": "Email Icon",
+                              "width": 20,
+                              "height": 20,
+                              "icon": "mail",
+                              "library": "lucide",
+                              "fill": "$ink"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "hbgqC",
+                          "x": 16,
+                          "y": 72,
+                          "name": "Email Title",
+                          "fill": "$ink",
+                          "content": "Email",
+                          "fontFamily": "Inter",
+                          "fontSize": 15,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "jEKhU",
+                          "x": 16,
+                          "y": 90,
+                          "name": "Email Value",
+                          "fill": "$secondary",
+                          "content": "info@woody.uz",
+                          "fontFamily": "Inter",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "qqrKS",
+                          "x": 149,
+                          "y": 106,
+                          "name": "Email Arrow",
+                          "fill": "$faint",
+                          "content": "↗",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "H9e4u",
+          "name": "FAQ Section",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 14,
+          "children": [
+            {
+              "type": "text",
+              "id": "PHg8G",
+              "name": "FAQ Label",
+              "fill": "$secondary",
+              "content": "TEZ-TEZ SO'RALADIGAN SAVOLLAR",
+              "fontFamily": "Inter",
+              "fontSize": 12,
+              "fontWeight": "600",
+              "letterSpacing": 0.6
+            },
+            {
+              "type": "frame",
+              "id": "eFQ4m",
+              "name": "FAQ Cards",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 10,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "QHWzC",
+                  "name": "FAQ Umumiy",
+                  "clip": true,
+                  "width": "fill_container",
+                  "fill": "$surface",
+                  "cornerRadius": 16,
+                  "stroke": "$divider",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "AQmsn",
+                      "name": "FAQ Umumiy Header",
+                      "width": "fill_container",
+                      "height": 52,
+                      "padding": [
+                        0,
+                        16
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "XN5Du",
+                          "name": "FAQ Umumiy Title",
+                          "fill": "$ink",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Umumiy savollar",
+                          "fontFamily": "Inter",
+                          "fontSize": 15,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "icon",
+                          "id": "QUyAD",
+                          "name": "FAQ Umumiy Chevron",
+                          "width": 16,
+                          "height": 16,
+                          "icon": "chevron-down",
+                          "library": "lucide",
+                          "fill": "$faint"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Cc08x",
+                      "name": "FAQ Umumiy Body",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "XgGnH",
+                          "name": "FAQ Q1",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 8,
+                          "padding": [
+                            14,
+                            16
+                          ],
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "xdB6I",
+                              "name": "FAQ Q1 Row",
+                              "width": "fill_container",
+                              "gap": 8,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "j5cwK",
+                                  "name": "FAQ Q1 Text",
+                                  "fill": "$ink",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "Buyurtmani qanday bekor qilaman?",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 14,
+                                  "fontWeight": "500"
+                                },
+                                {
+                                  "type": "icon",
+                                  "id": "LRTWH",
+                                  "name": "FAQ Q1 Icon",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "chevron-down",
+                                  "library": "lucide",
+                                  "fill": "$faint"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "xgJTU",
+                              "name": "FAQ A1 Text",
+                              "fill": "$secondary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Buyurtmangiz holatiga qarab, uni «Buyurtmalarim» bo'limida bekor qilishingiz mumkin. Agar buyurtma allaqachon yo'lga chiqgan bo'lsa, qo'llab-quvvatlash xizmatiga murojaat qiling.",
+                              "lineHeight": 1.5,
+                              "fontFamily": "Inter",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "aPjK6",
+                          "name": "FAQ Divider 1",
+                          "fill": "$divider",
+                          "width": "fill_container",
+                          "height": 1
+                        },
+                        {
+                          "type": "frame",
+                          "id": "CZ9Tp",
+                          "name": "FAQ Q2",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 8,
+                          "padding": [
+                            14,
+                            16
+                          ],
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "YgdHm",
+                              "name": "FAQ Q2 Row",
+                              "width": "fill_container",
+                              "gap": 8,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "BR8ad",
+                                  "name": "FAQ Q2 Text",
+                                  "fill": "$ink",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "Yetkazib berish qancha vaqt oladi?",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 14,
+                                  "fontWeight": "500"
+                                },
+                                {
+                                  "type": "icon",
+                                  "id": "fVcSD",
+                                  "name": "FAQ Q2 Icon",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "chevron-right",
+                                  "library": "lucide",
+                                  "fill": "$faint"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "O6oT3",
+                          "name": "FAQ Divider 2",
+                          "fill": "$divider",
+                          "width": "fill_container",
+                          "height": 1
+                        },
+                        {
+                          "type": "frame",
+                          "id": "f4h1E",
+                          "name": "FAQ Q3",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 8,
+                          "padding": [
+                            14,
+                            16
+                          ],
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "v8qypQ",
+                              "name": "FAQ Q3 Row",
+                              "width": "fill_container",
+                              "gap": 8,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "werOZ",
+                                  "name": "FAQ Q3 Text",
+                                  "fill": "$ink",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "To'lov qanday amalga oshiriladi?",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 14,
+                                  "fontWeight": "500"
+                                },
+                                {
+                                  "type": "icon",
+                                  "id": "B6X2a",
+                                  "name": "FAQ Q3 Icon",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "chevron-right",
+                                  "library": "lucide",
+                                  "fill": "$faint"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "xvYLN",
+                  "name": "FAQ Xaridorlar",
+                  "width": "fill_container",
+                  "height": 52,
+                  "fill": "$surface",
+                  "cornerRadius": 16,
+                  "stroke": "$divider",
+                  "strokeWidth": 1,
+                  "padding": [
+                    0,
+                    16
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "B5vKTa",
+                      "name": "FAQ Xaridorlar Title",
+                      "fill": "$ink",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Xaridorlar uchun",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "ThLMV",
+                      "name": "FAQ Xaridorlar Chevron",
+                      "fill": "$faint",
+                      "content": "›",
+                      "fontFamily": "Inter",
+                      "fontSize": 16,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "JOKUz",
+                  "name": "FAQ Sotuvchilar",
+                  "width": "fill_container",
+                  "height": 52,
+                  "fill": "$surface",
+                  "cornerRadius": 16,
+                  "stroke": "$divider",
+                  "strokeWidth": 1,
+                  "padding": [
+                    0,
+                    16
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "p9DWaK",
+                      "name": "FAQ Sotuvchilar Title",
+                      "fill": "$ink",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Sotuvchilar uchun",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "SnBA0",
+                      "name": "FAQ Sotuvchilar Chevron",
+                      "fill": "$faint",
+                      "content": "›",
+                      "fontFamily": "Inter",
+                      "fontSize": 16,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "HCFQy",
+          "name": "Bottom Padding",
+          "width": "fill_container",
+          "height": 20
         }
       ]
     }

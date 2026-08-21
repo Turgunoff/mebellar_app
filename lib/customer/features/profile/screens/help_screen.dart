@@ -84,9 +84,9 @@ class _HelpScreenState extends State<HelpScreen> {
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         physics: const BouncingScrollPhysics(),
         children: [
-          // ---- Quick contact row (top) -------------------------------------
-          _SectionLabel(tr('profile.help_contact_section')),
-          const SizedBox(height: 14),
+          // ---- Contact block (top) -----------------------------------------
+          // No section label here: the staffed-hours strip already titles the
+          // block, and a second all-caps label above it read as noise.
           BlocBuilder<AuthCubit, AppAuthState>(
             builder: (context, state) =>
                 _ContactRow(loggedIn: state is AppAuthAuthenticated),
@@ -154,10 +154,10 @@ class _HelpScreenState extends State<HelpScreen> {
 }
 
 // ---------------------------------------------------------------------------
-// Quick contact list — one full-width tile per channel showing the channel
-// name AND the live contact value (phone number / email / @handle) from
-// RemoteConfig, so the user knows exactly where the tap will take them.
-// The in-app chat tile appears only when signed in.
+// Contact block — a staffed-hours strip, the in-app chat CTA (signed-in only),
+// and the public channels grouped into one card. Every row shows the live
+// contact value (phone number / email / @handle) from RemoteConfig, so the user
+// knows exactly where the tap will take them.
 // ---------------------------------------------------------------------------
 
 class _ContactRow extends StatelessWidget {
@@ -180,117 +180,143 @@ class _ContactRow extends StatelessWidget {
     final config = RemoteConfig.instance;
     return Column(
       children: [
+        _SupportHoursStrip(
+          open: config.isSupportOpen,
+          hours: config.supportHoursLabel,
+        ),
+        const SizedBox(height: 12),
         if (loggedIn) ...[
-          _ContactTile(
-            icon: const Icon(
-              Icons.support_agent,
-              size: 22,
-              color: Colors.white,
-            ),
-            iconBackground: PremiumTokens.accent,
-            title: tr('profile.help_contact_online_chat'),
-            subtitle: tr('profile.help_contact_online_chat_sub'),
-            highlighted: true,
-            onTap: () => context.push('/support'),
-          ),
-          const SizedBox(height: 10),
+          _OnlineChatCta(onTap: () => context.push('/support')),
+          const SizedBox(height: 12),
         ],
-        _ContactTile(
-          icon: Icon(Iconsax.call, size: 20, color: pt.dark),
-          iconBackground: pt.dark.withValues(alpha: 0.08),
-          title: tr('profile.help_contact_call'),
-          subtitle: config.supportPhone,
-          onTap: () => _launch(config.supportPhoneUri),
-        ),
-        const SizedBox(height: 10),
-        _ContactTile(
-          icon: const FaIcon(
-            FontAwesomeIcons.telegram,
-            size: 20,
-            color: _telegramBlue,
-          ),
-          iconBackground: _telegramBlue.withValues(alpha: 0.12),
-          title: tr('profile.help_contact_telegram'),
-          subtitle: config.telegramHandleLabel,
-          onTap: () => _launch(config.telegramUrl),
-        ),
-        const SizedBox(height: 10),
-        _ContactTile(
-          icon: Icon(Icons.email_outlined, size: 20, color: pt.dark),
-          iconBackground: pt.dark.withValues(alpha: 0.08),
-          title: tr('profile.help_contact_email'),
-          subtitle: config.supportEmail,
-          onTap: () => _launch(config.supportEmailUri),
+        _ContactGroupCard(
+          rows: [
+            _ContactRowData(
+              icon: Icon(Iconsax.call, size: 20, color: pt.dark),
+              label: tr('profile.help_contact_call'),
+              value: config.supportPhone,
+              onTap: () => _launch(config.supportPhoneUri),
+            ),
+            _ContactRowData(
+              icon: const FaIcon(
+                FontAwesomeIcons.telegram,
+                size: 20,
+                color: _telegramBlue,
+              ),
+              label: tr('profile.help_contact_telegram'),
+              value: config.telegramHandleLabel,
+              onTap: () => _launch(config.telegramUrl),
+            ),
+            _ContactRowData(
+              icon: Icon(Icons.email_outlined, size: 20, color: pt.dark),
+              label: tr('profile.help_contact_email'),
+              value: config.supportEmail,
+              onTap: () => _launch(config.supportEmailUri),
+            ),
+          ],
         ),
       ],
     );
   }
 }
 
-class _ContactTile extends StatelessWidget {
-  const _ContactTile({
-    required this.icon,
-    required this.iconBackground,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-    this.highlighted = false,
-  });
+/// Staffed-hours strip. It titles the contact block (there is no all-caps
+/// section label above it) and, more usefully, tells the customer whether a
+/// human is on the other end before they burn a call outside working hours.
+class _SupportHoursStrip extends StatelessWidget {
+  const _SupportHoursStrip({required this.open, required this.hours});
 
-  /// Pre-built glyph — a [FaIcon] for brand logos, a plain [Icon] otherwise.
-  final Widget icon;
-  final Color iconBackground;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  /// The primary channel (in-app chat) gets an accent border to stand out.
-  final bool highlighted;
+  final bool open;
+  final String hours;
 
   @override
   Widget build(BuildContext context) {
     final pt = PremiumTokens.of(context);
+    return SizedBox(
+      height: 36,
+      child: Row(
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: open ? pt.success : pt.greyLight,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              open
+                  ? tr('profile.help_support_open')
+                  : tr('profile.help_support_closed'),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: PremiumTokens.body(size: 13, weight: FontWeight.w600),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(hours, style: PremiumTokens.body(size: 12, color: pt.grey)),
+        ],
+      ),
+    );
+  }
+}
+
+/// The primary channel, signed-in only. Painted on [PremiumTokens.card] — the
+/// inverted brand surface that stays dark in BOTH themes — so it outranks the
+/// plain rows below it without a second accent colour competing with the icon.
+class _OnlineChatCta extends StatelessWidget {
+  const _OnlineChatCta({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
+    final title = tr('profile.help_contact_online_chat');
+    final subtitle = tr('profile.help_contact_online_chat_sub');
     return Semantics(
       button: true,
       label: '$title, $subtitle',
       child: Material(
-        color: pt.surface,
+        color: pt.card,
         borderRadius: BorderRadius.circular(18),
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(18),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: highlighted
-                    ? PremiumTokens.accent.withValues(alpha: 0.45)
-                    : pt.divider,
-              ),
-            ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 14, 12),
             child: Row(
               children: [
                 Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: iconBackground,
+                  width: 40,
+                  height: 40,
+                  decoration: const BoxDecoration(
+                    color: PremiumTokens.accent,
                     shape: BoxShape.circle,
                   ),
                   alignment: Alignment.center,
-                  child: icon,
+                  child: const Icon(
+                    Icons.support_agent,
+                    size: 20,
+                    color: Colors.white,
+                  ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: PremiumTokens.body(
-                          size: 14,
+                          size: 15,
                           weight: FontWeight.w600,
+                          color: pt.onCard,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -298,13 +324,135 @@ class _ContactTile extends StatelessWidget {
                         subtitle,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: PremiumTokens.body(size: 12.5, color: pt.grey),
+                        style: PremiumTokens.body(
+                          size: 11.5,
+                          color: pt.onCard.withValues(alpha: 0.7),
+                        ),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(width: 8),
-                Icon(Iconsax.arrow_right_3_copy, size: 18, color: pt.greyLight),
+                Icon(
+                  Iconsax.arrow_right_3_copy,
+                  size: 18,
+                  color: pt.onCard.withValues(alpha: 0.6),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ContactRowData {
+  const _ContactRowData({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.onTap,
+  });
+
+  /// Pre-built glyph — a [FaIcon] for brand logos, a plain [Icon] otherwise.
+  final Widget icon;
+  final String label;
+  final String value;
+  final VoidCallback onTap;
+}
+
+/// The public channels as ONE grouped card: label left, live value right,
+/// hairlines inset past the icon column so they read as one object rather than
+/// three stacked cards.
+class _ContactGroupCard extends StatelessWidget {
+  const _ContactGroupCard({required this.rows});
+
+  final List<_ContactRowData> rows;
+
+  /// Left inset shared by the divider and the label column, so the hairline
+  /// starts exactly where the text does.
+  static const double iconColumn = 58;
+
+  @override
+  Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        color: pt.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: pt.divider),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(17),
+        child: Column(
+          children: [
+            for (var i = 0; i < rows.length; i++) ...[
+              if (i > 0)
+                Divider(
+                  height: 1,
+                  thickness: 1,
+                  indent: iconColumn,
+                  color: pt.divider,
+                ),
+              _ContactGroupRow(data: rows[i]),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ContactGroupRow extends StatelessWidget {
+  const _ContactGroupRow({required this.data});
+
+  final _ContactRowData data;
+
+  @override
+  Widget build(BuildContext context) {
+    final pt = PremiumTokens.of(context);
+    return Semantics(
+      button: true,
+      label: '${data.label}, ${data.value}',
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: data.onTap,
+          child: Container(
+            height: 56,
+            padding: const EdgeInsets.only(left: 18, right: 14),
+            child: Row(
+              children: [
+                SizedBox(width: 20, child: Center(child: data.icon)),
+                const SizedBox(width: 20),
+                // Capped rather than flexible: a loose Flexible would leave the
+                // slack at the end of the row and drag the chevron off the edge.
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 150),
+                  child: Text(
+                    data.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: PremiumTokens.body(size: 14, weight: FontWeight.w500),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    data.value,
+                    maxLines: 1,
+                    textAlign: TextAlign.right,
+                    overflow: TextOverflow.ellipsis,
+                    style: PremiumTokens.body(size: 13, color: pt.grey),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(
+                  Iconsax.arrow_right_3_copy,
+                  size: 16,
+                  color: pt.greyLight,
+                ),
               ],
             ),
           ),

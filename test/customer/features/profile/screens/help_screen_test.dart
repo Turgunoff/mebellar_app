@@ -60,6 +60,29 @@ void main() {
     expect(find.text('Onlayn chat'), findsOneWidget);
   });
 
+  testWidgets('staffed-hours strip shows the window and a status line', (
+    tester,
+  ) async {
+    pinState(const AppAuthUnauthenticated());
+    RemoteConfig.instance
+      ..supportHoursFrom = 9
+      ..supportHoursTo = 21;
+
+    await tester.pumpWidget(harness());
+    await tester.pump();
+
+    expect(find.text('09:00 – 21:00'), findsOneWidget);
+    // The open/closed copy depends on the wall clock, so assert that exactly
+    // one of the two states rendered rather than pinning the current hour.
+    final open = find.text("Qo'llab-quvvatlash xizmati ochiq");
+    final closed = find.text('Hozir yopiq');
+    expect(
+      open.evaluate().length + closed.evaluate().length,
+      1,
+      reason: 'exactly one status line must render',
+    );
+  });
+
   testWidgets('renders the three FAQ category sections', (tester) async {
     pinState(const AppAuthUnauthenticated());
 
