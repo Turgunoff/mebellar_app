@@ -169,7 +169,11 @@ class HomeBloc extends Bloc<HomeEvent, HomeState>
   @override
   void onLocaleChanged() => add(const HomeRequested(refresh: true));
 
-  static const Duration _loadTimeout = Duration(seconds: 5);
+  // Ceiling for a feed load. Sits just under Dio's own 15s connect timeout:
+  // low enough that a dead connection surfaces an error state instead of an
+  // endless shimmer, high enough that a slow-but-alive link is allowed to
+  // finish. The old 5s ceiling failed real requests on congested mobile data.
+  static const Duration _loadTimeout = Duration(seconds: 15);
 
   Future<void> _onRequested(
     HomeRequested event,

@@ -102,9 +102,9 @@ class CategoriesBloc extends Bloc<CategoriesEvent, CategoriesState>
   @override
   void onLocaleChanged() => add(const CategoriesRequested(refresh: true));
 
-  // Hard 5s ceiling — mirrors HomeBloc so a dead connection surfaces the
-  // blocking modal fast instead of waiting out Dio's 30s receive timeout.
-  static const Duration _loadTimeout = Duration(seconds: 5);
+  // Mirrors HomeBloc's ceiling — see the note there on why it is 15s and not
+  // the 5s that used to fail slow-but-working connections.
+  static const Duration _loadTimeout = Duration(seconds: 15);
 
   Future<void> _onRequested(
     CategoriesRequested event,

@@ -120,17 +120,79 @@ class ArModelLoadingOverlay extends StatelessWidget {
               child: SizedBox(
                 width: 200,
                 height: 200,
-                child: Lottie.asset(
-                  AssetLottie.searchLottie,
-                  fit: BoxFit.contain,
-                  // Only animate while it's on screen — no work once faded out.
-                  animate: !ready,
-                ),
+                // Only animate while it's on screen — no work once faded out.
+                child: _SearchLoopLottie(animate: !ready),
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The brand search animation, looped over the part of it that actually moves.
+///
+/// `search_lottie.json` declares a 150-frame composition, but its last
+/// keyframe is at frame 126: the final 24 frames (0.4s at 60fps) are a dead
+/// hold that reads as the loader freezing before it snaps back to the start.
+/// Frame 126 is identical to frame 0, so looping `0 → 126` is seamless — and
+/// [_period] keeps the original playback speed instead of stretching the
+/// shortened range over the full duration.
+class _SearchLoopLottie extends StatefulWidget {
+  const _SearchLoopLottie({required this.animate});
+
+  final bool animate;
+
+  @override
+  State<_SearchLoopLottie> createState() => _SearchLoopLottieState();
+}
+
+class _SearchLoopLottieState extends State<_SearchLoopLottie>
+    with SingleTickerProviderStateMixin {
+  static const _contentEnd = 126 / 150;
+
+  late final AnimationController _controller = AnimationController(vsync: this);
+
+  Duration? get _period {
+    final total = _controller.duration;
+    return total == null ? null : total * _contentEnd;
+  }
+
+  void _syncPlayback() {
+    final period = _period;
+    if (period == null) return;
+    if (widget.animate) {
+      if (!_controller.isAnimating) {
+        _controller.repeat(min: 0, max: _contentEnd, period: period);
+      }
+    } else {
+      _controller.stop();
+    }
+  }
+
+  @override
+  void didUpdateWidget(_SearchLoopLottie oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.animate != widget.animate) _syncPlayback();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Lottie.asset(
+      AssetLottie.searchLottie,
+      controller: _controller,
+      fit: BoxFit.contain,
+      onLoaded: (composition) {
+        _controller.duration = composition.duration;
+        _syncPlayback();
+      },
     );
   }
 }
