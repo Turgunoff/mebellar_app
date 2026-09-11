@@ -176,4 +176,43 @@ void main() {
     await h.service.stop();
     await h.service.dispose();
   });
+
+  test('start redials immediately when a rejected handshake left it '
+      'disconnected — a refreshed token must not wait out the backoff',
+      () async {
+    // Cold boot: the store still holds the expired access token, so the first
+    // handshake is rejected. Seconds later /auth/refresh lands, TokenStore
+    // emits, and AuthCubit calls start() again. That call has to redial now —
+    // otherwise realtime stays dead for the rest of the backoff step.
+    final connections = <_FakeConnection>[];
+    var failNext = true;
+    final service = WoodyRealtimeService(
+      tokens: store,
+      baseUrlOverride: 'https://api.woody.test',
+      connector: (uri, {required accessToken}) {
+        final conn = _FakeConnection(
+          handshakeError: failNext ? StateError('403') : null,
+        )
+          ..uri = uri
+          ..accessToken = accessToken;
+        connections.add(conn);
+        return conn;
+      },
+    );
+
+    await service.start();
+    await Future<void>.delayed(Duration.zero);
+    expect(service.isConnected, isFalse);
+    expect(connections, hasLength(1));
+
+    failNext = false;
+    await service.start();
+    await Future<void>.delayed(Duration.zero);
+
+    expect(connections, hasLength(2), reason: 'second start must redial');
+    expect(service.isConnected, isTrue);
+
+    await service.stop();
+    await service.dispose();
+  });
 }

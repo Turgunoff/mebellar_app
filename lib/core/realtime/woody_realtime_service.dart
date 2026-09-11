@@ -62,6 +62,7 @@ class WoodyRealtimeService {
   StreamSubscription<dynamic>? _channelSub;
   Timer? _reconnectTimer;
   bool _running = false;
+  bool _connecting = false;
   int _backoffStep = 0;
 
   /// Stream of every inbound event. Most callers should use [eventsOfType]
@@ -79,8 +80,24 @@ class WoodyRealtimeService {
   /// Open the connection. Idempotent. Backs off and retries on transient
   /// failures. Call once after sign-in completes; the auth cubit watches
   /// [TokenStore.changes] and calls [stop] on sign-out.
+  ///
+  /// Calling it again while already running is not a no-op: the auth cubit
+  /// re-invokes this on every token change, and the one that matters is the
+  /// refresh landing seconds after a cold start. Boot order is
+  /// `start()` → handshake with the *stale* access token still in the store →
+  /// the server rejects it → backoff. Without retrying here that rejection
+  /// costs the whole backoff step (up to 30 s of dead realtime) even though a
+  /// usable token arrived almost immediately. So a repeat call while
+  /// disconnected means "something changed, try now".
   Future<void> start() async {
-    if (_running) return;
+    if (_running) {
+      if (isConnected || _connecting) return;
+      _reconnectTimer?.cancel();
+      _reconnectTimer = null;
+      _backoffStep = 0;
+      await _connect();
+      return;
+    }
     _running = true;
     await _connect();
   }
@@ -107,7 +124,18 @@ class WoodyRealtimeService {
   }
 
   Future<void> _connect() async {
-    if (!_running) return;
+    // Two handshakes in flight would leak the loser's channel: both assign
+    // `_channel`, only the last one is ever closed.
+    if (!_running || _connecting) return;
+    _connecting = true;
+    try {
+      await _connectOnce();
+    } finally {
+      _connecting = false;
+    }
+  }
+
+  Future<void> _connectOnce() async {
     final base = _baseUrlOverride ?? AppConfig.woodyApiUrl;
     if (base.isEmpty) {
       // No backend configured — bail out silently. The auth flow is gated
