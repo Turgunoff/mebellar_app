@@ -94,7 +94,7 @@ class _DayRow extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 4),
-                  const Text('вЂ”'),
+                  const Text('—'),
                   const SizedBox(width: 4),
                   Expanded(
                     child: OutlinedButton(

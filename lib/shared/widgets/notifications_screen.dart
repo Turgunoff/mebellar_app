@@ -12,7 +12,7 @@ import 'brand_refresh_indicator.dart';
 import 'empty_state.dart';
 import 'error_state.dart';
 
-/// Single screen used by both customer and seller modes вЂ” `mode` controls
+/// Single screen used by both customer and seller modes — `mode` controls
 /// the filter (only show notifications addressed to that mode) and which
 /// "mark all read" scope is used.
 class NotificationsScreen extends StatelessWidget {
