@@ -70,7 +70,7 @@ Woody — премиальный и современный маркетплей�
 📦 ПОЧЕМУ ИМЕННО WOODY?
 
 • Красивый, современный и удобный интерфейс (премиум-дизайн).
-• Полностью работает на узбекском и русском языках.
+• Полностью работает на узбекском, русском и английском языках.
 • Безопасные покупки и надежная система доставки.
 • Отслеживание заказов 24/7.
 
@@ -95,7 +95,7 @@ Uyingiz yoki ofisingiz uchun kerakli mebelni oson, tez va qulay toping. Woody il
 📦 NIMA UCHUN AYNAN WOODY?
 
 • Chiroyli, zamonaviy va ishlatishga qulay interfeys (Premium dizayn).
-• O'zbek va rus tillarida to'liq ishlaydi.
+• O'zbek, rus va ingliz tillarida to'liq ishlaydi.
 • Xavfsiz xarid va ishonchli yetkazib berish tizimi.
 • 24/7 buyurtma kuzatuvi.
 
@@ -126,30 +126,106 @@ mebel,divan,stol,stul,shkaf,karavot,mebel xarid,interyer,yetkazish,dokon,woody,t
 | **URL службы поддержки** (Support URL) | https://woody.uz |
 | **Маркетинг URL** (Marketing URL) | https://woody.uz *(ixtiyoriy)* |
 | **Privacy Policy URL** | https://woody.uz/uz/privacy |
-| **Версия** (Version) | 1.0.15 |
+| **Версия** (Version) | 1.0.40 |
 | **Авторские права** (Copyright · ≤200) | © 2026 Woody. Все права защищены. |
 
 ---
 
 ## 7. ЧТО НОВОГО (What's New / Release Notes)
-> Maks 4000 ta belgi.
+> **Maks 4000 ta belgi — har til bloki uchun alohida.** Quyidagilar sanab tekshirilgan:
+> uz 965, ru 913, en 855.
 
-### Rus
-```
-v1.0.15
-
-• Стабильность и улучшения производительности
-• Доработки каталога и оформления заказа
-• Исправление мелких ошибок
-```
+> ⚠️ **Har relizda qo'lda yangilanadi.** Manba: [`tools/shorebird/releases.md`](../tools/shorebird/releases.md) — reliz ledgeri. Versiya raqamini `pubspec.yaml` bilan sinxron tuting.
+>
+> ℹ️ Bu matn **1.0.15 → 1.0.40** oralig'idagi barcha yangiliklarni qamraydi —
+> foydalanuvchi App Store'da faqat oxirgi "What's New" blokini ko'radi, shuning
+> uchun oraliqdagi 24 ta reliz bittaga jamlangan.
 
 ### O'zbek
 ```
-v1.0.15
+v1.0.40
 
-• Barqarorlik va tezlik yaxshilanishi
-• Katalog va buyurtma rasmiylashtirishdagi yangilanishlar
-• Mayda xatoliklar tuzatildi
+Katta yangilanish — 1.0.15 dan beri qo'shilgan hamma narsa.
+
+AR — XONANGIZDA KO'RING
+• Mebelni sotib olishdan oldin o'z xonangizda haqiqiy o'lchamda 3D ko'ring.
+• Garnitur endi bo'linadi: krovat, shkaf va tryumoni alohida joylashtiring.
+• iPhone va iPad'da Apple Quick Look qo'llab-quvvatlanadi.
+
+AI INTERYER DIZAYNER
+• Xonangiz rasmini yuboring — sun'iy intellekt uslub va mebel tanlab beradi.
+
+TO'LOV VA BUYURTMA
+• Onlayn to'lov: Payme va Click.
+• Yetkazib berish narxi aniqlangach to'laysiz — avvaldan emas.
+• Buyurtma holati va xaridlar tarixi bir joyda.
+
+QULAYLIKLAR
+• Qo'llab-quvvatlash chatida ovozli xabar yuborish.
+• Shaxsiylashtirilgan bosh sahifa: "Siz uchun" va "Ommabop" bo'limlari.
+• Ilova belgisida o'qilmagan bildirishnomalar soni ko'rinadi.
+• Oflayn rejim ishonchli ishlaydi — internet uzilsa ilova buni to'g'ri aniqlaydi.
+• Ilova uchta tilda: o'zbek, rus, ingliz.
+
+Tezlik, barqarorlik va mayda xatoliklar bo'yicha ko'plab yaxshilanishlar.
+```
+
+### Rus
+```
+v1.0.40
+
+Крупное обновление — всё, что появилось с версии 1.0.15.
+
+AR — ПОСМОТРИТЕ У СЕБЯ ДОМА
+• Увидьте мебель в своей комнате в реальном размере до покупки.
+• Гарнитур теперь разделяется: расставьте кровать, шкаф и туалетный столик по отдельности.
+• На iPhone и iPad поддерживается Apple Quick Look.
+
+AI ДИЗАЙНЕР ИНТЕРЬЕРА
+• Отправьте фото комнаты — искусственный интеллект подберёт стиль и мебель.
+
+ОПЛАТА И ЗАКАЗЫ
+• Онлайн-оплата: Payme и Click.
+• Платите после того, как определена стоимость доставки, а не заранее.
+• Статус заказа и история покупок в одном месте.
+
+УДОБСТВА
+• Голосовые сообщения в чате поддержки.
+• Персональная главная: разделы «Для вас» и «Популярное».
+• Счётчик непрочитанных на значке приложения.
+• Надёжный офлайн-режим — приложение корректно определяет потерю связи.
+• Три языка: узбекский, русский, английский.
+
+Множество улучшений скорости, стабильности и исправлений мелких ошибок.
+```
+
+### Ingliz
+```
+v1.0.40
+
+A big update — everything added since 1.0.15.
+
+AR — SEE IT IN YOUR ROOM
+• View furniture at true scale in your own room before you buy.
+• Sets now split apart: place the bed, wardrobe and dresser separately.
+• Apple Quick Look is supported on iPhone and iPad.
+
+AI INTERIOR DESIGNER
+• Send a photo of your room and let AI suggest a style and furniture.
+
+PAYMENT AND ORDERS
+• Online payment: Payme and Click.
+• Pay once the delivery fee is agreed, not upfront.
+• Order status and purchase history in one place.
+
+CONVENIENCE
+• Voice messages in the support chat.
+• Personalised home with "For you" and "Popular" sections.
+• Unread notification count on the app icon.
+• A dependable offline mode — the app now detects a lost connection correctly.
+• Three languages: Uzbek, Russian, English.
+
+Many speed, stability and bug-fix improvements throughout.
 ```
 
 ---
@@ -211,7 +287,7 @@ test phone number with a FIXED code:
 On the first auth screen enter the phone number, tap Continue, then type the
 fixed code 12345 to log in.
 
-The app supports Uzbek and Russian (switch in profile). Payments are cash on
+The app supports Uzbek, Russian and English (switch in profile). Payments are cash on
 delivery or card — no real charge happens during review.
 
 For any issue please contact info@woody.uz.
@@ -231,6 +307,15 @@ tugma bosib chiqarasiz.
 1. **Privacy Policy URL — TAYYOR.** woody_frontend'ga trilingual `/privacy`
    sahifasi qo'shilib deploy qilindi. App Privacy bo'limiga qo'ying:
    **https://woody.uz/uz/privacy** (deploy tugagach ochilishini tekshiring).
+
+   > ℹ️ **Kuzatuv (2026-09-18).** Jonli sahifa haqiqatan uch tilli —
+   > `woody_frontend/lib/i18n/dictionaries.ts` da `privacy` bloki uz/ru/en
+   > uchun uchtasi ham bor. Lekin shu repodagi nusxa
+   > [`store/privacy_policy.md`](privacy_policy.md) **ikki tilli** (faqat
+   > O'ZBEK + РУССКИЙ). Ya'ni repo fayli jonli sahifaning manbasi emas.
+   > Store uchun ahamiyati yo'q — Apple/Google URL'ni ochadi, markdown'ni emas —
+   > ammo kimdir `privacy_policy.md` ni manba deb o'ylab tahrirlasa, o'zgarish
+   > saytga chiqmaydi. Fayl ataylab tegilmadi.
 
 2. **Support URL ishlashi shart.** https://woody.uz ochilib, footer'da
    kontaktlar (telefon/email/Telegram) ko'rinishi kerak — Apple review buni

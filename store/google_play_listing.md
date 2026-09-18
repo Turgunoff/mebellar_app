@@ -70,7 +70,7 @@ Uyingiz yoki ofisingiz uchun kerakli mebelni oson, tez va qulay toping. Woody il
 📦 NIMA UCHUN AYNAN WOODY?
 
 • Chiroyli, zamonaviy va ishlatishga qulay interfeys (Premium dizayn).
-• O'zbek va rus tillarida to'liq ishlaydi.
+• O'zbek, rus va ingliz tillarida to'liq ishlaydi.
 • Xavfsiz xarid va ishonchli yetkazib berish tizimi.
 • 24/7 buyurtma kuzatuvi.
 
@@ -95,7 +95,7 @@ Woody — премиальный и современный маркетплей�
 📦 ПОЧЕМУ ИМЕННО WOODY?
 
 • Красивый, современный и удобный интерфейс (Премиум дизайн).
-• Полностью работает на узбекском и русском языках.
+• Полностью работает на узбекском, русском и английском языках.
 • Безопасные покупки и надежная система доставки.
 • Отслеживание заказов 24/7.
 
@@ -105,28 +105,51 @@ Woody — премиальный и современный маркетплей�
 ---
 
 ## 5. WHAT'S NEW (Yangiliklar)
-> Maks 500 ta belgi
+> **Maks 500 ta belgi — har til bloki uchun alohida.** Quyidagilar sanab tekshirilgan:
+> uz 426, ru 422, en 398.
+
+> ⚠️ **Har relizda qo'lda yangilanadi.** Manba: [`tools/shorebird/releases.md`](../tools/shorebird/releases.md) — reliz ledgeri. Versiya raqamini `pubspec.yaml` bilan sinxron tuting.
 
 ### O'zbek
 ```
-v1.0.0 — Ilk versiya
+v1.0.40
 
-• Premium mebel katalogi va toifalari
-• Savatcha va tezkor buyurtma rasmiylashtirish
-• Yandex xarita orqali yetkazib berish manzilini tanlash
-• Buyurtma holatini kuzatish va xaridlar tarixi
-• O'zbek va rus tillari qo'llab-quvvatlanishi
+• AR: mebelni xonangizda 3D ko'ring — garniturning har bir qismi alohida, iOS'da Quick Look orqali
+• AI Interyer Dizayner: xona rasmidan uslub tanlang
+• Onlayn to'lov — Payme va Click
+• Qo'llab-quvvatlash chatida ovozli xabar
+• Shaxsiylashtirilgan bosh sahifa: "Siz uchun" va "Ommabop"
+• Ilova belgisida o'qilmagan bildirishnomalar soni
+• Oflayn rejim va tarmoq barqarorligi yaxshilandi
+• Uch til: o'zbek, rus, ingliz
 ```
 
 ### Rus
 ```
-v1.0.0 — Первый выпуск
+v1.0.40
 
-• Каталог и категории премиальной мебели
-• Корзина и быстрое оформление заказа
-• Выбор адреса доставки через Яндекс Карты
-• Отслеживание статуса заказа и история покупок
-• Поддержка узбекского и русского языков
+• AR: смотрите мебель в своей комнате в 3D — каждый предмет гарнитура отдельно, на iOS через Quick Look
+• AI Дизайнер интерьера: подберите стиль по фото комнаты
+• Онлайн-оплата — Payme и Click
+• Голосовые сообщения в чате поддержки
+• Персональная главная: «Для вас» и «Популярное»
+• Счётчик непрочитанных на значке приложения
+• Улучшены офлайн-режим и стабильность сети
+• Три языка: узбекский, русский, английский
+```
+
+### Ingliz
+```
+v1.0.40
+
+• AR: view furniture in your room in 3D — each piece of a set separately, with Quick Look on iOS
+• AI Interior Designer: get a style from a photo of your room
+• Online payment — Payme and Click
+• Voice messages in support chat
+• Personalised home: "For you" and "Popular"
+• Unread badge on the app icon
+• Better offline mode and network stability
+• Three languages: Uzbek, Russian, English
 ```
 
 ---
@@ -147,7 +170,7 @@ v1.0.0 — Первый выпуск
 | **Email** | info@woody.uz|
 | **Vebsayt** | — https://woody.uz |
 | **Telefon** | — +998946433733 |
-| **Maxfiylik siyosati URL** | Majburiy (Google Docs yoki Notion orqali link yasab qo'ying) |
+| **Maxfiylik siyosati URL** | https://woody.uz/uz/privacy |
 
 ---
 
