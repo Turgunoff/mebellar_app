@@ -11,10 +11,12 @@ import '../models/app_notification.dart';
 import '../repositories/notifications_repository.dart';
 
 /// Debug-only screen that lets the developer fire any of the 6 cross-mode
-/// notification scenarios from `docs/05-notifications-deep-linking.md` В§4.
+/// notification scenarios handled by `NotificationHandler`
+/// (`lib/core/notifications/notification_handler.dart`), which is their
+/// reference — the doc this used to cite was never written.
 /// Each tile crafts a notification + simulates the push lifecycle:
 ///   - "Foreground" tiles call `handleTap` directly with the active context
-///   - "Background" tiles save the pending route only вЂ” the next consume
+///   - "Background" tiles save the pending route only — the next consume
 ///     pass will pick it up
 ///   - "Cold start" tiles wipe the active mode setting first to mimic a
 ///     fresh app launch

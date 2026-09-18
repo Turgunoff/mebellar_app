@@ -8,8 +8,9 @@ import '../auth/app_mode_cubit.dart';
 import '../di/service_locator.dart';
 
 /// Cross-mode push handler. Sprint 1 scaffolded the pending-route box;
-/// Sprint 10 fleshes it out with the full payload-routing rules from
-/// `docs/05-notifications-deep-linking.md`:
+/// Sprint 10 fleshes it out with the full payload-routing rules, which
+/// live in this file rather than in a spec (the doc this used to cite was
+/// never written):
 ///
 /// 1. **Mode matches** → navigate immediately (caller passes [navigator]).
 /// 2. **Mode differs** → save pending route + flip app mode; the target

@@ -242,7 +242,7 @@ classify_changes() {
       lib/*|*.dart)
         dart="${dart}${f}"$'\n'; n_dart=$((n_dart+1)) ;;
       dist/*|test_driver/*|\
-      tools/*|doc/*|docs/*|design/*|store/*|screenshots/*|\
+      tools/*|doc/*|design/*|store/*|screenshots/*|\
       .github/*|.claude/*|.claude-flow/*|.agents/*|.vscode/*|.history/*|\
       env/*|*.md|*.png|*.jpg|*.jpeg|*.webp|*.svg|\
       *.pdf|*.pptx|*.xlsx|*.mp4|*.pen|\

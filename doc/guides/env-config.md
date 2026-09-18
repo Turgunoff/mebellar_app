@@ -1,6 +1,6 @@
 # Environment Configuration
 
-> Companion to the root [`README.md`](../README.md) §6. Where the operational brain [`CLAUDE.md`](../CLAUDE.md) disagrees, it wins.
+> Companion to the root [`README.md`](../../README.md) §6. Where the operational brain [`CLAUDE.md`](../../CLAUDE.md) disagrees, it wins.
 
 There is **no `.env` file**. Flutter reads build-time constants injected via `--dart-define-from-file`. The contract is the single canonical file **`env/prod.json`** (gitignored), seeded from the committed template **`env/example.json`**:
 
@@ -22,7 +22,7 @@ cp env/example.json env/prod.json   # then fill WOODY_API_URL + YANDEX_GEOCODER_
 | `PAYME_MOCK` | — | not read by the app (env file only) | Vestigial mock flag; unused by the client. | `true` |
 | `SELLER_USES_GO_ROUTER` | — | `bool.fromEnvironment` | Route seller mode through the go_router `StatefulShellRoute` (default `true`); flip OFF to fall back to legacy imperative seller navigation while debugging. | `true` |
 | `SCREENSHOT_MODE` | — | `bool.fromEnvironment` (`lib/config/screenshot_mode.dart`) | Enables the integration-test showcase/screenshot pipeline that feeds the `woody_frontend` landing PNGs. | `false` |
-| `META_ADVANCED_MATCHING_ENABLED` | — | `bool.fromEnvironment` | Sends normalised profile fields (phone, name, email) to Meta for Advanced Matching. **Defaults OFF and must stay OFF** until three things ship together: the privacy policy names the shared fields, `PrivacyInfo.xcprivacy` declares PhoneNumber / Name / EmailAddress, and the App Store Connect questionnaire matches — see [`../doc/release_checklist.md`](../doc/release_checklist.md). Runtime consent (ATT + the in-app analytics toggle) still gates it on top, so the flag can only narrow what is sent, never widen it. | `false` |
+| `META_ADVANCED_MATCHING_ENABLED` | — | `bool.fromEnvironment` | Sends normalised profile fields (phone, name, email) to Meta for Advanced Matching. **Defaults OFF and must stay OFF** until three things ship together: the privacy policy names the shared fields, `PrivacyInfo.xcprivacy` declares PhoneNumber / Name / EmailAddress, and the App Store Connect questionnaire matches — see [`../release_checklist.md`](../release_checklist.md). Runtime consent (ATT + the in-app analytics toggle) still gates it on top, so the flag can only narrow what is sent, never widen it. | `false` |
 
 ## Notes
 

@@ -10,7 +10,7 @@ repo'da tekshirilgan, taxmin emas. Boshlang'ich o'lchovlar
 yonma-yon turadi, shunda progress ko'rinadi.
 
 **v1.1 da o'zgargani (2026-09-17):** CI **olib tashlandi** (T-03 qayta yozildi);
-T-01 endi `1.0.40+40` relizi haqida; T-10 bitta repo'gacha qisqardi; T-11
+T-01 endi `1.0.40+40` relizi haqida; **T-10 yakunlandi (2026-09-18)**; T-11
 bajarildi; T-15 3-to'lqin kattalashdi (`go_router` endi 18.x).
 
 ## Holat belgilari
@@ -36,6 +36,14 @@ bajarildi; T-15 3-to'lqin kattalashdi (`go_router` endi 18.x).
 
 > Bu band har relizda qayta ochiladi. Quyidagi matn **2026-09-17** holatini
 > tasvirlaydi.
+>
+> ✅ **Tayyorgarlik bajarildi (2026-09-18):**
+> [`release_1_0_40_prep.md`](release_1_0_40_prep.md) — tasdiqlangan blocker
+> ro'yxati (`ios/Runner/PrivacyInfo.xcprivacy`, `android/settings.gradle.kts`,
+> `pubspec.yaml`+`.lock` — ya'ni **patch emas, `release`**), mahalliy gate,
+> ikkala do'kon uchun konsol qadamlari va ledger yozuvi shabloni.
+> **Relizning o'zi sizda qoladi** — `shorebird release` imzolash kalitlarini
+> talab qiladi.
 
 **Muammo.** `pubspec.yaml` `1.0.40+40` da, lekin
 [tools/shorebird/releases.md](../../tools/shorebird/releases.md) dagi oxirgi
@@ -583,7 +591,7 @@ flutter test test/seller/features/wallet/screens/wallet_screen_test.dart
 
 ---
 
-### 🔄 T-10 · `Result<T>` migratsiyasini yakunlash — QISMAN BAJARILDI (2026-08-07)
+### ✅ T-10 · `Result<T>` migratsiyasini yakunlash — **BAJARILDI (2026-09-18)**
 
 **Muammo edi.** [CLAUDE.md](../../CLAUDE.md) va
 [error-handling.md](../../.claude/rules/error-handling.md)
@@ -669,16 +677,60 @@ uchun to'g'ri, alohida commit** qilib push qilindi.
       `flutter test` — **859/859 yashil** (guard test ikkalasi ham kiritilgan
       holda).
 
-**Qoldi:** `seller_wallet_repository` → `Result<T>` — ~10 metod (deposit /
-withdrawal / top-up).
+**✅ Yakunlandi (2026-09-18): `seller_wallet_repository` → `Result<T>`** — 10 metod
+(`Stream` yo'q). Naqsh: ifoda-tanali `runCatching(..., onError: (e, _) =>
+apiErrorToFailure(e))` — **umumiy ko'prik**, repo-lokal `_toFailure` emas
+(cubit allaqachon `apiErrorMessage(e)` ko'rsatardi, ya'ni xatti-harakat
+saqlanadi). Chaqiruvchilar: `seller_wallet_cubit.dart` (5 ta),
+`wallet_history_screen.dart`, `manual_payment_pending_screen.dart` (4 ta).
 
-> **2026-09-17 yangilanishi:** to'sib turgan sabab **yo'qoldi**. T-07 commit
-> qilindi, `seller_wallet_cubit.dart` va uning testlari tinch, ish daraxti toza
-> (`git status` bo'sh). Ya'ni bu band endi kutmaydi — istalgan vaqtda
-> boshlash mumkin, va u `Result` chegarasidagi **yagona qolgan qarz**.
-> Tugagach `test/architecture/result_boundary_test.dart` dagi allowlist'dan
-> `seller_wallet_repository.dart` ni **ikkala** joydan (map + kalitlar to'plami)
-> olib tashlang, aks holda ikkinchi test qizil bo'ladi.
+**Uchta nozik qaror — yozib qo'yiladi:**
+
+1. **`wallet_history_screen._load()` dan `Future.wait` olib tashlandi.** Uch xil
+   `Result<T>` ustidan `Future.wait` → `List<Result<Object>>` bo'ladi va `as`
+   cast'lar kompilyatsiya qilinmaydi; ustiga `Result` hech qachon reject
+   qilmagani uchun `catch` bloki o'lik kodga aylanardi. O'rniga record
+   (`(f1, f2, f3)`) bilan parallel boshlanadi, keyin har biri alohida `await`
+   qilinadi va uchlik `switch` bilan tekshiriladi (`tariff_bloc.dart:157-166`
+   naqshi). **Xatoda hammasi yiqiladi** — hozirgi xatti-harakat; qisman render
+   "yechib olishlaringiz yo'q" degan yolg'onni ko'rsatardi.
+2. **`reconcileDeposit()` da `Err` "hali kutilmoqda" bo'lib qoladi.**
+   `.valueOrNull` bilan ataylab yig'iladi, izoh bilan (bu qoida taqiqlagan
+   `.valueOrNull!` emas). Repodagi `?? 'pending'` default'i `Ok` tarmog'ida
+   qoladi — shunda 200-lekin-bo'sh javob tarmoq uzilishidan ajralib turadi.
+   Yangi test (`depositStatus: 200-bo'sh vs 500`) aynan shuni qulflaydi.
+3. **Ikkita cancel — migratsiya fosh qilgan HAQIQIY BUG.** Ilgari
+   `cancelTopUp`/`cancelDeposit` xato bersa exception `runZonedGuarded` ga
+   ketardi: ekran ochiq qolardi va foydalanuvchiga **hech narsa
+   ko'rsatilmasdi**. `Result<void>` buni majburan tuzatdi —
+   `fold(ok: pop, err: snackbar(failure.message))`. Yangi i18n kalit kerak
+   bo'lmadi: `failure.message` allaqachon lokalizatsiyalangan.
+
+**Xavf — yozib qo'yiladi:** `appLog.handle` → `appLog.warning` ga o'tish
+Crashlytics non-fatal'larini yo'qotadi. Lekin `appLog.error` yomonroq bo'lardi:
+`isExpectedTransientError` `Failure` turini tanimaydi, ya'ni **har oflayn
+ochilish** non-fatal bo'lib ketardi. `warning` olindi; keyingi ish sifatida
+"transient filter'ga `Failure` qo'shish" yozib qo'yiladi.
+
+**Testlar.** Mavjud 2 faylning stub'lari `.thenThrow` → `Err(...)` ga
+o'tkazildi (bu **semantik** o'zgarish — qoldirilsa migratsiya jimgina
+buzilardi). Yangi `test/shared/repositories/woody_seller_wallet_repository_test.dart`
+— **11 ta case**, jumladan `requestWithdrawal` karta raqamini tozalashi (hech
+qachon test qilinmagan, pul yo'naltiruvchi ma'lumot) va `depositStatus` ning
+200-bo'sh vs 500 farqi. **In-memory mock qo'shilmadi** — hech kim iste'mol
+qilmaydi; qo'shilsa o'sha zahoti o'lik kod bo'lardi.
+
+**Allowlist ikkala joydan tozalandi** (map + `expect(_allowlist.keys, {...})`).
+Tuzoq: interfeys to'liq-`Result` bo'lgach guard'ning **o'zi** eskirgan yozuvni
+sezmaydi (hech narsa aralashmaydi), shuning uchun faqat qadalgan kalitlar
+to'plami yarim-o'chirishni ushlaydi — test faylida izoh sifatida yozib qo'yildi.
+
+**`Result` chegarasida endi migratsiya qarzi yo'q.** Allowlist'da qolgan ikki
+fayl (`seller_order_repository.dart`, `shop_repository.dart`) — **ataylab**
+shunday, qarz emas.
+
+> **2026-09-17 yangilanishi:** to'sib turgan sabab **yo'qoldi** (T-07 commit
+> qilindi, ish daraxti toza). **2026-09-18:** ish bajarildi — yuqoriga qarang.
 
 **Naqsh:** `runCatching(...)` + `apiErrorToFailure`
 ([api_error_messages.dart](../../lib/core/network/api_error_messages.dart)) —
@@ -690,7 +742,7 @@ withdrawal / top-up).
 for f in order seller_wallet seller_product seller_onboarding; do
   echo -n "$f: "; grep -c "Result<" lib/shared/repositories/${f}_repository.dart
 done
-# order: 9, seller_wallet: 0 (qasddan qolgan), seller_product: 14, seller_onboarding: 6
+# order: 9, seller_wallet: 11, seller_product: 14, seller_onboarding: 6
 
 flutter test test/architecture/result_boundary_test.dart   # 2/2 yashil
 ```
@@ -711,7 +763,7 @@ va token iqtisodiyoti bilan bog'langan feature brain'da umuman yo'q edi.
   viewer routing (`BuyerArViewerScreen` / `SetArViewerScreen` / 2D fallback),
   `ArSupport` capability probe, per-part monetizatsiya, va **"native dep =
   hech qachon patch emas"** invariant'i. To'liq qo'llanma
-  [`docs/ar.md`](../../docs/ar.md) da — CLAUDE.md unga ishora qiladi, nusxa
+  [`doc/guides/ar.md`](../guides/ar.md) da — CLAUDE.md unga ishora qiladi, nusxa
   ko'chirmaydi.
 - `### Support chat` — `/support/*` endpoint'lari, ovozli xabar (`record` +
   `just_audio`), va per-order chat bilan **aralashtirmaslik** ogohlantirishi.
@@ -749,7 +801,7 @@ grep -c "AR / 3D\|Support chat\|Connectivity & offline" CLAUDE.md   # ≥ 3
 - [x] **`doc/backlog.md`** — `doc/planning/backlog.md` ning **bayt-bayt nusxasi**
       edi (ikkita haqiqat manbai). Endi `doc/roadmap.md` kabi bir qatorlik
       stub'ga aylantirildi.
-- [x] **Eskirgan raqamlar** README / CLAUDE.md / `docs/release-shorebird.md` da
+- [x] **Eskirgan raqamlar** README / CLAUDE.md / `doc/guides/release-shorebird.md` da
       yangilandi: test soni (122 fayl / 767 case → **140 / 912**, 923 o'tadi),
       Shorebird ledger'idagi oxirgi reliz (`1.0.26` va `1.0.36` → **`1.0.39+39`**),
       iOS Firebase pin (11.15.0 → **12.17.0**).
@@ -760,16 +812,31 @@ grep -c "AR / 3D\|Support chat\|Connectivity & offline" CLAUDE.md   # ≥ 3
 
 **Qoldi:**
 
-- [ ] `docs/` (6 ta fayl) va `doc/` — ikkita hujjat uyi. CLAUDE.md `doc/` ni
-      "sole home" deydi. Birlashtirish yoki o'chirish → **T-13** bilan birga
-      qilinsin (bitta commit, bitta havola-tuzatish to'lqini).
-- [ ] `woody_mobile_tz.md`, `WOODY_PROJECT_CONTEXT.md` — redirect stub'lar.
-      Hali keraklimi? README ikkalasiga ham havola qiladi, ya'ni hozircha
-      "o'lik" emas; qaror T-13 bilan birga.
-- [ ] `doc/TZ.md` — platforma darajasidagi spec, to'rttala repo'ni qamraydi.
-      Bu sessiyada **faqat mobil tomoni va aniq eskirgan faktlar** yangilandi
-      (quyida). Backend/admin bo'limlari to'liq qayta auditdan o'tkazilmadi —
-      alohida ish.
+- [x] `docs/` (6 ta fayl) va `doc/` — **birlashtirildi (2026-09-18).**
+      `docs/` → **`doc/guides/`** (`doc/` ga to'g'ridan-to'g'ri emas: `doc/`
+      da allaqachon `architecture/` **katalogi** bor, `docs/architecture.md`
+      esa uning yoniga fayl bo'lib tushar edi — chalkash). 16 ta kiruvchi
+      havola, ko'chgan fayllar ichidagi 11 ta `../` havola va
+      `tools/shorebird.sh` dagi `docs/*` glob'i (patch-xavfsizlik tasnifi —
+      `doc/*` uni allaqachon qamraydi, shuning uchun olib tashlandi)
+      yangilandi. Endi hujjat uyi bitta.
+- [x] **Ikkita o'lik havola** tuzatildi: `notification_handler.dart:12` va
+      `notification_simulator_screen.dart:14` hech qachon mavjud bo'lmagan
+      `docs/05-notifications-deep-linking.md` ga ishora qilardi — endi
+      kodning o'ziga ishora qiladi.
+- [x] `WOODY_PROJECT_CONTEXT.md` — **o'chirildi.** Bitta qatorlik redirect
+      stub edi; README unga havola qilmaydi (roadmap'ning "README ikkalasiga
+      ham havola qiladi" da'vosi eskirgan edi). `woody_mobile_tz.md`
+      **saqlanadi** — unga README ham, `doc/TZ.md` ham havola qiladi.
+- [x] `lib/core/deep_links/` + `lib/core/deeplink/` — **birlashtirildi**
+      (`deep_links/` ga). Roadmap "6 import" deb yozgan edi, aslida **10**
+      (`customer_app.dart` ikkalasini ham import qilardi).
+- [x] `doc/TZ.md` — **v1.6 (2026-09-18) da to'liq yarashtirildi.** Backend va
+      admin bo'limlari ham jonli kodga qarab qayta auditdan o'tkazildi: deploy
+      tavsifi (Docker Compose), router soni (32 → 42), Alembic head
+      (`0027` → `0102`), AR ma'lumot modeli (`product_ar_parts`),
+      `/seller/tariff/buy`, moderator scope'lari (9 ta), 14 ta hujjatlanmagan
+      jadval va 10 ta router qo'shildi.
 
 ---
 
@@ -870,7 +937,7 @@ qimmatlashtiradi va xavfsizlik patch'lari ham o'tkazib yuborilmoqda.
       11.15.0'da qulflangan edi); natijada Firebase **11.15.0 → 12.17.0**
       (`YandexMapsMobile` ham shu jarayonda **4.22.0-lite → 4.39.1-lite**ga
       ko'tarildi — 1-to'lqindagi `yandex_mapkit` dart-tomon bumpi buni talab
-      qilgan edi). README (4 joy) va `docs/release-shorebird.md`dagi eski
+      qilgan edi). README (4 joy) va `doc/guides/release-shorebird.md`dagi eski
       "Firebase 11.15.0" pin-eslatmalari yangi versiyaga yangilandi.
       **Tasdiqlash:** `flutter analyze lib/ test/` toza (1 oldindan bor
       baseline issue, o'zgarishsiz); `flutter test` — **859/859 yashil**;
@@ -1253,7 +1320,7 @@ va yangi ustun qo'shing.
 | `assets` hajmi | 48 MB | **7.1 MB** | ✅ T-04 + T-05 |
 | `assets/models` | 38 MB | **yo'q** (R2 da) | ✅ T-04 |
 | hardcoded o'zbekcha matn | 5 | **5** | T-17 — tegilmagan |
-| `Result<T>` qarzi (repo) | 4 | **1** | faqat `seller_wallet` |
+| `Result<T>` qarzi (repo) | 4 | **0** | ✅ T-10 yakunlandi (2026-09-18) |
 | CI | qayta tiklandi | **yo'q** (qaror) | T-03 |
 | Eskirgan major paketlar | 15 | **8** | T-15 3a/3b bajarildi |
 | AGP / Gradle / Kotlin | 8.11.1 / 8.14 / 2.2.20 | **8.12.3** / 8.14 / 2.2.20 | connectivity_plus 7 talabi |
@@ -1289,14 +1356,14 @@ grep -rnE "Text\(\s*'[A-ZА-Яa-zа-я][^']{4,}'" lib/ --include="*.dart" \
 ```
 HOZIR      →  T-01                    (1.0.40+40 relizi — iOS'da rad javobi tuzatmasi
                                        hali chiqmagan; eng shoshilinch band)
-Keyin      →  T-10                    (seller_wallet — Result chegarasidagi oxirgi qarz;
+✅ Bajarildi →  T-10                 (seller_wallet — Result chegarasidagi oxirgi qarz;
                                        to'siq yo'qoldi, istalgan vaqtda boshlash mumkin)
 Fon ishi   →  T-15 4-to'lqin           (go_router 14→18 — 37 fayl, alohida sessiyada.
                                        3a/3b to'lqinlar 2026-09-18 da bajarildi)
-Arzon      →  T-12 qoldig'i + T-13    (docs/ ↔ doc/ birlashtirish — bitta commit)
+✅ Bajarildi →  T-12 qoldig'i + T-13 (docs/ → doc/guides/ birlashtirildi)
 Tegib o't  →  T-16..T-20              (T-16 o'sib boryapti: wallet_screen.dart 1932 qator)
 Yopilgan   →  T-02 T-03 T-04 T-05 T-06 T-08 T-09 T-11
-Qisman     →  T-07 (7/9) · T-10 (3/4) · T-12 · T-15 (2/4)
+Qisman     →  T-07 (7/9) · T-15 (2/4)   — T-10, T-12, T-13 yakunlandi (2026-09-18)
 ```
 
 **Eslatma — eski "Sprint 0 tugamaguncha boshqasiga o'tmang" qoidasi endi

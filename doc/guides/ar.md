@@ -1,6 +1,6 @@
 # Augmented Reality (AR)
 
-> Companion to the root [`README.md`](../README.md) §3. Where the operational brain [`CLAUDE.md`](../CLAUDE.md) disagrees, it wins.
+> Companion to the root [`README.md`](../../README.md) §3. Where the operational brain [`CLAUDE.md`](../../CLAUDE.md) disagrees, it wins.
 
 ## Product → Parts mapping
 

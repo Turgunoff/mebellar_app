@@ -81,7 +81,7 @@ flutter build apk --release --dart-define-from-file=env/prod.json
 adb install build/app/outputs/flutter-apk/app-release.apk
 
 # Tests + analysis — this is the ONLY gate; there is no CI
-flutter test                 # 923 tests, 140 files
+flutter test                 # 937 tests, 142 files
 dart analyze lib/ test/      # analyse the tests too, not just lib/
 ```
 
@@ -147,7 +147,7 @@ Invariants:
 
 ### Payments — deep-link hand-off + recovery
 
-Full guide: [`docs/payments.md`](docs/payments.md). The invariants:
+Full guide: [`doc/guides/payments.md`](doc/guides/payments.md). The invariants:
 
 - **The app never charges a card.** There are no Payme/Click webhooks or
   JSON-RPC handlers in this repo — those live in `woody_backend`.
@@ -171,7 +171,7 @@ Full guide: [`docs/payments.md`](docs/payments.md). The invariants:
 
 ### AR / 3D — per-part models
 
-Full guide: [`docs/ar.md`](docs/ar.md). The invariants:
+Full guide: [`doc/guides/ar.md`](doc/guides/ar.md). The invariants:
 
 - **AR is per-part, not per-product.** `Product.arParts` is a
   `List<ArPart>` (`lib/shared/models/ar_part.dart`); each part is one
@@ -329,15 +329,16 @@ Rule card: [`.claude/rules/error-handling.md`](.claude/rules/error-handling.md).
   on a file that mixes `Result<T>` with throw-style `Future<T>`. Its allowlist is
   itself pinned by a second test, so a stale exemption can't silently disable the
   guard. `Stream<T>` methods (a `watch()` feed) sit outside this axis and are ignored.
-- **Migration debt — one repo left.** `payment`, `checkout`, `order`,
-  `seller_product` and `seller_onboarding` are **done** (via `runCatching` + the
-  shared `apiErrorToFailure` bridge in `core/network/api_error_messages.dart`).
-  **`seller_wallet` is the last money-command repo still fully on `throw`** —
-  ~10 methods (deposit / withdrawal / top-up). It stays fully-`throw` until its
-  turn comes; new code there is written `Result`-first. Two allowlisted files are
-  **not** debt and should not be "fixed": `seller_order` (reference-data reads
-  like `fetchCancelReasons` deliberately degrade to empty rather than `Err`) and
-  `shop` — both are earlier, documented design decisions.
+- **Migration debt: none left (T-10 closed 2026-09-18).** `payment`, `checkout`,
+  `order`, `seller_product`, `seller_onboarding` and — last — **`seller_wallet`**
+  are all on `Result<T>` (via `runCatching` + the shared `apiErrorToFailure`
+  bridge in `core/network/api_error_messages.dart`). The wallet migration
+  exposed a real bug: `cancelTopUp`/`cancelDeposit` threw past the UI, so a
+  failed cancel left the screen open and said **nothing** — `Result<void>`
+  forced the error arm. Two allowlisted files remain and are **not** debt, so
+  don't "fix" them: `seller_order` (reference-data reads like
+  `fetchCancelReasons` deliberately degrade to empty rather than `Err`) and
+  `shop` — both earlier, documented design decisions.
 
 ### Theme tokens — never hardcode colours
 

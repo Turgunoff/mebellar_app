@@ -1,6 +1,6 @@
 # AI Interior Designer
 
-> Companion to the root [`README.md`](../README.md). Where the operational brain [`CLAUDE.md`](../CLAUDE.md) disagrees, it wins.
+> Companion to the root [`README.md`](../../README.md). Where the operational brain [`CLAUDE.md`](../../CLAUDE.md) disagrees, it wins.
 
 The AI Interior Designer chat lives under `lib/customer/features/ai_designer/`. The RAG pipeline is **backend-owned** (vision keyword → `ILIKE` products → grounded reply). **There is no AI SDK or API key in the app** — the backend holds the Azure/Foundry key. Gated by the `AI_DESIGNER_ENABLED` backend flag.
 

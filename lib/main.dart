@@ -20,7 +20,7 @@ import 'config/remote_config.dart';
 import 'core/auth/app_mode_cubit.dart';
 import 'core/auth/auth_cubit.dart';
 import 'core/cache/app_cache_cubit.dart';
-import 'core/deeplink/deferred_deep_link_service.dart';
+import 'core/deep_links/deferred_deep_link_service.dart';
 import 'core/di/service_locator.dart';
 import 'core/i18n/i18n.dart';
 import 'core/logging/app_logger.dart';

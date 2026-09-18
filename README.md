@@ -6,7 +6,7 @@
 [![Dart](https://img.shields.io/badge/Dart-^3.11.5-0175C2?logo=dart)](https://dart.dev)
 [![Backend](https://img.shields.io/badge/Backend-woody__backend%20(FastAPI)-009688)](https://api.woody.uz)
 
-> **Authoritative docs:** the operational brain is [`CLAUDE.md`](./CLAUDE.md); the platform master spec is [`doc/TZ.md`](./doc/TZ.md) (v1.1+). [`woody_mobile_tz.md`](./woody_mobile_tz.md) is a redirect stub. Deep-dive guides live in [`docs/`](./docs/). This README is a high-level orientation.
+> **Authoritative docs:** the operational brain is [`CLAUDE.md`](./CLAUDE.md); the platform master spec is [`doc/TZ.md`](./doc/TZ.md) (v1.1+). [`woody_mobile_tz.md`](./woody_mobile_tz.md) is a redirect stub. Deep-dive guides live in [`doc/guides/`](./doc/guides/). This README is a high-level orientation.
 
 ### Where this app sits in the Woody / Mebellar ecosystem
 
@@ -171,7 +171,7 @@ WidgetsFlutterBinding
 
 ### Multi-part AR structure (Product → Parts mapping)
 
-See [`docs/ar.md`](./docs/ar.md) for the full guide. In brief:
+See [`doc/guides/ar.md`](./doc/guides/ar.md) for the full guide. In brief:
 
 - A **`Product`** carries `arParts: List<ArPart>` (`lib/shared/models/ar_part.dart`). Each `ArPart` is one **independently generated 3D model** — `{ id, partKey ('bed'|'wardrobe'|'single'|…), label, arStatus (none|processing|approved|failed), arModelUrl, usdzUrl, arModelBytes, isArVisible, freeScanUsed, arErrorReason, widthCm/heightCm/depthCm }`. A single-piece product is one `single` part.
 - **Two JSON shapes:** `ArPart.fromCustomerJson` (buyer detail — approved + visible only) and `ArPart.fromSellerJson` (`GET /seller/products/{id}/ar-parts` — full per-part state).
@@ -184,7 +184,7 @@ See [`docs/ar.md`](./docs/ar.md) for the full guide. In brief:
 
 ### Payment architecture (deep-link hand-off + recovery)
 
-See [`docs/payments.md`](./docs/payments.md) for the full guide. In brief:
+See [`doc/guides/payments.md`](./doc/guides/payments.md) for the full guide. In brief:
 
 - The app does **NOT** store cards or charge. There are **no Payme/Click webhooks or JSON-RPC** in this repo — those (Payme Merchant `POST /webhooks/payme`, 6 RPC + fiscalization) live in **`woody_backend`**.
 - **Flow:** `PaymentProvider {payme, click}` → `PaymentRepository.checkoutUrl()` POSTs `/orders/{id}/pay/{provider}`, gets back `CheckoutLink {provider, checkout_url, amount, reference}`, then `launchUrl(LaunchMode.externalApplication)` hands off to the Payme/Click app. Errors: 404 (not your order) / 409 (already paid) / 503 (provider unconfigured).
@@ -246,7 +246,7 @@ All runtime config is injected at build time via `--dart-define-from-file`. **No
 
 The project uses **one canonical environment file: `env/prod.json`** (gitignored). It drives every local run, build, and test seed.
 
-There is no `.env` file — Flutter reads build-time constants via `--dart-define-from-file`. The contract is `env/prod.json` (gitignored), seeded from `env/example.json`. Full table (see [`docs/env-config.md`](./docs/env-config.md)):
+There is no `.env` file — Flutter reads build-time constants via `--dart-define-from-file`. The contract is `env/prod.json` (gitignored), seeded from `env/example.json`. Full table (see [`doc/guides/env-config.md`](./doc/guides/env-config.md)):
 
 | Key | Required | Read via | Purpose · example |
 | --- | --- | --- | --- |
@@ -276,7 +276,7 @@ flutter run --dart-define-from-file=env/prod.json
 # Static analysis — analyse test/ too, not just lib/
 dart analyze lib/ test/    # or: flutter analyze lib/ test/
 
-# Tests — 140 test files, ~912 test/testWidgets/blocTest cases; 923 pass (incl. 5 golden baselines)
+# Tests — 142 test files; 937 cases (incl. 5 golden baselines)
 flutter test
 flutter test --exclude-tags golden        # skip goldens (they are font/platform sensitive)
 flutter test --tags golden                # run only the golden baselines
@@ -333,7 +333,7 @@ Shorebird hot-fixes shipped builds **without store review** — but **only Dart 
 - The ledger ([`tools/shorebird/releases.md`](./tools/shorebird/releases.md)) is append-only history (latest shipped: `1.0.39+39`, SHA `e333566d43e8`, 2026-08-11 — android + ios). `app_id` `c1639a0d-e4a4-4606-bf14-4b4195fa061e`.
 - ⚠️ **`pubspec.yaml` is at `1.0.40+40`, which has not been released.** The tree since `1.0.39+39` touches `ios/Runner/PrivacyInfo.xcprivacy` and `pubspec.yaml`, so it is **not** patch-safe — it needs `shorebird release android` **and** `ios`. The iOS side matters: Apple rejected `1.0.39` with **ITMS-91064** and the fix is sitting unreleased.
 
-See [`docs/release-shorebird.md`](./docs/release-shorebird.md) for the full OTA rules and iOS SPM / Firebase 12.17.0 caveats.
+See [`doc/guides/release-shorebird.md`](./doc/guides/release-shorebird.md) for the full OTA rules and iOS SPM / Firebase 12.17.0 caveats.
 
 ---
 
@@ -341,12 +341,12 @@ See [`docs/release-shorebird.md`](./docs/release-shorebird.md) for the full OTA 
 
 | File | Scope |
 | --- | --- |
-| [`docs/architecture.md`](./docs/architecture.md) | Layers, DI module order, mode switch, routing, networking, realtime. |
-| [`docs/payments.md`](./docs/payments.md) | Deep-link hand-off + recovery gate, payment kinds / status endpoints, multi-shop limitation. |
-| [`docs/ar.md`](./docs/ar.md) | Product → ArPart mapping, viewer routing, capability gate, per-part token monetization. |
-| [`docs/ai-designer.md`](./docs/ai-designer.md) | AI Interior Designer chat (RAG, FAB, root-scope cubit, privacy). |
-| [`docs/env-config.md`](./docs/env-config.md) | Full build-time config key table. |
-| [`docs/release-shorebird.md`](./docs/release-shorebird.md) | OTA rules + ledger + iOS SPM / Firebase caveats. |
+| [`doc/guides/architecture.md`](./doc/guides/architecture.md) | Layers, DI module order, mode switch, routing, networking, realtime. |
+| [`doc/guides/payments.md`](./doc/guides/payments.md) | Deep-link hand-off + recovery gate, payment kinds / status endpoints, multi-shop limitation. |
+| [`doc/guides/ar.md`](./doc/guides/ar.md) | Product → ArPart mapping, viewer routing, capability gate, per-part token monetization. |
+| [`doc/guides/ai-designer.md`](./doc/guides/ai-designer.md) | AI Interior Designer chat (RAG, FAB, root-scope cubit, privacy). |
+| [`doc/guides/env-config.md`](./doc/guides/env-config.md) | Full build-time config key table. |
+| [`doc/guides/release-shorebird.md`](./doc/guides/release-shorebird.md) | OTA rules + ledger + iOS SPM / Firebase caveats. |
 | [`CLAUDE.md`](./CLAUDE.md) | **Start here** — operational brain: architecture, conventions, gotchas, do-not-break invariants. |
 | [`.claude/rules/`](./.claude/rules/) | Distilled invariant cards (architecture, theming, i18n, backend-api, testing). |
 | [`woody_mobile_tz.md`](./woody_mobile_tz.md) | Redirect stub → workspace [`doc/TZ.md`](./doc/TZ.md). |

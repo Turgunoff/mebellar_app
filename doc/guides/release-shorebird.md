@@ -1,12 +1,12 @@
 # Release & Shorebird OTA
 
-> Companion to the root [`README.md`](../README.md) §7. Where the operational brain [`CLAUDE.md`](../CLAUDE.md) disagrees, it wins.
+> Companion to the root [`README.md`](../../README.md) §7. Where the operational brain [`CLAUDE.md`](../../CLAUDE.md) disagrees, it wins.
 
 ## No client migrations
 
-This is a Flutter client with **no database and no migrations**. The DB schema + Alembic migrations live in the separate **`woody_backend`** repo (run `woody migrate` there). The app speaks only REST + WebSocket. The app's own version is managed in `pubspec.yaml` (currently **`1.0.40+40`**); its "version ledger" equivalent is the Shorebird release ledger ([`../tools/shorebird/releases.md`](../tools/shorebird/releases.md)).
+This is a Flutter client with **no database and no migrations**. The DB schema + Alembic migrations live in the separate **`woody_backend`** repo (run `woody migrate` there). The app speaks only REST + WebSocket. The app's own version is managed in `pubspec.yaml` (currently **`1.0.40+40`**); its "version ledger" equivalent is the Shorebird release ledger ([`../../tools/shorebird/releases.md`](../../tools/shorebird/releases.md)).
 
-> ⚠️ **`pubspec.yaml` and the ledger disagree right now.** The last entry is **`1.0.39+39`** (SHA `e333566d43e8`, 2026-08-11, android + ios); `1.0.40+40` has **not** been released. The diff since then touches `ios/Runner/PrivacyInfo.xcprivacy` and `pubspec.yaml`, so it is **not patch-safe** — it needs `shorebird release`, not `patch`. It also carries the fix for the Apple **ITMS-91064** rejection of the `1.0.39` iOS build, which is therefore still not in the store. Tracked as T-01 in [`../doc/planning/tech_debt_roadmap.md`](../doc/planning/tech_debt_roadmap.md).
+> ⚠️ **`pubspec.yaml` and the ledger disagree right now.** The last entry is **`1.0.39+39`** (SHA `e333566d43e8`, 2026-08-11, android + ios); `1.0.40+40` has **not** been released. The diff since then touches `ios/Runner/PrivacyInfo.xcprivacy` and `pubspec.yaml`, so it is **not patch-safe** — it needs `shorebird release`, not `patch`. It also carries the fix for the Apple **ITMS-91064** rejection of the `1.0.39` iOS build, which is therefore still not in the store. Tracked as T-01 in [`../planning/tech_debt_roadmap.md`](../planning/tech_debt_roadmap.md).
 
 ## Store builds
 
@@ -52,7 +52,7 @@ Shorebird hot-fixes shipped builds **without store review** — but **only Dart 
 
 - A patchable store build **MUST** come from `shorebird release`, not `flutter build` / `build_release.sh` — plain builds can't receive patches.
 - `patch` is **preflight-gated**: it runs `check` first and aborts on a native/asset/Flutter blocker so you can't ship a crashing patch. `--force` bypasses (not recommended).
-- The **ledger** ([`../tools/shorebird/releases.md`](../tools/shorebird/releases.md)) is the append-only history file (markdown table: `sana | versiya | git_sha | platforma | izoh`, committed to git). `check`/`patch` diff today's tree against the recorded SHA. `release` appends automatically.
+- The **ledger** ([`../../tools/shorebird/releases.md`](../../tools/shorebird/releases.md)) is the append-only history file (markdown table: `sana | versiya | git_sha | platforma | izoh`, committed to git). `check`/`patch` diff today's tree against the recorded SHA. `release` appends automatically.
 - **No Shorebird secret in the repo** — `shorebird.yaml`'s `app_id` (`c1639a0d-e4a4-4606-bf14-4b4195fa061e`) is public by design; auth is the developer's `shorebird login` on the build machine.
 
 ### Rule of thumb — patch vs full release

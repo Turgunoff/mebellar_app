@@ -10,7 +10,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 
-import '../core/deeplink/deferred_deep_link_service.dart';
+import '../core/deep_links/deferred_deep_link_service.dart';
 import '../config/app_mode.dart';
 import '../config/screenshot_mode.dart';
 import '../core/deep_links/deep_link_service.dart';

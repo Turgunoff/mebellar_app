@@ -26,8 +26,16 @@
   `lib/shared/` or `lib/core/` changed (cross-cutting).
 - **There is no CI** (removed 2026-09-17) — `flutter test` +
   `dart analyze lib/ test/` on your machine is the only gate. Baseline as of
-  2026-09-17: **140 test files, 923 passing**, analyzer clean except one known
+  2026-09-18: **142 test files, 937 passing**, analyzer clean except one known
   `use_null_aware_elements` info. A red suite is never "the pipeline's problem."
+- **The 5 golden tests are machine-bound.** `cart_screen_golden_test.dart`
+  compares rendered pixels, so it only passes on an SDK/font stack matching the
+  one the `.png` baselines were generated on. On a different Flutter version it
+  fails with a small percentage diff (e.g. *"Pixel test failed, 1.02%, 4918px
+  diff"*) while every other test is green — that is an environment mismatch,
+  **not** a regression, and the fix is never `--update-goldens` on the odd
+  machine (that just moves the breakage to the other one). A real failure names
+  an expectation; a golden failure names a pixel count.
 - `test/architecture/result_boundary_test.dart` is a **static guard**, not a
   behaviour test — it reads repository source and fails on a mixed
   `Result<T>`/`throw` interface. Keep its allowlist honest.

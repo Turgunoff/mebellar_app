@@ -1,6 +1,6 @@
 # Architecture
 
-> Companion to the root [`README.md`](../README.md) §3 and the operational brain [`CLAUDE.md`](../CLAUDE.md). Where they disagree, `CLAUDE.md` wins.
+> Companion to the root [`README.md`](../../README.md) §3 and the operational brain [`CLAUDE.md`](../../CLAUDE.md). Where they disagree, `CLAUDE.md` wins.
 
 `mebellar_app` is a **single Flutter binary** (`woody_app`, app id `com.mebellar.app`) that hosts two runtime surfaces — a **customer storefront** and a **seller back-office** — sharing one phone + OTP identity. The only backend is **`woody_backend`** (FastAPI at `api.woody.uz`; REST under `/api/v1` + WebSocket). There is **no Supabase, no Firebase Auth, and no raw Dio/Remote layer**.
 
