@@ -241,14 +241,14 @@ class PushService {
   Future<void> dismissSupportNotifications() async {
     try {
       await _localNotifications.cancel(
-        supportNotificationId,
+        id: supportNotificationId,
         tag: supportNotificationTag,
       );
       if (!kIsWeb && Platform.isAndroid) {
         final active = await _localNotifications.getActiveNotifications();
         for (final n in active) {
           if (n.tag == supportNotificationTag && n.id != null) {
-            await _localNotifications.cancel(n.id!, tag: n.tag);
+            await _localNotifications.cancel(id: n.id!, tag: n.tag);
           }
         }
       }
@@ -307,12 +307,15 @@ class PushService {
     if (chatId.isEmpty) return;
     final tag = chatNotificationTag(chatId);
     try {
-      await _localNotifications.cancel(chatNotificationId(chatId), tag: tag);
+      await _localNotifications.cancel(
+        id: chatNotificationId(chatId),
+        tag: tag,
+      );
       if (!kIsWeb && Platform.isAndroid) {
         final active = await _localNotifications.getActiveNotifications();
         for (final n in active) {
           if (n.tag == tag && n.id != null) {
-            await _localNotifications.cancel(n.id!, tag: n.tag);
+            await _localNotifications.cancel(id: n.id!, tag: n.tag);
           }
         }
       }
@@ -342,7 +345,7 @@ class PushService {
     );
     const init = InitializationSettings(android: androidInit, iOS: darwinInit);
     await _localNotifications.initialize(
-      init,
+      settings: init,
       // Tap on a foreground-reposted notification → route the same way a
       // background FCM tap does.
       onDidReceiveNotificationResponse: _onLocalNotificationTap,
@@ -782,10 +785,10 @@ class PushService {
         : ((_localNotificationCounter++) & 0x7FFFFFFF);
     // Carry the FCM data payload so a tap can resolve route + mode.
     await _localNotifications.show(
-      id,
-      n.title,
-      n.body,
-      details,
+      id: id,
+      title: n.title,
+      body: n.body,
+      notificationDetails: details,
       payload: jsonEncode(message.data),
     );
   }

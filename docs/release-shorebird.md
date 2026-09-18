@@ -4,7 +4,9 @@
 
 ## No client migrations
 
-This is a Flutter client with **no database and no migrations**. The DB schema + Alembic migrations live in the separate **`woody_backend`** repo (run `woody migrate` there). The app speaks only REST + WebSocket. The app's own version is managed in `pubspec.yaml` (`1.0.26+26`); its "version ledger" equivalent is the Shorebird release ledger ([`../tools/shorebird/releases.md`](../tools/shorebird/releases.md), latest `1.0.26+26`, SHA `4c945889c331`, 2026-06-24).
+This is a Flutter client with **no database and no migrations**. The DB schema + Alembic migrations live in the separate **`woody_backend`** repo (run `woody migrate` there). The app speaks only REST + WebSocket. The app's own version is managed in `pubspec.yaml` (currently **`1.0.40+40`**); its "version ledger" equivalent is the Shorebird release ledger ([`../tools/shorebird/releases.md`](../tools/shorebird/releases.md)).
+
+> ⚠️ **`pubspec.yaml` and the ledger disagree right now.** The last entry is **`1.0.39+39`** (SHA `e333566d43e8`, 2026-08-11, android + ios); `1.0.40+40` has **not** been released. The diff since then touches `ios/Runner/PrivacyInfo.xcprivacy` and `pubspec.yaml`, so it is **not patch-safe** — it needs `shorebird release`, not `patch`. It also carries the fix for the Apple **ITMS-91064** rejection of the `1.0.39` iOS build, which is therefore still not in the store. Tracked as T-01 in [`../doc/planning/tech_debt_roadmap.md`](../doc/planning/tech_debt_roadmap.md).
 
 ## Store builds
 

@@ -1,9 +1,11 @@
 # This file configures the analyzer, which statically analyzes Dart code to
 # check for errors, warnings, and lints.
 #
-# Invoked in the IDE and from the command line via `flutter analyze`. CI runs
-# it blocking on every push/PR (see .github/workflows/ci.yml) — a lint that
-# lands here fails the build, so keep this list honest.
+# Invoked in the IDE and from the command line via `flutter analyze`. There is
+# no CI for this app (removed 2026-09-17, deliberately — see
+# doc/planning/tech_debt_roadmap.md T-03); the gate is local and manual:
+# `dart analyze lib/ test/` + `flutter test` before a commit, which the
+# `/check` command wraps. Keep this list honest — nothing else enforces it.
 
 include: package:flutter_lints/flutter.yaml
 

@@ -1,9 +1,10 @@
 # Release checklist — things the repo cannot verify
 
-Everything below lives in a console, not in code. `flutter analyze`,
-`flutter test` and CI will all pass with any of these mis-set, and the
-failure mode is silent in every case — so walk the list before each store
-submission.
+Everything below lives in a console, not in code. `flutter analyze` and
+`flutter test` will both pass with any of these mis-set, and the failure mode
+is silent in every case — so walk the list before each store submission.
+(There is no CI either, as of 2026-09-17 — the local commands are the only
+automated check, and they cannot see a console setting.)
 
 For the build commands themselves see `CLAUDE.md` (§Build & run) and
 `tools/build_release.sh` / `tools/shorebird.sh`.
@@ -58,9 +59,18 @@ Phone Number / Name / Email Address must be added to **both** the manifest
 and the questionnaire in that same release, and the privacy policy updated
 to match.
 
-`NSPrivacyTrackingDomains` is intentionally empty — FBSDKCoreKit declares
-`ep1.facebook.com` in its own bundled manifest and Meta's docs advise
-against restating it. See the comment in the manifest for the citation.
+**`NSPrivacyTrackingDomains` must NOT be empty.** It declares
+`ep1.facebook.com`. This is not cosmetic: build **1.0.39 (39) was rejected
+with ITMS-91064** for shipping `NSPrivacyTracking=true` alongside an *empty*
+domains array — Apple TN3181 names that exact pairing as invalid. The earlier
+reasoning in this checklist (that FBSDKCoreKit declares the domain in its own
+bundled manifest, so restating it is unnecessary) was **wrong in practice**;
+Apple validates the app-level manifest on its own. If you ever add another
+tracking SDK, add its domain here too. See the comment block in the manifest
+for the citation.
+
+> As of 2026-09-17 that fix is committed but **not shipped** — it needs the
+> `1.0.40+40` release.
 
 ---
 

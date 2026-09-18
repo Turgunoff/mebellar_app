@@ -1,10 +1,12 @@
 # Woody / Mebellar — System Design & Architecture
 
-> **Status:** Production · **Versiya:** 1.1 · **Sana:** 2026-08-01
+> **Status:** Production · **Versiya:** 1.2 · **Sana:** 2026-09-18
 > **Doirasi:** Backend (FastAPI), Mobil (Flutter), Admin (Next.js), Marketing (Next.js).
 > Mahsulot biznes-qoidalari uchun [TZ.md (master)](../TZ.md). Rejalar uchun [planning/roadmap.md](../planning/roadmap.md).
 >
 > **v1.1:** ichki escrow (`order_income`) + `wallet_withdrawals`, hybrid guest inbox, push preferenslari, analytics privacy boot-gate.
+>
+> **v1.2:** mobil tomonda yetishmayotgan ikki quyi-tizim qo'shildi — **3.4b to'lov tiklash relslari** va **3.8 AR/3D**; **3.4** reachability probe bilan yangilandi (2026-09-10 qayta yozilishi). Backend/admin bo'limlari bu o'tishda qayta auditdan o'tkazilmadi.
 
 Bu hujjat **kanonik arxitektura ko'rinishi**. Har bir biznes-qoida emas, balki *tizim qanday qurilgani* — qatlamlar, holat boshqaruvi, kesh strategiyasi, modal egalik logikasi, tarjima DB strukturasi — bayon qilinadi.
 
@@ -14,7 +16,7 @@ Bu hujjat **kanonik arxitektura ko'rinishi**. Har bir biznes-qoida emas, balki *
 
 1. [Yuqori-darajali topologiya](#1-yuqori-darajali-topologiya)
 2. [Backend arxitekturasi (woody_backend)](#2-backend-arxitekturasi-woody_backend) — Payme gate · ichki escrow · FCM preferenslari
-3. [Mobil arxitekturasi (mebellar_app)](#3-mobil-arxitekturasi-mebellar_app) — hybrid inbox · analytics privacy
+3. [Mobil arxitekturasi (mebellar_app)](#3-mobil-arxitekturasi-mebellar_app) — hybrid inbox · analytics privacy · reachability probe · to'lov tiklash · AR/3D
 4. [Admin arxitekturasi (woody_admin)](#4-admin-arxitekturasi-woody_admin)
 5. [Marketing frontend (woody_frontend)](#5-marketing-frontend-woody_frontend)
 6. [Kesishuvchi masalalar](#6-kesishuvchi-masalalar)
@@ -165,6 +167,43 @@ Yetti box (`CoreBoxes` record): `settings, cache, pendingRoute, onboardingDraft,
 - **Holat mashinasi:** `initial → (cache-hit: ready) | (no-cache: loading) → (success: ready) | (timeout/error: failure[cached fallback] | critical[modal])`.
 - **5s hard timeout** har bir asosiy ekran blokida (`Duration(seconds: 5)`), Dio timeout'idan qisqa.
 
+**Onlayn/oflayn aniqlash (2026-09-10 da qayta yozilgan).**
+`ConnectivityService` (`lib/core/connectivity/`) link holatiga **yolg'iz
+ishonmaydi**: `connectivity_plus` (radio o'zgarishi, bir zumda) +
+`ReachabilityProbe` (`InternetCheckerProbe` — o'z `/health` endpoint'imizga
+haqiqiy HTTP; `<500` status yetarli, chunki HEAD ga 405 qaytishi ham paket
+to'liq borib kelganini isbotlaydi). Shu tufayli internetsiz Wi-Fi
+(captive portal) "onlayn" deb o'qilmaydi.
+
+- **Bitta muvaffaqiyatsiz probe banner ko'tarmaydi** — oflayn 4 soniyalik
+  grace'dan keyin *tasdiqlanadi*; yangiroq signal kelsa, tasdiqlash bekor
+  qilinadi. Bu flapping'da bannerning miltillashini oldini oladi.
+- **Poll qadami assimetrik:** onlaynda 20s (fon puls), oflaynda 3s (tiklanish
+  bir zumda sezilsin).
+- `ReachabilityProbe` va `MockConnectivityService` — **seam**'lar; testlar
+  haqiqiy HTTP'siz, `sleep`siz holatni almashtiradi.
+- `internet_connection_checker_plus` **v3** o'zining `connectivity_plus`
+  bog'liqligidan voz kechgani uchun probe'ga `triggerStream` aniq
+  uzatiladi.
+
+### 3.4b To'lov tiklash relslari
+
+Ilova **karta ma'lumotini saqlamaydi va pul yechmaydi** — Payme/Click
+webhook va JSON-RPC to'liq backend tomonda (§2.8). Mobil tomonda:
+
+- `PaymentRepository.checkoutUrl()` → `POST /orders/{id}/pay/{provider}` →
+  `CheckoutLink` → `launchUrl` bilan Payme/Click ilovasiga topshiriladi.
+- **Jarayon OS ilovani o'ldirsa ham omon qoladi:** `PendingPaymentService.mark`
+  `PendingPayment` ni `PendingPaymentStore` ga yozadi — **SharedPreferences**,
+  Hive emas (process o'limidan keyin ham o'qilishi kafolatlansin).
+- Qaytganda `PaymentRecoveryGate` tiklaydi (resume poll + sovuq-start probe).
+- `PendingPaymentKind` to'rtta relsni qamraydi: `order`, `arTokens`,
+  `subscription`, `walletDeposit` — ya'ni tarif, hamyon to'ldirish va AR token
+  xaridi ham shu yo'ldan yuradi.
+- `WoodyPaymentStatusGateway` har relsni o'z status endpoint'iga yo'naltiradi
+  va `PaymentOutcome {paid, pending, unknown}` qaytaradi. **`unknown` hech
+  qachon muvaffaqiyat emas** — `pending` kabi ishlanadi.
+
 ### 3.5 Single-owner modal pop logikasi
 
 > Bu naqsh avval hech qayerda hujjatlashtirilmagan edi; bu yerda kanonizatsiya qilinadi.
@@ -182,6 +221,28 @@ Bloklovchi tarmoq modali (`FlashscoreNetworkModal`) uchun ilova **bir vaqtda faq
 
 - **GetIt service locator:** `initRootScope()` core/auth/catalog/seller modullarini ro'yxatga oladi; `initModeScope(AppMode)` customer/seller-specific blok'larni push qiladi. `switchAppMode()` GetIt scope almashadan keyin `Phoenix.rebirth(context)` qiladi (toza qayta-qurish).
 - **Ikki router:** customer (`GoRouter`) va seller (`StatefulShellRoute` — 5 ta persistent tab). Shared chat ikkalasida `viewer: ChatSenderRole` parametri orqali ishlaydi.
+
+### 3.8 AR / 3D (per-part)
+
+- **Model per-qism, mahsulot emas.** `Product.arParts` — `List<ArPart>`;
+  har bir qism mustaqil generatsiya qilingan model (`arStatus`, `arModelUrl`,
+  `usdzUrl`, o'lchamlar). Bir bo'lakli mahsulot — bitta `single` qism.
+  Ikki JSON shakli: `fromCustomerJson` (faqat tasdiqlangan + ko'rinadigan) va
+  `fromSellerJson` (to'liq holat).
+- **Uch xil ko'rish yo'li** (`ar_entry_points.dart` darvozabon):
+  bir qismli → `BuyerArViewerScreen` (`model_viewer_plus` + `GlbCacheService`
+  `file://` kesh); ko'p qismli garnitur (`Product.hasMultiPartAr`) →
+  `SetArViewerScreen` (**native** ARCore/ARKit, `ar_flutter_plugin_plus`);
+  AR'siz qurilma → 2D sticker fallback.
+- **Qurilma imkoniyati:** `ArSupport` → `MethodChannel com.mebellar.app/ar`
+  (Android `FEATURE_CAMERA_AR`; iOS — AR Quick Look).
+- **Pipeline backend tomonda:** qulflangan 3-fotolik skan → R2
+  (`product-ar-scans`) → **Meshy** foto-to-3D. Ilovada Meshy SDK yo'q,
+  `MESHY_API_KEY` backend'da.
+- **Monetizatsiya per-qism:** 1 bepul skan, keyin sotuvchi token hamyonidan
+  AR token (§3.4b `arTokens` relsi).
+- ⚠️ `ar_flutter_plugin_plus` — **native** bog'liqlik: ko'p obyektli AR faqat
+  to'liq store relizida yetkaziladi, **Shorebird patch bilan emas**.
 
 ### 3.7 Tema va lokalizatsiya
 

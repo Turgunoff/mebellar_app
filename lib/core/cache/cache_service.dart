@@ -30,7 +30,10 @@ class DefaultCacheService implements CacheService {
   Future<int> sizeBytes() async {
     try {
       final tmp = await getTemporaryDirectory();
-      return _directorySize(tmp);
+      // `await` is load-bearing: returning the future unawaited would let it
+      // complete OUTSIDE this try, so the `catch` below never ran and a
+      // failed stat propagated instead of degrading to 0.
+      return await _directorySize(tmp);
     } catch (_) {
       return 0;
     }

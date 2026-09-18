@@ -1,12 +1,17 @@
 # Woody / mebellar_app — Texnik qarz roadmap
 
-> **Status:** Living · **Versiya:** 1.0 · **Sana:** 2026-08-07
+> **Status:** Living · **Versiya:** 1.1 · **Sana:** 2026-09-17
 > Mahsulot roadmap'i: [roadmap.md](./roadmap.md) · Backlog: [backlog.md](./backlog.md)
 > Master spec: [TZ.md](../TZ.md) · Operatsion brain: [CLAUDE.md](../../CLAUDE.md)
 
 Bu hujjat **kod bazasining o'lchangan holatidan** kelib chiqqan — har bir band
-2026-08-07 kuni repo'da tekshirilgan, taxmin emas. Boshlang'ich o'lchovlar
-[§ Baseline](#baseline--2026-08-07) da.
+repo'da tekshirilgan, taxmin emas. Boshlang'ich o'lchovlar
+[§ Baseline](#baseline) da; 2026-08-07 (v1.0) va 2026-09-17 (v1.1) ustunlari
+yonma-yon turadi, shunda progress ko'rinadi.
+
+**v1.1 da o'zgargani (2026-09-17):** CI **olib tashlandi** (T-03 qayta yozildi);
+T-01 endi `1.0.40+40` relizi haqida; T-10 bitta repo'gacha qisqardi; T-11
+bajarildi; T-15 3-to'lqin kattalashdi (`go_router` endi 18.x).
 
 ## Holat belgilari
 
@@ -23,31 +28,52 @@ Bu hujjat **kod bazasining o'lchangan holatidan** kelib chiqqan — har bir band
 
 ## Sprint 0 — Bloklovchi (relizni to'sib turibdi)
 
-> Bu uchtasiz yangi versiya chiqmaydi. Bir kunlik ish.
+> **2026-09-17:** T-02 va T-03 yopildi (T-03 — CI olib tashlanishi bilan).
+> Bu sprintdan **faqat T-01 ochiq**, va u eng shoshilinch band: App Store'dagi
+> ITMS-91064 tuzatmasi `main` da turibdi, lekin chiqmagan.
 
-### ⬜ T-01 · Versiya bump + yangi store relizi
+### ⬜ T-01 · `1.0.40+40` ni store'ga chiqarish (2026-09-17 holati)
 
-**Muammo.** `1.0.37+37` (sha `46cb842`) relizidan keyin 5 ta commit bor va
-ular ichida `pubspec.yaml` + `ios/Podfile.lock` o'zgargan (`device_info_plus`
-qo'shilgan, commit `918eec6`). Ya'ni hozirgi `main` **Shorebird patch bilan
-yetkazib bo'lmaydi** — native diff bor. Lekin `pubspec.yaml` hali ham
-`1.0.37+37` da turibdi.
+> Bu band har relizda qayta ochiladi. Quyidagi matn **2026-09-17** holatini
+> tasvirlaydi.
 
-Qo'shimcha: [tools/shorebird/releases.md](../../tools/shorebird/releases.md)
-ga ko'ra **iOS uchun 1.0.37 umuman chiqmagan** — faqat `android` yozilgan.
+**Muammo.** `pubspec.yaml` `1.0.40+40` da, lekin
+[tools/shorebird/releases.md](../../tools/shorebird/releases.md) dagi oxirgi
+yozuv — `1.0.39+39` (`e333566d43e8`, 2026-08-11, android + ios). Ya'ni
+**12 commit relizsiz turibdi**.
+
+**Nega Shorebird patch yetarli emas.** `1.0.39+39` dan beri o'zgargan fayllar
+ichida ikkita patch-bloker bor:
+
+| Fayl | Nega bloker |
+|---|---|
+| `ios/Runner/PrivacyInfo.xcprivacy` | native (iOS) diff |
+| `pubspec.yaml` | versiya + bog'liqlik maydoni |
+
+Qolgani Dart — lekin bitta native diff ham patch'ni bekor qiladi.
+
+**Va bu shoshilinch.** `1.0.39` ning iOS build'i Apple tomonidan
+**ITMS-91064** bilan rad etilgan (`NSPrivacyTracking=true` + **bo'sh**
+`NSPrivacyTrackingDomains` — Apple TN3181 buni aniq nomlaydi). Tuzatma
+commit `a8154a4` da (`ep1.facebook.com` e'lon qilindi), lekin **hali
+chiqmagan**: hozir App Store'da bu tuzatma yo'q.
 
 **Bajarish:**
 
-- [ ] `pubspec.yaml` → `version: 1.0.38+38`
+- [x] `pubspec.yaml` → `version: 1.0.40+40` (commit `a8154a4`)
 - [ ] `./tools/shorebird.sh check` — blocker'larni ko'rish (native diff kutilyapti)
 - [ ] `./tools/shorebird.sh release android`
 - [ ] `./tools/shorebird.sh release ios`
+- [ ] iOS'da ITMS-91064 o'tganini App Store Connect'da tasdiqlash
+- [ ] [`release_checklist.md`](../release_checklist.md) ni yurib chiqish
+      (APNs kaliti, Play Ad-ID deklaratsiyasi, maxfiylik javoblari)
 - [ ] Ledger'da ikkala platforma ham qayd etilganini tasdiqlash
 
 **Tekshirish:**
 ```bash
 grep '^version:' pubspec.yaml
 tail -3 tools/shorebird/releases.md
+git diff --name-only <oxirgi_ledger_sha>..HEAD | grep -E '^(android|ios|assets|pubspec)'
 ```
 
 ---
@@ -99,51 +125,77 @@ muammosi. Bu safar unga tegilmadi (production kod o'zgarmadi).
 
 ---
 
-### ✅ T-03 · CI'ni qaytarish — BAJARILDI (2026-08-07)
+### ⏭️ T-03 · CI — QAYTARILDI, SO'NG OLIB TASHLANDI (2026-09-17)
 
-**Muammo edi.** `.github/` da **workflow fayli yo'q** edi (commit `918eec6` —
-"drop GitHub CI/build"), lekin `analysis_options.yaml:5` hali ham *"CI runs
-it blocking on every push/PR (see .github/workflows/ci.yml)"* deb turardi —
-yolg'on hujjat.
+> Bu band ikki marta qaror qabul qilingan. Tarix muhim, chunki
+> `analysis_options.yaml` ikkalasida ham tahrirlangan.
 
-**Qilingan ish.** `.github/workflows/ci.yml` qayta yaratildi — commit
-`918eec6`dan oldingi (`918eec6^`) versiyaga asoslangan, `flutter analyze` →
-`flutter analyze lib/ test/`ga aniqlashtirilgan (T-02'dagi tekshiruv buyrug'i
-bilan bir xil qamrov). Minimal gate: `checkout` → `subosito/flutter-action`
-(`channel: stable`) → `flutter pub get` → `flutter analyze lib/ test/` →
-`flutter test`.
+**1-qaror (2026-08-07) — qaytarildi.** `.github/` da workflow fayli yo'q edi
+(commit `918eec6` — "drop GitHub CI/build"), lekin `analysis_options.yaml:5`
+hali ham *"CI runs it blocking on every push/PR"* deb turardi — yolg'on hujjat.
+`.github/workflows/ci.yml` qayta yaratildi: `checkout` →
+`subosito/flutter-action` (`channel: stable`) → `flutter pub get` →
+`flutter analyze lib/ test/` → `flutter test`. Env bandi kerak bo'lmadi —
+testlar `main.dart`ni yugurtirmaydi, shuning uchun `AppConfig.assertConfigured()`
+hech qachon ishga tushmaydi.
 
-**Env bandi kerak emas edi.** Roadmap'ning dastlabki bajarish ro'yxatida
-"`env/example.json` bilan `--dart-define-from-file` ishlatish" bandi bor
-edi — lekin empirik tekshirilgach (to'liq 851-testlik to'plam bir necha
-marta hech qanday env fayli bermay **muvaffaqiyatli** o'tdi, chunki testlar
-`main.dart`ni yugurtirmaydi, shuning uchun `AppConfig.assertConfigured()`
-hech qachon ishga tushmaydi) bu band ortiqcha ekani aniqlandi va qo'shilmadi.
-Workflow izohida bu holat va kelajakda kerak bo'lsa nima qilish kerakligi
-yozib qo'yildi.
+**Nima bo'ldi.** Workflow push qilingandan keyin **2026-08-20 dan 2026-09-11
+gacha 5/5 push qizil** bo'ldi — kod sababli emas. `channel: stable` **pin
+qilinmagan** edi, shuning uchun runner Flutter **3.47.3** ga ko'tarildi, mahalliy
+SDK esa **3.44.9** da qoldi. Yangi analizator mahalliy analizatorda umuman
+bo'lmagan lint chiqardi:
 
-**`analysis_options.yaml`ga tegilmadi** — undagi CI izohi (`.github/workflows/ci.yml`ga
-ishora) fayl qayta yaratilgach **avtomatik to'g'ri bo'lib qoldi**, alohida
-tahrir kerak emas edi.
-
-**"Qizil bo'lish" tekshiruvi — GitHub'ga push qilmasdan mahalliy simulyatsiya
-qilindi** (haqiqiy PR ochish uchun repo'ga push kerak — bu jamoaviy/ko'rinadigan
-amal, alohida ruxsatsiz qilinmadi):
-
-```bash
-# lib/r.dart ga vaqtinchalik sintaksis xatosi qo'shildi, keyin git checkout bilan qaytarildi
-flutter analyze lib/ test/
-# → 17 issues found (o'zdan qo'shilgan xato + 1 oldindan bor info), EXIT CODE: 1
+```
+warning • Returning a 'Future' without 'await' inside a try block
+        • lib/core/cache/cache_service.dart:33 • unawaited_return_in_try_block
 ```
 
-CI'ning "Analyze" bosqichi aynan shu buyruqni ishlatadi — GitHub Actions har
-qanday nolmas chiqishda job'ni siniq (qizil) deb belgilaydi, ya'ni gate real
-sintaksis xatosida ishlaydi. `git checkout -- lib/r.dart` bilan qaytarilgandan
-so'ng `flutter analyze` yana toza (1 oldindan bor issue).
+`flutter analyze` warning'da exit 1 qaytaradi → butun pipeline yiqildi, holbuki
+mahalliy daraxt yashil edi. Ya'ni gate **signal bermay qo'ydi**: har bir push
+qizil bo'lgach, qizil rang ma'no tashlamaydi.
 
-**Qoldi (foydalanuvchi qaror qiladi):** `.github/`ni commit qilib push qilish
-va GitHub Actions'da birinchi haqiqiy yugurishni ko'rish — bu push/PR
-harakati, shu sessiyada amalga oshirilmadi.
+**2-qaror (2026-09-17) — olib tashlandi.** Foydalanuvchi qarori: bu ilova uchun
+CI kerak emas. `.github/` butunlay o'chirildi.
+`analysis_options.yaml` sarlavhasi endi workflow fayliga emas, **mahalliy
+buyruqlarga** ishora qiladi.
+
+**Buning natijasi — yozib qo'yilsin, chunki bu qarzni qaytaradi:**
+
+| Nima endi tekshirilmaydi | Qayerda yozilgan |
+|---|---|
+| `analysis_options.yaml` `strict-casts` | faqat siz `dart analyze lib/ test/` yugurtirsangiz |
+| i18n uch-bundle pariteti | debug boot guard + `/i18n-check` |
+| `Result<T>` chegarasi | `test/architecture/result_boundary_test.dart` — faqat `flutter test` da |
+| 923 testlik to'plam | faqat mahalliy `flutter test` |
+
+**Gate endi mahalliy va qo'lda:**
+
+```bash
+dart analyze lib/ test/   # yoki: /check
+flutter test
+```
+
+**Agar CI qachondir qaytarilsa:** `flutter-version:` ni **aniq pin qiling**
+(`channel: stable` emas) va uni `pubspec.yaml` dagi Dart SDK bilan birga
+yangilang. Pin qilinmagan runner — shu bandni o'ldirgan narsa.
+
+**CI o'chirilishi fosh qilgan bug — TUZATILDI (2026-09-18).**
+`cache_service.dart` dagi `return _directorySize(tmp);` da `await` yo'q edi,
+ya'ni future `try` blokidan **tashqarida** yakunlanardi va tashqi
+`catch (_) { return 0; }` o'sha yo'l uchun **o'lik kod** edi.
+
+Ta'sir doirasi tor va buni aniq aytish kerak: `_directorySize` ning o'zi
+ichkarida deyarli hamma narsani ushlaydi va qisman yig'indini qaytaradi.
+Tashqariga chiqib keta oladigan yagona yo'l — uning **birinchi qatoridagi**
+`dir.existsSync()` ning `FileSystemException` tashlashi (u o'zining `try`
+blokidan tashqarida). Ya'ni bu "kesh hajmi doim yiqiladi" degani emas;
+bu — nodir holatda 0 ga tushish o'rniga exception chiqishi.
+
+Baribir tuzatishga arziydi, va bu bandning asosiy qiymati boshqa joyda:
+**lint haq edi, va uni faqat yangiroq analizator ko'rgan.** Mahalliy SDK
+3.44.9 da `unawaited_return_in_try_block` qoidasi yo'q edi; uni CI runner'i
+(Flutter 3.47.3) topdi — o'sha CI qizil bo'lib turgani uchun hech kim
+o'qimagan. Gate'ni e'tiborsiz qoldirish uni o'chirish bilan barobar.
 
 ---
 
@@ -617,9 +669,16 @@ uchun to'g'ri, alohida commit** qilib push qilindi.
       `flutter test` — **859/859 yashil** (guard test ikkalasi ham kiritilgan
       holda).
 
-**Qoldi:** `seller_wallet_repository` → `Result<T>` — T-07 tugab commit
-qilingach, xuddi shu naqsh bilan (`seller_wallet_cubit.dart` + 2 ta test
-fayli endi tinch bo'lgach).
+**Qoldi:** `seller_wallet_repository` → `Result<T>` — ~10 metod (deposit /
+withdrawal / top-up).
+
+> **2026-09-17 yangilanishi:** to'sib turgan sabab **yo'qoldi**. T-07 commit
+> qilindi, `seller_wallet_cubit.dart` va uning testlari tinch, ish daraxti toza
+> (`git status` bo'sh). Ya'ni bu band endi kutmaydi — istalgan vaqtda
+> boshlash mumkin, va u `Result` chegarasidagi **yagona qolgan qarz**.
+> Tugagach `test/architecture/result_boundary_test.dart` dagi allowlist'dan
+> `seller_wallet_repository.dart` ni **ikkala** joydan (map + kalitlar to'plami)
+> olib tashlang, aks holda ikkinchi test qizil bo'ladi.
 
 **Naqsh:** `runCatching(...)` + `apiErrorToFailure`
 ([api_error_messages.dart](../../lib/core/network/api_error_messages.dart)) —
@@ -640,35 +699,77 @@ flutter test test/architecture/result_boundary_test.dart   # 2/2 yashil
 
 ## Sprint 3 — Hujjat va repo gigienasi
 
-### ⬜ T-11 · CLAUDE.md'ga AR / 3D bo'limini yozish
+### ✅ T-11 · CLAUDE.md'ga AR / 3D bo'limini yozish — BAJARILDI (2026-09-17)
 
-**Muammo.** CLAUDE.md'da **AR / 3D / Meshy haqida 0 ta eslatma**. Bu:
-- ~5000 qatorlik feature (`buyer_ar_viewer_screen` 1084, `product_3d_preview_view` 1064, `ar_section` 991, `set_ar_viewer_screen` 874, `ar_token_buy_section` 913…)
-- **Native** dependency (`ar_flutter_plugin_plus`, `model_viewer_plus`, `camera`, `gal`, `webview_flutter`) — ya'ni Shorebird patch'ni bloklaydi
-- AR token iqtisodiyoti bilan bog'langan (sotuvchi token sotib oladi)
+**Muammo edi.** CLAUDE.md'da **AR / 3D / Meshy haqida 0 ta eslatma** — ~5000
+qatorlik, **native** bog'liqlikka ega (ya'ni Shorebird patch'ni bloklaydigan)
+va token iqtisodiyoti bilan bog'langan feature brain'da umuman yo'q edi.
 
-Brain'da yo'q feature keyingi sessiyada noto'g'ri o'zgartiriladi.
+**Qilingan ish.** CLAUDE.md'ga to'rtta yangi bo'lim qo'shildi:
 
-**Bajarish:**
+- `### AR / 3D — per-part models` — `Product.arParts` modeli, ikki JSON shakli,
+  viewer routing (`BuyerArViewerScreen` / `SetArViewerScreen` / 2D fallback),
+  `ArSupport` capability probe, per-part monetizatsiya, va **"native dep =
+  hech qachon patch emas"** invariant'i. To'liq qo'llanma
+  [`docs/ar.md`](../../docs/ar.md) da — CLAUDE.md unga ishora qiladi, nusxa
+  ko'chirmaydi.
+- `### Support chat` — `/support/*` endpoint'lari, ovozli xabar (`record` +
+  `just_audio`), va per-order chat bilan **aralashtirmaslik** ogohlantirishi.
+- `### Broadcasts & tutorial` — broadcasts hozircha **faqat placeholder**
+  ekani (tugallangan sirt deb yozilmasin), va `safeStartShowCase(...)`
+  invariant'i.
+- `### Payments` + `### Connectivity & offline UX` — T-11 ro'yxatida yo'q edi,
+  lekin shu bo'shliqning o'zi: ikkalasi ham jonli, nozik (OS-kill'dan omon
+  qoladigan `PendingPaymentStore`, `unknown != paid`, captive-portal probe)
+  va brain'da yo'q edi.
 
-- [ ] `## AR / 3D pipeline` bo'limi: Meshy oqimi (3 foto → skan → moderatsiya → GLB/USDZ),
-      buyer viewer vs native AR farqi, AR token modeli, **native = patch qilinmaydi** invariant'i
-- [ ] `support` (voice chat), `broadcasts`, `tutorial` feature'larini ham qo'shish
-- [ ] `## Recent feature work` bo'limini yangilash
+`## Recent feature work` bo'limi ham qayta yozildi — endi "Autumn 2026" /
+"Spring / Summer 2026" deb ajratilgan va joriy versiya holati yozib qo'yilgan.
+
+**Tekshirish:**
+```bash
+grep -c "AR / 3D\|Support chat\|Connectivity & offline" CLAUDE.md   # ≥ 3
+```
 
 ---
 
-### ⬜ T-12 · Hujjat drift'ini tozalash
+### 🔄 T-12 · Hujjat drift'ini tozalash — QISMAN BAJARILDI (2026-09-17)
 
-- [ ] `docs/` (6 ta fayl, iyun) va `doc/` — ikkita hujjat uyi.
-      CLAUDE.md `doc/` ni "sole home" deydi. `docs/` ni `doc/` ga birlashtirish
-      yoki o'chirish
-- [ ] README `1.0.36+36` deydi, pubspec `1.0.37+37` — versiyani README'dan
-      butunlay olib tashlash (u har relizda eskiradi)
-- [ ] [analysis_options.yaml:5](../../analysis_options.yaml#L5) — CI izohi
-      (T-03 bilan birga)
-- [ ] `woody_mobile_tz.md`, `WOODY_PROJECT_CONTEXT.md` — redirect stub'lar,
-      hali keraklimi?
+**Bajarildi (2026-09-17):**
+
+- [x] [analysis_options.yaml](../../analysis_options.yaml) — CI izohi endi
+      mavjud bo'lmagan workflow fayliga emas, mahalliy buyruqlarga ishora
+      qiladi (T-03 bilan birga).
+- [x] **README versiyasi.** Dastlabki taklif "versiyani README'dan butunlay
+      olib tashlash" edi. **Boshqacha qilindi:** versiya qoldirildi, lekin endi
+      *ikkita* raqam yoziladi — `pubspec` versiyasi **va** oxirgi haqiqatan
+      chiqqan reliz. Sabab: aynan shu ikkisining farqi (`1.0.40+40` yozilgan,
+      `1.0.39+39` chiqqan) muhim signal edi va uni yashirish o'rniga ko'rsatish
+      foydaliroq. README §7 da relizsiz qolgan tuzatma haqida ogohlantirish bor.
+- [x] **`doc/backlog.md`** — `doc/planning/backlog.md` ning **bayt-bayt nusxasi**
+      edi (ikkita haqiqat manbai). Endi `doc/roadmap.md` kabi bir qatorlik
+      stub'ga aylantirildi.
+- [x] **Eskirgan raqamlar** README / CLAUDE.md / `docs/release-shorebird.md` da
+      yangilandi: test soni (122 fayl / 767 case → **140 / 912**, 923 o'tadi),
+      Shorebird ledger'idagi oxirgi reliz (`1.0.26` va `1.0.36` → **`1.0.39+39`**),
+      iOS Firebase pin (11.15.0 → **12.17.0**).
+- [x] **`release_checklist.md` dagi qarama-qarshilik** — hujjat
+      `NSPrivacyTrackingDomains` "ataylab bo'sh" deyardi, holbuki kod
+      `ep1.facebook.com` e'lon qiladi (Apple ITMS-91064 rad javobidan keyin).
+      Tuzatildi.
+
+**Qoldi:**
+
+- [ ] `docs/` (6 ta fayl) va `doc/` — ikkita hujjat uyi. CLAUDE.md `doc/` ni
+      "sole home" deydi. Birlashtirish yoki o'chirish → **T-13** bilan birga
+      qilinsin (bitta commit, bitta havola-tuzatish to'lqini).
+- [ ] `woody_mobile_tz.md`, `WOODY_PROJECT_CONTEXT.md` — redirect stub'lar.
+      Hali keraklimi? README ikkalasiga ham havola qiladi, ya'ni hozircha
+      "o'lik" emas; qaror T-13 bilan birga.
+- [ ] `doc/TZ.md` — platforma darajasidagi spec, to'rttala repo'ni qamraydi.
+      Bu sessiyada **faqat mobil tomoni va aniq eskirgan faktlar** yangilandi
+      (quyida). Backend/admin bo'limlari to'liq qayta auditdan o'tkazilmadi —
+      alohida ish.
 
 ---
 
@@ -689,18 +790,25 @@ adashishga to'g'ridan-to'g'ri taklif.
 
 ### ⬜ T-14 · Repo'dan marketing artefaktlarini chiqarish
 
-**Muammo.** `.git` = **150 MB**. Kod repo'sida:
+**Muammo.** `.git` = **158 MB** (2026-08-07 da 150 MB edi — o'syapti).
+
+**2026-09-17 da qayta o'lchandi — root'dagi dublikatlar tozalangan, lekin
+`doc/` dagilar qolgan.** Hozir tracked:
 
 ```
-Woody_Investor_Deck.pptx           7.6 MB   (root)
-Woody_Investor_Deck copy.pptx      3.4 MB   (root — dublikat)
-doc/Woody_Investor_Deck.pptx       3.4 MB   (yana dublikat)
-Woody_Pitch_Deck.pdf               666 KB   (root va doc/ da)
-Woody_Pitch_Deck.html              ikki joyda
-large-thumbnail...mp4              1.0 MB   (root)
+doc/Woody_Investor_Deck.pptx       3.3 MB
+doc/Woody_Pitch_Deck.pptx          1.7 MB
+doc/Woody_Pitch_Deck.pdf           652 KB
+doc/Woody_Pitch_Deck.html
+woody_frond.pen                    132 KB   (root)
+doc/woody_frond.pen                4 KB
+doc/admin_panel.pen · design/mobile_mockup.pen
 ```
 
-Jami 275 ta tracked `.md` fayl ham bor.
+`.pen` (Pencil design) fayllari alohida og'riq: bitta commit'da
+`woody_frond.pen` **3 489 qatorlik diff** keltirgan, yana bittasida 2 719 —
+kod tarixini ko'rish qiyinlashadi. Jami **277 ta tracked `.md`** fayl ham bor
+(ko'pi `.claude/` va `.agents/` tooling boilerplate'i).
 
 **Bajarish:**
 
@@ -716,7 +824,7 @@ Jami 275 ta tracked `.md` fayl ham bor.
 
 ## Sprint 4 — Bog'liqliklar
 
-### 🔄 T-15 · Major yangilanishlar (bosqichma-bosqich) — 2/4 TO'LQIN BAJARILDI (2026-08-07)
+### 🔄 T-15 · Major yangilanishlar (bosqichma-bosqich) — 3/4 TO'LQIN (2026-09-18)
 
 **Muammo edi.** Sezilarli orqada qolish — har bir kechikish keyingi migratsiyani
 qimmatlashtiradi va xavfsizlik patch'lari ham o'tkazib yuborilmoqda.
@@ -772,13 +880,253 @@ qimmatlashtiradi va xavfsizlik patch'lari ham o'tkazib yuborilmoqda.
       va `flutter build apk --release --dart-define-from-file=env/prod.json`
       ikkalasi ham **muvaffaqiyatli** (`Runner.app` 115.8 MB,
       `app-release.apk` 185.4 MB).
-- [ ] **3-to'lqin — `go_router` 14 → 17.** Eng katta xavf: ikkita router
+- [ ] **3-to'lqin — `go_router` 14 → 18.** Eng katta xavf: ikkita router
       (`customer/router.dart` + `seller_router.dart` `StatefulShellRoute` bilan).
       `test/customer/navigation/` testlari bu yerda qalqon bo'ladi
-- [ ] **4-to'lqin — qolganlari** birma-bir
+      (9 ta back-navigation testi — cold deep-link, tab fallback, share link).
+- [x] **3a-to'lqin (2026-09-18) — past xavfli majorlar + zanjirli bog'liqlik.**
+      `get_it` 8→**9.2.1**, `shimmer` 3→**4.0.0**, `cached_network_image` 3→**4.0.0**,
+      `package_info_plus` 8→**10.2.1**, `device_info_plus` 11→**13.2.0**,
+      `share_plus` 12→**13.3.0**, `flutter_secure_storage` 9→**10.3.4**.
 
-**Qoldi:** 3- va 4-to'lqin — foydalanuvchi bilan kelishilgan holda shu
-sessiyada ochilmadi (yuqori xavf, alohida sessiyada qilinsin).
+      **Zanjir majburlagan.** `package_info_plus` 10 `win32 ^6` talab qiladi,
+      `share_plus` 12 esa `win32 ^5` — ya'ni `share_plus` ni ham ko'tarish
+      shart bo'ldi; `share_plus` 13 o'z navbatida `flutter_secure_storage` 10+
+      ni talab qildi. Uchtasi **birga** ko'tarilishi kerak, alohida emas.
+      `share_plus` allaqachon yangi API'da edi (`SharePlus.instance.share(ShareParams(...))`),
+      shuning uchun kod o'zgarmadi.
+
+- [ ] **`shimmer` 4 va `cached_network_image` 4 — BLOKLANGAN** (sinab ko'rilib,
+      qaytarildi). Ikkalasi `^3.x` da qoldi. Sabab quyida.
+
+#### ⚠️ `material_ui` tuzog'i — `pub outdated` ham, `analyze` ham buni ko'rmaydi
+
+`shimmer` **4.0.0** va `cached_network_image` **4.0.0** ikkalasi ham
+`package:flutter/material.dart` o'rniga yangi **`material_ui`** paketiga
+o'tgan (Wasm mosligi uchun). `material_ui 1.3.0` esa `meta` paketining
+`@awaitNotRequired` annotatsiyasini ishlatadi.
+
+Bizning toolchain: Flutter **3.44.9**, Dart **3.12.2** — `material_ui` ning
+e'lon qilingan talablarini (`sdk: ^3.12.0`, `flutter: >=3.44.0`) **qanoatlantiradi**.
+Lekin Flutter 3.44.9 `meta` ni **1.18.0** da pin qiladi, va `awaitNotRequired`
+o'sha versiyada yo'q. Natija — test kompilyatsiyasida:
+
+```
+material_ui-1.3.0/lib/src/bottom_sheet.dart:1304:2:
+  Error: Undefined name 'awaitNotRequired'.
+```
+
+**Bu nima uchun muhim — uchta gate ham jim qoldi:**
+
+| Tekshiruv | Natija |
+|---|---|
+| `flutter pub get` | ✅ muvaffaqiyatli hal qildi |
+| `flutter pub outdated` | ✅ "Resolvable" deb ko'rsatdi |
+| `dart analyze lib/ test/` | ✅ 1 info (baseline) — **o'zgarishsiz** |
+| `flutter test` | ❌ **16 ta test fayli yuklanmadi** |
+
+Analizator faqat `lib/` va `test/` manbalarini ko'radi, pub-cache'dagi paket
+kodini emas. Xatoni **faqat** `flutter test` tutdi. Ya'ni paket bump'idan
+keyin `analyze` yetarli emas — **to'liq `flutter test` majburiy**.
+
+**Blokdan chiqish sharti:** Flutter'ning o'zi yangiroq `meta` pin qiladigan
+versiyaga ko'tarilishi. Shundan keyin ikkalasini `^4` ga qaytaring.
+
+- [ ] **3b-to'lqin (2026-09-18) — connectivity juftligi.**
+      `connectivity_plus` 6.1.5→**7.3.1** va
+      `internet_connection_checker_plus` 2.7.2→**3.1.2**.
+      Ikkalasi **birga** ko'tarildi: ular `ConnectivityService` ning ikki
+      yarmi, birini yolg'iz ko'tarish probe seam'ini buzadi.
+
+      **Ikkita yashirin talab chiqdi — ikkalasini ham `flutter test` tutmaydi:**
+
+      1. **ICCP v3 hardware trigger'ni yo'qotdi.** v3 `connectivity_plus`
+         bog'liqligidan voz kechib, sof Dart paketiga aylandi — ya'ni radio
+         o'zgarganda darhol qayta tekshirmaydi, faqat keyingi poll tick'ida
+         (20 soniyagacha) sezadi. Migratsiya qo'llanmasi bo'yicha
+         `triggerStream: Connectivity().onConnectivityChanged` qo'shildi.
+         (`RealConnectivityService` o'zi ham shu oqimga obuna — bu probe'ning
+         **o'z** status stream'ini v2 dagidek tezkor saqlaydi.)
+      2. **`connectivity_plus` 7.0.0 native build talablari qo'ydi:**
+         AGP **≥ 8.12.1**, Gradle wrapper ≥ 8.13, Kotlin ≥ 2.2.0.
+         Bizda Gradle **8.14** ✅ va Kotlin **2.2.20** ✅ mos edi, lekin
+         AGP **8.11.1** ❌ — past. `android/settings.gradle.kts` da
+         AGP **8.12.3** ga ko'tarildi va haqiqiy `flutter build apk` bilan
+         tasdiqlandi. Dart testlari Gradle darajasini umuman ko'rmaydi.
+
+      Buning evaziga olingan narsa bekorga emas: 7.x ikkita **crash
+      tuzatmasini** olib keladi — iOS `NWPathMonitor` race condition
+      (serial queue) va Android broadcast-receiver flag'i.
+
+- [x] **3c-to'lqin (2026-09-18) — qolgan majorlar.**
+      `fl_chart` 0.69.2→**1.2.0**, `flutter_local_notifications` 18.0.1→**22.3.1**,
+      `camera` 0.11.4→**0.12.1**, `just_audio` 0.9.46→**0.10.6**,
+      `record` 5.2.1→**6.2.1**, `smooth_page_indicator` 1.2.1→**3.0.0**.
+
+      **`flutter_local_notifications` 22 pozitsion argumentlarni nomlanganga
+      o'tkazgan** — yagona haqiqiy kod migratsiyasi (16 analizator xatosi):
+
+      | v18 | v22 |
+      |---|---|
+      | `cancel(id, tag: …)` | `cancel(id: …, tag: …)` |
+      | `initialize(settings, onDidReceive…)` | `initialize(settings: …, onDidReceive…)` |
+      | `show(id, title, body, details, payload:)` | `show(id: …, title: …, body: …, notificationDetails: …, payload: …)` |
+
+      Tuzatilgan joylar: `push_service.dart` (5 ta chaqiruv) va ikkita test
+      fayli (`push_service_chat_dismiss_test.dart`,
+      `push_service_token_refresh_test.dart` — mocktail `any()` lari
+      `any(named: …)` ga o'tdi; `registerFallbackValue(const InitializationSettings())`
+      allaqachon bor edi).
+
+- [ ] **`showcaseview` 5 — QAYTARILDI, ataylab.** `^4.0.1` da qoldi.
+      v5 `ShowCaseWidget` ni `ShowcaseView.register()` ga, `ShowCaseWidget.of(context)`
+      ni `ShowcaseView.get()` ga deprecate qiladi (v6 da olib tashlanadi).
+      Bu **nom almashtirish emas** — widget-daraxtdagi provider'dan global
+      registratsiyaga o'tish, ya'ni haqiqiy refactor. Paket ko'tarish
+      batch'ida qilinadigan ish emas; alohida qaror sifatida qoldirildi.
+      Qoldirilmaganda analizator baseline'i 1 dan **6** ga chiqardi — CI yo'q
+      paytda bu signalni zaiflashtiradi.
+
+- [x] **4-to'lqin (2026-09-18) — `go_router` 14.8.1 → 17.5.0.**
+      Roadmap'da "eng katta xavf" deb belgilangan band. Amalda **bitta ham
+      kod o'zgarishi kerak bo'lmadi** — analizator 0 xato berdi, chunki ikkala
+      router ham allaqachon zamonaviy API'da edi (`state.uri`,
+      `state.pathParameters`, `context.go/push/pop`, `shell.goBranch`).
+      Eskirgan `state.location` repo'da umuman yo'q edi.
+
+      **18 emas, 17.5.** `go_router` **18.0.0** "Migrates to material_ui and
+      cupertino_ui" — ya'ni yuqoridagi `material_ui` blokiga tushadi.
+      17.5.0 — Flutter 3.44.9 da ishlaydigan eng yuqori versiya.
+
+      **Uchta major orasidagi breaking changelar va bizga ta'siri:**
+
+      | Versiya | Breaking change | Bizga ta'siri |
+      |---|---|---|
+      | **15.0.0** | URL'lar endi **katta-kichik harfga sezgir** (`caseSensitive: true` default) | Marshrutlarimiz to'liq kichik harfda; ulashish havolalari ham (`/product/:id`, `/shop/:id`) kichik harfda generatsiya qilinadi. Ta'sir yo'q — lekin tashqi manbadan `/Product/123` kelsa endi 404 |
+      | **16.0.0** | `GoRouteData` (type-safe routes) o'zgarishlari, `go_router_builder >= 3.0.0` talab qiladi | **Tegishli emas** — `go_router_builder` ishlatilmaydi |
+      | **17.0.0** | `ShellRoute` navigatsiyasi endi **root observer'larni default xabardor qiladi** (`notifyRootObserver`) | ⚠️ Haqiqiy xatti-harakat o'zgarishi — pastda |
+
+#### ⚠️ 17.0.0 — seller tab almashinuvi endi analitikaga tushadi
+
+Ikkala routerga ham `FirebaseAnalyticsObserver` ulangan
+(`customer/router.dart`, `seller_router.dart`). Seller rejimi
+`StatefulShellRoute.indexedStack` bilan 5 ta tab'dan iborat.
+
+**Ilgari:** tab almashinuvi root observer'ga yetib bormasdi → GA4 da seller
+tab navigatsiyasi **ko'rinmasdi**.
+**Endi:** har tab almashinuvi `screen_view` hodisasini yozadi.
+
+**Qaror: eski xatti-harakat saqlandi.** `seller_router.dart` da
+`StatefulShellRoute.indexedStack(notifyRootObserver: false, …)` qo'yildi.
+
+Sabab: paket bump'i **analitika ma'lumotlarining shaklini o'zgartirmasligi**
+kerak. Aks holda admin `/app-usage` dagi `screen_view` qatori aynan shu
+relizda sakrardi — va bu sakrash foydalanuvchi xatti-harakatiga umuman
+aloqador bo'lmasdi, ya'ni releaslar orasidagi taqqoslash buzilardi.
+Seller tab navigatsiyasini GA4 ga qo'shish — bu **mahsulot qarori**, paket
+ko'tarishning yon ta'siri emas. Kerak bo'lsa, o'sha bir qatorni olib
+tashlash kifoya, lekin ongli ravishda va uzilishni kutgan holda.
+
+`setCurrentScreen()` hech qayerda chaqirilmaydi, shuning uchun **ikki marta
+hisoblash xavfi yo'q** (tekshirildi).
+
+#### Yakuniy holat (2026-09-18) — nima qoldi va nega
+
+`flutter pub outdated` dagi qolgan 13 ta direct dependency, sabab bo'yicha:
+
+| Sabab | Paketlar | Qachon ochiladi |
+|---|---|---|
+| **`material_ui` bloki** | `go_router` 18, `shimmer` 4, `cached_network_image` 4 | Flutter yangiroq `meta` pin qilgach |
+| **Ma'lumot yo'qolishi xavfi** | `flutter_secure_storage` 11 | v10 bilan bitta reliz store'ga chiqqach |
+| **Refactor talab qiladi** | `showcaseview` 5 | alohida qaror (`ShowcaseView.register()`) |
+| **SDK'da resolvable emas** | `record` 7, `permission_handler` 13, `equatable` 3, `vector_math` 2.4, `intl` 0.20.3, `clock` 1.1.3 | Flutter/Dart ko'tarilgach |
+| **Constraint ichida, arzimas** | `geolocator` 14.0.3, `lottie` 3.6.1 | `flutter pub upgrade` — istalgan vaqtda |
+
+Ya'ni 13 tadan **hech biri "unutilgan" emas** — har birining yozilgan sababi bor.
+Boshlanishida 15 ta major orqada edi; endi haqiqiy, ochiq major qarz **yo'q**.
+
+#### Tekshiruv protokoli — paket ko'tarishda uchta gate
+
+Bu sessiyada uch marta shunday bo'ldi: `pub get` ✅, `pub outdated` ✅,
+`dart analyze` ✅ — lekin paket **baribir ishlamadi**. Shuning uchun:
+
+| Gate | Nimani tutadi | Misol |
+|---|---|---|
+| `dart analyze lib/ test/` | o'z kodimizdagi API o'zgarishi | `flutter_local_notifications` 22 nomlangan argumentlari |
+| `flutter test` | paket ichidagi kompilyatsiya xatosi, xatti-harakat regressiyasi | `material_ui` / `@awaitNotRequired` |
+| `flutter build apk` | Gradle / AGP / native talablar | `connectivity_plus` 7 → AGP ≥ 8.12.1 |
+| **CHANGELOG o'qish** | **ma'lumot migratsiyasi** — buni hech qaysi gate tutmaydi | `flutter_secure_storage` 9→11 token'larni o'chiradi |
+
+To'rtinchisi eng muhimi: uni **faqat odam** tutadi.
+
+#### ⚠️ `flutter_secure_storage`: 9 → 11 sakrash MUMKIN EMAS (sessiya yo'qoladi)
+
+`flutter pub outdated` `11.2.0` ni "resolvable" deb ko'rsatadi va `pub get`
+muammosiz o'tadi — lekin bu **jimgina barcha foydalanuvchini tizimdan
+chiqarib yuboradi**. Paket CHANGELOG'i (v11.0.0) buni ochiq aytadi:
+
+> *"Any data saved using deprecated algorithms or features will be unusable
+> after this upgrade. **If you used a version prior to v10, upgrade to v10
+> first so existing data is migrated.**"*
+
+Mexanizm: v9 yozgan ma'lumotda algoritm markerlari yo'q. v11 ularni
+`legacyDataUnreadable` deb belgilaydi, `AndroidOptions.resetOnError` esa
+**default `true`** — ya'ni o'qib bo'lmaydigan yozuvlar **o'chiriladi**.
+Bizda o'sha yozuvlar `TokenStore` dagi access/refresh JWT juftligi.
+
+**Qabul qilingan yechim:** `^10.3.1` ga pin qilindi. v10 v9 ma'lumotini
+avtomatik migratsiya qiladi (`migrateOnAlgorithmChange` default `true`).
+
+**Kod o'zgarishi:** yangi
+[`lib/core/storage/secure_storage_options.dart`](../../lib/core/storage/secure_storage_options.dart)
+— yagona `woodySecureStorage` konstantasi `AndroidOptions(migrateWithBackup: true)`
+bilan. Migratsiya bir martalik va o'rtasida crash bo'lsa yozuv yo'qoladi;
+backup uni qayta tiklanadigan qiladi. Uchala chaqiruv joyi
+(`TokenStore`, `SecureStorage`, `resetSecureStorageOnFreshInstall`) shu
+konstantadan foydalanadi.
+
+**v11 uchun shart:** v10 bilan **kamida bitta reliz store'ga chiqishi** va
+foydalanuvchilar uni o'rnatishi kerak. Shundan keyingina `^11` ga o'tiladi.
+v11 yana `minSdk` 24 (bizda 26 ✅) va `compileSdk` **37** talab qiladi —
+o'shanda Android tomonini ham tekshiring.
+
+**Qoldi:** 3- va 4-to'lqin — foydalanuvchi bilan kelishilgan holda
+ochilmadi (yuqori xavf, alohida sessiyada qilinsin).
+
+> **⚠️ 2026-09-17 qayta o'lchov — tafovut kattalashdi.** Yuqoridagi jadval
+> 2026-08-07 holati. Bir oy ichida `go_router` **17.4 → 18.0.1** ga chiqdi,
+> ya'ni 3-to'lqin endi **4 major** sakrash (3 emas). `flutter pub outdated`
+> bugungi holati:
+>
+> | Paket | Joriy | Resolvable / Latest | Sakrash |
+> |---|---|---|---|
+> | `go_router` | 14.8.1 | **18.0.1** | 4 major |
+> | `flutter_local_notifications` | 18.0.1 | **22.3.1** | 4 major |
+> | `flutter_secure_storage` | 9.2.4 | **11.2.0** | 2 major |
+> | `package_info_plus` | 8.3.1 | **10.2.1** | 2 major |
+> | `device_info_plus` | 11.5.0 | **13.2.0** | 2 major |
+> | `record` | 5.2.1 | **7.1.1** | 2 major |
+> | `camera` | 0.11.4 | 0.12.1 | minor |
+> | `get_it` | 8.3.0 | **9.2.1** | 1 major |
+> | `fl_chart` | 0.69.2 | **1.2.0** | 1 major |
+> | `connectivity_plus` | 6.1.5 | **7.3.1** | 1 major |
+> | `share_plus` | 12.0.2 | **13.3.0** | 1 major |
+> | `cached_network_image` | 3.4.1 | **4.0.0** | 1 major |
+> | `internet_connection_checker_plus` | 2.7.2 | **3.1.2** | 1 major |
+> | `shimmer` | 3.0.0 | **4.0.0** | 1 major |
+> | `showcaseview` | 4.0.1 | **5.1.0** | 1 major |
+> | `smooth_page_indicator` | 1.2.1 | **3.0.0** | 2 major |
+> | `just_audio` | 0.9.46 | 0.10.6 | minor |
+>
+> Firebase to'plami (2-to'lqindan keyin) faqat **minor** orqada:
+> `firebase_core` 4.13.0→4.15.0, `messaging` 16.5.0→16.7.0,
+> `crashlytics` 5.2.7→5.4.0, `analytics` 12.4.6→12.6.0 — xavfsiz.
+>
+> **Diqqat:** `connectivity_plus` va `internet_connection_checker_plus`
+> ikkalasi ham `ConnectivityService`ning yadrosi (2026-09-10 da qayta
+> yozilgan) — ularni **birga** ko'taring va
+> `test/core/connectivity/connectivity_service_test.dart` ni qalqon qiling.
+> Bir paket majorini yolg'iz ko'tarish probe seam'ini buzadi.
 
 **Har to'lqindan keyin:** `flutter test` + qurilmada qo'lda smoke test.
 **Har to'lqin = alohida commit** (rollback oson bo'lsin) — bu sessiyada hali
@@ -799,15 +1147,18 @@ grep "Firebase/Core (" ios/Podfile.lock   # 12.17.0
 
 ### ⬜ T-16 · God-file'larni bo'lish
 
-34 fayl > 700 qator, 65 fayl > 500. Eng kattalari:
+**2026-09-17 holati: 36 fayl > 700 qator** (2026-08-07 da 34 edi — ⚠️ band
+ochiq turgani uchun o'sib boryapti). Eng kattalari:
 
-| Fayl | Qator |
+| Fayl | Qator (08-07 → 09-17) |
 |---|---|
-| [seller/features/wallet/screens/wallet_screen.dart](../../lib/seller/features/wallet/screens/wallet_screen.dart) | 1955 |
-| [core/i18n/translations/seller_translations.dart](../../lib/core/i18n/translations/seller_translations.dart) | 1722 (92 KB) |
-| [customer/features/checkout/screens/checkout_screen.dart](../../lib/customer/features/checkout/screens/checkout_screen.dart) | 1374 |
-| [customer/features/product_list/screens/catalog_product_detail_screen.dart](../../lib/customer/features/product_list/screens/catalog_product_detail_screen.dart) | 1367 |
-| [customer/features/home/screens/home_screen.dart](../../lib/customer/features/home/screens/home_screen.dart) | 1357 |
+| [seller/features/wallet/screens/wallet_screen.dart](../../lib/seller/features/wallet/screens/wallet_screen.dart) | 1955 → **1932** |
+| [core/i18n/translations/seller_translations.dart](../../lib/core/i18n/translations/seller_translations.dart) | 1722 → **1719** |
+| [customer/features/product_list/screens/catalog_product_detail_screen.dart](../../lib/customer/features/product_list/screens/catalog_product_detail_screen.dart) | 1367 → **1393** |
+| [customer/features/checkout/screens/checkout_screen.dart](../../lib/customer/features/checkout/screens/checkout_screen.dart) | 1374 → **1379** |
+| [customer/features/home/screens/home_screen.dart](../../lib/customer/features/home/screens/home_screen.dart) | 1357 → **1354** |
+| [seller/features/tariff/screens/tariff_screen.dart](../../lib/seller/features/tariff/screens/tariff_screen.dart) | — → **1328** |
+| [seller/features/products/screens/seller_products_screen.dart](../../lib/seller/features/products/screens/seller_products_screen.dart) | — → **1313** |
 
 **Bajarish:** faqat **tegib o'tgan faylni** bo'ling — "hammasini bir vaqtda
 refactor" qilmang. Boshqa sabab bilan `checkout_screen.dart`ni ochsangiz,
@@ -884,45 +1235,73 @@ tashqarida qoladi.
 
 ---
 
-## Baseline — 2026-08-07
+## Baseline
 
-Progress'ni o'lchash uchun boshlang'ich nuqta. Sprint tugaganda qayta yugurting:
+Progress'ni o'lchash uchun boshlang'ich nuqta. Sprint tugaganda qayta yugurting
+va yangi ustun qo'shing.
+
+| O'lcham | 2026-08-07 | **2026-09-17** | Izoh |
+|---|---|---|---|
+| `lib/` dart fayllar | 509 | **510** | — |
+| `lib/` qatorlar | 125 212 | **126 582** | +1 370 |
+| >700 qatorli fayllar | 34 | **36** | ⚠️ o'sdi — T-16 |
+| `dart analyze lib/ test/` | 1 issue | **1 issue** | o'sha `use_null_aware_elements` info |
+| `flutter test` | 845 (+5 −5) | **923 / 923** | hammasi yashil |
+| test fayllari | — | **140** | — |
+| UI'dagi `sl<...>` | 129 | **116** | T-07 — 2 qism qoldi |
+| `lib/shared` → mode importlari | 15 | **0** | ✅ maqsadga yetildi |
+| `assets` hajmi | 48 MB | **7.1 MB** | ✅ T-04 + T-05 |
+| `assets/models` | 38 MB | **yo'q** (R2 da) | ✅ T-04 |
+| hardcoded o'zbekcha matn | 5 | **5** | T-17 — tegilmagan |
+| `Result<T>` qarzi (repo) | 4 | **1** | faqat `seller_wallet` |
+| CI | qayta tiklandi | **yo'q** (qaror) | T-03 |
+| Eskirgan major paketlar | 15 | **8** | T-15 3a/3b bajarildi |
+| AGP / Gradle / Kotlin | 8.11.1 / 8.14 / 2.2.20 | **8.12.3** / 8.14 / 2.2.20 | connectivity_plus 7 talabi |
+
+Qayta o'lchash buyruqlari:
 
 ```bash
 # Kod hajmi
-find lib -name "*.dart" | wc -l                                    # 509
-find lib -name "*.dart" -exec cat {} + | wc -l                     # 125212
-find lib -name "*.dart" -exec wc -l {} + | awk '$1>700' | wc -l    # 34
+find lib -name "*.dart" | wc -l
+find lib -name "*.dart" -exec cat {} + | wc -l
+find lib -name "*.dart" -exec wc -l {} + | awk '$1>700 && $2!="total"' | wc -l
 
-# Sifat
-flutter analyze lib/ test/ 2>&1 | tail -1                          # 1 issue
-flutter test --reporter=compact 2>&1 | tail -1                     # 845 +5 -5
+# Sifat  (CI yo'q — bu ikkitasi yagona gate)
+dart analyze lib/ test/ 2>&1 | tail -1
+flutter test --reporter=compact 2>&1 | tail -1
 
 # Arxitektura
-grep -rn "sl<" lib/ --include="*.dart" | grep -E "screens/|widgets/" | wc -l   # 129
-grep -rn "import.*\(customer\|seller\)/" lib/shared --include="*.dart" | wc -l # 15
+grep -rn "sl<" lib/ --include="*.dart" | grep -E "screens/|widgets/" | wc -l
+grep -rn "import.*\(customer\|seller\)/" lib/shared --include="*.dart" | wc -l
 
 # Hajm
-du -sh assets                                                      # 48M
-du -sh assets/models                                               # 38M
+du -sh assets
 
 # i18n
 grep -rnE "Text\(\s*'[A-ZА-Яa-zа-я][^']{4,}'" lib/ --include="*.dart" \
-  | grep -v "tr(" | wc -l                                          # 5
+  | grep -v "tr(" | wc -l
 ```
 
 ---
 
-## Tavsiya etilgan tartib
+## Tavsiya etilgan tartib (2026-09-17 da qayta ko'rilgan)
 
 ```
-Sprint 0  →  T-01, T-02, T-03          (1–2 kun · relizni ochadi)
-Sprint 1  →  T-04, T-05                (2–3 kun · 48 MB → ~8 MB)
-Sprint 2  →  T-08, T-07, T-10, T-09    (bosqichma-bosqich · haftalar)
-Sprint 3  →  T-11, T-12, T-13, T-14    (1 kun · arzon g'alabalar)
-Sprint 4  →  T-15                      (to'lqin-to'lqin · fon ishi)
-Sprint 5  →  T-16..T-20                (tegib o'tganda)
+HOZIR      →  T-01                    (1.0.40+40 relizi — iOS'da rad javobi tuzatmasi
+                                       hali chiqmagan; eng shoshilinch band)
+Keyin      →  T-10                    (seller_wallet — Result chegarasidagi oxirgi qarz;
+                                       to'siq yo'qoldi, istalgan vaqtda boshlash mumkin)
+Fon ishi   →  T-15 4-to'lqin           (go_router 14→18 — 37 fayl, alohida sessiyada.
+                                       3a/3b to'lqinlar 2026-09-18 da bajarildi)
+Arzon      →  T-12 qoldig'i + T-13    (docs/ ↔ doc/ birlashtirish — bitta commit)
+Tegib o't  →  T-16..T-20              (T-16 o'sib boryapti: wallet_screen.dart 1932 qator)
+Yopilgan   →  T-02 T-03 T-04 T-05 T-06 T-08 T-09 T-11
+Qisman     →  T-07 (7/9) · T-10 (3/4) · T-12 · T-15 (2/4)
 ```
 
-**Muhim:** Sprint 0 tugamaguncha boshqasiga o'tmang. CI'siz (T-03) qolgan
-hamma tuzatish asta-sekin qayta buziladi.
+**Eslatma — eski "Sprint 0 tugamaguncha boshqasiga o'tmang" qoidasi endi
+ishlamaydi.** U CI (T-03) ni asos qilib olgan edi; CI olib tashlangach,
+uning o'rnini **mahalliy intizom** egallaydi: har commit oldidan
+`dart analyze lib/ test/` + `flutter test`. Qoida shu.
+
+**Commit konventsiyasi:** `fix(debt): T-10 seller_wallet Result<T> ga ko'chirildi`

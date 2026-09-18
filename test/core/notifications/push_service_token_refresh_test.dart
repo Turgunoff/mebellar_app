@@ -137,7 +137,7 @@ void main() {
     localNotifications = _MockLocalNotifications();
     when(
       () => localNotifications.initialize(
-        any(),
+        settings: any(named: 'settings'),
         onDidReceiveNotificationResponse: any(
           named: 'onDidReceiveNotificationResponse',
         ),

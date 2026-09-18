@@ -18,7 +18,7 @@ dependencies:
   flutter_bloc: ^9.0.0
   # Event transformers (restartable / droppable) for the B.7 performance pass.
   bloc_concurrency: ^0.3.0
-  get_it: ^8.0.0
+  get_it: ^9.2.1
   equatable: ^2.0.8
 
   # Testable time — `clock.now()` in place of `DateTime.now()` so tests can
@@ -27,11 +27,11 @@ dependencies:
   clock: ^1.1.1
 
   # Routing
-  go_router: ^14.6.0
+  go_router: ^17.5.0
 
   # Native OS share sheet (product share) + the first-launch flag that gates
   # the deferred deep-link clipboard trick (see core/deeplink/).
-  share_plus: ^12.0.2
+  share_plus: ^13.3.0
   shared_preferences: ^2.3.0
 
   # Networking
@@ -59,7 +59,7 @@ dependencies:
   # Required to display a notification banner when an FCM push arrives
   # while the app is in the foreground — Android only auto-shows pushes
   # in the system tray when the app is backgrounded or killed.
-  flutter_local_notifications: ^18.0.1
+  flutter_local_notifications: ^22.3.1
   # Launcher app-icon badge (the red unread count on the home-screen icon).
   # `app_badge_plus` over the older `flutter_app_badger`: the latter is
   # unmaintained (2021) and ships no Gradle `namespace`, which fails the build
@@ -73,7 +73,7 @@ dependencies:
   # Storage
   hive: ^2.2.3
   hive_flutter: ^1.1.0
-  flutter_secure_storage: ^9.2.0
+  flutter_secure_storage: ^10.3.1
 
   # App lifecycle
   flutter_phoenix: ^1.1.1
@@ -82,8 +82,8 @@ dependencies:
   # can compare it against the backend-published `app_versions` min_version
   # (per platform). The gate is our own glassmorphism overlay + store redirect —
   # no native in-app-update package, so it works the same on Android and iOS.
-  package_info_plus: ^8.1.0
-  device_info_plus: ^11.3.0
+  package_info_plus: ^10.2.1
+  device_info_plus: ^13.2.0
 
   # Localization — translations live in pure Dart (lib/core/i18n/) so
   # Shorebird code-push can ship copy edits OTA. intl stays for
@@ -107,14 +107,14 @@ dependencies:
   flutter_svg: ^2.0.10
   shimmer: ^3.0.0
   # Animated bottom pagination dots for the customer 3D onboarding PageView.
-  smooth_page_indicator: ^1.2.0
+  smooth_page_indicator: ^3.0.0
 
   # AR / 3D pipeline (Photos-to-3D via Meshy).
   #  - camera: custom locked-down 3-photo scan UI (no OS camera app).
   #  - flutter_image_compress (declared above): shrink each photo before upload.
   #  - model_viewer_plus: buyer-side <model-viewer> for the approved .glb,
   #    scaled true-to-size from the product's real-world dimensions.
-  camera: ^0.11.0
+  camera: ^0.12.1
   model_viewer_plus: ^1.9.3
   # Pulled in directly (already transitive via model_viewer_plus) so the buyer
   # AR viewer can hold a `WebViewController` and run JS against the
@@ -156,7 +156,7 @@ dependencies:
   flutter_staggered_grid_view: ^0.7.0
 
   # Charts
-  fl_chart: ^0.69.0
+  fl_chart: ^1.2.0
 
   # External actions (tel:, telegram links)
   url_launcher: ^6.3.1
@@ -178,15 +178,15 @@ dependencies:
   # Support chat voice notes. `record` captures mic audio (AAC-LC → .m4a,
   # content_type audio/mp4); `just_audio` plays back the resulting clips +
   # admin voice replies with a play/pause + seek bar.
-  record: ^5.1.2
-  just_audio: ^0.9.42
+  record: ^6.2.1
+  just_audio: ^0.10.6
 
   # Connectivity — connectivity_plus detects link changes (wifi / cellular /
   # none), internet_connection_checker_plus verifies actual reachability so
   # the offline banner doesn't lie when the device is on a captive wifi that
   # has no internet.
-  connectivity_plus: ^6.1.0
-  internet_connection_checker_plus: ^2.5.2
+  connectivity_plus: ^7.3.1
+  internet_connection_checker_plus: ^3.1.2
   smart_auth: ^3.2.0
   facebook_app_events: ^0.30.1
   # App Tracking Transparency — iOS gates Meta App Events (IDFA / advertiser
@@ -225,6 +225,10 @@ dev_dependencies:
   # AR viewer) can mount in the flutter_test harness, where no platform plugin
   # is registered. Pulled in transitively by webview_flutter at runtime.
   webview_flutter_platform_interface: ^2.13.0
+  # Test-only: a PathProviderPlatform fake for DefaultCacheService, which calls
+  # the top-level getTemporaryDirectory() and so cannot take an injected seam.
+  # Pulled in transitively by path_provider at runtime.
+  path_provider_platform_interface: ^2.1.2
 
 # Generated iOS/Android launcher icons from a single 1024×1024 master.
 # Run after changes:  dart run flutter_launcher_icons

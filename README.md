@@ -1,6 +1,6 @@
 # Woody — Two-Sided Furniture Marketplace (Flutter)
 
-> Internal codename: **Woody** (`pubspec.yaml` → `name: woody_app`). Brand: **Woody** — an Uzbekistan-focused furniture (`mebel`) marketplace. App id `com.mebellar.app`, version `1.0.36+36`.
+> Internal codename: **Woody** (`pubspec.yaml` → `name: woody_app`). Brand: **Woody** — an Uzbekistan-focused furniture (`mebel`) marketplace. App id `com.mebellar.app`, version `1.0.40+40` (last build shipped: `1.0.39+39` — see the ledger).
 
 [![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter)](https://flutter.dev)
 [![Dart](https://img.shields.io/badge/Dart-^3.11.5-0175C2?logo=dart)](https://dart.dev)
@@ -54,7 +54,7 @@ A single user identity can be both a buyer and a seller. The app switches betwee
 | Requirement | Value |
 | --- | --- |
 | Flutter / Dart | Dart SDK `^3.11.5` (Flutter 3.x) |
-| Android | **`minSdk` 26** (`android/app/build.gradle.kts`). The `flutter_launcher_icons` `min_sdk_android: 21` in `pubspec.yaml` is icon-tooling only — the real gate is 26. `applicationId` / `namespace` `com.mebellar.app`. |
+| Android | **`minSdk` 26** (`android/app/build.gradle.kts`). The `flutter_launcher_icons` `min_sdk_android: 21` in `pubspec.yaml` is icon-tooling only — the real gate is 26. `applicationId` / `namespace` `com.mebellar.app`. Toolchain floor is set by `connectivity_plus` 7: **AGP ≥ 8.12.1** (we ship 8.12.3), Gradle wrapper ≥ 8.13 (8.14), Kotlin ≥ 2.2.0 (2.2.20). |
 | iOS | Xcode 15+. **Flutter Swift Package Manager (SPM) must be DISABLED** (else Firebase module redefinition). CocoaPods `Podfile.lock` pinned to **Firebase 12.17.0** — keep aligned. |
 | OTA tooling | Shorebird CLI (`shorebird login` on the build machine). App id `c1639a0d-e4a4-4606-bf14-4b4195fa061e`. |
 
@@ -64,11 +64,11 @@ A single user identity can be both a buyer and a seller. The app switches betwee
 | --- | --- |
 | Framework / language | **Flutter** · **Dart** SDK `^3.11.5` |
 | State management | `flutter_bloc` `^9.0.0`, `bloc_concurrency` `^0.3.0`, `equatable` `^2.0.8` |
-| Dependency injection | `get_it` `^8.0.0` — scoped (root + per-mode) |
-| Routing | `go_router` `^14.6.0` (customer: GoRouter; seller: StatefulShellRoute) |
+| Dependency injection | `get_it` `^9.2.1` — scoped (root + per-mode) |
+| Routing | `go_router` `^17.5.0` (customer: GoRouter; seller: StatefulShellRoute). **Held at 17.x** — v18 migrates to `material_ui` (same block as `shimmer`/`cached_network_image`). |
 | Networking | `dio` `^5.7.0`, `http` `^1.2.2`, `web_socket_channel` `^3.0.1` |
 | Firebase | `firebase_core` `^4.13.0`, `firebase_messaging` `^16.5.0`, `firebase_crashlytics` `^5.2.7`, `firebase_analytics` `^12.4.6`, `flutter_local_notifications` `^18.0.1` |
-| Local storage | `hive` `^2.2.3` / `hive_flutter` `^1.1.0`, `flutter_secure_storage` `^9.2.0`, `shared_preferences` `^2.3.0` |
+| Local storage | `hive` `^2.2.3` / `hive_flutter` `^1.1.0`, `flutter_secure_storage` `^10.3.1` ⚠️ (**pinned to 10.x on purpose** — see below), `shared_preferences` `^2.3.0` |
 | Runtime restart | `flutter_phoenix` `^1.1.1` (powers the mode switch) |
 | Maps & location | `yandex_mapkit` `^4.2.1`, `geolocator` `^14.0.2`, `permission_handler` `^12.0.1` |
 | AR — inline viewer | `model_viewer_plus` `^1.9.3`, `webview_flutter` `^4.13.0`, `gal` `^2.3.2` |
@@ -76,10 +76,12 @@ A single user identity can be both a buyer and a seller. The app switches betwee
 | AR — scan capture | `camera` `^0.11.0` (locked 3-photo scan) |
 | Media | `image_picker` `^1.1.2`, `image` `^4.3.0`, `flutter_image_compress` `^2.3.0`, `cached_network_image` `^3.4.1` |
 | Support-chat voice | `record` `^5.1.2`, `just_audio` `^0.9.42` |
-| Connectivity | `connectivity_plus` `^6.1.0`, `internet_connection_checker_plus` `^2.5.2` |
+| Connectivity | `connectivity_plus` `^7.3.1`, `internet_connection_checker_plus` `^3.1.2` (v3 is pure Dart — the probe gets `triggerStream:` explicitly) |
 | Auth helpers | `smart_auth` `^3.2.0` (Android SMS autofill), `mask_text_input_formatter` `^2.9.0` |
 | Analytics (Meta) | `facebook_app_events` `^0.30.1`, `app_tracking_transparency` `^2.0.6` |
-| App lifecycle | `in_app_review` `^2.0.10`, `package_info_plus` `^8.1.0`, `url_launcher` `^6.3.1`, `share_plus` `^12.0.2` |
+| App lifecycle | `in_app_review` `^2.0.10`, `package_info_plus` `^10.2.1`, `device_info_plus` `^13.2.0`, `url_launcher` `^6.3.1`, `share_plus` `^13.3.0`, `app_badge_plus` `^1.2.3`, `path_provider` `^2.1.4` |
+| Seller Oferta / PDF | `pdf` `^3.13.0`, `printing` `^5.15.0`, `flutter_markdown` `^0.7.7+1` (PDF fonts **must** be the bundled Inter TTFs — Cyrillic) |
+| Onboarding coach-marks | `showcaseview` `^4.0.1` |
 | UI / charts | `fl_chart` `^0.69.0`, `lottie` `^3.1.2`, `shimmer` `^3.0.0`, `flutter_svg` `^2.0.10`, `flutter_staggered_grid_view` `^0.7.0`, `smooth_page_indicator` `^1.2.0`, `iconsax_flutter` `^1.0.0`, `font_awesome_flutter` `^11.0.0` |
 | Localization / time | `intl` `^0.20.2`, `clock` `^1.1.1` |
 | Logging | custom `AppLogger` → Crashlytics |
@@ -87,6 +89,10 @@ A single user identity can be both a buyer and a seller. The app switches betwee
 **Dev tooling:** `flutter_lints` `^6.0.0`, `bloc_test` `^10.0.0`, `mocktail` `^1.0.4`, `flutter_native_splash` `^2.4.4`, `flutter_launcher_icons` `^0.14.4`.
 
 > A `dependency_override` pins `record_linux 1.3.1` (resolver-only — Linux is not a build target).
+
+> ⚠️ **`shimmer` and `cached_network_image` are held at `^3.x`, not `^4`.** Their v4 releases swap `package:flutter/material.dart` for the new `material_ui` package, which calls a `meta` API (`@awaitNotRequired`) newer than the `meta 1.18.0` that Flutter 3.44.9 pins. `pub get`, `pub outdated` and `dart analyze` all pass; only `flutter test` catches it (16 test files fail to compile). Unblocks when Flutter itself moves to a newer `meta`.
+
+> ⚠️ **`flutter_secure_storage` is deliberately held at `^10.x`, not `^11`.** v11 removed the ciphers v9 wrote with, and `AndroidOptions.resetOnError` defaults to `true` — so a direct 9 → 11 jump silently **deletes the stored access/refresh tokens and signs every existing user out**. v10 migrates that data automatically, so the app must ship **one store release on v10** before v11 becomes safe. `lib/core/storage/secure_storage_options.dart` holds the single `woodySecureStorage` instance and sets `migrateWithBackup: true` so the one-time re-encryption survives a crash. Details: [`doc/planning/tech_debt_roadmap.md`](./doc/planning/tech_debt_roadmap.md) T-15.
 
 ### External services
 
@@ -267,11 +273,12 @@ The env file is **mandatory** — without it `AppConfig.assertConfigured()` cras
 # Run the app (device or emulator)
 flutter run --dart-define-from-file=env/prod.json
 
-# Static analysis — must report 0 issues
-flutter analyze            # or: dart analyze lib/
+# Static analysis — analyse test/ too, not just lib/
+dart analyze lib/ test/    # or: flutter analyze lib/ test/
 
-# Tests — 122 test files, ~767 test/testWidgets/blocTest cases (incl. 5 golden baselines)
-flutter test                              # CI excludes goldens: flutter test --exclude-tags golden
+# Tests — 140 test files, ~912 test/testWidgets/blocTest cases; 923 pass (incl. 5 golden baselines)
+flutter test
+flutter test --exclude-tags golden        # skip goldens (they are font/platform sensitive)
 flutter test --tags golden                # run only the golden baselines
 flutter test --tags golden --update-goldens   # regenerate golden PNGs locally
 flutter test --coverage                   # lcov report
@@ -280,6 +287,14 @@ flutter test integration_test             # E2E happy path (needs a device; also
 # Formatting
 dart format lib/ test/
 ```
+
+> ⚠️ **There is no CI.** The GitHub Actions workflow was removed on 2026-09-17
+> (see [`doc/planning/tech_debt_roadmap.md`](./doc/planning/tech_debt_roadmap.md) T-03).
+> The two commands above are the **only** gate — nothing enforces
+> `analysis_options.yaml`, the i18n parity guard, or the `Result<T>` boundary
+> test unless you run them. If CI is ever restored, **pin the Flutter version**:
+> an unpinned `channel: stable` runner drifting ahead of the local SDK is what
+> reddened every push for four weeks before the workflow was dropped.
 
 > **No client migrations.** This is a Flutter client with no database — there is no `woody migrate` / Alembic here. DB schema + migrations live in `woody_backend` (run there). The app's "version ledger" equivalent is the Shorebird release ledger ([`tools/shorebird/releases.md`](./tools/shorebird/releases.md)).
 
@@ -315,9 +330,10 @@ Shorebird hot-fixes shipped builds **without store review** — but **only Dart 
 
 - A patchable store build MUST come from `shorebird release`, not `flutter build` / `build_release.sh`.
 - `patch` runs `check` first and aborts on a native/asset/Flutter blocker (`--force` bypasses, not recommended).
-- The ledger ([`tools/shorebird/releases.md`](./tools/shorebird/releases.md)) is append-only history (latest `1.0.36+36` — see ledger for SHA). `app_id` `c1639a0d-e4a4-4606-bf14-4b4195fa061e`.
+- The ledger ([`tools/shorebird/releases.md`](./tools/shorebird/releases.md)) is append-only history (latest shipped: `1.0.39+39`, SHA `e333566d43e8`, 2026-08-11 — android + ios). `app_id` `c1639a0d-e4a4-4606-bf14-4b4195fa061e`.
+- ⚠️ **`pubspec.yaml` is at `1.0.40+40`, which has not been released.** The tree since `1.0.39+39` touches `ios/Runner/PrivacyInfo.xcprivacy` and `pubspec.yaml`, so it is **not** patch-safe — it needs `shorebird release android` **and** `ios`. The iOS side matters: Apple rejected `1.0.39` with **ITMS-91064** and the fix is sitting unreleased.
 
-See [`docs/release-shorebird.md`](./docs/release-shorebird.md) for the full OTA rules and iOS SPM / Firebase 11.15.0 caveats.
+See [`docs/release-shorebird.md`](./docs/release-shorebird.md) for the full OTA rules and iOS SPM / Firebase 12.17.0 caveats.
 
 ---
 
@@ -336,6 +352,9 @@ See [`docs/release-shorebird.md`](./docs/release-shorebird.md) for the full OTA 
 | [`woody_mobile_tz.md`](./woody_mobile_tz.md) | Redirect stub → workspace [`doc/TZ.md`](./doc/TZ.md). |
 | [`doc/TZ.md`](./doc/TZ.md) | Platform **Master Technical Specification** (single source of truth, v1.1+). |
 | [`doc/_archive/workspace_audit_2026_06_18.md`](./doc/_archive/workspace_audit_2026_06_18.md) | 2026-06-18 code-health audit (incl. the mobile findings) — archived, all resolved. |
+| [`doc/planning/roadmap.md`](./doc/planning/roadmap.md) | Product roadmap — what shipped vs what's next (canonical; `doc/roadmap.md` is a stub). |
+| [`doc/planning/tech_debt_roadmap.md`](./doc/planning/tech_debt_roadmap.md) | Measured technical-debt backlog (T-01…T-20) with per-item verification commands. |
+| [`doc/release_checklist.md`](./doc/release_checklist.md) | Console-side steps the repo cannot verify (APNs key, Play Ad-ID declaration, privacy answers). |
 | [`store/`](./store/) | App Store / Play listings + privacy policy. |
 
 ---

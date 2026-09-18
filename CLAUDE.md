@@ -80,10 +80,18 @@ flutter run --dart-define-from-file=env/prod.json
 flutter build apk --release --dart-define-from-file=env/prod.json
 adb install build/app/outputs/flutter-apk/app-release.apk
 
-# Tests + analysis
-flutter test
-dart analyze lib/
+# Tests + analysis — this is the ONLY gate; there is no CI
+flutter test                 # 923 tests, 140 files
+dart analyze lib/ test/      # analyse the tests too, not just lib/
 ```
+
+**There is no CI for this app.** The GitHub Actions workflow was removed on
+2026-09-17 (deliberate — see `doc/planning/tech_debt_roadmap.md` T-03): an
+unpinned `channel: stable` runner kept drifting ahead of the local Flutter
+SDK, so a lint that only existed on the newer analyzer reddened every push
+while the local tree was green. Nothing enforces `analysis_options.yaml`,
+the i18n parity guard, or the `Result<T>` boundary except running the two
+commands above before you commit — the `/check` command wraps them.
 
 Env keys live in `env/prod.json` (gitignored) — copy from `env/example.json`.
 Required: `WOODY_API_URL`, `YANDEX_GEOCODER_API_KEY`.
@@ -136,6 +144,105 @@ Invariants:
 - **Hybrid inbox + push prefs:** guests read public news via `/catalog/news`; signed-in personal alerts via `/notifications`. `promo_push_enabled` → Flutter FCM topic `news`; `order_push_enabled` → backend may suppress OS FCM for ORDER types while keeping the in-app inbox.
 - **Analytics privacy:** Settings **"Foydalanish statistikasi"** disables Firebase Analytics + Crashlytics (and Meta gated events) at toggle time and on cold boot via Hive. Never reintroduce always-on collection.
 - **Dual analytics (2026-08):** GA4 for sessions/funnels (admin `/app-usage`; optional BigQuery link in Firebase Console). Signed-in **presence** via `PresenceService` → `POST /me/presence` (debounce 5 min, privacy-gated) + FCM token meta. `device_info_plus` ⇒ next store build must be `shorebird release`, not patch-only.
+
+### Payments — deep-link hand-off + recovery
+
+Full guide: [`docs/payments.md`](docs/payments.md). The invariants:
+
+- **The app never charges a card.** There are no Payme/Click webhooks or
+  JSON-RPC handlers in this repo — those live in `woody_backend`.
+  `PaymentRepository.checkoutUrl()` POSTs `/orders/{id}/pay/{provider}` and
+  gets a `CheckoutLink`; the app then `launchUrl`s into the Payme/Click app.
+- **Recovery survives an OS kill.** `lib/shared/payments/` is root-scoped:
+  `PendingPaymentService.mark` writes a `PendingPayment` to
+  `PendingPaymentStore` (**SharedPreferences**, not Hive — it must outlive a
+  process death), and `PaymentRecoveryGate` resumes on return plus a
+  cold-start probe. `PendingPaymentKind` covers all four rails —
+  `order`, `arTokens`, `subscription`, `walletDeposit`.
+- **`unknown` is never success.** `WoodyPaymentStatusGateway` maps each kind
+  to its status endpoint and returns `PaymentOutcome {paid, pending,
+  unknown}`; `unknown` is treated exactly like `pending`. Don't "optimise"
+  that into a success path.
+- **Checkout fans out one order per shop.** A multi-shop cart can only link
+  the FIRST order (documented limitation). The cart is cleared **before** the
+  link is minted so a failed hand-off cannot double-checkout; a failed mint
+  still counts as success (the order exists, unpaid — confirmation is a
+  webhook concern).
+
+### AR / 3D — per-part models
+
+Full guide: [`docs/ar.md`](docs/ar.md). The invariants:
+
+- **AR is per-part, not per-product.** `Product.arParts` is a
+  `List<ArPart>` (`lib/shared/models/ar_part.dart`); each part is one
+  independently generated model with its own `arStatus` / `arModelUrl` /
+  `usdzUrl` / dimensions. A single-piece product is one `single` part.
+  Two JSON shapes: `fromCustomerJson` (approved + visible only) vs
+  `fromSellerJson` (full state).
+- **Viewer routing** (`ar_entry_points.dart`): single-part → `BuyerArViewerScreen`
+  (`model_viewer_plus` + `GlbCacheService` `file://` cache); multi-part set
+  (`Product.hasMultiPartAr`) → `SetArViewerScreen` (**native** ARCore/ARKit via
+  `ar_flutter_plugin_plus`); non-AR device → `fallback_2d_camera_screen.dart`.
+  Capability probe: `ArSupport` → `MethodChannel com.mebellar.app/ar`.
+- **`ar_flutter_plugin_plus` is a native dep** — native multi-object AR ships
+  only in a **full store release, never a Shorebird patch**. The Dart-only 2D
+  fallback can ride a patch.
+- **The 3D pipeline is backend-owned** — a locked 3-photo scan uploads to R2
+  (`product-ar-scans`) and Meshy generates the model server-side.
+  `MESHY_API_KEY` is backend-side; there is no Meshy SDK in the app.
+- **Monetization is per-part:** 1 free scan, then an AR token from the
+  seller's token wallet (tops up via the `PendingPaymentKind.arTokens` rail).
+
+### Secure storage — tokens, and the version trap
+
+`lib/core/storage/secure_storage_options.dart` exports **one**
+`FlutterSecureStorage` instance, `woodySecureStorage`. Construct it nowhere
+else — `TokenStore`, `SecureStorage` and `resetSecureStorageOnFreshInstall`
+all take it.
+
+- **It holds the session.** The access/refresh JWT pair lives here (Keychain on
+  iOS, cipher-backed prefs on Android). Secrets never go in Hive — Hive boxes
+  are plain files.
+- **`flutter_secure_storage` is pinned to `^10.x` on purpose.** v11 removed the
+  ciphers v9 wrote with, and `AndroidOptions.resetOnError` defaults to `true`,
+  so a direct **9 → 11 jump wipes the tokens and signs every user out** —
+  `pub get` succeeds and no test catches it. v10 migrates v9 data
+  automatically, so the app must ship **one store release on v10** before `^11`
+  is safe. v11 also wants `compileSdk 37`.
+- **`migrateWithBackup: true`** is set because that migration rewrites each
+  entry once; a crash mid-rewrite would lose it.
+- **Fresh-install wipe:** the Keychain survives app deletion, so
+  `resetSecureStorageOnFreshInstall(settingsBox)` clears it when the Hive
+  `settings` box is absent (a reliable fresh-install signal). It must run
+  before anything reads a token — top of `registerCoreModule`.
+
+### Connectivity & offline UX
+
+`lib/core/connectivity/` — `ConnectivityService` + `NetworkCubit`.
+
+- **Link state alone is not trusted.** `RealConnectivityService` combines
+  `connectivity_plus` (instant link change) with a `ReachabilityProbe`
+  (`InternetCheckerProbe`, real HTTP against our own `/health`) so
+  wifi-without-internet (captive portal) can't fool the app into "online".
+  Any status < 500 counts as reachable — `/health` answering at all is proof.
+- **A single failed probe never raises the banner.** Going offline is
+  confirmed after a `_defaultOfflineGrace` (4s) re-check; an in-flight
+  confirmation is invalidated if a newer signal overtakes it. Poll cadence is
+  asymmetric on purpose: 20s while online (background heartbeat), 3s while
+  offline (recovery should feel instant).
+- **`ReachabilityProbe` is a seam** — `MockConnectivityService` /
+  a fake probe let tests flip state synchronously with no real HTTP. Test
+  through the seam, never by sleeping.
+- **`internet_connection_checker_plus` v3 is pure Dart** — it dropped its own
+  `connectivity_plus` dependency, so it no longer re-checks the instant the
+  radio changes. `InternetCheckerProbe._build()` passes
+  `triggerStream: Connectivity().onConnectivityChanged` to restore that. Don't
+  remove it thinking it's redundant with `RealConnectivityService._connSub` —
+  that one drives the *service*; this one keeps the *probe's* own status
+  stream prompt.
+- **`connectivity_plus` 7 sets the Android toolchain floor** — AGP ≥ 8.12.1,
+  Gradle ≥ 8.13, Kotlin ≥ 2.2.0. `flutter test` cannot see a Gradle mismatch,
+  so after touching this package run a real `flutter build apk`.
 
 ### Seller Oferta (B2B legal) — Aug 2026
 
@@ -217,12 +324,20 @@ Rule card: [`.claude/rules/error-handling.md`](.claude/rules/error-handling.md).
   reads, `hive_cart`, `hive_favorites`, cache / data-source layers.
 - **A repository is fully-`Result` OR fully-`throw` — never mixed** (interface +
   `Woody*` impl + mock agree). A mixed file is the smell this rule kills.
-- **Known debt, filled incrementally (tested, highest-risk first):** the command
-  repos `order → seller_wallet → seller_product → seller_onboarding` are still on
-  `throw` and are migrating to `Result<T>`. Each stays fully-`throw` until its
-  turn; new code there is written `Result`-first. **Done:** `payment`
-  (`checkoutUrl`) and `checkout` (`quote` / `placeOrder`) — via `runCatching` +
-  the shared `apiErrorToFailure` bridge in `core/network/api_error_messages.dart`.
+- **The boundary is machine-checked.** `test/architecture/result_boundary_test.dart`
+  statically scans every `abstract class` in `lib/shared/repositories/` and fails
+  on a file that mixes `Result<T>` with throw-style `Future<T>`. Its allowlist is
+  itself pinned by a second test, so a stale exemption can't silently disable the
+  guard. `Stream<T>` methods (a `watch()` feed) sit outside this axis and are ignored.
+- **Migration debt — one repo left.** `payment`, `checkout`, `order`,
+  `seller_product` and `seller_onboarding` are **done** (via `runCatching` + the
+  shared `apiErrorToFailure` bridge in `core/network/api_error_messages.dart`).
+  **`seller_wallet` is the last money-command repo still fully on `throw`** —
+  ~10 methods (deposit / withdrawal / top-up). It stays fully-`throw` until its
+  turn comes; new code there is written `Result`-first. Two allowlisted files are
+  **not** debt and should not be "fixed": `seller_order` (reference-data reads
+  like `fetchCancelReasons` deliberately degrade to empty rather than `Err`) and
+  `shop` — both are earlier, documented design decisions.
 
 ### Theme tokens — never hardcode colours
 
@@ -296,6 +411,18 @@ uses a *lookup closure* (`() => sl<AnalyticsService>()`) because it's
 constructed before catalog_module registers analytics — module order
 matters in `service_locator.dart`. AI events: `ai_suggest_requested`,
 `ai_suggest_applied`.
+
+**`notifyRootObserver: false` on the seller shell is deliberate — don't drop
+it.** go_router 17 changed `ShellRoute` navigation to notify the root
+observers *by default*, and both routers attach a `FirebaseAnalyticsObserver`.
+Left at the default, every seller tab switch would start logging a Firebase
+`screen_view`, so the admin `/app-usage` series would step up at that release
+for a reason that has nothing to do with user behaviour. The flag in
+`seller_router.dart` keeps the pre-17 behaviour so the numbers stay
+comparable. Turning it on is a **product decision about analytics** — make it
+on purpose, and expect the discontinuity.
+`AnalyticsService.setCurrentScreen()` exists but is **called nowhere**, so
+there is no double-counting — keep it that way.
 
 ### AI product authoring (seller "fill from photos")
 
@@ -398,6 +525,33 @@ a review" CTA on delivered orders (customer side only). Realtime: new
 messages arrive over the Woody WebSocket feed; the list view refreshes on
 reconnect / re-open.
 
+### Support chat (customer ↔ platform) — not the per-order chat
+
+`lib/customer/features/support/` is a **second, separate** chat: the customer
+talking to Woody itself, not to a seller. Don't confuse it with
+`lib/shared/chat/` (per-order, two-mode).
+
+- **Its own endpoints**, all under `/support`: `GET /support/chat`,
+  `POST /support/message`, `POST /support/upload`, `POST /support/read`,
+  `GET /support/unread`. One thread per user — there is no `order_id`.
+- **Voice messages** are the reason `record` + `just_audio` are dependencies:
+  `SupportComposer` records, `SupportAudioPlayer` plays back, attachments ride
+  the same presigned-R2 upload path as everything else.
+- Two cubits: `SupportChatCubit` (thread) and `SupportUnreadCubit` (badge).
+
+### Broadcasts & tutorial
+
+- `lib/customer/features/broadcasts/` is currently **a placeholder screen
+  only** (`broadcast_placeholder_screen.dart`) — admin broadcast delivery
+  arrives as a normal push/inbox notification today. Don't document it as a
+  finished surface.
+- `lib/customer/features/tutorial/` + `lib/core/widgets/safe_showcase.dart`
+  drive first-launch coach-marks (`showcaseview`). **Always start a spotlight
+  via `safeStartShowCase(...)`, never `ShowCaseWidgetState.startShowCase`
+  directly** — showcaseview dereferences `GlobalKey.currentContext!` internally
+  and racing the first layout pass crashes with a null-check error. The helper
+  retries until every target is mounted.
+
 ### Filter & search
 
 `ProductSearchFilter` is the single filter type for both global search
@@ -457,10 +611,61 @@ to a bloc, update the matching test or it will fail.
   shared `ErrorState`/`RetryButton`/`ShimmerBox` (§Error / loading / retry
   UI); check whether a `lib/shared/widgets/` widget is genuinely
   cross-mode before reaching for `PremiumTokens` in it.
+- Don't re-add a GitHub Actions workflow for this app — it was removed
+  deliberately (§Build & run). Run `flutter test` + `dart analyze lib/ test/`
+  (or `/check`) locally instead; if CI ever comes back, **pin the Flutter
+  version**, because an unpinned `stable` runner is what broke it.
+- Don't treat `PaymentOutcome.unknown` as paid, and don't move
+  `PendingPaymentStore` off SharedPreferences — it has to survive an OS kill
+- Don't bump `flutter_secure_storage` to `^11` yet, and don't construct
+  `FlutterSecureStorage()` directly — use `woodySecureStorage` (§Secure
+  storage). A 9 → 11 jump signs every existing user out and nothing in the
+  test suite would catch it
+- Don't ship native multi-object AR (`ar_flutter_plugin_plus`) in a Shorebird
+  patch — it's a native dep, so it needs a full release
 
-## Recent feature work (Spring 2026)
+## Recent feature work
 
-This brain captures the state after a multi-session redesign:
+> Newest first. This brain captures the state after a multi-session redesign.
+> Current version: **`1.0.40+40`** in `pubspec.yaml`; the last build actually
+> shipped is **`1.0.39+39`** — see [`tools/shorebird/releases.md`](tools/shorebird/releases.md).
+
+### Autumn 2026
+
+- **CI removed, local gate only (2026-09-17)** — the GitHub Actions workflow
+  is gone (§Build & run). It had been red on every push since 2026-08-20 for a
+  reason that had nothing to do with the code: the runner's unpinned
+  `channel: stable` was ahead of the local SDK and its newer analyzer flagged a
+  lint the local one didn't have. `analysis_options.yaml`'s header now points
+  at the local commands instead of a workflow file.
+- **Connectivity reachability probe (2026-09-10)** — `ConnectivityService`
+  rewritten around a probe seam + asymmetric polling + a 4s offline-confirm
+  grace, so a captive portal reads as offline and a flap doesn't strobe the
+  banner. See §Connectivity & offline UX.
+- **Realtime redial on token refresh (2026-09-11)** — `WoodyRealtimeService`
+  now redials as soon as a refreshed token lands instead of sitting out the
+  remaining exponential backoff, so a socket that dropped on a 401 comes back
+  in seconds rather than up to a full backoff window.
+- **Settings screen rework + analytics toggles (2026-08-21)** — customer and
+  seller settings converged; the privacy toggles (§Platform money, push &
+  privacy) are surfaced there.
+- **Help screen contact channels (2026-08)** — call / email / Telegram /
+  WhatsApp entry points, driven by `RemoteConfig` so support details change
+  without a release.
+- **Dismissible seller-promo banner (2026-08)** — the customer home banner can
+  be closed for good; the flag is server-side (`profiles.seller_promo_dismissed`,
+  backend migration **0099**), not local, so it follows the account.
+- **Auth: stale device cache no longer auto-promotes to seller (2026-08)** —
+  a fresh login on a device that had previously hosted an approved seller was
+  being promoted from the cached flag before the server answered.
+- **Meta ads infrastructure + iOS privacy manifest (2026-08-11, `1.0.39+39`)** —
+  Advanced Matching behind a default-OFF flag, production APNs entitlement for
+  Release, privacy-policy disclosure. Apple rejected the first `1.0.39` iOS
+  build with **ITMS-91064** (`NSPrivacyTracking=true` + an EMPTY
+  `NSPrivacyTrackingDomains`); the fix declares `ep1.facebook.com`. That fix is
+  in `main` but **has not shipped** — it needs the `1.0.40+40` release.
+
+### Spring / Summer 2026
 
 - **Internet/error/shimmer/retry UI consolidation (2026-08)** — audited
   and unified ~30 divergent "no internet" / error, shimmer skeleton, and

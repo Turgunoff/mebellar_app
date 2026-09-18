@@ -112,6 +112,12 @@ class InternetCheckerProbe implements ReachabilityProbe {
     return InternetConnection.createInstance(
       useDefaultOptions: false,
       checkInterval: RealConnectivityService.onlinePollInterval,
+      // internet_connection_checker_plus v3 dropped its own connectivity_plus
+      // dependency, so it no longer re-checks the moment the radio changes —
+      // without this it would only notice on the next poll tick (up to 20s).
+      // [RealConnectivityService] reacts to the same stream directly; this
+      // keeps the probe's own status stream as prompt as it was on v2.
+      triggerStream: Connectivity().onConnectivityChanged,
       customCheckOptions: [
         if (host.isNotEmpty)
           InternetCheckOption(

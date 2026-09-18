@@ -101,7 +101,15 @@
       "mcp__plugin_firebase_firebase__firebase_create_android_sha",
       "Bash(chmod +x /Volumes/Storage/Projects/mebellar_app/.claude/hooks/dart-format.sh)",
       "Bash(flutter devices *)",
-      "Bash(xcrun simctl *)"
+      "Bash(xcrun simctl *)",
+      "Bash(dart analyze *)",
+      "Bash(flutter test *)",
+      "Read(//Volumes/Storage/Projects/Mebellar/**)",
+      "Bash(flutter pub *)",
+      "Bash(grep -v \"^$\")",
+      "Bash(gh run *)",
+      "Bash(timeout 120 ./tools/shorebird.sh check)",
+      "Bash(python3 -c ' *)"
     ],
     "deny": [
       "Bash(git push --force *)",

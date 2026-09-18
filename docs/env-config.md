@@ -22,10 +22,12 @@ cp env/example.json env/prod.json   # then fill WOODY_API_URL + YANDEX_GEOCODER_
 | `PAYME_MOCK` | — | not read by the app (env file only) | Vestigial mock flag; unused by the client. | `true` |
 | `SELLER_USES_GO_ROUTER` | — | `bool.fromEnvironment` | Route seller mode through the go_router `StatefulShellRoute` (default `true`); flip OFF to fall back to legacy imperative seller navigation while debugging. | `true` |
 | `SCREENSHOT_MODE` | — | `bool.fromEnvironment` (`lib/config/screenshot_mode.dart`) | Enables the integration-test showcase/screenshot pipeline that feeds the `woody_frontend` landing PNGs. | `false` |
+| `META_ADVANCED_MATCHING_ENABLED` | — | `bool.fromEnvironment` | Sends normalised profile fields (phone, name, email) to Meta for Advanced Matching. **Defaults OFF and must stay OFF** until three things ship together: the privacy policy names the shared fields, `PrivacyInfo.xcprivacy` declares PhoneNumber / Name / EmailAddress, and the App Store Connect questionnaire matches — see [`../doc/release_checklist.md`](../doc/release_checklist.md). Runtime consent (ATT + the in-app analytics toggle) still gates it on top, so the flag can only narrow what is sent, never widen it. | `false` |
 
 ## Notes
 
-- The `PAYME_*` keys are present in the live `env/prod.json` but are **not read anywhere in the app** — not via `String.fromEnvironment` in `lib/config`, and not by the Android/iOS native code (`grep -rn PAYME lib/ android/ ios/` is empty). They are vestigial config left from the removed saved-cards flow; the real payment flow gets its checkout URL from the backend (`POST /orders/{id}/pay/{provider}`). They are mirrored into `env/example.json` only so a fresh `cp` matches the on-disk key set.
+- The `PAYME_*` keys may still be present in an older `env/prod.json`, but they are **not read anywhere in the app** — not via `String.fromEnvironment` in `lib/config`, and not by the Android/iOS native code. They are vestigial config left from the removed saved-cards flow; the real payment flow gets its checkout URL from the backend (`POST /orders/{id}/pay/{provider}`).
+- **`env/example.json` no longer mirrors them** (verified 2026-09-17 — the template now carries only `APP_ENV`, `WOODY_API_URL`, `YANDEX_GEOCODER_API_KEY`). So a fresh `cp env/example.json env/prod.json` gives you a *smaller* key set than an existing prod file. That is fine: everything the app actually reads is in the template, and the two required keys are the only ones without a safe default.
 - Firebase config is **not** in this file — it lives in native files (`google-services.json`, `GoogleService-Info.plist` + APNs) plus `firebase_options.dart`.
 
 ## Secrets hygiene

@@ -68,6 +68,12 @@ GoRouter buildSellerRouter() {
       GoRoute(path: '/seller', redirect: (_, _) => '/seller/dashboard'),
 
       StatefulShellRoute.indexedStack(
+        // go_router 17 made shell navigation notify the root observers by
+        // default, which would start logging a Firebase `screen_view` on every
+        // seller tab switch. Kept OFF so GA4 / the admin `/app-usage` series
+        // stays comparable across releases — turning it on is a product
+        // decision about analytics, not a side effect of a package bump.
+        notifyRootObserver: false,
         builder: (context, state, navigationShell) =>
             SellerRouterShell(shell: navigationShell),
         branches: [

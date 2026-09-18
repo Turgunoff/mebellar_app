@@ -43,7 +43,7 @@ void main() {
     setUp(() {
       local = _MockLocalNotifications();
       when(
-        () => local.cancel(any(), tag: any(named: 'tag')),
+        () => local.cancel(id: any(named: 'id'), tag: any(named: 'tag')),
       ).thenAnswer((_) async {});
       when(
         () => local.getActiveNotifications(),
@@ -60,7 +60,7 @@ void main() {
       await service.dismissChatNotifications(chatId);
       verify(
         () => local.cancel(
-          PushService.chatNotificationId(chatId),
+          id: PushService.chatNotificationId(chatId),
           tag: 'chat:$chatId',
         ),
       ).called(1);
@@ -68,7 +68,9 @@ void main() {
 
     test('no-ops on an empty chat id', () async {
       await service.dismissChatNotifications('');
-      verifyNever(() => local.cancel(any(), tag: any(named: 'tag')));
+      verifyNever(
+        () => local.cancel(id: any(named: 'id'), tag: any(named: 'tag')),
+      );
     });
   });
 }

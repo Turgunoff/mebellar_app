@@ -41,20 +41,32 @@ UX is a generic "couldn't load, retry", plus all local persistence:
   the bloc/cubit, which surfaces the same `Failure.message` UX a `Result` err
   would. Behaviour parity across the boundary is the point.
 
-## Known debt — migrating incrementally (do not treat as "done")
+## Known debt — one repo left
 
-These **command** repos belong on the `Result<T>` side but are still fully
-`throw` today; they are being migrated one repo at a time, each with tests,
-highest-risk first:
+**Done** (via `runCatching` + the shared `apiErrorToFailure` bridge in
+`core/network/api_error_messages.dart`): `payment`, `checkout`, `order`,
+`seller_product`, `seller_onboarding`.
 
-`order` → `seller_wallet` → `seller_product` → `seller_onboarding`
+**Remaining:** `seller_wallet` — the last money-command repo still fully on
+`throw` (~10 methods: deposit / withdrawal / top-up). It stays **fully `throw`**
+until its turn (never mixed); new code there SHOULD be written `Result`-first so
+the migration shrinks.
 
-Done (via `runCatching` + the shared `apiErrorToFailure` bridge in
-`core/network/api_error_messages.dart`):
-- `payment` — `checkoutUrl` → `Result<CheckoutLink>`
-- `checkout` — `quote` → `Result<CheckoutQuote>`, `placeOrder` → `Result<String>`
+## The guard test
 
-Until a repo's turn comes it stays **fully `throw`** (never mixed). New code in
-these repos SHOULD be written `Result`-first so the eventual migration shrinks.
-A guard test (`test/architecture/result_boundary_test.dart`) will pin this once
-added — allowlisting the repos above as known debt, blocking NEW violations.
+`test/architecture/result_boundary_test.dart` statically scans every
+`abstract class` in `lib/shared/repositories/` and fails on a file mixing
+`Result<T>` with throw-style `Future<T>`. `Stream<T>` methods are ignored (a
+`watch()` feed is off this axis). A second test pins the allowlist keys exactly,
+so an exemption that no longer applies can't silently switch the guard off.
+
+Allowlisted today — only the first is debt:
+
+| File | Why |
+|---|---|
+| `seller_wallet_repository.dart` | migration debt (above) — remove the entry when it migrates |
+| `seller_order_repository.dart` | **deliberate:** state transitions are `Result`; reference-data reads (`fetchCancelReasons`) and `dispose` degrade to a safe default rather than erroring the UI |
+| `shop_repository.dart` | **deliberate**, same earlier design decision |
+
+> Since there is no CI (removed 2026-09-17), this guard only runs when **you**
+> run `flutter test`. Run it before committing repository changes.

@@ -1,12 +1,14 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
+import 'package:woody_app/core/storage/secure_storage_options.dart';
+
 /// Wrapper around `flutter_secure_storage` for tokens we cannot leave in Hive.
 /// The auth token store persists the session; this is for any extra data
 /// we may need (e.g. stored refresh hints).
 class SecureStorage {
   SecureStorage([FlutterSecureStorage? storage])
-    : _storage = storage ?? const FlutterSecureStorage();
+    : _storage = storage ?? woodySecureStorage;
 
   final FlutterSecureStorage _storage;
 
@@ -38,6 +40,6 @@ const String _kSecureStorageResetGuardKey =
 /// the top of `registerCoreModule`, right after the settings box opens).
 Future<void> resetSecureStorageOnFreshInstall(Box settingsBox) async {
   if (settingsBox.get(_kSecureStorageResetGuardKey) == true) return;
-  await const FlutterSecureStorage().deleteAll();
+  await woodySecureStorage.deleteAll();
   await settingsBox.put(_kSecureStorageResetGuardKey, true);
 }

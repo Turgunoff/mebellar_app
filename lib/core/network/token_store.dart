@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import 'package:woody_app/core/storage/secure_storage_options.dart';
+
 class TokenPair {
   const TokenPair({
     required this.accessToken,
@@ -28,7 +30,7 @@ class TokenPair {
 /// sign-in / sign-out / refresh-failure events without polling.
 class TokenStore {
   TokenStore([FlutterSecureStorage? storage])
-    : _storage = storage ?? const FlutterSecureStorage();
+    : _storage = storage ?? woodySecureStorage;
 
   static const _kAccess = 'woody_access_token';
   static const _kRefresh = 'woody_refresh_token';

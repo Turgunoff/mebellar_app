@@ -24,3 +24,18 @@
   the code is wrong and say which.
 - Scoped run: `flutter test test/<path>`. Full `flutter test` when
   `lib/shared/` or `lib/core/` changed (cross-cutting).
+- **There is no CI** (removed 2026-09-17) — `flutter test` +
+  `dart analyze lib/ test/` on your machine is the only gate. Baseline as of
+  2026-09-17: **140 test files, 923 passing**, analyzer clean except one known
+  `use_null_aware_elements` info. A red suite is never "the pipeline's problem."
+- `test/architecture/result_boundary_test.dart` is a **static guard**, not a
+  behaviour test — it reads repository source and fails on a mixed
+  `Result<T>`/`throw` interface. Keep its allowlist honest.
+- **`Shell subprocess crashed with SIGTERM (-15)` is a flake, not your bug.**
+  It shows up as `Failed to load "<some_test>.dart"` on a random file, and a
+  different file each run. `flutter_tools` terminates a suite that takes too
+  long to *load*, and on a busy machine (an Android emulator, a Gradle daemon,
+  a parallel build) loading crosses that threshold. Re-run the named file on
+  its own to confirm, then re-run the suite with `--concurrency=2`. Don't
+  "fix" the test — nothing is wrong with it. A real failure names an
+  expectation, not a signal number.

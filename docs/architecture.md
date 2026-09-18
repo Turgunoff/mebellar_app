@@ -2,7 +2,7 @@
 
 > Companion to the root [`README.md`](../README.md) §3 and the operational brain [`CLAUDE.md`](../CLAUDE.md). Where they disagree, `CLAUDE.md` wins.
 
-`mebellar_app` is a **single Flutter binary** (`woody_app`, app id `com.mebellar.app`, version `1.0.26+26`) that hosts two runtime surfaces — a **customer storefront** and a **seller back-office** — sharing one phone + OTP identity. The only backend is **`woody_backend`** (FastAPI at `api.woody.uz`; REST under `/api/v1` + WebSocket). There is **no Supabase, no Firebase Auth, and no raw Dio/Remote layer**.
+`mebellar_app` is a **single Flutter binary** (`woody_app`, app id `com.mebellar.app`) that hosts two runtime surfaces — a **customer storefront** and a **seller back-office** — sharing one phone + OTP identity. The only backend is **`woody_backend`** (FastAPI at `api.woody.uz`; REST under `/api/v1` + WebSocket). There is **no Supabase, no Firebase Auth, and no raw Dio/Remote layer**.
 
 ## Layering — UI → Logic → Data
 
@@ -78,6 +78,10 @@ Boot resolves the mode from Hive with a **security guard** that demotes to custo
 ## Realtime
 
 `WoodyRealtimeService` holds one WebSocket to `wss://api.woody.uz/api/v1/realtime/ws`, routes per-user by `type`, and reconnects with exponential backoff. Events: `notification_created`, `chat_message`, `chat_read_receipt`, `order_status_changed`. It degrades gracefully to refresh-on-open + FCM foreground push when the socket is unavailable.
+
+## Connectivity
+
+`lib/core/connectivity/` — `ConnectivityService` (+ `NetworkCubit`). `RealConnectivityService` combines `connectivity_plus` link-state with a `ReachabilityProbe` (`InternetCheckerProbe`, real HTTP against our own `/health`; any status < 500 counts as reachable), so wifi-without-internet does not read as online. Going offline is **confirmed** after a 4s grace re-check — a single failed probe never raises the banner — and an in-flight confirmation is invalidated when a newer signal overtakes it. Poll cadence is asymmetric: 20s online (background heartbeat), 3s offline (fast recovery). `ReachabilityProbe` and `MockConnectivityService` are seams so tests flip state synchronously without real HTTP.
 
 ## Theming
 
