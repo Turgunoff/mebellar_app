@@ -229,6 +229,10 @@ dev_dependencies:
   # the top-level getTemporaryDirectory() and so cannot take an injected seam.
   # Pulled in transitively by path_provider at runtime.
   path_provider_platform_interface: ^2.1.2
+  # Test-only: MockPlatformInterfaceMixin, the sanctioned way to stand in for a
+  # PlatformInterface (a plain subclass is rejected by its token check). Needed
+  # by the PathProviderPlatform fake above; transitive at runtime.
+  plugin_platform_interface: ^2.1.8
 
 # Generated iOS/Android launcher icons from a single 1024×1024 master.
 # Run after changes:  dart run flutter_launcher_icons
