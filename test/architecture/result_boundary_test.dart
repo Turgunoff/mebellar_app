@@ -54,7 +54,6 @@ void main() {
     // migrating, or the deliberate mix was removed) must come out —
     // otherwise this test would silently stop checking that file.
     expect(_allowlist.keys, {
-      'seller_wallet_repository.dart',
       'seller_order_repository.dart',
       'shop_repository.dart',
     });
@@ -64,11 +63,14 @@ void main() {
 /// Files allowed to mix `Result<T>` and throw-style `Future<T>` methods,
 /// each for a documented reason — not a blanket exemption.
 const _allowlist = {
-  // T-10 (this roadmap entry) migration debt — order/seller_product/
-  // seller_onboarding are done; this is the one repo left. Remove once it
-  // migrates too.
-  'seller_wallet_repository.dart':
-      'T-10 in progress — the only remaining money-command repo on throw',
+  // T-10 is DONE: `seller_wallet_repository.dart` migrated fully to Result<T>
+  // and its entry was removed from here. There is no migration debt left on
+  // this axis — every remaining entry below is a deliberate design decision.
+  //
+  // ⚠️ Removing an entry means editing TWO places: this map AND the pinned
+  // key set in 'the allowlist matches exactly what it documents' above. Once a
+  // file is fully-Result the guard itself can no longer detect a stale entry
+  // (nothing mixes any more), so only the pinned set catches a half-removal.
 
   // Pre-existing, deliberate design from an EARLIER migration phase
   // (roadmap B.1) — NOT T-10 debt. Real failure surfaces (state-machine

@@ -185,7 +185,11 @@ class _ManualPaymentPendingScreenState
     try {
       switch (_live) {
         case WalletTopUpPendingArgs(:final topUp):
-          final rows = await sl<SellerWalletRepository>().fetchTopUps();
+          // A poll tick that could not reach the server just skips this
+          // round — the timer fires again in 5s.
+          final rows =
+              (await sl<SellerWalletRepository>().fetchTopUps()).valueOrNull;
+          if (rows == null) return;
           final match = rows
               .where((row) => row.id == topUp.id)
               .cast<WalletTopUp?>()
@@ -198,9 +202,11 @@ class _ManualPaymentPendingScreenState
           }
           setState(() => _live = next);
         case WalletDepositPendingArgs(:final deposit):
-          final status = await sl<SellerWalletRepository>().depositStatus(
-            deposit.id,
-          );
+          // Same as above: `null` here means "we could not ask", which must
+          // not be mistaken for 'cancelled'.
+          final status = (await sl<SellerWalletRepository>()
+                  .depositStatus(deposit.id))
+              .valueOrNull;
           if (!mounted) return;
           if (status == 'paid') {
             await _showWalletDepositPaid(deposit);
@@ -274,8 +280,16 @@ class _ManualPaymentPendingScreenState
       ),
     );
     if (ok != true || !mounted) return;
-    await sl<SellerWalletRepository>().cancelTopUp(topUp.id);
-    if (mounted) Navigator.of(context).pop();
+    // Pre-migration this threw into `runZonedGuarded`: the screen stayed open
+    // and the seller was told nothing at all. `Result` forces the error arm.
+    final result = await sl<SellerWalletRepository>().cancelTopUp(topUp.id);
+    if (!mounted) return;
+    result.fold(
+      ok: (_) => Navigator.of(context).pop(),
+      err: (failure) => ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(failure.message))),
+    );
   }
 
   Future<void> _confirmCancelAr() async {
@@ -328,8 +342,15 @@ class _ManualPaymentPendingScreenState
       ),
     );
     if (ok != true || !mounted) return;
-    await sl<SellerWalletRepository>().cancelDeposit(deposit.id);
-    if (mounted) Navigator.of(context).pop();
+    // Same silent-failure fix as `_confirmCancelTopUp`.
+    final result = await sl<SellerWalletRepository>().cancelDeposit(deposit.id);
+    if (!mounted) return;
+    result.fold(
+      ok: (_) => Navigator.of(context).pop(),
+      err: (failure) => ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(failure.message))),
+    );
   }
 
   Future<void> _confirmCancelTariff() async {

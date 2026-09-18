@@ -41,16 +41,19 @@ UX is a generic "couldn't load, retry", plus all local persistence:
   the bloc/cubit, which surfaces the same `Failure.message` UX a `Result` err
   would. Behaviour parity across the boundary is the point.
 
-## Known debt — one repo left
+## Migration debt — none left (T-10 closed 2026-09-18)
 
-**Done** (via `runCatching` + the shared `apiErrorToFailure` bridge in
-`core/network/api_error_messages.dart`): `payment`, `checkout`, `order`,
-`seller_product`, `seller_onboarding`.
+**Every `Result` repo is migrated** (via `runCatching` + the shared
+`apiErrorToFailure` bridge in `core/network/api_error_messages.dart`):
+`payment`, `checkout`, `order`, `seller_product`, `seller_onboarding`, and
+— last — **`seller_wallet`** (10 methods: balance, deposit, top-up,
+withdrawal).
 
-**Remaining:** `seller_wallet` — the last money-command repo still fully on
-`throw` (~10 methods: deposit / withdrawal / top-up). It stays **fully `throw`**
-until its turn (never mixed); new code there SHOULD be written `Result`-first so
-the migration shrinks.
+The wallet migration surfaced a real bug worth remembering: `cancelTopUp` and
+`cancelDeposit` used to throw past the UI into `runZonedGuarded`, leaving the
+screen open and telling the seller **nothing**. `Result<void>` made the error
+arm unskippable. That is the argument for this boundary in one example — a
+swallowed error on a money command is invisible until someone complains.
 
 ## The guard test
 
@@ -60,13 +63,17 @@ the migration shrinks.
 `watch()` feed is off this axis). A second test pins the allowlist keys exactly,
 so an exemption that no longer applies can't silently switch the guard off.
 
-Allowlisted today — only the first is debt:
+Allowlisted today — **both are deliberate; neither is debt**:
 
 | File | Why |
 |---|---|
-| `seller_wallet_repository.dart` | migration debt (above) — remove the entry when it migrates |
 | `seller_order_repository.dart` | **deliberate:** state transitions are `Result`; reference-data reads (`fetchCancelReasons`) and `dispose` degrade to a safe default rather than erroring the UI |
 | `shop_repository.dart` | **deliberate**, same earlier design decision |
+
+⚠️ **Removing an allowlist entry means editing TWO places** — the `_allowlist`
+map and the pinned key set in the second test. Once a file is fully-`Result` the
+guard itself can no longer notice a stale entry (nothing mixes any more), so
+only the pinned set catches a half-removal.
 
 > Since there is no CI (removed 2026-09-17), this guard only runs when **you**
 > run `flutter test`. Run it before committing repository changes.

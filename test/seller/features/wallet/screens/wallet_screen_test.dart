@@ -5,6 +5,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:woody_app/core/di/service_locator.dart';
 import 'package:woody_app/core/network/woody_api_client.dart';
+import 'package:woody_app/core/result/result.dart';
 import 'package:woody_app/core/storage/hive_boxes.dart';
 import 'package:woody_app/seller/features/wallet/screens/wallet_screen.dart';
 import 'package:woody_app/seller/features/wallet/widgets/wallet_info_bottom_sheet.dart';
@@ -33,7 +34,7 @@ void main() {
     walletRepo = _MockWalletRepo();
     when(
       () => walletRepo.fetch(recent: any(named: 'recent')),
-    ).thenAnswer((_) async => const SellerWallet());
+    ).thenAnswer((_) async => const Ok(SellerWallet()));
     sl.registerSingleton<SellerWalletRepository>(walletRepo);
     sl.registerSingleton<TariffRepository>(MockTariffRepository());
 

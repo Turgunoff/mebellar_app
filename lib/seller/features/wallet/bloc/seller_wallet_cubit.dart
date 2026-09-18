@@ -6,7 +6,6 @@ import 'package:hive/hive.dart';
 
 import '../../../../config/remote_config.dart';
 import '../../../../core/logging/app_logger.dart';
-import '../../../../core/network/api_error_messages.dart';
 import '../../../../core/network/woody_api_client.dart';
 import '../../../../core/result/result.dart';
 import '../../../../shared/models/seller_wallet.dart';
@@ -87,14 +86,19 @@ class SellerWalletCubit extends Cubit<SellerWalletState> {
 
   Future<void> load() async {
     emit(state.copyWith(status: WalletStatus.loading, clearError: true));
-    try {
-      final wallet = await _wallet.fetch(recent: 30);
-      if (isClosed) return;
-      emit(state.copyWith(status: WalletStatus.ready, wallet: wallet));
-    } catch (e, st) {
-      appLog.handle(e, st, 'SellerWalletCubit.load');
-      if (isClosed) return;
-      emit(state.copyWith(status: WalletStatus.failure, error: e.toString()));
+    final result = await _wallet.fetch(recent: 30);
+    if (isClosed) return;
+    switch (result) {
+      case Ok(:final value):
+        emit(state.copyWith(status: WalletStatus.ready, wallet: value));
+      case Err(:final failure):
+        appLog.warning('SellerWalletCubit.load: ${failure.message}');
+        emit(
+          state.copyWith(
+            status: WalletStatus.failure,
+            error: failure.message,
+          ),
+        );
     }
   }
 
@@ -112,25 +116,26 @@ class SellerWalletCubit extends Cubit<SellerWalletState> {
     emit(
       state.copyWith(depositStatus: DepositStatus.starting, clearError: true),
     );
-    try {
-      final link = await _wallet.createDeposit(
-        amount: amount,
-        provider: provider,
-      );
-      _pendingDepositId = link.reference;
-      if (isClosed) return link;
-      emit(state.copyWith(depositStatus: DepositStatus.idle));
-      return link;
-    } catch (e, st) {
-      appLog.handle(e, st, 'SellerWalletCubit.startDeposit');
-      if (isClosed) return null;
-      emit(
-        state.copyWith(
-          depositStatus: DepositStatus.failure,
-          error: apiErrorMessage(e),
-        ),
-      );
-      return null;
+    final result = await _wallet.createDeposit(
+      amount: amount,
+      provider: provider,
+    );
+    switch (result) {
+      case Ok(:final value):
+        _pendingDepositId = value.reference;
+        if (isClosed) return value;
+        emit(state.copyWith(depositStatus: DepositStatus.idle));
+        return value;
+      case Err(:final failure):
+        appLog.warning('SellerWalletCubit.startDeposit: ${failure.message}');
+        if (isClosed) return null;
+        emit(
+          state.copyWith(
+            depositStatus: DepositStatus.failure,
+            error: failure.message,
+          ),
+        );
+        return null;
     }
   }
 
@@ -142,12 +147,13 @@ class SellerWalletCubit extends Cubit<SellerWalletState> {
     final depositId = _pendingDepositId;
     if (depositId == null) return;
     for (var attempt = 0; attempt < 5; attempt++) {
-      String? status;
-      try {
-        status = await _wallet.depositStatus(depositId);
-      } catch (_) {
-        status = null;
-      }
+      // `.valueOrNull` is deliberate here and is NOT the banned `.valueOrNull!`:
+      // an Err means "we could not ask", which for a poll is the same as "not
+      // settled yet" — keep polling. Collapsing it to null preserves the
+      // pre-migration behaviour exactly. Note this is why the repository's
+      // `?? 'pending'` default stays on the Ok branch: a 200-but-empty body is
+      // a *server* pending, which must stay distinguishable from this.
+      final status = (await _wallet.depositStatus(depositId)).valueOrNull;
       if (isClosed) return;
       if (status == 'paid' || status == 'cancelled') {
         _pendingDepositId = null;
@@ -180,26 +186,28 @@ class SellerWalletCubit extends Cubit<SellerWalletState> {
         clearError: true,
       ),
     );
-    try {
-      final topUp = await _wallet.submitManualTopup(
-        amount: amount,
-        paymentScreenshotPath: paymentScreenshotPath,
-      );
-      if (isClosed) return null;
-      await load();
-      if (isClosed) return null;
-      emit(state.copyWith(manualTopUpStatus: ManualTopUpStatus.idle));
-      return topUp;
-    } catch (e, st) {
-      appLog.handle(e, st, 'SellerWalletCubit.submitManualTopup');
-      if (isClosed) return null;
-      emit(
-        state.copyWith(
-          manualTopUpStatus: ManualTopUpStatus.failure,
-          error: apiErrorMessage(e),
-        ),
-      );
-      return null;
+    final result = await _wallet.submitManualTopup(
+      amount: amount,
+      paymentScreenshotPath: paymentScreenshotPath,
+    );
+    if (isClosed) return null;
+    switch (result) {
+      case Ok(:final value):
+        await load();
+        if (isClosed) return null;
+        emit(state.copyWith(manualTopUpStatus: ManualTopUpStatus.idle));
+        return value;
+      case Err(:final failure):
+        appLog.warning(
+          'SellerWalletCubit.submitManualTopup: ${failure.message}',
+        );
+        emit(
+          state.copyWith(
+            manualTopUpStatus: ManualTopUpStatus.failure,
+            error: failure.message,
+          ),
+        );
+        return null;
     }
   }
 
@@ -224,26 +232,28 @@ class SellerWalletCubit extends Cubit<SellerWalletState> {
         clearError: true,
       ),
     );
-    try {
-      final row = await _wallet.requestWithdrawal(
-        amount: amount,
-        cardNumber: cardNumber,
-      );
-      if (isClosed) return null;
-      await load();
-      if (isClosed) return null;
-      emit(state.copyWith(withdrawStatus: WithdrawStatus.success));
-      return row;
-    } catch (e, st) {
-      appLog.handle(e, st, 'SellerWalletCubit.requestWithdrawal');
-      if (isClosed) return null;
-      emit(
-        state.copyWith(
-          withdrawStatus: WithdrawStatus.failure,
-          error: apiErrorMessage(e),
-        ),
-      );
-      return null;
+    final result = await _wallet.requestWithdrawal(
+      amount: amount,
+      cardNumber: cardNumber,
+    );
+    if (isClosed) return null;
+    switch (result) {
+      case Ok(:final value):
+        await load();
+        if (isClosed) return null;
+        emit(state.copyWith(withdrawStatus: WithdrawStatus.success));
+        return value;
+      case Err(:final failure):
+        appLog.warning(
+          'SellerWalletCubit.requestWithdrawal: ${failure.message}',
+        );
+        emit(
+          state.copyWith(
+            withdrawStatus: WithdrawStatus.failure,
+            error: failure.message,
+          ),
+        );
+        return null;
     }
   }
 

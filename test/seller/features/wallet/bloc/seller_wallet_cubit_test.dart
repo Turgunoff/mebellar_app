@@ -2,7 +2,9 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:woody_app/core/error/failure.dart';
 import 'package:woody_app/core/network/woody_api_client.dart';
+import 'package:woody_app/core/result/result.dart';
 import 'package:woody_app/seller/features/wallet/bloc/seller_wallet_cubit.dart';
 import 'package:woody_app/shared/models/seller_wallet.dart';
 import 'package:woody_app/shared/repositories/payment_repository.dart';
@@ -46,7 +48,7 @@ void main() {
     tariff = _MockTariffRepo();
     when(
       () => repo.fetch(recent: any(named: 'recent')),
-    ).thenAnswer((_) async => const SellerWallet(balance: 5000));
+    ).thenAnswer((_) async => const Ok(SellerWallet(balance: 5000)));
   });
 
   blocTest<SellerWalletCubit, SellerWalletState>(
@@ -57,7 +59,7 @@ void main() {
           amount: any(named: 'amount'),
           provider: any(named: 'provider'),
         ),
-      ).thenAnswer((_) async => _link);
+      ).thenAnswer((_) async => const Ok(_link));
       return build();
     },
     act: (cubit) async {
@@ -95,7 +97,9 @@ void main() {
           amount: any(named: 'amount'),
           provider: any(named: 'provider'),
         ),
-      ).thenThrow(Exception('boom'));
+      ).thenAnswer(
+        (_) async => const Err(ServerFailure(message: 'boom')),
+      );
       return build();
     },
     act: (cubit) =>
@@ -122,8 +126,10 @@ void main() {
           amount: any(named: 'amount'),
           provider: any(named: 'provider'),
         ),
-      ).thenAnswer((_) async => _link);
-      when(() => repo.depositStatus('dep-1')).thenAnswer((_) async => 'paid');
+      ).thenAnswer((_) async => const Ok(_link));
+      when(
+        () => repo.depositStatus('dep-1'),
+      ).thenAnswer((_) async => const Ok('paid'));
       return build();
     },
     act: (cubit) async {

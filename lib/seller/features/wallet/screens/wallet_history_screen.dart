@@ -6,6 +6,7 @@ import '../../../../core/logging/app_logger.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_fonts.dart';
 import '../../../../shared/payments/payment_pending_copy.dart';
+import '../../../../core/result/result.dart';
 import '../../../../shared/models/seller_wallet.dart';
 import '../../../../shared/repositories/seller_wallet_repository.dart';
 import '../../../../shared/widgets/error_state.dart';
@@ -38,29 +39,42 @@ class _WalletHistoryScreenState extends State<WalletHistoryScreen> {
       _loading = true;
       _failed = false;
     });
-    try {
-      final repo = widget.repo;
-      final results = await Future.wait([
-        repo.fetchTopUps(),
-        repo.fetchWithdrawals(),
-        repo.fetchTransactions(limit: 50),
-      ]);
-      if (mounted) {
+    // Start all three in flight, then await each separately. A `Future.wait`
+    // over three different `Result<T>`s collapses to `List<Result<Object>>`,
+    // whose `as` casts don't compile — and since a `Result` never rejects, the
+    // surrounding `catch` would be dead code anyway. Record + separate awaits
+    // keep the parallelism without either problem (pattern: `tariff_bloc.dart`).
+    final repo = widget.repo;
+    final futures = (
+      repo.fetchTopUps(),
+      repo.fetchWithdrawals(),
+      repo.fetchTransactions(limit: 50),
+    );
+    final topUpsR = await futures.$1;
+    final withdrawalsR = await futures.$2;
+    final transactionsR = await futures.$3;
+    if (!mounted) return;
+
+    // All-or-nothing, matching the pre-migration behaviour: this screen is a
+    // money ledger, and rendering two of three sections would quietly tell the
+    // seller "you have no withdrawals" when we simply failed to ask.
+    switch ((topUpsR, withdrawalsR, transactionsR)) {
+      case (Ok(value: final topUps), Ok(value: final withdrawals), Ok(value: final transactions)):
         setState(() {
-          _topUps = results[0] as List<WalletTopUp>;
-          _withdrawals = results[1] as List<WalletWithdrawal>;
-          _transactions = results[2] as List<WalletTransaction>;
+          _topUps = topUps;
+          _withdrawals = withdrawals;
+          _transactions = transactions;
           _loading = false;
         });
-      }
-    } catch (e, st) {
-      appLog.handle(e, st, '[wallet-history] load failed');
-      if (mounted) {
+      case _:
+        final failure = topUpsR.failureOrNull ??
+            withdrawalsR.failureOrNull ??
+            transactionsR.failureOrNull;
+        appLog.warning('[wallet-history] load failed: ${failure?.message}');
         setState(() {
           _loading = false;
           _failed = true;
         });
-      }
     }
   }
 
