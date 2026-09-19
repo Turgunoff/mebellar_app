@@ -1,0 +1,5 @@
+{
+  "APP_ENV": "prod",
+  "WOODY_API_URL": "https://api.woody.uz",
+  "YANDEX_GEOCODER_API_KEY": "762e99e2-af16-41cf-bff5-25992af0e7ee"
+}
